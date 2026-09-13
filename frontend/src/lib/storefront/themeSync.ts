@@ -1,4 +1,5 @@
 import type { StorefrontConfig } from '../../types/api/storefront';
+import { STOREFRONT_THEME_PRESETS, getRadiusValue, type ThemePresetId } from './storefrontDesignSystem';
 
 export type StorefrontThemeConfig = NonNullable<StorefrontConfig['theme']>;
 
@@ -51,14 +52,29 @@ export function adjustColorShade(hex: string, percent: number): string {
 export function applyStorefrontThemeVariables(theme?: Partial<StorefrontThemeConfig> | null): void {
   if (typeof document === 'undefined') return;
 
-  const primary = theme?.primary_color || '#10b981';
-  const accent = theme?.accent_color || '#14b8a6';
-  const navbarBg = theme?.navbar_bg || '#0f172a';
-  const navbarText = theme?.navbar_text_color || '#ffffff';
-  const footerBg = theme?.footer_bg || '#0f172a';
-  const footerText = theme?.footer_text_color || '#94a3b8';
-  const announcementBg = theme?.announcement_bg || '#10b981';
-  const announcementText = theme?.announcement_text_color || '#ffffff';
+  const presetId = (theme?.preset_id as ThemePresetId) || 'modern_retail';
+  const preset = STOREFRONT_THEME_PRESETS[presetId] || STOREFRONT_THEME_PRESETS['modern_retail'];
+
+  const primary = theme?.primary_color || preset.colors.primary || '#10b981';
+  const accent = theme?.accent_color || preset.colors.accent || '#14b8a6';
+  const navbarBg = theme?.navbar_bg || preset.colors.surface || '#0f172a';
+  const navbarText = theme?.navbar_text_color || (preset.colors.surface === '#ffffff' ? '#0f172a' : '#ffffff');
+  const footerBg = theme?.footer_bg || preset.colors.surfaceSunken || '#0f172a';
+  const footerText = theme?.footer_text_color || preset.colors.textMuted || '#94a3b8';
+  const announcementBg = theme?.announcement_bg || preset.announcementBg || '#10b981';
+  const announcementText = theme?.announcement_text_color || preset.announcementText || '#ffffff';
+
+  const fontHeading = theme?.font_family_heading || preset.typography.headingFont;
+  const fontBody = theme?.font_family_body || preset.typography.bodyFont;
+  const headingWeight = theme?.heading_weight || preset.typography.headingWeight;
+  const radius = theme?.border_radius || getRadiusValue(preset.radius);
+
+  const bg = theme?.background_color || preset.colors.background;
+  const surface = theme?.surface_color || preset.colors.surface;
+  const surfaceSunken = preset.colors.surfaceSunken;
+  const textColor = theme?.text_color || preset.colors.text;
+  const textMuted = theme?.text_muted_color || preset.colors.textMuted;
+  const borderColor = theme?.border_color || preset.colors.border;
 
   const { r: pR, g: pG, b: pB } = hexToRgb(primary);
   const primaryFg = getContrastColor(primary);
@@ -80,6 +96,17 @@ export function applyStorefrontThemeVariables(theme?: Partial<StorefrontThemeCon
   root.style.setProperty('--store-footer-text', footerText);
   root.style.setProperty('--store-announcement-bg', announcementBg);
   root.style.setProperty('--store-announcement-text', announcementText);
+
+  root.style.setProperty('--store-font-heading', fontHeading);
+  root.style.setProperty('--store-font-body', fontBody);
+  root.style.setProperty('--store-heading-weight', headingWeight);
+  root.style.setProperty('--store-radius', radius);
+  root.style.setProperty('--store-bg', bg);
+  root.style.setProperty('--store-surface', surface);
+  root.style.setProperty('--store-surface-sunken', surfaceSunken);
+  root.style.setProperty('--store-text', textColor);
+  root.style.setProperty('--store-text-muted', textMuted);
+  root.style.setProperty('--store-border', borderColor);
 }
 
 const BROADCAST_CHANNEL_NAME = 'storefront_theme_sync_channel';

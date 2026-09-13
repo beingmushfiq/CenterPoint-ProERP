@@ -1,14 +1,12 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { Link, useOutletContext, useParams, useSearchParams } from 'react-router-dom';
+import { useOutletContext, useParams, useSearchParams } from 'react-router-dom';
 import {
   Search,
   Grid3X3,
   LayoutList,
   Package,
-  ShoppingBag,
   Sparkles,
   Tag,
-  MessageCircle,
   X,
 } from 'lucide-react';
 import { api } from '../../lib/api/client';
@@ -16,6 +14,7 @@ import { useStorefrontCartStore } from '../../lib/storefront/storefrontCartStore
 import { SeoHead } from '../../components/seo/SeoHead';
 import { BreadcrumbNav } from '../../components/seo/BreadcrumbNav';
 import { SelectDropdown } from '../../components/ui/Dropdown';
+import { ProductCard } from '../../components/storefront/cards/ProductCard';
 import type { StorefrontConfig, StorefrontProduct } from '../../types/api/storefront';
 
 interface OutletContextType {
@@ -48,7 +47,6 @@ export const StorefrontCatalogPage: React.FC = () => {
     (searchParams.get('sort') as 'featured' | 'price-asc' | 'price-desc' | 'name') || 'featured'
   );
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  const [addingId, setAddingId] = useState<number | null>(null);
 
   const { addItem, openDrawer } = useStorefrontCartStore();
 
@@ -130,20 +128,7 @@ export const StorefrontCatalogPage: React.FC = () => {
     setSearchParams(searchParams);
   };
 
-  const handleAddToCart = async (product: StorefrontProduct, e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setAddingId(product.id);
-    try {
-      await addItem(product.id, 1);
-      openDrawer();
-    } finally {
-      setTimeout(() => setAddingId(null), 400);
-    }
-  };
-
   const currency = config?.currency ?? 'BDT';
-  const whatsappNumber = config?.whatsapp_number?.replace(/[^0-9]/g, '') || '8801700000000';
 
   const activeCategoryObj = categories.find((c) => c.id === selectedCategory);
   const pageTitle = activeCategoryObj
@@ -171,33 +156,34 @@ export const StorefrontCatalogPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6 py-2">
+    <div className="space-y-8 py-2">
       <SeoHead
         title={pageTitle}
-        description={`Explore genuine factory catalog for ${activeCategoryObj ? activeCategoryObj.name : 'wholesale and retail products'}. Fast direct delivery, instant WhatsApp ordering.`}
-        brandName={config?.name ?? 'Slice Mart'}
+        description={`Explore our verified catalog for ${activeCategoryObj ? activeCategoryObj.name : 'premium retail and commercial collections'}. Direct fulfillment and official customer warranty.`}
+        brandName={config?.name || 'Official Store'}
         schema={itemListSchema}
       />
 
       <BreadcrumbNav items={breadcrumbs} className="py-1" />
 
-      {/* Top Banner */}
-      <div className="relative overflow-hidden rounded-3xl border border-emerald-500/20 bg-linear-to-r from-emerald-950/80 via-zinc-900 to-zinc-950 p-6 sm:p-10 shadow-xl">
+      {/* Top Editorial Banner */}
+      <div className="relative overflow-hidden rounded-3xl border border-default bg-surface p-6 sm:p-10 shadow-xs">
         <div
-          className="pointer-events-none absolute -right-20 -top-20 h-60 w-60 rounded-full bg-emerald-500/10 blur-3xl"
+          className="pointer-events-none absolute -right-20 -top-20 h-60 w-60 rounded-full bg-primary/10 blur-3xl"
           aria-hidden="true"
         />
         <div className="relative z-10 space-y-3 max-w-2xl">
-          <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-400">
+          <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
             <Sparkles className="size-3.5" />
-            <span>Industrial Direct Outlet • Factory Fresh Sync</span>
+            <span>Official Store • Direct Fulfillment & Warranty</span>
           </div>
-          <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight text-white">
-            All Products & Collections
+          <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight text-default">
+            {activeCategoryObj ? activeCategoryObj.name : searchQuery ? `Search: "${searchQuery}"` : 'All Products & Collections'}
           </h1>
-          <p className="text-xs sm:text-sm text-zinc-300 leading-relaxed">
-            Browse our complete manufactured product catalog. Direct from automated production lines 
-            with zero middleman markup.
+          <p className="text-xs sm:text-sm text-muted leading-relaxed">
+            {activeCategoryObj
+              ? `Browse authentic items in ${activeCategoryObj.name}, sourced and inspected directly to strict commercial specifications.`
+              : 'Browse our complete catalog of commercial-grade goods and consumer products, fulfilled directly with guaranteed authenticity.'}
           </p>
         </div>
       </div>
@@ -211,46 +197,49 @@ export const StorefrontCatalogPage: React.FC = () => {
             onClick={() => handleCategorySelect(null)}
             className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
               selectedCategory === null
-                ? 'bg-emerald-500 text-zinc-950 shadow-md shadow-emerald-500/20 font-bold'
-                : 'bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 text-slate-700 dark:text-zinc-300 hover:border-slate-300 dark:hover:border-zinc-700 hover:text-slate-900 dark:hover:text-white shadow-xs'
+                ? 'bg-primary text-primary-fg shadow-md shadow-primary/20 font-bold'
+                : 'bg-surface border border-default text-muted hover:border-default/80 hover:text-default shadow-xs'
             }`}
           >
             <Tag className="size-3.5" />
             <span>All Categories ({products.length})</span>
           </button>
-
-          {categories.map((cat) => (
-            <button
-              key={cat.id}
-              type="button"
-              onClick={() => handleCategorySelect(cat.id)}
-              className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
-                selectedCategory === cat.id
-                  ? 'bg-emerald-500 text-zinc-950 shadow-md shadow-emerald-500/20 font-bold'
-                  : 'bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 text-slate-700 dark:text-zinc-300 hover:border-slate-300 dark:hover:border-zinc-700 hover:text-slate-900 dark:hover:text-white shadow-xs'
-              }`}
-            >
-              <span>{cat.name}</span>
-            </button>
-          ))}
+          {categories.map((cat) => {
+            const isSelected = selectedCategory === cat.id;
+            return (
+              <button
+                key={cat.id}
+                type="button"
+                onClick={() => handleCategorySelect(cat.id)}
+                className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
+                  isSelected
+                    ? 'bg-primary text-primary-fg shadow-md shadow-primary/20 font-bold'
+                    : 'bg-surface border border-default text-muted hover:border-default/80 hover:text-default shadow-xs'
+                }`}
+              >
+                <span>{cat.name}</span>
+              </button>
+            );
+          })}
         </div>
 
-        {/* Filter Controls Row */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3 rounded-2xl bg-white dark:bg-zinc-900/60 border border-slate-200 dark:border-zinc-800 shadow-xs">
-          {/* Search Bar */}
-          <div className="relative w-full sm:w-80">
-            <Search className="absolute left-3 top-2.5 size-4 text-slate-400 dark:text-zinc-400" />
+        {/* Toolbar: Search input + View mode toggle + Sort dropdown */}
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-2xl border border-default bg-surface shadow-xs">
+          {/* Left: Search input */}
+          <div className="relative w-full sm:max-w-xs">
+            <Search className="absolute left-3 top-2.5 size-4 text-muted" />
             <input
               type="text"
-              placeholder="Search products by title, SKU..."
+              placeholder="Search products, SKU or specs..."
               value={searchQuery}
               onChange={(e) => {
-                setSearchQuery(e.target.value);
-                if (e.target.value) searchParams.set('q', e.target.value);
+                const val = e.target.value;
+                setSearchQuery(val);
+                if (val.trim()) searchParams.set('q', val.trim());
                 else searchParams.delete('q');
                 setSearchParams(searchParams);
               }}
-              className="w-full rounded-xl bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 pl-9 pr-8 py-2 text-xs text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-zinc-500 focus:border-emerald-500 focus:outline-none"
+              className="w-full rounded-xl bg-surface-sunken border border-default pl-9 pr-8 py-2 text-xs text-default placeholder:text-muted focus:border-primary focus:outline-none"
             />
             {searchQuery && (
               <button
@@ -260,7 +249,7 @@ export const StorefrontCatalogPage: React.FC = () => {
                   searchParams.delete('q');
                   setSearchParams(searchParams);
                 }}
-                className="absolute right-2.5 top-2.5 text-slate-400 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white cursor-pointer"
+                className="absolute right-2.5 top-2.5 text-muted hover:text-default cursor-pointer"
               >
                 <X className="size-3.5" />
               </button>
@@ -270,7 +259,7 @@ export const StorefrontCatalogPage: React.FC = () => {
           {/* Right: Sort & View Toggle */}
           <div className="flex items-center gap-2.5 w-full sm:w-auto justify-between sm:justify-end">
             <div className="flex items-center gap-2 text-xs">
-              <span className="text-slate-500 dark:text-zinc-400 hidden md:inline font-medium">Sort:</span>
+              <span className="text-muted hidden md:inline font-medium">Sort:</span>
               <SelectDropdown
                 options={[
                   { value: 'featured', label: 'Featured / Standard' },
@@ -290,14 +279,14 @@ export const StorefrontCatalogPage: React.FC = () => {
             </div>
 
             {/* View Mode Switcher */}
-            <div className="flex items-center rounded-xl bg-slate-100 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 p-0.5">
+            <div className="flex items-center rounded-xl bg-surface-sunken border border-default p-0.5">
               <button
                 type="button"
                 onClick={() => setViewMode('grid')}
                 className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
                   viewMode === 'grid'
-                    ? 'bg-white dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 shadow-xs'
-                    : 'text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white'
+                    ? 'bg-surface text-primary shadow-xs border border-default'
+                    : 'text-muted hover:text-default'
                 }`}
                 title="Grid view"
               >
@@ -308,8 +297,8 @@ export const StorefrontCatalogPage: React.FC = () => {
                 onClick={() => setViewMode('list')}
                 className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
                   viewMode === 'list'
-                    ? 'bg-white dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 shadow-xs'
-                    : 'text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white'
+                    ? 'bg-surface text-primary shadow-xs border border-default'
+                    : 'text-muted hover:text-default'
                 }`}
                 title="List view"
               >
@@ -323,13 +312,13 @@ export const StorefrontCatalogPage: React.FC = () => {
       {/* Products Display */}
       {loading ? (
         <div className="flex h-96 items-center justify-center">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-emerald-500 border-t-transparent" />
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
         </div>
       ) : sortedProducts.length === 0 ? (
-        <div className="rounded-3xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/40 p-12 text-center space-y-4 shadow-xs">
-          <Package className="mx-auto size-12 text-slate-300 dark:text-zinc-600" />
-          <h3 className="text-base font-bold text-slate-900 dark:text-white">No products found</h3>
-          <p className="text-xs text-slate-500 dark:text-zinc-400 max-w-sm mx-auto">
+        <div className="rounded-3xl border border-default bg-surface p-12 text-center space-y-4 shadow-xs">
+          <Package className="mx-auto size-12 text-muted" />
+          <h3 className="text-base font-bold text-default">No products found</h3>
+          <p className="text-xs text-muted max-w-sm mx-auto">
             We couldn't find any products matching your active filters. Try searching for another term or reset categories.
           </p>
           <button
@@ -339,150 +328,44 @@ export const StorefrontCatalogPage: React.FC = () => {
               setSearchQuery('');
               setSearchParams({});
             }}
-            className="rounded-xl bg-slate-100 dark:bg-zinc-800 px-4 py-2 text-xs font-semibold text-slate-700 dark:text-zinc-200 hover:bg-slate-200 dark:hover:bg-zinc-700 border border-slate-200 dark:border-transparent cursor-pointer"
+            className="rounded-xl bg-surface-sunken px-4 py-2 text-xs font-semibold text-default hover:bg-surface border border-default cursor-pointer"
           >
             Clear All Filters
           </button>
         </div>
       ) : viewMode === 'grid' ? (
         /* GRID VIEW */
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
-          {sortedProducts.map((product) => {
-            const isAdding = addingId === product.id;
-            const price = parseFloat(product.default_sale_price || '0').toFixed(2);
-
-            return (
-              <div
-                key={product.id}
-                className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-slate-200 dark:border-zinc-800/80 bg-white dark:bg-zinc-900/50 p-4 transition-all duration-300 hover:-translate-y-1 hover:border-emerald-500/40 hover:shadow-xl hover:shadow-emerald-500/5 shadow-xs"
-              >
-                {/* Visual Thumbnail */}
-                <Link to={`/store/${subdomain}/products/${product.sku}`} className="block">
-                  <div className="relative aspect-square w-full overflow-hidden rounded-xl bg-slate-50 dark:bg-zinc-950/80 border border-slate-200/80 dark:border-zinc-800/60 flex items-center justify-center p-6 group-hover:bg-slate-100 dark:group-hover:bg-zinc-950 transition-colors">
-                    <Package className="size-20 text-slate-300 dark:text-zinc-700 group-hover:text-emerald-500/80 transition-colors" />
-                    <span className="absolute top-2.5 left-2.5 rounded-full bg-white/90 dark:bg-zinc-900/90 border border-slate-200 dark:border-zinc-700 px-2 py-0.5 font-mono text-[10px] font-semibold text-slate-600 dark:text-zinc-300 shadow-2xs">
-                      {product.sku}
-                    </span>
-                    <span className="absolute top-2.5 right-2.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
-                      Factory Direct
-                    </span>
-                  </div>
-                </Link>
-
-                {/* Details */}
-                <div className="space-y-3 pt-3 flex-1 flex flex-col justify-between">
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-zinc-400 font-mono">
-                      {product.category && <span>{product.category.name}</span>}
-                      {product.brand && <span>• {product.brand.name}</span>}
-                    </div>
-                    <Link
-                      to={`/store/${subdomain}/products/${product.sku}`}
-                      className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors line-clamp-1 block"
-                    >
-                      {product.name}
-                    </Link>
-                  </div>
-
-                  {/* Price & Add to Cart */}
-                  <div className="pt-2 border-t border-slate-100 dark:border-zinc-800/60 flex items-center justify-between gap-2">
-                    <div>
-                      <div className="text-[10px] text-slate-500 dark:text-zinc-400 font-medium">Direct Price</div>
-                      <div className="text-sm font-extrabold text-emerald-600 dark:text-emerald-400 font-mono">
-                        {currency} {price}
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-1.5">
-                      {config?.whatsapp_ordering_enabled !== false && (
-                        <a
-                          href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(
-                            `Hi, I want to order ${product.name} (SKU: ${product.sku}, Price: ${currency} ${price})`
-                          )}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="p-2 rounded-xl bg-slate-100 dark:bg-zinc-800 hover:bg-slate-200 dark:hover:bg-zinc-700 text-emerald-600 dark:text-emerald-400 transition-colors border border-slate-200/80 dark:border-transparent cursor-pointer"
-                          title="Instant WhatsApp Order"
-                        >
-                          <MessageCircle className="size-4" />
-                        </a>
-                      )}
-
-                      <button
-                        type="button"
-                        onClick={(e) => handleAddToCart(product, e)}
-                        disabled={isAdding}
-                        className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold text-xs shadow-md shadow-emerald-500/20 transition-all cursor-pointer active:scale-95"
-                      >
-                        <ShoppingBag className="size-3.5" />
-                        <span>{isAdding ? 'Adding...' : 'Add'}</span>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          {sortedProducts.map((product) => (
+            <ProductCard
+              key={product.id}
+              product={product}
+              cardStyle={config?.theme?.card_style || 'editorial'}
+              currency={currency}
+              subdomain={subdomain}
+              onAddToCart={(p) => {
+                void addItem(p.id, 1);
+                openDrawer();
+              }}
+            />
+          ))}
         </div>
       ) : (
         /* LIST VIEW */
-        <div className="space-y-3">
-          {sortedProducts.map((product) => {
-            const isAdding = addingId === product.id;
-            const price = parseFloat(product.default_sale_price || '0').toFixed(2);
-
-            return (
-              <div
-                key={product.id}
-                className="group flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-2xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/50 hover:border-emerald-500/40 hover:bg-slate-50/50 dark:hover:bg-zinc-900 transition-all shadow-xs"
-              >
-                <div className="flex items-center gap-4 min-w-0 w-full sm:w-auto">
-                  <div className="size-16 rounded-xl bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 flex items-center justify-center shrink-0">
-                    <Package className="size-8 text-slate-400 dark:text-zinc-600 group-hover:text-emerald-500" />
-                  </div>
-                  <div className="min-w-0 space-y-1">
-                    <div className="flex items-center gap-2 text-[11px] text-slate-500 dark:text-zinc-400 font-mono">
-                      <span className="text-slate-400 dark:text-zinc-500">{product.sku}</span>
-                      {product.category && <span>• {product.category.name}</span>}
-                    </div>
-                    <Link
-                      to={`/store/${subdomain}/products/${product.sku}`}
-                      className="text-sm font-bold text-slate-900 dark:text-white hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors block truncate"
-                    >
-                      {product.name}
-                    </Link>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-6 justify-between w-full sm:w-auto shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100 dark:border-zinc-800">
-                  <div className="text-right">
-                    <div className="text-[10px] text-slate-500 dark:text-zinc-400 font-medium">Direct Price</div>
-                    <div className="text-sm font-extrabold text-emerald-600 dark:text-emerald-400 font-mono">
-                      {currency} {price}
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <Link
-                      to={`/store/${subdomain}/products/${product.sku}`}
-                      className="px-3 py-2 rounded-xl bg-slate-100 dark:bg-zinc-800 hover:bg-slate-200 dark:hover:bg-zinc-700 text-slate-700 dark:text-zinc-200 text-xs font-semibold transition-colors border border-slate-200 dark:border-transparent"
-                    >
-                      Details
-                    </Link>
-                    <button
-                      type="button"
-                      onClick={(e) => handleAddToCart(product, e)}
-                      disabled={isAdding}
-                      className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold text-xs shadow-md shadow-emerald-500/20 transition-all cursor-pointer"
-                    >
-                      <ShoppingBag className="size-3.5" />
-                      <span>{isAdding ? 'Adding...' : 'Add to Cart'}</span>
-                    </button>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
+        <div className="space-y-4">
+          {sortedProducts.map((product) => (
+            <ProductCard
+              key={product.id}
+              product={product}
+              cardStyle="horizontal"
+              currency={currency}
+              subdomain={subdomain}
+              onAddToCart={(p) => {
+                void addItem(p.id, 1);
+                openDrawer();
+              }}
+            />
+          ))}
         </div>
       )}
     </div>

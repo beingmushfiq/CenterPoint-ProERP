@@ -103,8 +103,13 @@ final class TenantResolver
             }
         }
 
-        // In local/testing ONLY: allow default storefront if no explicit domain was requested
-        if (app()->environment('local', 'testing')) {
+        // In local/testing ONLY: allow default storefront if no explicit subdomain/domain was requested
+        $hasExplicitRequest = $request->hasHeader('X-Tenant-Subdomain')
+            || $request->hasHeader('X-Storefront-Subdomain')
+            || $request->has('subdomain')
+            || (bool) $pathSubdomain;
+
+        if (! $hasExplicitRequest && app()->environment('local', 'testing')) {
             return Storefront::withoutTenantScope()
                 ->where('status', '!=', 'suspended')
                 ->first();

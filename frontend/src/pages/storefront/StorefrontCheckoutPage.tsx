@@ -21,7 +21,7 @@ export const StorefrontCheckoutPage: React.FC = () => {
     phone: '',
     email: '',
     delivery_address: '',
-    city: 'Dhaka',
+    city: '',
     payment_method: 'cod' as 'cod' | 'online' | 'bkash' | 'nagad',
     notes: '',
   });
@@ -162,50 +162,51 @@ export const StorefrontCheckoutPage: React.FC = () => {
                 <input
                   type="tel"
                   required
-                  placeholder="+8801..."
+                  placeholder="+1 (555) 000-0000 or local number"
                   value={form.phone}
                   onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                  className="w-full rounded-xl border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-900 px-3.5 py-2.5 text-xs text-slate-900 dark:text-zinc-100 placeholder-slate-400 dark:placeholder-zinc-500 focus:border-emerald-500 focus:outline-none"
+                  className="w-full rounded-xl border border-default bg-surface-sunken px-3.5 py-2.5 text-xs text-default placeholder:text-muted focus:border-primary focus:outline-none"
                 />
               </div>
             </div>
 
             <div>
-              <label className="text-[11px] font-semibold text-slate-700 dark:text-zinc-400 uppercase tracking-wider block mb-1">
+              <label className="text-[11px] font-semibold text-muted uppercase tracking-wider block mb-1">
                 Email Address (Optional)
               </label>
               <input
                 type="email"
-                placeholder="john@example.com"
+                placeholder="customer@example.com"
                 value={form.email}
                 onChange={(e) => setForm({ ...form, email: e.target.value })}
-                className="w-full rounded-xl border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-900 px-3.5 py-2.5 text-xs text-slate-900 dark:text-zinc-100 placeholder-slate-400 dark:placeholder-zinc-500 focus:border-emerald-500 focus:outline-none"
+                className="w-full rounded-xl border border-default bg-surface-sunken px-3.5 py-2.5 text-xs text-default placeholder:text-muted focus:border-primary focus:outline-none"
               />
             </div>
 
             <div>
-              <label className="text-[11px] font-semibold text-slate-700 dark:text-zinc-400 uppercase tracking-wider block mb-1">
+              <label className="text-[11px] font-semibold text-muted uppercase tracking-wider block mb-1">
                 Delivery Address *
               </label>
               <textarea
                 required
                 rows={3}
-                placeholder="House, Road, Area / Apartment details..."
+                placeholder="Street address, building, suite, or delivery instructions..."
                 value={form.delivery_address}
                 onChange={(e) => setForm({ ...form, delivery_address: e.target.value })}
-                className="w-full rounded-xl border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-900 px-3.5 py-2.5 text-xs text-slate-900 dark:text-zinc-100 placeholder-slate-400 dark:placeholder-zinc-500 focus:border-emerald-500 focus:outline-none"
+                className="w-full rounded-xl border border-default bg-surface-sunken px-3.5 py-2.5 text-xs text-default placeholder:text-muted focus:border-primary focus:outline-none"
               />
             </div>
 
             <div>
-              <label className="text-[11px] font-semibold text-slate-700 dark:text-zinc-400 uppercase tracking-wider block mb-1">
-                City / District
+              <label className="text-[11px] font-semibold text-muted uppercase tracking-wider block mb-1">
+                City / Region
               </label>
               <input
                 type="text"
+                placeholder="e.g. City, State or Postal Area"
                 value={form.city}
                 onChange={(e) => setForm({ ...form, city: e.target.value })}
-                className="w-full rounded-xl border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-900 px-3.5 py-2.5 text-xs text-slate-900 dark:text-zinc-100 placeholder-slate-400 dark:placeholder-zinc-500 focus:border-emerald-500 focus:outline-none"
+                className="w-full rounded-xl border border-default bg-surface-sunken px-3.5 py-2.5 text-xs text-default placeholder:text-muted focus:border-primary focus:outline-none"
               />
             </div>
           </div>

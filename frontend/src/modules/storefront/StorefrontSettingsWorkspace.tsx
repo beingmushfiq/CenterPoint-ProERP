@@ -29,6 +29,11 @@ import { useWorkspaceTab } from '../../hooks/useWorkspaceTab';
 import { useCurrency } from '../../hooks/useCurrency';
 import { notify } from '../../components/ui/Toast';
 import { broadcastThemeDraft } from '../../lib/storefront/themeSync';
+import {
+  STOREFRONT_THEME_PRESETS,
+  type ThemePresetId,
+  type ProductCardStyle,
+} from '../../lib/storefront/storefrontDesignSystem';
 
 interface PublishedProductItem {
   id: number;
@@ -60,6 +65,8 @@ export const StorefrontSettingsWorkspace: React.FC = () => {
     name: '',
     subdomain: '',
     currency: currencyCode,
+    theme_preset: 'editorial' as ThemePresetId,
+    card_style: 'editorial' as ProductCardStyle,
     primary_color: '#10b981',
     accent_color: '#14b8a6',
     hero_title: '',
@@ -81,7 +88,7 @@ export const StorefrontSettingsWorkspace: React.FC = () => {
         title: 'Explore',
         links: [
           { label: 'All Products', url: '/products' },
-          { label: 'Factory Direct Sourcing', url: '/products' },
+          { label: 'Featured Collections', url: '/products' },
         ],
       },
       {
@@ -130,16 +137,18 @@ export const StorefrontSettingsWorkspace: React.FC = () => {
               name: conf.name ?? '',
               subdomain: conf.subdomain ?? '',
               currency: conf.currency ?? currencyCode,
+              theme_preset: ((conf.theme as Record<string, unknown>)?.theme_preset as ThemePresetId) || 'editorial',
+              card_style: ((conf.theme as Record<string, unknown>)?.card_style as ProductCardStyle) || 'editorial',
               primary_color: conf.theme?.primary_color ?? '#10b981',
               accent_color: conf.theme?.accent_color ?? '#14b8a6',
-              hero_title: conf.theme?.hero_title ?? 'Factory Fresh Goods',
+              hero_title: conf.theme?.hero_title ?? 'Designed for Excellence, Crafted for Longevity',
               hero_subtitle:
-                conf.theme?.hero_subtitle ?? 'Industrial quality delivered straight to your door.',
+                conf.theme?.hero_subtitle ?? 'Explore curated collections built to the highest commercial standards with direct-to-consumer value.',
               navbar_bg: conf.theme?.navbar_bg ?? '#0f172a',
               navbar_text_color: conf.theme?.navbar_text_color ?? '#ffffff',
               announcement_enabled: conf.theme?.announcement_enabled ?? false,
               announcement_text:
-                conf.theme?.announcement_text ?? '🎉 Factory Direct Deals: Authentic manufacturing quality delivered straight to your doorstep!',
+                conf.theme?.announcement_text ?? 'Complimentary shipping on qualifying orders • Direct warranty protection',
               announcement_bg: conf.theme?.announcement_bg ?? '#10b981',
               announcement_text_color: conf.theme?.announcement_text_color ?? '#ffffff',
               menu_items:
@@ -262,6 +271,8 @@ export const StorefrontSettingsWorkspace: React.FC = () => {
     setSaving(true);
     try {
       const themePayload = {
+        theme_preset: form.theme_preset,
+        card_style: form.card_style,
         primary_color: form.primary_color,
         accent_color: form.accent_color,
         hero_title: form.hero_title,
@@ -539,90 +550,219 @@ export const StorefrontSettingsWorkspace: React.FC = () => {
 
       {/* Tab Content */}
       {activeTab === 'branding' && (
-        <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
-          {/* Left: Customization Form */}
-          <div className="rounded-2xl border border-default bg-surface p-6 space-y-4 shadow-xs">
-            <h2 className="text-sm font-bold text-default flex items-center gap-2">
-              <Layout className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-              <span>Theme & Copy Customizer</span>
-            </h2>
-
-            <div className="space-y-3">
-              <div>
-                <label className="text-[11px] font-semibold text-muted uppercase tracking-wider block mb-1">
-                  Storefront Name
-                </label>
-                <input
-                  type="text"
-                  value={form.name}
-                  onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  className="w-full rounded-xl border border-default bg-surface-sunken px-3.5 py-2 text-xs text-default focus:border-primary focus:outline-none"
-                />
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
+          {/* Left: Customization Form & Theme Presets */}
+          <div className="lg:col-span-7 space-y-6">
+            {/* Curated Theme Preset Engine */}
+            <div className="rounded-2xl border border-default bg-surface p-6 space-y-4 shadow-xs">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-sm font-bold text-default flex items-center gap-2">
+                    <Palette className="h-4 w-4 text-primary" />
+                    <span>Curated Commercial Theme Presets</span>
+                  </h2>
+                  <p className="text-xs text-muted mt-0.5">
+                    Select a world-class, industry-neutral design direction tailored to your brand identity.
+                  </p>
+                </div>
+                <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded-full bg-primary/10 text-primary font-bold">
+                  8 Presets
+                </span>
               </div>
 
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                {(Object.entries(STOREFRONT_THEME_PRESETS) as [ThemePresetId, (typeof STOREFRONT_THEME_PRESETS)[ThemePresetId]][]).map(([key, preset]) => {
+                  const isSelected = form.theme_preset === key;
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => {
+                        setForm((prev) => ({
+                          ...prev,
+                          theme_preset: key,
+                          primary_color: preset.colors.primary,
+                          accent_color: preset.colors.accent,
+                          navbar_bg: preset.colors.surface,
+                          navbar_text_color: preset.colors.text,
+                          footer_bg: preset.colors.surfaceSunken,
+                          footer_text_color: preset.colors.textMuted,
+                          card_style: preset.cardStyle,
+                        }));
+                        notify.success(`Switched to "${preset.name}" preset`, {
+                          description: `Typography (${preset.typography.headingFont.split(',')[0]?.replace(/['"]/g, '') || 'System'}) and color tokens loaded.`,
+                        });
+                      }}
+                      className={`text-left p-3.5 rounded-xl border transition-all cursor-pointer relative flex flex-col justify-between gap-3 ${
+                        isSelected
+                          ? 'border-primary bg-primary/5 ring-2 ring-primary/20 shadow-xs'
+                          : 'border-default bg-surface-sunken hover:border-default/80 hover:bg-surface'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-xs font-bold text-default">{preset.name}</span>
+                            {isSelected && (
+                              <CheckCircle2 className="size-3.5 text-primary shrink-0" />
+                            )}
+                          </div>
+                          <p className="text-[11px] text-muted line-clamp-2 mt-0.5">{preset.description}</p>
+                        </div>
+                      </div>
 
+                      <div className="flex items-center justify-between pt-2 border-t border-default/40 text-[10px] text-muted">
+                        <span className="font-mono truncate">{preset.typography.headingFont.split(',')[0]?.replace(/['"]/g, '') || 'Sans'}</span>
+                        <div className="flex items-center gap-1">
+                          <span
+                            className="size-3.5 rounded-full border border-black/10 shadow-2xs"
+                            style={{ backgroundColor: preset.colors.primary }}
+                            title={`Primary: ${preset.colors.primary}`}
+                          />
+                          <span
+                            className="size-3.5 rounded-full border border-black/10 shadow-2xs"
+                            style={{ backgroundColor: preset.colors.accent }}
+                            title={`Accent: ${preset.colors.accent}`}
+                          />
+                          <span
+                            className="size-3.5 rounded-full border border-black/10 shadow-2xs"
+                            style={{ backgroundColor: preset.colors.surfaceSunken }}
+                            title={`Surface: ${preset.colors.surfaceSunken}`}
+                          />
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
 
-              <div className="grid grid-cols-2 gap-4">
+            {/* Product Card Style Variant Picker */}
+            <div className="rounded-2xl border border-default bg-surface p-6 space-y-4 shadow-xs">
+              <div>
+                <h2 className="text-sm font-bold text-default flex items-center gap-2">
+                  <Tag className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                  <span>Default Product Card Display Style</span>
+                </h2>
+                <p className="text-xs text-muted mt-0.5">
+                  Choose how products are presented across storefront grids, category pages, and search.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                {[
+                  { id: 'editorial', label: 'Editorial', desc: 'Serif titles, subtle borders, high-contrast badges' },
+                  { id: 'minimal', label: 'Swiss Minimal', desc: 'Flush borders, mono labels, pure typography' },
+                  { id: 'commerce', label: 'Modern Commerce', desc: 'Soft rounded corners, prominent quick actions' },
+                  { id: 'compact', label: 'Compact Retail', desc: 'Dense grids, tight padding, quick multi-add' },
+                  { id: 'horizontal', label: 'Horizontal List', desc: 'Wide row layout, detailed descriptions' },
+                  { id: 'b2b', label: 'B2B Wholesale', desc: 'Bulk tier indicators, SKU tags, specs view' },
+                ].map((style) => {
+                  const isSelected = form.card_style === style.id;
+                  return (
+                    <button
+                      key={style.id}
+                      type="button"
+                      onClick={() => setForm((prev) => ({ ...prev, card_style: style.id as ProductCardStyle }))}
+                      className={`text-left p-3 rounded-xl border transition-all cursor-pointer ${
+                        isSelected
+                          ? 'border-emerald-500 bg-emerald-500/10 text-default ring-1 ring-emerald-500/30'
+                          : 'border-default bg-surface-sunken text-muted hover:text-default hover:bg-surface'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs font-bold capitalize">{style.label}</span>
+                        {isSelected && <span className="size-1.5 rounded-full bg-emerald-500" />}
+                      </div>
+                      <p className="text-[10px] text-muted line-clamp-2">{style.desc}</p>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Custom Brand Colors & Titles Form */}
+            <div className="rounded-2xl border border-default bg-surface p-6 space-y-4 shadow-xs">
+              <h2 className="text-sm font-bold text-default flex items-center gap-2">
+                <Layout className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                <span>Storefront Brand Identity & Tokens</span>
+              </h2>
+
+              <div className="space-y-3">
                 <div>
                   <label className="text-[11px] font-semibold text-muted uppercase tracking-wider block mb-1">
-                    Primary Accent Color
+                    Storefront Public Name
                   </label>
-                  <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={form.name}
+                    onChange={(e) => setForm({ ...form, name: e.target.value })}
+                    className="w-full rounded-xl border border-default bg-surface-sunken px-3.5 py-2 text-xs text-default focus:border-primary focus:outline-none"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-[11px] font-semibold text-muted uppercase tracking-wider block mb-1">
+                      Primary Accent Color
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="color"
+                        value={form.primary_color}
+                        onChange={(e) => setForm({ ...form, primary_color: e.target.value })}
+                        className="h-8 w-12 rounded-lg border border-default bg-transparent cursor-pointer"
+                      />
+                      <span className="font-mono text-xs text-default">{form.primary_color}</span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] font-semibold text-muted uppercase tracking-wider block mb-1">
+                      Store Currency Code
+                    </label>
                     <input
-                      type="color"
-                      value={form.primary_color}
-                      onChange={(e) => setForm({ ...form, primary_color: e.target.value })}
-                      className="h-8 w-12 rounded-lg border border-default bg-transparent cursor-pointer"
+                      type="text"
+                      value={form.currency}
+                      onChange={(e) => setForm({ ...form, currency: e.target.value.toUpperCase() })}
+                      className="w-full rounded-xl border border-default bg-surface-sunken px-3.5 py-2 text-xs text-default font-mono focus:border-primary focus:outline-none"
                     />
-                    <span className="font-mono text-xs text-default">{form.primary_color}</span>
                   </div>
                 </div>
 
                 <div>
                   <label className="text-[11px] font-semibold text-muted uppercase tracking-wider block mb-1">
-                    Store Currency
+                    Hero Section Main Headline
                   </label>
                   <input
                     type="text"
-                    value={form.currency}
-                    onChange={(e) => setForm({ ...form, currency: e.target.value.toUpperCase() })}
+                    value={form.hero_title}
+                    onChange={(e) => setForm({ ...form, hero_title: e.target.value })}
                     className="w-full rounded-xl border border-default bg-surface-sunken px-3.5 py-2 text-xs text-default focus:border-primary focus:outline-none"
                   />
                 </div>
-              </div>
 
-              <div>
-                <label className="text-[11px] font-semibold text-muted uppercase tracking-wider block mb-1">
-                  Hero Title
-                </label>
-                <input
-                  type="text"
-                  value={form.hero_title}
-                  onChange={(e) => setForm({ ...form, hero_title: e.target.value })}
-                  className="w-full rounded-xl border border-default bg-surface-sunken px-3.5 py-2 text-xs text-default focus:border-primary focus:outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="text-[11px] font-semibold text-muted uppercase tracking-wider block mb-1">
-                  Hero Subtitle
-                </label>
-                <textarea
-                  rows={2}
-                  value={form.hero_subtitle}
-                  onChange={(e) => setForm({ ...form, hero_subtitle: e.target.value })}
-                  className="w-full rounded-xl border border-default bg-surface-sunken px-3.5 py-2 text-xs text-default focus:border-primary focus:outline-none"
-                />
+                <div>
+                  <label className="text-[11px] font-semibold text-muted uppercase tracking-wider block mb-1">
+                    Hero Section Subtitle / Copy
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={form.hero_subtitle}
+                    onChange={(e) => setForm({ ...form, hero_subtitle: e.target.value })}
+                    className="w-full rounded-xl border border-default bg-surface-sunken px-3.5 py-2 text-xs text-default focus:border-primary focus:outline-none"
+                  />
+                </div>
               </div>
             </div>
           </div>
 
           {/* Right: Live Mock Preview */}
-          <div className="space-y-4">
+          <div className="lg:col-span-5 space-y-4">
             <div className="flex items-center justify-between text-xs font-semibold text-muted">
-              <span>Live Theme Preview</span>
+              <span>Dynamic Storefront Preview</span>
               <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                Synchronized
+                Preset: {STOREFRONT_THEME_PRESETS[form.theme_preset as ThemePresetId]?.name || form.theme_preset}
               </span>
             </div>
 
@@ -656,10 +796,25 @@ export const StorefrontSettingsWorkspace: React.FC = () => {
                     className="inline-block rounded-full px-2.5 py-0.5 text-[10px] font-bold"
                     style={{ backgroundColor: `${form.primary_color}22`, color: form.primary_color }}
                   >
-                    Factory Direct
+                    Official Store • Direct Fulfillment
                   </div>
                   <h3 className="text-lg font-bold text-default leading-tight">{form.hero_title}</h3>
                   <p className="text-xs text-muted line-clamp-2">{form.hero_subtitle}</p>
+                </div>
+              </div>
+
+              {/* Mock Card Preview */}
+              <div className="p-4 rounded-2xl bg-surface border border-default space-y-3">
+                <div className="flex items-center justify-between text-[11px]">
+                  <span className="text-muted uppercase font-bold tracking-wider">Sample Product Card</span>
+                  <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-surface-sunken border border-default capitalize text-muted">
+                    {form.card_style}
+                  </span>
+                </div>
+                <div className="h-32 rounded-xl bg-surface-sunken border border-dashed border-default flex flex-col items-center justify-center p-3 text-center">
+                  <Tag className="size-6 text-muted/50 mb-1" />
+                  <span className="text-xs font-semibold text-default">Product Card Display</span>
+                  <span className="text-[10px] text-muted">Renders using active preset styling & radius</span>
                 </div>
               </div>
             </div>

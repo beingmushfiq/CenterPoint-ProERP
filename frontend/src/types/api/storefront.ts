@@ -13,6 +13,17 @@ export interface StorefrontConfig {
     hero_title: string;
     hero_subtitle: string;
     hero_image?: string | null;
+    preset_id?: 'editorial' | 'modern_retail' | 'industrial' | 'luxury' | 'minimal' | 'bold_commerce' | 'lifestyle' | 'corporate';
+    font_family_heading?: string;
+    font_family_body?: string;
+    heading_weight?: string;
+    border_radius?: string;
+    card_style?: 'minimal' | 'editorial' | 'commerce' | 'compact' | 'horizontal' | 'b2b';
+    background_color?: string;
+    surface_color?: string;
+    text_color?: string;
+    text_muted_color?: string;
+    border_color?: string;
     navbar_bg?: string;
     navbar_text_color?: string;
     announcement_enabled?: boolean;

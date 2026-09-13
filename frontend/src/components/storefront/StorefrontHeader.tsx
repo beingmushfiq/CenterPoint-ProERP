@@ -21,7 +21,7 @@ export const StorefrontHeader: React.FC<StorefrontHeaderProps> = ({ config, subd
 
   const theme = config?.theme;
   const announcementEnabled = theme?.announcement_enabled !== false;
-  const announcementText = theme?.announcement_text || 'Freshly packaged daily from certified manufacturing line';
+  const announcementText = theme?.announcement_text || 'Official Storefront • Verified Authentic Products & Direct Fulfillment';
   const announcementBg = theme?.announcement_bg;
   const announcementTextColor = theme?.announcement_text_color;
 
@@ -37,18 +37,19 @@ export const StorefrontHeader: React.FC<StorefrontHeaderProps> = ({ config, subd
   const customMenuItems = theme?.menu_items && theme.menu_items.length > 0 ? theme.menu_items : null;
 
   const defaultMenuItems: NavMenuItem[] = [
-    { label: 'All Products', url: `/store/${subdomain}/products`, is_external: false },
-    { label: 'Track My Order', url: `/store/${subdomain}/track`, is_external: false },
-    { label: 'Factory Heritage', url: `/store/${subdomain}/pages/about-us`, is_external: false },
-    { label: 'Help & FAQ', url: `/store/${subdomain}/pages/faq`, is_external: false },
+    { label: 'Hardware Catalog', url: `/store/${subdomain}/products`, is_external: false },
+    { label: 'Manifesto', url: `/store/${subdomain}/pages/about-us`, is_external: false },
+    { label: 'Custom Lab', url: `/store/${subdomain}/pages/custom-lab`, is_external: false },
+    { label: 'Warranty & Care', url: `/store/${subdomain}/pages/warranty-support`, is_external: false },
+    { label: 'Track Parcel', url: `/store/${subdomain}/track`, is_external: false },
   ];
 
   const menuItems: NavMenuItem[] = customMenuItems || defaultMenuItems;
 
-  const whatsappNumber = config?.whatsapp_number?.replace(/[^0-9]/g, '') || '8801700000000';
+  const whatsappNumber = config?.whatsapp_number?.replace(/[^0-9]/g, '') || '';
   const whatsappMsg = encodeURIComponent(
     config?.whatsapp_default_message ||
-      `Hello ${config?.name ?? 'Store'}, I would like to place an order from your direct factory catalog.`
+      `Hello ${config?.name ?? 'Store'}, I would like to inquire about placing an order.`
   );
 
   const formatMenuUrl = (url: string) => {
@@ -68,27 +69,26 @@ export const StorefrontHeader: React.FC<StorefrontHeaderProps> = ({ config, subd
             color: announcementTextColor || undefined,
           }}
           className={`text-[11px] py-1.5 px-4 border-b border-black/10 dark:border-white/10 font-medium select-none shadow-xs transition-colors ${
-            !announcementBg ? 'bg-linear-to-r from-emerald-800 via-teal-800 to-emerald-900 text-white' : ''
+            !announcementBg ? 'bg-zinc-900 dark:bg-zinc-950 text-zinc-100' : ''
           }`}
         >
           <div className="mx-auto max-w-7xl flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="flex size-2 rounded-full bg-emerald-400 animate-ping" />
-              <span className="font-bold opacity-90">Direct Factory Dispatch:</span>
+              <span className="flex size-1.5 rounded-full bg-emerald-400 animate-pulse" />
               <span className="text-[11px] opacity-95">
                 {announcementText}
               </span>
             </div>
 
             <div className="flex items-center gap-4 text-[10px] sm:text-[11px] opacity-90">
-              <div className="flex items-center gap-1 font-mono">
+              <div className="flex items-center gap-1">
                 <Truck className="size-3" />
-                <span>Express Delivery Available</span>
+                <span>Tracked Dispatch</span>
               </div>
               <span className="opacity-40 hidden sm:inline">•</span>
               <div className="hidden sm:flex items-center gap-1">
                 <ShieldCheck className="size-3" />
-                <span>HACCP Quality Inspected</span>
+                <span>Verified Authenticity</span>
               </div>
             </div>
           </div>
@@ -155,10 +155,10 @@ export const StorefrontHeader: React.FC<StorefrontHeaderProps> = ({ config, subd
                 </div>
                 <div
                   style={{ color: navbarTextColor ? `${navbarTextColor}aa` : undefined }}
-                  className="text-[11px] opacity-75 flex items-center gap-1 font-mono"
+                  className="text-[11px] opacity-75 flex items-center gap-1"
                 >
                   <Sparkles className="size-3 text-amber-500 dark:text-amber-400 inline" />
-                  <span>Direct Factory Outlet</span>
+                  <span>Direct Sourcing & Fulfillment</span>
                 </div>
               </div>
             </Link>

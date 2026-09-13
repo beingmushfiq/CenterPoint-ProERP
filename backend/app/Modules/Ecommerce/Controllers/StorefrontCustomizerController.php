@@ -86,6 +86,8 @@ final class StorefrontCustomizerController extends Controller
             'theme.social_links' => 'nullable|array',
             'theme.meta_pixel_id' => 'nullable|string|max:64',
             'theme.google_analytics_id' => 'nullable|string|max:64',
+            'theme.theme_preset' => 'nullable|string|max:64',
+            'theme.card_style' => 'nullable|string|max:64',
             'meta_title' => 'nullable|string|max:255',
             'meta_description' => 'nullable|string|max:500',
             'guest_checkout_enabled' => 'sometimes|boolean',

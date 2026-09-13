@@ -88,7 +88,7 @@ export const StorefrontCartDrawer: React.FC<StorefrontCartDrawerProps> = ({ conf
                 </div>
                 <p className="text-sm font-bold text-slate-900 dark:text-zinc-200">Your cart is empty</p>
                 <p className="text-xs text-slate-500 dark:text-zinc-500 mt-1 max-w-xs leading-relaxed">
-                  Discover our factory-fresh products and add your favorites to get started.
+                  Explore our verified product catalog and add your favorites to get started.
                 </p>
               </div>
             ) : (

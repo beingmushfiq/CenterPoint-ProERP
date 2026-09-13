@@ -373,7 +373,7 @@ export const StorefrontProductDetailPage: React.FC = () => {
             </div>
           )}
 
-          {/* Factory Freshness & Quality Guarantee Callout */}
+          {/* Authenticity & Quality Guarantee Callout */}
           <div
             style={{
               backgroundColor: 'var(--store-primary-subtle, rgba(16,185,129,0.06))',
@@ -389,10 +389,10 @@ export const StorefrontProductDetailPage: React.FC = () => {
                 style={{ backgroundColor: 'var(--store-primary, #10b981)' }}
                 className="flex size-2 rounded-full animate-pulse"
               />
-              <span>Factory Freshness Guarantee</span>
+              <span>Authenticity & Quality Guarantee</span>
             </div>
-            <p className="text-[11px] text-slate-600 dark:text-zinc-400 leading-relaxed">
-              Every package is freshly sealed directly at our production line and transported with temperature safeguards.
+            <p className="text-[11px] text-muted leading-relaxed">
+              Every item is verified authentic, inspected to strict commercial standards, and packaged securely with full customer support and warranty protection.
             </p>
           </div>
 
@@ -561,20 +561,20 @@ export const StorefrontProductDetailPage: React.FC = () => {
             <h3 className="text-xs font-bold text-slate-900 dark:text-zinc-300 uppercase tracking-wider">Assurance & Logistics</h3>
             <dl className="space-y-2 text-xs">
               <div className="flex justify-between py-1 border-b border-slate-100 dark:border-zinc-800/60">
-                <dt className="text-slate-500 dark:text-zinc-500">Origin / Facility</dt>
-                <dd className="font-medium text-emerald-600 dark:text-emerald-400">Direct From Factory Line</dd>
+                <dt className="text-muted">Fulfillment Origin</dt>
+                <dd className="font-medium text-emerald-600 dark:text-emerald-400">Verified Direct Sourcing</dd>
               </div>
-              <div className="flex justify-between py-1 border-b border-slate-100 dark:border-zinc-800/60">
-                <dt className="text-slate-500 dark:text-zinc-500">Quality Inspection</dt>
-                <dd className="font-medium text-slate-800 dark:text-zinc-200">ISO 9001 / Batch QA Verified</dd>
+              <div className="flex justify-between py-1 border-b border-default">
+                <dt className="text-muted">Quality Assurance</dt>
+                <dd className="font-medium text-default">Multi-Point QA Inspection Passed</dd>
               </div>
-              <div className="flex justify-between py-1 border-b border-slate-100 dark:border-zinc-800/60">
-                <dt className="text-slate-500 dark:text-zinc-500">Packaging</dt>
-                <dd className="font-medium text-slate-800 dark:text-zinc-200">Industrial Protective Sealed</dd>
+              <div className="flex justify-between py-1 border-b border-default">
+                <dt className="text-muted">Packaging Standard</dt>
+                <dd className="font-medium text-default">Reinforced Protective Dispatch</dd>
               </div>
               <div className="flex justify-between py-1">
-                <dt className="text-slate-500 dark:text-zinc-500">Fulfillment Speed</dt>
-                <dd className="font-medium text-slate-800 dark:text-zinc-200">Same-day Dispatch Available</dd>
+                <dt className="text-muted">Dispatch Standard</dt>
+                <dd className="font-medium text-default">Direct Express Fulfillment</dd>
               </div>
             </dl>
           </div>

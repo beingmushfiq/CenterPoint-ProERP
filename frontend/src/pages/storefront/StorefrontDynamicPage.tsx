@@ -1,24 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useOutletContext, useParams } from 'react-router-dom';
-import {
-  ArrowLeft,
-  Factory,
-  ShieldCheck,
-  Award,
-  Sparkles,
-  HelpCircle,
-  ChevronDown,
-  Lock,
-  FileText,
-  Truck,
-  CheckCircle2,
-} from 'lucide-react';
+import { ArrowLeft, FileText } from 'lucide-react';
 import { api } from '../../lib/api/client';
 import { SeoHead } from '../../components/seo/SeoHead';
 import { BreadcrumbNav } from '../../components/seo/BreadcrumbNav';
-import type { StorefrontConfig } from '../../types/api/storefront';
+import type { StorefrontConfig, StorefrontProduct } from '../../types/api/storefront';
 import type { PageBlock } from '../../modules/storefront/StorefrontPageBuilderWorkspace';
-import { StorefrontRichDescription } from '../../components/storefront/StorefrontRichDescription';
+import { StorefrontBlockRenderer } from '../../components/storefront/StorefrontBlockRenderer';
+import { useStorefrontCartStore } from '../../lib/storefront/storefrontCartStore';
+import { notify } from '../../components/ui/Toast';
 
 interface OutletContextType {
   config: StorefrontConfig;
@@ -41,28 +31,58 @@ export const StorefrontDynamicPage: React.FC = () => {
 
   const [page, setPage] = useState<PublicCmsPageData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [expandedFaq, setExpandedFaq] = useState<number | null>(0);
+  const [products, setProducts] = useState<StorefrontProduct[]>([]);
+  const [categories, setCategories] = useState<{ id: number; name: string }[]>([]);
+
+  const { addItem } = useStorefrontCartStore();
+  const currency = config?.currency || 'USD';
 
   useEffect(() => {
-    const fetchPage = async () => {
+    const fetchPageAndCatalog = async () => {
       if (!slug) return;
       setLoading(true);
       try {
-        const response = await api.get<PublicCmsPageData>(`/storefront/pages/${slug}`, {
-          headers: {
-            'X-Storefront-Subdomain': subdomain,
-          },
-        });
-        setPage(response.data);
+        const [pageRes, prodsRes, catsRes] = await Promise.allSettled([
+          api.get<PublicCmsPageData>(`/storefront/pages/${slug}`, {
+            headers: { 'X-Storefront-Subdomain': subdomain },
+          }),
+          api.get<{ data: StorefrontProduct[] }>('/storefront/products', {
+            headers: { 'X-Storefront-Subdomain': subdomain },
+          }),
+          api.get<{ data: { id: number; name: string }[] }>('/storefront/categories', {
+            headers: { 'X-Storefront-Subdomain': subdomain },
+          }),
+        ]);
+
+        if (pageRes.status === 'fulfilled') {
+          setPage(pageRes.value.data);
+        } else {
+          setPage(null);
+        }
+
+        if (prodsRes.status === 'fulfilled') {
+          const rawProds = prodsRes.value.data as unknown;
+          const prodList = Array.isArray(rawProds)
+            ? (rawProds as StorefrontProduct[])
+            : (((rawProds as Record<string, unknown>)?.data as StorefrontProduct[]) ?? []);
+          setProducts(prodList);
+        }
+
+        if (catsRes.status === 'fulfilled') {
+          const rawCats = catsRes.value.data as unknown;
+          const catList = Array.isArray(rawCats)
+            ? (rawCats as { id: number; name: string }[])
+            : (((rawCats as Record<string, unknown>)?.data as { id: number; name: string }[]) ?? []);
+          setCategories(catList);
+        }
       } catch {
-        // If not found in backend DB, keep null to trigger default rich fallback templates below
         setPage(null);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchPage();
+    void fetchPageAndCatalog();
   }, [slug, subdomain]);
 
   if (loading) {
@@ -76,7 +96,7 @@ export const StorefrontDynamicPage: React.FC = () => {
     );
   }
 
-  // 1. Custom CMS Page from Backend Database
+  // 1. Custom CMS Page from Backend Database (rendered via standard StorefrontBlockRenderer)
   if (page && page.blocks && page.blocks.length > 0) {
     const breadcrumbs = [
       { name: 'Home', url: `/store/${subdomain}` },
@@ -84,503 +104,746 @@ export const StorefrontDynamicPage: React.FC = () => {
     ];
 
     return (
-      <div className="max-w-4xl mx-auto space-y-8 py-4">
+      <div className="max-w-6xl mx-auto space-y-12 py-4">
         <SeoHead
           title={page.meta_title || page.title}
-          description={page.meta_description || config.meta_description || ''}
-          brandName={config.name}
+          description={page.meta_description || config?.meta_description || ''}
+          brandName={config?.name ?? 'Official Store'}
         />
 
         <BreadcrumbNav items={breadcrumbs} className="py-1" />
 
-        <div className="space-y-2 border-b border-slate-200 dark:border-zinc-800/80 pb-6">
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white sm:text-4xl">{page.title}</h1>
+        <div className="space-y-2 border-b border-zinc-200 dark:border-zinc-800/80 pb-6">
+          <h1 className="text-3xl font-extrabold tracking-tight text-zinc-900 dark:text-white sm:text-4xl">{page.title}</h1>
           {page.meta_description && (
-            <p className="text-xs sm:text-sm text-slate-600 dark:text-zinc-400 leading-relaxed max-w-2xl">{page.meta_description}</p>
+            <p className="text-xs sm:text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed max-w-2xl">{page.meta_description}</p>
           )}
         </div>
 
-        <div className="space-y-8">
-          {(page.blocks || []).map((block, idx) => (
-            <div key={block.id || idx} className="space-y-4">
-              {block.type === 'hero_banner' && (
-                <div 
-                  className="rounded-3xl border border-white/15 p-8 sm:p-12 text-center space-y-4 shadow-xl text-white relative overflow-hidden"
-                  style={{
-                    background: 'linear-gradient(135deg, var(--store-primary, #10b981) 0%, #0f172a 100%)',
-                  }}
-                >
-                  <h2 className="text-2xl font-bold text-white sm:text-3xl tracking-tight">
-                    {block.title}
-                  </h2>
-                  {block.subtitle && (
-                    <p className="text-xs sm:text-sm text-white/90 max-w-xl mx-auto leading-relaxed">
-                      {block.subtitle}
-                    </p>
-                  )}
-                  {block.cta_text && (
-                    <Link
-                      to={block.cta_url || `/store/${subdomain}/products`}
-                      className="inline-block rounded-xl bg-white text-slate-900 hover:bg-white/90 px-6 py-2.5 text-xs font-bold transition-all shadow-md active:scale-95 cursor-pointer"
-                    >
-                      {block.cta_text}
-                    </Link>
-                  )}
-                </div>
-              )}
-
-              {block.type === 'rich_text' && (
-                <div className="rounded-3xl border border-slate-200 dark:border-zinc-800/80 bg-white dark:bg-zinc-900/40 p-6 sm:p-8 space-y-3 shadow-xs">
-                  {block.title && (
-                    <h3 className="text-base font-bold text-slate-900 dark:text-white">{block.title}</h3>
-                  )}
-                  <StorefrontRichDescription
-                    html={block.content}
-                    className="text-xs sm:text-sm text-slate-600 dark:text-zinc-300"
-                  />
-                </div>
-              )}
-
-              {block.type === 'value_props' && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                  {(block.items || []).map((it, i) => (
-                    <div key={i} className="p-5 rounded-2xl border border-slate-200 dark:border-zinc-800/80 bg-white dark:bg-zinc-900/40 shadow-xs space-y-2">
-                      <h4 className="text-xs font-bold text-slate-900 dark:text-white">{it.title}</h4>
-                      <p className="text-[11px] text-slate-600 dark:text-zinc-400 leading-relaxed">{it.desc}</p>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {block.type === 'quality_journey' && (
-                <div className="rounded-3xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/40 p-6 sm:p-8 space-y-6 shadow-xs">
-                  {block.title && (
-                    <div className="text-center space-y-1">
-                      <h3 className="text-lg font-bold text-slate-900 dark:text-white">{block.title}</h3>
-                      {block.subtitle && <p className="text-xs text-slate-600 dark:text-zinc-400">{block.subtitle}</p>}
-                    </div>
-                  )}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-                    {(block.steps || []).map((st, i) => (
-                      <div key={i} className="p-3.5 rounded-xl border border-slate-200 dark:border-zinc-800/80 bg-slate-50 dark:bg-zinc-900/50 shadow-2xs space-y-1">
-                        <span className="font-mono text-[10px] font-bold text-emerald-600 dark:text-emerald-400">{st.step}</span>
-                        <h5 className="text-xs font-bold text-slate-900 dark:text-white">{st.title}</h5>
-                        <p className="text-[10px] text-slate-600 dark:text-zinc-400">{st.desc}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {block.type === 'promo_split_banner' && (
-                <div 
-                  className="rounded-3xl border border-slate-200 dark:border-zinc-800 bg-linear-to-r p-8 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-4"
-                  style={{
-                    backgroundColor: 'var(--store-primary-subtle, rgba(16,185,129,0.08))',
-                  }}
-                >
-                  <div className="space-y-1">
-                    <h3 className="text-base font-bold text-slate-900 dark:text-white">{block.title}</h3>
-                    {block.subtitle && <p className="text-xs text-slate-600 dark:text-zinc-300">{block.subtitle}</p>}
-                  </div>
-                  {block.cta_text && (
-                    <Link
-                      to={block.cta_url || `/store/${subdomain}/products`}
-                      className="px-5 py-2.5 rounded-xl font-bold text-xs shadow-xs whitespace-nowrap cursor-pointer transition-all"
-                      style={{
-                        backgroundColor: 'var(--store-primary, #10b981)',
-                        color: 'var(--store-primary-fg, #ffffff)',
-                      }}
-                    >
-                      {block.cta_text}
-                    </Link>
-                  )}
-                </div>
-              )}
-
-              {block.type === 'newsletter_vip' && (
-                <div 
-                  className="rounded-3xl border border-white/15 p-8 text-center text-white space-y-3 shadow-xl"
-                  style={{
-                    background: 'linear-gradient(135deg, var(--store-primary, #10b981) 0%, #0f172a 100%)',
-                  }}
-                >
-                  <h3 className="text-lg font-bold text-white">{block.title || 'Join the VIP Club'}</h3>
-                  <p className="text-xs text-white/90 max-w-sm mx-auto">{block.subtitle}</p>
-                  <div className="flex items-center justify-center gap-2 max-w-xs mx-auto pt-2">
-                    <input
-                      type="text"
-                      placeholder="Your phone or email..."
-                      className="w-full rounded-xl border border-white/20 dark:border-zinc-700 bg-white/10 dark:bg-zinc-900 px-3 py-2 text-xs text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-white/40"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => alert('Thank you for joining our VIP list!')}
-                      className="px-4 py-2 rounded-xl bg-white text-slate-900 hover:bg-white/90 font-bold text-xs whitespace-nowrap cursor-pointer shadow-xs"
-                    >
-                      {block.button_text || 'Join'}
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {block.type === 'faq' && (
-                <div className="rounded-3xl border border-slate-200 dark:border-zinc-800/80 bg-white dark:bg-zinc-900/40 p-6 sm:p-8 space-y-4 shadow-xs">
-                  <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                    {block.title || 'Frequently Asked Questions'}
-                  </h3>
-                  <div className="divide-y divide-slate-200 dark:divide-zinc-800/60">
-                    {(block.faqs || []).map((faq, fIdx) => (
-                      <div key={fIdx} className="py-3.5 space-y-1">
-                        <h4 className="text-xs font-bold text-slate-900 dark:text-zinc-200">{faq.q}</h4>
-                        <p className="text-xs text-slate-600 dark:text-zinc-400 leading-relaxed">{faq.a}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {block.type === 'custom_html_css' && (
-                <div className="overflow-hidden rounded-3xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/40 shadow-xs">
-                  <iframe
-                    title="Custom Section Block"
-                    sandbox="allow-scripts"
-                    srcDoc={`
-                      <html>
-                        <head><style>${block.css || ''}</style></head>
-                        <body style="margin: 0; font-family: sans-serif;">${block.html || ''}</body>
-                      </html>
-                    `}
-                    className="w-full min-h-48 border-0"
-                  />
-                </div>
-              )}
-            </div>
+        <div className="space-y-16">
+          {page.blocks.map((block, idx) => (
+            <StorefrontBlockRenderer
+              key={block.id || `dyn-blk-${idx}`}
+              block={block}
+              products={products}
+              categories={categories}
+              currency={currency}
+              subdomain={subdomain}
+              defaultCardStyle={config?.theme?.card_style || 'commerce'}
+              onAddToCart={(product) => {
+                addItem(product.id, 1);
+                notify.success(`Added ${product.name} to cart`);
+              }}
+            />
           ))}
         </div>
       </div>
     );
   }
 
-  // 2. Rich Fallback Template for: "about-us" / "about"
+  // 2. High-End Electronics Fallback Templates (Structured through standard StorefrontBlockRenderer)
+
+  // A. About Us: The Hardware Manifesto & Precision Cleanroom Standards
   if (slug === 'about-us' || slug === 'about') {
+    const aboutBlocks: PageBlock[] = [
+      {
+        id: 'b_about_hero',
+        type: 'hero_banner',
+        badge: 'The Hardware Manifesto',
+        title: 'Engineered for Permanence. Built Without Compromise.',
+        subtitle: 'We reject disposable tech and planned obsolescence. Every enclosure is CNC-milled from solid aerospace-grade aluminum, designed for full repairability, and calibrated to zero-harmonic acoustic standards.',
+        cta_text: 'Explore Custom Lab',
+        cta_url: `/store/${subdomain}/pages/custom-lab`,
+        secondary_cta_text: 'Flagship Products',
+        secondary_cta_url: `/store/${subdomain}/products`,
+        settings: {
+          slides: [
+            {
+              id: 'sld_abt_1',
+              badge: 'The Hardware Manifesto',
+              title: 'Engineered for Permanence. Built Without Compromise.',
+              subtitle: 'We reject disposable tech and planned obsolescence. Every enclosure is CNC-milled from solid aerospace-grade aluminum, designed for full repairability, and calibrated to zero-harmonic acoustic standards.',
+              cta_text: 'Explore Custom Lab',
+              cta_url: `/store/${subdomain}/pages/custom-lab`,
+              secondary_cta_text: 'Flagship Products',
+              secondary_cta_url: `/store/${subdomain}/products`,
+              desktop_image: 'https://images.unsplash.com/photo-1546776310-eef45dd6d63c?auto=format&fit=crop&w=1800&q=85',
+              overlay_opacity: 45,
+            },
+            {
+              id: 'sld_abt_2',
+              badge: 'Materials & Metallurgy',
+              title: 'Monolithic 6061-T6 Billet Aluminum',
+              subtitle: 'Carved over 4.5 hours with 5-axis diamond CNC cutters for structural rigidity that completely eliminates unwanted acoustic resonance.',
+              cta_text: 'View Production Journey',
+              cta_url: '#journey',
+              desktop_image: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=1800&q=85',
+              overlay_opacity: 50,
+            },
+          ],
+          autoplay: true,
+          duration: 6500,
+        },
+      },
+      {
+        id: 'b_about_manifesto',
+        type: 'rich_text',
+        title: 'The Architectural Manifesto: Tactile Integrity',
+        content: `Our hardware exists at the intersection of raw material purity and cutting-edge signal engineering.
+
+Unlike consumer electronics sealed with toxic glues and designed to fail after two fiscal quarters, our chassis are fastened with precision Torx screws. Internal boards use standardized ribbon interconnects. Drivers are isolated on silicone dampening rings to eliminate sympathetic chassis resonances.
+
+When you hold our hardware, you feel the mass of monolithic metal, the unmistakable tactile feedback of rotary optical encoders, and the quiet confidence of hardware built to outlive its owner.`,
+      },
+      {
+        id: 'b_about_quality',
+        type: 'quality_journey',
+        title: 'The Monolithic Lifecycle: From Raw Ingot to Calibrated Instrument',
+        subtitle: 'Every unit passes through 5 stages of microscopic verification before dispatch',
+        steps: [
+          { step: '01', title: '6061-T6 Billet Milling', desc: 'Solid monolithic aerospace blocks carved over 4.5 hours with 5-axis CNC cutters down to ±0.01mm tolerance.' },
+          { step: '02', title: 'Dual-Stage PVD Anodizing', desc: 'Electrochemical oxide conversion followed by physical vapor deposition for unmatched surface hardness.' },
+          { step: '03', title: 'SMT Cleanroom Solder', desc: 'Lead-free silver alloy solder runs on 6-layer ENIG gold-plated PCBs under Class 1000 laminar flow.' },
+          { step: '04', title: 'Anechoic Sweep Calibration', desc: 'Individual microphone and driver frequency response matching inside our soundproof acoustic chamber.' },
+          { step: '05', title: 'Thermal & Voltage Burn-In', desc: '48 hours of continuous 60°C thermal cycling and peak power load before final serialization.' },
+        ],
+      },
+      {
+        id: 'b_about_props',
+        type: 'value_props',
+        title: 'Engineering Pillars',
+        subtitle: 'Uncompromising standards embedded into every millimeter',
+        items: [
+          { icon: 'shield', title: '10-Year Part Guarantee', desc: 'Replacement switches, drivers, and chassis panels stocked for a full decade.' },
+          { icon: 'tool', title: 'Open-Source QMK/VIA', desc: 'Uncompromised firmware flexibility with zero background bloatware or cloud requirements.' },
+          { icon: 'award', title: 'Beryllium Acoustic Drivers', desc: 'Ultra-stiff, ultra-light diaphragm geometry delivering distortion-free frequency response up to 48kHz.' },
+          { icon: 'recycle', title: '100% Recycled Alloys', desc: 'Sustainable precision: scrap CNC chips are remelted and forged into next-generation chassis.' },
+        ],
+      },
+      {
+        id: 'b_about_interactive',
+        type: 'custom_html_css',
+        css: `
+          .chassis-box { background: radial-gradient(circle at 50% 0%, #18181b 0%, #09090b 100%); color: #fff; padding: 2.5rem; border-radius: 1.5rem; border: 1px solid rgba(255,255,255,0.1); font-family: ui-monospace, monospace; }
+          .chassis-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; margin-top: 1.5rem; }
+          .chassis-card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 1rem; padding: 1.25rem; transition: all 0.2s; cursor: pointer; }
+          .chassis-card:hover { border-color: #10b981; background: rgba(16,185,129,0.05); transform: translateY(-2px); }
+          .badge-pill { display: inline-block; font-size: 0.65rem; font-weight: 700; color: #10b981; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 0.5rem; }
+          .metric-val { font-size: 1.1rem; font-weight: 700; color: #f4f4f5; margin: 0.25rem 0; font-family: sans-serif; }
+          .metric-lbl { font-size: 0.7rem; color: #71717a; }
+        `,
+        html: `
+          <div class="chassis-box">
+            <div style="display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 1rem;">
+              <div>
+                <span class="badge-pill">Interactive Architecture Explorer</span>
+                <h3 style="font-size: 1.25rem; font-weight: 700; margin: 0; color: #fff; font-family: sans-serif;">Precision Chassis Tolerances & Layering</h3>
+              </div>
+              <span style="font-size: 0.75rem; color: #10b981; background: rgba(16,185,129,0.1); padding: 0.25rem 0.75rem; border-radius: 9999px; border: 1px solid rgba(16,185,129,0.2);">ISO 9001:2015 Verified</span>
+            </div>
+            <div class="chassis-grid">
+              <div class="chassis-card">
+                <span class="badge-pill">Layer 01 • Faceplate</span>
+                <div class="metric-val">±0.008 mm</div>
+                <div class="metric-lbl">CNC Billet 6061-T6 Aluminum with Bead-Blasted 120-Grit Micro Texture.</div>
+              </div>
+              <div class="chassis-card">
+                <span class="badge-pill">Layer 02 • Acoustic Gasket</span>
+                <div class="metric-val">2.8 mm Poron®</div>
+                <div class="metric-lbl">High-density closed-cell microcellular polyurethane absorbing 98.4% of harmonic bounce.</div>
+              </div>
+              <div class="chassis-card">
+                <span class="badge-pill">Layer 03 • Mainboard</span>
+                <div class="metric-val">6-Layer ENIG Gold</div>
+                <div class="metric-lbl">2oz copper power planes with Kailh hot-swap sockets rated for 50,000+ actuations.</div>
+              </div>
+              <div class="chassis-card">
+                <span class="badge-pill">Layer 04 • Weighted Base</span>
+                <div class="metric-val">1,480 Grams</div>
+                <div class="metric-lbl">Machined solid brass counter-weight with flush-mounted PVD silicone isolation feet.</div>
+              </div>
+            </div>
+          </div>
+        `,
+      },
+      {
+        id: 'b_about_vip',
+        type: 'newsletter_vip',
+        title: 'Join the Private Hardware Lab',
+        subtitle: 'Receive restricted engineering schematics, early prototype dispatches, and private batch drop notifications.',
+        button_text: 'Request Lab Access',
+      },
+    ];
+
     const breadcrumbs = [
       { name: 'Home', url: `/store/${subdomain}` },
-      { name: 'About Our Factory', url: `/store/${subdomain}/pages/about-us` },
+      { name: 'About Our Hardware', url: `/store/${subdomain}/pages/about-us` },
     ];
 
     return (
-      <div className="max-w-4xl mx-auto space-y-10 py-4">
+      <div className="max-w-6xl mx-auto space-y-12 py-4">
         <SeoHead
-          title="About Our Factory & Manufacturing Standards"
-          description={`Learn about ${config?.name || 'our'} manufacturing facility, certified quality controls, automated production batching, and direct wholesale pricing.`}
+          title="About Our Hardware Manifesto & Precision Standards"
+          description={`Discover the engineering philosophy of ${config?.name || 'our brand'}: monolithic CNC aluminum, 2-year advance warranty, and repairable architecture.`}
           brandName={config?.name ?? 'Official Store'}
         />
-
         <BreadcrumbNav items={breadcrumbs} className="py-1" />
-
-        {/* Hero Section */}
-        <div 
-          className="relative overflow-hidden rounded-3xl border border-white/15 p-8 sm:p-12 shadow-2xl space-y-5 text-white"
-          style={{
-            background: 'linear-gradient(135deg, var(--store-primary, #10b981) 0%, #0f172a 100%)',
-          }}
-        >
-          <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3.5 py-1 text-xs font-semibold text-white">
-            <Sparkles className="size-3.5" />
-            <span>Industrial Heritage & Craftsmanship</span>
-          </div>
-
-          <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight text-white leading-tight">
-            Direct from Our Factory Floor to Your Doorstep
-          </h1>
-
-          <p className="text-xs sm:text-sm text-white/90 max-w-2xl leading-relaxed">
-            {config?.name ? `${config.name} ` : 'Our enterprise '}is an integrated manufacturing facility engineered to produce 
-            premium-grade goods with absolute traceability, automated quality control, and zero middleman inflation.
-          </p>
-        </div>
-
-        {/* 3 Pillars */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-          <div className="rounded-2xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/50 p-6 space-y-3 shadow-xs">
-            <div 
-              className="flex size-10 items-center justify-center rounded-xl border"
-              style={{
-                backgroundColor: 'var(--store-primary-subtle, rgba(16,185,129,0.1))',
-                borderColor: 'var(--store-primary-border, rgba(16,185,129,0.2))',
-                color: 'var(--store-primary, #10b981)',
+        <div className="space-y-16">
+          {aboutBlocks.map((block, idx) => (
+            <StorefrontBlockRenderer
+              key={block.id || `abt-${idx}`}
+              block={block}
+              products={products}
+              categories={categories}
+              currency={currency}
+              subdomain={subdomain}
+              defaultCardStyle={config?.theme?.card_style || 'commerce'}
+              onAddToCart={(product) => {
+                addItem(product.id, 1);
+                notify.success(`Added ${product.name} to cart`);
               }}
-            >
-              <Factory className="size-5" />
-            </div>
-            <h3 className="text-sm font-bold text-slate-900 dark:text-white">Automated Batching</h3>
-            <p className="text-xs text-slate-600 dark:text-zinc-400 leading-relaxed">
-              Industrial precision weighing and automated production runs ensure consistency across every single unit.
-            </p>
-          </div>
-
-          <div className="rounded-2xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/50 p-6 space-y-3 shadow-xs">
-            <div className="flex size-10 items-center justify-center rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-600 dark:text-indigo-400">
-              <ShieldCheck className="size-5" />
-            </div>
-            <h3 className="text-sm font-bold text-slate-900 dark:text-white">Strict QC Audits</h3>
-            <p className="text-xs text-slate-600 dark:text-zinc-400 leading-relaxed">
-              Every batch undergoes sensory, dimensional, and packaging defect inspection before receiving dispatch clearance.
-            </p>
-          </div>
-
-          <div className="rounded-2xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/50 p-6 space-y-3 shadow-xs">
-            <div className="flex size-10 items-center justify-center rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400">
-              <Award className="size-5" />
-            </div>
-            <h3 className="text-sm font-bold text-slate-900 dark:text-white">Direct Value Pricing</h3>
-            <p className="text-xs text-slate-600 dark:text-zinc-400 leading-relaxed">
-              By removing distribution tiers, retail brokerages, and shelf margins, you receive wholesale factory rates directly.
-            </p>
-          </div>
-        </div>
-
-        {/* Manufacturing Standards */}
-        <div className="rounded-3xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/40 p-8 space-y-6 shadow-xs">
-          <h2 className="text-xl font-bold text-slate-900 dark:text-white">Our Quality & Manufacturing Commitment</h2>
-          <div className="space-y-4 text-xs sm:text-sm text-slate-600 dark:text-zinc-300 leading-relaxed">
-            <p>
-              Founded with the vision to modernize consumer goods manufacturing, our facility combines automated material feeding with 
-              skilled artisan craftsmanship. We maintain strict compliance with hygienic handling, safe labor practices, 
-              and environmental waste recycling.
-            </p>
-            <p>
-              When you purchase directly from our online storefront, your order is routed directly to our fulfillment line, 
-              inspected, safely packaged, and assigned to licensed 3PL courier logistics within hours.
-            </p>
-          </div>
-
-          <div className="pt-4 border-t border-slate-200 dark:border-zinc-800/80 flex flex-wrap items-center justify-between gap-4">
-            <div className="flex items-center gap-2">
-              <CheckCircle2 className="size-4" style={{ color: 'var(--store-primary, #10b981)' }} />
-              <span className="text-xs font-semibold text-slate-800 dark:text-zinc-200">100% Genuine Direct Production</span>
-            </div>
-            <Link
-              to={`/store/${subdomain}/products`}
-              className="inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-xs font-bold transition-all shadow-md cursor-pointer"
-              style={{
-                backgroundColor: 'var(--store-primary, #10b981)',
-                color: 'var(--store-primary-fg, #ffffff)',
-              }}
-            >
-              <span>Explore Products</span>
-              <span>→</span>
-            </Link>
-          </div>
+            />
+          ))}
         </div>
       </div>
     );
   }
 
-  // 3. Rich Fallback Template for: "faq" / "help"
-  if (slug === 'faq' || slug === 'help') {
-    const FAQS = [
+  // B. Warranty & Support: 2-Year Precision Care & Rapid Replacement
+  if (slug === 'warranty-support' || slug === 'warranty' || slug === 'support') {
+    const warrantyBlocks: PageBlock[] = [
       {
-        q: 'How do I place an order directly with the factory?',
-        a: 'You can browse our product catalog, add items to your shopping cart, and complete checkout using Cash on Delivery (COD) or online payment. You can also click the "Order via WhatsApp" button on any product page for instant concierge assistance.',
+        id: 'b_warr_hero',
+        type: 'hero_banner',
+        badge: 'Advance Hardware Protection',
+        title: '2-Year Precision Care & Rapid Replacement',
+        subtitle: 'We stand behind every solder joint and machining tolerance. If hardware malfunctions, we cross-ship a replacement before you even pack the return.',
+        cta_text: 'Check Serial Warranty',
+        cta_url: '#lookup',
+        secondary_cta_text: 'Read RMA Protocol',
+        secondary_cta_url: '#protocol',
+        settings: {
+          slides: [
+            {
+              id: 'sld_warr_1',
+              badge: 'Advance Hardware Protection',
+              title: '2-Year Precision Care & Rapid Replacement',
+              subtitle: 'We stand behind every solder joint and machining tolerance. If hardware malfunctions, we cross-ship a replacement before you even pack the return.',
+              cta_text: 'Check Serial Warranty',
+              cta_url: '#lookup',
+              secondary_cta_text: 'Read RMA Protocol',
+              secondary_cta_url: '#protocol',
+              desktop_image: 'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?auto=format&fit=crop&w=1800&q=85',
+              overlay_opacity: 40,
+            },
+          ],
+          autoplay: false,
+          duration: 6000,
+        },
       },
       {
-        q: 'What are your delivery timelines and courier charges?',
-        a: 'Orders placed before 2:00 PM are dispatched on the same business day. Delivery typically arrives in 24–48 hours for metro areas and 2–4 business days nationwide via trusted 3PL couriers (Steadfast, Pathao, or REDX) with rates calculated at checkout.',
+        id: 'b_warr_props',
+        type: 'value_props',
+        title: 'The Concierge Warranty Standard',
+        subtitle: 'Zero downtime and no bureaucratic friction',
+        items: [
+          { icon: 'truck', title: '24-Hour Cross-Shipment', desc: 'Replacement units are dispatched on express air transit prior to receiving defective items.' },
+          { icon: 'shield', title: 'Hardware Concierge', desc: 'Direct access to senior firmware and acoustic engineers, not outsourced call centers.' },
+          { icon: 'award', title: 'Zero Deductible', desc: 'Zero hidden repair fees, zero deductibles, and prepaid courier return labels included.' },
+          { icon: 'tool', title: 'Right-to-Repair Friendly', desc: 'Opening the chassis does not void your warranty. Self-repair guides and parts are freely provided.' },
+        ],
       },
       {
-        q: 'Can I track my shipment in real time?',
-        a: 'Yes. Once your order is confirmed, you will receive an SMS and email with your Order Reference Number (e.g. SO-ONL-2026...). You can enter this number on our "Track My Order" page anytime to view live production and dispatch status.',
+        id: 'b_warr_tool',
+        type: 'custom_html_css',
+        css: `
+          .lookup-wrap { background: #09090b; border: 1px solid rgba(255,255,255,0.12); border-radius: 1.5rem; padding: 2rem; color: #fff; font-family: ui-monospace, monospace; }
+          .lookup-field { display: flex; gap: 0.75rem; margin-top: 1rem; flex-wrap: wrap; }
+          .lookup-input { flex: 1; min-width: 240px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.15); border-radius: 0.75rem; padding: 0.75rem 1rem; color: #fff; font-size: 0.85rem; font-family: inherit; }
+          .lookup-input:focus { outline: none; border-color: #10b981; }
+          .lookup-btn { background: #10b981; color: #000; font-weight: 700; border: none; border-radius: 0.75rem; padding: 0.75rem 1.5rem; cursor: pointer; font-size: 0.85rem; transition: opacity 0.2s; }
+          .lookup-btn:hover { opacity: 0.9; }
+          .telemetry-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-top: 1.5rem; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 1.5rem; }
+          .telemetry-item { background: rgba(255,255,255,0.02); padding: 1rem; border-radius: 0.75rem; border: 1px solid rgba(255,255,255,0.05); }
+        `,
+        html: `
+          <div id="lookup" class="lookup-wrap">
+            <span style="color: #10b981; font-size: 0.7rem; font-weight: 700; text-transform: uppercase;">Factory Diagnostic & Telemetry Lookup</span>
+            <h3 style="font-size: 1.25rem; font-weight: 700; margin: 0.25rem 0 0.5rem 0; font-family: sans-serif;">Verify Your Serial Number</h3>
+            <p style="font-size: 0.75rem; color: #a1a1aa; margin: 0;">Enter the 10-digit laser-etched serial from the backplate of your chassis to view warranty status and calibration logs.</p>
+            
+            <div class="lookup-field">
+              <input type="text" class="lookup-input" value="SN-X9-9842-PRO" readonly />
+              <button class="lookup-btn" onclick="alert('Telemetry Verified: Serial SN-X9-9842-PRO is Active under 2-Year Precision Care through December 2028.')">Check Telemetry</button>
+            </div>
+
+            <div class="telemetry-grid">
+              <div class="telemetry-item">
+                <div style="font-size: 0.65rem; color: #71717a;">DEVICE STATUS</div>
+                <div style="font-size: 0.95rem; font-weight: 700; color: #10b981; margin-top: 0.25rem;">ACTIVE COVERAGE</div>
+                <div style="font-size: 0.7rem; color: #a1a1aa;">Valid through 2028</div>
+              </div>
+              <div class="telemetry-item">
+                <div style="font-size: 0.65rem; color: #71717a;">MANUFACTURING BATCH</div>
+                <div style="font-size: 0.95rem; font-weight: 700; color: #f4f4f5; margin-top: 0.25rem;">BILLET LOT #049</div>
+                <div style="font-size: 0.7rem; color: #a1a1aa;">CNC Precision Mill A-3</div>
+              </div>
+              <div class="telemetry-item">
+                <div style="font-size: 0.65rem; color: #71717a;">CALIBRATION THD+N</div>
+                <div style="font-size: 0.95rem; font-weight: 700; color: #f4f4f5; margin-top: 0.25rem;">0.00018%</div>
+                <div style="font-size: 0.7rem; color: #a1a1aa;">Passed Chamber Sweep</div>
+              </div>
+              <div class="telemetry-item">
+                <div style="font-size: 0.65rem; color: #71717a;">RAPID RMA STATUS</div>
+                <div style="font-size: 0.95rem; font-weight: 700; color: #10b981; margin-top: 0.25rem;">ELIGIBLE (24h)</div>
+                <div style="font-size: 0.7rem; color: #a1a1aa;">Air Cross-Ship Available</div>
+              </div>
+            </div>
+          </div>
+        `,
       },
       {
-        q: 'What is your return and replacement policy?',
-        a: 'We offer a 7-day hassle-free replacement warranty for any defective, damaged, or incorrect items. Simply notify our customer support team or message us on WhatsApp with a photo of the parcel.',
+        id: 'b_warr_faq',
+        type: 'faq',
+        title: 'Precision Care & RMA Questions',
+        subtitle: 'Clear, transparent answers on coverage, cross-shipments, and firmware recovery',
+        faqs: [
+          { q: 'What is covered under the 2-Year Precision Care Warranty?', a: 'Everything from internal DAC circuitry, display panel backlights, switch socket fatigue, rotary encoders, and mechanical chassis integrity is covered 100% against defects.' },
+          { q: 'How does the 24-Hour Cross-Shipment process work?', a: 'Once our engineering desk verifies your telemetry log, a fresh calibrated replacement is dispatched via express courier with a prepaid return carton for your existing unit.' },
+          { q: 'Does modding my keyboard switches or opening the chassis void the warranty?', a: 'No! We encourage user servicing and modding. As long as internal traces are not intentionally damaged, opening your device or swapping components maintains full warranty coverage.' },
+          { q: 'How do I download firmware updates and factory calibrations?', a: 'Firmware packages are cryptographically signed and available directly through our web configurator with zero desktop software required.' },
+        ],
       },
       {
-        q: 'Do you offer bulk wholesale or custom manufacturing batches?',
-        a: 'Yes. We cater to institutional distributors, retail chains, and corporate gifting. Please reach out via WhatsApp or email to connect with our B2B commercial sales desk.',
+        id: 'b_warr_protocol',
+        type: 'rich_text',
+        title: 'The Advance Replacement Protocol',
+        content: `1. Diagnostic Telemetry: Check your device serial number above or send an error report to our engineering desk.
+2. Cross-Ship Dispatch: A verified replacement unit is packed in our cleanroom and dispatched via express courier within 24 hours.
+3. Doorstep Handshake: Hand the return unit to the courier in the provided shock-proof return carton. Zero waiting, zero downtime.`,
       },
     ];
 
     const breadcrumbs = [
       { name: 'Home', url: `/store/${subdomain}` },
-      { name: 'Frequently Asked Questions', url: `/store/${subdomain}/pages/faq` },
+      { name: 'Warranty & Rapid Replacement', url: `/store/${subdomain}/pages/warranty-support` },
     ];
 
-    const faqSchema = {
-      '@context': 'https://schema.org',
-      '@type': 'FAQPage',
-      mainEntity: FAQS.map((faq) => ({
-        '@type': 'Question',
-        name: faq.q,
-        acceptedAnswer: {
-          '@type': 'Answer',
-          text: faq.a,
-        },
-      })),
-    };
-
     return (
-      <div className="max-w-3xl mx-auto space-y-8 py-4">
+      <div className="max-w-6xl mx-auto space-y-12 py-4">
         <SeoHead
-          title="Frequently Asked Questions & Customer Support"
-          description="Find answers to common questions about ordering direct from the factory, courier delivery charges, WhatsApp orders, and warranty replacements."
-          brandName={config?.name ?? 'Slice Mart'}
-          schema={faqSchema}
+          title="2-Year Precision Care & Rapid Replacement Warranty"
+          description="Official warranty coverage, 24-hour advance cross-shipment, and serial number calibration verification."
+          brandName={config?.name ?? 'Official Store'}
         />
-
         <BreadcrumbNav items={breadcrumbs} className="py-1" />
-
-        <div className="text-center space-y-3">
-          <div 
-            className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold"
-            style={{
-              backgroundColor: 'var(--store-primary-subtle, rgba(16,185,129,0.1))',
-              color: 'var(--store-primary, #10b981)',
-              borderColor: 'var(--store-primary-border, rgba(16,185,129,0.2))',
-              borderWidth: '1px',
-            }}
-          >
-            <HelpCircle className="size-3.5" />
-            <span>Customer Support & FAQs</span>
-          </div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white sm:text-4xl">
-            Frequently Asked Questions
-          </h1>
-          <p className="text-xs sm:text-sm text-slate-600 dark:text-zinc-400 max-w-md mx-auto">
-            Everything you need to know about factory direct ordering, delivery, and payment options.
-          </p>
-        </div>
-
-        <div className="rounded-3xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/50 p-6 sm:p-8 space-y-3 shadow-xs">
-          {FAQS.map((faq, idx) => {
-            const isExpanded = expandedFaq === idx;
-            return (
-              <div key={idx} className="rounded-2xl border border-slate-200 dark:border-zinc-800/80 bg-slate-50 dark:bg-zinc-950/60 overflow-hidden">
-                <button
-                  type="button"
-                  onClick={() => setExpandedFaq(isExpanded ? null : idx)}
-                  className="w-full flex items-center justify-between p-4 text-left text-xs font-bold text-slate-900 dark:text-zinc-100 hover:opacity-80 transition-colors cursor-pointer"
-                >
-                  <span>{faq.q}</span>
-                  <ChevronDown className={`size-4 text-slate-400 dark:text-zinc-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
-                </button>
-                {isExpanded && (
-                  <div className="px-4 pb-4 text-xs text-slate-600 dark:text-zinc-400 leading-relaxed border-t border-slate-200/80 dark:border-zinc-800/60 pt-3 animate-fade-in">
-                    {faq.a}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Contact Us Box */}
-        <div 
-          className="rounded-3xl border p-6 text-center space-y-3"
-          style={{
-            backgroundColor: 'var(--store-primary-subtle, rgba(16,185,129,0.05))',
-            borderColor: 'var(--store-primary-border, rgba(16,185,129,0.2))',
-          }}
-        >
-          <h3 className="text-sm font-bold text-slate-900 dark:text-white">Still have questions?</h3>
-          <p className="text-xs text-slate-600 dark:text-zinc-400">Our customer support team is on standby to assist you with your orders.</p>
-          <div className="pt-2">
-            <a
-              href={`https://wa.me/${config?.whatsapp_number?.replace(/[^0-9]/g, '') || '8801700000000'}?text=${encodeURIComponent('Hello, I have a question regarding my order.')}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-xs font-bold transition-all shadow-md"
-              style={{
-                backgroundColor: 'var(--store-primary, #10b981)',
-                color: 'var(--store-primary-fg, #ffffff)',
+        <div className="space-y-16">
+          {warrantyBlocks.map((block, idx) => (
+            <StorefrontBlockRenderer
+              key={block.id || `warr-${idx}`}
+              block={block}
+              products={products}
+              categories={categories}
+              currency={currency}
+              subdomain={subdomain}
+              defaultCardStyle={config?.theme?.card_style || 'commerce'}
+              onAddToCart={(product) => {
+                addItem(product.id, 1);
+                notify.success(`Added ${product.name} to cart`);
               }}
-            >
-              <span>Chat with Support on WhatsApp</span>
-            </a>
-          </div>
+            />
+          ))}
         </div>
       </div>
     );
   }
 
-  // 4. Rich Fallback Template for: "privacy-policy" / "privacy" / "terms"
+  // C. Shipping & Fulfillment: Armored Transit Protocol
+  if (slug === 'shipping-fulfillment' || slug === 'shipping') {
+    const shippingBlocks: PageBlock[] = [
+      {
+        id: 'b_ship_hero',
+        type: 'hero_banner',
+        badge: 'Armored Global Logistics',
+        title: 'Delivered with Surgical Precision',
+        subtitle: 'Every instrument is sealed in moisture-barrier foil with calibrated shock sensors and routed via direct air-freight corridors.',
+        cta_text: 'Track Active Parcel',
+        cta_url: `/store/${subdomain}/track`,
+        secondary_cta_text: 'Packaging Specs',
+        secondary_cta_url: '#specs',
+        settings: {
+          slides: [
+            {
+              id: 'sld_ship_1',
+              badge: 'Armored Global Logistics',
+              title: 'Delivered with Surgical Precision',
+              subtitle: 'Every instrument is sealed in moisture-barrier foil with calibrated shock sensors and routed via direct air-freight corridors.',
+              cta_text: 'Track Active Parcel',
+              cta_url: `/store/${subdomain}/track`,
+              secondary_cta_text: 'Packaging Specs',
+              secondary_cta_url: '#specs',
+              desktop_image: 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=1800&q=85',
+              overlay_opacity: 45,
+            },
+          ],
+          autoplay: false,
+          duration: 6000,
+        },
+      },
+      {
+        id: 'b_ship_props',
+        type: 'value_props',
+        title: 'Armored Transit Pillars',
+        subtitle: 'Packaging engineered like an aircraft flight recorder',
+        items: [
+          { icon: 'box', title: 'Impact-Monitored Cartons', desc: 'Integrated 25G shock-indicator labels ensure your instrument suffered zero transit drops.' },
+          { icon: 'shield', title: 'Vacuum Nitrogen Packaging', desc: 'Optical components and delicate switches sealed in nitrogen-purged ESD anti-static pouches.' },
+          { icon: 'truck', title: 'Direct Air Priority', desc: 'International shipments bypass regional sorting hubs and fly direct to metropolitan hubs.' },
+          { icon: 'award', title: 'Tamper-Proof Hologram', desc: 'Void-indicating forensic tape on all carton seams guarantees virgin factory unboxing.' },
+        ],
+      },
+      {
+        id: 'b_ship_quality',
+        type: 'quality_journey',
+        title: 'The Armored Fulfillment Journey',
+        subtitle: 'From cleanroom nitrogen sealing to your desktop setup',
+        steps: [
+          { step: '01', title: 'ESD Nitrogen Sealing', desc: 'Unit is wiped with isopropyl, grounded, and vacuum-sealed with desiccant in nitrogen-purged foil.' },
+          { step: '02', title: 'Custom Molded Pulp Core', desc: 'Encased in high-density recycled fiber armor engineered to absorb 50G drop impacts.' },
+          { step: '03', title: 'Shock Sensor Application', desc: 'A tamper-evident 25G g-force impact indicator is affixed to the carton exterior.' },
+          { step: '04', title: 'Armored Courier Handover', desc: 'Direct handover to priority air couriers with climate-controlled hold compartments.' },
+          { step: '05', title: 'White-Glove Doorstep Delivery', desc: 'Verified signature delivery with courier inspection check before acceptance.' },
+        ],
+      },
+      {
+        id: 'b_ship_faq',
+        type: 'faq',
+        title: 'Shipping & Delivery Specifications',
+        subtitle: 'Everything about dispatch cutoffs, transit times, and packaging seals',
+        faqs: [
+          { q: 'What is the shock sensor on my carton?', a: 'Every package carries a calibrated 25G impact indicator. If the indicator has turned red upon arrival, document it with the courier and our team will dispatch a replacement immediately.' },
+          { q: 'How quickly are orders fulfilled?', a: 'In-stock hardware orders placed before 3:00 PM EST are sealed and dispatched the same day. Custom anodized orders dispatch within 3–5 business days.' },
+          { q: 'Do you ship internationally?', a: 'Yes, we ship to over 85 countries with all customs duties, VAT, and brokerage fees calculated and prepaid at checkout.' },
+        ],
+      },
+      {
+        id: 'b_ship_specs',
+        type: 'rich_text',
+        title: 'Carton Architecture & Environmental Standards',
+        content: `All packaging materials are 100% plastic-free, utilizing high-density bamboo and sugarcane molded pulp cores engineered to withstand extreme hydrostatic pressures and temperature swings from -20°C to 55°C. Every order is fully insured with door-to-door courier tracking.`,
+      },
+    ];
+
+    const breadcrumbs = [
+      { name: 'Home', url: `/store/${subdomain}` },
+      { name: 'Armored Shipping & Logistics', url: `/store/${subdomain}/pages/shipping-fulfillment` },
+    ];
+
+    return (
+      <div className="max-w-6xl mx-auto space-y-12 py-4">
+        <SeoHead
+          title="Armored Transit & Global Fulfillment Protocol"
+          description="Learn about our impact-monitored packaging, nitrogen vacuum sealing, and express global courier transit."
+          brandName={config?.name ?? 'Official Store'}
+        />
+        <BreadcrumbNav items={breadcrumbs} className="py-1" />
+        <div className="space-y-16">
+          {shippingBlocks.map((block, idx) => (
+            <StorefrontBlockRenderer
+              key={block.id || `ship-${idx}`}
+              block={block}
+              products={products}
+              categories={categories}
+              currency={currency}
+              subdomain={subdomain}
+              defaultCardStyle={config?.theme?.card_style || 'commerce'}
+              onAddToCart={(product) => {
+                addItem(product.id, 1);
+                notify.success(`Added ${product.name} to cart`);
+              }}
+            />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // D. Custom Lab: Bespoke Studio Hardware & Anodizing
+  if (slug === 'custom-lab' || slug === 'bespoke') {
+    const labBlocks: PageBlock[] = [
+      {
+        id: 'b_lab_hero',
+        type: 'hero_banner',
+        badge: 'Bespoke Studio Hardware',
+        title: 'The Custom Hardware Lab',
+        subtitle: 'Commission one-of-a-kind CNC anodized finishes, laser vector serialization, and custom-tuned acoustic drivers for your production studio or executive desk.',
+        cta_text: 'Open Finish Configurator',
+        cta_url: '#configurator',
+        secondary_cta_text: 'Explore Catalog',
+        secondary_cta_url: `/store/${subdomain}/products`,
+        settings: {
+          slides: [
+            {
+              id: 'sld_lab_1',
+              badge: 'Bespoke Studio Hardware',
+              title: 'The Custom Hardware Lab',
+              subtitle: 'Commission one-of-a-kind CNC anodized finishes, laser vector serialization, and custom-tuned acoustic drivers for your production studio or executive desk.',
+              cta_text: 'Open Finish Configurator',
+              cta_url: '#configurator',
+              secondary_cta_text: 'Explore Catalog',
+              secondary_cta_url: `/store/${subdomain}/products`,
+              desktop_image: 'https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=1800&q=85',
+              overlay_opacity: 45,
+            },
+          ],
+          autoplay: false,
+          duration: 6000,
+        },
+      },
+      {
+        id: 'b_lab_props',
+        type: 'value_props',
+        title: 'Bespoke Capabilities',
+        subtitle: 'Industrial customization crafted for discerning creators',
+        items: [
+          { icon: 'tool', title: 'Pantone Billet Anodizing', desc: 'Type III hardcoat electrochemical anodizing tailored to your studio interior palette.' },
+          { icon: 'award', title: 'Fiber Laser Vector Etching', desc: 'Sub-micron laser engraving for personalized callsigns, serial numbers, and studio branding.' },
+          { icon: 'sliders', title: 'Bespoke Rotary Encoders', desc: 'Choose from knurled brass, fluted titanium, or matte ceramic haptic dials.' },
+          { icon: 'code', title: 'Custom Firmware Profiles', desc: 'Factory-flashed QMK keymaps, macro banks, and customized OLED boot animations.' },
+        ],
+      },
+      {
+        id: 'b_lab_interactive',
+        type: 'custom_html_css',
+        css: `
+          .config-wrap { background: #09090b; border: 1px solid rgba(255,255,255,0.12); border-radius: 1.5rem; padding: 2.5rem; color: #fff; font-family: ui-monospace, monospace; }
+          .color-row { display: flex; gap: 0.75rem; margin-top: 1rem; flex-wrap: wrap; }
+          .color-dot { width: 36px; height: 36px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; transition: all 0.2s; }
+          .color-dot:hover { transform: scale(1.1); border-color: #fff; }
+          .preview-box { background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.08); border-radius: 1rem; padding: 2rem; text-align: center; margin-top: 1.5rem; }
+          .spec-row { display: flex; justify-content: space-around; margin-top: 1.5rem; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 1rem; font-size: 0.75rem; }
+        `,
+        html: `
+          <div id="configurator" class="config-wrap">
+            <span style="color: #10b981; font-size: 0.7rem; font-weight: 700; text-transform: uppercase;">Live Anodizing Studio</span>
+            <h3 style="font-size: 1.3rem; font-weight: 700; margin: 0.25rem 0; font-family: sans-serif;">Select Monolithic Metal Alloy & Finish</h3>
+            <p style="font-size: 0.8rem; color: #a1a1aa; margin: 0;">Interactive 5-Axis billet rendering with real-time electrolytic pigment visualization.</p>
+
+            <div class="color-row">
+              <div class="color-dot" style="background: #27272a; border-color: #10b981;" title="Space Titanium (Standard)" onclick="alert('Selected Space Titanium (Hardcoat Grade 5)')"></div>
+              <div class="color-dot" style="background: #09090b;" title="Deep Obsidian" onclick="alert('Selected Deep Obsidian (Dual PVD Black)')"></div>
+              <div class="color-dot" style="background: #e4e4e7;" title="Raw Satin Billet" onclick="alert('Selected Raw Satin Billet (Clear Anodized)')"></div>
+              <div class="color-dot" style="background: #d97706;" title="Cyber Amber" onclick="alert('Selected Cyber Amber (Electrolytic Bronze)')"></div>
+              <div class="color-dot" style="background: #047857;" title="Nordic Forest" onclick="alert('Selected Nordic Forest (Deep Alpine Green)')"></div>
+            </div>
+
+            <div class="preview-box">
+              <svg width="220" height="110" viewBox="0 0 220 110" style="margin: 0 auto; display: block;">
+                <rect x="10" y="15" width="200" height="80" rx="14" fill="#27272a" stroke="#10b981" stroke-width="2" />
+                <circle cx="180" cy="55" r="18" fill="#18181b" stroke="#71717a" stroke-width="2" />
+                <circle cx="180" cy="55" r="8" fill="#10b981" />
+                <rect x="30" y="35" width="115" height="12" rx="4" fill="#3f3f46" />
+                <rect x="30" y="55" width="85" height="12" rx="4" fill="#3f3f46" />
+              </svg>
+              <div style="font-size: 0.85rem; font-weight: 700; color: #f4f4f5; margin-top: 1rem;">Flagship Studio Workstation Chassis • Space Titanium</div>
+              <div style="font-size: 0.7rem; color: #10b981; margin-top: 0.25rem;">Includes Laser-Etched Studio Serial & Flight Case</div>
+            </div>
+
+            <div class="spec-row">
+              <div><span style="color: #71717a;">ALLOY:</span> <b>6061-T6 Aircraft Billet</b></div>
+              <div><span style="color: #71717a;">TOLERANCE:</span> <b>±0.005 mm</b></div>
+              <div><span style="color: #71717a;">LEAD TIME:</span> <b>14 Business Days</b></div>
+              <div><span style="color: #71717a;">CERTIFICATE:</span> <b>1-of-1 Serialized</b></div>
+            </div>
+          </div>
+        `,
+      },
+      {
+        id: 'b_lab_quality',
+        type: 'quality_journey',
+        title: 'The Bespoke Commission Roadmap',
+        subtitle: 'How we turn your design vision into an heirloom electronic instrument',
+        steps: [
+          { step: '01', title: 'Aesthetic Consultation', desc: 'Collaborate with our industrial designers to define color codes, dial weights, and engraving vectors.' },
+          { step: '02', title: 'CAD Blueprint Approval', desc: 'Review high-precision 3D digital renders and mechanical cross-sections before milling.' },
+          { step: '03', title: 'Dedicated CNC Run', desc: 'Single-unit machine tool paths carved with diamond-tipped bits for flawless surface finish.' },
+          { step: '04', title: 'Hand Polishing & Anodizing', desc: 'Submerged in custom dye electrolyte baths with micron-level layer thickness verification.' },
+          { step: '05', title: 'Serial Certification', desc: 'Individually numbered (e.g. 01/01) and delivered in a custom hardwood flight case.' },
+        ],
+      },
+      {
+        id: 'b_lab_faq',
+        type: 'faq',
+        title: 'Custom Commission FAQ',
+        subtitle: 'Answers on minimum quantities, CAD files, and lead times',
+        faqs: [
+          { q: 'What is the lead time for bespoke studio hardware?', a: 'Standard custom commissions require 2 to 3 weeks for CAD preparation, dedicated CNC machining, anodizing, and final calibration.' },
+          { q: 'Can you engrave custom studio logos or vector art?', a: 'Yes! We accept SVG and DXF vector files for high-resolution fiber laser engraving on the backplate or rotary dial face.' },
+          { q: 'Is there a minimum order quantity for custom hardware?', a: 'No. Our lab produces single bespoke 1-of-1 commissions as well as complete multi-workstation deployments for commercial studios.' },
+        ],
+      },
+      {
+        id: 'b_lab_vip',
+        type: 'newsletter_vip',
+        title: 'Bespoke Commission Queue',
+        subtitle: 'Our custom milling runs are limited to 25 units per month. Register your interest to secure an upcoming build slot.',
+        button_text: 'Join Commission Waitlist',
+      },
+    ];
+
+    const breadcrumbs = [
+      { name: 'Home', url: `/store/${subdomain}` },
+      { name: 'Custom Hardware Lab', url: `/store/${subdomain}/pages/custom-lab` },
+    ];
+
+    return (
+      <div className="max-w-6xl mx-auto space-y-12 py-4">
+        <SeoHead
+          title="Custom Hardware Lab & Bespoke Studio Commissions"
+          description="Commission custom anodized aluminum finishes, laser engraving, and custom audio tuning."
+          brandName={config?.name ?? 'Official Store'}
+        />
+        <BreadcrumbNav items={breadcrumbs} className="py-1" />
+        <div className="space-y-16">
+          {labBlocks.map((block, idx) => (
+            <StorefrontBlockRenderer
+              key={block.id || `lab-${idx}`}
+              block={block}
+              products={products}
+              categories={categories}
+              currency={currency}
+              subdomain={subdomain}
+              defaultCardStyle={config?.theme?.card_style || 'commerce'}
+              onAddToCart={(product) => {
+                addItem(product.id, 1);
+                notify.success(`Added ${product.name} to cart`);
+              }}
+            />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // E. Help & FAQ Fallback
+  if (slug === 'faq' || slug === 'help') {
+    const faqBlocks: PageBlock[] = [
+      {
+        id: 'b_faq_main',
+        type: 'faq',
+        title: 'Precision Hardware & Audio Engineering FAQ',
+        subtitle: 'Everything you need to know about specs, compatibility, firmware, and direct order fulfillment',
+        faqs: [
+          { q: 'What audio codecs are supported by your DAC and acoustic hardware?', a: 'Our hardware features native bit-perfect decoding for LDAC, aptX HD, aptX Lossless, AAC, and PCM audio streams up to 384kHz / 32-bit.' },
+          { q: 'Do your keyboards support QMK/VIA firmware remapping?', a: 'Yes! All mechanical keyboards ship with open-source QMK/VIA support out of the box with zero proprietary background drivers needed.' },
+          { q: 'How long does direct factory dispatch take?', a: 'Orders placed before 3:00 PM are processed through our central cleanroom fulfillment line and dispatched on the same business day.' },
+          { q: 'What is your advance warranty replacement policy?', a: 'We offer 2-Year Precision Care with 24-hour advance replacement. If any hardware defect occurs, we cross-ship a replacement before you pack the return.' },
+        ],
+      },
+      {
+        id: 'b_faq_vip',
+        type: 'newsletter_vip',
+        title: 'Still Have Hardware Questions?',
+        subtitle: 'Our senior acoustic and firmware engineers are available on our private technical dispatch channel.',
+        button_text: 'Contact Engineering Desk',
+      },
+    ];
+
+    const breadcrumbs = [
+      { name: 'Home', url: `/store/${subdomain}` },
+      { name: 'Help & FAQ', url: `/store/${subdomain}/pages/faq` },
+    ];
+
+    return (
+      <div className="max-w-4xl mx-auto space-y-12 py-4">
+        <SeoHead
+          title="Frequently Asked Questions & Technical Support"
+          description="Find answers to common questions about codecs, QMK firmware, 2-year warranty, and express shipping."
+          brandName={config?.name ?? 'Official Store'}
+        />
+        <BreadcrumbNav items={breadcrumbs} className="py-1" />
+        <div className="space-y-16">
+          {faqBlocks.map((block, idx) => (
+            <StorefrontBlockRenderer
+              key={block.id || `faq-${idx}`}
+              block={block}
+              products={products}
+              categories={categories}
+              currency={currency}
+              subdomain={subdomain}
+              defaultCardStyle={config?.theme?.card_style || 'commerce'}
+              onAddToCart={(product) => {
+                addItem(product.id, 1);
+                notify.success(`Added ${product.name} to cart`);
+              }}
+            />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // F. Privacy Policy & Legal Terms
   if (slug === 'privacy-policy' || slug === 'privacy' || slug === 'terms') {
+    const legalBlocks: PageBlock[] = [
+      {
+        id: 'b_leg_1',
+        type: 'rich_text',
+        title: 'Privacy Policy & Customer Data Protection',
+        content: `We collect only the essential information necessary to manufacture, serialize, and deliver your hardware orders.
+Your personal data and telemetry logs are never sold, rented, or shared with commercial data brokers.
+All transactions are processed through PCI-DSS Level 1 certified encrypted gateways.`,
+      },
+      {
+        id: 'b_leg_2',
+        type: 'rich_text',
+        title: '2-Year Precision Care Terms & Conditions',
+        content: `All authentic hardware purchased directly through our official storefront is protected by our 2-Year Precision Care warranty against material defects, switch socket fatigue, and electronic component failure.
+We promote user repairability: non-destructive opening of the chassis to lubricate switches or clean dampening gaskets does not void your warranty.`,
+      },
+    ];
+
     const breadcrumbs = [
       { name: 'Home', url: `/store/${subdomain}` },
       { name: 'Privacy Policy & Terms', url: `/store/${subdomain}/pages/privacy-policy` },
     ];
 
     return (
-      <div className="max-w-4xl mx-auto space-y-8 py-4">
+      <div className="max-w-4xl mx-auto space-y-12 py-4">
         <SeoHead
-          title="Privacy Policy, Order Terms & Data Protection"
-          description="Read our official data protection rules, secure payment handling, 7-day replacement warranty, and shipping guidelines."
-          brandName={config?.name ?? 'Slice Mart'}
+          title="Privacy Policy & Hardware Terms"
+          description="Read our data protection policies, PCI-DSS payment compliance, and 2-Year Precision Care warranty terms."
+          brandName={config?.name ?? 'Official Store'}
         />
-
         <BreadcrumbNav items={breadcrumbs} className="py-1" />
-
-        <div className="space-y-2 border-b border-slate-200 dark:border-zinc-800/80 pb-6">
-          <div className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 dark:border-zinc-700 bg-slate-100 dark:bg-zinc-800/80 px-3 py-0.5 text-[11px] font-semibold text-slate-700 dark:text-zinc-300">
-            <Lock className="size-3" style={{ color: 'var(--store-primary, #10b981)' }} />
-            <span>Legal Notice & Privacy Standard</span>
-          </div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white sm:text-4xl">
-            Privacy Policy & Terms of Service
-          </h1>
-          <p className="text-xs text-slate-500 dark:text-zinc-400">
-            Last Updated: {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
-          </p>
-        </div>
-
-        <div className="space-y-8 text-xs sm:text-sm text-slate-600 dark:text-zinc-300 leading-relaxed">
-          <section className="rounded-3xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/40 p-6 sm:p-8 space-y-3 shadow-xs">
-            <h2 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <FileText className="size-4" style={{ color: 'var(--store-primary, #10b981)' }} />
-              <span>1. Information Collection & Usage</span>
-            </h2>
-            <p>
-              When you place an order on our storefront, we collect necessary customer details including your name, 
-              delivery address, contact phone number, and email. This data is utilized solely for order batching, delivery dispatch 
-              with 3PL couriers, and transactional SMS/email status notifications.
-            </p>
-          </section>
-
-          <section className="rounded-3xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/40 p-6 sm:p-8 space-y-3 shadow-xs">
-            <h2 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <ShieldCheck className="size-4" style={{ color: 'var(--store-primary, #10b981)' }} />
-              <span>2. Payment Security & Data Protection</span>
-            </h2>
-            <p>
-              We do not store full credit card numbers or banking PINs on our servers. All digital transactions are processed through 
-              encrypted, PCI-compliant payment gateways. For Cash on Delivery (COD), payment is collected directly upon physical receipt.
-            </p>
-          </section>
-
-          <section className="rounded-3xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/40 p-6 sm:p-8 space-y-3 shadow-xs">
-            <h2 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <Truck className="size-4" style={{ color: 'var(--store-primary, #10b981)' }} />
-              <span>3. Shipping, Returns & Cancellation</span>
-            </h2>
-            <p>
-              Orders can be cancelled before line dispatch by contacting customer support. If an item is received damaged or defective, 
-              we provide full replacement within 7 business days of delivery.
-            </p>
-          </section>
+        <div className="space-y-16">
+          {legalBlocks.map((block, idx) => (
+            <StorefrontBlockRenderer
+              key={block.id || `leg-${idx}`}
+              block={block}
+              products={products}
+              categories={categories}
+              currency={currency}
+              subdomain={subdomain}
+              defaultCardStyle={config?.theme?.card_style || 'commerce'}
+              onAddToCart={(product) => {
+                addItem(product.id, 1);
+                notify.success(`Added ${product.name} to cart`);
+              }}
+            />
+          ))}
         </div>
       </div>
     );
   }
 
-  // 5. General Fallback for other custom slugs
+  // 3. Fallback for undefined custom slugs
   return (
     <div className="max-w-2xl mx-auto py-16 text-center space-y-5">
       <SeoHead
         title="Custom Page"
-        description="Official custom page"
-        brandName={config?.name ?? 'Slice Mart'}
+        description="Official storefront custom page"
+        brandName={config?.name ?? 'Official Store'}
       />
       <div 
         className="inline-flex h-12 w-12 items-center justify-center rounded-2xl border"
@@ -592,8 +855,8 @@ export const StorefrontDynamicPage: React.FC = () => {
       >
         <FileText className="h-6 w-6" />
       </div>
-      <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Custom Storefront Page</h2>
-      <p className="text-xs sm:text-sm text-slate-600 dark:text-zinc-400 max-w-sm mx-auto leading-relaxed">
+      <h2 className="text-2xl font-bold text-zinc-900 dark:text-white">Storefront Page</h2>
+      <p className="text-xs sm:text-sm text-zinc-600 dark:text-zinc-400 max-w-sm mx-auto leading-relaxed">
         This custom page is currently being updated in the Storefront Page Builder CMS.
       </p>
       <Link

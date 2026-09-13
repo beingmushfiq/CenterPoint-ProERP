@@ -22,18 +22,21 @@ export const StorefrontFooter: React.FC<StorefrontFooterProps> = ({ config }) =>
       id: 'quick-links',
       title: 'Store Navigation',
       links: [
-        { label: 'Product Catalog', url: `/store/${subdomain}/products` },
-        { label: 'Track Delivery', url: `/store/${subdomain}/track` },
-        { label: 'My Orders & Profile', url: `/store/${subdomain}/account` },
+        { label: 'Hardware Catalog', url: `/store/${subdomain}/products` },
+        { label: 'Custom Hardware Lab', url: `/store/${subdomain}/pages/custom-lab` },
+        { label: 'Track Shipment', url: `/store/${subdomain}/track` },
+        { label: 'My Account', url: `/store/${subdomain}/account` },
       ],
     },
     {
       id: 'company-help',
-      title: 'Company & Help',
+      title: 'Engineering & Support',
       links: [
-        { label: 'About Our Factory', url: `/store/${subdomain}/pages/about-us` },
-        { label: 'Help & FAQs', url: `/store/${subdomain}/pages/faq` },
-        { label: 'Privacy & Terms', url: `/store/${subdomain}/pages/privacy-policy` },
+        { label: 'The Hardware Manifesto', url: `/store/${subdomain}/pages/about-us` },
+        { label: '2-Year Precision Care', url: `/store/${subdomain}/pages/warranty-support` },
+        { label: 'Armored Shipping Protocol', url: `/store/${subdomain}/pages/shipping-fulfillment` },
+        { label: 'Technical & Codec FAQ', url: `/store/${subdomain}/pages/faq` },
+        { label: 'Return Policy', url: `/store/${subdomain}/pages/return-policy` },
       ],
     },
   ];
@@ -77,9 +80,9 @@ export const StorefrontFooter: React.FC<StorefrontFooterProps> = ({ config }) =>
                   style={{ color: footerTextColor || undefined }}
                   className={`text-xs font-bold ${!footerTextColor ? 'text-slate-900 dark:text-white' : ''}`}
                 >
-                  Direct Factory Delivery
+                  24-Hour Express Air Dispatch
                 </h4>
-                <p className="text-[11px] opacity-75">Dispatched straight from central assembly hub</p>
+                <p className="text-[11px] opacity-75">Direct cleanroom fulfillment with shock-monitored telemetry</p>
               </div>
             </div>
 
@@ -99,9 +102,9 @@ export const StorefrontFooter: React.FC<StorefrontFooterProps> = ({ config }) =>
                   style={{ color: footerTextColor || undefined }}
                   className={`text-xs font-bold ${!footerTextColor ? 'text-slate-900 dark:text-white' : ''}`}
                 >
-                  100% Quality Inspected
+                  2-Year Precision Care
                 </h4>
-                <p className="text-[11px] opacity-75">Strict batch QC test on every product</p>
+                <p className="text-[11px] opacity-75">Advance cross-shipment with zero deductibles and full repairability</p>
               </div>
             </div>
 
@@ -121,9 +124,9 @@ export const StorefrontFooter: React.FC<StorefrontFooterProps> = ({ config }) =>
                   style={{ color: footerTextColor || undefined }}
                   className={`text-xs font-bold ${!footerTextColor ? 'text-slate-900 dark:text-white' : ''}`}
                 >
-                  Cash on Delivery
+                  Direct Engineering Concierge
                 </h4>
-                <p className="text-[11px] opacity-75">Pay safely upon receipt of your parcel</p>
+                <p className="text-[11px] opacity-75">Direct access to acoustic and firmware hardware specialists</p>
               </div>
             </div>
           </div>

@@ -34,15 +34,15 @@ describe('StorefrontHomePage Dynamic CMS Blocks', () => {
   it('renders default fallback blocks when CMS returns no blocks', async () => {
     vi.mocked(api.get).mockImplementation(async (url: string) => {
       if (url.includes('/storefront/products')) {
-        return { data: { data: [] } } as any;
+        return { data: { data: [] } } as unknown as Awaited<ReturnType<typeof api.get>>;
       }
       if (url.includes('/storefront/categories')) {
-        return { data: { data: [] } } as any;
+        return { data: { data: [] } } as unknown as Awaited<ReturnType<typeof api.get>>;
       }
       if (url.includes('/storefront/pages/home')) {
-        return { data: { data: { blocks: [] } } } as any;
+        return { data: { data: { blocks: [] } } } as unknown as Awaited<ReturnType<typeof api.get>>;
       }
-      return { data: {} } as any;
+      return { data: {} } as unknown as Awaited<ReturnType<typeof api.get>>;
     });
 
     render(
@@ -52,21 +52,21 @@ describe('StorefrontHomePage Dynamic CMS Blocks', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText(/Next-Gen Infrared Cookers & Premium Stoves/i)).toBeInTheDocument();
+      expect(screen.getByText(/Designed for Excellence, Crafted for Longevity/i)).toBeInTheDocument();
     });
 
     // Check default block elements
-    expect(screen.getByText(/Explore Fresh Catalog/i)).toBeInTheDocument();
-    expect(screen.getByText(/Express Dispatch/i)).toBeInTheDocument();
+    expect(screen.getByText(/Explore Catalog/i)).toBeInTheDocument();
+    expect(screen.getByText(/Reliable Dispatch/i)).toBeInTheDocument();
   });
 
   it('renders custom CMS blocks when provided by API', async () => {
     vi.mocked(api.get).mockImplementation(async (url: string) => {
       if (url.includes('/storefront/products')) {
-        return { data: { data: [] } } as any;
+        return { data: { data: [] } } as unknown as Awaited<ReturnType<typeof api.get>>;
       }
       if (url.includes('/storefront/categories')) {
-        return { data: { data: [] } } as any;
+        return { data: { data: [] } } as unknown as Awaited<ReturnType<typeof api.get>>;
       }
       if (url.includes('/storefront/pages/home')) {
         return {
@@ -92,9 +92,9 @@ describe('StorefrontHomePage Dynamic CMS Blocks', () => {
               ],
             },
           },
-        } as any;
+        } as unknown as Awaited<ReturnType<typeof api.get>>;
       }
-      return { data: {} } as any;
+      return { data: {} } as unknown as Awaited<ReturnType<typeof api.get>>;
     });
 
     render(
