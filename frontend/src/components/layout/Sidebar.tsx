@@ -6,12 +6,14 @@ import {
   ChevronDown,
   ChevronRight,
   X,
+  Download,
 } from 'lucide-react';
 import { useAuthStore } from '../../lib/auth/authStore';
 import { useTenantCapabilityStore } from '../../lib/capabilities/tenantCapabilityStore';
 import { buildDynamicNavSections } from '../../lib/capabilities/navRegistry';
 import { useTenantBranding } from '../../lib/theme/useTenantBranding';
 import { getAppVersion } from '../../lib/config/appVersion';
+import { usePwaInstall } from '../../hooks/usePwaInstall';
 import { cn } from '../../lib/utils';
 
 interface SidebarProps {
@@ -30,6 +32,7 @@ export function Sidebar({ isOpen, onClose, isCollapsed = false, onToggleCollapse
   const navOrder = useTenantCapabilityStore((state) => state.manifest?.nav_order);
   const [searchQuery, setSearchQuery] = useState('');
   const location = useLocation();
+  const { isInstallable, isInstalled, promptInstall } = usePwaInstall();
 
   // Collapsed sections accordion memory (persisted in localStorage)
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>(() => {
@@ -385,6 +388,24 @@ export function Sidebar({ isOpen, onClose, isCollapsed = false, onToggleCollapse
             );
           })}
         </nav>
+
+        {/* PWA Install Button for ERP */}
+        {isInstallable && !isInstalled && (
+          <div className="px-2 py-1.5 border-t border-(--nav-border) bg-(--nav-bg-deep)/30 shrink-0">
+            <button
+              type="button"
+              onClick={() => promptInstall()}
+              className={cn(
+                'w-full flex items-center justify-center gap-2 px-2.5 py-1.5 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 border border-primary/25 text-xs font-medium transition cursor-pointer',
+                isCollapsed && 'px-1.5'
+              )}
+              title="Install Operations ERP Desktop App"
+            >
+              <Download className="size-3.5 shrink-0" />
+              {!isCollapsed && <span className="truncate">Install ERP App</span>}
+            </button>
+          </div>
+        )}
 
         {/* Desktop Sidebar Bottom Footer with Version & Status */}
         <div className="hidden lg:flex items-center justify-between border-t border-(--nav-border) px-3 py-2.5 bg-(--nav-bg-deep)/50 shrink-0">

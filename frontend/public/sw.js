@@ -1,31 +1,34 @@
 // ─────────────────────────────────────────────────────────────
-// SLICEMART ERP — SERVICE WORKER (PWA Offline & Cache Engine)
+// MULTI-ZONE SERVICE WORKER (ERP Console vs E-Commerce Storefront)
 // ─────────────────────────────────────────────────────────────
 
-const CACHE_NAME = 'slicemart-erp-v1.3';
-const STATIC_ASSETS = [
+const ERP_CACHE_NAME = 'slicemart-erp-cache-v2';
+const STORE_CACHE_NAME = 'slicemart-storefront-cache-v2';
+
+const ERP_STATIC_ASSETS = [
   '/',
+  '/dashboard',
   '/index.html',
   '/favicon.svg',
   '/manifest.json',
 ];
 
-// 1. Install event — pre-cache core static shell
+// 1. Install event — pre-cache core shells
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(STATIC_ASSETS);
+    caches.open(ERP_CACHE_NAME).then((cache) => {
+      return cache.addAll(ERP_STATIC_ASSETS);
     }).then(() => self.skipWaiting())
   );
 });
 
-// 2. Activate event — clean up obsolete cache versions
+// 2. Activate event — purge obsolete versions
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) => {
       return Promise.all(
         keys.map((key) => {
-          if (key !== CACHE_NAME) {
+          if (key !== ERP_CACHE_NAME && key !== STORE_CACHE_NAME) {
             return caches.delete(key);
           }
         })
@@ -34,21 +37,25 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// 3. Fetch event — Network First strategy for navigation / live data with cache fallback
+// 3. Fetch event — route-aware caching strategy
 self.addEventListener('fetch', (event) => {
   const { request } = event;
-  
-  // Skip non-GET requests or chrome-extension URLs
+
+  // Only handle standard HTTP/HTTPS GET requests
   if (request.method !== 'GET' || !request.url.startsWith('http')) return;
 
-  // HTML Navigation requests: Network first -> Cache -> offline shell
+  const url = new URL(request.url);
+  const isStorefront = url.pathname.startsWith('/store') || url.pathname.includes('/storefront');
+  const targetCache = isStorefront ? STORE_CACHE_NAME : ERP_CACHE_NAME;
+
+  // A. Navigation requests: Network First -> Cache -> Offline Fallback
   if (request.mode === 'navigate') {
     event.respondWith(
       fetch(request)
         .then((response) => {
           if (response.status === 200) {
             const clone = response.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+            caches.open(targetCache).then((cache) => cache.put(request, clone));
           }
           return response;
         })
@@ -63,7 +70,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Static Assets (scripts, styles, images, fonts): Cache first -> Network fallback
+  // B. Static Assets (Scripts, CSS, Images, Fonts)
   if (
     request.destination === 'script' ||
     request.destination === 'style' ||
@@ -76,7 +83,7 @@ self.addEventListener('fetch', (event) => {
         return fetch(request).then((response) => {
           if (response.status === 200) {
             const clone = response.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+            caches.open(targetCache).then((cache) => cache.put(request, clone));
           }
           return response;
         }).catch(() => new Response('', { status: 404, statusText: 'Not Found' }));
@@ -85,7 +92,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Default: Network with Cache Fallback
+  // C. Default: Network with Cache Fallback
   event.respondWith(
     fetch(request)
       .then((response) => response)
@@ -96,4 +103,3 @@ self.addEventListener('fetch', (event) => {
       })
   );
 });
-

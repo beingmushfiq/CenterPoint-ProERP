@@ -1,8 +1,10 @@
 {
-  "name": "SliceMart ERP",
-  "short_name": "SliceMart ERP",
-  "description": "Production, Inventory, Multi-Warehouse, QC, Sales & Business Operations Management Platform for SliceMart Bangladesh",
-  "start_url": "/",
+  "id": "/",
+  "name": "Operations Console ERP",
+  "short_name": "Operations ERP",
+  "description": "Manufacturing, Inventory, Multi-Warehouse, Batch Production, Quality Control & Enterprise Sales Operations Platform",
+  "start_url": "/dashboard",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#0F172A",
   "theme_color": "#0F172A",
@@ -25,23 +27,23 @@
   "shortcuts": [
     {
       "name": "Dashboard",
-      "url": "/",
-      "description": "Business Command Center"
+      "url": "/dashboard",
+      "description": "Business & Operations Command Center"
     },
     {
-      "name": "Production Orders",
+      "name": "Production Floor",
       "url": "/production/orders",
-      "description": "Active Batch Production"
+      "description": "Active Batch Runs & Work Orders"
     },
     {
-      "name": "Inventory",
+      "name": "Warehouse Inventory",
       "url": "/inventory",
-      "description": "Warehouse Stock & Materials"
+      "description": "Stock Levels & Materials Movement"
     },
     {
-      "name": "New Sale",
+      "name": "New Sale & POS",
       "url": "/sales/new",
-      "description": "Create B2B/B2C Order"
+      "description": "Create B2B Wholesale / B2C Order"
     }
   ]
 }

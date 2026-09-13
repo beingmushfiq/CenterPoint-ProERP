@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ShoppingBag, Store, MessageCircle, Truck, Sparkles, ShieldCheck, Menu, X, ExternalLink } from 'lucide-react';
+import { ShoppingBag, Store, MessageCircle, Truck, Sparkles, ShieldCheck, Menu, X, ExternalLink, Smartphone } from 'lucide-react';
 import { useStorefrontCartStore } from '../../lib/storefront/storefrontCartStore';
+import { usePwaInstall } from '../../hooks/usePwaInstall';
 import type { StorefrontConfig } from '../../types/api/storefront';
 
 import { StorefrontThemeToggle } from './StorefrontThemeToggle';
@@ -13,6 +14,7 @@ interface StorefrontHeaderProps {
 
 export const StorefrontHeader: React.FC<StorefrontHeaderProps> = ({ config, subdomain }) => {
   const { cart, openDrawer } = useStorefrontCartStore();
+  const { isInstallable, isInstalled, promptInstall } = usePwaInstall();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const itemCount = cart?.item_count ?? 0;
@@ -235,6 +237,24 @@ export const StorefrontHeader: React.FC<StorefrontHeaderProps> = ({ config, subd
               Account
             </Link>
 
+            {/* Install Store PWA Button */}
+            {isInstallable && !isInstalled && (
+              <button
+                type="button"
+                onClick={() => promptInstall()}
+                style={{
+                  backgroundColor: 'var(--store-primary-subtle, rgba(16,185,129,0.12))',
+                  borderColor: 'var(--store-primary-border, rgba(16,185,129,0.25))',
+                  color: 'var(--store-primary, #10b981)',
+                }}
+                className="hidden xl:inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-semibold transition-all shadow-2xs cursor-pointer hover:opacity-90"
+                title="Install Store App to your device"
+              >
+                <Smartphone className="size-3.5" />
+                <span>Install App</span>
+              </button>
+            )}
+
             {/* Theme Toggler (Light / Dark with circular ripple transition) */}
             <StorefrontThemeToggle />
 
@@ -335,6 +355,25 @@ export const StorefrontHeader: React.FC<StorefrontHeaderProps> = ({ config, subd
                 <MessageCircle className="size-4" />
                 <span>Chat on WhatsApp</span>
               </a>
+              {/* Mobile Install App Button */}
+              {isInstallable && !isInstalled && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    promptInstall();
+                  }}
+                  style={{
+                    backgroundColor: 'var(--store-primary, #10b981)',
+                    color: 'var(--store-primary-fg, #ffffff)',
+                  }}
+                  className="flex items-center justify-center gap-2 py-2.5 rounded-xl font-semibold text-xs shadow-sm cursor-pointer"
+                >
+                  <Smartphone className="size-4" />
+                  <span>Install {config?.name || 'Store'} App</span>
+                </button>
+              )}
+
               <Link
                 to={`/store/${subdomain}/account`}
                 onClick={() => setMobileMenuOpen(false)}

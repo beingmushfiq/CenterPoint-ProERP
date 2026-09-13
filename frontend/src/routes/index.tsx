@@ -1,5 +1,6 @@
 import { lazy, Suspense } from 'react';
-import { Navigate, createBrowserRouter } from 'react-router-dom';
+import { Navigate, createBrowserRouter, Outlet } from 'react-router-dom';
+import { usePwaManifest } from '../hooks/usePwaManifest';
 import { ProtectedRoute } from '../components/auth/ProtectedRoute';
 import { AppShell } from '../components/layout/AppShell';
 import { RouteErrorBoundary } from '../components/routing/RouteErrorBoundary';
@@ -231,8 +232,16 @@ const isStorefrontCustomDomain = (() => {
   return true;
 })();
 
+function RootLayout() {
+  usePwaManifest();
+  return <Outlet />;
+}
+
 export const router = createBrowserRouter([
-  // If accessing through master platform domain at root "/", redirect to /platform
+  {
+    element: <RootLayout />,
+    children: [
+      // If accessing through master platform domain at root "/", redirect to /platform
   ...(isMasterPlatformDomain
     ? [
         {
@@ -560,5 +569,7 @@ export const router = createBrowserRouter([
         <NotFoundPage />
       </Suspense>
     ),
+  },
+    ],
   },
 ]);
