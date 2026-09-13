@@ -282,7 +282,7 @@ export const PlanManagerWorkspace: React.FC = () => {
 
                     {/* Pricing */}
                     <div className="my-4 flex items-baseline gap-1.5 font-mono">
-                      <span className="text-3xl font-extrabold text-default">${plan.price}</span>
+                      <span className="text-3xl font-extrabold text-default">BDT {plan.price}</span>
                       <span className="text-xs text-muted">/{plan.billing_period}</span>
                     </div>
 
@@ -422,7 +422,7 @@ export const PlanManagerWorkspace: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-default mb-1 font-semibold">Price ($) *</label>
+                  <label className="block text-default mb-1 font-semibold">Price (BDT) *</label>
                   <input
                     type="number"
                     min="0"

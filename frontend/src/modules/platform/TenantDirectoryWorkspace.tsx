@@ -307,7 +307,7 @@ export const TenantDirectoryWorkspace: React.FC = () => {
             <span className="text-[10px] font-mono uppercase tracking-wider">Estimated MRR</span>
             <TrendingUp className="size-4" />
           </div>
-          <div className="text-2xl font-bold font-mono text-default mt-1">${stats.estimatedMrr.toLocaleString()}</div>
+          <div className="text-2xl font-bold font-mono text-default mt-1">BDT {stats.estimatedMrr.toLocaleString()}</div>
           <div className="text-[10px] font-mono text-muted mt-1">Active Subscriptions</div>
         </motion.div>
       </div>
@@ -431,7 +431,7 @@ export const TenantDirectoryWorkspace: React.FC = () => {
                             {t.plan?.name ?? 'Standard SaaS'}
                           </span>
                           <div className="text-[10px] text-muted">
-                            ${t.plan?.price ?? (t.subscription?.amount || 0)}/{t.plan?.billing_period ?? 'mo'}
+                            BDT {t.plan?.price ?? (t.subscription?.amount || 0)}/{t.plan?.billing_period ?? 'mo'}
                           </div>
                         </div>
                       </td>

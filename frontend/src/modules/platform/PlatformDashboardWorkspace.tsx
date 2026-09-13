@@ -123,7 +123,7 @@ export const PlatformDashboardWorkspace: React.FC = () => {
           </div>
           <div className="mt-4">
             <div className="text-3xl font-extrabold text-default font-mono">
-              ${(kpis?.estimated_mrr ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+              BDT {(kpis?.estimated_mrr ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
             </div>
             <p className="mt-2 text-[11px] text-muted">
               Based on active tenant subscription tiers
@@ -211,7 +211,7 @@ export const PlatformDashboardWorkspace: React.FC = () => {
                       <span className="text-sm font-bold text-default font-mono">
                         {plan.tenants_count} Tenants
                       </span>
-                      <span className="text-xs text-muted font-mono ml-2">(${plan.price}/mo)</span>
+                      <span className="text-xs text-muted font-mono ml-2">(BDT {plan.price}/mo)</span>
                     </div>
                   </div>
                   <div className="w-full bg-surface h-2 rounded-full overflow-hidden border border-default/50">

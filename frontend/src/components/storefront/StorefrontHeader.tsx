@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ShoppingBag, Store, MessageCircle, Truck, Sparkles, ShieldCheck, Menu, X, ExternalLink, Smartphone } from 'lucide-react';
+import { ShoppingBag, Store, MessageCircle, Truck, Sparkles, ShieldCheck, Menu, X, ExternalLink, Smartphone, Heart } from 'lucide-react';
 import { useStorefrontCartStore } from '../../lib/storefront/storefrontCartStore';
+import { useStorefrontWishlistStore } from '../../lib/storefront/storefrontWishlistStore';
 import { usePwaInstall } from '../../hooks/usePwaInstall';
 import type { StorefrontConfig } from '../../types/api/storefront';
 
@@ -14,6 +15,7 @@ interface StorefrontHeaderProps {
 
 export const StorefrontHeader: React.FC<StorefrontHeaderProps> = ({ config, subdomain }) => {
   const { cart, openDrawer } = useStorefrontCartStore();
+  const { items: wishlistItems, openWishlist } = useStorefrontWishlistStore();
   const { isInstallable, isInstalled, promptInstall } = usePwaInstall();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -258,6 +260,26 @@ export const StorefrontHeader: React.FC<StorefrontHeaderProps> = ({ config, subd
             {/* Theme Toggler (Light / Dark with circular ripple transition) */}
             <StorefrontThemeToggle />
 
+            {/* Wishlist Trigger */}
+            <button
+              type="button"
+              onClick={openWishlist}
+              style={{ color: navbarTextColor || undefined }}
+              className={`relative flex items-center gap-1.5 rounded-xl px-2.5 sm:px-3 py-2 text-xs font-semibold hover:bg-black/5 dark:hover:bg-white/5 border border-transparent hover:border-slate-200 dark:hover:border-zinc-800 transition-all cursor-pointer ${
+                !navbarTextColor ? 'text-slate-700 dark:text-zinc-300' : ''
+              }`}
+              title="View Saved Wishlist"
+              aria-label="View Saved Wishlist"
+            >
+              <Heart className={`size-4 transition-colors ${wishlistItems.length > 0 ? 'fill-rose-500 text-rose-500' : ''}`} />
+              <span className="hidden md:inline">Wishlist</span>
+              {wishlistItems.length > 0 && (
+                <span className="flex size-4.5 items-center justify-center rounded-full bg-rose-500 text-white text-[10px] font-bold font-mono">
+                  {wishlistItems.length}
+                </span>
+              )}
+            </button>
+
             {/* Cart Trigger with Total Preview (Powered by Primary Accent Color) */}
             <button
               type="button"
@@ -341,6 +363,28 @@ export const StorefrontHeader: React.FC<StorefrontHeaderProps> = ({ config, subd
             </nav>
 
             <div className="pt-3 border-t border-black/10 dark:border-white/10 flex flex-col gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  openWishlist();
+                }}
+                style={{ color: navbarTextColor || undefined }}
+                className={`flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-semibold hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer ${
+                  !navbarTextColor ? 'text-slate-700 dark:text-zinc-200' : ''
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <Heart className={`size-4 ${wishlistItems.length > 0 ? 'fill-rose-500 text-rose-500' : ''}`} />
+                  <span>My Wishlist</span>
+                </div>
+                {wishlistItems.length > 0 && (
+                  <span className="rounded-full bg-rose-500 text-white px-2 py-0.5 text-xs font-bold font-mono">
+                    {wishlistItems.length}
+                  </span>
+                )}
+              </button>
+
               <a
                 href={`https://wa.me/${whatsappNumber}?text=${whatsappMsg}`}
                 target="_blank"

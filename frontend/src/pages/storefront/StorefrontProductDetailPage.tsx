@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { Link, useOutletContext, useParams } from 'react-router-dom';
-import { ArrowLeft, Minus, Package, Plus, ShoppingBag, ShieldCheck, ChevronLeft, ChevronRight, Share2, Check } from 'lucide-react';
+import { Link, useOutletContext, useParams, useNavigate } from 'react-router-dom';
+import { ArrowLeft, Minus, Package, Plus, ShoppingBag, ShieldCheck, ChevronLeft, ChevronRight, Share2, Check, Heart, Zap } from 'lucide-react';
 import { api } from '../../lib/api/client';
 import { useStorefrontCartStore } from '../../lib/storefront/storefrontCartStore';
+import { useStorefrontWishlistStore } from '../../lib/storefront/storefrontWishlistStore';
+import { notify } from '../../components/ui/Toast';
 import { SeoHead } from '../../components/seo/SeoHead';
 import { BreadcrumbNav } from '../../components/seo/BreadcrumbNav';
 import type { StorefrontConfig, StorefrontProduct, StorefrontProductVariant } from '../../types/api/storefront';
@@ -27,7 +29,30 @@ export const StorefrontProductDetailPage: React.FC = () => {
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [copiedLink, setCopiedLink] = useState(false);
 
+  const navigate = useNavigate();
   const { addItem, openDrawer } = useStorefrontCartStore();
+  const { isInWishlist, toggleWishlist } = useStorefrontWishlistStore();
+  const isWishlisted = product ? isInWishlist(product.id) : false;
+
+  const handleWishlistToggle = () => {
+    if (!product) return;
+    const added = toggleWishlist(product);
+    if (added) {
+      notify.success(`Saved "${product.name}" to Wishlist`);
+    } else {
+      notify.info('Removed from Wishlist');
+    }
+  };
+
+  const handleOrderNow = async () => {
+    if (!product) return;
+    try {
+      await addItem(product.id, quantity, selectedVariant?.id);
+      navigate(`/store/${subdomain}/checkout`);
+    } catch {
+      notify.error('Failed to proceed to checkout');
+    }
+  };
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -318,9 +343,24 @@ export const StorefrontProductDetailPage: React.FC = () => {
               {product.brand && <span className="text-slate-500 dark:text-zinc-400">· {product.brand.name}</span>}
             </div>
 
-            <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white sm:text-3xl">
-              {product.name}
-            </h1>
+            <div className="flex items-start justify-between gap-4">
+              <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white sm:text-3xl">
+                {product.name}
+              </h1>
+              <button
+                type="button"
+                onClick={handleWishlistToggle}
+                className={`p-2.5 rounded-2xl border transition-all cursor-pointer shrink-0 shadow-2xs ${
+                  isWishlisted
+                    ? 'border-rose-300 bg-rose-50 text-rose-600 dark:border-rose-800 dark:bg-rose-950/50 dark:text-rose-400'
+                    : 'border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-slate-500 dark:text-zinc-400 hover:text-rose-500'
+                }`}
+                title={isWishlisted ? 'Remove from Wishlist' : 'Add to Wishlist'}
+                aria-label="Wishlist"
+              >
+                <Heart className={`size-5 ${isWishlisted ? 'fill-rose-500' : ''}`} />
+              </button>
+            </div>
 
             <div className="flex items-center gap-3">
               <span
@@ -419,17 +459,29 @@ export const StorefrontProductDetailPage: React.FC = () => {
                 </button>
               </div>
 
+              {/* Order Now (Direct Checkout) */}
               <button
                 type="button"
-                onClick={handleAddToCart}
+                onClick={handleOrderNow}
                 style={{
                   backgroundColor: 'var(--store-primary, #10b981)',
                   color: 'var(--store-primary-fg, #ffffff)',
                 }}
-                className="flex-1 flex items-center justify-center gap-2 rounded-xl py-3.5 text-xs font-extrabold shadow-lg transition-all cursor-pointer active:scale-98 hover:opacity-90"
+                className="flex-1 flex items-center justify-center gap-2 rounded-xl py-3.5 px-4 text-xs font-extrabold shadow-lg transition-all cursor-pointer active:scale-98 hover:opacity-90"
+              >
+                <Zap className="size-4 fill-current" />
+                <span>Order Now ({currency} {(parseFloat(price) * quantity).toFixed(2)})</span>
+              </button>
+
+              {/* Add to Cart */}
+              <button
+                type="button"
+                onClick={handleAddToCart}
+                className="inline-flex items-center justify-center gap-2 rounded-xl py-3.5 px-4 text-xs font-bold border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-slate-900 dark:text-white shadow-xs transition-all cursor-pointer active:scale-98 hover:bg-slate-50 dark:hover:bg-zinc-800"
+                title="Add to Shopping Cart"
               >
                 <ShoppingBag className="size-4 stroke-[2.5]" />
-                <span>Add to Cart ({currency} {(parseFloat(price) * quantity).toFixed(2)})</span>
+                <span className="hidden sm:inline">Add to Cart</span>
               </button>
             </div>
 

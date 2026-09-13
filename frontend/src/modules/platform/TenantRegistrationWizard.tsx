@@ -303,7 +303,7 @@ export const TenantRegistrationWizard: React.FC = () => {
                       <div className="flex items-center justify-between mb-2">
                         <span className="font-bold text-default text-base">{p.name}</span>
                         <span className="text-xs font-mono px-2 py-0.5 rounded bg-surface-raised text-amber-500 font-bold border border-default">
-                          ${p.price}/{p.billing_period}
+                          BDT {p.price}/{p.billing_period}
                         </span>
                       </div>
                       <p className="text-xs text-muted mb-4">{p.description || 'Full SaaS industrial feature set'}</p>

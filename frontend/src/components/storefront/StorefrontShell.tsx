@@ -2,9 +2,11 @@ import React, { useEffect, useState, Suspense } from 'react';
 import { Outlet, useParams, useLocation } from 'react-router-dom';
 import { api } from '../../lib/api/client';
 import { useStorefrontCartStore } from '../../lib/storefront/storefrontCartStore';
+import { useStorefrontWishlistStore } from '../../lib/storefront/storefrontWishlistStore';
 import { StorefrontHeader } from './StorefrontHeader';
 import { StorefrontFooter } from './StorefrontFooter';
 import { StorefrontCartDrawer } from './StorefrontCartDrawer';
+import { StorefrontWishlistDrawer } from './StorefrontWishlistDrawer';
 import { SeoHead } from '../seo/SeoHead';
 import { JsonLdSchema } from '../seo/JsonLdSchema';
 import { useAuthStore } from '../../lib/auth/authStore';
@@ -65,6 +67,7 @@ export const StorefrontShell: React.FC = () => {
         const resolvedSubdomain = initialConfig.subdomain || paramSubdomain || tenantSubdomain || 'store';
         setActiveSubdomain(resolvedSubdomain);
         setSubdomain(resolvedSubdomain);
+        useStorefrontWishlistStore.getState().setSubdomain(resolvedSubdomain);
 
         // Check if there is an active local draft from the customizer
         const draft = getStoredThemeDraft(resolvedSubdomain);
@@ -189,6 +192,7 @@ export const StorefrontShell: React.FC = () => {
 
       <StorefrontFooter config={config} />
       <StorefrontCartDrawer config={config} subdomain={subdomain} />
+      <StorefrontWishlistDrawer config={config} subdomain={subdomain} />
     </div>
   );
 };

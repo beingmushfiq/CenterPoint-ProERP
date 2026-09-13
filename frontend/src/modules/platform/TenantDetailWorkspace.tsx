@@ -901,7 +901,7 @@ export const TenantDetailWorkspace: React.FC = () => {
                 <span className="text-muted block mb-1">Plan Tier</span>
                 <span className="text-base font-bold text-amber-600 dark:text-amber-400">{tenant.plan?.name ?? 'Starter'}</span>
                 <span className="text-muted block mt-1">
-                  ${tenant.plan?.price ?? 0} / {tenant.plan?.billing_period ?? 'month'}
+                  BDT {tenant.plan?.price ?? 0} / {tenant.plan?.billing_period ?? 'month'}
                 </span>
               </div>
 

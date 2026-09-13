@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useOutletContext } from 'react-router-dom';
+import { useOutletContext, useNavigate } from 'react-router-dom';
 import { api } from '../../lib/api/client';
 import { useStorefrontCartStore } from '../../lib/storefront/storefrontCartStore';
 import { notify } from '../../components/ui/Toast';
@@ -21,6 +21,7 @@ interface CmsPageResponse {
 }
 
 export const StorefrontHomePage: React.FC = () => {
+  const navigate = useNavigate();
   const { config, subdomain } = useOutletContext<OutletContextType>();
   const [products, setProducts] = useState<StorefrontProduct[]>([]);
   const [categories, setCategories] = useState<{ id: number; name: string }[]>([]);
@@ -217,9 +218,14 @@ export const StorefrontHomePage: React.FC = () => {
           currency={currency}
           subdomain={subdomain}
           defaultCardStyle={config?.theme?.card_style || 'commerce'}
+          whatsappNumber={config?.whatsapp_number || undefined}
           onAddToCart={(product) => {
             addItem(product.id, 1);
             notify.success(`Added ${product.name} to cart`);
+          }}
+          onOrderNow={async (product) => {
+            await addItem(product.id, 1);
+            navigate(`/store/${subdomain}/checkout`);
           }}
         />
       ))}

@@ -19,7 +19,9 @@ interface StorefrontBlockRendererProps {
   currency: string;
   subdomain: string;
   defaultCardStyle?: ProductCardStyle | undefined;
+  whatsappNumber?: string | undefined;
   onAddToCart: (product: StorefrontProduct) => void;
+  onOrderNow?: ((product: StorefrontProduct) => void) | undefined;
   onQuickView?: ((product: StorefrontProduct) => void) | undefined;
 }
 
@@ -30,7 +32,9 @@ export const StorefrontBlockRenderer: React.FC<StorefrontBlockRendererProps> = (
   currency,
   subdomain,
   defaultCardStyle = 'commerce',
+  whatsappNumber,
   onAddToCart,
+  onOrderNow,
   onQuickView,
 }) => {
   switch (block.type) {
@@ -47,7 +51,9 @@ export const StorefrontBlockRenderer: React.FC<StorefrontBlockRendererProps> = (
           currency={currency}
           subdomain={subdomain}
           defaultCardStyle={defaultCardStyle}
+          whatsappNumber={whatsappNumber}
           onAddToCart={onAddToCart}
+          onOrderNow={onOrderNow}
           onQuickView={onQuickView}
         />
       );

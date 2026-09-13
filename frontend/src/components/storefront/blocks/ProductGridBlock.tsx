@@ -13,7 +13,9 @@ interface ProductGridBlockProps {
   currency: string;
   subdomain: string;
   defaultCardStyle?: ProductCardStyle | undefined;
+  whatsappNumber?: string | undefined;
   onAddToCart: (product: StorefrontProduct) => void;
+  onOrderNow?: ((product: StorefrontProduct) => void) | undefined;
   onQuickView?: ((product: StorefrontProduct) => void) | undefined;
 }
 
@@ -24,7 +26,9 @@ export const ProductGridBlock: React.FC<ProductGridBlockProps> = ({
   currency,
   subdomain,
   defaultCardStyle = 'commerce',
+  whatsappNumber,
   onAddToCart,
+  onOrderNow,
   onQuickView,
 }) => {
   const settings = (block.settings as Record<string, unknown>) || {};
@@ -159,7 +163,9 @@ export const ProductGridBlock: React.FC<ProductGridBlockProps> = ({
               cardStyle={cardStyle}
               currency={currency}
               subdomain={subdomain}
+              whatsappNumber={whatsappNumber}
               onAddToCart={onAddToCart}
+              onOrderNow={onOrderNow}
               onQuickView={onQuickView}
             />
           ))}

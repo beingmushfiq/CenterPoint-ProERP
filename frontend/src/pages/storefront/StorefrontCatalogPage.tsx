@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { useOutletContext, useParams, useSearchParams } from 'react-router-dom';
+import { useOutletContext, useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import {
   Search,
   Grid3X3,
@@ -29,6 +29,7 @@ interface CategoryItem {
 }
 
 export const StorefrontCatalogPage: React.FC = () => {
+  const navigate = useNavigate();
   const { config, subdomain } = useOutletContext<OutletContextType>();
   const { categorySlug } = useParams<{ categorySlug?: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -340,12 +341,17 @@ export const StorefrontCatalogPage: React.FC = () => {
             <ProductCard
               key={product.id}
               product={product}
-              cardStyle={config?.theme?.card_style || 'editorial'}
+              cardStyle={config?.theme?.card_style || 'commerce'}
               currency={currency}
               subdomain={subdomain}
+              whatsappNumber={config?.whatsapp_number || undefined}
               onAddToCart={(p) => {
                 void addItem(p.id, 1);
                 openDrawer();
+              }}
+              onOrderNow={async (p) => {
+                await addItem(p.id, 1);
+                navigate(`/store/${subdomain}/checkout`);
               }}
             />
           ))}
@@ -360,9 +366,14 @@ export const StorefrontCatalogPage: React.FC = () => {
               cardStyle="horizontal"
               currency={currency}
               subdomain={subdomain}
+              whatsappNumber={config?.whatsapp_number || undefined}
               onAddToCart={(p) => {
                 void addItem(p.id, 1);
                 openDrawer();
+              }}
+              onOrderNow={async (p) => {
+                await addItem(p.id, 1);
+                navigate(`/store/${subdomain}/checkout`);
               }}
             />
           ))}

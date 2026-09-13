@@ -80,7 +80,7 @@ class TenantProvisioningService
         $ownerEmail = trim(strtolower((string) ($input['owner_email'] ?? '')));
         $ownerName = trim((string) ($input['owner_name'] ?? 'Tenant Administrator'));
         $ownerPassword = (string) ($input['password'] ?? 'Secret123!');
-        $currencyCode = strtoupper(substr((string) ($input['currency_code'] ?? 'USD'), 0, 3));
+        $currencyCode = strtoupper(substr((string) ($input['currency_code'] ?? 'BDT'), 0, 3));
         $timezone = (string) ($input['timezone'] ?? 'UTC');
         $locale = (string) ($input['locale'] ?? 'en');
         $isTrial = (bool) ($input['is_trial'] ?? false);
