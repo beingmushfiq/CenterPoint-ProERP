@@ -6,7 +6,11 @@ import react from '@vitejs/plugin-react';
 export default defineConfig({
   plugins: [react()],
   define: {
-    __APP_VERSION__: JSON.stringify(process.env.npm_package_version || '2.4.0'),
+    __APP_VERSION__: JSON.stringify(
+      process.env.npm_package_version && process.env.npm_package_version !== '0.0.0'
+        ? process.env.npm_package_version
+        : '1.3'
+    ),
   },
   resolve: {
     dedupe: [
