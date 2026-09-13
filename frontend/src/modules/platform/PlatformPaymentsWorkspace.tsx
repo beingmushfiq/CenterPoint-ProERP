@@ -5,6 +5,7 @@ import { api } from '../../lib/api/client';
 import type { PlatformPayment, PlatformTenant } from '../../types/api/platform';
 import { SelectDropdown } from '../../components/ui/Dropdown';
 import { Button } from '../../components/ui/Button';
+import { ResponsiveDataTable, type ResponsiveColumn } from '../../components/ui/ResponsiveDataTable';
 import {
   Search,
   RotateCcw,
@@ -152,33 +153,122 @@ export const PlatformPaymentsWorkspace: React.FC = () => {
     recordMutation.mutate(payload);
   };
 
+  const columns: ResponsiveColumn<PlatformPayment>[] = [
+    {
+      id: 'invoice_reference',
+      header: 'Invoice Ref',
+      isPrimary: true,
+      priority: 'high',
+      cell: (p) => <span className="font-bold text-default">{p.invoice_reference}</span>,
+    },
+    {
+      id: 'tenant',
+      header: 'Tenant Organization',
+      priority: 'high',
+      cell: (p) => (
+        <div className="flex items-center gap-1.5 text-default">
+          <Building2 className="size-3 text-muted shrink-0" />
+          <span className="font-semibold truncate">{p.tenant?.name ?? `Tenant #${p.tenant_id}`}</span>
+        </div>
+      ),
+    },
+    {
+      id: 'amount',
+      header: 'Amount',
+      priority: 'high',
+      cell: (p) => (
+        <span className="font-bold text-amber-500 font-mono">
+          {p.currency_code === 'BDT' ? '৳' : p.currency_code + ' '}
+          {Number(p.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+        </span>
+      ),
+    },
+    {
+      id: 'method',
+      header: 'Method',
+      priority: 'medium',
+      cell: (p) => <span className="capitalize">{p.payment_method.replace('_', ' ')}</span>,
+    },
+    {
+      id: 'txn_reference',
+      header: 'Txn Reference',
+      priority: 'low',
+      cell: (p) => <span className="text-muted text-[11px] font-mono">{p.transaction_reference || '—'}</span>,
+    },
+    {
+      id: 'date',
+      header: 'Payment Date',
+      priority: 'medium',
+      cell: (p) => <span className="text-muted text-[11px]">{new Date(p.payment_date).toLocaleDateString()}</span>,
+    },
+    {
+      id: 'status',
+      header: 'Status',
+      isStatus: true,
+      priority: 'high',
+      cell: (p) => (
+        <span
+          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
+            p.status === 'paid'
+              ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
+              : p.status === 'pending'
+              ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30'
+              : p.status === 'refunded'
+              ? 'bg-purple-500/15 text-purple-600 dark:text-purple-400 border border-purple-500/30'
+              : 'bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30'
+          }`}
+        >
+          {p.status === 'paid' && <CheckCircle2 className="size-2.5" />}
+          {p.status === 'pending' && <Clock className="size-2.5" />}
+          {p.status === 'failed' && <XCircle className="size-2.5" />}
+          {p.status === 'refunded' && <AlertCircle className="size-2.5" />}
+          <span>{p.status}</span>
+        </span>
+      ),
+    },
+    {
+      id: 'creator',
+      header: 'Recorded By',
+      priority: 'low',
+      cell: (p) => <span className="text-muted text-[11px]">{p.creator?.name ?? 'System'}</span>,
+    },
+  ];
+
   return (
-    <div className="space-y-6 font-sans">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div className="space-y-6 font-sans text-default">
+      {/* Header Banner */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-default pb-5">
         <div>
-          <h1 className="text-2xl font-bold text-default tracking-tight">SaaS Subscription Payments</h1>
-          <p className="text-xs text-muted mt-1 font-mono">
-            Cross-tenant SaaS billing ledger, revenue receipts, and subscription payment audit trail.
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2.5 py-0.5 rounded-full border border-amber-500/20">
+              Finance & Billing Engine
+            </span>
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-default">
+            SaaS Payments Ledger
+          </h1>
+          <p className="mt-1 text-xs text-muted max-w-2xl leading-relaxed font-mono">
+            Track real-time SaaS subscription receivables, manual EFT reconciliation, and automated gateway collections.
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2.5 shrink-0">
           <Button
             variant="secondary"
             size="sm"
             onClick={() => refetch()}
-            disabled={isFetching}
-            className="flex items-center gap-1.5 font-mono text-xs cursor-pointer border-default bg-surface text-default hover:bg-surface-sunken"
+            className="flex items-center gap-1.5 cursor-pointer font-mono"
+            title="Reload Ledger"
           >
             <RotateCcw className={`size-3.5 ${isFetching ? 'animate-spin' : ''}`} />
-            <span>Refresh</span>
+            <span className="hidden sm:inline">Sync</span>
           </Button>
 
           <Button
+            variant="primary"
             size="sm"
             onClick={() => setShowCreateModal(true)}
-            className="flex items-center gap-1.5 font-mono text-xs font-bold cursor-pointer bg-amber-500 hover:bg-amber-400 text-slate-950"
+            className="flex items-center gap-1.5 cursor-pointer font-mono bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold border-none"
           >
             <Plus className="size-4" />
             <span>Record Payment</span>
@@ -186,11 +276,10 @@ export const PlatformPaymentsWorkspace: React.FC = () => {
         </div>
       </div>
 
-      {/* Filters Bar */}
-      <div className="p-4 rounded-2xl bg-surface border border-default flex flex-wrap items-center gap-3">
-        {/* Search */}
-        <div className="relative flex-1 min-w-50">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted" />
+      {/* Filter Toolbar */}
+      <div className="p-4 rounded-2xl bg-surface border border-default shadow-md flex flex-wrap gap-3 items-center justify-between font-mono text-xs">
+        <div className="relative flex-1 min-w-48 sm:min-w-64">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted" />
           <input
             type="text"
             value={search}
@@ -198,125 +287,61 @@ export const PlatformPaymentsWorkspace: React.FC = () => {
               setSearch(e.target.value);
               setPage(1);
             }}
-            placeholder="Search invoice ref, txn id, notes..."
-            className="w-full bg-surface-sunken border border-default rounded-xl pl-9 pr-3 py-1.5 text-xs text-default placeholder:text-muted focus:outline-hidden focus:border-amber-500 font-mono"
+            placeholder="Search by invoice ref or txn hash..."
+            className="w-full pl-9 pr-3 py-2 bg-surface-sunken border border-default rounded-xl text-default placeholder:text-muted focus:outline-hidden focus:border-amber-500 transition-all text-xs"
           />
         </div>
 
-        {/* Tenant Filter */}
-        <div className="w-48">
-          <SelectDropdown
-            value={tenantFilter}
-            onChange={(val) => {
-              setTenantFilter(val);
-              setPage(1);
-            }}
-            options={[
-              { value: 'all', label: 'All Tenants' },
-              ...tenants.map((t) => ({ value: String(t.id), label: t.name })),
-            ]}
-          />
-        </div>
+        <div className="flex flex-wrap items-center gap-2.5">
+          {/* Tenant Filter */}
+          <div className="w-44">
+            <SelectDropdown
+              value={tenantFilter}
+              onChange={(val) => {
+                setTenantFilter(val);
+                setPage(1);
+              }}
+              options={[
+                { value: 'all', label: 'All Tenants' },
+                ...tenants.map((t) => ({ value: String(t.id), label: t.name })),
+              ]}
+            />
+          </div>
 
-        {/* Status Filter */}
-        <div className="w-36">
-          <SelectDropdown
-            value={statusFilter}
-            onChange={(val) => {
-              setStatusFilter(val);
-              setPage(1);
-            }}
-            options={[
-              { value: 'all', label: 'All Statuses' },
-              { value: 'paid', label: 'Paid' },
-              { value: 'pending', label: 'Pending' },
-              { value: 'failed', label: 'Failed' },
-              { value: 'refunded', label: 'Refunded' },
-            ]}
-          />
+          {/* Status Filter */}
+          <div className="w-36">
+            <SelectDropdown
+              value={statusFilter}
+              onChange={(val) => {
+                setStatusFilter(val);
+                setPage(1);
+              }}
+              options={[
+                { value: 'all', label: 'All Statuses' },
+                { value: 'paid', label: 'Paid' },
+                { value: 'pending', label: 'Pending' },
+                { value: 'failed', label: 'Failed' },
+                { value: 'refunded', label: 'Refunded' },
+              ]}
+            />
+          </div>
         </div>
       </div>
 
-      {/* Payments Table */}
-      <div className="rounded-2xl bg-surface border border-default shadow-xl overflow-hidden">
-        {isLoading ? (
-          <div className="p-12 text-center text-muted font-mono text-xs">
-            Loading subscription payments ledger...
-          </div>
-        ) : payments.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-212.5 text-left text-xs font-mono">
-              <thead className="bg-surface-sunken border-b border-default text-muted uppercase text-[10px]">
-                <tr>
-                  <th className="px-5 py-3">Invoice Ref</th>
-                  <th className="px-5 py-3">Tenant</th>
-                  <th className="px-5 py-3">Amount</th>
-                  <th className="px-5 py-3">Method</th>
-                  <th className="px-5 py-3">Txn Reference</th>
-                  <th className="px-5 py-3">Payment Date</th>
-                  <th className="px-5 py-3">Status</th>
-                  <th className="px-5 py-3">Recorded By</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-default">
-                {payments.map((p) => (
-                  <tr key={p.id} className="hover:bg-surface-sunken/60 transition-colors">
-                    <td className="px-5 py-3 font-bold text-default">{p.invoice_reference}</td>
-                    <td className="px-5 py-3">
-                      <div className="flex items-center gap-1.5 text-default">
-                        <Building2 className="size-3 text-muted" />
-                        <span className="font-semibold">{p.tenant?.name ?? `Tenant #${p.tenant_id}`}</span>
-                      </div>
-                    </td>
-                    <td className="px-5 py-3 font-bold text-amber-500">
-                      {p.currency_code === 'BDT' ? '৳' : p.currency_code + ' '}
-                      {Number(p.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                    </td>
-                    <td className="px-5 py-3 text-default capitalize">
-                      {p.payment_method.replace('_', ' ')}
-                    </td>
-                    <td className="px-5 py-3 text-muted text-[11px]">
-                      {p.transaction_reference || '—'}
-                    </td>
-                    <td className="px-5 py-3 text-muted">
-                      {new Date(p.payment_date).toLocaleDateString()}
-                    </td>
-                    <td className="px-5 py-3">
-                      <span
-                        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
-                          p.status === 'paid'
-                            ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
-                            : p.status === 'pending'
-                            ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30'
-                            : p.status === 'refunded'
-                            ? 'bg-purple-500/15 text-purple-600 dark:text-purple-400 border border-purple-500/30'
-                            : 'bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30'
-                        }`}
-                      >
-                        {p.status === 'paid' && <CheckCircle2 className="size-2.5" />}
-                        {p.status === 'pending' && <Clock className="size-2.5" />}
-                        {p.status === 'failed' && <XCircle className="size-2.5" />}
-                        {p.status === 'refunded' && <AlertCircle className="size-2.5" />}
-                        <span>{p.status}</span>
-                      </span>
-                    </td>
-                    <td className="px-5 py-3 text-muted text-[11px]">
-                      {p.creator?.name ?? 'System'}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <div className="p-12 text-center text-muted font-mono text-xs">
-            No payment transactions match the active filters.
-          </div>
-        )}
+      {/* Payments Responsive Data Table */}
+      <div className="space-y-3">
+        <ResponsiveDataTable
+          data={payments}
+          columns={columns}
+          keyExtractor={(p) => p.id}
+          loading={isLoading}
+          emptyMessage="No payment transactions match the active filters"
+          emptyIcon={Building2}
+        />
 
         {/* Pagination Footer */}
         {pagination && pagination.total_pages > 1 && (
-          <div className="p-4 border-t border-default bg-surface-sunken flex items-center justify-between text-xs font-mono text-muted">
+          <div className="p-4 rounded-2xl border border-default bg-surface shadow-xs flex flex-col sm:flex-row items-center justify-between gap-3 text-xs font-mono text-muted">
             <div>
               Showing {((pagination.page - 1) * pagination.per_page) + 1} to{' '}
               {Math.min(pagination.page * pagination.per_page, pagination.total)} of{' '}
@@ -351,8 +376,9 @@ export const PlatformPaymentsWorkspace: React.FC = () => {
 
       {/* Record Payment Modal */}
       {showCreateModal && (
-        <div className="fixed inset-0 bg-overlay/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-surface-raised border border-default rounded-2xl p-6 max-w-md w-full shadow-2xl font-mono text-xs">
+        <div className="fixed inset-0 bg-overlay/80 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 pb-safe">
+          <div className="bg-surface-raised border border-default rounded-t-3xl sm:rounded-2xl p-5 sm:p-6 max-h-[90vh] overflow-y-auto max-w-md w-full shadow-2xl font-mono text-xs">
+            <div className="sm:hidden w-12 h-1.5 rounded-full bg-surface-sunken mx-auto mb-3" aria-hidden="true" />
             <h2 className="text-lg font-bold text-default font-sans">Record SaaS Payment</h2>
             <p className="text-muted mt-1">
               Add subscription transaction record and generate an invoice receipt.
@@ -376,7 +402,7 @@ export const PlatformPaymentsWorkspace: React.FC = () => {
                 </select>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-default mb-1">Amount *</label>
                   <input
@@ -404,7 +430,7 @@ export const PlatformPaymentsWorkspace: React.FC = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-default mb-1">Method</label>
                   <select
@@ -453,18 +479,18 @@ export const PlatformPaymentsWorkspace: React.FC = () => {
                 />
               </div>
 
-              <div className="mt-6 flex justify-end gap-3 pt-2">
+              <div className="mt-6 flex flex-col-reverse sm:flex-row sm:justify-end gap-2.5 sm:gap-3 pt-2">
                 <button
                   type="button"
                   onClick={() => setShowCreateModal(false)}
-                  className="px-4 py-2 rounded-xl bg-surface-sunken hover:bg-surface text-muted hover:text-default border border-default cursor-pointer"
+                  className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-surface-sunken hover:bg-surface text-muted hover:text-default border border-default cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={recordMutation.isPending || !selectedTenantId || !amount}
-                  className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold cursor-pointer disabled:opacity-50"
+                  className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold cursor-pointer disabled:opacity-50"
                 >
                   {recordMutation.isPending ? 'Recording...' : 'Record Payment'}
                 </button>

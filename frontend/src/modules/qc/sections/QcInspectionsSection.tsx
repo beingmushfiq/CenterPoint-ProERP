@@ -14,7 +14,6 @@ import {
   ShieldCheck,
   Trash2,
   XCircle,
-  Boxes,
   RotateCcw,
   ChevronDown,
 } from 'lucide-react';
@@ -476,7 +475,115 @@ export function QcInspectionsSection() {
         isFetching={inspectionsQuery.isFetching}
       >
         <div className="overflow-hidden rounded-2xl border border-default bg-surface shadow-2xs">
-          <div className="overflow-x-auto min-h-75">
+          {/* Mobile Card List (< md viewports) */}
+          <div className="md:hidden divide-y divide-default">
+            {inspections.length === 0 ? (
+              <div className="py-12 text-center text-muted px-4">
+                <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-xl bg-surface-sunken border border-default mb-2">
+                  <Microscope className="h-5 w-5 text-muted" />
+                </div>
+                <div className="text-sm font-medium text-default">No inspections logged</div>
+                <div className="text-xs text-muted mt-1">
+                  Execute physical, chemical or packaging QA runs on materials and floor output.
+                </div>
+              </div>
+            ) : (
+              inspections.map((insp) => (
+                <div
+                  key={insp.id}
+                  className={`p-4 space-y-3 transition-colors ${
+                    selectedInspectionIds.has(insp.id) ? 'bg-primary/5 dark:bg-primary/10' : ''
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center gap-2.5">
+                      <input
+                        type="checkbox"
+                        checked={selectedInspectionIds.has(insp.id)}
+                        onChange={() => toggleSelectInspection(insp.id)}
+                        className="rounded border-default text-primary focus:ring-primary h-5 w-5 cursor-pointer touch-target"
+                        aria-label={`Select inspection ${insp.inspection_number}`}
+                      />
+                      <div>
+                        <span className="font-mono font-bold text-xs text-emerald-600 dark:text-emerald-400">
+                          {insp.inspection_number}
+                        </span>
+                        <div className="text-[11px] text-muted capitalize">
+                          {(insp.inspection_type ?? 'final').replace('_', ' ')} · {insp.inspection_date}
+                        </div>
+                      </div>
+                    </div>
+                    <select
+                      value={insp.status ?? 'draft'}
+                      onChange={(e) =>
+                        updateStatusMutation.mutate({
+                          id: insp.id,
+                          status: e.target.value,
+                        })
+                      }
+                      className="rounded-lg border border-default bg-surface py-1.5 px-2 text-xs font-medium text-default focus:border-primary focus:outline-none touch-target"
+                    >
+                      <option value="draft">Draft</option>
+                      <option value="submitted">Submitted</option>
+                      <option value="approved">Approved</option>
+                      <option value="rejected">Rejected</option>
+                    </select>
+                  </div>
+
+                  <div className="rounded-xl bg-surface-sunken p-3 border border-default/60 space-y-1.5 text-xs">
+                    <div className="font-semibold text-default truncate">
+                      {insp.product_name ?? insp.product_id}
+                    </div>
+                    {insp.batch_number && (
+                      <div className="font-mono text-[11px] text-emerald-600 dark:text-emerald-400">
+                        Batch: {insp.batch_number}
+                      </div>
+                    )}
+                    <div className="flex items-center justify-between pt-2 border-t border-default/40 text-xs font-mono">
+                      <span className="text-muted">Sample: {insp.sample_size} / {insp.inspected_quantity}</span>
+                      <span>
+                        <span className="text-emerald-600 dark:text-emerald-400 font-bold">{insp.passed_quantity}</span>
+                        <span className="text-muted"> / </span>
+                        <span className="text-rose-600 dark:text-rose-400 font-bold">
+                          {insp.rejected_quantity ?? insp.failed_quantity ?? '0.0000'}
+                        </span>
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 pt-1">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedInspection(insp)}
+                      className="flex-1 min-h-11 bg-surface border border-default hover:bg-surface-sunken text-default rounded-xl font-semibold text-xs transition cursor-pointer flex items-center justify-center gap-1.5 shadow-2xs touch-target"
+                    >
+                      <Eye className="size-4 text-primary shrink-0" />
+                      <span>Details</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => openEditModal(insp)}
+                      className="min-h-11 px-3 bg-surface border border-default hover:bg-surface-sunken text-default rounded-xl font-semibold text-xs transition cursor-pointer flex items-center justify-center gap-1.5 shadow-2xs touch-target"
+                    >
+                      <Edit2 className="size-4 text-muted shrink-0" />
+                      <span>Edit</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDeletingInspection(insp)}
+                      className="min-h-11 px-3 bg-surface border border-default hover:bg-rose-500/10 text-rose-600 rounded-xl font-semibold text-xs transition cursor-pointer flex items-center justify-center shadow-2xs touch-target"
+                      title="Delete"
+                    >
+                      <Trash2 className="size-4 text-rose-600 shrink-0" />
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+
+          {/* Desktop Table (>= md viewports) */}
+          <div className="hidden md:block overflow-x-auto min-h-75">
             <table className="w-full text-left text-xs text-default">
               <thead className="border-b border-default bg-surface-sunken text-[11px] font-semibold uppercase tracking-wider text-muted">
                 <tr>
@@ -659,31 +766,16 @@ export function QcInspectionsSection() {
                                     setActionMenuAnchor(null);
                                     approveMutation.mutate(insp.id);
                                   }}
-                                  disabled={approveMutation.isPending}
-                                  className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 transition-colors cursor-pointer"
+                                  className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs text-emerald-600 hover:bg-surface-sunken transition-colors cursor-pointer"
                                 >
-                                  <ShieldCheck className="size-3.5 text-emerald-600 shrink-0" />
-                                  <span>Approve Pass Run</span>
+                                  <CheckCircle2 className="size-3.5 text-emerald-500 shrink-0" />
+                                  <span>Quick Approve</span>
                                 </button>
                               )}
 
-                              {(insp.status === 'approved' || insp.result === 'pass') && (
+                              {parseFloat(insp.rejected_quantity || insp.failed_quantity || '0') > 0 && (
                                 <Link
-                                  to="/inventory"
-                                  onClick={() => {
-                                    setOpenActionMenuId(null);
-                                    setActionMenuAnchor(null);
-                                  }}
-                                  className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs text-blue-600 dark:text-blue-400 hover:bg-surface-sunken transition-colors cursor-pointer"
-                                >
-                                  <Boxes className="size-3.5 text-blue-500 shrink-0" />
-                                  <span>Release to Stock</span>
-                                </Link>
-                              )}
-
-                              {(insp.result === 'fail' || insp.result === 'partial' || parseFloat(insp.rejected_quantity || insp.failed_quantity || '0') > 0) && (
-                                <Link
-                                  to="/qc?tab=rework"
+                                  to="/production?tab=batches"
                                   onClick={() => {
                                     setOpenActionMenuId(null);
                                     setActionMenuAnchor(null);
@@ -734,7 +826,7 @@ export function QcInspectionsSection() {
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-[11px] font-semibold text-muted uppercase tracking-wider mb-1">
                 Inspection Type
@@ -810,7 +902,7 @@ export function QcInspectionsSection() {
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
               <label className="block text-[11px] font-semibold text-muted uppercase tracking-wider mb-1">
                 Sample Size
@@ -986,7 +1078,7 @@ export function QcInspectionsSection() {
                           ),
                         }));
                       }}
-                      className={`px-2 py-1 rounded-lg text-xs font-semibold cursor-pointer transition-colors ${
+                      className={`min-h-11 min-w-18 sm:min-h-9 px-3 py-2 rounded-xl text-xs font-bold cursor-pointer transition-all active:scale-95 shadow-2xs flex items-center justify-center touch-target-factory ${
                         res.is_passed
                           ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
                           : 'bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30'
@@ -1002,10 +1094,10 @@ export function QcInspectionsSection() {
                           results: d.results.filter((_, i) => i !== idx),
                         }));
                       }}
-                      className="text-muted hover:text-rose-600 cursor-pointer p-1"
+                      className="min-h-11 min-w-11 sm:min-h-9 sm:min-w-9 flex items-center justify-center text-muted hover:text-rose-600 rounded-xl hover:bg-rose-500/10 cursor-pointer transition-colors p-2 touch-target"
                       title="Remove test"
                     >
-                      <Trash2 className="h-3.5 w-3.5" />
+                      <Trash2 className="h-4 w-4" />
                     </button>
                   </div>
                 ))}
@@ -1103,10 +1195,10 @@ export function QcInspectionsSection() {
                           defects: d.defects.filter((_, i) => i !== idx),
                         }));
                       }}
-                      className="text-muted hover:text-rose-600 cursor-pointer p-1"
+                      className="min-h-11 min-w-11 sm:min-h-9 sm:min-w-9 flex items-center justify-center text-muted hover:text-rose-600 rounded-xl hover:bg-rose-500/10 cursor-pointer transition-colors p-2 touch-target"
                       title="Remove defect"
                     >
-                      <Trash2 className="h-3.5 w-3.5" />
+                      <Trash2 className="h-4 w-4" />
                     </button>
                   </div>
                 ))}
@@ -1114,12 +1206,13 @@ export function QcInspectionsSection() {
             )}
           </div>
 
-          <div className="flex justify-end gap-2 pt-3 border-t border-default">
-            <Button variant="ghost" onClick={() => setIsCreateOpen(false)}>
+          <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-3 border-t border-default">
+            <Button variant="ghost" className="w-full sm:w-auto min-h-11 sm:min-h-9.5 touch-target" onClick={() => setIsCreateOpen(false)}>
               Cancel
             </Button>
             <Button
               variant="primary"
+              className="w-full sm:w-auto min-h-11 sm:min-h-9.5 touch-target"
               onClick={() => createMutation.mutate(draft)}
               disabled={createMutation.isPending || !draft.product_id}
             >
@@ -1143,7 +1236,7 @@ export function QcInspectionsSection() {
               </div>
             )}
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="block text-[11px] font-semibold text-muted uppercase tracking-wider mb-1">
                   Status
@@ -1187,7 +1280,7 @@ export function QcInspectionsSection() {
               </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
                 <label className="block text-[11px] font-semibold text-muted uppercase tracking-wider mb-1">
                   Sample Size
@@ -1246,12 +1339,13 @@ export function QcInspectionsSection() {
               />
             </div>
 
-            <div className="flex justify-end gap-2 pt-3 border-t border-default">
-              <Button variant="ghost" onClick={() => setEditingInspection(null)}>
+            <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-3 border-t border-default">
+              <Button variant="ghost" className="w-full sm:w-auto min-h-11 sm:min-h-9.5 touch-target" onClick={() => setEditingInspection(null)}>
                 Cancel
               </Button>
               <Button
                 variant="primary"
+                className="w-full sm:w-auto min-h-11 sm:min-h-9.5 touch-target"
                 onClick={() =>
                   updateMutation.mutate({
                     id: editingInspection.id,
@@ -1289,12 +1383,13 @@ export function QcInspectionsSection() {
               </div>
             </div>
 
-            <div className="flex justify-end gap-2 pt-2 border-t border-default">
-              <Button variant="ghost" onClick={() => setDeletingInspection(null)}>
+            <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-2 border-t border-default">
+              <Button variant="ghost" className="w-full sm:w-auto min-h-11 sm:min-h-9.5 touch-target" onClick={() => setDeletingInspection(null)}>
                 Cancel
               </Button>
               <Button
                 variant="danger"
+                className="w-full sm:w-auto min-h-11 sm:min-h-9.5 touch-target"
                 onClick={() => deleteMutation.mutate(deletingInspection.id)}
                 disabled={deleteMutation.isPending}
               >
@@ -1327,12 +1422,13 @@ export function QcInspectionsSection() {
               </div>
             </div>
 
-            <div className="flex justify-end gap-2 pt-2 border-t border-default">
-              <Button variant="ghost" onClick={() => setShowBulkDeleteModal(false)}>
+            <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-2 border-t border-default">
+              <Button variant="ghost" className="w-full sm:w-auto min-h-11 sm:min-h-9.5 touch-target" onClick={() => setShowBulkDeleteModal(false)}>
                 Cancel
               </Button>
               <Button
                 variant="danger"
+                className="w-full sm:w-auto min-h-11 sm:min-h-9.5 touch-target"
                 onClick={handleBulkDelete}
                 disabled={isBulkDeleting}
               >
@@ -1351,7 +1447,7 @@ export function QcInspectionsSection() {
           title={`Inspection Details: ${selectedInspection.inspection_number}`}
         >
           <div className="space-y-4">
-            <div className="flex items-center justify-between rounded-xl bg-surface-sunken p-3 border border-default">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 rounded-xl bg-surface-sunken p-3 border border-default">
               <div>
                 <div className="text-sm font-semibold text-default">
                   {selectedInspection.product_name ?? selectedInspection.product_id}
@@ -1410,7 +1506,7 @@ export function QcInspectionsSection() {
             )}
 
             {/* Summary Highlights */}
-            <div className="grid grid-cols-3 gap-2.5 p-3 rounded-xl bg-surface-sunken border border-default text-xs font-mono">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 p-3 rounded-xl bg-surface-sunken border border-default text-xs font-mono">
               <div>
                 <span className="text-[10px] text-muted font-sans uppercase">Inspected</span>
                 <div className="font-bold text-default">{selectedInspection.inspected_quantity}</div>
@@ -1429,7 +1525,7 @@ export function QcInspectionsSection() {
               </div>
             </div>
 
-            <div className="flex justify-between items-center pt-3 border-t border-default">
+            <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-2 pt-3 border-t border-default">
               {parseFloat(selectedInspection.rejected_quantity || selectedInspection.failed_quantity || '0') > 0 && (
                 <Button
                   variant="primary"
@@ -1441,16 +1537,17 @@ export function QcInspectionsSection() {
                       } units of ${selectedInspection.product_name ?? 'Product'}. Assigned to Rework Cell #1.`
                     );
                   }}
-                  className="bg-amber-600 hover:bg-amber-500 text-white"
+                  className="bg-amber-600 hover:bg-amber-500 text-white min-h-11 sm:min-h-9 w-full sm:w-auto touch-target"
                 >
                   ⚡ Convert to Rework Batch (
                   {selectedInspection.rejected_quantity ?? selectedInspection.failed_quantity} pcs)
                 </Button>
               )}
-              <div className="flex items-center gap-2 ml-auto">
+              <div className="flex items-center gap-2 sm:ml-auto w-full sm:w-auto justify-end">
                 <Button
                   variant="secondary"
                   size="sm"
+                  className="flex-1 sm:flex-none min-h-11 sm:min-h-9 touch-target"
                   onClick={() => {
                     const toEdit = selectedInspection;
                     setSelectedInspection(null);
@@ -1459,7 +1556,7 @@ export function QcInspectionsSection() {
                 >
                   Edit Run
                 </Button>
-                <Button variant="ghost" size="sm" onClick={() => setSelectedInspection(null)}>
+                <Button variant="ghost" size="sm" className="flex-1 sm:flex-none min-h-11 sm:min-h-9 touch-target" onClick={() => setSelectedInspection(null)}>
                   Close
                 </Button>
               </div>

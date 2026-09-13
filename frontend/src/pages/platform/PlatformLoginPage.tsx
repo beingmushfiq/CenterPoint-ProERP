@@ -21,7 +21,7 @@ export const PlatformLoginPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-base text-default flex flex-col justify-center items-center px-4 selection:bg-amber-500 selection:text-slate-950">
+    <div className="min-h-screen bg-base text-default flex flex-col justify-center items-center px-3 sm:px-4 py-8 overflow-x-hidden selection:bg-amber-500 selection:text-slate-950">
       <div className="w-full max-w-md">
         {/* Brand Banner */}
         <div className="text-center mb-8">
@@ -37,7 +37,7 @@ export const PlatformLoginPage: React.FC = () => {
         </div>
 
         {/* Card */}
-        <div className="bg-surface border border-default rounded-2xl p-8 shadow-2xl relative overflow-hidden">
+        <div className="bg-surface border border-default rounded-2xl p-5 sm:p-8 shadow-2xl relative overflow-hidden">
           <div className="absolute top-0 left-0 right-0 h-1 bg-linear-to-r from-amber-600 via-amber-400 to-amber-600" />
 
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 text-xs font-mono mb-6">

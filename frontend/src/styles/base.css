@@ -408,6 +408,43 @@
   .skip-link:focus-visible {
     transform: translate3d(0, 0, 0);
   }
+
+  /* ─── Responsive & Touch Ergonomics ──────────────────────────────────────── */
+  .touch-target {
+    min-height: var(--touch-target-min, 44px);
+    min-width: var(--touch-target-min, 44px);
+  }
+
+  .touch-target-factory {
+    min-height: var(--touch-target-factory, 48px);
+    min-width: var(--touch-target-factory, 48px);
+  }
+
+  .touch-target-pos {
+    min-height: var(--touch-target-pos, 52px);
+    min-width: var(--touch-target-pos, 52px);
+  }
+
+  /* Safe area helpers */
+  .pb-safe {
+    padding-bottom: max(var(--safe-area-bottom, 0px), 1rem);
+  }
+  .pt-safe {
+    padding-top: max(var(--safe-area-top, 0px), 0.5rem);
+  }
+  .px-safe {
+    padding-left: max(var(--safe-area-left, 0px), 0.75rem);
+    padding-right: max(var(--safe-area-right, 0px), 0.75rem);
+  }
+
+  /* Prevent iOS zoom on focus for mobile devices */
+  @media (max-width: 639.98px) {
+    input:not([type='checkbox']):not([type='radio']),
+    select,
+    textarea {
+      font-size: 16px !important;
+    }
+  }
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════

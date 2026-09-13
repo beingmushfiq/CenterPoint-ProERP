@@ -114,40 +114,40 @@ export const ProductionFloorKioskView: React.FC<ProductionFloorKioskViewProps> =
       className="fixed inset-0 z-50 bg-slate-950 text-slate-100 flex flex-col overflow-hidden font-sans select-none"
     >
       {/* Top Header Bar */}
-      <header className="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-slate-900/90 backdrop-blur-md">
+      <header className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 px-4 sm:px-6 py-3 sm:py-4 border-b border-slate-800 bg-slate-900/90 backdrop-blur-md">
         <div className="flex items-center gap-3">
-          <div className="size-10 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shadow-inner">
+          <div className="size-10 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shadow-inner shrink-0">
             <Factory className="size-6" />
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-xl font-black tracking-wide uppercase text-white">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h1 className="text-base sm:text-xl font-black tracking-wide uppercase text-white truncate">
                 Factory Floor Operational Kiosk
               </h1>
-              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] sm:text-xs font-mono font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 shrink-0">
                 <span className="size-2 rounded-full bg-emerald-400 animate-ping" />
                 LIVE
               </span>
             </div>
-            <p className="text-xs font-medium text-slate-400 tracking-wider">
+            <p className="text-[11px] sm:text-xs font-medium text-slate-400 tracking-wider truncate">
               Real-Time Shop Floor Intelligence
             </p>
           </div>
         </div>
 
         {/* Live Clock & Controls */}
-        <div className="flex items-center gap-4">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full lg:w-auto justify-between lg:justify-end">
           {/* Ticking Clock */}
-          <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-200">
-            <Clock className="size-4 text-emerald-400" />
-            <span className="font-mono text-base font-bold tracking-widest">
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-800 border border-slate-700 text-slate-200">
+            <Clock className="size-4 text-emerald-400 shrink-0" />
+            <span className="font-mono text-xs sm:text-sm font-bold tracking-widest">
               {currentTime.toLocaleTimeString()}
             </span>
           </div>
 
           {/* Auto-Refresh Select */}
-          <div className="flex items-center gap-1.5 bg-slate-800/80 border border-slate-700 rounded-lg p-1 text-xs">
-            <span className="text-slate-400 pl-2 pr-1 font-semibold flex items-center gap-1">
+          <div className="flex items-center gap-1 bg-slate-800/80 border border-slate-700 rounded-xl p-1 text-xs">
+            <span className="text-slate-400 pl-1.5 pr-1 font-semibold hidden sm:flex items-center gap-1">
               <RefreshCw className={`size-3.5 ${isFetching ? 'animate-spin text-emerald-400' : ''}`} />
               Poll:
             </span>
@@ -161,7 +161,7 @@ export const ProductionFloorKioskView: React.FC<ProductionFloorKioskViewProps> =
                 key={opt.val}
                 type="button"
                 onClick={() => setRefreshIntervalSec(opt.val)}
-                className={`px-2.5 py-1 rounded font-bold transition-all ${
+                className={`px-2 py-1 rounded-lg font-bold text-xs transition-all touch-target ${
                   refreshIntervalSec === opt.val
                     ? 'bg-emerald-600 text-white shadow-sm'
                     : 'text-slate-400 hover:text-white hover:bg-slate-700'
@@ -177,7 +177,7 @@ export const ProductionFloorKioskView: React.FC<ProductionFloorKioskViewProps> =
             type="button"
             onClick={() => refetch()}
             title="Manual refresh"
-            className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition"
+            className="p-2 min-h-9.5 min-w-9.5 flex items-center justify-center rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition touch-target"
           >
             <RefreshCw className={`size-4 ${isFetching ? 'animate-spin text-emerald-400' : ''}`} />
           </button>
@@ -187,7 +187,7 @@ export const ProductionFloorKioskView: React.FC<ProductionFloorKioskViewProps> =
             type="button"
             onClick={toggleFullscreen}
             title={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
-            className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition"
+            className="p-2 min-h-9.5 min-w-9.5 flex items-center justify-center rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition touch-target"
           >
             {isFullscreen ? <Minimize2 className="size-4" /> : <Maximize2 className="size-4" />}
           </button>
@@ -196,7 +196,7 @@ export const ProductionFloorKioskView: React.FC<ProductionFloorKioskViewProps> =
           <button
             type="button"
             onClick={onExit}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-600/20 hover:bg-rose-600/30 text-rose-300 border border-rose-500/40 text-xs font-bold transition"
+            className="flex items-center gap-1.5 px-3 py-1.5 min-h-9.5 rounded-xl bg-rose-600/20 hover:bg-rose-600/30 text-rose-300 border border-rose-500/40 text-xs font-bold transition touch-target"
           >
             <X className="size-4" />
             Exit (Esc)
@@ -205,13 +205,13 @@ export const ProductionFloorKioskView: React.FC<ProductionFloorKioskViewProps> =
       </header>
 
       {/* KPI Highlight Strip - Industrial High Contrast Numbers */}
-      <section className="grid grid-cols-2 md:grid-cols-4 gap-4 p-6 pb-2">
-        <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800/80 shadow-lg flex flex-col justify-between">
+      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 p-4 sm:p-6 pb-2">
+        <div className="p-4 sm:p-5 rounded-2xl bg-slate-900 border border-slate-800/80 shadow-lg flex flex-col justify-between">
           <div className="flex items-center justify-between text-slate-400 mb-2">
             <span className="text-xs font-bold uppercase tracking-wider">Active Batches</span>
             <Activity className="size-5 text-emerald-400" />
           </div>
-          <div className="text-4xl sm:text-5xl font-black font-mono tracking-tight text-white">
+          <div className="text-3xl sm:text-4xl lg:text-5xl font-black font-mono tracking-tight text-white">
             {stats.activeCount}
           </div>
           <p className="mt-2 text-xs font-medium text-slate-400">
@@ -219,23 +219,23 @@ export const ProductionFloorKioskView: React.FC<ProductionFloorKioskViewProps> =
           </p>
         </div>
 
-        <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800/80 shadow-lg flex flex-col justify-between">
+        <div className="p-4 sm:p-5 rounded-2xl bg-slate-900 border border-slate-800/80 shadow-lg flex flex-col justify-between">
           <div className="flex items-center justify-between text-slate-400 mb-2">
             <span className="text-xs font-bold uppercase tracking-wider">Total Target Units</span>
             <Layers className="size-5 text-sky-400" />
           </div>
-          <div className="text-4xl sm:text-5xl font-black font-mono tracking-tight text-sky-400">
+          <div className="text-3xl sm:text-4xl lg:text-5xl font-black font-mono tracking-tight text-sky-400">
             {stats.totalTarget.toLocaleString()}
           </div>
           <p className="mt-2 text-xs font-medium text-slate-400">Required batch output</p>
         </div>
 
-        <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800/80 shadow-lg flex flex-col justify-between">
+        <div className="p-4 sm:p-5 rounded-2xl bg-slate-900 border border-slate-800/80 shadow-lg flex flex-col justify-between">
           <div className="flex items-center justify-between text-slate-400 mb-2">
             <span className="text-xs font-bold uppercase tracking-wider">Completed Units</span>
             <CheckCircle2 className="size-5 text-emerald-400" />
           </div>
-          <div className="text-4xl sm:text-5xl font-black font-mono tracking-tight text-emerald-400">
+          <div className="text-3xl sm:text-4xl lg:text-5xl font-black font-mono tracking-tight text-emerald-400">
             {stats.totalActual.toLocaleString()}
           </div>
           <p className="mt-2 text-xs font-medium text-slate-400">
@@ -245,31 +245,31 @@ export const ProductionFloorKioskView: React.FC<ProductionFloorKioskViewProps> =
           </p>
         </div>
 
-        <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800/80 shadow-lg flex flex-col justify-between">
+        <div className="p-4 sm:p-5 rounded-2xl bg-slate-900 border border-slate-800/80 shadow-lg flex flex-col justify-between">
           <div className="flex items-center justify-between text-slate-400 mb-2">
             <span className="text-xs font-bold uppercase tracking-wider">Average Floor Yield</span>
             <TrendingUp className="size-5 text-amber-400" />
           </div>
-          <div className="text-4xl sm:text-5xl font-black font-mono tracking-tight text-amber-400">
-            {stats.avgYield}%
+          <div className="text-3xl sm:text-4xl lg:text-5xl font-black font-mono tracking-tight text-amber-400">
+            {parseFloat(stats.avgYield) > 0 ? `${stats.avgYield}%` : '—'}
           </div>
-          <p className="mt-2 text-xs font-medium text-slate-400">Target tolerance: ≥ 95%</p>
+          <p className="mt-2 text-xs font-medium text-slate-400">Target standard: 98%+</p>
         </div>
       </section>
 
-      {/* Filter Tabs */}
-      <div className="px-6 py-2 flex items-center justify-between">
-        <div className="flex items-center gap-2">
+      {/* Filter Tabs Sub-Header */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 px-4 sm:px-6 py-2">
+        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar w-full sm:w-auto pb-1 sm:pb-0">
           {[
             { key: 'all', label: 'All Floor Batches' },
             { key: 'in_progress', label: 'In Progress Only' },
-            { key: 'scheduled', label: 'Scheduled / Staged' },
+            { key: 'scheduled', label: 'Scheduled Ahead' },
           ].map((tab) => (
             <button
               key={tab.key}
               type="button"
               onClick={() => setFilterStatus(tab.key as typeof filterStatus)}
-              className={`px-4 py-2 rounded-xl text-xs font-extrabold uppercase tracking-wider transition ${
+              className={`px-3 sm:px-4 py-2 rounded-xl text-xs font-extrabold uppercase tracking-wider transition whitespace-nowrap touch-target ${
                 filterStatus === tab.key
                   ? 'bg-slate-800 text-white border border-slate-700 shadow-md'
                   : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/60'
@@ -279,13 +279,13 @@ export const ProductionFloorKioskView: React.FC<ProductionFloorKioskViewProps> =
             </button>
           ))}
         </div>
-        <span className="text-xs font-mono text-slate-400">
+        <span className="text-xs font-mono text-slate-400 shrink-0">
           Showing {filteredBatches.length} batches
         </span>
       </div>
 
       {/* Main Kiosk Grid */}
-      <main className="flex-1 overflow-y-auto px-6 pb-6 pt-2">
+      <main className="flex-1 overflow-y-auto px-4 sm:px-6 pb-6 pt-2">
         {filteredBatches.length === 0 ? (
           <div className="h-64 flex flex-col items-center justify-center text-slate-400">
             <Factory className="size-16 stroke-1 text-slate-600 mb-3" />

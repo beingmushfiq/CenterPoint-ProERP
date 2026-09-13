@@ -290,18 +290,18 @@ export function AppHeader({
           </button>
         )}
 
-        {/* Mobile Search Button (< md) */}
+        {/* Mobile / Tablet Search Button (< xl) */}
         <button
           type="button"
           onClick={() => setIsMobileSearchOpen(true)}
-          className="md:hidden flex items-center justify-center p-2 rounded-lg text-muted hover:text-default hover:bg-surface-sunken transition-colors"
+          className="xl:hidden flex items-center justify-center p-2 rounded-lg text-muted hover:text-default hover:bg-surface-sunken transition-colors"
           title="Search products, orders, batches... (Ctrl+K)"
         >
           <Search className="size-4.5" />
         </button>
 
-        {/* Desktop Global Omnisearch (>= md) */}
-        <div ref={searchContainerRef} className="relative hidden md:flex items-center flex-1 max-w-md">
+        {/* Desktop Global Omnisearch (>= xl) */}
+        <div ref={searchContainerRef} className="relative hidden xl:flex items-center flex-1 max-w-md">
           <Search className="absolute left-3 size-3.5 text-muted pointer-events-none" />
           <input
             ref={searchInputRef}
@@ -403,32 +403,32 @@ export function AppHeader({
       </div>
 
       {/* Right side: POS Button + Branch + Quick Add + Notifications + Theme toggle + User profile */}
-      <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
+      <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
         {/* ── Interactive Tutorial & System Tour Direct Action Button ──── */}
         <button
           type="button"
           onClick={() => openTutorial()}
-          className="flex items-center gap-1.5 rounded-xl border border-indigo-500/30 bg-indigo-500/10 hover:bg-indigo-500/20 px-2.5 py-1.5 text-xs font-semibold text-indigo-600 dark:text-indigo-400 shadow-xs transition-colors cursor-pointer shrink-0"
+          className="hidden 2xl:flex items-center gap-1.5 rounded-xl border border-indigo-500/30 bg-indigo-500/10 hover:bg-indigo-500/20 px-2.5 py-1.5 text-xs font-semibold text-indigo-600 dark:text-indigo-400 shadow-xs transition-colors cursor-pointer shrink-0"
           title="Interactive Beginner Tutorial & System Tour"
         >
           <Compass className="size-3.5" />
-          <span className="hidden sm:inline">System Tour</span>
+          <span>System Tour</span>
         </button>
 
         {/* ── POS (Point of Sale) Register Direct Action Button ──── */}
         <Link
           to="/pos"
-          className="flex items-center gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-600 dark:hover:bg-emerald-500 px-3 py-1.5 text-xs font-bold text-white shadow-xs transition-colors cursor-pointer shrink-0"
+          className="flex items-center gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-600 dark:hover:bg-emerald-500 px-2.5 sm:px-3 py-1.5 text-xs font-bold text-white shadow-xs transition-colors cursor-pointer shrink-0"
           title="Open Point of Sale Counter Terminal"
         >
           <Store className="size-3.5" />
-          <span className="hidden sm:inline">POS Terminal</span>
-          <span className="sm:hidden">POS</span>
+          <span className="hidden xl:inline">POS Terminal</span>
+          <span className="xl:hidden">POS</span>
         </Link>
 
         {/* Branch Selector Dropdown */}
         {branches && branches.length > 0 && (
-          <div className="relative hidden md:block">
+          <div className="relative hidden xl:block">
             <button
               type="button"
               onClick={() => setIsBranchMenuOpen(!isBranchMenuOpen)}
@@ -477,15 +477,16 @@ export function AppHeader({
           <button
             type="button"
             onClick={() => setIsQuickAddOpen(!isQuickAddOpen)}
-            className="flex items-center gap-1.5 rounded-xl bg-blue-600 px-3 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-blue-700 transition-colors cursor-pointer"
+            className="flex items-center gap-1.5 rounded-xl bg-blue-600 px-2.5 xl:px-3 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-blue-700 transition-colors cursor-pointer"
+            title="Quick Add"
           >
             <Plus className="size-3.5" />
-            <span className="hidden sm:inline">Quick Add</span>
-            <ChevronDown className="size-3" />
+            <span className="hidden xl:inline">Quick Add</span>
+            <ChevronDown className="size-3 hidden xl:inline" />
           </button>
 
           {isQuickAddOpen && (
-            <div className="absolute right-0 mt-2 w-64 rounded-2xl border border-default bg-surface-raised p-1.5 shadow-2xl z-50 animate-in fade-in duration-150">
+            <div className="fixed inset-x-2 top-16 sm:absolute sm:inset-x-auto sm:right-0 sm:top-full sm:mt-2 w-auto sm:w-64 max-w-[calc(100vw-1rem)] max-h-[80vh] overflow-y-auto rounded-2xl border border-default bg-surface-raised p-1.5 shadow-2xl z-50 animate-in fade-in duration-150">
               {/* Manufacturing Group */}
               <div className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-muted">
                 Manufacturing & Quality
@@ -639,7 +640,7 @@ export function AppHeader({
           </button>
 
           {isNotifMenuOpen && (
-            <div className="absolute right-0 mt-2 w-80 sm:w-96 rounded-2xl border border-default bg-surface-raised shadow-2xl z-50 overflow-hidden animate-fade-in">
+            <div className="fixed inset-x-2 top-16 sm:absolute sm:inset-x-auto sm:right-0 sm:top-full sm:mt-2 w-auto sm:w-96 max-w-[calc(100vw-1rem)] rounded-2xl border border-default bg-surface-raised shadow-2xl z-50 overflow-hidden animate-fade-in">
               <div className="flex items-center justify-between border-b border-default px-4 py-3 bg-surface-sunken/40">
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-bold text-default">Factory Telemetry & Alerts</span>
@@ -701,18 +702,18 @@ export function AppHeader({
         <button
           type="button"
           onClick={() => setIsBrainOpen(true)}
-          className="flex items-center gap-1.5 rounded-xl bg-purple-500/10 hover:bg-purple-500/20 text-purple-600 dark:text-purple-400 border border-purple-500/25 px-2.5 py-1 text-xs font-bold transition-all cursor-pointer shadow-2xs group"
+          className="hidden xl:flex items-center gap-1.5 rounded-xl bg-purple-500/10 hover:bg-purple-500/20 text-purple-600 dark:text-purple-400 border border-purple-500/25 px-2.5 py-1 text-xs font-bold transition-all cursor-pointer shadow-2xs group"
           title="Operations AI Brain — 100% Local Agentic AI (Ctrl+Space)"
         >
           <Brain className="size-3.5 group-hover:scale-110 transition-transform" />
-          <span className="hidden sm:inline">Brain</span>
-          <span className="size-1.5 rounded-full bg-purple-500 animate-pulse hidden sm:inline" />
+          <span>Brain</span>
+          <span className="size-1.5 rounded-full bg-purple-500 animate-pulse" />
         </button>
 
         {/* Data Bin & Recovery Vault Quick Link */}
         <Link
           to="/settings/bin"
-          className="rounded-lg p-2 text-muted hover:bg-surface-sunken hover:text-red-500 transition-token-colors focus-visible:ring-focus relative group cursor-pointer"
+          className="hidden 2xl:flex rounded-lg p-2 text-muted hover:bg-surface-sunken hover:text-red-500 transition-token-colors focus-visible:ring-focus relative group cursor-pointer"
           title="Data Bin & Recovery Vault"
         >
           <Trash2 className="size-4" />
@@ -748,7 +749,7 @@ export function AppHeader({
           </button>
 
           {isUserMenuOpen && (
-            <div className="absolute right-0 mt-2 w-56 rounded-2xl border border-default bg-surface-raised p-1.5 shadow-2xl z-50 animate-fade-in">
+            <div className="fixed inset-x-2 top-16 sm:absolute sm:inset-x-auto sm:right-0 sm:top-full sm:mt-2 w-auto sm:w-60 max-w-[calc(100vw-1rem)] rounded-2xl border border-default bg-surface-raised p-1.5 shadow-2xl z-50 animate-fade-in">
               <div className="border-b border-default px-3 py-2.5">
                 <p className="text-xs font-bold text-default">{user?.name ?? 'Operations User'}</p>
                 <p className="text-[11px] text-muted truncate">{user?.email ?? 'operations@company.com'}</p>
@@ -759,6 +760,31 @@ export function AppHeader({
               </div>
 
               <div className="mt-1 space-y-0.5">
+                {/* Mobile-only shortcuts */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsUserMenuOpen(false);
+                    setIsBrainOpen(true);
+                  }}
+                  className="sm:hidden flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-medium text-purple-600 dark:text-purple-400 hover:bg-purple-500/10 transition-token-colors cursor-pointer"
+                >
+                  <Brain className="size-3.5" />
+                  <span>Operations AI Brain</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsUserMenuOpen(false);
+                    openTutorial();
+                  }}
+                  className="sm:hidden flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:bg-indigo-500/10 transition-token-colors cursor-pointer"
+                >
+                  <Compass className="size-3.5" />
+                  <span>Interactive System Tour</span>
+                </button>
+
                 <Link
                   to="/profile"
                   onClick={() => setIsUserMenuOpen(false)}

@@ -72,6 +72,7 @@ interface CartSlot {
 export function POSShell({ session, onExit }: POSShellProps) {
   const { formatCurrency, currencySymbol, currencyCode } = useCurrency();
   const [search, setSearch] = useState('');
+  const [mobileView, setMobileView] = useState<'catalog' | 'cart'>('catalog');
   
   // Multi-cart slots (up to 5 concurrent held transactions)
   const [activeSlotIndex, setActiveSlotIndex] = useState<number>(0);
@@ -615,6 +616,33 @@ export function POSShell({ session, onExit }: POSShellProps) {
             </div>
           </div>
 
+          {/* Mobile Catalog / Cart Segmented Switcher */}
+          <div className="lg:hidden flex items-center bg-surface-sunken p-0.5 rounded-xl border border-default">
+            <button
+              type="button"
+              onClick={() => setMobileView('catalog')}
+              className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-all touch-target ${
+                mobileView === 'catalog'
+                  ? 'bg-primary text-white shadow-2xs'
+                  : 'text-muted hover:text-default'
+              }`}
+            >
+              Catalog
+            </button>
+            <button
+              type="button"
+              onClick={() => setMobileView('cart')}
+              className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-all flex items-center gap-1 touch-target ${
+                mobileView === 'cart'
+                  ? 'bg-primary text-white shadow-2xs'
+                  : 'text-muted hover:text-default'
+              }`}
+            >
+              <ShoppingBag className="size-3" />
+              <span>Cart ({cart.reduce((s, i) => s + i.quantity, 0)})</span>
+            </button>
+          </div>
+
           <button
             onClick={() => handleOpenExchangeModal()}
             className="flex items-center gap-1.5 rounded-xl border border-default bg-surface px-3 py-1.5 text-xs font-semibold text-default hover:bg-surface-sunken cursor-pointer transition-colors shadow-2xs"
@@ -647,9 +675,11 @@ export function POSShell({ session, onExit }: POSShellProps) {
       </header>
 
       {/* Main Grid */}
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 overflow-hidden relative">
         {/* Left: Product Catalog Grid */}
-        <div className="flex flex-1 flex-col border-r border-default p-4">
+        <div className={`flex-1 flex-col border-r border-default p-3 sm:p-4 ${
+          mobileView === 'catalog' ? 'flex' : 'hidden lg:flex'
+        }`}>
           {/* Search & Barcode Scan */}
           <div className="mb-4 flex gap-2">
             <div className="relative flex-1">
@@ -723,10 +753,45 @@ export function POSShell({ session, onExit }: POSShellProps) {
               </div>
             )}
           </div>
+
+          {/* Mobile Sticky Quick-Checkout Bar when on Catalog View */}
+          {cart.length > 0 && (
+            <div className="lg:hidden mt-3 p-3 bg-surface rounded-2xl border border-primary/30 shadow-lg flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-[11px] text-muted font-medium truncate">
+                  Active Cart: {cart.length} line item{cart.length > 1 ? 's' : ''}
+                </p>
+                <p className="font-mono font-black text-sm text-emerald-600 dark:text-emerald-400">
+                  {formatCurrency(grandTotal)}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setMobileView('cart')}
+                className="min-h-11 px-4 bg-primary hover:bg-primary-hover text-white rounded-xl font-bold text-xs shadow-sm flex items-center gap-2 cursor-pointer touch-target-pos active:scale-95"
+              >
+                <ShoppingBag className="size-4" />
+                <span>View Cart & Pay →</span>
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Right: Cart & Payment Tender Panel */}
-        <div className="flex w-96 flex-col bg-surface-sunken/40 p-4">
+        <div className={`w-full lg:w-96 flex-col bg-surface-sunken/40 p-3 sm:p-4 overflow-y-auto ${
+          mobileView === 'cart' ? 'flex' : 'hidden lg:flex'
+        }`}>
+          {/* Mobile Back to Catalog Button */}
+          <div className="lg:hidden mb-3">
+            <button
+              type="button"
+              onClick={() => setMobileView('catalog')}
+              className="w-full min-h-11 px-3 rounded-xl border border-default bg-surface text-default hover:bg-surface-sunken font-bold text-xs flex items-center justify-center gap-2 touch-target shadow-2xs"
+            >
+              <span>← Back to Product Catalog</span>
+            </button>
+          </div>
+
           {/* Multi-Cart Hold & Resume Tab Switcher */}
           <div className="flex items-center gap-1.5 mb-3 bg-surface p-1 rounded-xl border border-default">
             {slots.map((slot, idx) => {
@@ -814,10 +879,10 @@ export function POSShell({ session, onExit }: POSShellProps) {
                         <button
                           type="button"
                           onClick={() => removeFromCart(item.product.id)}
-                          className="p-1 text-muted hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-500/10 rounded cursor-pointer transition-colors"
+                          className="p-2 min-h-9.5 min-w-9.5 flex items-center justify-center text-muted hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-500/10 rounded-xl cursor-pointer transition-colors touch-target"
                           title="Remove item"
                         >
-                          <Trash2 className="h-3.5 w-3.5" />
+                          <Trash2 className="h-4 w-4" />
                         </button>
                       </div>
                     </div>
@@ -831,9 +896,9 @@ export function POSShell({ session, onExit }: POSShellProps) {
                           <button
                             type="button"
                             onClick={() => updateQuantity(item.product.id, -1)}
-                            className="flex h-7 w-6 shrink-0 items-center justify-center rounded border border-default bg-surface text-default hover:bg-surface-sunken cursor-pointer transition-colors active:scale-95"
+                            className="flex h-8 w-7 sm:h-7 sm:w-6 shrink-0 items-center justify-center rounded-lg border border-default bg-surface text-default hover:bg-surface-sunken cursor-pointer transition-colors active:scale-95 touch-target"
                           >
-                            <Minus className="h-3 w-3" />
+                            <Minus className="h-3.5 w-3.5" />
                           </button>
                           <input
                             type="number"
@@ -841,14 +906,14 @@ export function POSShell({ session, onExit }: POSShellProps) {
                             step="any"
                             value={item.quantity}
                             onChange={(e) => updateItemQuantity(item.product.id, parseFloat(e.target.value) || 0)}
-                            className="h-7 w-full rounded border border-default bg-surface px-1 text-center font-mono font-bold text-xs text-default focus:border-primary focus:outline-none"
+                            className="h-8 sm:h-7 w-full rounded-lg border border-default bg-surface px-1 text-center font-mono font-bold text-xs text-default focus:border-primary focus:outline-none"
                           />
                           <button
                             type="button"
                             onClick={() => updateQuantity(item.product.id, 1)}
-                            className="flex h-7 w-6 shrink-0 items-center justify-center rounded border border-default bg-surface text-default hover:bg-surface-sunken cursor-pointer transition-colors active:scale-95"
+                            className="flex h-8 w-7 sm:h-7 sm:w-6 shrink-0 items-center justify-center rounded-lg border border-default bg-surface text-default hover:bg-surface-sunken cursor-pointer transition-colors active:scale-95 touch-target"
                           >
-                            <Plus className="h-3 w-3" />
+                            <Plus className="h-3.5 w-3.5" />
                           </button>
                         </div>
                       </div>
@@ -956,7 +1021,7 @@ export function POSShell({ session, onExit }: POSShellProps) {
                   <button
                     type="button"
                     onClick={() => updateCurrentSlot({ tenderMethod: 'cash' })}
-                    className={`flex flex-col items-center justify-center min-h-11 gap-1 rounded-xl border py-2 text-[10px] font-semibold uppercase transition-all cursor-pointer active:scale-95 ${
+                    className={`flex flex-col items-center justify-center min-h-12 gap-1 rounded-xl border py-2 text-[10px] font-semibold uppercase transition-all cursor-pointer active:scale-95 touch-target-pos ${
                       tenderMethod === 'cash'
                         ? 'border-primary bg-primary/10 text-primary'
                         : 'border-default bg-surface text-muted hover:bg-surface-sunken hover:text-default'
@@ -968,7 +1033,7 @@ export function POSShell({ session, onExit }: POSShellProps) {
                   <button
                     type="button"
                     onClick={() => updateCurrentSlot({ tenderMethod: 'card' })}
-                    className={`flex flex-col items-center justify-center min-h-11 gap-1 rounded-xl border py-2 text-[10px] font-semibold uppercase transition-all cursor-pointer active:scale-95 ${
+                    className={`flex flex-col items-center justify-center min-h-12 gap-1 rounded-xl border py-2 text-[10px] font-semibold uppercase transition-all cursor-pointer active:scale-95 touch-target-pos ${
                       tenderMethod === 'card'
                         ? 'border-primary bg-primary/10 text-primary'
                         : 'border-default bg-surface text-muted hover:bg-surface-sunken hover:text-default'
@@ -980,7 +1045,7 @@ export function POSShell({ session, onExit }: POSShellProps) {
                   <button
                     type="button"
                     onClick={() => updateCurrentSlot({ tenderMethod: 'mobile_banking' })}
-                    className={`flex flex-col items-center justify-center min-h-11 gap-1 rounded-xl border py-2 text-[10px] font-semibold uppercase transition-all cursor-pointer active:scale-95 ${
+                    className={`flex flex-col items-center justify-center min-h-12 gap-1 rounded-xl border py-2 text-[10px] font-semibold uppercase transition-all cursor-pointer active:scale-95 touch-target-pos ${
                       tenderMethod === 'mobile_banking'
                         ? 'border-primary bg-primary/10 text-primary'
                         : 'border-default bg-surface text-muted hover:bg-surface-sunken hover:text-default'
@@ -1213,7 +1278,7 @@ export function POSShell({ session, onExit }: POSShellProps) {
             <button
               onClick={handleCheckout}
               disabled={cart.length === 0 || checkingOut || (isSplitPayment && splitRemainingDue > 0.01)}
-              className="w-full rounded-xl bg-primary py-3 text-center text-sm font-bold text-white shadow-lg shadow-primary/20 transition-all hover:bg-primary-hover disabled:opacity-50 disabled:pointer-events-none active:scale-[0.99] cursor-pointer"
+              className="w-full min-h-12.5 rounded-xl bg-primary py-3.5 text-center text-sm font-bold text-white shadow-lg shadow-primary/20 transition-all hover:bg-primary-hover disabled:opacity-50 disabled:pointer-events-none active:scale-[0.99] cursor-pointer touch-target-pos"
             >
               {checkingOut
                 ? 'Processing...'

@@ -139,7 +139,7 @@ export default function LoginPage() {
   const displayName = companyName || 'Enterprise Operations Platform';
 
   return (
-    <div className="relative flex min-h-dvh w-full items-center justify-center bg-base px-4 py-12 text-default transition-colors duration-200 sm:px-6 lg:px-8">
+    <div className="relative flex min-h-dvh w-full items-center justify-center bg-base px-3 sm:px-6 lg:px-8 py-8 sm:py-12 text-default transition-colors duration-200 overflow-x-hidden">
       {/* Top-Right Theme Toggle */}
       <div className="absolute top-4 right-4 sm:top-6 sm:right-6">
         <button
@@ -166,7 +166,7 @@ export default function LoginPage() {
       <div className="pointer-events-none absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 h-96 w-96 rounded-full bg-blue-500/10 dark:bg-blue-500/15 blur-[120px]" />
       <div className="pointer-events-none absolute bottom-1/4 right-1/3 h-80 w-80 rounded-full bg-indigo-500/10 dark:bg-indigo-500/15 blur-[140px]" />
 
-      <div className="relative w-full max-w-md space-y-6 rounded-2xl border border-default bg-surface/95 p-8 shadow-xl dark:shadow-2xl backdrop-blur-xl transition-colors">
+      <div className="relative w-full max-w-md space-y-6 rounded-2xl border border-default bg-surface/95 p-5 sm:p-8 shadow-xl dark:shadow-2xl backdrop-blur-xl transition-colors">
         {/* Brand Header */}
         <div className="text-center">
           {logoUrl && !logoLoadFailed ? (
@@ -296,7 +296,7 @@ export default function LoginPage() {
                   key={item.email}
                   type="button"
                   onClick={() => handleQuickRole(item.email)}
-                  className="group flex flex-1 min-w-26.25 flex-col items-start rounded-xl border border-default bg-surface-sunken/60 p-2 text-left transition-all hover:border-primary/40 hover:bg-primary-subtle focus:outline-none focus-visible:ring-2 focus-visible:ring-primary cursor-pointer shadow-2xs"
+                  className="group flex flex-1 min-w-24 sm:min-w-26.25 max-w-full flex-col items-start rounded-xl border border-default bg-surface-sunken/60 p-2 text-left transition-all hover:border-primary/40 hover:bg-primary-subtle focus:outline-none focus-visible:ring-2 focus-visible:ring-primary cursor-pointer shadow-2xs"
                 >
                   <div className="flex items-center gap-1.5 w-full">
                     <Icon className="h-3.5 w-3.5 text-muted group-hover:text-primary transition-colors shrink-0" />

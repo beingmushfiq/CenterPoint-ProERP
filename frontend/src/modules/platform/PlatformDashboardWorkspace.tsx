@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../../lib/api/client';
 import type { PlatformDashboardData } from '../../types/api/platform';
+import { ResponsiveDataTable } from '../../components/ui/ResponsiveDataTable';
 import {
   Building2,
   Users,
@@ -288,46 +289,87 @@ export const PlatformDashboardWorkspace: React.FC = () => {
           </Link>
         </div>
 
-        {data?.recent_activity && data.recent_activity.length > 0 ? (
-          <div className="overflow-x-auto rounded-xl border border-default">
-            <table className="w-full min-w-162.5 text-left text-xs text-default">
-              <thead className="border-b border-default bg-surface-sunken/70 text-muted uppercase font-mono text-[10px]">
-                <tr>
-                  <th className="py-3.5 pl-4 pr-3">Timestamp</th>
-                  <th className="py-3.5 px-3">Action</th>
-                  <th className="py-3.5 px-3">Target Entity</th>
-                  <th className="py-3.5 px-3">Actor</th>
-                  <th className="py-3.5 pr-4">Summary</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-default font-mono">
-                {data.recent_activity.map((log) => (
-                  <tr key={log.id} className="hover:bg-surface-sunken/40 transition-colors">
-                    <td className="py-3.5 pl-4 pr-3 text-muted">
-                      {new Date(log.created_at).toLocaleString()}
-                    </td>
-                    <td className="py-3.5 px-3">
-                      <span className="px-2.5 py-0.5 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30 font-bold uppercase text-[9px]">
-                        {log.action}
-                      </span>
-                    </td>
-                    <td className="py-3.5 px-3 text-default font-semibold">
-                      {log.entity_type} #{log.entity_id}
-                    </td>
-                    <td className="py-3.5 px-3 text-muted">{log.actor_name}</td>
-                    <td className="py-3.5 pr-4 text-muted truncate max-w-xs">
-                      {log.details ? JSON.stringify(log.details) : '—'}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <div className="py-8 text-center text-muted text-xs font-mono">
-            No platform audit entries recorded yet.
-          </div>
-        )}
+        <ResponsiveDataTable<PlatformDashboardData['recent_activity'][number]>
+          data={data?.recent_activity ?? []}
+          isLoading={isLoading}
+          emptyMessage="No platform audit entries recorded yet."
+          keyExtractor={(log) => log.id}
+          columns={[
+            {
+              key: 'timestamp',
+              header: 'Timestamp',
+              priority: 'high',
+              render: (log) => (
+                <span className="text-muted font-mono text-xs">
+                  {new Date(log.created_at).toLocaleString()}
+                </span>
+              ),
+            },
+            {
+              key: 'action',
+              header: 'Action',
+              priority: 'high',
+              render: (log) => (
+                <span className="px-2.5 py-0.5 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30 font-bold uppercase text-[9px] font-mono">
+                  {log.action}
+                </span>
+              ),
+            },
+            {
+              key: 'target',
+              header: 'Target Entity',
+              priority: 'medium',
+              render: (log) => (
+                <span className="text-default font-semibold font-mono">
+                  {log.entity_type} #{log.entity_id}
+                </span>
+              ),
+            },
+            {
+              key: 'actor',
+              header: 'Actor',
+              priority: 'high',
+              render: (log) => <span className="text-muted font-mono">{log.actor_name}</span>,
+            },
+            {
+              key: 'details',
+              header: 'Summary',
+              priority: 'low',
+              render: (log) => (
+                <span className="text-muted truncate max-w-xs block font-mono text-[11px]">
+                  {log.details ? JSON.stringify(log.details) : '—'}
+                </span>
+              ),
+            },
+          ]}
+          mobileCardRenderer={(log) => ({
+            title: (
+              <div className="flex items-center gap-2">
+                <span className="px-2 py-0.5 rounded-md bg-amber-500/15 text-amber-600 dark:text-amber-400 font-bold uppercase text-[9px] font-mono">
+                  {log.action}
+                </span>
+                <span className="font-bold text-default text-xs font-mono">
+                  {log.entity_type} #{log.entity_id}
+                </span>
+              </div>
+            ),
+            subtitle: `By ${log.actor_name}`,
+            badge: (
+              <span className="text-[10px] text-muted font-mono">
+                {new Date(log.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </span>
+            ),
+            metrics: [
+              { label: 'Date', value: new Date(log.created_at).toLocaleDateString() },
+              { label: 'Entity', value: `${log.entity_type} #${log.entity_id}` },
+            ],
+            details: log.details ? (
+              <div className="text-xs text-muted font-mono break-all pt-1 bg-surface-sunken p-2 rounded-lg border border-default">
+                {JSON.stringify(log.details)}
+              </div>
+            ) : undefined,
+          })}
+        />
       </div>
     </div>
   );

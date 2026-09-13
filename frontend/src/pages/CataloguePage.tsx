@@ -108,13 +108,13 @@ export default function CataloguePage() {
           </div>
         </header>
 
-        <nav className="border-default flex gap-1 border-b" aria-label="Catalogue sections">
+        <nav className="border-default flex gap-1 border-b overflow-x-auto no-scrollbar scroll-smooth -mx-6 px-6 sm:mx-0 sm:px-0" aria-label="Catalogue sections">
           {sections.map(({ id, label, icon: Icon }) => (
             <button
               key={id}
               type="button"
               onClick={() => setSection(id)}
-              className={`flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-semibold transition-colors ${section === id ? 'border-primary text-primary' : 'border-transparent text-muted hover:text-default'}`}
+              className={`flex shrink-0 items-center gap-2 border-b-2 px-4 py-3 text-sm font-semibold transition-colors min-h-11 cursor-pointer ${section === id ? 'border-primary text-primary' : 'border-transparent text-muted hover:text-default'}`}
               aria-current={section === id ? 'page' : undefined}
             >
               <Icon size={16} aria-hidden="true" /> {label}
@@ -123,18 +123,18 @@ export default function CataloguePage() {
         </nav>
 
         <section className="flex flex-col gap-5" aria-labelledby="records-heading">
-          <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <h2 id="records-heading" className="text-lg font-semibold">
               {sections.find((item) => item.id === section)?.label}
             </h2>
-            <div className="flex flex-wrap items-center justify-end gap-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-end gap-3 w-full sm:w-auto">
               <Input
                 aria-label="Search catalogue"
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
                 placeholder="Search by name or code"
                 leftElement={<Search size={16} />}
-                className="max-w-sm"
+                className="w-full sm:max-w-sm"
               />
               {section === 'warehouses' && canCreateWarehouse && (
                 <Button
@@ -142,6 +142,7 @@ export default function CataloguePage() {
                   size="sm"
                   leftIcon={<Plus />}
                   onClick={() => setIsCreateOpen(true)}
+                  className="w-full sm:w-auto min-h-10"
                 >
                   Add warehouse
                 </Button>
@@ -161,12 +162,12 @@ export default function CataloguePage() {
               ) : (
                 <ul className="divide-default divide-y">
                   {rows.map((row) => (
-                    <li key={row.id} className="flex items-center justify-between gap-4 px-5 py-4">
+                    <li key={row.id} className="flex items-center justify-between gap-4 px-4 sm:px-5 py-3.5 sm:py-4 min-h-12">
                       <div>
-                        <p className="font-medium">{rowLabel(section, row)}</p>
+                        <p className="font-medium text-sm">{rowLabel(section, row)}</p>
                         <p className="text-muted mt-1 text-xs">{rowMeta(section, row)}</p>
                       </div>
-                      <ChevronRight className="text-subtle" size={17} aria-hidden="true" />
+                      <ChevronRight className="text-subtle shrink-0" size={17} aria-hidden="true" />
                     </li>
                   ))}
                 </ul>

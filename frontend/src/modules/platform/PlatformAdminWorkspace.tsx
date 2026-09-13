@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { api } from '../../lib/api/client';
 import type { PlatformAdminUser, PlatformRole } from '../../types/api/platform';
+import { ResponsiveDataTable } from '../../components/ui/ResponsiveDataTable';
 import { Button } from '../../components/ui/Button';
 import {
   Search,
@@ -13,6 +14,8 @@ import {
   CheckCircle2,
   XCircle,
   Lock,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 
 interface AdminsResponse {
@@ -212,128 +215,223 @@ export const PlatformAdminWorkspace: React.FC = () => {
       </div>
 
       {/* Admins Table */}
-      <div className="rounded-2xl bg-surface border border-default shadow-xl overflow-hidden">
-        {isLoading ? (
-          <div className="p-12 text-center text-muted font-mono text-xs">
-            Loading platform administrators...
+      <ResponsiveDataTable<PlatformAdminUser>
+        data={admins}
+        isLoading={isLoading}
+        emptyMessage="No platform administrators found."
+        keyExtractor={(admin) => admin.id}
+        columns={[
+          {
+            key: 'name',
+            header: 'Administrator',
+            priority: 'high',
+            render: (admin) => (
+              <div>
+                <span className="font-bold text-default block">{admin.name}</span>
+                <span className="text-muted text-[11px] flex items-center gap-1 mt-0.5">
+                  <Mail className="size-3 text-muted shrink-0" />
+                  <span className="truncate">{admin.email}</span>
+                </span>
+              </div>
+            ),
+          },
+          {
+            key: 'roles',
+            header: 'Assigned Platform Roles',
+            priority: 'medium',
+            render: (admin) => (
+              <div className="flex flex-wrap gap-1">
+                {admin.roles && admin.roles.length > 0 ? (
+                  admin.roles.map((r) => (
+                    <span
+                      key={r.id}
+                      className="px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 text-[10px] font-bold"
+                    >
+                      {r.name}
+                    </span>
+                  ))
+                ) : (
+                  <span className="px-2 py-0.5 rounded-md bg-surface-sunken border border-default text-muted text-[10px]">
+                    Default Platform Admin
+                  </span>
+                )}
+              </div>
+            ),
+          },
+          {
+            key: 'status',
+            header: 'Status',
+            priority: 'high',
+            render: (admin) => (
+              <span
+                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
+                  admin.status === 'active'
+                    ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
+                    : 'bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30'
+                }`}
+              >
+                {admin.status === 'active' ? (
+                  <CheckCircle2 className="size-2.5" />
+                ) : (
+                  <XCircle className="size-2.5" />
+                )}
+                <span>{admin.status}</span>
+              </span>
+            ),
+          },
+          {
+            key: 'last_login_at',
+            header: 'Last Active',
+            priority: 'low',
+            render: (admin) => (
+              <span className="text-muted">
+                {admin.last_login_at ? (
+                  new Date(admin.last_login_at).toLocaleString()
+                ) : (
+                  <span className="text-muted/60">Never</span>
+                )}
+              </span>
+            ),
+          },
+          {
+            key: 'created_at',
+            header: 'Created',
+            priority: 'low',
+            render: (admin) => <span className="text-muted">{new Date(admin.created_at).toLocaleDateString()}</span>,
+          },
+          {
+            key: 'actions',
+            header: 'Actions',
+            priority: 'high',
+            align: 'right',
+            render: (admin) => (
+              <div className="flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedAdmin(admin);
+                    setShowResetModal(true);
+                  }}
+                  title="Reset Password"
+                  className="p-1.5 rounded-lg bg-surface-sunken hover:bg-surface border border-default text-amber-600 dark:text-amber-400 cursor-pointer transition-colors"
+                >
+                  <Key className="size-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    statusMutation.mutate({
+                      id: admin.id,
+                      status: admin.status === 'active' ? 'suspended' : 'active',
+                    })
+                  }
+                  title={admin.status === 'active' ? 'Suspend Admin' : 'Activate Admin'}
+                  className={`p-1.5 rounded-lg cursor-pointer transition-colors ${
+                    admin.status === 'active'
+                      ? 'bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/20'
+                      : 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
+                  }`}
+                >
+                  <Lock className="size-3.5" />
+                </button>
+              </div>
+            ),
+          },
+        ]}
+        mobileCardRenderer={(admin) => ({
+          title: admin.name,
+          subtitle: admin.email,
+          badge: (
+            <span
+              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase ${
+                admin.status === 'active'
+                  ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
+                  : 'bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30'
+              }`}
+            >
+              {admin.status === 'active' ? <CheckCircle2 className="size-2.5" /> : <XCircle className="size-2.5" />}
+              <span>{admin.status}</span>
+            </span>
+          ),
+          metrics: [
+            {
+              label: 'Roles',
+              value: admin.roles && admin.roles.length > 0 ? admin.roles.map((r) => r.name).join(', ') : 'Default Admin',
+            },
+            {
+              label: 'Last Active',
+              value: admin.last_login_at ? new Date(admin.last_login_at).toLocaleDateString() : 'Never',
+            },
+          ],
+          actions: (
+            <div className="grid grid-cols-2 gap-2 pt-1 w-full">
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedAdmin(admin);
+                  setShowResetModal(true);
+                }}
+                className="py-2 px-3 rounded-xl bg-surface-sunken hover:bg-surface border border-default text-amber-600 dark:text-amber-400 font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <Key className="size-3.5" />
+                <span>Reset PW</span>
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  statusMutation.mutate({
+                    id: admin.id,
+                    status: admin.status === 'active' ? 'suspended' : 'active',
+                  })
+                }
+                className={`py-2 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer ${
+                  admin.status === 'active'
+                    ? 'bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/20'
+                    : 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
+                }`}
+              >
+                <Lock className="size-3.5" />
+                <span>{admin.status === 'active' ? 'Suspend' : 'Activate'}</span>
+              </button>
+            </div>
+          ),
+        })}
+      />
+
+      {/* Pagination */}
+      {data && data.meta.pagination.total_pages > 1 && (
+        <div className="p-4 rounded-2xl bg-surface border border-default flex flex-col sm:flex-row items-center justify-between gap-3 text-xs font-mono text-muted">
+          <div>
+            Showing page <strong className="text-default">{data.meta.pagination.page}</strong> of{' '}
+            <strong className="text-default">{data.meta.pagination.total_pages}</strong> ({data.meta.pagination.total} administrators)
           </div>
-        ) : admins.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-187.5 text-left text-xs font-mono">
-              <thead className="bg-surface-sunken border-b border-default text-muted uppercase text-[10px]">
-                <tr>
-                  <th className="px-5 py-3">Administrator</th>
-                  <th className="px-5 py-3">Assigned Platform Roles</th>
-                  <th className="px-5 py-3">Status</th>
-                  <th className="px-5 py-3">Last Active</th>
-                  <th className="px-5 py-3">Created</th>
-                  <th className="px-5 py-3 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-default">
-                {admins.map((admin) => (
-                  <tr key={admin.id} className="hover:bg-surface-sunken/60 transition-colors">
-                    <td className="px-5 py-3">
-                      <div>
-                        <span className="font-bold text-default block">{admin.name}</span>
-                        <span className="text-muted text-[11px] flex items-center gap-1 mt-0.5">
-                          <Mail className="size-3 text-muted" />
-                          {admin.email}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-5 py-3">
-                      <div className="flex flex-wrap gap-1">
-                        {admin.roles && admin.roles.length > 0 ? (
-                          admin.roles.map((r) => (
-                            <span
-                              key={r.id}
-                              className="px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 text-[10px] font-bold"
-                            >
-                              {r.name}
-                            </span>
-                          ))
-                        ) : (
-                          <span className="px-2 py-0.5 rounded-md bg-surface-sunken border border-default text-muted text-[10px]">
-                            Default Platform Admin
-                          </span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-5 py-3">
-                      <span
-                        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
-                          admin.status === 'active'
-                            ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
-                            : 'bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30'
-                        }`}
-                      >
-                        {admin.status === 'active' ? (
-                          <CheckCircle2 className="size-2.5" />
-                        ) : (
-                          <XCircle className="size-2.5" />
-                        )}
-                        <span>{admin.status}</span>
-                      </span>
-                    </td>
-                    <td className="px-5 py-3 text-muted">
-                      {admin.last_login_at ? (
-                        new Date(admin.last_login_at).toLocaleString()
-                      ) : (
-                        <span className="text-muted/60">Never</span>
-                      )}
-                    </td>
-                    <td className="px-5 py-3 text-muted">
-                      {new Date(admin.created_at).toLocaleDateString()}
-                    </td>
-                    <td className="px-5 py-3 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setSelectedAdmin(admin);
-                            setShowResetModal(true);
-                          }}
-                          title="Reset Password"
-                          className="p-1.5 rounded-lg bg-surface-sunken hover:bg-surface border border-default text-amber-600 dark:text-amber-400 cursor-pointer transition-colors"
-                        >
-                          <Key className="size-3.5" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() =>
-                            statusMutation.mutate({
-                              id: admin.id,
-                              status: admin.status === 'active' ? 'suspended' : 'active',
-                            })
-                          }
-                          title={admin.status === 'active' ? 'Suspend Admin' : 'Activate Admin'}
-                          className={`p-1.5 rounded-lg cursor-pointer transition-colors ${
-                            admin.status === 'active'
-                              ? 'bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/20'
-                              : 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
-                          }`}
-                        >
-                          <Lock className="size-3.5" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page === 1}
+              className="p-2 rounded-xl border border-default bg-surface hover:bg-surface-sunken text-default disabled:opacity-30 cursor-pointer min-w-9 min-h-9 flex items-center justify-center"
+            >
+              <ChevronLeft className="size-4" />
+            </button>
+            <span className="text-default font-bold px-3 py-1 bg-surface-sunken rounded-lg border border-default">
+              {page}
+            </span>
+            <button
+              onClick={() => setPage((p) => Math.min(data.meta.pagination.total_pages, p + 1))}
+              disabled={page === data.meta.pagination.total_pages}
+              className="p-2 rounded-xl border border-default bg-surface hover:bg-surface-sunken text-default disabled:opacity-30 cursor-pointer min-w-9 min-h-9 flex items-center justify-center"
+            >
+              <ChevronRight className="size-4" />
+            </button>
           </div>
-        ) : (
-          <div className="p-12 text-center text-muted font-mono text-xs">
-            No platform administrators found.
-          </div>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Create Admin Modal */}
       {showCreateModal && (
-        <div className="fixed inset-0 bg-overlay/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-surface-raised border border-default rounded-2xl p-6 max-w-md w-full shadow-2xl font-mono text-xs">
+        <div className="fixed inset-0 bg-overlay/80 backdrop-blur-xs z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 pb-safe animate-in fade-in duration-200">
+          <div className="bg-surface-raised border border-default rounded-t-3xl sm:rounded-2xl p-5 sm:p-6 max-w-md w-full shadow-2xl font-mono text-xs max-h-[90vh] overflow-y-auto">
+            <div className="w-12 h-1 bg-muted/40 rounded-full mx-auto mb-4 sm:hidden" />
             <h2 className="text-lg font-bold text-default font-sans">New Platform Administrator</h2>
             <p className="text-muted mt-1">
               Grant root or role-delegated access to the DevCenterPoint control plane.
@@ -341,7 +439,7 @@ export const PlatformAdminWorkspace: React.FC = () => {
 
             <form onSubmit={handleCreate} className="mt-4 space-y-3">
               <div>
-                <label className="block text-default mb-1">Full Name *</label>
+                <label className="block text-default mb-1 font-sans font-semibold">Full Name *</label>
                 <input
                   type="text"
                   required
@@ -353,7 +451,7 @@ export const PlatformAdminWorkspace: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-default mb-1">Email Address *</label>
+                <label className="block text-default mb-1 font-sans font-semibold">Email Address *</label>
                 <input
                   type="email"
                   required
@@ -365,7 +463,7 @@ export const PlatformAdminWorkspace: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-default mb-1">Initial Password * (8+ chars)</label>
+                <label className="block text-default mb-1 font-sans font-semibold">Initial Password * (8+ chars)</label>
                 <input
                   type="password"
                   required
@@ -378,7 +476,7 @@ export const PlatformAdminWorkspace: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-default mb-1">Initial Platform Role</label>
+                <label className="block text-default mb-1 font-sans font-semibold">Initial Platform Role</label>
                 <select
                   value={selectedRoleId}
                   onChange={(e) => setSelectedRoleId(e.target.value ? Number(e.target.value) : '')}
@@ -393,18 +491,18 @@ export const PlatformAdminWorkspace: React.FC = () => {
                 </select>
               </div>
 
-              <div className="mt-6 flex justify-end gap-3 pt-2">
+              <div className="mt-6 flex flex-col-reverse sm:flex-row justify-end gap-2.5 sm:gap-3 pt-2">
                 <button
                   type="button"
                   onClick={() => setShowCreateModal(false)}
-                  className="px-4 py-2 rounded-xl bg-surface-sunken hover:bg-surface border border-default text-muted hover:text-default cursor-pointer"
+                  className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-surface-sunken hover:bg-surface border border-default text-muted hover:text-default cursor-pointer font-semibold text-center transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={createMutation.isPending || !name || !email || password.length < 8}
-                  className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold cursor-pointer disabled:opacity-50"
+                  className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold cursor-pointer disabled:opacity-50 text-center transition-colors shadow-xs"
                 >
                   {createMutation.isPending ? 'Creating...' : 'Create Admin'}
                 </button>
@@ -416,8 +514,9 @@ export const PlatformAdminWorkspace: React.FC = () => {
 
       {/* Reset Password Modal */}
       {showResetModal && selectedAdmin && (
-        <div className="fixed inset-0 bg-overlay/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-surface-raised border border-default rounded-2xl p-6 max-w-md w-full shadow-2xl font-mono text-xs">
+        <div className="fixed inset-0 bg-overlay/80 backdrop-blur-xs z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 pb-safe animate-in fade-in duration-200">
+          <div className="bg-surface-raised border border-default rounded-t-3xl sm:rounded-2xl p-5 sm:p-6 max-w-md w-full shadow-2xl font-mono text-xs max-h-[90vh] overflow-y-auto">
+            <div className="w-12 h-1 bg-muted/40 rounded-full mx-auto mb-4 sm:hidden" />
             <h2 className="text-lg font-bold text-default font-sans">Reset Admin Password</h2>
             <p className="text-muted mt-1">
               Set a new password for <strong className="text-default">{selectedAdmin.name}</strong> ({selectedAdmin.email}).
@@ -425,7 +524,7 @@ export const PlatformAdminWorkspace: React.FC = () => {
 
             <form onSubmit={handleResetPassword} className="mt-4 space-y-3">
               <div>
-                <label className="block text-default mb-1">New Password (8+ chars) *</label>
+                <label className="block text-default mb-1 font-sans font-semibold">New Password (8+ chars) *</label>
                 <input
                   type="password"
                   required
@@ -437,7 +536,7 @@ export const PlatformAdminWorkspace: React.FC = () => {
                 />
               </div>
 
-              <div className="mt-6 flex justify-end gap-3 pt-2">
+              <div className="mt-6 flex flex-col-reverse sm:flex-row justify-end gap-2.5 sm:gap-3 pt-2">
                 <button
                   type="button"
                   onClick={() => {
@@ -445,14 +544,14 @@ export const PlatformAdminWorkspace: React.FC = () => {
                     setSelectedAdmin(null);
                     setNewPassword('');
                   }}
-                  className="px-4 py-2 rounded-xl bg-surface-sunken hover:bg-surface border border-default text-muted hover:text-default cursor-pointer"
+                  className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-surface-sunken hover:bg-surface border border-default text-muted hover:text-default cursor-pointer font-semibold text-center transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={resetMutation.isPending || newPassword.length < 8}
-                  className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold cursor-pointer disabled:opacity-50"
+                  className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold cursor-pointer disabled:opacity-50 text-center transition-colors shadow-xs"
                 >
                   {resetMutation.isPending ? 'Resetting...' : 'Reset Password'}
                 </button>

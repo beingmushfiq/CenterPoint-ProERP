@@ -5,7 +5,6 @@ import {
   X,
   ZoomIn,
   ZoomOut,
-  FileText,
   RotateCcw,
   ArrowLeft,
 } from 'lucide-react';
@@ -40,6 +39,8 @@ export function PrintPreviewModal({
 }: PrintPreviewModalProps) {
   const { printDocument, isPrinting } = useDocumentPrint();
   const [zoom, setZoom] = useState<number>(100);
+  const previewContainerRef = React.useRef<HTMLDivElement>(null);
+  const [autoScale, setAutoScale] = useState<number>(1);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -54,6 +55,30 @@ export function PrintPreviewModal({
       window.removeEventListener('keydown', handleKeyDown);
     };
   }, [isOpen, onClose]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const updateScale = () => {
+      if (!previewContainerRef.current) return;
+      const containerWidth = previewContainerRef.current.clientWidth - 32;
+      // Sheet widths in approximate px at 96 DPI: A4 Portrait is ~794px, Landscape is ~1123px, Thermal 80 is ~302px, etc.
+      let sheetWidth = 794;
+      if (pageClass.includes('landscape')) sheetWidth = 1123;
+      else if (pageClass.includes('thermal-80')) sheetWidth = 302;
+      else if (pageClass.includes('thermal-58')) sheetWidth = 220;
+      else if (pageClass.includes('label')) sheetWidth = 350;
+
+      if (containerWidth < sheetWidth) {
+        setAutoScale(Math.max(0.35, Math.min(1, containerWidth / sheetWidth)));
+      } else {
+        setAutoScale(1);
+      }
+    };
+
+    updateScale();
+    window.addEventListener('resize', updateScale);
+    return () => window.removeEventListener('resize', updateScale);
+  }, [pageClass, isOpen]);
 
   if (!isOpen) return null;
 
@@ -110,54 +135,61 @@ export function PrintPreviewModal({
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-slate-900/90 backdrop-blur-sm text-slate-800 animate-in fade-in duration-200">
       {/* Top Action Bar */}
-      <header className="flex h-14 items-center justify-between border-b border-slate-700 bg-slate-900 px-4 text-white shrink-0">
-        <div className="flex items-center gap-3">
-          {/* Back button */}
-          <button
-            type="button"
-            onClick={onClose}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 text-xs font-bold text-slate-200 hover:text-white hover:bg-slate-700 border border-slate-700 transition-all cursor-pointer shadow-xs"
-            title="Return to Setup / Editor"
-          >
-            <ArrowLeft className="size-4 text-emerald-400" />
-            <span>Back to Setup</span>
-          </button>
+      <header className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 border-b border-slate-700 bg-slate-900 px-3 sm:px-4 py-2.5 sm:py-0 sm:h-14 text-white shrink-0">
+        <div className="flex items-center justify-between sm:justify-start gap-2 sm:gap-3 min-w-0">
+          <div className="flex items-center gap-2 min-w-0">
+            {/* Back button */}
+            <button
+              type="button"
+              onClick={onClose}
+              className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-slate-800 text-xs font-bold text-slate-200 hover:text-white hover:bg-slate-700 border border-slate-700 transition-all cursor-pointer shadow-xs shrink-0 touch-target"
+              title="Return to Setup / Editor"
+            >
+              <ArrowLeft className="size-4 text-emerald-400" />
+              <span className="hidden xs:inline">Back</span>
+            </button>
 
-          <div className="h-5 w-px bg-slate-700 hidden sm:block" />
-
-          <div className="hidden sm:flex size-9 items-center justify-center rounded-lg bg-primary/20 text-primary">
-            <FileText className="size-5" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h2 className="text-sm font-bold text-white tracking-wide">{title}</h2>
-              {documentNumber && (
-                <span className="font-mono text-xs font-semibold px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">
-                  {documentNumber}
-                </span>
-              )}
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5 truncate">
+                <h2 className="text-xs sm:text-sm font-bold text-white tracking-wide truncate">{title}</h2>
+                {documentNumber && (
+                  <span className="hidden sm:inline font-mono text-xs font-semibold px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700 shrink-0">
+                    {documentNumber}
+                  </span>
+                )}
+              </div>
+              <p className="text-[10px] sm:text-[11px] text-slate-400 truncate">
+                <span>{documentType}</span> &bull;{' '}
+                <span className="text-emerald-400 font-medium">{getFormatBadge()}</span>
+                {autoScale < 1 && (
+                  <span className="ml-1.5 text-amber-400 font-mono">
+                    (Fitted {Math.round(autoScale * 100)}%)
+                  </span>
+                )}
+              </p>
             </div>
-            <p className="text-[11px] text-slate-400">
-              {documentType} &bull; <span className="text-emerald-400 font-medium">{getFormatBadge()}</span>
-            </p>
           </div>
         </div>
 
-        {/* Center Zoom Controls */}
-        <div className="hidden md:flex items-center gap-1.5 bg-slate-800/80 px-2 py-1 rounded-xl border border-slate-700 text-xs">
+        {/* Zoom Controls */}
+        <div className="flex items-center justify-between sm:justify-center gap-1 bg-slate-800/80 px-2 sm:px-3 py-1 rounded-xl border border-slate-700/80 shrink-0">
           <button
             type="button"
-            onClick={() => setZoom((prev) => Math.max(50, prev - 15))}
-            className="p-1 rounded text-slate-400 hover:text-white hover:bg-slate-700 cursor-pointer"
+            onClick={() => setZoom((z) => Math.max(z - 10, 40))}
+            disabled={zoom <= 40}
+            className="p-1 rounded text-slate-400 hover:text-white hover:bg-slate-700 disabled:opacity-30 cursor-pointer touch-target sm:min-w-0 sm:min-h-0"
             title="Zoom Out"
           >
             <ZoomOut className="size-3.5" />
           </button>
-          <span className="font-mono w-12 text-center text-slate-200">{zoom}%</span>
+          <span className="font-mono text-[11px] sm:text-xs font-bold w-12 text-center text-slate-200">
+            {zoom}%
+          </span>
           <button
             type="button"
-            onClick={() => setZoom((prev) => Math.min(200, prev + 15))}
-            className="p-1 rounded text-slate-400 hover:text-white hover:bg-slate-700 cursor-pointer"
+            onClick={() => setZoom((z) => Math.min(z + 10, 200))}
+            disabled={zoom >= 200}
+            className="p-1 rounded text-slate-400 hover:text-white hover:bg-slate-700 disabled:opacity-30 cursor-pointer touch-target sm:min-w-0 sm:min-h-0"
             title="Zoom In"
           >
             <ZoomIn className="size-3.5" />
@@ -166,7 +198,7 @@ export function PrintPreviewModal({
           <button
             type="button"
             onClick={() => setZoom(100)}
-            className="p-1 rounded text-slate-400 hover:text-white hover:bg-slate-700 cursor-pointer"
+            className="p-1 rounded text-slate-400 hover:text-white hover:bg-slate-700 cursor-pointer touch-target sm:min-w-0 sm:min-h-0"
             title="Reset Zoom"
           >
             <RotateCcw className="size-3.5" />
@@ -174,31 +206,31 @@ export function PrintPreviewModal({
         </div>
 
         {/* Right Actions */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 justify-end">
           <button
             type="button"
             onClick={handlePrint}
             disabled={isPrinting}
-            className="inline-flex items-center gap-1.5 rounded-xl border border-slate-700 bg-slate-800 px-3.5 py-1.5 text-xs font-semibold text-slate-200 hover:bg-slate-700 hover:text-white transition-colors cursor-pointer"
+            className="inline-flex flex-1 sm:flex-none items-center justify-center gap-1.5 rounded-xl border border-slate-700 bg-slate-800 px-3 py-1.5 text-xs font-semibold text-slate-200 hover:bg-slate-700 hover:text-white transition-colors cursor-pointer touch-target"
           >
             <FileDown className="size-3.5 text-blue-400" />
-            <span>Save PDF</span>
+            <span>PDF</span>
           </button>
 
           <button
             type="button"
             onClick={handlePrint}
             disabled={isPrinting}
-            className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-4 py-1.5 text-xs font-semibold text-primary-fg hover:opacity-90 shadow-sm transition-all cursor-pointer"
+            className="inline-flex flex-1 sm:flex-none items-center justify-center gap-1.5 rounded-xl bg-primary px-3.5 sm:px-4 py-1.5 text-xs font-semibold text-primary-fg hover:opacity-90 shadow-sm transition-all cursor-pointer touch-target"
           >
             <Printer className="size-3.5" />
-            <span>{isPrinting ? 'Preparing...' : 'Print Document'}</span>
+            <span>{isPrinting ? 'Preparing...' : 'Print'}</span>
           </button>
 
           <button
             type="button"
             onClick={onClose}
-            className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors ml-1 cursor-pointer"
+            className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors ml-1 cursor-pointer touch-target shrink-0"
             title="Close Preview (Esc)"
           >
             <X className="size-5" />
@@ -207,10 +239,13 @@ export function PrintPreviewModal({
       </header>
 
       {/* Main Preview Area */}
-      <main className="flex-1 overflow-auto bg-slate-950/60 p-4 sm:p-8 flex justify-center items-start">
+      <main
+        ref={previewContainerRef}
+        className="flex-1 overflow-auto bg-slate-950/60 p-2 sm:p-6 md:p-8 flex justify-center items-start"
+      >
         <div
           style={{
-            transform: `scale(${zoom / 100})`,
+            transform: `scale(${(zoom / 100) * autoScale})`,
             transformOrigin: 'top center',
             transition: 'transform 0.15s ease-out',
           }}

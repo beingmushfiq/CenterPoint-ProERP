@@ -210,7 +210,7 @@ export function Modal({
       <AnimatePresence>
         {open && (
           <div
-            className="fixed inset-0 z-(--z-overlay) flex items-center justify-center p-4 sm:p-6"
+            className="fixed inset-0 z-(--z-overlay) flex items-end sm:items-center justify-center p-0 sm:p-6 pb-safe"
             data-modal="true"
           >
             {/* Scrim with Frosted Blur */}
@@ -232,10 +232,10 @@ export function Modal({
               aria-labelledby={titleId}
               tabIndex={-1}
               className={cn(
-                'relative z-(--z-modal) max-h-[92vh] overflow-y-auto w-full',
-                'rounded-2xl p-5 sm:p-6',
+                'relative z-(--z-modal) max-h-[90vh] sm:max-h-[92vh] overflow-y-auto w-full',
+                'rounded-t-3xl sm:rounded-2xl p-4 sm:p-6 pb-6 sm:pb-6',
                 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100',
-                'border border-slate-200 dark:border-slate-800 shadow-2xl',
+                'border-t sm:border border-slate-200 dark:border-slate-800 shadow-2xl',
                 'outline-none transition-all',
                 sizeMap[size],
                 className
@@ -245,9 +245,12 @@ export function Modal({
               animate="visible"
               exit="hidden"
             >
+              {/* Mobile Drag Indicator */}
+              <div className="sm:hidden w-12 h-1.5 rounded-full bg-slate-300 dark:bg-slate-700 mx-auto mb-3 shrink-0" aria-hidden="true" />
+
               {/* Top Linear Gradient Glow Accent */}
               <div
-                className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-linear-to-r from-primary via-indigo-500 to-emerald-500 rounded-t-2xl"
+                className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-linear-to-r from-primary via-indigo-500 to-emerald-500 rounded-t-3xl sm:rounded-t-2xl"
                 aria-hidden="true"
               />
 
@@ -293,7 +296,7 @@ export function Modal({
 
               {/* Footer */}
               {footer && (
-                <div className="border-default mt-5 flex items-center justify-end gap-3 border-t pt-4">
+                <div className="border-default mt-5 flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2.5 sm:gap-3 border-t pt-4">
                   {footer}
                 </div>
               )}
@@ -510,7 +513,7 @@ export function Drawer({
               aria-labelledby={titleId}
               tabIndex={-1}
               className={cn(
-                'fixed inset-y-0 right-0 z-(--z-modal) flex flex-col',
+                'fixed inset-y-0 right-0 z-(--z-modal) flex flex-col w-full max-w-full pb-safe',
                 'bg-surface-raised shadow-overlay',
                 'outline-none',
                 drawerWidthMap[width],
@@ -522,7 +525,7 @@ export function Drawer({
               exit="hidden"
             >
               {/* Header */}
-              <div className="border-default flex shrink-0 items-center justify-between border-b px-6 py-4">
+              <div className="border-default flex shrink-0 items-center justify-between border-b px-4 sm:px-6 py-3.5 sm:py-4">
                 <h2 id={titleId} className="text-md font-semibold text-default">
                   {title}
                 </h2>
@@ -537,11 +540,11 @@ export function Drawer({
               </div>
 
               {/* Body — scrollable */}
-              <div className="flex-1 overflow-y-auto px-6 py-5">{children}</div>
+              <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-4 sm:py-5">{children}</div>
 
               {/* Footer */}
               {footer && (
-                <div className="border-default flex shrink-0 items-center justify-end gap-3 border-t px-6 py-4">
+                <div className="border-default flex shrink-0 flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2.5 sm:gap-3 border-t px-4 sm:px-6 py-3.5 sm:py-4">
                   {footer}
                 </div>
               )}

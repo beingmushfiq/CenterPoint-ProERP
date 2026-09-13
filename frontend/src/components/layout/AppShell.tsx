@@ -38,7 +38,7 @@ export function AppShell() {
   };
 
   return (
-    <div className="flex min-h-dvh bg-base text-default font-sans antialiased flex-col">
+    <div className="flex min-h-dvh bg-base text-default font-sans antialiased flex-col w-full max-w-full overflow-x-hidden">
       <SeoHead
         title={brandName}
         description="Private Tenant Enterprise Management Portal"
@@ -48,7 +48,7 @@ export function AppShell() {
       <OfflineBanner />
       <ImpersonationBanner />
       <InteractiveTutorialModal />
-      <div className="flex flex-1 min-h-0">
+      <div className="flex flex-1 min-h-0 w-full max-w-full overflow-x-hidden">
         {/* Navigation Sidebar */}
         <Sidebar
           isOpen={isMobileSidebarOpen}
@@ -60,7 +60,7 @@ export function AppShell() {
         {/* Main content wrapper with offset for desktop sidebar */}
         <div
           className={cn(
-            'flex flex-1 flex-col min-w-0 transition-[padding] duration-300 ease-in-out',
+            'flex flex-1 flex-col min-w-0 w-full max-w-full overflow-x-hidden transition-[padding] duration-300 ease-in-out',
             isSidebarCollapsed ? 'lg:pl-20' : 'lg:pl-64'
           )}
         >
@@ -70,7 +70,7 @@ export function AppShell() {
             onToggleCollapse={toggleSidebarCollapse}
           />
 
-          <main className="flex-1 p-(--page-padding-mobile) sm:p-(--page-padding) overflow-x-hidden">
+          <main className="flex-1 p-(--page-padding-mobile) sm:p-(--page-padding) overflow-x-hidden min-w-0 w-full max-w-full">
             <Suspense fallback={<RouteLoadingFallback />}>
               <Outlet />
             </Suspense>

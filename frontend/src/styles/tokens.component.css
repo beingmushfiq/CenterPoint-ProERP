@@ -82,8 +82,19 @@
   --modal-padding: var(--space-6);
   --modal-shadow: var(--shadow-overlay);
   --modal-max-height: 90dvh;
-  --drawer-width: 28rem;
-  --drawer-width-lg: 40rem;
+  --drawer-width: min(28rem, 100vw);
+  --drawer-width-lg: min(40rem, 100vw);
+  --drawer-width-mobile: 100vw;
+  --drawer-max-width: min(28rem, calc(100vw - 2rem));
+
+  /* ─── Touch & Safe Areas ────────────────────────────────────────────────── */
+  --touch-target-min: 44px;
+  --touch-target-factory: 48px;
+  --touch-target-pos: 52px;
+  --safe-area-top: env(safe-area-inset-top, 0px);
+  --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-area-left: env(safe-area-inset-left, 0px);
+  --safe-area-right: env(safe-area-inset-right, 0px);
 
   /* ─── Toasts ───────────────────────────────────────────────────────────── */
   --toast-width: 22rem;

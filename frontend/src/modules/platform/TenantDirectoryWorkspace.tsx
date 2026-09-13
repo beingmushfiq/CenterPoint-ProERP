@@ -1,12 +1,13 @@
 import React, { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import { api, setAccessToken } from '../../lib/api/client';
 import type { PlatformTenant } from '../../types/api/platform';
 import { PlatformPulseLoader } from '../../components/platform/PlatformPulseLoader';
 import { SelectDropdown } from '../../components/ui/Dropdown';
+import { ResponsiveDataTable, type ResponsiveColumn } from '../../components/ui/ResponsiveDataTable';
 import {
   Building2,
   Search,
@@ -194,6 +195,7 @@ export const TenantDirectoryWorkspace: React.FC = () => {
             <span>Suspended</span>
           </span>
         );
+      default:
         return (
           <span className="px-2.5 py-0.5 rounded-full bg-surface-raised text-muted border border-default text-[10px] font-mono font-bold uppercase w-fit">
             {status}
@@ -201,6 +203,156 @@ export const TenantDirectoryWorkspace: React.FC = () => {
         );
     }
   };
+
+  const columns: ResponsiveColumn<PlatformTenant>[] = useMemo(
+    () => [
+      {
+        id: 'tenant',
+        header: 'Tenant Organization',
+        isPrimary: true,
+        priority: 'high',
+        cell: (t) => (
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="size-9 sm:size-10 rounded-xl bg-surface-sunken border border-default flex items-center justify-center text-amber-500 font-bold shrink-0 shadow-xs">
+              <Building2 className="size-4 sm:size-5" />
+            </div>
+            <div className="min-w-0">
+              <Link
+                to={`/platform/tenants/${t.id}`}
+                className="font-bold text-default hover:text-amber-500 transition-colors text-xs sm:text-sm font-sans block truncate"
+              >
+                {t.name}
+              </Link>
+              <div className="flex items-center gap-1.5 mt-0.5 text-[11px] text-muted truncate">
+                <span className="text-amber-500 font-semibold font-mono">#{t.id}</span>
+                <span>•</span>
+                <span className="truncate">{t.slug}.devcenterpoint.com</span>
+                <a
+                  href={`https://${t.slug}.devcenterpoint.com`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-muted hover:text-amber-500 transition-colors shrink-0"
+                  title="Open Tenant Portal"
+                >
+                  <ExternalLink className="size-3" />
+                </a>
+              </div>
+            </div>
+          </div>
+        ),
+      },
+      {
+        id: 'plan',
+        header: 'Plan Tier',
+        priority: 'medium',
+        cell: (t) => (
+          <div className="space-y-0.5">
+            <span className="font-bold text-default">
+              {t.plan?.name ?? 'Standard SaaS'}
+            </span>
+            <div className="text-[10px] text-muted font-mono">
+              BDT {t.plan?.price ?? (t.subscription?.amount || 0)}/{t.plan?.billing_period ?? 'mo'}
+            </div>
+          </div>
+        ),
+      },
+      {
+        id: 'state',
+        header: 'State',
+        isStatus: true,
+        priority: 'high',
+        cell: (t) => getStatusBadge(t.status),
+      },
+      {
+        id: 'region',
+        header: 'Region & Currency',
+        priority: 'low',
+        cell: (t) => (
+          <div className="text-[11px] font-mono">
+            <div className="font-bold text-default">{t.currency_code}</div>
+            <div className="text-[10px] text-muted">{t.timezone}</div>
+          </div>
+        ),
+      },
+      {
+        id: 'provisioned',
+        header: 'Provisioned',
+        priority: 'medium',
+        cell: (t) => (
+          <div className="text-[11px] font-mono">
+            <div>{new Date(t.created_at).toLocaleDateString()}</div>
+            <div className="text-[10px] text-muted">{t.users_count || 0} user(s)</div>
+          </div>
+        ),
+      },
+      {
+        id: 'actions',
+        header: 'Master Actions',
+        isAction: true,
+        priority: 'high',
+        headerClassName: 'text-right',
+        className: 'text-right',
+        cell: (t) => (
+          <div className="inline-flex items-center gap-1.5 font-sans">
+            <button
+              onClick={() => handleImpersonate(t)}
+              className="px-2.5 py-1.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-300 border border-amber-500/30 text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer"
+              title="Impersonate Tenant"
+            >
+              <LogIn className="size-3" />
+              <span className="hidden sm:inline">Impersonate</span>
+            </button>
+
+            <Link
+              to={`/platform/tenants/${t.id}`}
+              className="px-2.5 py-1.5 rounded-lg bg-surface-sunken hover:bg-surface text-default border border-default text-xs font-semibold transition-all flex items-center gap-1"
+            >
+              <Eye className="size-3" />
+              <span className="hidden sm:inline">Dossier</span>
+            </Link>
+
+            {t.status === 'active' ? (
+              <button
+                onClick={() => {
+                  setSelectedTenant(t);
+                  setModalType('status');
+                }}
+                className="px-2 py-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-300 border border-rose-500/30 text-xs font-semibold transition-all cursor-pointer"
+                title="Suspend Access"
+              >
+                Suspend
+              </button>
+            ) : (
+              <button
+                onClick={() => {
+                  setSelectedTenant(t);
+                  setModalType('status');
+                }}
+                className="px-2 py-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-300 border border-emerald-500/30 text-xs font-semibold transition-all cursor-pointer"
+                title="Reactivate Access"
+              >
+                Activate
+              </button>
+            )}
+
+            <button
+              onClick={() => {
+                setSelectedTenant(t);
+                setModalType('delete');
+                setDeleteConfirmationInput('');
+                setActionError(null);
+              }}
+              className="p-1.5 rounded-lg text-muted hover:text-rose-500 hover:bg-rose-500/10 transition-all cursor-pointer"
+              title="Delete Tenant"
+            >
+              <Trash2 className="size-3.5" />
+            </button>
+          </div>
+        ),
+      },
+    ],
+    []
+  );
 
   return (
     <div className="space-y-6 font-sans text-default">
@@ -314,7 +466,7 @@ export const TenantDirectoryWorkspace: React.FC = () => {
 
       {/* Filter Toolbar */}
       <div className="p-4 rounded-2xl bg-surface border border-default shadow-md flex flex-wrap gap-3 items-center justify-between font-mono text-xs">
-        <form onSubmit={handleSearchSubmit} className="relative flex-1 min-w-64">
+        <form onSubmit={handleSearchSubmit} className="relative flex-1 min-w-48 sm:min-w-64">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted" />
           <input
             type="text"
@@ -325,7 +477,7 @@ export const TenantDirectoryWorkspace: React.FC = () => {
           />
         </form>
 
-        <div className="flex items-center gap-2.5">
+        <div className="flex flex-wrap items-center gap-2.5">
           <SelectDropdown
             icon={Filter}
             options={[
@@ -335,7 +487,7 @@ export const TenantDirectoryWorkspace: React.FC = () => {
               { value: 'suspended', label: 'Suspended Only', colorDot: 'bg-rose-500' },
             ]}
             value={statusFilter}
-            onChange={(val) => setStatusFilter(val)}
+            onChange={(val: string) => setStatusFilter(val)}
             size="sm"
             aria-label="Filter tenants by status"
           />
@@ -348,180 +500,36 @@ export const TenantDirectoryWorkspace: React.FC = () => {
               { value: 'enterprise', label: 'Enterprise', colorDot: 'bg-amber-500' },
             ]}
             value={planFilter}
-            onChange={(val) => setPlanFilter(val)}
+            onChange={(val: string) => setPlanFilter(val)}
             size="sm"
             aria-label="Filter tenants by plan"
           />
         </div>
       </div>
 
-      {/* Directory Table */}
-      <div className="rounded-2xl border border-default bg-surface shadow-xl overflow-hidden">
-        {isLoading ? (
-          <div className="p-16">
-            <PlatformPulseLoader
-              label="Syncing Tenant Isolation Mesh..."
-              sublabel="Fetching real-time multi-tenant telemetry and billing quotas"
-            />
-          </div>
-        ) : tenants.length === 0 ? (
-          <div className="p-16 text-center font-mono">
-            <Building2 className="size-10 text-muted mx-auto mb-3" />
-            <div className="text-sm font-bold text-default font-sans">No Tenants Found</div>
-            <p className="text-xs text-muted mt-1 max-w-sm mx-auto">
-              No active or registered tenants match your current filter criteria.
-            </p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-200 text-left text-xs text-default font-mono">
-              <thead className="bg-surface-sunken border-b border-default text-muted uppercase text-[10px]">
-                <tr>
-                  <th className="py-3.5 pl-6">Tenant Organization</th>
-                  <th className="py-3.5 px-4">Plan Tier</th>
-                  <th className="py-3.5 px-4">State</th>
-                  <th className="py-3.5 px-4">Region & Currency</th>
-                  <th className="py-3.5 px-4">Provisioned</th>
-                  <th className="py-3.5 pr-6 text-right">Master Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-default">
-                <AnimatePresence>
-                  {tenants.map((t) => (
-                    <motion.tr
-                      key={t.id}
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      className="hover:bg-surface-sunken/60 transition-colors"
-                    >
-                      <td className="py-4 pl-6">
-                        <div className="flex items-center gap-3">
-                          <div className="size-10 rounded-xl bg-surface-sunken border border-default flex items-center justify-center text-amber-500 font-bold shrink-0 shadow-xs">
-                            <Building2 className="size-5" />
-                          </div>
-                          <div>
-                            <Link
-                              to={`/platform/tenants/${t.id}`}
-                              className="font-bold text-default hover:text-amber-500 transition-colors text-sm font-sans block"
-                            >
-                              {t.name}
-                            </Link>
-                            <div className="flex items-center gap-2 mt-0.5 text-[11px] text-muted">
-                              <span className="text-amber-500 font-semibold">#{t.id}</span>
-                              <span>•</span>
-                              <span>{t.slug}.devcenterpoint.com</span>
-                              <a
-                                href={`https://${t.slug}.devcenterpoint.com`}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="text-muted hover:text-amber-500 transition-colors"
-                                title="Open Tenant Portal"
-                              >
-                                <ExternalLink className="size-3" />
-                              </a>
-                            </div>
-                          </div>
-                        </div>
-                      </td>
-
-                      <td className="py-4 px-4">
-                        <div className="space-y-0.5">
-                          <span className="font-bold text-default">
-                            {t.plan?.name ?? 'Standard SaaS'}
-                          </span>
-                          <div className="text-[10px] text-muted">
-                            BDT {t.plan?.price ?? (t.subscription?.amount || 0)}/{t.plan?.billing_period ?? 'mo'}
-                          </div>
-                        </div>
-                      </td>
-
-                      <td className="py-4 px-4">{getStatusBadge(t.status)}</td>
-
-                      <td className="py-4 px-4 text-muted text-[11px]">
-                        <div className="font-bold text-default">{t.currency_code}</div>
-                        <div className="text-[10px] text-muted">{t.timezone}</div>
-                      </td>
-
-                      <td className="py-4 px-4 text-muted text-[11px]">
-                        <div>{new Date(t.created_at).toLocaleDateString()}</div>
-                        <div className="text-[10px] text-muted">{t.users_count || 0} user(s)</div>
-                      </td>
-
-                      <td className="py-4 pr-6 text-right">
-                        <div className="inline-flex items-center gap-1.5 font-sans">
-                          {/* Impersonate Button */}
-                          <button
-                            onClick={() => handleImpersonate(t)}
-                            className="px-2.5 py-1.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-300 border border-amber-500/30 text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer"
-                            title="Impersonate Tenant"
-                          >
-                            <LogIn className="size-3" />
-                            <span>Impersonate</span>
-                          </button>
-
-                          {/* View Details */}
-                          <Link
-                            to={`/platform/tenants/${t.id}`}
-                            className="px-2.5 py-1.5 rounded-lg bg-surface-sunken hover:bg-surface text-default border border-default text-xs font-semibold transition-all flex items-center gap-1"
-                          >
-                            <Eye className="size-3" />
-                            <span>Dossier</span>
-                          </Link>
-
-                          {/* Suspend / Reactivate */}
-                          {t.status === 'active' ? (
-                            <button
-                              onClick={() => {
-                                setSelectedTenant(t);
-                                setModalType('status');
-                              }}
-                              className="px-2 py-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-300 border border-rose-500/30 text-xs font-semibold transition-all cursor-pointer"
-                              title="Suspend Access"
-                            >
-                              Suspend
-                            </button>
-                          ) : (
-                            <button
-                              onClick={() => {
-                                setSelectedTenant(t);
-                                setModalType('status');
-                              }}
-                              className="px-2 py-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-300 border border-emerald-500/30 text-xs font-semibold transition-all cursor-pointer"
-                              title="Reactivate Access"
-                            >
-                              Activate
-                            </button>
-                          )}
-
-                          {/* Delete Tenant */}
-                          <button
-                            onClick={() => {
-                              setSelectedTenant(t);
-                              setModalType('delete');
-                              setDeleteConfirmationInput('');
-                              setActionError(null);
-                            }}
-                            className="p-1.5 rounded-lg text-muted hover:text-rose-500 hover:bg-rose-500/10 transition-all cursor-pointer"
-                            title="Delete Tenant"
-                          >
-                            <Trash2 className="size-3.5" />
-                          </button>
-                        </div>
-                      </td>
-                    </motion.tr>
-                  ))}
-                </AnimatePresence>
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+      {/* Directory Table / Responsive Data Component */}
+      {isLoading ? (
+        <div className="rounded-2xl border border-default bg-surface shadow-xl p-16">
+          <PlatformPulseLoader
+            label="Syncing Tenant Isolation Mesh..."
+            sublabel="Fetching real-time multi-tenant telemetry and billing quotas"
+          />
+        </div>
+      ) : (
+        <ResponsiveDataTable
+          data={tenants}
+          columns={columns}
+          keyExtractor={(t) => t.id}
+          emptyMessage="No tenants found matching your filter criteria"
+          emptyIcon={Building2}
+        />
+      )}
 
       {/* Status Modal */}
       {modalType === 'status' && selectedTenant && (
-        <div className="fixed inset-0 bg-overlay/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-surface-raised border border-default rounded-2xl p-6 max-w-md w-full shadow-2xl font-mono text-xs">
+        <div className="fixed inset-0 bg-overlay/80 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 pb-safe">
+          <div className="bg-surface-raised border border-default rounded-t-3xl sm:rounded-2xl p-5 sm:p-6 max-h-[90vh] overflow-y-auto max-w-md w-full shadow-2xl font-mono text-xs">
+            <div className="sm:hidden w-12 h-1.5 rounded-full bg-surface-sunken mx-auto mb-3" aria-hidden="true" />
             <h2 className="text-base font-bold text-default font-sans">
               {selectedTenant.status === 'active' ? 'Suspend Tenant Access' : 'Reactivate Tenant'}
             </h2>
@@ -548,20 +556,20 @@ export const TenantDirectoryWorkspace: React.FC = () => {
               />
             </div>
 
-            <div className="mt-6 flex items-center justify-end gap-3">
+            <div className="mt-6 flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2.5 sm:gap-3">
               <button
                 onClick={() => {
                   setModalType(null);
                   setSelectedTenant(null);
                 }}
-                className="px-4 py-2 rounded-xl bg-surface-sunken hover:bg-surface text-muted hover:text-default border border-default transition-colors cursor-pointer"
+                className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-surface-sunken hover:bg-surface text-muted hover:text-default border border-default transition-colors cursor-pointer"
               >
                 Cancel
               </button>
               <button
                 onClick={() => handleUpdateStatus(selectedTenant.status === 'active' ? 'suspended' : 'active')}
                 disabled={actionLoading}
-                className={`px-4 py-2 rounded-xl text-white font-bold transition-all shadow-md cursor-pointer ${
+                className={`w-full sm:w-auto px-4 py-2.5 rounded-xl text-white font-bold transition-all shadow-md cursor-pointer ${
                   selectedTenant.status === 'active'
                     ? 'bg-rose-600 hover:bg-rose-500 shadow-rose-600/20'
                     : 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-600/20'
@@ -576,8 +584,9 @@ export const TenantDirectoryWorkspace: React.FC = () => {
 
       {/* Delete Tenant Modal */}
       {modalType === 'delete' && selectedTenant && (
-        <div className="fixed inset-0 bg-overlay/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-surface-raised border border-rose-500/40 rounded-2xl p-6 max-w-md w-full shadow-2xl font-mono text-xs">
+        <div className="fixed inset-0 bg-overlay/80 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 pb-safe">
+          <div className="bg-surface-raised border border-rose-500/40 rounded-t-3xl sm:rounded-2xl p-5 sm:p-6 max-h-[90vh] overflow-y-auto max-w-md w-full shadow-2xl font-mono text-xs">
+            <div className="sm:hidden w-12 h-1.5 rounded-full bg-surface-sunken mx-auto mb-3" aria-hidden="true" />
             <div className="flex items-center gap-2 text-rose-500 font-bold text-base font-sans">
               <Trash2 className="size-5" />
               <span>Delete Tenant</span>
@@ -604,21 +613,21 @@ export const TenantDirectoryWorkspace: React.FC = () => {
               className="w-full bg-surface-sunken border border-default rounded-xl px-3 py-2 text-default focus:outline-hidden focus:border-rose-500"
             />
 
-            <div className="mt-6 flex items-center justify-end gap-3">
+            <div className="mt-6 flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2.5 sm:gap-3">
               <button
                 onClick={() => {
                   setModalType(null);
                   setSelectedTenant(null);
                   setDeleteConfirmationInput('');
                 }}
-                className="px-4 py-2 rounded-xl bg-surface-sunken hover:bg-surface text-muted hover:text-default border border-default transition-colors cursor-pointer"
+                className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-surface-sunken hover:bg-surface text-muted hover:text-default border border-default transition-colors cursor-pointer"
               >
                 Cancel
               </button>
               <button
                 onClick={handleDeleteTenant}
                 disabled={actionLoading || deleteConfirmationInput !== selectedTenant.slug}
-                className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold transition-all shadow-md shadow-rose-600/20 disabled:opacity-40 cursor-pointer"
+                className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold transition-all shadow-md shadow-rose-600/20 disabled:opacity-40 cursor-pointer"
               >
                 {actionLoading ? 'Purging...' : 'Confirm Deletion'}
               </button>

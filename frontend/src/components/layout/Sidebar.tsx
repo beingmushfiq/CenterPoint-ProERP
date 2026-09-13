@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import {
   Search,
@@ -147,6 +147,18 @@ export function Sidebar({ isOpen, onClose, isCollapsed = false, onToggleCollapse
   const { companyName } = useTenantBranding();
   const tenantName = tenant?.name;
   const tenantDisplayName = companyName || tenantName || 'Enterprise Cloud';
+  // Close on Escape key when mobile sidebar is open
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
   const appVersion = getAppVersion();
   const tenantTier = tenant?.status ? `${tenant.status.charAt(0).toUpperCase() + tenant.status.slice(1)} Edition` : 'Enterprise Edition';
   const tenantShortBadge = 'ERP';
@@ -167,7 +179,7 @@ export function Sidebar({ isOpen, onClose, isCollapsed = false, onToggleCollapse
         className={cn(
           'fixed top-0 bottom-0 left-0 z-(--z-modal) lg:z-30 flex flex-col border-r border-(--nav-border) bg-(--nav-bg) text-default transition-all duration-300 ease-in-out lg:translate-x-0 select-none shadow-xl dark:shadow-black/80',
           isOpen ? 'translate-x-0' : '-translate-x-full',
-          isCollapsed ? 'lg:w-20 w-64' : 'w-64'
+          isCollapsed ? 'lg:w-20 w-[min(18rem,calc(100vw-3rem))] sm:w-64' : 'w-[min(18rem,calc(100vw-3rem))] sm:w-64'
         )}
       >
         {/* Subtle Ambient Radial Lighting for Dark Mode */}

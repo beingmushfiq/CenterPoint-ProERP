@@ -5,6 +5,7 @@ import { api } from '../../lib/api/client';
 import type { PlatformErrorLogItem } from '../../types/api/platform';
 import { SelectDropdown } from '../../components/ui/Dropdown';
 import { Button } from '../../components/ui/Button';
+import { ResponsiveDataTable, type ResponsiveColumn } from '../../components/ui/ResponsiveDataTable';
 import {
   Search,
   RotateCcw,
@@ -99,122 +100,214 @@ export const PlatformErrorMonitoringWorkspace: React.FC = () => {
     setTimeout(() => setCopiedKey(null), 2000);
   };
 
+  const columns: ResponsiveColumn<PlatformErrorLogItem>[] = [
+    {
+      id: 'signature',
+      header: 'Error Type & Signature',
+      isPrimary: true,
+      priority: 'high',
+      cell: (err) => (
+        <div className="min-w-0 max-w-xs">
+          <div className="font-mono text-xs font-semibold text-default truncate" title={err.error_type}>
+            {err.error_type}
+          </div>
+          <div className="text-[11px] text-muted truncate mt-0.5" title={err.message}>
+            {err.message}
+          </div>
+          {err.route && (
+            <div className="text-[10px] text-muted font-mono truncate mt-0.5 opacity-80">
+              {err.route}
+            </div>
+          )}
+        </div>
+      ),
+    },
+    {
+      id: 'severity_status',
+      header: 'Severity & Status',
+      isStatus: true,
+      priority: 'high',
+      cell: (err) => (
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <span
+            className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase font-mono border ${
+              err.severity === 'critical'
+                ? 'bg-rose-500/15 text-rose-500 border-rose-500/30'
+                : err.severity === 'error'
+                ? 'bg-red-500/10 text-red-500 border-red-500/20'
+                : 'bg-amber-500/10 text-amber-500 border-amber-500/20'
+            }`}
+          >
+            {err.severity}
+          </span>
+          <span
+            className={`px-2 py-0.5 rounded-md text-[10px] font-medium font-mono ${
+              err.status === 'open'
+                ? 'bg-rose-500/10 text-rose-500'
+                : err.status === 'investigating'
+                ? 'bg-amber-500/10 text-amber-500'
+                : 'bg-emerald-500/10 text-emerald-500'
+            }`}
+          >
+            {err.status}
+          </span>
+        </div>
+      ),
+    },
+    {
+      id: 'tenant',
+      header: 'Tenant Scope',
+      priority: 'medium',
+      cell: (err) => (
+        <div className="text-muted">
+          {err.tenant ? (
+            <div className="flex items-center gap-1.5 truncate">
+              <Building2 className="size-3.5 text-muted shrink-0" />
+              <span className="text-default font-medium truncate">{err.tenant.name}</span>
+            </div>
+          ) : (
+            <span className="text-muted font-mono text-[11px]">Global Platform</span>
+          )}
+        </div>
+      ),
+    },
+    {
+      id: 'occurrences',
+      header: 'Occurrences',
+      priority: 'high',
+      cell: (err) => (
+        <span className="px-2 py-0.5 rounded-full bg-surface-sunken border border-default text-[11px] font-bold text-default font-mono">
+          {err.occurrence_count}×
+        </span>
+      ),
+    },
+    {
+      id: 'last_seen',
+      header: 'Last Seen',
+      priority: 'low',
+      cell: (err) => (
+        <div className="text-muted text-[11px] font-mono">
+          <div>{new Date(err.last_seen_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+          <div>{new Date(err.last_seen_at).toLocaleDateString()}</div>
+        </div>
+      ),
+    },
+    {
+      id: 'actions',
+      header: 'Actions',
+      isAction: true,
+      priority: 'high',
+      headerClassName: 'text-right',
+      className: 'text-right',
+      cell: (err) => (
+        <button
+          onClick={() => {
+            setSelectedError(err);
+            setResolutionNote(err.resolution_note || '');
+          }}
+          className="px-3 py-1.5 rounded-xl bg-surface-sunken hover:bg-surface border border-default text-xs font-medium text-default inline-flex items-center gap-1.5 transition-colors cursor-pointer"
+        >
+          <Eye className="size-3.5" />
+          <span>Inspect</span>
+        </button>
+      ),
+    },
+  ];
+
   return (
-    <div className="space-y-6 font-sans">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="space-y-6 font-sans text-default">
+      {/* Header Banner */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-default pb-5">
         <div>
-          <div className="flex items-center gap-2">
-            <span className="inline-flex items-center rounded-md bg-rose-500/10 px-2.5 py-0.5 text-[10px] font-mono font-bold text-rose-500 border border-rose-500/20 uppercase tracking-wider">
-              Control Plane Observability
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-rose-600 dark:text-rose-400 bg-rose-500/10 px-2.5 py-0.5 rounded-full border border-rose-500/20">
+              Observability & Reliability Engine
             </span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-default mt-1 font-sans">
-            Platform Error Telemetry & Diagnostics
+          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-default">
+            Error & Exception Telemetry
           </h1>
-          <p className="text-xs text-muted mt-1 max-w-2xl">
-            Real-time multi-tenant exception tracking, error boundary crashes, fingerprint deduplication, and triage ledger.
+          <p className="mt-1 text-xs text-muted max-w-2xl leading-relaxed font-mono">
+            Live crash reporting, unhandled promise rejections, automated circuit-breaker metrics, and diagnostic stack traces.
           </p>
         </div>
 
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-2.5 shrink-0">
           <Button
             variant="secondary"
             size="sm"
             onClick={() => refetch()}
-            disabled={isFetching}
-            leftIcon={<RotateCcw className={`size-3.5 ${isFetching ? 'animate-spin' : ''}`} />}
+            className="flex items-center gap-1.5 font-mono cursor-pointer"
+            title="Reload Error Stream"
           >
-            Refresh Diagnostics
+            <RotateCcw className={`size-3.5 ${isFetching ? 'animate-spin' : ''}`} />
+            <span className="hidden sm:inline">Sync Stream</span>
           </Button>
         </div>
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="p-5 rounded-2xl bg-surface border border-default shadow-xs flex flex-col justify-between">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-muted">Open Issues</span>
-            <div className="p-2 rounded-xl bg-rose-500/10 text-rose-500 border border-rose-500/20">
-              <AlertTriangle className="size-4" />
-            </div>
+      {/* KPI Stats Strip */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 font-mono">
+        <div className="p-4 rounded-2xl bg-surface border border-default shadow-xs flex items-center gap-3.5">
+          <div className="size-10 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-500 flex items-center justify-center shrink-0">
+            <Flame className="size-5" />
           </div>
-          <div className="mt-3">
-            <div className="text-2xl font-extrabold font-mono text-default">
-              {stats?.open ?? 0}
-            </div>
-            <p className="text-[11px] text-muted mt-1">Requires engineering triage</p>
+          <div>
+            <div className="text-xl font-extrabold text-default">{stats?.critical ?? 0}</div>
+            <div className="text-[11px] text-muted">Critical Traces</div>
           </div>
         </div>
 
-        <div className="p-5 rounded-2xl bg-surface border border-default shadow-xs flex flex-col justify-between">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-muted">Investigating</span>
-            <div className="p-2 rounded-xl bg-amber-500/10 text-amber-500 border border-amber-500/20">
-              <Clock className="size-4" />
-            </div>
+        <div className="p-4 rounded-2xl bg-surface border border-default shadow-xs flex items-center gap-3.5">
+          <div className="size-10 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-500 flex items-center justify-center shrink-0">
+            <AlertTriangle className="size-5" />
           </div>
-          <div className="mt-3">
-            <div className="text-2xl font-extrabold font-mono text-default">
-              {stats?.investigating ?? 0}
-            </div>
-            <p className="text-[11px] text-muted mt-1">Currently under analysis</p>
+          <div>
+            <div className="text-xl font-extrabold text-default">{stats?.open ?? 0}</div>
+            <div className="text-[11px] text-muted">Open Triage</div>
           </div>
         </div>
 
-        <div className="p-5 rounded-2xl bg-surface border border-default shadow-xs flex flex-col justify-between">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-muted">Resolved Bugs</span>
-            <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
-              <CheckCircle2 className="size-4" />
-            </div>
+        <div className="p-4 rounded-2xl bg-surface border border-default shadow-xs flex items-center gap-3.5">
+          <div className="size-10 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-500 flex items-center justify-center shrink-0">
+            <Clock className="size-5" />
           </div>
-          <div className="mt-3">
-            <div className="text-2xl font-extrabold font-mono text-default">
-              {stats?.resolved ?? 0}
-            </div>
-            <p className="text-[11px] text-muted mt-1">Closed telemetry traces</p>
+          <div>
+            <div className="text-xl font-extrabold text-default">{stats?.investigating ?? 0}</div>
+            <div className="text-[11px] text-muted">Investigating</div>
           </div>
         </div>
 
-        <div className="p-5 rounded-2xl bg-surface border border-default shadow-xs flex flex-col justify-between">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-muted">Critical Priority</span>
-            <div className="p-2 rounded-xl bg-red-600/10 text-red-500 border border-red-500/20">
-              <Flame className="size-4" />
-            </div>
+        <div className="p-4 rounded-2xl bg-surface border border-default shadow-xs flex items-center gap-3.5">
+          <div className="size-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 flex items-center justify-center shrink-0">
+            <CheckCircle2 className="size-5" />
           </div>
-          <div className="mt-3">
-            <div className="text-2xl font-extrabold font-mono text-rose-500">
-              {stats?.critical ?? 0}
-            </div>
-            <p className="text-[11px] text-muted mt-1">High impact crashes</p>
+          <div>
+            <div className="text-xl font-extrabold text-emerald-600 dark:text-emerald-400">{stats?.resolved ?? 0}</div>
+            <div className="text-[11px] text-muted">Resolved</div>
           </div>
         </div>
       </div>
 
-      {/* Filter Bar */}
-      <div className="p-4 rounded-2xl bg-surface border border-default flex flex-wrap gap-4 items-center justify-between">
-        <div className="relative min-w-64 flex-1">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-muted" />
+      {/* Filter Toolbar */}
+      <div className="p-4 rounded-2xl bg-surface border border-default shadow-md flex flex-wrap gap-3 items-center justify-between font-mono text-xs">
+        <div className="relative flex-1 min-w-48 sm:min-w-64">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted" />
           <input
             type="text"
-            placeholder="Search exceptions, routes, fingerprints, or error messages..."
             value={search}
             onChange={(e) => {
               setSearch(e.target.value);
               setPage(1);
             }}
-            className="w-full pl-10 pr-4 py-2 bg-surface-sunken border border-default rounded-xl text-xs text-default placeholder:text-muted focus:outline-hidden focus:border-primary"
+            placeholder="Search error signatures, messages, routes..."
+            className="w-full pl-9 pr-3 py-2 bg-surface-sunken border border-default rounded-xl text-default placeholder:text-muted focus:outline-hidden focus:border-amber-500 transition-all text-xs"
           />
         </div>
 
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 text-xs text-muted">
-            <Filter className="size-3.5" />
-            <span>Status:</span>
-          </div>
+        <div className="flex flex-wrap items-center gap-2.5">
           <SelectDropdown
+            icon={Filter}
             options={[
               { value: 'all', label: 'All Statuses' },
               { value: 'open', label: 'Open', colorDot: 'bg-rose-500' },
@@ -230,9 +323,6 @@ export const PlatformErrorMonitoringWorkspace: React.FC = () => {
             size="sm"
           />
 
-          <div className="flex items-center gap-2 text-xs text-muted ml-2">
-            <span>Severity:</span>
-          </div>
           <SelectDropdown
             options={[
               { value: 'all', label: 'All Severities' },
@@ -251,114 +341,20 @@ export const PlatformErrorMonitoringWorkspace: React.FC = () => {
         </div>
       </div>
 
-      {/* Errors Table */}
-      <div className="rounded-2xl bg-surface border border-default shadow-xs overflow-hidden">
-        {isLoading ? (
-          <div className="p-16 text-center text-muted text-xs font-mono animate-pulse">
-            Querying platform telemetry store...
-          </div>
-        ) : errors.length === 0 ? (
-          <div className="p-16 text-center text-muted text-xs space-y-2">
-            <CheckCircle2 className="size-8 text-emerald-500 mx-auto opacity-70" />
-            <p className="font-semibold text-default">No diagnostic errors matching current filter.</p>
-            <p className="text-muted">Platform telemetry reports all systems running smoothly.</p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-187.5 text-left text-xs">
-              <thead className="bg-surface-sunken border-b border-default text-muted uppercase text-[10px] font-mono">
-                <tr>
-                  <th className="py-3.5 pl-6">Severity & Status</th>
-                  <th className="py-3.5">Error Type & Signature</th>
-                  <th className="py-3.5">Tenant Scope</th>
-                  <th className="py-3.5">Occurrences</th>
-                  <th className="py-3.5">Last Seen</th>
-                  <th className="py-3.5 pr-6 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-default">
-                {errors.map((err) => (
-                  <tr key={err.id} className="hover:bg-surface-sunken/50 transition-colors">
-                    <td className="py-3.5 pl-6 whitespace-nowrap">
-                      <div className="flex items-center gap-2">
-                        <span
-                          className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase font-mono border ${
-                            err.severity === 'critical'
-                              ? 'bg-rose-500/15 text-rose-500 border-rose-500/30'
-                              : err.severity === 'error'
-                              ? 'bg-red-500/10 text-red-500 border-red-500/20'
-                              : 'bg-amber-500/10 text-amber-500 border-amber-500/20'
-                          }`}
-                        >
-                          {err.severity}
-                        </span>
-                        <span
-                          className={`px-2 py-0.5 rounded-md text-[10px] font-medium font-mono ${
-                            err.status === 'open'
-                              ? 'bg-rose-500/10 text-rose-500'
-                              : err.status === 'investigating'
-                              ? 'bg-amber-500/10 text-amber-500'
-                              : 'bg-emerald-500/10 text-emerald-500'
-                          }`}
-                        >
-                          {err.status}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="py-3.5 max-w-xs">
-                      <div className="font-mono text-xs font-semibold text-default truncate" title={err.error_type}>
-                        {err.error_type}
-                      </div>
-                      <div className="text-[11px] text-muted truncate mt-0.5" title={err.message}>
-                        {err.message}
-                      </div>
-                      {err.route && (
-                        <div className="text-[10px] text-muted font-mono truncate mt-0.5 opacity-80">
-                          {err.route}
-                        </div>
-                      )}
-                    </td>
-                    <td className="py-3.5 text-muted whitespace-nowrap">
-                      {err.tenant ? (
-                        <div className="flex items-center gap-1.5">
-                          <Building2 className="size-3.5 text-muted shrink-0" />
-                          <span className="text-default font-medium">{err.tenant.name}</span>
-                        </div>
-                      ) : (
-                        <span className="text-muted font-mono text-[11px]">Global Platform</span>
-                      )}
-                    </td>
-                    <td className="py-3.5 font-mono">
-                      <span className="px-2 py-0.5 rounded-full bg-surface-sunken border border-default text-[11px] font-bold text-default">
-                        {err.occurrence_count}×
-                      </span>
-                    </td>
-                    <td className="py-3.5 text-muted text-[11px] font-mono whitespace-nowrap">
-                      {new Date(err.last_seen_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })},{' '}
-                      {new Date(err.last_seen_at).toLocaleDateString()}
-                    </td>
-                    <td className="py-3.5 pr-6 text-right whitespace-nowrap">
-                      <button
-                        onClick={() => {
-                          setSelectedError(err);
-                          setResolutionNote(err.resolution_note || '');
-                        }}
-                        className="px-3 py-1.5 rounded-xl bg-surface-sunken hover:bg-surface border border-default text-xs font-medium text-default inline-flex items-center gap-1.5 transition-colors cursor-pointer"
-                      >
-                        <Eye className="size-3.5" />
-                        <span>Inspect</span>
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+      {/* Errors Responsive Data Table */}
+      <div className="space-y-3">
+        <ResponsiveDataTable
+          data={errors}
+          columns={columns}
+          keyExtractor={(err) => err.id}
+          loading={isLoading}
+          emptyMessage="No diagnostic errors matching current filter"
+          emptyIcon={CheckCircle2}
+        />
 
         {/* Pagination Bar */}
         {pagination && pagination.total_pages > 1 && (
-          <div className="px-6 py-3.5 bg-surface-sunken border-t border-default flex items-center justify-between text-xs font-mono text-muted">
+          <div className="p-4 rounded-2xl bg-surface border border-default shadow-xs flex flex-col sm:flex-row items-center justify-between gap-3 text-xs font-mono text-muted">
             <div>
               Showing page <span className="font-bold text-default">{pagination.page}</span> of{' '}
               <span className="font-bold text-default">{pagination.total_pages}</span> ({pagination.total} total traces)
@@ -367,7 +363,7 @@ export const PlatformErrorMonitoringWorkspace: React.FC = () => {
               <button
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 disabled={pagination.page <= 1 || isFetching}
-                className="px-3 py-1.5 rounded-lg bg-surface hover:bg-surface-sunken disabled:opacity-40 disabled:cursor-not-allowed border border-default text-default flex items-center gap-1 transition-colors cursor-pointer"
+                className="px-3 py-1.5 rounded-lg bg-surface-sunken hover:bg-surface disabled:opacity-40 disabled:cursor-not-allowed border border-default text-default flex items-center gap-1 transition-colors cursor-pointer"
               >
                 <ChevronLeft className="size-3.5" />
                 <span>Prev</span>
@@ -375,7 +371,7 @@ export const PlatformErrorMonitoringWorkspace: React.FC = () => {
               <button
                 onClick={() => setPage((p) => Math.min(pagination.total_pages, p + 1))}
                 disabled={pagination.page >= pagination.total_pages || isFetching}
-                className="px-3 py-1.5 rounded-lg bg-surface hover:bg-surface-sunken disabled:opacity-40 disabled:cursor-not-allowed border border-default text-default flex items-center gap-1 transition-colors cursor-pointer"
+                className="px-3 py-1.5 rounded-lg bg-surface-sunken hover:bg-surface disabled:opacity-40 disabled:cursor-not-allowed border border-default text-default flex items-center gap-1 transition-colors cursor-pointer"
               >
                 <span>Next</span>
                 <ChevronRight className="size-3.5" />
@@ -387,12 +383,13 @@ export const PlatformErrorMonitoringWorkspace: React.FC = () => {
 
       {/* Inspect & Triage Modal */}
       {selectedError && (
-        <div className="fixed inset-0 bg-overlay/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-surface-raised border border-default rounded-2xl p-6 max-w-3xl w-full shadow-2xl max-h-[90vh] overflow-y-auto space-y-5">
+        <div className="fixed inset-0 bg-overlay/80 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 pb-safe">
+          <div className="bg-surface-raised border border-default rounded-t-3xl sm:rounded-2xl p-5 sm:p-6 max-w-3xl w-full shadow-2xl max-h-[90vh] overflow-y-auto space-y-5">
+            <div className="sm:hidden w-12 h-1.5 rounded-full bg-surface-sunken mx-auto mb-3" aria-hidden="true" />
             <div className="flex items-center justify-between border-b border-default pb-4">
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase font-mono bg-rose-500/10 text-rose-500 border border-rose-500/20">
+                  <span className="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase font-mono bg-rose-500/10 text-rose-500 border border-rose-500/20">
                     {selectedError.severity}
                   </span>
                   <span className="font-mono text-xs text-muted">

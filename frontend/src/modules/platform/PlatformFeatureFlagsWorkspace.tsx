@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { api } from '../../lib/api/client';
 import type { PlatformFeatureFlag, PlatformTenant } from '../../types/api/platform';
+import { ResponsiveDataTable } from '../../components/ui/ResponsiveDataTable';
 import { SelectDropdown } from '../../components/ui/Dropdown';
 import { Button } from '../../components/ui/Button';
 import {
@@ -260,90 +261,147 @@ export const PlatformFeatureFlagsWorkspace: React.FC = () => {
           </div>
 
           {/* Feature Flags Table */}
-          <div className="rounded-2xl bg-surface border border-default shadow-xl overflow-hidden">
-            {flagsLoading ? (
-              <div className="p-12 text-center text-muted font-mono text-xs">
-                Loading feature flags...
-              </div>
-            ) : flags.length > 0 ? (
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-187.5 text-left text-xs font-mono">
-                  <thead className="bg-surface-sunken border-b border-default text-muted uppercase text-[10px]">
-                    <tr>
-                      <th className="px-5 py-3">Flag Key</th>
-                      <th className="px-5 py-3">Scope</th>
-                      <th className="px-5 py-3">Rollout %</th>
-                      <th className="px-5 py-3">State</th>
-                      <th className="px-5 py-3">Description</th>
-                      <th className="px-5 py-3 text-right">Toggle Action</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-default">
-                    {flags.map((flag) => (
-                      <tr key={flag.id} className="hover:bg-surface-sunken/60 transition-colors">
-                        <td className="px-5 py-3">
-                          <span className="font-bold text-default block">{flag.key}</span>
-                        </td>
-                        <td className="px-5 py-3">
-                          {!flag.tenant_id ? (
-                            <span className="px-2 py-0.5 rounded-md bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border border-cyan-500/20 text-[10px] font-bold uppercase">
-                              Global
-                            </span>
-                          ) : (
-                            <span className="px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 text-[10px] font-bold flex items-center gap-1 w-fit">
-                              <Building2 className="size-2.5" />
-                              <span>{flag.tenant?.name ?? `Tenant #${flag.tenant_id}`}</span>
-                            </span>
-                          )}
-                        </td>
-                        <td className="px-5 py-3 font-bold text-default">
-                          {flag.rollout_percentage != null ? `${flag.rollout_percentage}%` : '100%'}
-                        </td>
-                        <td className="px-5 py-3">
-                          <span
-                            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
-                              flag.enabled
-                                ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
-                                : 'bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30'
-                            }`}
-                          >
-                            {flag.enabled ? <CheckCircle2 className="size-2.5" /> : <XCircle className="size-2.5" />}
-                            <span>{flag.enabled ? 'Enabled' : 'Disabled'}</span>
-                          </span>
-                        </td>
-                        <td className="px-5 py-3 text-muted text-[11px] max-w-xs truncate">
-                          {flag.description || '—'}
-                        </td>
-                        <td className="px-5 py-3 text-right">
-                          <button
-                            type="button"
-                            onClick={() =>
-                              toggleMutation.mutate({
-                                id: flag.id,
-                                enabled: !flag.enabled,
-                              })
-                            }
-                            disabled={toggleMutation.isPending}
-                            className={`px-3 py-1 rounded-lg font-bold text-[11px] cursor-pointer transition-colors ${
-                              flag.enabled
-                                ? 'bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/30'
-                                : 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
-                            }`}
-                          >
-                            {flag.enabled ? 'Deactivate' : 'Activate'}
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <div className="p-12 text-center text-muted font-mono text-xs">
-                No feature flags defined.
-              </div>
-            )}
-          </div>
+          <ResponsiveDataTable<PlatformFeatureFlag>
+            data={flags}
+            isLoading={flagsLoading}
+            emptyMessage="No feature flags defined."
+            keyExtractor={(flag) => flag.id}
+            columns={[
+              {
+                key: 'key',
+                header: 'Flag Key',
+                priority: 'high',
+                render: (flag) => <span className="font-bold text-default font-mono">{flag.key}</span>,
+              },
+              {
+                key: 'scope',
+                header: 'Scope',
+                priority: 'high',
+                render: (flag) => (
+                  !flag.tenant_id ? (
+                    <span className="px-2 py-0.5 rounded-md bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border border-cyan-500/20 text-[10px] font-bold uppercase">
+                      Global
+                    </span>
+                  ) : (
+                    <span className="px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 text-[10px] font-bold flex items-center gap-1 w-fit">
+                      <Building2 className="size-2.5 shrink-0" />
+                      <span>{flag.tenant?.name ?? `Tenant #${flag.tenant_id}`}</span>
+                    </span>
+                  )
+                ),
+              },
+              {
+                key: 'rollout',
+                header: 'Rollout %',
+                priority: 'medium',
+                render: (flag) => (
+                  <span className="font-bold text-default font-mono">
+                    {flag.rollout_percentage != null ? `${flag.rollout_percentage}%` : '100%'}
+                  </span>
+                ),
+              },
+              {
+                key: 'status',
+                header: 'State',
+                priority: 'high',
+                render: (flag) => (
+                  <span
+                    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
+                      flag.enabled
+                        ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
+                        : 'bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30'
+                    }`}
+                  >
+                    {flag.enabled ? <CheckCircle2 className="size-2.5" /> : <XCircle className="size-2.5" />}
+                    <span>{flag.enabled ? 'Enabled' : 'Disabled'}</span>
+                  </span>
+                ),
+              },
+              {
+                key: 'description',
+                header: 'Description',
+                priority: 'low',
+                render: (flag) => (
+                  <span className="text-muted text-[11px] max-w-xs truncate block font-sans">
+                    {flag.description || '—'}
+                  </span>
+                ),
+              },
+              {
+                key: 'actions',
+                header: 'Toggle Action',
+                priority: 'high',
+                align: 'right',
+                render: (flag) => (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      toggleMutation.mutate({
+                        id: flag.id,
+                        enabled: !flag.enabled,
+                      })
+                    }
+                    disabled={toggleMutation.isPending}
+                    className={`px-3 py-1.5 rounded-lg font-bold text-xs cursor-pointer transition-colors ${
+                      flag.enabled
+                        ? 'bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/30'
+                        : 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
+                    }`}
+                  >
+                    {flag.enabled ? 'Deactivate' : 'Activate'}
+                  </button>
+                ),
+              },
+            ]}
+            mobileCardRenderer={(flag) => ({
+              title: flag.key,
+              subtitle: !flag.tenant_id ? 'Global Scope' : (flag.tenant?.name ?? `Tenant #${flag.tenant_id}`),
+              badge: (
+                <span
+                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase ${
+                    flag.enabled
+                      ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
+                      : 'bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30'
+                  }`}
+                >
+                  {flag.enabled ? <CheckCircle2 className="size-2.5" /> : <XCircle className="size-2.5" />}
+                  <span>{flag.enabled ? 'Active' : 'Off'}</span>
+                </span>
+              ),
+              metrics: [
+                {
+                  label: 'Rollout',
+                  value: `${flag.rollout_percentage != null ? flag.rollout_percentage : 100}%`,
+                },
+                {
+                  label: 'Scope',
+                  value: !flag.tenant_id ? 'Global' : 'Tenant',
+                },
+              ],
+              details: flag.description ? (
+                <p className="text-xs text-muted font-sans leading-relaxed pt-1">{flag.description}</p>
+              ) : undefined,
+              actions: (
+                <button
+                  type="button"
+                  onClick={() =>
+                    toggleMutation.mutate({
+                      id: flag.id,
+                      enabled: !flag.enabled,
+                    })
+                  }
+                  disabled={toggleMutation.isPending}
+                  className={`w-full py-2.5 rounded-xl font-bold text-xs cursor-pointer transition-colors text-center ${
+                    flag.enabled
+                      ? 'bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/30'
+                      : 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
+                  }`}
+                >
+                  {flag.enabled ? 'Deactivate Feature' : 'Activate Feature'}
+                </button>
+              ),
+            })}
+          />
         </div>
       )}
 
@@ -365,9 +423,9 @@ export const PlatformFeatureFlagsWorkspace: React.FC = () => {
           ) : moduleRegistry.length > 0 ? (
             <div className="divide-y divide-default font-mono text-xs">
               {moduleRegistry.map((mod) => (
-                <div key={mod.key} className="p-5 flex items-start justify-between gap-4 hover:bg-surface-sunken/60">
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2.5">
+                <div key={mod.key} className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-start justify-between gap-4 hover:bg-surface-sunken/60">
+                  <div className="space-y-1.5 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
                       <span className="font-bold text-default font-sans text-sm">{mod.name}</span>
                       <span className="px-2 py-0.5 rounded-md bg-surface-sunken border border-default text-muted text-[10px]">
                         {mod.key}
@@ -382,15 +440,15 @@ export const PlatformFeatureFlagsWorkspace: React.FC = () => {
                         </span>
                       )}
                     </div>
-                    <p className="text-muted text-xs font-sans">{mod.description}</p>
-                    <div className="flex items-center gap-4 text-[11px] text-muted pt-1">
+                    <p className="text-muted text-xs font-sans leading-relaxed">{mod.description}</p>
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-muted pt-1">
                       <span>Category: <strong className="text-default uppercase">{mod.category}</strong></span>
                       <span>Version: <strong className="text-default">{mod.version}</strong></span>
                       <span>Permissions: <strong className="text-default">{mod.permissions?.length ?? 0} defined</strong></span>
                     </div>
                   </div>
 
-                  <div className="shrink-0 flex items-center gap-2">
+                  <div className="shrink-0 flex items-center gap-2 self-start sm:self-center">
                     <span className="px-2.5 py-1 rounded-full bg-surface-sunken border border-default text-muted text-[10px] font-bold flex items-center gap-1">
                       <Layers className="size-3 text-amber-500" />
                       <span>Ready</span>
@@ -409,8 +467,9 @@ export const PlatformFeatureFlagsWorkspace: React.FC = () => {
 
       {/* Create Flag Modal */}
       {showCreateModal && (
-        <div className="fixed inset-0 bg-overlay/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-surface-raised border border-default rounded-2xl p-6 max-w-md w-full shadow-2xl font-mono text-xs">
+        <div className="fixed inset-0 bg-overlay/80 backdrop-blur-xs z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 pb-safe animate-in fade-in duration-200">
+          <div className="bg-surface-raised border border-default rounded-t-3xl sm:rounded-2xl p-5 sm:p-6 max-w-md w-full shadow-2xl font-mono text-xs max-h-[90vh] overflow-y-auto">
+            <div className="w-12 h-1 bg-muted/40 rounded-full mx-auto mb-4 sm:hidden" />
             <h2 className="text-lg font-bold text-default font-sans">New Feature Flag</h2>
             <p className="text-muted mt-1">
               Configure flag identifier, target scope, and phased percentage rollout.
@@ -418,7 +477,7 @@ export const PlatformFeatureFlagsWorkspace: React.FC = () => {
 
             <form onSubmit={handleCreateFlag} className="mt-4 space-y-3">
               <div>
-                <label className="block text-default mb-1">Flag Key * (e.g. beta_ai_forecast)</label>
+                <label className="block text-default mb-1 font-sans font-semibold">Flag Key * (e.g. beta_ai_forecast)</label>
                 <input
                   type="text"
                   required
@@ -430,7 +489,7 @@ export const PlatformFeatureFlagsWorkspace: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-default mb-1">Description</label>
+                <label className="block text-default mb-1 font-sans font-semibold">Description</label>
                 <input
                   type="text"
                   value={description}
@@ -440,9 +499,9 @@ export const PlatformFeatureFlagsWorkspace: React.FC = () => {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-default mb-1">Scope</label>
+                  <label className="block text-default mb-1 font-sans font-semibold">Scope</label>
                   <select
                     value={scope}
                     onChange={(e) => setScope(e.target.value as 'global' | 'tenant')}
@@ -454,7 +513,7 @@ export const PlatformFeatureFlagsWorkspace: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-default mb-1">Rollout % (0-100)</label>
+                  <label className="block text-default mb-1 font-sans font-semibold">Rollout % (0-100)</label>
                   <input
                     type="number"
                     min="0"
@@ -469,7 +528,7 @@ export const PlatformFeatureFlagsWorkspace: React.FC = () => {
 
               {scope === 'tenant' && (
                 <div>
-                  <label className="block text-default mb-1">Target Tenant *</label>
+                  <label className="block text-default mb-1 font-sans font-semibold">Target Tenant *</label>
                   <select
                     value={targetTenantId}
                     onChange={(e) => setTargetTenantId(e.target.value ? Number(e.target.value) : '')}
@@ -499,18 +558,18 @@ export const PlatformFeatureFlagsWorkspace: React.FC = () => {
                 </label>
               </div>
 
-              <div className="mt-6 flex justify-end gap-3 pt-2">
+              <div className="mt-6 flex flex-col-reverse sm:flex-row justify-end gap-2.5 sm:gap-3 pt-2">
                 <button
                   type="button"
                   onClick={() => setShowCreateModal(false)}
-                  className="px-4 py-2 rounded-xl bg-surface-sunken hover:bg-surface text-muted hover:text-default border border-default cursor-pointer"
+                  className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-surface-sunken hover:bg-surface text-muted hover:text-default border border-default cursor-pointer font-semibold text-center transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={createMutation.isPending || !key}
-                  className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold cursor-pointer disabled:opacity-50"
+                  className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold cursor-pointer disabled:opacity-50 text-center transition-colors shadow-xs"
                 >
                   {createMutation.isPending ? 'Creating...' : 'Create Flag'}
                 </button>

@@ -438,12 +438,12 @@ export const StorefrontProductDetailPage: React.FC = () => {
 
           {/* Quantity and Add to Cart */}
           <div className="space-y-3.5 pt-4 border-t border-slate-200 dark:border-zinc-800/80">
-            <div className="flex items-center gap-4">
-              <div className="flex items-center rounded-xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/80 p-1 shadow-xs">
+            <div className="flex flex-wrap sm:flex-nowrap items-center gap-2.5 sm:gap-4">
+              <div className="flex items-center rounded-xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/80 p-1 shadow-xs min-h-12">
                 <button
                   type="button"
                   onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                  className="rounded-lg p-2 text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer"
+                  className="rounded-lg p-2.5 text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer touch-target"
                   title="Decrease Quantity"
                 >
                   <Minus className="size-4" />
@@ -452,7 +452,7 @@ export const StorefrontProductDetailPage: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setQuantity(quantity + 1)}
-                  className="rounded-lg p-2 text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer"
+                  className="rounded-lg p-2.5 text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer touch-target"
                   title="Increase Quantity"
                 >
                   <Plus className="size-4" />
@@ -467,7 +467,7 @@ export const StorefrontProductDetailPage: React.FC = () => {
                   backgroundColor: 'var(--store-primary, #10b981)',
                   color: 'var(--store-primary-fg, #ffffff)',
                 }}
-                className="flex-1 flex items-center justify-center gap-2 rounded-xl py-3.5 px-4 text-xs font-extrabold shadow-lg transition-all cursor-pointer active:scale-98 hover:opacity-90"
+                className="flex-1 min-h-12 flex items-center justify-center gap-2 rounded-xl py-3.5 px-4 text-xs sm:text-sm font-extrabold shadow-lg transition-all cursor-pointer active:scale-98 hover:opacity-90 touch-target"
               >
                 <Zap className="size-4 fill-current" />
                 <span>Order Now ({currency} {(parseFloat(price) * quantity).toFixed(2)})</span>
@@ -477,11 +477,11 @@ export const StorefrontProductDetailPage: React.FC = () => {
               <button
                 type="button"
                 onClick={handleAddToCart}
-                className="inline-flex items-center justify-center gap-2 rounded-xl py-3.5 px-4 text-xs font-bold border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-slate-900 dark:text-white shadow-xs transition-all cursor-pointer active:scale-98 hover:bg-slate-50 dark:hover:bg-zinc-800"
+                className="min-h-12 inline-flex items-center justify-center gap-2 rounded-xl py-3.5 px-4 text-xs sm:text-sm font-bold border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-slate-900 dark:text-white shadow-xs transition-all cursor-pointer active:scale-98 hover:bg-slate-50 dark:hover:bg-zinc-800 touch-target"
                 title="Add to Shopping Cart"
               >
                 <ShoppingBag className="size-4 stroke-[2.5]" />
-                <span className="hidden sm:inline">Add to Cart</span>
+                <span className="hidden xs:inline sm:inline">Add to Cart</span>
               </button>
             </div>
 
