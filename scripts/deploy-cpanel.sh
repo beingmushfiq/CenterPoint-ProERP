@@ -82,12 +82,41 @@ chmod -R 775 "${BACKEND_DIR}/storage" "${BACKEND_DIR}/bootstrap/cache" 2>/dev/nu
 echo "--- Installing Backend Dependencies (Composer) ---"
 cd "${BACKEND_DIR}"
 
+COMPOSER_BIN=""
 if command -v composer &> /dev/null; then
-    composer install --no-dev --prefer-dist --optimize-autoloader --no-interaction
-elif [ -f "composer.phar" ]; then
-    ${PHP_BIN} composer.phar install --no-dev --prefer-dist --optimize-autoloader --no-interaction
+    COMPOSER_BIN="$(command -v composer)"
+elif [ -x "/opt/cpanel/composer/bin/composer" ]; then
+    COMPOSER_BIN="${PHP_BIN} /opt/cpanel/composer/bin/composer"
+elif [ -x "/usr/local/bin/composer" ]; then
+    COMPOSER_BIN="/usr/local/bin/composer"
+elif [ -x "/usr/bin/composer" ]; then
+    COMPOSER_BIN="/usr/bin/composer"
+elif [ -f "${BACKEND_DIR}/composer.phar" ]; then
+    COMPOSER_BIN="${PHP_BIN} ${BACKEND_DIR}/composer.phar"
+elif [ -f "${HOME_DIR}/composer.phar" ]; then
+    COMPOSER_BIN="${PHP_BIN} ${HOME_DIR}/composer.phar"
+fi
+
+# If composer binary is not found and vendor is missing, attempt to download composer.phar
+if [ -z "${COMPOSER_BIN}" ] && [ ! -f "${BACKEND_DIR}/vendor/autoload.php" ]; then
+    echo "Composer not found in standard paths. Attempting to download composer.phar..."
+    ${PHP_BIN} -r "copy('https://getcomposer.org/installer', 'composer-setup.php');" 2>/dev/null || true
+    if [ -f "composer-setup.php" ]; then
+        ${PHP_BIN} composer-setup.php --quiet 2>/dev/null || true
+        rm -f composer-setup.php
+        if [ -f "${BACKEND_DIR}/composer.phar" ]; then
+            COMPOSER_BIN="${PHP_BIN} ${BACKEND_DIR}/composer.phar"
+        fi
+    fi
+fi
+
+if [ -n "${COMPOSER_BIN}" ]; then
+    echo "Using Composer: ${COMPOSER_BIN}"
+    ${COMPOSER_BIN} install --no-dev --prefer-dist --optimize-autoloader --no-interaction || {
+        echo "WARNING: Composer install encountered an error. Continuing if vendor/autoload.php exists..."
+    }
 else
-    echo "Notice: Composer not found in PATH or local directory. Skipping composer install."
+    echo "Notice: Composer not available."
 fi
 
 # ------------------------------------------------------------------------------
@@ -98,23 +127,57 @@ if [ ! -L "${PUBLIC_HTML_DIR}/storage" ] && [ ! -e "${PUBLIC_HTML_DIR}/storage" 
     ln -s "${BACKEND_DIR}/storage/app/public" "${PUBLIC_HTML_DIR}/storage" || true
     echo "Symlinked ${BACKEND_DIR}/storage/app/public to ${PUBLIC_HTML_DIR}/storage"
 fi
-${PHP_BIN} artisan storage:link 2>/dev/null || true
 
 # ------------------------------------------------------------------------------
-# 5. Database Migrations
+# 5. Artisan Pre-flight Validation & Migrations
 # ------------------------------------------------------------------------------
-echo "--- Running Database Migrations ---"
-${PHP_BIN} artisan migrate --force --no-interaction
+CAN_RUN_ARTISAN=true
+if [ ! -f "${BACKEND_DIR}/vendor/autoload.php" ]; then
+    echo "=================================================================="
+    echo " NOTICE: ${BACKEND_DIR}/vendor/autoload.php not found."
+    echo " Laravel commands cannot run without Composer vendor dependencies."
+    echo " Action Required:"
+    echo "   Option A: Run composer install in /home/devcente/backend via cPanel Terminal"
+    echo "   Option B: Upload your local 'backend/vendor' folder to '/home/devcente/backend/vendor'"
+    echo " Skipping artisan migrations and cache rebuild to prevent deployment crash."
+    echo "=================================================================="
+    CAN_RUN_ARTISAN=false
+fi
 
-# ------------------------------------------------------------------------------
-# 6. Production Cache Optimizations
-# ------------------------------------------------------------------------------
-echo "--- Rebuilding Production Caches ---"
-${PHP_BIN} artisan config:clear
-${PHP_BIN} artisan config:cache
-${PHP_BIN} artisan route:cache
-${PHP_BIN} artisan view:cache
-${PHP_BIN} artisan event:cache
+CAN_RUN_MIGRATIONS=true
+if [ ! -f "${BACKEND_DIR}/.env" ]; then
+    echo "=================================================================="
+    echo " NOTICE: ${BACKEND_DIR}/.env not found."
+    echo " Action Required:"
+    echo "   Copy .env.production.example to .env in /home/devcente/backend"
+    echo "   and configure your database credentials (DB_DATABASE, DB_USERNAME, DB_PASSWORD)."
+    echo " Skipping migrations and config cache until .env is created."
+    echo "=================================================================="
+    CAN_RUN_MIGRATIONS=false
+fi
+
+if [ "${CAN_RUN_ARTISAN}" = "true" ]; then
+    ${PHP_BIN} artisan storage:link 2>/dev/null || true
+
+    if [ "${CAN_RUN_MIGRATIONS}" = "true" ]; then
+        echo "--- Running Database Migrations ---"
+        ${PHP_BIN} -d display_errors=1 artisan migrate --force --no-interaction
+
+        echo "--- Rebuilding Production Caches ---"
+        ${PHP_BIN} artisan config:clear
+        ${PHP_BIN} artisan config:cache
+        ${PHP_BIN} artisan route:cache
+        ${PHP_BIN} artisan view:cache
+        ${PHP_BIN} artisan event:cache
+    else
+        echo "--- Skipping Migrations and Config Cache (.env is pending) ---"
+    fi
+
+    echo "--- Restarting Queue Workers ---"
+    ${PHP_BIN} artisan queue:restart 2>/dev/null || true
+else
+    echo "--- Skipping Artisan Commands (vendor/autoload.php is pending) ---"
+fi
 
 # ------------------------------------------------------------------------------
 # 7. Frontend SPA Build & Asset Deployment
@@ -145,13 +208,6 @@ fi
 if [ -f "${REPO_DIR}/public_html/.htaccess" ] && [ ! -f "${PUBLIC_HTML_DIR}/.htaccess" ]; then
     cp "${REPO_DIR}/public_html/.htaccess" "${PUBLIC_HTML_DIR}/.htaccess"
 fi
-
-# ------------------------------------------------------------------------------
-# 8. Restart Background Queue Workers
-# ------------------------------------------------------------------------------
-echo "--- Restarting Queue Workers ---"
-cd "${BACKEND_DIR}"
-${PHP_BIN} artisan queue:restart || true
 
 echo "=================================================================="
 echo " ProERP Deployment Completed Successfully: $(date '+%Y-%m-%d %H:%M:%S')"
