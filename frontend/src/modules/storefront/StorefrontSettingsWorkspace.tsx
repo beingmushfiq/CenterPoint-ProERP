@@ -20,6 +20,11 @@ import {
   Trash2,
   ExternalLink,
   Ticket,
+  Phone,
+  MapPin,
+  Mail,
+  CreditCard,
+  MessageCircle,
 } from 'lucide-react';
 import { api } from '../../lib/api/client';
 import type { StorefrontConfig } from '../../types/api/storefront';
@@ -99,6 +104,16 @@ export const StorefrontSettingsWorkspace: React.FC = () => {
         ],
       },
     ],
+    footer_description: '',
+    footer_show_whatsapp: true,
+    footer_whatsapp_label: 'WhatsApp Live Chat',
+    footer_show_payments: true,
+    footer_payment_methods: ['bKash', 'Nagad', 'Visa / Mastercard', 'Cash on Delivery'],
+    footer_contact_title: 'Factory Support',
+    footer_address: 'Central Industrial Zone, Dhaka',
+    footer_phone: '+880 1700-000000',
+    footer_email: '',
+    footer_copyright: '',
     social_links: {
       facebook: '',
       instagram: '',
@@ -118,6 +133,25 @@ export const StorefrontSettingsWorkspace: React.FC = () => {
     min_order_amount: '',
     status: 'live' as 'draft' | 'live' | 'maintenance' | 'suspended',
   });
+
+  const [newPaymentMethod, setNewPaymentMethod] = useState('');
+
+  const addPaymentMethod = (method: string) => {
+    const trimmed = method.trim();
+    if (!trimmed || form.footer_payment_methods.includes(trimmed)) return;
+    setForm((prev) => ({
+      ...prev,
+      footer_payment_methods: [...prev.footer_payment_methods, trimmed],
+    }));
+    setNewPaymentMethod('');
+  };
+
+  const removePaymentMethod = (methodToRemove: string) => {
+    setForm((prev) => ({
+      ...prev,
+      footer_payment_methods: prev.footer_payment_methods.filter((m) => m !== methodToRemove),
+    }));
+  };
 
   const [syncing, setSyncing] = useState(false);
 
@@ -183,6 +217,24 @@ export const StorefrontSettingsWorkspace: React.FC = () => {
                         ],
                       },
                     ],
+              footer_description:
+                conf.theme?.footer_description ??
+                conf.meta_description ??
+                'Direct manufacturer of premium infrared cookers, induction plates, and heavy-duty gas stoves with nationwide warranty.',
+              footer_show_whatsapp: conf.theme?.footer_show_whatsapp ?? true,
+              footer_whatsapp_label: conf.theme?.footer_whatsapp_label ?? 'WhatsApp Live Chat',
+              footer_show_payments: conf.theme?.footer_show_payments ?? true,
+              footer_payment_methods:
+                conf.theme?.footer_payment_methods && conf.theme.footer_payment_methods.length > 0
+                  ? conf.theme.footer_payment_methods
+                  : ['bKash', 'Nagad', 'Visa / Mastercard', 'Cash on Delivery'],
+              footer_contact_title: conf.theme?.footer_contact_title ?? 'Factory Support',
+              footer_address: conf.theme?.footer_address ?? 'Central Industrial Zone, Dhaka',
+              footer_phone: conf.theme?.footer_phone ?? conf.whatsapp_number ?? '+880 1700-000000',
+              footer_email: conf.theme?.footer_email ?? `orders@${conf.subdomain || 'slicemart'}.devcenterpoint.com`,
+              footer_copyright:
+                conf.theme?.footer_copyright ??
+                `© ${new Date().getFullYear()} ${conf.name || 'SliceMart Direct Storefront'}. Powered by DevCenterPoint Factory Platform.`,
               social_links: {
                 facebook: conf.theme?.social_links?.facebook ?? '',
                 instagram: conf.theme?.social_links?.instagram ?? '',
@@ -244,6 +296,16 @@ export const StorefrontSettingsWorkspace: React.FC = () => {
       footer_bg: form.footer_bg,
       footer_text_color: form.footer_text_color,
       footer_columns: form.footer_columns,
+      footer_description: form.footer_description,
+      footer_show_whatsapp: form.footer_show_whatsapp,
+      footer_whatsapp_label: form.footer_whatsapp_label,
+      footer_show_payments: form.footer_show_payments,
+      footer_payment_methods: form.footer_payment_methods,
+      footer_contact_title: form.footer_contact_title,
+      footer_address: form.footer_address,
+      footer_phone: form.footer_phone,
+      footer_email: form.footer_email,
+      footer_copyright: form.footer_copyright,
       social_links: form.social_links,
     });
   }, [
@@ -262,6 +324,16 @@ export const StorefrontSettingsWorkspace: React.FC = () => {
     form.footer_bg,
     form.footer_text_color,
     form.footer_columns,
+    form.footer_description,
+    form.footer_show_whatsapp,
+    form.footer_whatsapp_label,
+    form.footer_show_payments,
+    form.footer_payment_methods,
+    form.footer_contact_title,
+    form.footer_address,
+    form.footer_phone,
+    form.footer_email,
+    form.footer_copyright,
     form.social_links,
     loading,
   ]);
@@ -287,6 +359,16 @@ export const StorefrontSettingsWorkspace: React.FC = () => {
         footer_bg: form.footer_bg,
         footer_text_color: form.footer_text_color,
         footer_columns: form.footer_columns,
+        footer_description: form.footer_description,
+        footer_show_whatsapp: form.footer_show_whatsapp,
+        footer_whatsapp_label: form.footer_whatsapp_label,
+        footer_show_payments: form.footer_show_payments,
+        footer_payment_methods: form.footer_payment_methods,
+        footer_contact_title: form.footer_contact_title,
+        footer_address: form.footer_address,
+        footer_phone: form.footer_phone,
+        footer_email: form.footer_email,
+        footer_copyright: form.footer_copyright,
         social_links: form.social_links,
         meta_pixel_id: form.meta_pixel_id,
         google_analytics_id: form.google_analytics_id,
@@ -1209,6 +1291,244 @@ export const StorefrontSettingsWorkspace: React.FC = () => {
               </div>
             </div>
 
+            {/* Brand Bio & Outreach */}
+            <div className="space-y-4 p-4 rounded-xl bg-surface-sunken border border-default">
+              <div className="flex items-center gap-2">
+                <Store className="size-4 text-emerald-600 dark:text-emerald-400" />
+                <span className="text-xs font-bold text-default">Brand Bio & WhatsApp Button</span>
+              </div>
+              <p className="text-[11px] text-muted">
+                Customize the brand mission/tagline displayed beneath the store logo and configure the WhatsApp Live Chat action.
+              </p>
+
+              <div>
+                <label className="text-[11px] font-semibold text-muted uppercase tracking-wider block mb-1">
+                  Footer Brand Description / Tagline
+                </label>
+                <textarea
+                  rows={2}
+                  placeholder="Direct manufacturer of premium infrared cookers, induction plates, and heavy-duty gas stoves with nationwide warranty."
+                  value={form.footer_description}
+                  onChange={(e) => setForm({ ...form, footer_description: e.target.value })}
+                  className="w-full rounded-xl border border-default bg-surface p-2.5 text-xs text-default focus:border-primary focus:outline-none"
+                />
+              </div>
+
+              <div className="pt-2 border-t border-default space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-xs font-semibold text-default block">WhatsApp Live Chat Button</span>
+                    <span className="text-[11px] text-muted">Show a direct WhatsApp chat button under the brand description.</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setForm({ ...form, footer_show_whatsapp: !form.footer_show_whatsapp })}
+                    className="text-default cursor-pointer"
+                  >
+                    {form.footer_show_whatsapp ? (
+                      <ToggleRight className="size-6 text-emerald-500" />
+                    ) : (
+                      <ToggleLeft className="size-6 text-muted" />
+                    )}
+                  </button>
+                </div>
+
+                {form.footer_show_whatsapp && (
+                  <div>
+                    <label className="text-[11px] font-semibold text-muted uppercase tracking-wider block mb-1">
+                      WhatsApp Button Label
+                    </label>
+                    <div className="relative">
+                      <MessageCircle className="size-3.5 absolute left-3 top-2.5 text-emerald-500" />
+                      <input
+                        type="text"
+                        placeholder="WhatsApp Live Chat"
+                        value={form.footer_whatsapp_label}
+                        onChange={(e) => setForm({ ...form, footer_whatsapp_label: e.target.value })}
+                        className="w-full pl-8 rounded-xl border border-default bg-surface px-3 py-1.5 text-xs text-default focus:border-primary focus:outline-none"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Customer & Factory Support Details */}
+            <div className="space-y-3 p-4 rounded-xl bg-surface-sunken border border-default">
+              <div className="flex items-center gap-2">
+                <Phone className="size-4 text-emerald-600 dark:text-emerald-400" />
+                <span className="text-xs font-bold text-default">Support & Factory Contact Column</span>
+              </div>
+              <p className="text-[11px] text-muted">
+                Set your customer support headline, physical factory/office address, support phone hotline, and support email.
+              </p>
+
+              <div className="space-y-3 pt-1">
+                <div>
+                  <label className="text-[11px] font-semibold text-muted uppercase tracking-wider block mb-1">
+                    Section Heading Title
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Factory Support, Customer Care, Corporate HQ"
+                    value={form.footer_contact_title}
+                    onChange={(e) => setForm({ ...form, footer_contact_title: e.target.value })}
+                    className="w-full rounded-xl border border-default bg-surface px-3 py-1.5 text-xs text-default focus:border-primary focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[11px] font-semibold text-muted uppercase tracking-wider block mb-1">
+                    Physical / Factory Address
+                  </label>
+                  <div className="relative">
+                    <MapPin className="size-3.5 absolute left-3 top-2.5 text-muted" />
+                    <input
+                      type="text"
+                      placeholder="e.g. Central Industrial Zone, Dhaka"
+                      value={form.footer_address}
+                      onChange={(e) => setForm({ ...form, footer_address: e.target.value })}
+                      className="w-full pl-8 rounded-xl border border-default bg-surface px-3 py-1.5 text-xs text-default focus:border-primary focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-[11px] font-semibold text-muted uppercase tracking-wider block mb-1">
+                      Support Phone / Hotline
+                    </label>
+                    <div className="relative">
+                      <Phone className="size-3.5 absolute left-3 top-2.5 text-muted" />
+                      <input
+                        type="text"
+                        placeholder="e.g. +880 1700-000000"
+                        value={form.footer_phone}
+                        onChange={(e) => setForm({ ...form, footer_phone: e.target.value })}
+                        className="w-full pl-8 rounded-xl border border-default bg-surface px-3 py-1.5 text-xs text-default font-mono focus:border-primary focus:outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] font-semibold text-muted uppercase tracking-wider block mb-1">
+                      Support & Order Email
+                    </label>
+                    <div className="relative">
+                      <Mail className="size-3.5 absolute left-3 top-2.5 text-muted" />
+                      <input
+                        type="email"
+                        placeholder="orders@slicemart.devcenterpoint.com"
+                        value={form.footer_email}
+                        onChange={(e) => setForm({ ...form, footer_email: e.target.value })}
+                        className="w-full pl-8 rounded-xl border border-default bg-surface px-3 py-1.5 text-xs text-default font-mono focus:border-primary focus:outline-none"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Accepted Payments Configuration */}
+            <div className="space-y-3 p-4 rounded-xl bg-surface-sunken border border-default">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <CreditCard className="size-4 text-emerald-600 dark:text-emerald-400" />
+                  <div>
+                    <span className="text-xs font-bold text-default block">Accepted Payment Badges</span>
+                    <span className="text-[11px] text-muted">Display badges for accepted payment gateways & payment methods.</span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setForm({ ...form, footer_show_payments: !form.footer_show_payments })}
+                  className="text-default cursor-pointer"
+                >
+                  {form.footer_show_payments ? (
+                    <ToggleRight className="size-6 text-emerald-500" />
+                  ) : (
+                    <ToggleLeft className="size-6 text-muted" />
+                  )}
+                </button>
+              </div>
+
+              {form.footer_show_payments && (
+                <div className="space-y-3 pt-2">
+                  {/* Active Badges */}
+                  <div className="flex flex-wrap items-center gap-1.5 min-h-8 p-2.5 rounded-xl border border-default bg-surface">
+                    {form.footer_payment_methods.map((method, idx) => (
+                      <span
+                        key={idx}
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-zinc-800 border border-default text-xs font-medium text-default shadow-2xs"
+                      >
+                        <span>{method}</span>
+                        <button
+                          type="button"
+                          onClick={() => removePaymentMethod(method)}
+                          className="text-muted hover:text-rose-500 ml-0.5 cursor-pointer"
+                          title="Remove method"
+                        >
+                          <Trash2 className="size-3" />
+                        </button>
+                      </span>
+                    ))}
+                    {form.footer_payment_methods.length === 0 && (
+                      <span className="text-xs text-muted italic">No payment methods added yet.</span>
+                    )}
+                  </div>
+
+                  {/* Quick Add Presets */}
+                  <div className="space-y-1.5">
+                    <span className="text-[10px] uppercase font-bold text-muted tracking-wider block">Quick Presets:</span>
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      {['bKash', 'Nagad', 'Rocket', 'Visa / Mastercard', 'Amex', 'Cash on Delivery', 'Bank Transfer'].map((preset) => {
+                        const alreadyAdded = form.footer_payment_methods.includes(preset);
+                        return (
+                          <button
+                            key={preset}
+                            type="button"
+                            disabled={alreadyAdded}
+                            onClick={() => addPaymentMethod(preset)}
+                            className={`px-2 py-0.5 rounded text-[11px] font-medium border transition-colors cursor-pointer ${
+                              alreadyAdded
+                                ? 'opacity-40 border-default bg-surface-sunken cursor-not-allowed'
+                                : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20'
+                            }`}
+                          >
+                            + {preset}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Custom Method Add Input */}
+                  <div className="flex items-center gap-2 pt-1">
+                    <input
+                      type="text"
+                      placeholder="Add custom method (e.g. Upay, Citytouch)"
+                      value={newPaymentMethod}
+                      onChange={(e) => setNewPaymentMethod(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          addPaymentMethod(newPaymentMethod);
+                        }
+                      }}
+                      className="flex-1 rounded-xl border border-default bg-surface px-3 py-1.5 text-xs text-default focus:border-primary focus:outline-none"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => addPaymentMethod(newPaymentMethod)}
+                      className="px-3 py-1.5 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20 text-xs font-semibold cursor-pointer transition-colors"
+                    >
+                      Add
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
             {/* Footer Column Navigation */}
             <div className="space-y-4 p-4 rounded-xl bg-surface-sunken border border-default">
               <div className="flex items-center justify-between">
@@ -1283,6 +1603,33 @@ export const StorefrontSettingsWorkspace: React.FC = () => {
                     </div>
                   </div>
                 ))}
+              </div>
+            </div>
+
+            {/* Copyright & Platform Notice */}
+            <div className="space-y-3 p-4 rounded-xl bg-surface-sunken border border-default">
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="size-4 text-emerald-600 dark:text-emerald-400" />
+                <span className="text-xs font-bold text-default">Copyright & Platform Attribution</span>
+              </div>
+              <p className="text-[11px] text-muted">
+                Customize the legal copyright line and platform attribution shown at the bottom right of the storefront footer.
+              </p>
+
+              <div>
+                <label className="text-[11px] font-semibold text-muted uppercase tracking-wider block mb-1">
+                  Copyright & Attribution Notice
+                </label>
+                <input
+                  type="text"
+                  placeholder={`© ${new Date().getFullYear()} ${form.name || 'Storefront'}. Powered by DevCenterPoint Factory Platform.`}
+                  value={form.footer_copyright}
+                  onChange={(e) => setForm({ ...form, footer_copyright: e.target.value })}
+                  className="w-full rounded-xl border border-default bg-surface px-3 py-2 text-xs text-default focus:border-primary focus:outline-none"
+                />
+                <span className="text-[10px] text-muted mt-1 block">
+                  Leave blank to automatically use the standard copyright line with your store name and the current year.
+                </span>
               </div>
             </div>
 
@@ -1419,20 +1766,26 @@ export const StorefrontSettingsWorkspace: React.FC = () => {
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-5">
                   <div className="flex items-center gap-2.5">
                     <div
-                      className="size-8 rounded-xl flex items-center justify-center font-black text-sm"
+                      className="size-8 rounded-xl flex items-center justify-center font-black text-sm shrink-0"
                       style={{ backgroundColor: form.primary_color, color: '#ffffff' }}
                     >
                       {form.name ? form.name.charAt(0).toUpperCase() : 'S'}
                     </div>
                     <div>
                       <h4 className="font-bold text-sm text-white">{form.name || 'Storefront Brand'}</h4>
-                      <p className="text-[11px] opacity-75">Direct Factory Production & Sourcing</p>
+                      <p className="text-[11px] opacity-75 line-clamp-1 max-w-xs">{form.footer_description || 'Direct Factory Production & Sourcing'}</p>
                     </div>
                   </div>
 
-                  {/* Social Icon Previews */}
-                  <div className="flex items-center gap-2">
-                    {['FB', 'IG', 'IN', 'YT', 'WA'].map((s) => (
+                  {/* Social & WhatsApp Live Chat */}
+                  <div className="flex flex-wrap items-center gap-2">
+                    {form.footer_show_whatsapp && (
+                      <div className="px-2.5 py-1 rounded-lg bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[10px] font-semibold flex items-center gap-1 shadow-2xs">
+                        <MessageCircle className="size-3" />
+                        <span>{form.footer_whatsapp_label || 'WhatsApp Live Chat'}</span>
+                      </div>
+                    )}
+                    {['FB', 'IG', 'IN', 'YT'].map((s) => (
                       <div
                         key={s}
                         className="size-7 rounded-lg bg-white/10 flex items-center justify-center text-[10px] font-bold text-white/80"
@@ -1443,11 +1796,11 @@ export const StorefrontSettingsWorkspace: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Footer Columns */}
+                {/* Footer Columns & Support */}
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-6 text-xs">
                   {form.footer_columns.map((col, i) => (
                     <div key={i} className="space-y-2">
-                      <h5 className="font-bold text-white tracking-wider text-[11px] uppercase">
+                      <h5 className="font-bold text-white tracking-wider text-[11px] uppercase font-mono">
                         {col.title || 'Column'}
                       </h5>
                       <ul className="space-y-1 opacity-80 text-[11px]">
@@ -1459,19 +1812,57 @@ export const StorefrontSettingsWorkspace: React.FC = () => {
                       </ul>
                     </div>
                   ))}
+
+                  {/* Live Support Box */}
+                  <div className="space-y-2">
+                    <h5 className="font-bold text-white tracking-wider text-[11px] uppercase font-mono">
+                      {form.footer_contact_title || 'Factory Support'}
+                    </h5>
+                    <ul className="space-y-1.5 opacity-80 text-[11px]">
+                      {form.footer_address && (
+                        <li className="flex items-center gap-1.5">
+                          <MapPin className="size-3 shrink-0 text-emerald-400" />
+                          <span className="truncate">{form.footer_address}</span>
+                        </li>
+                      )}
+                      {form.footer_phone && (
+                        <li className="flex items-center gap-1.5">
+                          <Phone className="size-3 shrink-0 text-emerald-400" />
+                          <span>{form.footer_phone}</span>
+                        </li>
+                      )}
+                      {form.footer_email && (
+                        <li className="flex items-center gap-1.5">
+                          <Mail className="size-3 shrink-0 text-emerald-400" />
+                          <span className="truncate">{form.footer_email}</span>
+                        </li>
+                      )}
+                    </ul>
+                  </div>
                 </div>
 
-                {/* Copyright */}
-                <div className="pt-4 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between text-[10px] opacity-60">
-                  <span>© {new Date().getFullYear()} {form.name || 'Storefront'}. All rights reserved.</span>
-                  <span>Powered by Production ERP & Storefront Engine</span>
+                {/* Bottom: Payments & Copyright */}
+                <div className="pt-4 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-3 text-[10px]">
+                  {form.footer_show_payments && form.footer_payment_methods.length > 0 && (
+                    <div className="flex flex-wrap items-center gap-1.5 opacity-80">
+                      <span className="font-mono text-white/60">Payments:</span>
+                      {form.footer_payment_methods.map((p, idx) => (
+                        <span key={idx} className="px-1.5 py-0.5 rounded bg-white/10 border border-white/15 text-white">
+                          {p}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  <div className="opacity-60 sm:ml-auto">
+                    {form.footer_copyright || `© ${new Date().getFullYear()} ${form.name || 'Storefront'}. Powered by DevCenterPoint Factory Platform.`}
+                  </div>
                 </div>
               </div>
 
               <div className="p-3 rounded-xl bg-surface border border-default text-[11px] text-muted space-y-1">
-                <span className="font-bold text-default block">💡 Marketing Attribution:</span>
+                <span className="font-bold text-default block">💡 Marketing & Support Tip:</span>
                 <p>
-                  Setting up your Meta Pixel and GA4 Measurement ID empowers your digital marketing campaigns with deep purchase tracking, conversion value attribution, and instant audience retargeting.
+                  Every change made here updates your live storefront footer instantly. Customers can contact your factory directly via WhatsApp, phone, or physical visits, and verify your approved payment methods.
                 </p>
               </div>
             </div>

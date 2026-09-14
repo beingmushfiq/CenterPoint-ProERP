@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { ShieldCheck, Truck, Clock, Store, MessageCircle, Phone, MapPin, Mail, ExternalLink } from 'lucide-react';
+import { getContrastColor } from '../../lib/storefront/themeSync';
 import type { StorefrontConfig } from '../../types/api/storefront';
 
 interface StorefrontFooterProps {
@@ -16,6 +17,37 @@ export const StorefrontFooter: React.FC<StorefrontFooterProps> = ({ config }) =>
   const footerTextColor = theme?.footer_text_color;
   const socialLinks = theme?.social_links;
   const customColumns = theme?.footer_columns && theme.footer_columns.length > 0 ? theme.footer_columns : null;
+
+  const isDarkFooter =
+    footerTextColor === '#ffffff' ||
+    (footerBg ? getContrastColor(footerBg) === '#ffffff' : false);
+
+  const footerDescription =
+    theme?.footer_description ||
+    config?.meta_description ||
+    'Precision engineering and authentic quality direct from manufacturer.';
+
+  const showWhatsapp = theme?.footer_show_whatsapp !== false && config?.whatsapp_ordering_enabled !== false;
+  const whatsappLabel = theme?.footer_whatsapp_label || 'WhatsApp Live Chat';
+
+  const contactTitle = theme?.footer_contact_title || 'Factory Support';
+  const address = theme?.footer_address ?? 'Central Industrial Zone, Dhaka';
+  const phone = theme?.footer_phone ?? (config?.whatsapp_number || '+880 1700-000000');
+  const email = theme?.footer_email ?? `orders@${subdomain}.devcenterpoint.com`;
+
+  const showPayments = theme?.footer_show_payments !== false;
+  const defaultPaymentMethods = ['bKash', 'Nagad', 'Visa / Mastercard', 'Cash on Delivery'];
+  const paymentMethods =
+    theme?.footer_payment_methods && theme.footer_payment_methods.length > 0
+      ? theme.footer_payment_methods
+      : defaultPaymentMethods;
+
+  const currentYear = new Date().getFullYear();
+  const defaultCopyright = `© ${currentYear} ${config?.name ?? 'Official Store'}. Powered by DevCenterPoint Factory Platform.`;
+  const copyright = theme?.footer_copyright || defaultCopyright;
+
+  const storeName = config?.name ?? 'Official Store';
+  const hasStoreInName = /store|storefront/i.test(storeName);
 
   const defaultColumns = [
     {
@@ -56,9 +88,9 @@ export const StorefrontFooter: React.FC<StorefrontFooterProps> = ({ config }) =>
         backgroundColor: footerBg || undefined,
         color: footerTextColor || undefined,
       }}
-      className={`mt-20 border-t border-slate-200 dark:border-zinc-800/80 transition-colors ${
-        !footerBg ? 'bg-white dark:bg-zinc-950/90 text-slate-600 dark:text-zinc-400' : ''
-      }`}
+      className={`mt-20 border-t transition-colors ${
+        isDarkFooter ? 'border-white/10' : 'border-slate-200 dark:border-zinc-800/80'
+      } ${!footerBg ? 'bg-white dark:bg-zinc-950/90 text-slate-600 dark:text-zinc-400' : ''}`}
     >
       {/* Top Value Proposition Grid */}
       <div className="border-b border-black/5 dark:border-white/5 py-10">
@@ -153,41 +185,44 @@ export const StorefrontFooter: React.FC<StorefrontFooterProps> = ({ config }) =>
                   style={{ color: footerTextColor || undefined }}
                   className={`font-extrabold text-base ${!footerTextColor ? 'text-slate-900 dark:text-white' : ''}`}
                 >
-                  {config?.name ?? 'Official Store'}
+                  {storeName}
                 </span>
-                <span
-                  style={{
-                    backgroundColor: 'var(--store-primary-subtle, rgba(16,185,129,0.15))',
-                    borderColor: 'var(--store-primary-border, rgba(16,185,129,0.3))',
-                    color: 'var(--store-primary, #10b981)',
-                  }}
-                  className="ml-2 rounded-full border px-2 py-0.5 text-[9px] font-mono font-bold uppercase tracking-wider"
-                >
-                  Official Store
-                </span>
+                {!hasStoreInName && (
+                  <span
+                    style={{
+                      backgroundColor: 'var(--store-primary-subtle, rgba(16,185,129,0.15))',
+                      borderColor: 'var(--store-primary-border, rgba(16,185,129,0.3))',
+                      color: 'var(--store-primary, #10b981)',
+                    }}
+                    className="ml-2 rounded-full border px-2 py-0.5 text-[9px] font-mono font-bold uppercase tracking-wider"
+                  >
+                    Official Store
+                  </span>
+                )}
               </div>
             </div>
             <p className="text-xs opacity-80 leading-relaxed max-w-sm">
-              {config?.meta_description ||
-                'Precision engineering and high-efficiency home appliances delivered direct-to-consumer and wholesale distribution.'}
+              {footerDescription}
             </p>
 
             {/* Direct Social Links & Outreach */}
             <div className="flex flex-wrap items-center gap-2 pt-1">
-              <a
-                href={`https://wa.me/${whatsappNumber}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{
-                  backgroundColor: 'var(--store-primary-subtle, rgba(16,185,129,0.12))',
-                  borderColor: 'var(--store-primary-border, rgba(16,185,129,0.25))',
-                  color: 'var(--store-primary, #10b981)',
-                }}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-semibold hover:opacity-90 transition-all shadow-2xs"
-              >
-                <MessageCircle className="size-3.5" />
-                <span>WhatsApp Live Chat</span>
-              </a>
+              {showWhatsapp && (
+                <a
+                  href={`https://wa.me/${whatsappNumber}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    backgroundColor: 'var(--store-primary-subtle, rgba(16,185,129,0.12))',
+                    borderColor: 'var(--store-primary-border, rgba(16,185,129,0.25))',
+                    color: 'var(--store-primary, #10b981)',
+                  }}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-semibold hover:opacity-90 transition-all shadow-2xs"
+                >
+                  <MessageCircle className="size-3.5" />
+                  <span>{whatsappLabel}</span>
+                </a>
+              )}
 
               {socialLinks?.facebook && (
                 <a
@@ -304,46 +339,58 @@ export const StorefrontFooter: React.FC<StorefrontFooterProps> = ({ config }) =>
                 !footerTextColor ? 'text-slate-900 dark:text-zinc-200' : ''
               }`}
             >
-              Factory Support
+              {contactTitle}
             </h4>
             <ul className="space-y-2.5 text-xs opacity-80">
-              <li className="flex items-center gap-2">
-                <MapPin
-                  style={{ color: 'var(--store-primary, #10b981)' }}
-                  className="size-3.5 shrink-0"
-                />
-                <span>Central Industrial Zone, Dhaka</span>
-              </li>
-              <li className="flex items-center gap-2">
-                <Phone
-                  style={{ color: 'var(--store-primary, #10b981)' }}
-                  className="size-3.5 shrink-0"
-                />
-                <span>{config?.whatsapp_number || '+880 1700-000000'}</span>
-              </li>
-              <li className="flex items-center gap-2">
-                <Mail
-                  style={{ color: 'var(--store-primary, #10b981)' }}
-                  className="size-3.5 shrink-0"
-                />
-                <span>orders@{subdomain}.devcenterpoint.com</span>
-              </li>
+              {address && (
+                <li className="flex items-center gap-2">
+                  <MapPin
+                    style={{ color: 'var(--store-primary, #10b981)' }}
+                    className="size-3.5 shrink-0"
+                  />
+                  <span>{address}</span>
+                </li>
+              )}
+              {phone && (
+                <li className="flex items-center gap-2">
+                  <Phone
+                    style={{ color: 'var(--store-primary, #10b981)' }}
+                    className="size-3.5 shrink-0"
+                  />
+                  <span>{phone}</span>
+                </li>
+              )}
+              {email && (
+                <li className="flex items-center gap-2">
+                  <Mail
+                    style={{ color: 'var(--store-primary, #10b981)' }}
+                    className="size-3.5 shrink-0"
+                  />
+                  <span>{email}</span>
+                </li>
+              )}
             </ul>
           </div>
         </div>
 
         {/* Accepted Payment Badges & Copyright */}
         <div className="mt-12 pt-6 border-t border-black/5 dark:border-white/5 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs">
-          <div className="flex flex-wrap items-center gap-2 text-[11px] font-mono opacity-75">
-            <span>Accepted Payments:</span>
-            <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 text-slate-700 dark:text-zinc-300">bKash</span>
-            <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 text-slate-700 dark:text-zinc-300">Nagad</span>
-            <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 text-slate-700 dark:text-zinc-300">Visa / Mastercard</span>
-            <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 text-slate-700 dark:text-zinc-300">Cash on Delivery</span>
-          </div>
+          {showPayments && paymentMethods.length > 0 && (
+            <div className="flex flex-wrap items-center gap-2 text-[11px] font-mono opacity-75">
+              <span>Accepted Payments:</span>
+              {paymentMethods.map((method, mIdx) => (
+                <span
+                  key={mIdx}
+                  className="px-2 py-0.5 rounded bg-slate-100 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 text-slate-700 dark:text-zinc-300"
+                >
+                  {method}
+                </span>
+              ))}
+            </div>
+          )}
 
-          <div className="opacity-60 text-[11px]">
-            © {new Date().getFullYear()} {config?.name ?? 'Official Store'}. Powered by DevCenterPoint Factory Platform.
+          <div className="opacity-60 text-[11px] sm:ml-auto">
+            {copyright}
           </div>
         </div>
       </div>

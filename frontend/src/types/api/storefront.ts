@@ -36,6 +36,16 @@ export interface StorefrontConfig {
       title: string;
       links: Array<{ label: string; url: string }>;
     }>;
+    footer_description?: string;
+    footer_show_whatsapp?: boolean;
+    footer_whatsapp_label?: string;
+    footer_show_payments?: boolean;
+    footer_payment_methods?: string[];
+    footer_contact_title?: string;
+    footer_address?: string;
+    footer_phone?: string;
+    footer_email?: string;
+    footer_copyright?: string;
     menu_items?: Array<{
       label: string;
       url: string;
