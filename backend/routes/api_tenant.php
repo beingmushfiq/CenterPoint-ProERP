@@ -1336,10 +1336,10 @@ Route::middleware(['auth.jwt', 'tenant.resolve', 'tenant.active'])
             Route::get('variance-radar', [App\Modules\Production\Controllers\CostVarianceRadarController::class, 'radar'])->name('variance-radar');
         });
 
-        // ── SliceMart Brain (100% Self-Contained Agentic AI) ──────────
+        // ── Operations AI Brain (100% Self-Contained Agentic AI) ──────────
         Route::prefix('brain')->name('brain.')->group(static function (): void {
-            Route::post('ask', [App\Modules\Platform\Controllers\SliceMartBrainController::class, 'ask'])->name('ask');
-            Route::get('capabilities', [App\Modules\Platform\Controllers\SliceMartBrainController::class, 'capabilities'])->name('capabilities');
-            Route::post('execute', [App\Modules\Platform\Controllers\SliceMartBrainController::class, 'execute'])->name('execute');
+            Route::post('ask', [App\Modules\Platform\Controllers\AIBrainController::class, 'ask'])->name('ask');
+            Route::get('capabilities', [App\Modules\Platform\Controllers\AIBrainController::class, 'capabilities'])->name('capabilities');
+            Route::post('execute', [App\Modules\Platform\Controllers\AIBrainController::class, 'execute'])->name('execute');
         });
     });

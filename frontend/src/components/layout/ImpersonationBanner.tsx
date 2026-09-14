@@ -17,6 +17,11 @@ export const ImpersonationBanner: React.FC = () => {
     localStorage.removeItem('impersonated_tenant_name');
     localStorage.removeItem('impersonated_tenant_id');
     localStorage.removeItem('impersonator_email');
+    localStorage.removeItem('auth_user');
+    localStorage.removeItem('auth_tenant');
+    localStorage.removeItem('auth_permissions');
+    localStorage.removeItem('auth_branches');
+    localStorage.removeItem('auth_active_branch');
     window.location.href = tenantId ? `/platform/tenants/${tenantId}` : '/platform/tenants';
   };
 
