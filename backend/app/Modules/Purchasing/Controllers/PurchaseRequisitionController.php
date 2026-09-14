@@ -48,7 +48,7 @@ final class PurchaseRequisitionController extends Controller
 
         $requisitions = $query->orderByDesc('required_by_date')
             ->orderByDesc('id')
-            ->paginate((int) $request->query('per_page', 25));
+            ->paginate($request->integer('per_page', 25));
 
         return PurchaseRequisitionResource::collection($requisitions);
     }
@@ -99,4 +99,29 @@ final class PurchaseRequisitionController extends Controller
 
         return new PurchaseRequisitionResource($approved);
     }
+
+    public function destroy(int $id): JsonResponse
+    {
+        $tenantId = TenantContext::current()->tenantId();
+
+        /** @var PurchaseRequisition $requisition */
+        $requisition = PurchaseRequisition::where('tenant_id', $tenantId)
+            ->where('id', $id)
+            ->firstOrFail();
+
+        if ($requisition->status === 'converted') {
+            return response()->json([
+                'message' => 'Cannot delete a requisition that has already been converted to a purchase order.',
+            ], 422);
+        }
+
+        $prNumber = $requisition->requisition_number ?? "#{$requisition->id}";
+        $requisition->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => "Purchase Requisition {$prNumber} moved to Data Bin successfully.",
+        ]);
+    }
 }
+

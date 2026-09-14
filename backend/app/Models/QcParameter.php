@@ -7,6 +7,7 @@ namespace App\Models;
 use App\Core\Tenancy\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
@@ -67,6 +68,14 @@ final class QcParameter extends Model
     public function unit(): BelongsTo
     {
         return $this->belongsTo(Unit::class, 'unit_id');
+    }
+
+    /**
+     * @return HasMany<QcInspectionResult, $this>
+     */
+    public function results(): HasMany
+    {
+        return $this->hasMany(QcInspectionResult::class, 'qc_parameter_id');
     }
 
     /**

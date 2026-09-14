@@ -92,4 +92,28 @@ final class SalesReturnController extends Controller
 
         return new SalesReturnResource($approved);
     }
+
+    public function destroy(int $id): JsonResponse
+    {
+        $tenantId = TenantContext::current()->tenantId();
+
+        /** @var SalesReturn $return */
+        $return = SalesReturn::where('tenant_id', $tenantId)
+            ->where('id', $id)
+            ->firstOrFail();
+
+        if ($return->status === 'approved' || $return->status === 'completed') {
+            return response()->json([
+                'message' => 'Cannot delete an approved sales return with stock and refund impact. Void or cancel it first.',
+            ], 422);
+        }
+
+        $returnNumber = $return->return_number ?? "#{$return->id}";
+        $return->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => "Sales Return {$returnNumber} moved to Data Bin successfully.",
+        ]);
+    }
 }

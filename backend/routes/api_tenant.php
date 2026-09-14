@@ -521,6 +521,8 @@ Route::middleware(['auth.jwt', 'tenant.resolve', 'tenant.active'])
                     ->middleware('permission:purchasing.return.create')->name('store');
                 Route::get('{id}', [App\Modules\Purchasing\Controllers\PurchaseReturnController::class, 'show'])
                     ->middleware('permission:purchasing.return.view')->name('show');
+                Route::delete('{id}', [App\Modules\Purchasing\Controllers\PurchaseReturnController::class, 'destroy'])
+                    ->middleware('permission:purchasing.return.delete')->name('destroy');
             });
         });
 
@@ -589,6 +591,8 @@ Route::middleware(['auth.jwt', 'tenant.resolve', 'tenant.active'])
                     ->middleware('permission:sales.return.view')->name('show');
                 Route::post('{id}/approve', [App\Modules\Sales\Controllers\SalesReturnController::class, 'approve'])
                     ->middleware('permission:sales.return.approve')->name('approve');
+                Route::delete('{id}', [App\Modules\Sales\Controllers\SalesReturnController::class, 'destroy'])
+                    ->middleware('permission:sales.return.delete')->name('destroy');
             });
 
             // ── Exchanges ────────────────────────────────────────────────

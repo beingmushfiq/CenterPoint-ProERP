@@ -46,7 +46,7 @@ final class PurchaseReturnController extends Controller
 
         $returns = $query->orderByDesc('return_date')
             ->orderByDesc('id')
-            ->paginate((int) $request->query('per_page', 25));
+            ->paginate($request->integer('per_page', 25));
 
         return PurchaseReturnResource::collection($returns);
     }
@@ -79,4 +79,29 @@ final class PurchaseReturnController extends Controller
 
         return new PurchaseReturnResource($return);
     }
+
+    public function destroy(int $id): JsonResponse
+    {
+        $tenantId = TenantContext::current()->tenantId();
+
+        /** @var PurchaseReturn $return */
+        $return = PurchaseReturn::where('tenant_id', $tenantId)
+            ->where('id', $id)
+            ->firstOrFail();
+
+        if (in_array($return->status, ['completed', 'settled'], true)) {
+            return response()->json([
+                'message' => 'Cannot delete a settled or completed purchase return. Void or cancel it first.',
+            ], 422);
+        }
+
+        $returnNumber = $return->return_number ?? "#{$return->id}";
+        $return->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => "Purchase Return {$returnNumber} moved to Data Bin successfully.",
+        ]);
+    }
 }
+

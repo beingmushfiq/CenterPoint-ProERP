@@ -48,7 +48,7 @@ final class PurchaseOrderController extends Controller
 
         $orders = $query->orderByDesc('order_date')
             ->orderByDesc('id')
-            ->paginate((int) $request->query('per_page', 25));
+            ->paginate($request->integer('per_page', 25));
 
         return PurchaseOrderResource::collection($orders);
     }
@@ -97,4 +97,29 @@ final class PurchaseOrderController extends Controller
 
         return new PurchaseOrderResource($approved);
     }
+
+    public function destroy(int $id): JsonResponse
+    {
+        $tenantId = TenantContext::current()->tenantId();
+
+        /** @var PurchaseOrder $order */
+        $order = PurchaseOrder::where('tenant_id', $tenantId)
+            ->where('id', $id)
+            ->firstOrFail();
+
+        if (in_array($order->status, ['completed', 'received'], true)) {
+            return response()->json([
+                'message' => 'Cannot delete an order that has already been fulfilled or received. Cancel it first.',
+            ], 422);
+        }
+
+        $poNumber = $order->po_number ?? "#{$order->id}";
+        $order->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => "Purchase Order {$poNumber} moved to Data Bin successfully.",
+        ]);
+    }
 }
+
