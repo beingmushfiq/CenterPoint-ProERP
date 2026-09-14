@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { api } from '../api/client';
+import { api, getAccessToken } from '../api/client';
 import type {
   TenantCapabilityManifest,
   ProductionStageConfig,
@@ -119,7 +119,7 @@ export const useTenantCapabilityStore = create<TenantCapabilityState>((set, get)
   },
 
   bootstrap: async (forceRefresh = false) => {
-    const hasToken = typeof window !== 'undefined' && Boolean(localStorage.getItem('access_token'));
+    const hasToken = Boolean(getAccessToken());
     if (!hasToken) {
       set({ status: 'idle', manifest: null });
       return;

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Core\Http\Middleware;
 
+use App\Core\Http\Responses\ErrorResponse;
 use App\Core\Tenancy\TenantContext;
 use App\Core\Tenancy\TenantResolver;
 use App\Models\Tenant;
@@ -22,25 +23,25 @@ class ResolveStorefrontTenant
         $storefront = TenantResolver::resolveStorefrontFromRequest($request);
 
         if (! $storefront) {
-            return response()->json([
-                'success' => false,
-                'error' => [
-                    'code' => 'STOREFRONT_NOT_FOUND',
-                    'message' => 'The requested storefront does not exist or has been disabled.',
-                ],
-            ], 404);
+            return ErrorResponse::make(
+                request: $request,
+                code: 'STOREFRONT_NOT_FOUND',
+                message: 'The requested storefront does not exist or has been disabled.',
+                httpStatus: 404,
+                retryable: false,
+            );
         }
 
         // Verify associated tenant exists and is not suspended
         $tenant = Tenant::find($storefront->tenant_id);
         if (! $tenant || $tenant->status === 'suspended') {
-            return response()->json([
-                'success' => false,
-                'error' => [
-                    'code' => 'TENANT_SUSPENDED',
-                    'message' => 'This storefront is currently unavailable.',
-                ],
-            ], 403);
+            return ErrorResponse::make(
+                request: $request,
+                code: 'TENANT_SUSPENDED',
+                message: 'This storefront is currently unavailable.',
+                httpStatus: 403,
+                retryable: false,
+            );
         }
 
         // Bind tenant context

@@ -75,9 +75,13 @@ export function getAccessToken(path?: string): string | null {
     return platformToken || null;
   }
 
-  // Tenant / standard context: strictly isolate from platform token
+  // Tenant / standard context: strictly isolate from platform token (in-memory per ADR-007)
   if (accessToken) return accessToken;
-  return localStorage.getItem('access_token') || null;
+  if (typeof sessionStorage !== 'undefined') {
+    const impToken = sessionStorage.getItem('impersonation_token');
+    if (impToken) return impToken;
+  }
+  return null;
 }
 
 /* ───────────────────────────────────────────────────────────────────────────

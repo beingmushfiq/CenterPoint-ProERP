@@ -10,6 +10,9 @@ export const ImpersonationBanner: React.FC = () => {
   if (!isImpersonating) return null;
 
   const handleExit = () => {
+    if (typeof sessionStorage !== 'undefined') {
+      sessionStorage.removeItem('impersonation_token');
+    }
     localStorage.removeItem('is_impersonating');
     localStorage.removeItem('impersonated_tenant_name');
     localStorage.removeItem('impersonated_tenant_id');

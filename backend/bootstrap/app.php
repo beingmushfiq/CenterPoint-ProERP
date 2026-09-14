@@ -48,6 +48,11 @@ return Application::configure(basePath: dirname(__DIR__))
         },
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->replace(
+            Illuminate\Http\Middleware\HandleCors::class,
+            App\Core\Http\Middleware\HandleCors::class,
+        );
+
         // Register the tenancy middleware with short aliases.
         $middleware->alias([
             'correlation.id' => CorrelationId::class,
@@ -262,7 +267,7 @@ return Application::configure(basePath: dirname(__DIR__))
         });
 
         // 429 RATE_LIMITED — rate limit exceeded (API_CONTRACT §10).
-        $exceptions->render(function (\Symfony\Component\HttpKernel\Exception\TooManyRequestsHttpException $e, Request $request) {
+        $exceptions->render(function (Symfony\Component\HttpKernel\Exception\TooManyRequestsHttpException $e, Request $request) {
             $response = ErrorResponse::make(
                 request: $request,
                 code: 'RATE_LIMITED',

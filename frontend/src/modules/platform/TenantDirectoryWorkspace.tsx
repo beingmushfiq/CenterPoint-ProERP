@@ -150,7 +150,9 @@ export const TenantDirectoryWorkspace: React.FC = () => {
 
       if (token) {
         setAccessToken(token);
-        localStorage.setItem('access_token', token);
+        if (typeof sessionStorage !== 'undefined') {
+          sessionStorage.setItem('impersonation_token', token);
+        }
       }
       localStorage.setItem('is_impersonating', 'true');
       localStorage.setItem('impersonated_tenant_name', targetTenant?.name ?? tenant.name);

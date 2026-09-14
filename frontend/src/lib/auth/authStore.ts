@@ -40,13 +40,6 @@ const initialTenant = getStoredItem<TenantInfo | null>('auth_tenant', null);
 const initialPermissions = new Set<string>(getStoredItem<string[]>('auth_permissions', []));
 const initialBranches = getStoredItem<BranchInfo[]>('auth_branches', []);
 const initialActiveBranch = getStoredItem<BranchInfo | null>('auth_active_branch', null);
-const initialHasToken =
-  typeof window !== 'undefined' &&
-  typeof localStorage !== 'undefined' &&
-  typeof localStorage.getItem === 'function'
-    ? Boolean(localStorage.getItem('access_token'))
-    : false;
-
 
 export const useAuthStore = create<AuthState>((set, get) => ({
   user: initialUser,
@@ -54,7 +47,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   branches: initialBranches,
   activeBranch: initialActiveBranch,
   permissions: initialPermissions,
-  status: initialHasToken && initialUser ? 'authenticated' : 'idle',
+  status: initialUser ? 'authenticated' : 'idle',
   error: null,
 
   login: async (credentials) => {
@@ -63,7 +56,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const response = await api.post<LoginResponseData>('/auth/login', credentials);
       const data = response.data;
       setAccessToken(data.access_token);
-      localStorage.setItem('access_token', data.access_token);
       localStorage.setItem('auth_user', JSON.stringify(data.user));
       localStorage.setItem('auth_tenant', JSON.stringify(data.tenant));
       localStorage.setItem('auth_permissions', JSON.stringify(data.permissions ?? []));
@@ -89,7 +81,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       get().bootstrap().catch(() => {});
     } catch (err: unknown) {
       setAccessToken(null);
-      localStorage.removeItem('access_token');
       localStorage.removeItem('auth_user');
       localStorage.removeItem('auth_tenant');
       localStorage.removeItem('auth_permissions');
@@ -113,7 +104,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       // Ignore network errors on logout
     } finally {
       setAccessToken(null);
-      localStorage.removeItem('access_token');
       localStorage.removeItem('auth_user');
       localStorage.removeItem('auth_tenant');
       localStorage.removeItem('auth_permissions');
@@ -184,7 +174,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
       if (isUnauth || !get().user) {
         setAccessToken(null);
-        localStorage.removeItem('access_token');
         localStorage.removeItem('auth_user');
         localStorage.removeItem('auth_tenant');
         localStorage.removeItem('auth_permissions');
