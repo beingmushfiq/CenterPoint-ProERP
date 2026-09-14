@@ -14,7 +14,7 @@ In cPanel, placing sensitive backend code (application logic, `.env`, SQLite fil
 Follow this strict directory structure:
 
 ```
-/home/CPANEL_USER/
+/home/devcente/
 ├── backend/                         <-- Non-public Laravel application root
 │   ├── app/
 │   ├── bootstrap/
@@ -57,23 +57,23 @@ Follow this strict directory structure:
 
 ### Step 2: Upload Application Files
 1. Open the cPanel **File Manager** or connect via **SFTP / SSH**.
-2. Create a folder named `backend` directly in your user root (`/home/CPANEL_USER/backend`).
-3. Upload all contents of the project's `backend/` directory into `/home/CPANEL_USER/backend/`, **except** the `public/` directory and `vendor/`.
+2. Create a folder named `backend` directly in your user root (`/home/devcente/backend`).
+3. Upload all contents of the project's `backend/` directory into `/home/devcente/backend/`, **except** the `public/` directory and `vendor/`.
 4. Run composer install (via cPanel Terminal or SSH):
    ```bash
-   cd /home/CPANEL_USER/backend
+   cd /home/devcente/backend
    composer install --no-dev --optimize-autoloader
    ```
 5. Set write permissions for storage and cache:
    ```bash
-   chmod -R 775 /home/CPANEL_USER/backend/storage
-   chmod -R 775 /home/CPANEL_USER/backend/bootstrap/cache
+   chmod -R 775 /home/devcente/backend/storage
+   chmod -R 775 /home/devcente/backend/bootstrap/cache
    ```
 
 ---
 
 ### Step 3: Configure Environment
-1. In `/home/CPANEL_USER/backend`, create `.env` from `.env.production.example`:
+1. In `/home/devcente/backend`, create `.env` from `.env.production.example`:
    ```bash
    cp .env.production.example .env
    ```
@@ -99,7 +99,7 @@ Follow this strict directory structure:
 ### Step 4: Run Migrations & Production Seeder
 In terminal:
 ```bash
-cd /home/CPANEL_USER/backend
+cd /home/devcente/backend
 
 # 1. Run migrations
 php artisan migrate --force
@@ -119,7 +119,7 @@ php artisan view:cache
 On your development machine:
 1. Ensure `frontend/.env.production` contains:
    ```env
-   VITE_API_BASE_URL=/api
+   VITE_API_BASE_URL=/api/v1
    VITE_APP_TITLE="DevCenterPoint ProERP"
    VITE_ENABLE_MOCK=false
    VITE_MASTER_DOMAIN=proerp.devcenterpoint.com
@@ -130,12 +130,12 @@ On your development machine:
    cd frontend
    npm run build
    ```
-3. Upload all files from `frontend/dist/` into `/home/CPANEL_USER/public_html/`.
+3. Upload all files from `frontend/dist/` into `/home/devcente/public_html/`.
 
 ---
 
 ### Step 6: Link Public Entry Point
-In `/home/CPANEL_USER/public_html/`, verify that `index.php` correctly points to the `backend/` folder outside of webroot:
+In `/home/devcente/public_html/`, verify that `index.php` correctly points to the `backend/` folder outside of webroot:
 ```php
 <?php
 
@@ -160,7 +160,7 @@ $app->handleRequest(Request::capture());
 ---
 
 ### Step 7: Configure Apache Routing (`.htaccess`)
-Ensure `/home/CPANEL_USER/public_html/.htaccess` is configured to direct `/api/*` requests to `index.php` and all other web requests to `index.html`:
+Ensure `/home/devcente/public_html/.htaccess` is configured to direct `/api/*` requests to `index.php` and all other web requests to `index.html`:
 
 ```apache
 <IfModule mod_rewrite.c>
@@ -205,7 +205,7 @@ Under **cPanel → Cron Jobs**, configure two jobs:
 - Schedule: `* * * * *`
 - Command:
   ```bash
-  /usr/local/bin/php /home/CPANEL_USER/backend/artisan schedule:run >> /dev/null 2>&1
+  /usr/local/bin/php /home/devcente/backend/artisan schedule:run >> /dev/null 2>&1
   ```
   *This automatically executes:*
   - `subscriptions:process-lifecycle` daily at 00:05 (automated `trial → past_due → suspended` transitions)
@@ -216,18 +216,36 @@ Under **cPanel → Cron Jobs**, configure two jobs:
 - Schedule: `* * * * *`
 - Command:
   ```bash
-  /usr/local/bin/php /home/CPANEL_USER/backend/artisan queue:work --stop-when-empty --max-time=50 --memory=128 >> /dev/null 2>&1
+  /usr/local/bin/php /home/devcente/backend/artisan queue:work --stop-when-empty --max-time=50 --memory=128 >> /dev/null 2>&1
   ```
   *Runs with automatic TenantContext isolation (`Queue::looping`/`Queue::after` hooks) to prevent context bleeding between tenant tasks.*
 
 ---
 
-### Step 9: Automated Deployment via Shell Script
-For streamlined updates via SSH or cPanel Git Version Control post-receive hook, use the included deployment script:
+### Step 9: Automated Deployment via cPanel Git Version Control & Shell Script
+
+DevCenterPoint ProERP includes automated deployment configuration through `.cpanel.yml` at the repository root and `scripts/deploy-cpanel.sh`.
+
+#### Method A: Automated Deployment via cPanel Git Version Control (Recommended)
+1. In cPanel, navigate to **Git™ Version Control**.
+2. If creating a new repository:
+   - Clone URL: Your GitHub repository URL.
+   - Repository Path: `/home/devcente/repositories/proerp` (or similar).
+   - Working Branch: `main` (or `master`).
+3. Under the repository's **Manage** tab:
+   - Confirm **Deployment** is enabled.
+   - Every time you click **Update from Remote** followed by **Deploy HEAD Commit** (or configure a GitHub Webhook to trigger `cpanel/git/deploy.cgi`), cPanel automatically executes `.cpanel.yml`.
+4. `.cpanel.yml` automatically:
+   - Syncs non-public backend files to `/home/devcente/backend/` (safeguarding `.env`).
+   - Copies `public_html/index.php`, `.htaccess`, and `robots.txt` to `/home/devcente/public_html/`.
+   - Triggers `/home/devcente/scripts/deploy-cpanel.sh` to install dependencies, run migrations, compile/deploy frontend SPA, rebuild caches, ensure storage links, and restart workers.
+
+#### Method B: Manual Deployment via SSH
+To manually deploy or update at any time via SSH or cPanel Terminal:
 ```bash
 bash scripts/deploy-cpanel.sh
 ```
-This runs composer install with optimized autoloader, executes pending migrations, rebuilds all production caches (`config:cache`, `route:cache`, `view:cache`), and restarts queue workers.
+This runs composer install with optimized autoloader, executes pending migrations, rebuilds all production caches (`config:cache`, `route:cache`, `view:cache`, `event:cache`), links storage, and restarts queue workers.
 
 ---
 

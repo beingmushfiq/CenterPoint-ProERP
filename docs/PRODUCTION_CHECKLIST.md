@@ -13,8 +13,8 @@
   - `*.devcenterpoint.com` Wildcard A/CNAME record points to server IP.
   - TTL set to 300 seconds for fast propagation.
 - [ ] **cPanel Subdomains Created:**
-  - `proerp.devcenterpoint.com` Document Root: `/home/CPANEL_USER/public_html`
-  - `*.devcenterpoint.com` Document Root: `/home/CPANEL_USER/public_html`
+  - `proerp.devcenterpoint.com` Document Root: `/home/devcente/public_html`
+  - `*.devcenterpoint.com` Document Root: `/home/devcente/public_html`
 - [ ] **AutoSSL Active:**
   - Valid SSL certificates issued for `devcenterpoint.com`, `proerp.devcenterpoint.com`, and `*.devcenterpoint.com`.
 - [ ] **MySQL Database & User Created:**
@@ -38,16 +38,16 @@
 ## 2. Server Deployment & File Permissions
 
 - [ ] **Backend Files Uploaded Outside Webroot:**
-  - Files placed in `/home/CPANEL_USER/backend/`.
+  - Files placed in `/home/devcente/backend/`.
   - Sensitive files (`.env`, `artisan`, `composer.json`, `app/`, `config/`) are NOT accessible via web URL.
 - [ ] **Directory Permissions Set:**
   ```bash
-  chmod -R 775 /home/CPANEL_USER/backend/storage
-  chmod -R 775 /home/CPANEL_USER/backend/bootstrap/cache
+  chmod -R 775 /home/devcente/backend/storage
+  chmod -R 775 /home/devcente/backend/bootstrap/cache
   ```
 - [ ] **Composer Production Dependencies Installed:**
   ```bash
-  cd /home/CPANEL_USER/backend
+  cd /home/devcente/backend
   composer install --no-dev --optimize-autoloader
   ```
 
@@ -77,11 +77,11 @@
 In **cPanel → Cron Jobs**, verify that the two required crons are active:
 - [ ] **Scheduler (`* * * * *`):**
   ```bash
-  /usr/local/bin/php /home/CPANEL_USER/backend/artisan schedule:run >> /dev/null 2>&1
+  /usr/local/bin/php /home/devcente/backend/artisan schedule:run >> /dev/null 2>&1
   ```
 - [ ] **Queue Worker (`* * * * *`):**
   ```bash
-  /usr/local/bin/php /home/CPANEL_USER/backend/artisan queue:work database --stop-when-empty --max-time=50 --memory=128 --tries=3 >> /dev/null 2>&1
+  /usr/local/bin/php /home/devcente/backend/artisan queue:work database --stop-when-empty --max-time=50 --memory=128 --tries=3 >> /dev/null 2>&1
   ```
 
 ---
@@ -90,15 +90,16 @@ In **cPanel → Cron Jobs**, verify that the two required crons are active:
 
 - [ ] **Frontend Built with Production Variables:**
   - `VITE_ENABLE_MOCK=false`
-  - `VITE_API_BASE_URL=/api`
+  - `VITE_API_BASE_URL=/api/v1`
   - `VITE_MASTER_DOMAIN=proerp.devcenterpoint.com`
   - `VITE_TENANT_BASE_DOMAIN=devcenterpoint.com`
   - Built with `npm run build`.
 - [ ] **Build Assets Uploaded to `public_html`:**
-  - `index.html` placed in `/home/CPANEL_USER/public_html/index.html`.
-  - `assets/` placed in `/home/CPANEL_USER/public_html/assets/`.
-  - `index.php` deployed to `/home/CPANEL_USER/public_html/index.php` pointing to `../backend`.
-  - `.htaccess` configured with SPA fallback and security headers.
+  - `index.html` placed in `/home/devcente/public_html/index.html`.
+  - `assets/` placed in `/home/devcente/public_html/assets/`.
+  - `index.php` deployed to `/home/devcente/public_html/index.php` pointing to `../backend`.
+  - `.htaccess` configured with HTTPS redirect, SPA fallback, and security headers.
+  - Storage symlink created: `/home/devcente/public_html/storage` -> `/home/devcente/backend/storage/app/public`.
 
 ---
 

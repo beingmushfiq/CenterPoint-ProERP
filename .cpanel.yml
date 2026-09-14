@@ -1,0 +1,17 @@
+---
+deployment:
+  tasks:
+    - export CPANEL_HOME=/home/devcente
+    - export BACKEND_PATH=$CPANEL_HOME/backend
+    - export PUBLIC_PATH=$CPANEL_HOME/public_html
+    - export SCRIPTS_PATH=$CPANEL_HOME/scripts
+    - /bin/mkdir -p $BACKEND_PATH
+    - /bin/mkdir -p $PUBLIC_PATH
+    - /bin/mkdir -p $SCRIPTS_PATH
+    - /bin/rsync -rlptD --exclude='.env' --exclude='storage' --exclude='vendor' --exclude='node_modules' --exclude='.git' backend/ $BACKEND_PATH/
+    - /bin/cp -f public_html/index.php $PUBLIC_PATH/index.php
+    - /bin/cp -f public_html/.htaccess $PUBLIC_PATH/.htaccess
+    - /bin/cp -f public_html/robots.txt $PUBLIC_PATH/robots.txt
+    - /bin/cp -rf scripts/* $SCRIPTS_PATH/
+    - /bin/chmod +x $SCRIPTS_PATH/*.sh
+    - /bin/bash $SCRIPTS_PATH/deploy-cpanel.sh
