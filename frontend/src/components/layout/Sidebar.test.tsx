@@ -133,4 +133,17 @@ describe('Sidebar Navigation Highlighting & Tab Outlining', () => {
     const hrLink = screen.getByRole('link', { name: /team & workforce/i });
     expect(hrLink.className).toContain('text-primary');
   });
+
+  it('renders title name and brand monogram linking to dashboard', () => {
+    render(
+      <MemoryRouter initialEntries={['/sales']}>
+        <Sidebar isOpen={true} onClose={() => {}} />
+      </MemoryRouter>
+    );
+
+    const brandLink = screen.getByRole('link', { name: /slicemart bakery & foods - go to dashboard/i });
+    expect(brandLink).toBeInTheDocument();
+    expect(brandLink).toHaveAttribute('href', '/dashboard');
+  });
 });
+

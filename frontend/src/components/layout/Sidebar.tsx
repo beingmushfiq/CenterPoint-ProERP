@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
+import { Link, NavLink, useLocation } from 'react-router-dom';
 import {
   Search,
   Layers,
@@ -195,11 +195,21 @@ export function Sidebar({ isOpen, onClose, isCollapsed = false, onToggleCollapse
             isCollapsed ? 'lg:justify-center justify-between' : 'justify-between'
           )}
         >
-          <div className="flex items-center gap-3 min-w-0">
+          <Link
+            to="/dashboard"
+            onClick={() => {
+              if (window.innerWidth < 1024) {
+                onClose();
+              }
+            }}
+            className="group flex items-center gap-3 min-w-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 rounded-xl transition-all cursor-pointer select-none"
+            title="Go to Dashboard"
+            aria-label={`${tenantDisplayName} - Go to Dashboard`}
+          >
             {/* Custom Multi-Stop Geometric Emblem */}
-            <div className="relative flex h-10 w-10 items-center justify-center rounded-xl bg-linear-to-br from-indigo-500 via-indigo-600 to-indigo-800 p-0.5 shadow-md shadow-indigo-500/20 ring-1 ring-black/5 dark:ring-white/20 shrink-0">
+            <div className="relative flex h-10 w-10 items-center justify-center rounded-xl bg-linear-to-br from-indigo-500 via-indigo-600 to-indigo-800 p-0.5 shadow-md shadow-indigo-500/20 ring-1 ring-black/5 dark:ring-white/20 shrink-0 transition-transform duration-200 group-hover:scale-105">
               <div className="flex h-full w-full items-center justify-center rounded-lg bg-white dark:bg-[#090d16]/90 backdrop-blur-xs">
-                <Layers className="h-5 w-5 text-indigo-600 dark:text-indigo-400 drop-shadow-[0_0_8px_rgba(99,102,241,0.4)]" />
+                <Layers className="h-5 w-5 text-indigo-600 dark:text-indigo-400 drop-shadow-[0_0_8px_rgba(99,102,241,0.4)] transition-transform duration-200 group-hover:scale-110" />
               </div>
               <span className="absolute -top-0.5 -right-0.5 flex h-2.5 w-2.5">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
@@ -210,7 +220,7 @@ export function Sidebar({ isOpen, onClose, isCollapsed = false, onToggleCollapse
             {/* Tenant details (hidden when collapsed on desktop) */}
             <div className={cn('min-w-0', isCollapsed && 'lg:hidden')}>
               <div className="flex items-center gap-1.5">
-                <span className="font-bold tracking-tight text-default text-sm truncate font-sans">
+                <span className="font-bold tracking-tight text-default text-sm truncate font-sans group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
                   {tenantDisplayName}
                 </span>
                 <span className="inline-flex items-center rounded-md bg-indigo-500/15 px-1.5 py-0.5 text-[9px] font-bold text-indigo-600 dark:text-indigo-300 border border-indigo-500/30 tracking-wider uppercase font-mono">
@@ -224,7 +234,7 @@ export function Sidebar({ isOpen, onClose, isCollapsed = false, onToggleCollapse
                 </span>
               </div>
             </div>
-          </div>
+          </Link>
 
           {/* Mobile close button (< lg) */}
           <button

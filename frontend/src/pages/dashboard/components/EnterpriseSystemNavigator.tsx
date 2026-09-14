@@ -26,6 +26,8 @@ import {
   Settings,
   Layers,
   Filter,
+  Globe,
+  ExternalLink,
 } from 'lucide-react';
 import { useAuthStore } from '../../../lib/auth/authStore';
 import { useTenantCapabilityStore } from '../../../lib/capabilities/tenantCapabilityStore';
@@ -53,6 +55,7 @@ interface SubsystemItem {
     to: string;
     icon?: React.ComponentType<{ className?: string }>;
     permission?: string | string[];
+    isExternal?: boolean;
   }>;
 }
 
@@ -161,6 +164,12 @@ const SUBSYSTEM_ITEMS: SubsystemItem[] = [
     permission: ['ecommerce.storefront.view', 'ecommerce.storefront.manage'],
     pulseMetric: { value: 'Online', label: 'Public Web Store', tone: 'success' },
     quickActions: [
+      {
+        label: 'View Live Store',
+        to: '/store',
+        icon: Globe,
+        isExternal: true,
+      },
       {
         label: 'Visual Page Builder',
         to: '/storefront/builder',
@@ -823,6 +832,19 @@ export const EnterpriseSystemNavigator: React.FC = () => {
                                 .map((action, idx) => {
                                   const ActionIcon = action.icon;
                                   return (
+                                  action.isExternal ? (
+                                    <a
+                                      key={idx}
+                                      href={action.to}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="inline-flex items-center gap-1 rounded-md bg-surface-sunken px-2 py-1 text-[10px] font-medium text-muted hover:text-default hover:bg-surface-sunken/80 transition-colors border border-default/50"
+                                    >
+                                      {ActionIcon && <ActionIcon className="size-2.5 text-emerald-500" />}
+                                      <span>{action.label}</span>
+                                      <ExternalLink className="size-2 text-muted" />
+                                    </a>
+                                  ) : (
                                     <Link
                                       key={idx}
                                       to={action.to}
@@ -831,6 +853,7 @@ export const EnterpriseSystemNavigator: React.FC = () => {
                                       {ActionIcon && <ActionIcon className="size-2.5" />}
                                       <span>{action.label}</span>
                                     </Link>
+                                  )
                                   );
                                 })}
                             </div>

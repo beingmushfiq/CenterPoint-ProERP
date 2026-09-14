@@ -19,6 +19,8 @@ import {
   Compass,
   RefreshCw,
   Truck,
+  Globe,
+  ExternalLink,
 } from 'lucide-react';
 import {
   OrderPOModal,
@@ -139,9 +141,12 @@ interface DashboardMetricsData {
 export const TenantRoleDashboard: React.FC = () => {
   // ── Auth & Role Resolution ───────────────────────────────────
   const user = useAuthStore((state) => state.user);
+  const tenant = useAuthStore((state) => state.tenant);
   const hasPermission = useAuthStore((state) => state.hasPermission);
   const { companyName, logoUrl } = useTenantBranding();
   const queryClient = useQueryClient();
+
+  const storeSlug = tenant?.subdomain || tenant?.slug || 'store';
 
   const [isLiveTelemetry, setIsLiveTelemetry] = useState(true);
 
@@ -571,6 +576,19 @@ export const TenantRoleDashboard: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
+            <a
+              href={`/store/${storeSlug}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 rounded-xl border border-default bg-surface px-2.5 py-1 text-xs font-semibold text-default hover:text-primary hover:border-primary/40 hover:bg-surface-sunken transition-all shadow-2xs group cursor-pointer"
+              title="Open public customer storefront in a new tab"
+            >
+              <Globe className="size-3.5 text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition-transform" />
+              <span className="hidden sm:inline">View Website (Storefront)</span>
+              <span className="sm:hidden">Storefront</span>
+              <ExternalLink className="size-3 text-muted group-hover:text-primary transition-colors" />
+            </a>
+
             <button
               type="button"
               onClick={() => {
@@ -657,6 +675,17 @@ export const TenantRoleDashboard: React.FC = () => {
           <Compass className="size-3.5 text-primary" />
           <span>Quick Actions:</span>
         </span>
+        <a
+          href={`/store/${storeSlug}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1.5 rounded-xl border border-default bg-surface px-2.5 py-1 text-xs font-semibold text-default hover:border-primary/40 hover:bg-surface-sunken transition-all shrink-0 shadow-2xs group"
+          title="Open customer storefront in a new tab"
+        >
+          <Globe className="size-3 text-emerald-500 group-hover:scale-110 transition-transform" />
+          <span>View Website</span>
+          <ExternalLink className="size-2.5 text-muted group-hover:text-default transition-colors" />
+        </a>
         {hasPermission(['sales.order.view', 'sales.order.create']) && (
           <Link
             to="/sales?action=new"
