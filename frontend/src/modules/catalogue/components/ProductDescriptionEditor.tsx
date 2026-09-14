@@ -447,12 +447,12 @@ export function ProductDescriptionEditor({
   return (
     <div
       ref={containerRef}
-      className={`rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 overflow-hidden shadow-xs transition-all flex flex-col ${
+      className={`rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-xs transition-all flex flex-col ${
         isFullscreen ? 'fixed inset-4 z-50 shadow-2xl bg-white dark:bg-slate-900 border-2 border-primary' : ''
       }`}
     >
       {/* ── Top Responsive Header Toolbar ────────────────────────────────────────────── */}
-      <div className="flex flex-wrap items-center justify-between gap-1.5 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/80 p-2">
+      <div className="flex flex-wrap items-center justify-between gap-1.5 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/80 p-2 rounded-t-2xl">
         {/* Left Formatting Controls */}
         <div className="flex flex-wrap items-center gap-1">
           {/* Visual Editing Tools */}
@@ -610,7 +610,7 @@ export function ProductDescriptionEditor({
                   </button>
 
                   {showColorPicker && (
-                    <div className="absolute left-0 sm:left-auto right-auto sm:right-0 top-full mt-1.5 z-50 p-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-2xl space-y-3 w-64 max-w-[calc(100vw-2rem)]">
+                    <div className="absolute left-0 top-full mt-1.5 z-50 p-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-2xl space-y-3 w-64 max-w-[calc(100vw-2rem)]">
                       <div>
                         <div className="text-[10px] font-bold uppercase text-slate-400 mb-1.5 tracking-wider">
                           Preset Colors
@@ -689,7 +689,7 @@ export function ProductDescriptionEditor({
                   </button>
 
                   {showHighlightPicker && (
-                    <div className="absolute left-0 sm:left-auto right-auto sm:right-0 top-full mt-1.5 z-50 p-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-2xl space-y-3 w-64 max-w-[calc(100vw-2rem)]">
+                    <div className="absolute left-0 top-full mt-1.5 z-50 p-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-2xl space-y-3 w-64 max-w-[calc(100vw-2rem)]">
                       <div>
                         <div className="text-[10px] font-bold uppercase text-slate-400 mb-1.5 tracking-wider">
                           Preset Highlights
@@ -780,7 +780,7 @@ export function ProductDescriptionEditor({
             </button>
 
             {showBadgeMenu && (
-              <div className="absolute left-0 sm:left-auto right-auto sm:right-0 top-full mt-1.5 z-50 p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-2xl space-y-3 w-80 max-w-[calc(100vw-2rem)]">
+              <div className="absolute left-0 top-full mt-1.5 z-50 p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-2xl space-y-3 w-80 max-w-[calc(100vw-2rem)]">
                 {/* Tab Switcher */}
                 <div className="flex rounded-xl bg-slate-100 dark:bg-slate-800 p-1">
                   <button
@@ -985,7 +985,7 @@ export function ProductDescriptionEditor({
             </button>
 
             {showTemplateMenu && (
-              <div className="absolute left-0 sm:left-auto right-auto sm:right-0 top-full mt-1.5 z-50 p-2 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-2xl space-y-1 w-72 max-w-[calc(100vw-2rem)] max-h-80 overflow-y-auto">
+              <div className="absolute left-0 top-full mt-1.5 z-50 p-2 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-2xl space-y-1 w-72 max-w-[calc(100vw-2rem)] max-h-80 overflow-y-auto">
                 <div className="text-[10px] font-bold uppercase text-slate-400 px-2.5 py-1 tracking-wider">
                   Universal Specification Blueprints
                 </div>
@@ -1222,7 +1222,7 @@ export function ProductDescriptionEditor({
       </div>
 
       {/* ── Footer Information Bar ────────────────────────────────────────── */}
-      <div className="flex items-center justify-between px-3 py-1.5 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 text-[10px] text-slate-500 dark:text-slate-400">
+      <div className="flex items-center justify-between px-3 py-1.5 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 text-[10px] text-slate-500 dark:text-slate-400 rounded-b-2xl">
         <div className="flex items-center gap-2">
           <Sparkles className="size-3 text-primary" />
           <span>Visual WYSIWYG + HTML5/CSS3 Engine</span>
