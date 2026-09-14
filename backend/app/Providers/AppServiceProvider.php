@@ -45,6 +45,34 @@ class AppServiceProvider extends ServiceProvider
             return Limit::perMinute(120)->by($request->ip());
         });
 
+        RateLimiter::for('platform_login', function (Request $request) {
+            $email = (string) $request->input('email');
+            return [
+                Limit::perMinutes(5, 5)->by($email),
+                Limit::perMinutes(5, 10)->by($request->ip()),
+            ];
+        });
+
+        RateLimiter::for('customer_login', function (Request $request) {
+            $phone = (string) $request->input('phone', $request->input('email', ''));
+            return [
+                Limit::perMinutes(5, 5)->by($phone),
+                Limit::perMinutes(5, 15)->by($request->ip()),
+            ];
+        });
+
+        RateLimiter::for('customer_register', function (Request $request) {
+            return Limit::perMinutes(10, 5)->by($request->ip());
+        });
+
+        RateLimiter::for('storefront_checkout', function (Request $request) {
+            return Limit::perMinute(15)->by($request->ip());
+        });
+
+        RateLimiter::for('errors_ingest', function (Request $request) {
+            return Limit::perMinute(60)->by($request->ip());
+        });
+
         RateLimiter::for('webhooks', function (Request $request) {
             return Limit::perMinute(600)->by($request->ip());
         });

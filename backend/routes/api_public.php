@@ -39,7 +39,9 @@ Route::prefix('v1')
             Route::post('forgot-password', [App\Modules\Auth\Controllers\AuthController::class, 'forgotPassword'])
                 ->middleware('throttle:login')
                 ->name('forgot-password');
-            Route::post('reset-password', [App\Modules\Auth\Controllers\AuthController::class, 'resetPassword'])->name('reset-password');
+            Route::post('reset-password', [App\Modules\Auth\Controllers\AuthController::class, 'resetPassword'])
+                ->middleware('throttle:login')
+                ->name('reset-password');
             Route::get('branding', [App\Modules\Auth\Controllers\AuthController::class, 'branding'])->name('branding');
         });
 

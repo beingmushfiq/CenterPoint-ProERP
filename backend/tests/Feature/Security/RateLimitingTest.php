@@ -32,4 +32,34 @@ class RateLimitingTest extends TestCase
         $limiter = RateLimiter::limiter('webhooks');
         $this->assertNotNull($limiter);
     }
+
+    public function test_platform_login_rate_limiter_is_registered(): void
+    {
+        $limiter = RateLimiter::limiter('platform_login');
+        $this->assertNotNull($limiter);
+    }
+
+    public function test_customer_login_rate_limiter_is_registered(): void
+    {
+        $limiter = RateLimiter::limiter('customer_login');
+        $this->assertNotNull($limiter);
+    }
+
+    public function test_customer_register_rate_limiter_is_registered(): void
+    {
+        $limiter = RateLimiter::limiter('customer_register');
+        $this->assertNotNull($limiter);
+    }
+
+    public function test_storefront_checkout_rate_limiter_is_registered(): void
+    {
+        $limiter = RateLimiter::limiter('storefront_checkout');
+        $this->assertNotNull($limiter);
+    }
+
+    public function test_errors_ingest_rate_limiter_is_registered(): void
+    {
+        $limiter = RateLimiter::limiter('errors_ingest');
+        $this->assertNotNull($limiter);
+    }
 }

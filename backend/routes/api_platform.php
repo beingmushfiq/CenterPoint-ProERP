@@ -31,11 +31,15 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('v1/platform')
     ->name('platform.')
     ->group(static function (): void {
-        // Public Platform Login endpoint
-        Route::post('auth/login', [PlatformAuthController::class, 'login'])->name('auth.login');
+        // Public Platform Login endpoint (strictly rate-limited against credential stuffing)
+        Route::post('auth/login', [PlatformAuthController::class, 'login'])
+            ->middleware('throttle:platform_login')
+            ->name('auth.login');
 
-        // Public/Client Error Ingestion Endpoint (Client-side boundaries / uncaught exceptions)
-        Route::post('errors/ingest', [PlatformErrorLogController::class, 'ingest'])->name('errors.ingest');
+        // Public/Client Error Ingestion Endpoint (rate-limited against log-flooding / DoS)
+        Route::post('errors/ingest', [PlatformErrorLogController::class, 'ingest'])
+            ->middleware('throttle:errors_ingest')
+            ->name('errors.ingest');
 
         // Authenticated Platform Super Admin routes
         Route::middleware(['auth.jwt', 'platform.admin'])->group(static function (): void {

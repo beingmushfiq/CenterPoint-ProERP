@@ -10,7 +10,7 @@ import { PromoSplitBlock } from './blocks/PromoSplitBlock';
 import { FaqAccordionBlock } from './blocks/FaqAccordionBlock';
 import { NewsletterVipBlock } from './blocks/NewsletterVipBlock';
 import { QualityJourneyBlock } from './blocks/QualityJourneyBlock';
-import { stripHtml } from '../../lib/storefront/htmlUtils';
+import DOMPurify from 'dompurify';
 
 interface StorefrontBlockRendererProps {
   block: PageBlock;
@@ -101,17 +101,32 @@ export const StorefrontBlockRenderer: React.FC<StorefrontBlockRendererProps> = (
         </section>
       );
 
-    case 'custom_html_css':
+    case 'custom_html_css': {
+      const sanitizedHtml = DOMPurify.sanitize(block.html || '', {
+        USE_PROFILES: { html: true },
+        ADD_ATTR: ['target', 'rel', 'class', 'style', 'id'],
+        FORBID_TAGS: ['script', 'iframe', 'object', 'embed', 'applet', 'meta', 'link'],
+        FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover', 'onfocus', 'onblur', 'onmouseenter', 'onmouseleave'],
+      });
+
+      // Defensive sanitization of user-supplied custom CSS
+      const sanitizedCss = (block.css || '')
+        .replace(/@import[^;]*;/gi, '')
+        .replace(/behavior:[^;]*;/gi, '')
+        .replace(/expression\([^)]*\)/gi, '')
+        .replace(/javascript:/gi, '');
+
       return (
         <section className="rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 p-4 bg-white dark:bg-zinc-900 overflow-hidden">
-          {block.css && <style>{stripHtml(block.css)}</style>}
+          {sanitizedCss && <style>{sanitizedCss}</style>}
           <div
             dangerouslySetInnerHTML={{
-              __html: stripHtml(block.html || ''),
+              __html: sanitizedHtml,
             }}
           />
         </section>
       );
+    }
 
     default:
       return null;

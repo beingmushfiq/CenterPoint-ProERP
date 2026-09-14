@@ -32,7 +32,7 @@ class StorefrontCustomerAuthController extends Controller
             'name' => 'required|string|max:255',
             'phone' => 'required|string|max:32',
             'email' => 'nullable|email|max:255',
-            'password' => 'required|string|min:6',
+            'password' => 'required|string|min:8',
         ]);
 
         /** @var Storefront $storefront */
@@ -237,6 +237,13 @@ class StorefrontCustomerAuthController extends Controller
 
         try {
             $claims = $this->jwtService->decode($token);
+
+            // Enforce token scope isolation: must explicitly be issued for a storefront customer
+            $scopes = $claims['scopes'] ?? [];
+            if (! is_array($scopes) || ! in_array('storefront:customer', $scopes, true)) {
+                return null;
+            }
+
             $userId = (int) ($claims['sub'] ?? 0);
 
             /** @var Storefront $storefront */

@@ -64,6 +64,17 @@ class AuthenticateJwt
             );
         }
 
+        // Enforce token scope isolation: prevent storefront customer tokens from accessing administrative ERP routes
+        $scopes = $claims['scopes'] ?? [];
+        if (is_array($scopes) && in_array('storefront:customer', $scopes, true)) {
+            return ErrorResponse::make(
+                request: $request,
+                code: 'FORBIDDEN',
+                message: 'Customer credentials cannot access administrative ERP services.',
+                httpStatus: 403
+            );
+        }
+
         $rawSub = $claims['sub'] ?? null;
         $userId = is_numeric($rawSub) ? (int) $rawSub : 0;
         /** @var User|null $user */

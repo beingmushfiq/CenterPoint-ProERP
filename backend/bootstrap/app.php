@@ -7,6 +7,7 @@ use App\Core\Http\Exceptions\ResourceInUseException;
 use App\Core\Http\Middleware\CorrelationId;
 use App\Core\Http\Middleware\EnsureTenantActive;
 use App\Core\Http\Middleware\ResolveTenant;
+use App\Core\Http\Middleware\SecurityHeaders;
 use App\Core\Http\Responses\ErrorResponse;
 use App\Core\Tenancy\Exceptions\OutOfScope;
 use App\Core\Tenancy\Exceptions\TenantMismatch;
@@ -57,10 +58,11 @@ return Application::configure(basePath: dirname(__DIR__))
             'platform.admin' => App\Core\Http\Middleware\EnsurePlatformAdmin::class,
             'storefront.tenant' => App\Core\Http\Middleware\ResolveStorefrontTenant::class,
             'tenant.quota' => App\Core\Http\Middleware\CheckTenantQuota::class,
+            'security.headers' => SecurityHeaders::class,
         ]);
 
         // Middleware order in the api group (ARCHITECTURE §5.1):
-        //   CorrelationId → SubstituteBindings (route model binding) → throttle.
+        //   SecurityHeaders → CorrelationId → SubstituteBindings (route model binding) → throttle.
         //
         // NOTE: tenant.resolve and auth.jwt are registered as route-level
         // middleware on the tenant routes in api_tenant.php.  However,
@@ -69,7 +71,9 @@ return Application::configure(basePath: dirname(__DIR__))
         // yet bound during route model binding.  This is a known limitation
         // — tenant isolation for route-model-bound resources is enforced at
         // the controller/action level (or via a future middleware reorder).
+        $middleware->prependToGroup('api', SecurityHeaders::class);
         $middleware->prependToGroup('api', CorrelationId::class);
+        $middleware->prependToGroup('web', SecurityHeaders::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         // Force JSON on all /api/* requests (kept from the original skeleton).
