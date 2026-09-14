@@ -5,11 +5,14 @@ declare(strict_types=1);
 namespace App\Console\Commands;
 
 use App\Core\Audit\AuditAction;
+use App\Mail\TenantSubscriptionLifecycleMail;
 use App\Models\AuditLog;
 use App\Models\Tenant;
 use App\Models\TenantSubscription;
+use App\Models\User;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Throwable;
 
@@ -126,6 +129,14 @@ class ProcessSubscriptionLifecycleCommand extends Command
                         event: 'trial_expired_transition'
                     );
                 });
+
+                if (in_array($newStatus, ['past_due', 'suspended'], true)) {
+                    $this->notifyTenantLifecycle(
+                        tenant: $tenant,
+                        eventType: $newStatus,
+                        gracePeriodEndsAt: $tenant->trial_ends_at?->copy()->addDays(self::DEFAULT_TRIAL_GRACE_DAYS)->toDateString()
+                    );
+                }
             }
 
             $count++;
@@ -179,6 +190,12 @@ class ProcessSubscriptionLifecycleCommand extends Command
                             before: ['status' => 'active'],
                             after: ['status' => 'past_due'],
                             event: 'subscription_past_due_transition'
+                        );
+
+                        $this->notifyTenantLifecycle(
+                            tenant: $tenant,
+                            eventType: 'past_due',
+                            gracePeriodEndsAt: $graceEnd->toDateString()
                         );
                     }
                 });
@@ -240,6 +257,12 @@ class ProcessSubscriptionLifecycleCommand extends Command
                                 after: ['status' => 'suspended', 'suspended_at' => $now->toIso8601String()],
                                 event: 'grace_period_lapsed_suspended'
                             );
+
+                            $this->notifyTenantLifecycle(
+                                tenant: $tenant,
+                                eventType: 'suspended',
+                                gracePeriodEndsAt: null
+                            );
                         }
                     }
                 });
@@ -282,6 +305,31 @@ class ProcessSubscriptionLifecycleCommand extends Command
             $log->save();
         } catch (Throwable $e) {
             $this->warn("Failed to write audit log for Tenant #{$tenantId}: ".$e->getMessage());
+        }
+    }
+
+    /**
+     * Dispatch notification email to tenant owner/admin.
+     */
+    protected function notifyTenantLifecycle(Tenant $tenant, string $eventType, ?string $gracePeriodEndsAt = null): void
+    {
+        try {
+            $adminUser = User::where('tenant_id', $tenant->id)
+                ->where('is_platform_user', false)
+                ->orderBy('id')
+                ->first();
+
+            if ($adminUser !== null && ! empty($adminUser->email)) {
+                $planName = $tenant->plan instanceof \App\Models\Plan ? $tenant->plan->name : 'Standard Plan';
+                Mail::to($adminUser->email)->send(new TenantSubscriptionLifecycleMail(
+                    tenantName: $tenant->name,
+                    eventType: $eventType,
+                    gracePeriodEndsAt: $gracePeriodEndsAt,
+                    planName: $planName
+                ));
+            }
+        } catch (Throwable $e) {
+            $this->warn("Failed to dispatch lifecycle email for Tenant #{$tenant->id}: {$e->getMessage()}");
         }
     }
 }

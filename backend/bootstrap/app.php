@@ -63,6 +63,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'platform.admin' => App\Core\Http\Middleware\EnsurePlatformAdmin::class,
             'storefront.tenant' => App\Core\Http\Middleware\ResolveStorefrontTenant::class,
             'tenant.quota' => App\Core\Http\Middleware\CheckTenantQuota::class,
+            'tenant.feature' => App\Core\Http\Middleware\EnsureFeatureEnabled::class,
             'security.headers' => SecurityHeaders::class,
         ]);
 
