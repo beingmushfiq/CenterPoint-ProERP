@@ -169,12 +169,11 @@ if [ "${CAN_RUN_ARTISAN}" = "true" ]; then
         ${PHP_BIN} artisan route:cache
         ${PHP_BIN} artisan view:cache
         ${PHP_BIN} artisan event:cache
+        echo "--- Restarting Queue Workers ---"
+        ${PHP_BIN} artisan queue:restart 2>/dev/null || true
     else
-        echo "--- Skipping Migrations and Config Cache (.env is pending) ---"
+        echo "--- Skipping Migrations, Config Cache & Queue Restart (.env is pending) ---"
     fi
-
-    echo "--- Restarting Queue Workers ---"
-    ${PHP_BIN} artisan queue:restart 2>/dev/null || true
 else
     echo "--- Skipping Artisan Commands (vendor/autoload.php is pending) ---"
 fi
