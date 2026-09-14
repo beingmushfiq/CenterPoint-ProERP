@@ -1,9 +1,23 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { ShoppingBag, Store, MessageCircle, Truck, Sparkles, ShieldCheck, Menu, X, ExternalLink, Smartphone, Heart } from 'lucide-react';
+import { Link, useLocation } from 'react-router-dom';
+import {
+  ShoppingBag,
+  Store,
+  MessageCircle,
+  Truck,
+  Sparkles,
+  Menu,
+  X,
+  ExternalLink,
+  Smartphone,
+  Heart,
+  User,
+  ShieldCheck,
+} from 'lucide-react';
 import { useStorefrontCartStore } from '../../lib/storefront/storefrontCartStore';
 import { useStorefrontWishlistStore } from '../../lib/storefront/storefrontWishlistStore';
 import { usePwaInstall } from '../../hooks/usePwaInstall';
+import { getContrastColor } from '../../lib/storefront/themeSync';
 import type { StorefrontConfig } from '../../types/api/storefront';
 
 import { StorefrontThemeToggle } from './StorefrontThemeToggle';
@@ -14,6 +28,7 @@ interface StorefrontHeaderProps {
 }
 
 export const StorefrontHeader: React.FC<StorefrontHeaderProps> = ({ config, subdomain }) => {
+  const location = useLocation();
   const { cart, openDrawer } = useStorefrontCartStore();
   const { items: wishlistItems, openWishlist } = useStorefrontWishlistStore();
   const { isInstallable, isInstalled, promptInstall } = usePwaInstall();
@@ -31,6 +46,11 @@ export const StorefrontHeader: React.FC<StorefrontHeaderProps> = ({ config, subd
 
   const navbarBg = theme?.navbar_bg;
   const navbarTextColor = theme?.navbar_text_color;
+
+  // Determine if navbar is dark based on text color or background contrast
+  const isDarkNavbar =
+    navbarTextColor === '#ffffff' ||
+    (navbarBg ? getContrastColor(navbarBg) === '#ffffff' : false);
 
   interface NavMenuItem {
     label: string;
@@ -63,6 +83,18 @@ export const StorefrontHeader: React.FC<StorefrontHeaderProps> = ({ config, subd
     return `/store/${subdomain}/${url}`;
   };
 
+  const isLinkActive = (targetUrl: string) => {
+    const current = location.pathname;
+    const homeUrl = `/store/${subdomain}`;
+    if (targetUrl === homeUrl || targetUrl === `${homeUrl}/`) {
+      return current === homeUrl || current === `${homeUrl}/`;
+    }
+    return current === targetUrl || current.startsWith(`${targetUrl}/`);
+  };
+
+  const storeName = config?.name ?? 'Official Store';
+  const hasStoreInName = /store|storefront/i.test(storeName);
+
   return (
     <header className="sticky top-0 z-40 w-full transition-all">
       {/* Top Announcement Ticker Bar */}
@@ -72,26 +104,26 @@ export const StorefrontHeader: React.FC<StorefrontHeaderProps> = ({ config, subd
             backgroundColor: announcementBg || undefined,
             color: announcementTextColor || undefined,
           }}
-          className={`text-[11px] py-1.5 px-4 border-b border-black/10 dark:border-white/10 font-medium select-none shadow-xs transition-colors ${
+          className={`text-[11px] py-2 px-4 border-b border-black/10 dark:border-white/10 font-medium select-none shadow-xs transition-colors ${
             !announcementBg ? 'bg-zinc-900 dark:bg-zinc-950 text-zinc-100' : ''
           }`}
         >
           <div className="mx-auto max-w-7xl flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="flex size-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              <span className="text-[11px] opacity-95">
+              <span className="flex size-1.5 rounded-full bg-white animate-pulse" />
+              <span className="text-[11px] opacity-95 font-medium">
                 {announcementText}
               </span>
             </div>
 
             <div className="flex items-center gap-4 text-[10px] sm:text-[11px] opacity-90">
-              <div className="flex items-center gap-1">
-                <Truck className="size-3" />
+              <div className="flex items-center gap-1.5">
+                <Truck className="size-3.5 opacity-90" />
                 <span>Tracked Dispatch</span>
               </div>
               <span className="opacity-40 hidden sm:inline">•</span>
-              <div className="hidden sm:flex items-center gap-1">
-                <ShieldCheck className="size-3" />
+              <div className="hidden sm:flex items-center gap-1.5">
+                <ShieldCheck className="size-3.5 opacity-90" />
                 <span>Verified Authenticity</span>
               </div>
             </div>
@@ -105,19 +137,21 @@ export const StorefrontHeader: React.FC<StorefrontHeaderProps> = ({ config, subd
           backgroundColor: navbarBg || undefined,
           color: navbarTextColor || undefined,
         }}
-        className={`border-b border-slate-200/90 dark:border-zinc-800/80 backdrop-blur-xl transition-colors shadow-xs ${
-          !navbarBg ? 'bg-white/95 dark:bg-zinc-950/85' : ''
-        }`}
+        className={`border-b transition-colors shadow-xs ${
+          isDarkNavbar ? 'border-white/10' : 'border-slate-200/90 dark:border-zinc-800/80'
+        } ${!navbarBg ? 'bg-white/95 dark:bg-zinc-950/85 backdrop-blur-xl' : 'backdrop-blur-xl'}`}
       >
-        <div className="mx-auto flex h-18 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+        <div className="mx-auto flex h-16 sm:h-17 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
           {/* Brand Logo & Name */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             {/* Mobile Menu Toggle Button */}
             <button
               type="button"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               style={{ color: navbarTextColor || undefined }}
-              className="md:hidden p-2 rounded-xl hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+              className={`md:hidden p-2 rounded-xl transition-colors ${
+                isDarkNavbar ? 'hover:bg-white/10 text-white' : 'hover:bg-black/5 text-slate-900 dark:text-white'
+              }`}
               aria-label="Toggle Navigation Menu"
             >
               {mobileMenuOpen ? <X className="size-5" /> : <Menu className="size-5" />}
@@ -125,54 +159,55 @@ export const StorefrontHeader: React.FC<StorefrontHeaderProps> = ({ config, subd
 
             <Link
               to={`/store/${subdomain}`}
-              className="group flex items-center gap-3 transition-transform active:scale-98 cursor-pointer"
+              className="group flex items-center gap-2.5 sm:gap-3 transition-transform active:scale-98 cursor-pointer"
             >
               <div
                 style={{
                   backgroundColor: 'var(--store-primary, #10b981)',
                   color: 'var(--store-primary-fg, #ffffff)',
                 }}
-                className="flex size-11 items-center justify-center rounded-2xl shadow-lg ring-1 ring-black/5 dark:ring-white/20 transition-all"
+                className="flex size-10 items-center justify-center rounded-xl shadow-md ring-1 ring-black/5 dark:ring-white/20 transition-all shrink-0 group-hover:scale-105"
               >
-                <Store className="size-6 stroke-[2.5]" />
+                <Store className="size-5.5 stroke-[2.2]" />
               </div>
-              <div>
+              <div className="flex flex-col">
                 <div className="flex items-center gap-2">
                   <span
                     style={{ color: navbarTextColor || undefined }}
-                    className={`font-extrabold tracking-tight text-base sm:text-lg transition-colors ${
+                    className={`font-bold tracking-tight text-sm sm:text-base leading-tight transition-colors line-clamp-1 max-w-42.5 sm:max-w-65 ${
                       !navbarTextColor ? 'text-slate-900 dark:text-white' : ''
                     }`}
                   >
-                    {config?.name ?? 'Official Store'}
+                    {storeName}
                   </span>
-                  <span
-                    style={{
-                      backgroundColor: 'var(--store-primary-subtle, rgba(16,185,129,0.15))',
-                      borderColor: 'var(--store-primary-border, rgba(16,185,129,0.3))',
-                      color: 'var(--store-primary, #10b981)',
-                    }}
-                    className="rounded-full border px-2 py-0.5 text-[9px] font-mono font-bold uppercase tracking-wider"
-                  >
-                    Official Store
-                  </span>
+                  {!hasStoreInName && (
+                    <span
+                      title="Official Verified Store"
+                      className="hidden sm:inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-mono font-bold uppercase tracking-wider bg-emerald-500/15 text-emerald-400 border border-emerald-500/25 shrink-0"
+                    >
+                      Official
+                    </span>
+                  )}
                 </div>
                 <div
-                  style={{ color: navbarTextColor ? `${navbarTextColor}aa` : undefined }}
-                  className="text-[11px] opacity-75 flex items-center gap-1"
+                  style={{ color: navbarTextColor ? `${navbarTextColor}99` : undefined }}
+                  className={`text-[11px] font-medium flex items-center gap-1 mt-0.5 ${
+                    !navbarTextColor ? 'text-slate-500 dark:text-zinc-400' : ''
+                  }`}
                 >
-                  <Sparkles className="size-3 text-amber-500 dark:text-amber-400 inline" />
-                  <span>Direct Sourcing & Fulfillment</span>
+                  <Sparkles className="size-3 text-amber-400 shrink-0 inline" />
+                  <span className="hidden xs:inline truncate">Direct Sourcing & Fulfillment</span>
                 </div>
               </div>
             </Link>
           </div>
 
           {/* Center Navigation Links (Desktop) */}
-          <nav className="hidden md:flex items-center gap-6 text-xs font-semibold">
+          <nav className="hidden md:flex items-center justify-center gap-1 lg:gap-1.5 flex-1 px-4 max-w-xl">
             {menuItems.map((item, idx) => {
               const isExternal = Boolean(item.is_external || item.url.startsWith('http'));
               const finalUrl = isExternal ? item.url : formatMenuUrl(item.url);
+              const active = !isExternal && isLinkActive(finalUrl);
 
               if (isExternal) {
                 return (
@@ -182,8 +217,10 @@ export const StorefrontHeader: React.FC<StorefrontHeaderProps> = ({ config, subd
                     target="_blank"
                     rel="noopener noreferrer"
                     style={{ color: navbarTextColor || undefined }}
-                    className={`flex items-center gap-1 transition-colors py-1 hover:opacity-80 ${
-                      !navbarTextColor ? 'text-slate-700 dark:text-zinc-300' : ''
+                    className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                      isDarkNavbar
+                        ? 'text-white/75 hover:text-white hover:bg-white/10'
+                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
                     }`}
                   >
                     <span>{item.label}</span>
@@ -197,30 +234,37 @@ export const StorefrontHeader: React.FC<StorefrontHeaderProps> = ({ config, subd
                   key={`${item.label}-${idx}`}
                   to={finalUrl}
                   style={{ color: navbarTextColor || undefined }}
-                  className={`transition-colors py-1 hover:opacity-80 ${
-                    !navbarTextColor ? 'text-slate-700 dark:text-zinc-300' : ''
+                  className={`px-3 py-1.5 rounded-lg text-xs transition-all relative ${
+                    active
+                      ? isDarkNavbar
+                        ? 'font-semibold text-white bg-white/12 shadow-2xs'
+                        : 'font-semibold text-slate-900 bg-slate-100/90 shadow-2xs'
+                      : isDarkNavbar
+                      ? 'font-medium text-white/75 hover:text-white hover:bg-white/10'
+                      : 'font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100/70'
                   }`}
                 >
                   {item.label}
+                  {active && (
+                    <span
+                      style={{ backgroundColor: 'var(--store-primary, #10b981)' }}
+                      className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-3.5 h-0.5 rounded-full"
+                    />
+                  )}
                 </Link>
               );
             })}
           </nav>
 
           {/* Right Action Controls */}
-          <div className="flex items-center gap-2 sm:gap-3">
-            {/* Direct WhatsApp Ordering */}
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+            {/* Direct WhatsApp Ordering Pill */}
             {config?.whatsapp_ordering_enabled !== false && (
               <a
                 href={`https://wa.me/${whatsappNumber}?text=${whatsappMsg}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                style={{
-                  backgroundColor: 'var(--store-primary-subtle, rgba(16,185,129,0.12))',
-                  borderColor: 'var(--store-primary-border, rgba(16,185,129,0.25))',
-                  color: 'var(--store-primary, #10b981)',
-                }}
-                className="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-semibold transition-all shadow-2xs cursor-pointer hover:opacity-90"
+                className="hidden xl:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-[#25D366]/10 text-[#25D366] hover:bg-[#25D366]/20 border border-[#25D366]/30 hover:border-[#25D366]/50 transition-all shadow-2xs shrink-0 cursor-pointer"
                 title="Order directly via WhatsApp"
               >
                 <MessageCircle className="size-3.5 fill-current/20" />
@@ -232,11 +276,15 @@ export const StorefrontHeader: React.FC<StorefrontHeaderProps> = ({ config, subd
             <Link
               to={`/store/${subdomain}/account`}
               style={{ color: navbarTextColor || undefined }}
-              className={`hidden lg:inline-block text-xs font-semibold px-3 py-2 rounded-xl hover:bg-black/5 dark:hover:bg-white/5 border border-transparent hover:border-slate-200 dark:hover:border-zinc-800 transition-all ${
-                !navbarTextColor ? 'text-slate-700 dark:text-zinc-300' : ''
+              className={`hidden sm:inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-xl transition-all ${
+                isDarkNavbar
+                  ? 'text-white/80 hover:text-white hover:bg-white/10'
+                  : 'text-slate-700 hover:text-slate-900 hover:bg-slate-100'
               }`}
+              title="Customer Account"
             >
-              Account
+              <User className="size-3.5 opacity-80" />
+              <span className="hidden lg:inline">Account</span>
             </Link>
 
             {/* Install Store PWA Button */}
@@ -244,35 +292,37 @@ export const StorefrontHeader: React.FC<StorefrontHeaderProps> = ({ config, subd
               <button
                 type="button"
                 onClick={() => promptInstall()}
-                style={{
-                  backgroundColor: 'var(--store-primary-subtle, rgba(16,185,129,0.12))',
-                  borderColor: 'var(--store-primary-border, rgba(16,185,129,0.25))',
-                  color: 'var(--store-primary, #10b981)',
-                }}
-                className="hidden xl:inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-semibold transition-all shadow-2xs cursor-pointer hover:opacity-90"
+                style={{ color: navbarTextColor || undefined }}
+                className={`hidden 2xl:inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                  isDarkNavbar
+                    ? 'text-white/80 hover:text-white hover:bg-white/10'
+                    : 'text-slate-700 hover:text-slate-900 hover:bg-slate-100'
+                }`}
                 title="Install Store App to your device"
               >
-                <Smartphone className="size-3.5" />
-                <span>Install App</span>
+                <Smartphone className="size-3.5 opacity-80" />
+                <span>App</span>
               </button>
             )}
 
-            {/* Theme Toggler (Light / Dark with circular ripple transition) */}
-            <StorefrontThemeToggle />
+            {/* Theme Toggler (Adapts cleanly to dark or light navbar) */}
+            <StorefrontThemeToggle isDarkNavbar={isDarkNavbar} />
 
             {/* Wishlist Trigger */}
             <button
               type="button"
               onClick={openWishlist}
               style={{ color: navbarTextColor || undefined }}
-              className={`relative flex items-center gap-1.5 rounded-xl px-2.5 sm:px-3 py-2 text-xs font-semibold hover:bg-black/5 dark:hover:bg-white/5 border border-transparent hover:border-slate-200 dark:hover:border-zinc-800 transition-all cursor-pointer ${
-                !navbarTextColor ? 'text-slate-700 dark:text-zinc-300' : ''
+              className={`relative flex items-center gap-1.5 rounded-xl px-2.5 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
+                isDarkNavbar
+                  ? 'text-white/80 hover:text-white hover:bg-white/10'
+                  : 'text-slate-700 hover:text-slate-900 hover:bg-slate-100'
               }`}
               title="View Saved Wishlist"
               aria-label="View Saved Wishlist"
             >
               <Heart className={`size-4 transition-colors ${wishlistItems.length > 0 ? 'fill-rose-500 text-rose-500' : ''}`} />
-              <span className="hidden md:inline">Wishlist</span>
+              <span className="hidden lg:inline">Wishlist</span>
               {wishlistItems.length > 0 && (
                 <span className="flex size-4.5 items-center justify-center rounded-full bg-rose-500 text-white text-[10px] font-bold font-mono">
                   {wishlistItems.length}
@@ -288,11 +338,11 @@ export const StorefrontHeader: React.FC<StorefrontHeaderProps> = ({ config, subd
                 backgroundColor: 'var(--store-primary, #10b981)',
                 color: 'var(--store-primary-fg, #ffffff)',
               }}
-              className="group relative flex items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-bold shadow-md transition-all cursor-pointer active:scale-95 border border-black/10 dark:border-white/10"
+              className="group relative flex items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-bold shadow-md hover:shadow-lg hover:brightness-105 transition-all cursor-pointer active:scale-95 border border-black/10 dark:border-white/10 shrink-0"
               aria-label="View Shopping Cart"
             >
               <ShoppingBag className="size-4 group-hover:scale-110 transition-transform" />
-              <span className="hidden sm:inline">Cart</span>
+              <span className="hidden xs:inline">Cart</span>
               <span
                 style={{
                   backgroundColor: 'rgba(0,0,0,0.22)',
@@ -318,14 +368,17 @@ export const StorefrontHeader: React.FC<StorefrontHeaderProps> = ({ config, subd
               backgroundColor: navbarBg || undefined,
               color: navbarTextColor || undefined,
             }}
-            className={`md:hidden border-t border-slate-200 dark:border-zinc-800 backdrop-blur-xl px-4 py-4 space-y-3 shadow-lg transition-all animate-in slide-in-from-top-2 ${
-              !navbarBg ? 'bg-white/95 dark:bg-zinc-950/95' : ''
+            className={`md:hidden border-t px-4 py-4 space-y-3 shadow-xl transition-all animate-in slide-in-from-top-2 ${
+              isDarkNavbar
+                ? 'border-white/10'
+                : 'border-slate-200 dark:border-zinc-800 bg-white/95 dark:bg-zinc-950/95 backdrop-blur-xl'
             }`}
           >
-            <nav className="flex flex-col gap-2">
+            <nav className="flex flex-col gap-1">
               {menuItems.map((item, idx) => {
                 const isExternal = Boolean(item.is_external || item.url.startsWith('http'));
                 const finalUrl = isExternal ? item.url : formatMenuUrl(item.url);
+                const active = !isExternal && isLinkActive(finalUrl);
 
                 if (isExternal) {
                   return (
@@ -336,8 +389,10 @@ export const StorefrontHeader: React.FC<StorefrontHeaderProps> = ({ config, subd
                       rel="noopener noreferrer"
                       onClick={() => setMobileMenuOpen(false)}
                       style={{ color: navbarTextColor || undefined }}
-                      className={`flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium hover:bg-black/5 dark:hover:bg-white/5 transition-colors ${
-                        !navbarTextColor ? 'text-slate-700 dark:text-zinc-200' : ''
+                      className={`flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                        isDarkNavbar
+                          ? 'text-white/85 hover:bg-white/10 hover:text-white'
+                          : 'text-slate-700 dark:text-zinc-200 hover:bg-black/5 dark:hover:bg-white/5'
                       }`}
                     >
                       <span>{item.label}</span>
@@ -352,17 +407,29 @@ export const StorefrontHeader: React.FC<StorefrontHeaderProps> = ({ config, subd
                     to={finalUrl}
                     onClick={() => setMobileMenuOpen(false)}
                     style={{ color: navbarTextColor || undefined }}
-                    className={`px-3 py-2 rounded-lg text-sm font-medium hover:bg-black/5 dark:hover:bg-white/5 transition-colors ${
-                      !navbarTextColor ? 'text-slate-700 dark:text-zinc-200' : ''
+                    className={`flex items-center justify-between px-3 py-2.5 rounded-lg text-sm transition-colors ${
+                      active
+                        ? isDarkNavbar
+                          ? 'font-semibold text-white bg-white/15'
+                          : 'font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30'
+                        : isDarkNavbar
+                        ? 'font-medium text-white/80 hover:bg-white/10 hover:text-white'
+                        : 'font-medium text-slate-700 dark:text-zinc-200 hover:bg-black/5 dark:hover:bg-white/5'
                     }`}
                   >
-                    {item.label}
+                    <span>{item.label}</span>
+                    {active && (
+                      <span
+                        style={{ backgroundColor: 'var(--store-primary, #10b981)' }}
+                        className="size-1.5 rounded-full"
+                      />
+                    )}
                   </Link>
                 );
               })}
             </nav>
 
-            <div className="pt-3 border-t border-black/10 dark:border-white/10 flex flex-col gap-2">
+            <div className={`pt-3 border-t flex flex-col gap-2 ${isDarkNavbar ? 'border-white/10' : 'border-black/10 dark:border-white/10'}`}>
               <button
                 type="button"
                 onClick={() => {
@@ -370,8 +437,10 @@ export const StorefrontHeader: React.FC<StorefrontHeaderProps> = ({ config, subd
                   openWishlist();
                 }}
                 style={{ color: navbarTextColor || undefined }}
-                className={`flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-semibold hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer ${
-                  !navbarTextColor ? 'text-slate-700 dark:text-zinc-200' : ''
+                className={`flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-semibold transition-colors cursor-pointer ${
+                  isDarkNavbar
+                    ? 'text-white/85 hover:bg-white/10'
+                    : 'text-slate-700 dark:text-zinc-200 hover:bg-black/5 dark:hover:bg-white/5'
                 }`}
               >
                 <div className="flex items-center gap-2">
@@ -385,21 +454,18 @@ export const StorefrontHeader: React.FC<StorefrontHeaderProps> = ({ config, subd
                 )}
               </button>
 
-              <a
-                href={`https://wa.me/${whatsappNumber}?text=${whatsappMsg}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{
-                  backgroundColor: 'var(--store-primary-subtle, rgba(16,185,129,0.12))',
-                  borderColor: 'var(--store-primary-border, rgba(16,185,129,0.25))',
-                  color: 'var(--store-primary, #10b981)',
-                }}
-                className="flex items-center justify-center gap-2 py-2.5 rounded-xl font-semibold text-xs border"
-              >
-                <MessageCircle className="size-4" />
-                <span>Chat on WhatsApp</span>
-              </a>
-              {/* Mobile Install App Button */}
+              {config?.whatsapp_ordering_enabled !== false && (
+                <a
+                  href={`https://wa.me/${whatsappNumber}?text=${whatsappMsg}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-2 py-2.5 rounded-xl font-semibold text-xs border border-[#25D366]/30 bg-[#25D366]/10 text-[#25D366] hover:bg-[#25D366]/20 transition-colors"
+                >
+                  <MessageCircle className="size-4" />
+                  <span>Chat on WhatsApp</span>
+                </a>
+              )}
+
               {isInstallable && !isInstalled && (
                 <button
                   type="button"
@@ -422,7 +488,9 @@ export const StorefrontHeader: React.FC<StorefrontHeaderProps> = ({ config, subd
                 to={`/store/${subdomain}/account`}
                 onClick={() => setMobileMenuOpen(false)}
                 style={{ color: navbarTextColor ? `${navbarTextColor}aa` : undefined }}
-                className="text-center py-2 text-xs font-semibold hover:opacity-100"
+                className={`text-center py-2 text-xs font-semibold ${
+                  !navbarTextColor ? 'text-slate-600 dark:text-zinc-400' : ''
+                } hover:opacity-100`}
               >
                 Manage My Account
               </Link>
