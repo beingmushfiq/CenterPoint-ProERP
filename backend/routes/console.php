@@ -11,4 +11,5 @@ Artisan::command('inspire', function (): void {
 })->purpose('Display an inspiring quote');
 
 Schedule::command('idempotency:purge-expired')->hourly()->withoutOverlapping();
+Schedule::command('subscriptions:process-lifecycle')->dailyAt('00:05')->withoutOverlapping();
 Schedule::command('backup:database')->dailyAt('02:00');

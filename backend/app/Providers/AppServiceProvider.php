@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Core\Tenancy\TenantContext;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 
@@ -25,6 +27,26 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->configureRateLimiting();
+        $this->configureQueueTenantIsolation();
+    }
+
+    /**
+     * Ensure multi-tenant isolation across asynchronous queue workers.
+     * Flushes TenantContext between jobs to prevent state bleeding.
+     */
+    protected function configureQueueTenantIsolation(): void
+    {
+        Queue::looping(function (): void {
+            TenantContext::flush();
+        });
+
+        Queue::after(function (): void {
+            TenantContext::flush();
+        });
+
+        Queue::failing(function (): void {
+            TenantContext::flush();
+        });
     }
 
     protected function configureRateLimiting(): void
@@ -34,7 +56,8 @@ class AppServiceProvider extends ServiceProvider
         });
 
         RateLimiter::for('login', function (Request $request) {
-            $email = (string) $request->input('email');
+            $email = $request->string('email')->value();
+
             return [
                 Limit::perMinutes(5, 5)->by($email),
                 Limit::perMinutes(5, 20)->by($request->ip()),
@@ -46,7 +69,8 @@ class AppServiceProvider extends ServiceProvider
         });
 
         RateLimiter::for('platform_login', function (Request $request) {
-            $email = (string) $request->input('email');
+            $email = $request->string('email')->value();
+
             return [
                 Limit::perMinutes(5, 5)->by($email),
                 Limit::perMinutes(5, 10)->by($request->ip()),
@@ -54,7 +78,9 @@ class AppServiceProvider extends ServiceProvider
         });
 
         RateLimiter::for('customer_login', function (Request $request) {
-            $phone = (string) $request->input('phone', $request->input('email', ''));
+            $email = $request->string('email')->value();
+            $phone = $request->string('phone', $email)->value();
+
             return [
                 Limit::perMinutes(5, 5)->by($phone),
                 Limit::perMinutes(5, 15)->by($request->ip()),

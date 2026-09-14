@@ -207,6 +207,10 @@ Under **cPanel → Cron Jobs**, configure two jobs:
   ```bash
   /usr/local/bin/php /home/CPANEL_USER/backend/artisan schedule:run >> /dev/null 2>&1
   ```
+  *This automatically executes:*
+  - `subscriptions:process-lifecycle` daily at 00:05 (automated `trial → past_due → suspended` transitions)
+  - `idempotency:purge-expired` hourly (cleans stale mutation keys)
+  - `backup:database` daily at 02:00 (database backup with SHA-256 verification)
 
 **Job 2: Queue Worker (Every Minute)**
 - Schedule: `* * * * *`
@@ -214,10 +218,20 @@ Under **cPanel → Cron Jobs**, configure two jobs:
   ```bash
   /usr/local/bin/php /home/CPANEL_USER/backend/artisan queue:work --stop-when-empty --max-time=50 --memory=128 >> /dev/null 2>&1
   ```
+  *Runs with automatic TenantContext isolation (`Queue::looping`/`Queue::after` hooks) to prevent context bleeding between tenant tasks.*
 
 ---
 
-### Step 9: DNS & SSL Configuration
+### Step 9: Automated Deployment via Shell Script
+For streamlined updates via SSH or cPanel Git Version Control post-receive hook, use the included deployment script:
+```bash
+bash scripts/deploy-cpanel.sh
+```
+This runs composer install with optimized autoloader, executes pending migrations, rebuilds all production caches (`config:cache`, `route:cache`, `view:cache`), and restarts queue workers.
+
+---
+
+### Step 10: DNS & SSL Configuration
 1. In cPanel **Zone Editor**:
    - Create an **A Record** or **CNAME** for `proerp.devcenterpoint.com` pointing to the server IP.
    - Create a **Wildcard CNAME / A Record**: `*.devcenterpoint.com` pointing to the server IP.

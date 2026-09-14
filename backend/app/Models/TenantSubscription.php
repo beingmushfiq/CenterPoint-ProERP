@@ -17,6 +17,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int $plan_id
  * @property CarbonInterface $starts_at
  * @property CarbonInterface|null $ends_at
+ * @property CarbonInterface|null $grace_period_ends_at
  * @property string $status
  * @property string $amount
  * @property string|null $external_reference
