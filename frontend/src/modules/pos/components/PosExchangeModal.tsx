@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import type { PosSession } from '../../../types/api/pos';
 import type { Product } from '../../../types/api/catalog';
+import type { Invoice, InvoiceItem } from '../../../types/api/sales';
 import { api } from '../../../lib/api/client';
 import { notify } from '../../../components/ui/Toast';
 import { useCurrency } from '../../../hooks/useCurrency';
@@ -83,6 +84,8 @@ export function PosExchangeModal({
   const [reasonCodeId, setReasonCodeId] = useState<number>(1);
   const [notes, setNotes] = useState('');
   const [invoiceRef, setInvoiceRef] = useState(initialInvoiceNumber || '');
+  const [invoiceId, setInvoiceId] = useState<number | null>(initialInvoiceId || null);
+  const [searchingInvoice, setSearchingInvoice] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [completedExchangeNumber, setCompletedExchangeNumber] = useState<string | null>(null);
 
@@ -205,6 +208,84 @@ export function PosExchangeModal({
     setReplacementSearch('');
   };
 
+  const handleLookupInvoice = async () => {
+    const rawSearch = invoiceRef.trim();
+    if (!rawSearch) {
+      notify.error('Invoice Number Required', { description: 'Please enter an invoice number to search.' });
+      return;
+    }
+    setSearchingInvoice(true);
+    try {
+      // 1. First query with raw search term
+      const res = await api.get<{ data: Invoice[] } | Invoice[]>(`/sales/invoices?q=${encodeURIComponent(rawSearch)}`);
+      const rawData = res.data;
+      let invoices: Invoice[] = Array.isArray(rawData) ? rawData : (rawData?.data ?? []);
+
+      // 2. If no result and input didn't start with POS-, try searching with POS- prefix or stripped prefix
+      if (invoices.length === 0) {
+        const altSearch = rawSearch.toUpperCase().startsWith('POS-')
+          ? rawSearch.slice(4)
+          : `POS-${rawSearch}`;
+        const altRes = await api.get<{ data: Invoice[] } | Invoice[]>(`/sales/invoices?q=${encodeURIComponent(altSearch)}`);
+        const altRaw = altRes.data;
+        invoices = Array.isArray(altRaw) ? altRaw : (altRaw?.data ?? []);
+      }
+
+      // 3. Match logic: exact match, prefix-agnostic match, or closest match
+      const sLower = rawSearch.toLowerCase();
+      const sStripped = sLower.replace(/^pos-/, '');
+      const match =
+        invoices.find((inv: Invoice) => {
+          const numLower = String(inv.invoice_number || '').toLowerCase();
+          const numStripped = numLower.replace(/^pos-/, '');
+          return (
+            numLower === sLower ||
+            numStripped === sStripped ||
+            numLower.includes(sLower) ||
+            numStripped.includes(sStripped) ||
+            sLower.includes(numLower) ||
+            sStripped.includes(numStripped)
+          );
+        }) || (invoices.length > 0 ? invoices[0] : null);
+
+      if (!match) {
+        notify.info('Invoice Not Found', { description: `No invoice matching "${rawSearch}" found.` });
+        return;
+      }
+
+      setInvoiceId(match.id);
+      setInvoiceRef(match.invoice_number);
+
+      if (match.items && match.items.length > 0) {
+        const loadedItems: ReturnItemState[] = match.items.map((it: InvoiceItem, idx: number) => {
+          const prod = products.find((p) => Number(p.product_id ?? p.id) === Number(it.product_id));
+          return {
+            id: `inv-${match.id}-${idx}`,
+            product_id: Number(it.product_id),
+            product_name: it.product_name || prod?.name || `Product #${it.product_id}`,
+            sku: prod?.sku || `PRD-${it.product_id}`,
+            quantity: Number(it.quantity) || 1,
+            unit_price: Number(it.unit_price) || 0,
+            unit_id: Number(it.unit_id) || Number(prod?.unit_id ?? prod?.base_unit_id) || 1,
+            condition: 'good',
+            restock: true,
+          };
+        });
+        setReturnItems(loadedItems);
+        notify.success('Invoice Loaded', {
+          description: `Loaded ${loadedItems.length} return item(s) from invoice #${match.invoice_number}.`,
+        });
+      } else {
+        notify.info('Invoice Found', { description: `Invoice #${match.invoice_number} has no item details.` });
+      }
+    } catch (err) {
+      console.error('Failed to lookup invoice for exchange', err);
+      notify.error('Invoice Search Failed', { description: 'Unable to query sales invoice.' });
+    } finally {
+      setSearchingInvoice(false);
+    }
+  };
+
   const handleProcessExchange = async (autoApprove: boolean) => {
     if (returnItems.length === 0) {
       notify.error('Return items required', { description: 'Please add at least one item being returned by customer.' });
@@ -224,7 +305,7 @@ export function PosExchangeModal({
         warehouse_id: session.warehouse_id || 1,
         reason_code_id: reasonCodeId,
         pos_session_id: session.id,
-        original_invoice_id: initialInvoiceId || undefined,
+        original_invoice_id: invoiceId || initialInvoiceId || undefined,
         notes: notes ? `[POS ${session.terminal_name ?? 'Station'}] ${notes}` : `[POS ${session.terminal_name ?? 'Counter'}]`,
         return_items: returnItems.map((item) => ({
           product_id: item.product_id,
@@ -373,14 +454,31 @@ export function PosExchangeModal({
             {/* Top Config Row */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3 p-3.5 rounded-xl border border-default bg-surface-sunken text-xs">
               <div>
-                <label className="block font-semibold text-muted mb-1">Original Invoice (Optional)</label>
-                <input
-                  type="text"
-                  placeholder="e.g. INV-202609-0012"
-                  value={invoiceRef}
-                  onChange={(e) => setInvoiceRef(e.target.value)}
-                  className="w-full rounded-lg border border-default bg-surface px-3 py-1.5 text-default text-xs font-mono focus:border-primary focus:outline-none"
-                />
+                <label className="block font-semibold text-muted mb-1">Original Invoice (Lookup)</label>
+                <div className="flex gap-1.5">
+                  <input
+                    type="text"
+                    placeholder="e.g. POS-INV-20260908-..."
+                    value={invoiceRef}
+                    onChange={(e) => setInvoiceRef(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleLookupInvoice();
+                      }
+                    }}
+                    className="flex-1 rounded-lg border border-default bg-surface px-2.5 py-1.5 text-default text-xs font-mono focus:border-primary focus:outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleLookupInvoice}
+                    disabled={searchingInvoice || !invoiceRef.trim()}
+                    className="px-2.5 py-1.5 rounded-lg bg-primary text-white font-semibold text-xs hover:bg-primary-hover disabled:opacity-50 cursor-pointer"
+                    title="Load items from this invoice"
+                  >
+                    {searchingInvoice ? '...' : 'Load'}
+                  </button>
+                </div>
               </div>
 
               <div>

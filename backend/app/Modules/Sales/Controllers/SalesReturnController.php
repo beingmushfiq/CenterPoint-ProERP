@@ -26,7 +26,7 @@ final class SalesReturnController extends Controller
     {
         $tenantId = TenantContext::current()->tenantId();
 
-        $query = SalesReturn::with(['customer', 'warehouse', 'items.product', 'reasonCode'])
+        $query = SalesReturn::with(['customer', 'warehouse', 'items.product', 'reasonCode', 'invoice'])
             ->where('tenant_id', $tenantId);
 
         if ($request->filled('status')) {
@@ -43,7 +43,7 @@ final class SalesReturnController extends Controller
 
         $returns = $query->orderByDesc('return_date')
             ->orderByDesc('id')
-            ->paginate((int) $request->query('per_page', 25));
+            ->paginate($request->integer('per_page', 25));
 
         return SalesReturnResource::collection($returns);
     }
@@ -69,7 +69,7 @@ final class SalesReturnController extends Controller
     {
         $tenantId = TenantContext::current()->tenantId();
 
-        $return = SalesReturn::with(['customer', 'warehouse', 'items.product', 'reasonCode'])
+        $return = SalesReturn::with(['customer', 'warehouse', 'items.product', 'reasonCode', 'invoice'])
             ->where('tenant_id', $tenantId)
             ->where('id', $id)
             ->firstOrFail();

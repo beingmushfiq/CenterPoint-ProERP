@@ -43,7 +43,10 @@ export interface Product extends CatalogTimestamped {
   description: string | null;
   type: string;
   category_id: string | null;
+  category_name?: string | null;
+  category?: { id: string; name: string; code?: string } | null;
   brand_id: string | null;
+  brand_name?: string | null;
   base_unit_id: string;
   purchase_unit_id: string | null;
   sales_unit_id: string | null;

@@ -1,27 +1,35 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   ArrowLeftRight,
   CheckCircle2,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  ChevronUp,
   Clock,
   CreditCard,
   DollarSign,
   FileText,
+  Filter,
   Minus,
   PauseCircle,
   PlayCircle,
   Plus,
   Printer,
   RefreshCw,
+  RotateCcw,
   Search,
   ShoppingBag,
   Smartphone,
   Split,
+  StickyNote,
   Trash2,
+  User,
   X,
 } from 'lucide-react';
 import type { PosSession, PosCheckoutPayload, PosCheckoutPaymentPayload, PosCheckoutResult, PosHeldSale } from '../../types/api/pos';
-import type { Product } from '../../types/api/catalog';
+import type { Product, Category } from '../../types/api/catalog';
 import type { Invoice } from '../../types/api/sales';
 import { api } from '../../lib/api/client';
 import { useCurrency } from '../../hooks/useCurrency';
@@ -31,6 +39,7 @@ import { ThermalReceipt } from '../../components/print/receipts/ThermalReceipt';
 import { SalesInvoiceDocument } from '../../components/print/documents/SalesInvoiceDocument';
 import { useBusinessConfig } from '../../lib/document/useBusinessConfig';
 import { PosExchangeModal } from './components/PosExchangeModal';
+import { PosReturnModal } from './components/PosReturnModal';
 
 export type PosPaymentMethod = 'cash' | 'card' | 'mobile_banking' | 'credit_adjustment';
 
@@ -59,6 +68,7 @@ interface CartSlot {
   id: number;
   label: string;
   cart: CartItem[];
+  customerPartyId?: number | null;
   customerName: string;
   customerPhone: string;
   tenderMethod: PosPaymentMethod;
@@ -67,19 +77,51 @@ interface CartSlot {
   splitPayments?: PosPaymentLine[];
   order_discount_type?: 'flat' | 'percentage';
   order_discount_value?: string;
+  notes?: string;
 }
 
 export function POSShell({ session, onExit }: POSShellProps) {
   const { formatCurrency, currencySymbol, currencyCode } = useCurrency();
   const [search, setSearch] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [mobileView, setMobileView] = useState<'catalog' | 'cart'>('catalog');
+
+  // Category scroll & collapse state (Default: compact single-row bar as preferred)
+  const [isCategoriesCollapsed, setIsCategoriesCollapsed] = useState<boolean>(() => {
+    try {
+      const saved = localStorage.getItem('pos_category_collapsed');
+      return saved !== null ? saved === 'true' : true;
+    } catch {
+      return true;
+    }
+  });
+  const categoryScrollRef = useRef<HTMLDivElement>(null);
+
+  const toggleCategoriesCollapsed = (collapsed: boolean) => {
+    setIsCategoriesCollapsed(collapsed);
+    try {
+      localStorage.setItem('pos_category_collapsed', String(collapsed));
+    } catch {
+      // ignore
+    }
+  };
+
+  const scrollCategories = (direction: 'left' | 'right') => {
+    if (categoryScrollRef.current) {
+      const offset = direction === 'left' ? -220 : 220;
+      categoryScrollRef.current.scrollBy({ left: offset, behavior: 'smooth' });
+    }
+  };
+
+  // Sale Note expansion state
+  const [isNoteExpanded, setIsNoteExpanded] = useState(false);
   
   // Multi-cart slots (up to 5 concurrent held transactions)
   const [activeSlotIndex, setActiveSlotIndex] = useState<number>(0);
   const [slots, setSlots] = useState<CartSlot[]>([
-    { id: 1, label: 'Cart 1', cart: [], customerName: '', customerPhone: '', tenderMethod: 'cash', cashTendered: '', isSplitPayment: false, splitPayments: [], order_discount_type: 'flat', order_discount_value: '' },
-    { id: 2, label: 'Cart 2 (Hold)', cart: [], customerName: '', customerPhone: '', tenderMethod: 'cash', cashTendered: '', isSplitPayment: false, splitPayments: [], order_discount_type: 'flat', order_discount_value: '' },
-    { id: 3, label: 'Cart 3 (Hold)', cart: [], customerName: '', customerPhone: '', tenderMethod: 'cash', cashTendered: '', isSplitPayment: false, splitPayments: [], order_discount_type: 'flat', order_discount_value: '' },
+    { id: 1, label: 'Cart 1', cart: [], customerPartyId: null, customerName: '', customerPhone: '', tenderMethod: 'cash', cashTendered: '', isSplitPayment: false, splitPayments: [], order_discount_type: 'flat', order_discount_value: '', notes: '' },
+    { id: 2, label: 'Cart 2 (Hold)', cart: [], customerPartyId: null, customerName: '', customerPhone: '', tenderMethod: 'cash', cashTendered: '', isSplitPayment: false, splitPayments: [], order_discount_type: 'flat', order_discount_value: '', notes: '' },
+    { id: 3, label: 'Cart 3 (Hold)', cart: [], customerPartyId: null, customerName: '', customerPhone: '', tenderMethod: 'cash', cashTendered: '', isSplitPayment: false, splitPayments: [], order_discount_type: 'flat', order_discount_value: '', notes: '' },
   ]);
 
   const currentSlot = slots[activeSlotIndex] ?? slots[0]!;
@@ -124,6 +166,30 @@ export function POSShell({ session, onExit }: POSShellProps) {
     setExchangeInitialOrderItems(items ?? []);
     setIsExchangeModalOpen(true);
   };
+
+  // POS Counter Return & Refund State
+  const [isReturnModalOpen, setIsReturnModalOpen] = useState(false);
+  const [returnInitialInvoiceId, setReturnInitialInvoiceId] = useState<number | null>(null);
+  const [returnInitialInvoiceNumber, setReturnInitialInvoiceNumber] = useState<string | null>(null);
+  const [returnInitialOrderItems, setReturnInitialOrderItems] = useState<
+    Array<{
+      product_id: number;
+      product_name?: string;
+      quantity: number | string;
+      unit_price: number | string;
+    }>
+  >([]);
+
+  const handleOpenReturnModal = (
+    invoiceId?: number | null,
+    invoiceNum?: string | null,
+    items?: Array<{ product_id: number; product_name?: string; quantity: number | string; unit_price: number | string }>
+  ) => {
+    setReturnInitialInvoiceId(invoiceId ?? null);
+    setReturnInitialInvoiceNumber(invoiceNum ?? null);
+    setReturnInitialOrderItems(items ?? []);
+    setIsReturnModalOpen(true);
+  };
   const barcodeInputRef = useRef<HTMLInputElement>(null);
   const customerNameInputRef = useRef<HTMLInputElement>(null);
   const cashTenderedInputRef = useRef<HTMLInputElement>(null);
@@ -144,15 +210,80 @@ export function POSShell({ session, onExit }: POSShellProps) {
     queryKey: ['catalog', 'products', 'pos'],
     queryFn: async () => {
       try {
-        const res = await api.get<{ data?: Product[] } | Product[]>('/products?per_page=100');
+        // Backend enforces max per_page of 100
+        const res = await api.get<{ data?: Product[]; meta?: { last_page?: number } } | Product[]>(
+          '/products?per_page=100&include=category,images'
+        );
         const raw = res.data;
-        const list = Array.isArray(raw) ? raw : (raw?.data ?? []);
+        let list: Product[] = Array.isArray(raw) ? raw : (raw?.data ?? []);
+        
+        // If multiple pages exist, load remaining pages up to page 5 (up to 500 catalog items)
+        const lastPage = !Array.isArray(raw) && raw?.meta?.last_page ? raw.meta.last_page : 1;
+        if (lastPage > 1) {
+          const fetchPromises: Array<ReturnType<typeof api.get<Product[] | { data?: Product[] }>>> = [];
+          for (let p = 2; p <= Math.min(lastPage, 5); p++) {
+            fetchPromises.push(
+              api.get<Product[] | { data?: Product[] }>(`/products?page=${p}&per_page=100&include=category,images`)
+            );
+          }
+          const results = await Promise.allSettled(fetchPromises);
+          for (const r of results) {
+            if (r.status === 'fulfilled') {
+              const pageData = r.value.data;
+              const pageList = Array.isArray(pageData) ? pageData : (pageData?.data ?? []);
+              list = list.concat(pageList);
+            }
+          }
+        }
+
         return list;
       } catch (err) {
         console.error('Failed to load products for POS', err);
         return [];
       }
     },
+  });
+
+  // Query categories for smart category filtering in POS
+  const { data: categories = [] } = useQuery<Category[]>({
+    queryKey: ['catalog', 'categories', 'pos'],
+    queryFn: async () => {
+      try {
+        const res = await api.get<Category[] | { data: Category[] }>('/categories');
+        const raw = res.data;
+        return Array.isArray(raw) ? raw : (raw?.data ?? []);
+      } catch {
+        return [];
+      }
+    },
+    staleTime: 60_000,
+  });
+
+  interface PosCustomerOption {
+    id: string | number;
+    party_id?: number;
+    name: string;
+    code?: string;
+    phone?: string;
+    email?: string;
+    type?: string;
+    is_dealer?: boolean;
+  }
+
+  // Query existing active customers for quick selection
+  const { data: customerOptions = [] } = useQuery<PosCustomerOption[]>({
+    queryKey: ['parties', 'customer-options', 'pos'],
+    queryFn: async () => {
+      try {
+        const res = await api.get<{ data?: PosCustomerOption[] } | PosCustomerOption[]>('/parties/options?is_customer=true');
+        const raw = res.data;
+        const list = Array.isArray(raw) ? raw : (raw?.data ?? []);
+        return list;
+      } catch {
+        return [];
+      }
+    },
+    staleTime: 60_000,
   });
 
   const { data: heldSales = [], refetch: refetchHeldSales } = useQuery<PosHeldSale[]>({
@@ -287,6 +418,7 @@ export function POSShell({ session, onExit }: POSShellProps) {
   const clearCart = () => {
     updateCurrentSlot({
       cart: [],
+      customerPartyId: null,
       customerName: '',
       customerPhone: '',
       cashTendered: '',
@@ -294,6 +426,7 @@ export function POSShell({ session, onExit }: POSShellProps) {
       splitPayments: [],
       order_discount_type: 'flat',
       order_discount_value: '',
+      notes: '',
     });
   };
 
@@ -373,12 +506,14 @@ export function POSShell({ session, onExit }: POSShellProps) {
 
     const payload: PosCheckoutPayload = {
       pos_session_id: session.id,
+      ...(currentSlot.customerPartyId ? { party_id: currentSlot.customerPartyId } : {}),
       customer_name: customerName || 'Walk-in Customer',
       customer_phone: customerPhone || null,
       order_date: new Date().toISOString().slice(0, 10),
       order_discount_type: orderDiscType,
       order_discount_value: orderDiscVal.toFixed(4),
       discount_amount: discountTotal.toFixed(4),
+      ...(currentSlot.notes?.trim() ? { notes: currentSlot.notes.trim() } : {}),
       items: cart.map((item) => {
         const lineGross = item.quantity * item.unit_price;
         const isPct = item.discount_type === 'percentage';
@@ -485,6 +620,7 @@ export function POSShell({ session, onExit }: POSShellProps) {
         terminalName={session.terminal_name || 'Gulshan Flagship - Counter 1'}
         {...(cashTender?.amount ? { tenderedCash: cashTender.amount } : {})}
         {...(cashTender?.change_given ? { changeAmount: cashTender.change_given } : {})}
+        {...(lastReceipt.order.notes ? { orderNotes: lastReceipt.order.notes } : {})}
       />,
       {
         pageClass: 'print-page-thermal-80',
@@ -508,6 +644,7 @@ export function POSShell({ session, onExit }: POSShellProps) {
         total_amount: grandTotal.toFixed(4),
         cart_payload: {
           items: cart,
+          customerPartyId: currentSlot.customerPartyId || null,
           customerName,
           customerPhone,
           tenderMethod,
@@ -541,9 +678,10 @@ export function POSShell({ session, onExit }: POSShellProps) {
       if (!confirmReplace) return;
     }
     const payload = heldSale.cart_payload;
-    const payloadExtra = payload as { isSplitPayment?: boolean; splitPayments?: PosPaymentLine[] };
+    const payloadExtra = payload as { isSplitPayment?: boolean; splitPayments?: PosPaymentLine[]; customerPartyId?: number | null };
     updateCurrentSlot({
       cart: (payload.items as unknown as CartItem[]) || [],
+      customerPartyId: payloadExtra.customerPartyId ?? heldSale.customer_party_id ?? null,
       customerName: payload.customerName || '',
       customerPhone: payload.customerPhone || '',
       tenderMethod: payload.tenderMethod || 'cash',
@@ -572,12 +710,55 @@ export function POSShell({ session, onExit }: POSShellProps) {
     }
   };
 
-  const filteredProducts = products.filter(
-    (p) =>
-      p.name.toLowerCase().includes(search.toLowerCase()) ||
-      p.sku.toLowerCase().includes(search.toLowerCase()) ||
-      (p.barcode && p.barcode.toLowerCase().includes(search.toLowerCase()))
-  );
+  // Smart category tabs derived from actual products & category records
+  const categoryTabs = useMemo(() => {
+    const counts = new Map<string, { id: string; name: string; count: number }>();
+    const catNameMap = new Map<string, string>();
+    categories.forEach((c) => {
+      catNameMap.set(String(c.id), c.name);
+    });
+
+    products.forEach((p) => {
+      const catId = p.category_id ? String(p.category_id) : 'uncategorized';
+      const catName =
+        p.category_name ||
+        p.category?.name ||
+        (p.category_id ? catNameMap.get(String(p.category_id)) : null) ||
+        (catId === 'uncategorized' ? 'General / Others' : catId);
+
+      const existing = counts.get(catId);
+      if (existing) {
+        existing.count += 1;
+      } else {
+        counts.set(catId, { id: catId, name: catName, count: 1 });
+      }
+    });
+
+    const list = Array.from(counts.values()).sort((a, b) => b.count - a.count);
+    return [
+      { id: 'all', name: 'All Products', count: products.length },
+      ...list,
+    ];
+  }, [products, categories]);
+
+  const filteredProducts = useMemo(() => {
+    const q = search.toLowerCase().trim();
+    return products.filter((p) => {
+      // 1. Smart Category Filter
+      if (selectedCategory !== 'all') {
+        const pCatId = p.category_id ? String(p.category_id) : 'uncategorized';
+        if (pCatId !== selectedCategory) return false;
+      }
+
+      // 2. Search Filter
+      if (!q) return true;
+      return (
+        p.name.toLowerCase().includes(q) ||
+        p.sku.toLowerCase().includes(q) ||
+        (p.barcode && p.barcode.toLowerCase().includes(q))
+      );
+    });
+  }, [products, search, selectedCategory]);
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-surface text-default">
@@ -653,6 +834,15 @@ export function POSShell({ session, onExit }: POSShellProps) {
           </button>
 
           <button
+            onClick={() => handleOpenReturnModal()}
+            className="flex items-center gap-1.5 rounded-xl border border-rose-500/30 bg-rose-500/10 px-3 py-1.5 text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-500/20 cursor-pointer transition-colors shadow-2xs"
+            title="Process Counter Customer Return & Refund"
+          >
+            <RotateCcw className="h-4 w-4 text-rose-600 dark:text-rose-400" />
+            <span className="hidden sm:inline">Return</span>
+          </button>
+
+          <button
             onClick={() => setIsParkedDrawerOpen(true)}
             className="flex items-center gap-1.5 rounded-xl border border-default bg-surface px-3 py-1.5 text-xs font-semibold text-default hover:bg-surface-sunken cursor-pointer transition-colors shadow-2xs"
             title="View Parked / Held Sales"
@@ -720,6 +910,121 @@ export function POSShell({ session, onExit }: POSShellProps) {
             </button>
           </div>
 
+          {/* 🏷️ Smart Category Navigation Bar (Scrollable & Collapsible) */}
+          <div className="mb-3">
+            {isCategoriesCollapsed ? (
+              /* Collapsed State: Compact single-row bar */
+              <div className="flex items-center justify-between rounded-xl border border-default bg-surface px-3 py-1.5 text-xs shadow-2xs">
+                <div className="flex items-center gap-2">
+                  <Filter className="h-3.5 w-3.5 text-primary shrink-0" />
+                  <span className="font-semibold text-muted text-[11px]">Category:</span>
+                  <select
+                    value={selectedCategory}
+                    onChange={(e) => setSelectedCategory(e.target.value)}
+                    className="h-7 rounded-lg border border-default bg-surface-sunken px-2 text-xs font-semibold text-default focus:border-primary focus:outline-none cursor-pointer"
+                  >
+                    {categoryTabs.map((tab) => (
+                      <option key={tab.id} value={tab.id}>
+                        {tab.name} ({tab.count})
+                      </option>
+                    ))}
+                  </select>
+                  {selectedCategory !== 'all' && (
+                    <button
+                      type="button"
+                      onClick={() => setSelectedCategory('all')}
+                      className="text-[10px] text-primary hover:underline font-semibold cursor-pointer"
+                    >
+                      Reset to All
+                    </button>
+                  )}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => toggleCategoriesCollapsed(false)}
+                  className="flex items-center gap-1 text-[11px] font-semibold text-muted hover:text-default bg-surface-sunken hover:bg-surface px-2.5 py-1 rounded-lg border border-default transition-all cursor-pointer shadow-2xs"
+                  title="Expand Category Pills"
+                >
+                  <span>Show Categories</span>
+                  <ChevronDown className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            ) : (
+              /* Expanded State: Smoothly scrollable with Left/Right chevrons & Collapse button */
+              <div className="relative flex items-center gap-1">
+                {/* Scroll Left Button */}
+                <button
+                  type="button"
+                  onClick={() => scrollCategories('left')}
+                  className="h-8 w-7 shrink-0 rounded-xl border border-default bg-surface hover:bg-surface-sunken flex items-center justify-center text-muted hover:text-default transition-all cursor-pointer shadow-2xs touch-target"
+                  title="Scroll categories left"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </button>
+
+                {/* Scrollable Container with mouse-wheel support */}
+                <div
+                  ref={categoryScrollRef}
+                  onWheel={(e) => {
+                    if (e.deltaY !== 0) {
+                      e.currentTarget.scrollLeft += e.deltaY;
+                    }
+                  }}
+                  className="flex-1 flex items-center gap-1.5 overflow-x-auto py-1 scroll-smooth no-scrollbar"
+                >
+                  {categoryTabs.map((tab) => {
+                    const isActive = selectedCategory === tab.id;
+                    return (
+                      <button
+                        key={tab.id}
+                        type="button"
+                        onClick={() => setSelectedCategory(tab.id)}
+                        className={`inline-flex shrink-0 items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold transition-all cursor-pointer select-none ${
+                          isActive
+                            ? 'bg-primary text-white shadow-xs font-bold'
+                            : 'border border-default bg-surface text-muted hover:border-default/80 hover:bg-surface-sunken hover:text-default'
+                        }`}
+                      >
+                        <span>{tab.name}</span>
+                        <span
+                          className={`rounded-full px-1.5 py-0.2 text-[10px] font-mono ${
+                            isActive
+                              ? 'bg-white/20 text-white'
+                              : 'bg-surface-sunken text-muted'
+                          }`}
+                        >
+                          {tab.count}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Scroll Right Button */}
+                <button
+                  type="button"
+                  onClick={() => scrollCategories('right')}
+                  className="h-8 w-7 shrink-0 rounded-xl border border-default bg-surface hover:bg-surface-sunken flex items-center justify-center text-muted hover:text-default transition-all cursor-pointer shadow-2xs touch-target"
+                  title="Scroll categories right"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+
+                {/* Collapse Button */}
+                <button
+                  type="button"
+                  onClick={() => toggleCategoriesCollapsed(true)}
+                  className="h-8 shrink-0 px-2 rounded-xl border border-default bg-surface hover:bg-surface-sunken flex items-center gap-1 text-[11px] font-semibold text-muted hover:text-default transition-all cursor-pointer shadow-2xs"
+                  title="Collapse Categories to compact single-row form"
+                >
+                  <ChevronUp className="h-3.5 w-3.5" />
+                  <span className="hidden xl:inline">Collapse</span>
+                </button>
+              </div>
+            )}
+          </div>
+
           {/* Product Cards Grid */}
           <div className="flex-1 overflow-y-auto pr-1">
             {loadingProducts ? (
@@ -727,29 +1032,81 @@ export function POSShell({ session, onExit }: POSShellProps) {
                 Loading products...
               </div>
             ) : filteredProducts.length === 0 ? (
-              <div className="flex h-48 items-center justify-center text-xs text-muted">
-                No products found matching your search.
+              <div className="flex flex-col h-48 items-center justify-center text-xs text-muted gap-2">
+                <p>No products found matching your search or category filter.</p>
+                {(selectedCategory !== 'all' || search) && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedCategory('all');
+                      setSearch('');
+                    }}
+                    className="text-primary font-semibold hover:underline cursor-pointer"
+                  >
+                    Clear filters and show all products
+                  </button>
+                )}
               </div>
             ) : (
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-                {filteredProducts.map((p) => (
-                  <button
-                    key={p.id}
-                    onClick={() => addToCart(p)}
-                    className="flex flex-col items-start rounded-xl border border-default bg-surface p-3 text-left transition-all hover:border-primary/50 hover:bg-surface-sunken active:scale-[0.98] cursor-pointer shadow-2xs"
-                  >
-                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold text-xs">
-                      {p.name.charAt(0)}
-                    </div>
-                    <div className="mt-2 font-medium text-xs text-default line-clamp-1">
-                      {p.name}
-                    </div>
-                    <div className="font-mono text-[10px] text-muted">{p.sku}</div>
-                    <div className="mt-2 font-mono font-bold text-xs text-emerald-600 dark:text-emerald-400">
-                      {formatCurrency(parseFloat(p.default_sale_price || p.standard_cost || '100') || 100)}
-                    </div>
-                  </button>
-                ))}
+                {filteredProducts.map((p) => {
+                  const imageUrl =
+                    p.image_url ||
+                    p.images?.find((img) => img.is_primary)?.url ||
+                    p.images?.[0]?.url ||
+                    (p.online_meta as { image_url?: string } | null)?.image_url ||
+                    null;
+                  const price = parseFloat(p.default_sale_price || p.standard_cost || '100') || 100;
+                  const catName = p.category_name || p.category?.name;
+
+                  return (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => addToCart(p)}
+                      className="group flex flex-col items-start rounded-xl border border-default bg-surface p-2.5 sm:p-3 text-left transition-all hover:border-primary/50 hover:bg-surface-sunken active:scale-[0.98] cursor-pointer shadow-2xs relative"
+                    >
+                      {imageUrl ? (
+                        <div className="relative mb-2 h-24 sm:h-28 w-full overflow-hidden rounded-lg bg-surface-sunken border border-default/40 flex items-center justify-center">
+                          <img
+                            src={imageUrl}
+                            alt={p.name}
+                            role="presentation"
+                            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                            loading="lazy"
+                            onError={(e) => {
+                              const target = e.currentTarget;
+                              target.style.display = 'none';
+                              const fallback = target.parentElement?.querySelector('.pos-img-fallback') as HTMLElement | null;
+                              if (fallback) fallback.style.display = 'flex';
+                            }}
+                          />
+                          <div className="pos-img-fallback absolute inset-0 hidden items-center justify-center bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold text-sm">
+                            {p.name.charAt(0).toUpperCase()}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="mb-2 flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold text-xs group-hover:scale-105 transition-transform">
+                          {p.name.charAt(0).toUpperCase()}
+                        </div>
+                      )}
+
+                      {catName && (
+                        <span className="mb-1 inline-block truncate max-w-full rounded bg-surface-sunken px-1.5 py-0.5 text-[9px] font-medium text-muted uppercase tracking-wider">
+                          {catName}
+                        </span>
+                      )}
+
+                      <div className="font-medium text-xs text-default line-clamp-2 leading-snug group-hover:text-primary transition-colors" title={p.name}>
+                        {p.name}
+                      </div>
+                      <div className="mt-1 font-mono text-[10px] text-muted">{p.sku}</div>
+                      <div className="mt-2 font-mono font-bold text-xs text-emerald-600 dark:text-emerald-400">
+                        {formatCurrency(price)}
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
             )}
           </div>
@@ -965,23 +1322,131 @@ export function POSShell({ session, onExit }: POSShellProps) {
 
           {/* Customer & Checkout Form */}
           <div className="border-t border-default pt-3 space-y-3">
-            {/* Customer Inputs */}
-            <div className="grid grid-cols-2 gap-2">
-              <input
-                ref={customerNameInputRef}
-                type="text"
-                placeholder="Customer Name (F4)"
-                value={customerName}
-                onChange={(e) => updateCurrentSlot({ customerName: e.target.value })}
-                className="h-8 rounded-xl border border-default bg-surface px-2.5 text-xs text-default placeholder:text-muted focus:border-primary focus:outline-none"
-              />
-              <input
-                type="text"
-                placeholder="Phone (017...)"
-                value={customerPhone}
-                onChange={(e) => updateCurrentSlot({ customerPhone: e.target.value })}
-                className="h-8 rounded-xl border border-default bg-surface px-2.5 text-xs text-default placeholder:text-muted focus:border-primary focus:outline-none"
-              />
+            {/* Customer Section with Existing Customer Dropdown */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-[11px] font-bold uppercase tracking-wider text-muted flex items-center gap-1.5">
+                  <User className="size-3.5 text-primary" />
+                  <span>Customer Selection</span>
+                </label>
+                {currentSlot.customerPartyId && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      updateCurrentSlot({
+                        customerPartyId: null,
+                        customerName: '',
+                        customerPhone: '',
+                      });
+                    }}
+                    className="text-[10px] text-primary hover:underline cursor-pointer font-medium"
+                  >
+                    Reset to Walk-in
+                  </button>
+                )}
+              </div>
+
+              {/* Existing Customer Dropdown */}
+              <div className="relative">
+                <select
+                  value={currentSlot.customerPartyId ? String(currentSlot.customerPartyId) : ''}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (!val) {
+                      updateCurrentSlot({
+                        customerPartyId: null,
+                        customerName: '',
+                        customerPhone: '',
+                      });
+                      return;
+                    }
+                    const selected = customerOptions.find(
+                      (c) => String(c.party_id || c.id) === val
+                    );
+                    if (selected) {
+                      updateCurrentSlot({
+                        customerPartyId: Number(selected.party_id || selected.id),
+                        customerName: selected.name,
+                        customerPhone: selected.phone || '',
+                      });
+                    }
+                  }}
+                  className="w-full h-8.5 appearance-none rounded-xl border border-default bg-surface px-2.5 pr-8 text-xs font-medium text-default focus:border-primary focus:outline-none cursor-pointer"
+                >
+                  <option value="">🚶 Walk-in Customer (Guest)</option>
+                  {customerOptions.map((c) => (
+                    <option key={c.party_id || c.id} value={c.party_id || c.id}>
+                      {c.name} {c.phone ? `(${c.phone})` : ''} {c.type ? `· ${c.type}` : ''}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted" />
+              </div>
+
+              {/* Editable Customer Name and Phone */}
+              <div className="grid grid-cols-2 gap-2">
+                <input
+                  ref={customerNameInputRef}
+                  type="text"
+                  placeholder="Customer Name (F4)"
+                  value={customerName}
+                  onChange={(e) => updateCurrentSlot({ customerName: e.target.value })}
+                  className="h-8 rounded-xl border border-default bg-surface px-2.5 text-xs text-default placeholder:text-muted focus:border-primary focus:outline-none"
+                />
+                <input
+                  type="text"
+                  placeholder="Phone (017...)"
+                  value={customerPhone}
+                  onChange={(e) => updateCurrentSlot({ customerPhone: e.target.value })}
+                  className="h-8 rounded-xl border border-default bg-surface px-2.5 text-xs text-default placeholder:text-muted focus:border-primary focus:outline-none"
+                />
+              </div>
+            </div>
+
+            {/* 📝 Sale / Order Note Option */}
+            <div className="rounded-xl border border-default bg-surface p-2.5 space-y-1.5 shadow-2xs">
+              <div className="flex items-center justify-between">
+                <button
+                  type="button"
+                  onClick={() => setIsNoteExpanded(!isNoteExpanded)}
+                  className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-muted hover:text-default cursor-pointer transition-colors"
+                >
+                  <StickyNote className="h-3.5 w-3.5 text-primary" />
+                  <span>Sale Note</span>
+                  {currentSlot.notes?.trim() && (
+                    <span className="rounded-full bg-primary/10 text-primary px-1.5 py-0.2 text-[9px] font-bold lowercase">
+                      added
+                    </span>
+                  )}
+                  <ChevronDown className={`h-3 w-3 transition-transform ${isNoteExpanded ? 'rotate-180' : ''}`} />
+                </button>
+                {currentSlot.notes?.trim() && !isNoteExpanded && (
+                  <button
+                    type="button"
+                    onClick={() => setIsNoteExpanded(true)}
+                    className="text-[11px] text-muted hover:text-default truncate max-w-42.5 font-mono italic text-right cursor-pointer"
+                  >
+                    "{currentSlot.notes}"
+                  </button>
+                )}
+              </div>
+
+              {isNoteExpanded && (
+                <div className="pt-1 space-y-1">
+                  <textarea
+                    rows={2}
+                    placeholder="Add note for this sale (e.g. customer request, delivery instructions, reference)..."
+                    value={currentSlot.notes || ''}
+                    onChange={(e) => updateCurrentSlot({ notes: e.target.value })}
+                    className="w-full rounded-lg border border-default bg-surface-sunken p-2 text-xs text-default placeholder:text-muted focus:border-primary focus:outline-none resize-none"
+                    maxLength={500}
+                  />
+                  <div className="flex items-center justify-between text-[10px] text-muted">
+                    <span>Recorded with sale & printed on receipt</span>
+                    <span>{(currentSlot.notes || '').length}/500</span>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Payment Section Header with Multi-Payment Toggle */}
@@ -1519,6 +1984,15 @@ export function POSShell({ session, onExit }: POSShellProps) {
                     <span>Session:</span>
                     <span className="text-default">{lastReceipt.session.session_number}</span>
                   </div>
+
+                  {lastReceipt.order.notes && (
+                    <div className="border-t border-default/60 pt-2 text-left space-y-0.5">
+                      <span className="text-[10px] font-bold text-muted uppercase tracking-wider flex items-center gap-1">
+                        <StickyNote className="h-3 w-3 text-primary" /> Sale Note:
+                      </span>
+                      <p className="text-default font-sans text-xs italic pl-4">{lastReceipt.order.notes}</p>
+                    </div>
+                  )}
                 </div>
               );
             })()}
@@ -1566,6 +2040,26 @@ export function POSShell({ session, onExit }: POSShellProps) {
               </button>
               <button
                 type="button"
+                onClick={() => {
+                  const invoiceId = lastReceipt.invoice.id;
+                  const invoiceNum = lastReceipt.invoice.invoice_number;
+                  const orderItems = (lastReceipt.order.items ?? []).map((it) => ({
+                    product_id: it.product_id,
+                    ...(it.product_name ? { product_name: it.product_name } : {}),
+                    quantity: it.quantity,
+                    unit_price: it.unit_price,
+                  }));
+                  setLastReceipt(null);
+                  handleOpenReturnModal(invoiceId, invoiceNum, orderItems);
+                }}
+                className="w-full flex items-center justify-center gap-1.5 rounded-xl border border-rose-500/30 bg-rose-500/5 py-2 px-3 text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 cursor-pointer transition-all shadow-2xs"
+                title="Process Customer Return & Refund for items from this sale"
+              >
+                <RotateCcw className="h-3.5 w-3.5 text-rose-600 dark:text-rose-400" />
+                Return Items from This Sale
+              </button>
+              <button
+                type="button"
                 onClick={() => setLastReceipt(null)}
                 className="w-full rounded-xl bg-primary py-2.5 text-xs font-bold text-white hover:bg-primary-hover cursor-pointer transition-colors shadow-sm flex items-center justify-center gap-1.5"
               >
@@ -1586,6 +2080,20 @@ export function POSShell({ session, onExit }: POSShellProps) {
         initialInvoiceNumber={exchangeInitialInvoiceNumber}
         initialOrderItems={exchangeInitialOrderItems}
         onExchangeCompleted={() => {
+          refetchProducts();
+        }}
+      />
+
+      {/* POS Counter Sales Return & Refund Modal */}
+      <PosReturnModal
+        isOpen={isReturnModalOpen}
+        onClose={() => setIsReturnModalOpen(false)}
+        session={session}
+        products={products}
+        initialInvoiceId={returnInitialInvoiceId}
+        initialInvoiceNumber={returnInitialInvoiceNumber}
+        initialOrderItems={returnInitialOrderItems}
+        onReturnCompleted={() => {
           refetchProducts();
         }}
       />

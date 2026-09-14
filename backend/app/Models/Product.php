@@ -245,7 +245,12 @@ final class Product extends Model
             return $this->primaryImage->url;
         }
 
-        return $this->online_meta['image_url'] ?? null;
+        if (!empty($this->online_meta['image_url'])) {
+            return $this->online_meta['image_url'];
+        }
+
+        $primary = $this->images()->where('is_primary', true)->first() ?? $this->images()->first();
+        return $primary?->url;
     }
 
     /**

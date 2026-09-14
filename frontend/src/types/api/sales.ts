@@ -113,6 +113,8 @@ export interface Invoice {
   sales_order_number?: string | null;
   party_id?: number | null;
   customer_name?: string | null;
+  warehouse_id?: number | null;
+  warehouse_name?: string | null;
   branch_id?: number | null;
   branch_name?: string | null;
   payment_terms?: string | null;
@@ -228,6 +230,7 @@ export interface SalesReturn {
   uuid: string;
   return_number: string;
   invoice_id?: number | null;
+  invoice_number?: string | null;
   sales_order_id?: number | null;
   party_id?: number | null;
   customer_name?: string | null;

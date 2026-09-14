@@ -72,7 +72,9 @@ export function CreditNoteDocument({ salesReturn, businessConfig }: CreditNoteDo
         </div>
         <div>
           <span className="text-slate-500 block uppercase text-[7pt] font-bold">Original Invoice #</span>
-          <span className="font-mono font-bold text-slate-900">INV-202608-001</span>
+          <span className="font-mono font-bold text-slate-900">
+            {salesReturn.invoice_number || (salesReturn.invoice_id ? `#${salesReturn.invoice_id}` : '—')}
+          </span>
         </div>
         <div>
           <span className="text-slate-500 block uppercase text-[7pt] font-bold">Refund Method</span>

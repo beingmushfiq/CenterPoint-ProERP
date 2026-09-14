@@ -12,6 +12,7 @@ export interface ThermalReceiptProps {
   terminalName?: string;
   tenderedCash?: string;
   changeAmount?: string;
+  orderNotes?: string;
 }
 
 export function ThermalReceipt({
@@ -22,6 +23,7 @@ export function ThermalReceipt({
   terminalName = 'POS-01',
   tenderedCash,
   changeAmount,
+  orderNotes,
 }: ThermalReceiptProps) {
   const is58mm = paperWidth === '58mm';
 
@@ -153,6 +155,14 @@ export function ThermalReceipt({
           </div>
         )}
       </div>
+
+      {/* Order Notes if present */}
+      {orderNotes && (
+        <div className="py-1.5 border-b border-black border-dashed text-[7.5pt] text-left">
+          <span className="font-bold">NOTE: </span>
+          <span className="italic">{orderNotes}</span>
+        </div>
+      )}
 
       {/* QR & Footer */}
       <div className="text-center pt-3 space-y-2">

@@ -23,6 +23,7 @@ final class SalesReturnResource extends JsonResource
             'uuid'               => $this->uuid,
             'return_number'      => $this->return_number,
             'invoice_id'         => $this->invoice_id,
+            'invoice_number'     => $this->invoice?->invoice_number,
             'sales_order_id'     => $this->sales_order_id,
             'party_id'           => $this->party_id,
             'warehouse_id'       => $this->warehouse_id,

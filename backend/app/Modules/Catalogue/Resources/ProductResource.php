@@ -16,7 +16,7 @@ final class ProductResource extends JsonResource
     {
         return [
             'id' => $this->uuid, 'product_id' => $this->id, 'sku' => $this->sku, 'barcode' => $this->barcode, 'name' => $this->name, 'description' => $this->description,
-            'type' => $this->type, 'category_id' => $this->category?->uuid, 'brand_id' => $this->brand?->uuid,
+            'type' => $this->type, 'category_id' => $this->category?->uuid, 'category_name' => $this->category?->name, 'category' => $this->category ? ['id' => $this->category->uuid, 'name' => $this->category->name, 'code' => $this->category->code] : null, 'brand_id' => $this->brand?->uuid, 'brand_name' => $this->brand?->name,
             'base_unit_id' => $this->baseUnit->uuid, 'unit_id' => $this->base_unit_id, 'purchase_unit_id' => $this->purchaseUnit?->uuid, 'sales_unit_id' => $this->salesUnit?->uuid,
             'is_produced' => $this->is_produced, 'is_purchased' => $this->is_purchased, 'is_sold' => $this->is_sold, 'is_stock_tracked' => $this->is_stock_tracked, 'has_variants' => $this->has_variants,
             'stock_quantity' => $this->is_stock_tracked ? (float) ($this->stock_quantity ?? ($this->relationLoaded('stockBalances') ? $this->stockBalances->where('stock_state', 'available')->sum('quantity') : $this->stockBalances()->where('stock_state', 'available')->sum('quantity'))) : null,

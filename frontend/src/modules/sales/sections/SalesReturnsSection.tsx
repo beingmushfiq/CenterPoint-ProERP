@@ -17,7 +17,7 @@ import {
   PackageCheck,
   Receipt,
 } from 'lucide-react';
-import type { SalesReturn } from '../../../types/api/sales';
+import type { SalesReturn, Invoice, InvoiceItem } from '../../../types/api/sales';
 import { api } from '../../../lib/api/client';
 import { PrintPreviewModal } from '../../../components/print/PrintPreviewModal';
 import { CreditNoteDocument } from '../../../components/print/documents/CreditNoteDocument';
@@ -26,8 +26,10 @@ import { useCurrency } from '../../../hooks/useCurrency';
 import { SelectDropdown } from '../../../components/ui/Dropdown';
 
 interface SalesReturnFormItem {
+  product_id?: number | undefined;
   product_name: string;
   quantity: string;
+  unit_id?: number | undefined;
   unit_price: string;
   condition: string;
 }
@@ -38,6 +40,7 @@ const SAMPLE_RETURNS: SalesReturn[] = [
     uuid: 'srt-001',
     return_number: 'SRT-202608-001',
     invoice_id: 1,
+    invoice_number: 'INV-202608-001',
     sales_order_id: 1,
     party_id: 1,
     customer_name: 'Apex Footwear Central Kitchen',
@@ -124,31 +127,145 @@ export function SalesReturnsSection() {
   const { config: businessConfig } = useBusinessConfig();
 
   // Form State
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    return_number: string;
+    invoice_id: number | null;
+    invoice_number: string;
+    sales_order_id: number | null;
+    party_id: number | null;
+    customer_name: string;
+    warehouse_id: number;
+    warehouse_name: string;
+    return_date: string;
+    reason_code_id: number;
+    reason_code_name: string;
+    restock: boolean;
+    refund_method: string;
+    items: SalesReturnFormItem[];
+  }>({
     return_number: '',
+    invoice_id: null,
+    invoice_number: '',
+    sales_order_id: null,
+    party_id: null,
     customer_name: 'Apex Retail Showroom',
+    warehouse_id: 1,
     warehouse_name: 'Main Distribution Hub (Dhaka)',
     return_date: new Date().toISOString().slice(0, 10),
+    reason_code_id: 1,
     reason_code_name: 'Customer reported transit damage',
     restock: false,
     refund_method: 'credit_note',
     items: [
       {
+        product_id: 1,
         product_name: 'Infrared Cooker 2200W (SM-IC220)',
         quantity: '1',
+        unit_id: 1,
         unit_price: '2850.00',
         condition: 'damaged',
       },
     ],
   });
 
+  const [invoiceRef, setInvoiceRef] = useState('');
+  const [searchingInvoice, setSearchingInvoice] = useState(false);
+
+  const handleLookupInvoice = async () => {
+    const rawSearch = invoiceRef.trim();
+    if (!rawSearch) {
+      toast.error('Please enter an invoice number to search.');
+      return;
+    }
+    setSearchingInvoice(true);
+    try {
+      // 1. Query with raw search term
+      const res = await api.get<{ data: Invoice[] } | Invoice[]>(`/sales/invoices?q=${encodeURIComponent(rawSearch)}`);
+      const rawData = res.data;
+      let invoices: Invoice[] = Array.isArray(rawData) ? rawData : (rawData?.data ?? []);
+
+      // 2. Fallback search with or without POS- prefix
+      if (invoices.length === 0) {
+        const altSearch = rawSearch.toUpperCase().startsWith('POS-')
+          ? rawSearch.slice(4)
+          : `POS-${rawSearch}`;
+        const altRes = await api.get<{ data: Invoice[] } | Invoice[]>(`/sales/invoices?q=${encodeURIComponent(altSearch)}`);
+        const altRaw = altRes.data;
+        invoices = Array.isArray(altRaw) ? altRaw : (altRaw?.data ?? []);
+      }
+
+      // 3. Match logic: exact match, prefix-agnostic match, or substring match
+      const sLower = rawSearch.toLowerCase();
+      const sStripped = sLower.replace(/^pos-/, '');
+      const match =
+        invoices.find((inv: Invoice) => {
+          const numLower = String(inv.invoice_number || '').toLowerCase();
+          const numStripped = numLower.replace(/^pos-/, '');
+          return (
+            numLower === sLower ||
+            numStripped === sStripped ||
+            numLower.includes(sLower) ||
+            numStripped.includes(sStripped) ||
+            sLower.includes(numLower) ||
+            sStripped.includes(numStripped)
+          );
+        }) || (invoices.length > 0 ? invoices[0] : null);
+
+      if (!match) {
+        toast.error(`No invoice matching "${rawSearch}" found.`);
+        return;
+      }
+
+      const invItems: InvoiceItem[] = match.items ?? [];
+      const loadedItems: SalesReturnFormItem[] =
+        invItems.length > 0
+          ? invItems.map((it: InvoiceItem) => ({
+              product_id: it.product_id ? Number(it.product_id) : undefined,
+              product_name: it.product_name || `Product #${it.product_id}`,
+              quantity: String(it.quantity || '1'),
+              unit_id: it.unit_id ? Number(it.unit_id) : 1,
+              unit_price: String(it.unit_price || '0'),
+              condition: 'restockable_good',
+            }))
+          : [];
+
+      setFormData((prev) => ({
+        ...prev,
+        invoice_id: match.id,
+        invoice_number: match.invoice_number,
+        sales_order_id: match.sales_order_id || null,
+        party_id: match.party_id || prev.party_id,
+        customer_name: match.customer_name || prev.customer_name,
+        warehouse_id: match.warehouse_id || prev.warehouse_id,
+        warehouse_name: match.warehouse_name || prev.warehouse_name,
+        items: loadedItems.length > 0 ? loadedItems : prev.items,
+      }));
+
+      setInvoiceRef(match.invoice_number);
+      if (loadedItems.length > 0) {
+        toast.success(
+          `Loaded ${loadedItems.length} item(s) from invoice #${match.invoice_number}.`
+        );
+      } else {
+        toast.info(`Invoice #${match.invoice_number} loaded (customer set, no item lines found).`);
+      }
+    } catch (err) {
+      console.error('Failed to lookup invoice for sales return', err);
+      toast.error('Unable to query sales invoice.');
+    } finally {
+      setSearchingInvoice(false);
+    }
+  };
+
   const { data: returns = SAMPLE_RETURNS, isLoading, isFetching, refetch } = useQuery<SalesReturn[]>({
     queryKey: ['sales', 'returns'],
     queryFn: async () => {
       try {
-        const res = await api.get<SalesReturn[]>('/sales/returns');
-        if (res.data && res.data.length > 0) {
-          return res.data;
+        const res = await api.get<{ data: SalesReturn[] } | SalesReturn[]>('/sales/returns');
+        const raw = res.data;
+        const list = Array.isArray(raw) ? raw : (raw?.data ?? []);
+        if (list && list.length > 0) {
+          return list;
         }
       } catch {
         // Sample fallback
@@ -177,7 +294,7 @@ export function SalesReturnsSection() {
     }
   };
 
-  const handleCreateReturn = (e: React.FormEvent) => {
+  const handleCreateReturn = async (e: React.FormEvent) => {
     e.preventDefault();
     const subtotal = formData.items.reduce(
       (sum, it) => sum + parseFloat(it.quantity || '0') * parseFloat(it.unit_price || '0'),
@@ -186,18 +303,23 @@ export function SalesReturnsSection() {
     const tax = subtotal * 0.05;
     const total = subtotal + tax;
 
+    const returnNumber =
+      formData.return_number ||
+      `SRT-${new Date().toISOString().slice(0, 7).replace('-', '')}-${String(returns.length + 1).padStart(3, '0')}`;
+
     const newReturn: SalesReturn = {
       id: Date.now(),
       uuid: `srt-${Date.now()}`,
-      return_number:
-        formData.return_number ||
-        `SRT-${new Date().toISOString().slice(0, 7).replace('-', '')}-${String(returns.length + 1).padStart(3, '0')}`,
-      party_id: 1,
+      return_number: returnNumber,
+      invoice_id: formData.invoice_id,
+      invoice_number: formData.invoice_number || null,
+      sales_order_id: formData.sales_order_id,
+      party_id: formData.party_id ?? 1,
       customer_name: formData.customer_name,
-      warehouse_id: 1,
+      warehouse_id: formData.warehouse_id ?? 1,
       warehouse_name: formData.warehouse_name,
       return_date: formData.return_date,
-      reason_code_id: 1,
+      reason_code_id: formData.reason_code_id ?? 1,
       reason_code_name: formData.reason_code_name,
       restock: formData.restock,
       subtotal: subtotal.toFixed(2),
@@ -210,16 +332,43 @@ export function SalesReturnsSection() {
         id: Date.now() + idx,
         uuid: `sri-${Date.now()}-${idx}`,
         sales_return_id: Date.now(),
-        product_id: idx + 1,
+        product_id: it.product_id ?? idx + 1,
         product_name: it.product_name,
         quantity: it.quantity,
-        unit_id: 1,
+        unit_id: it.unit_id ?? 1,
         unit_price: it.unit_price,
         line_total: (parseFloat(it.quantity || '0') * parseFloat(it.unit_price || '0')).toFixed(2),
-        condition: it.condition as 'damaged' | 'restockable_good',
+        condition: it.condition,
       })),
       created_at: new Date().toISOString(),
     };
+
+    try {
+      const payload = {
+        return_date: formData.return_date,
+        warehouse_id: formData.warehouse_id || 1,
+        party_id: formData.party_id || 1,
+        reason_code_id: formData.reason_code_id || 1,
+        invoice_id: formData.invoice_id || undefined,
+        sales_order_id: formData.sales_order_id || undefined,
+        restock: formData.restock,
+        refund_method: formData.refund_method === 'cash_refund' ? 'cash' : formData.refund_method === 'bank_transfer' ? 'bank' : 'credit_note',
+        return_number: formData.return_number || undefined,
+        items: formData.items.map((it, idx) => ({
+          product_id: it.product_id || (idx + 1),
+          quantity: it.quantity,
+          unit_id: it.unit_id || 1,
+          unit_price: it.unit_price,
+          condition: it.condition === 'damaged' ? 'damaged' : 'good',
+        })),
+      };
+      const apiRes = await api.post<SalesReturn | { data: SalesReturn }>('/sales/returns', payload);
+      if (apiRes.data) {
+        queryClient.invalidateQueries({ queryKey: ['sales', 'returns'] });
+      }
+    } catch (err) {
+      console.warn('Backend return creation failed, applying optimistic update', err);
+    }
 
     queryClient.setQueryData<SalesReturn[]>(['sales', 'returns'], (prev = []) => [newReturn, ...prev]);
     toast.success('Return authorized and drafted.');
@@ -291,7 +440,9 @@ export function SalesReturnsSection() {
       r.return_number?.toLowerCase().includes(search.toLowerCase()) ||
       r.customer_name?.toLowerCase().includes(search.toLowerCase()) ||
       r.credit_note_number?.toLowerCase().includes(search.toLowerCase()) ||
-      r.reason_code_name?.toLowerCase().includes(search.toLowerCase());
+      r.reason_code_name?.toLowerCase().includes(search.toLowerCase()) ||
+      (r.invoice_number && r.invoice_number.toLowerCase().includes(search.toLowerCase())) ||
+      (r.invoice_id && String(r.invoice_id).includes(search));
 
     const matchesStatus = statusFilter === 'all' || r.status === statusFilter;
     return matchesSearch && matchesStatus;
@@ -377,19 +528,28 @@ export function SalesReturnsSection() {
         <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={() => {
+              setInvoiceRef('');
               setFormData({
                 return_number: `SRT-${new Date().toISOString().slice(0, 7).replace('-', '')}-${String(returns.length + 1).padStart(3, '0')}`,
-                customer_name: 'Apex Retail Showroom',
+                invoice_id: null,
+                invoice_number: '',
+                sales_order_id: null,
+                party_id: null,
+                customer_name: '',
+                warehouse_id: 1,
                 warehouse_name: 'Main Distribution Hub (Dhaka)',
                 return_date: new Date().toISOString().slice(0, 10),
+                reason_code_id: 1,
                 reason_code_name: 'Customer reported transit damage',
                 restock: false,
                 refund_method: 'credit_note',
                 items: [
                   {
-                    product_name: 'Infrared Cooker 2200W (SM-IC220)',
+                    product_id: undefined,
+                    product_name: '',
                     quantity: '1',
-                    unit_price: '2850.00',
+                    unit_id: 1,
+                    unit_price: '0.00',
                     condition: 'damaged',
                   },
                 ],
@@ -471,7 +631,14 @@ export function SalesReturnsSection() {
                     </td>
                     <td className="px-4 py-3.5">
                       <div className="font-semibold text-default">{r.customer_name ?? '—'}</div>
-                      <div className="text-[10px] font-mono text-primary font-medium">{r.credit_note_number}</div>
+                      <div className="flex items-center gap-1.5 text-[10px] font-mono text-muted">
+                        <span className="text-primary font-medium">{r.credit_note_number}</span>
+                        {(r.invoice_number || r.invoice_id) && (
+                          <span className="text-muted">
+                            &bull; Inv #{r.invoice_number || r.invoice_id}
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-4 py-3.5 text-muted max-w-xs truncate">{r.reason_code_name ?? '—'}</td>
                     <td className="px-4 py-3.5">
@@ -509,15 +676,23 @@ export function SalesReturnsSection() {
                                 setActiveReturn(r);
                                 setFormData({
                                   return_number: r.return_number,
+                                  invoice_id: r.invoice_id ?? null,
+                                  invoice_number: r.invoice_number ?? '',
+                                  sales_order_id: r.sales_order_id ?? null,
+                                  party_id: r.party_id ?? null,
                                   customer_name: r.customer_name || '',
+                                  warehouse_id: r.warehouse_id || 1,
                                   warehouse_name: r.warehouse_name || '',
                                   return_date: r.return_date,
+                                  reason_code_id: r.reason_code_id || 1,
                                   reason_code_name: r.reason_code_name || '',
                                   restock: r.restock,
                                   refund_method: r.refund_method,
                                   items: r.items?.map((it) => ({
+                                    product_id: it.product_id,
                                     product_name: it.product_name || '',
                                     quantity: it.quantity,
+                                    unit_id: it.unit_id,
                                     unit_price: it.unit_price,
                                     condition: it.condition,
                                   })) || [],
@@ -576,6 +751,66 @@ export function SalesReturnsSection() {
             </div>
 
             <form onSubmit={handleCreateReturn} className="space-y-4 text-xs">
+              {/* Original Invoice (Lookup) */}
+              <div className="rounded-xl border border-default bg-surface-sunken p-3.5 space-y-2">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                  <div className="flex items-center gap-2">
+                    <Receipt className="size-4 text-primary" />
+                    <span className="font-semibold text-default">Original Invoice (Lookup)</span>
+                    {formData.invoice_number && (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-mono font-bold bg-primary/10 text-primary px-2 py-0.5 rounded-md border border-primary/20">
+                        Linked: #{formData.invoice_number}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setInvoiceRef('');
+                            setFormData((prev) => ({
+                              ...prev,
+                              invoice_id: null,
+                              invoice_number: '',
+                              sales_order_id: null,
+                            }));
+                          }}
+                          className="hover:text-rose-500 ml-1 cursor-pointer font-bold"
+                          title="Unlink invoice"
+                        >
+                          ✕
+                        </button>
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-[11px] text-muted">Optional: Auto-fills customer & billed item rates</span>
+                </div>
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted" />
+                    <input
+                      type="text"
+                      placeholder="e.g. INV-20260908-... or POS-INV-..."
+                      value={invoiceRef}
+                      onChange={(e) => setInvoiceRef(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          handleLookupInvoice();
+                        }
+                      }}
+                      className="w-full rounded-xl border border-default bg-surface pl-8 pr-3 py-1.5 text-default text-xs font-mono focus:border-primary focus:outline-none"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleLookupInvoice}
+                    disabled={searchingInvoice || !invoiceRef.trim()}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-primary text-primary-fg font-semibold text-xs hover:opacity-90 disabled:opacity-50 transition-opacity cursor-pointer shadow-xs whitespace-nowrap"
+                    title="Load items from this invoice"
+                  >
+                    {searchingInvoice ? <RefreshCw className="size-3.5 animate-spin" /> : <Search className="size-3.5" />}
+                    <span>{searchingInvoice ? 'Loading...' : 'Load Invoice'}</span>
+                  </button>
+                </div>
+              </div>
+
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
                   <label className="block font-semibold text-muted mb-1">Return #</label>
@@ -758,7 +993,12 @@ export function SalesReturnsSection() {
                   <h3 className="text-base font-bold text-default">{activeReturn.return_number}</h3>
                   {getStatusBadge(activeReturn.status)}
                 </div>
-                <p className="text-xs text-muted mt-0.5">Customer: {activeReturn.customer_name} &bull; Credit Note: {activeReturn.credit_note_number}</p>
+                <p className="text-xs text-muted mt-0.5">
+                  Customer: {activeReturn.customer_name} &bull; Credit Note: {activeReturn.credit_note_number}
+                  {(activeReturn.invoice_number || activeReturn.invoice_id) && (
+                    <span> &bull; Original Inv: #{activeReturn.invoice_number || activeReturn.invoice_id}</span>
+                  )}
+                </p>
               </div>
               <div className="flex items-center gap-2">
                 <button
