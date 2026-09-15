@@ -9,6 +9,7 @@ import type { PageBlock } from '../../modules/storefront/StorefrontPageBuilderWo
 import { StorefrontBlockRenderer } from '../../components/storefront/StorefrontBlockRenderer';
 import { useStorefrontCartStore } from '../../lib/storefront/storefrontCartStore';
 import { notify } from '../../components/ui/Toast';
+import { getStorefrontUrl } from '../../lib/storefront/storefrontUrl';
 
 interface OutletContextType {
   config: StorefrontConfig;
@@ -99,8 +100,8 @@ export const StorefrontDynamicPage: React.FC = () => {
   // 1. Custom CMS Page from Backend Database (rendered via standard StorefrontBlockRenderer)
   if (page && page.blocks && page.blocks.length > 0) {
     const breadcrumbs = [
-      { name: 'Home', url: `/store/${subdomain}` },
-      { name: page.title, url: `/store/${subdomain}/pages/${page.slug}` },
+      { name: 'Home', url: getStorefrontUrl(subdomain) },
+      { name: page.title, url: getStorefrontUrl(subdomain, `/pages/${page.slug}`) },
     ];
 
     return (
@@ -153,9 +154,9 @@ export const StorefrontDynamicPage: React.FC = () => {
         title: 'Engineered for Permanence. Built Without Compromise.',
         subtitle: 'We reject disposable tech and planned obsolescence. Every enclosure is CNC-milled from solid aerospace-grade aluminum, designed for full repairability, and calibrated to zero-harmonic acoustic standards.',
         cta_text: 'Explore Custom Lab',
-        cta_url: `/store/${subdomain}/pages/custom-lab`,
+        cta_url: getStorefrontUrl(subdomain, '/pages/custom-lab'),
         secondary_cta_text: 'Flagship Products',
-        secondary_cta_url: `/store/${subdomain}/products`,
+        secondary_cta_url: getStorefrontUrl(subdomain, '/products'),
         settings: {
           slides: [
             {
@@ -164,9 +165,9 @@ export const StorefrontDynamicPage: React.FC = () => {
               title: 'Engineered for Permanence. Built Without Compromise.',
               subtitle: 'We reject disposable tech and planned obsolescence. Every enclosure is CNC-milled from solid aerospace-grade aluminum, designed for full repairability, and calibrated to zero-harmonic acoustic standards.',
               cta_text: 'Explore Custom Lab',
-              cta_url: `/store/${subdomain}/pages/custom-lab`,
+              cta_url: getStorefrontUrl(subdomain, '/pages/custom-lab'),
               secondary_cta_text: 'Flagship Products',
-              secondary_cta_url: `/store/${subdomain}/products`,
+              secondary_cta_url: getStorefrontUrl(subdomain, '/products'),
               desktop_image: 'https://images.unsplash.com/photo-1546776310-eef45dd6d63c?auto=format&fit=crop&w=1800&q=85',
               overlay_opacity: 45,
             },
@@ -276,8 +277,8 @@ When you hold our hardware, you feel the mass of monolithic metal, the unmistaka
     ];
 
     const breadcrumbs = [
-      { name: 'Home', url: `/store/${subdomain}` },
-      { name: 'About Our Hardware', url: `/store/${subdomain}/pages/about-us` },
+      { name: 'Home', url: getStorefrontUrl(subdomain) },
+      { name: 'About Our Hardware', url: getStorefrontUrl(subdomain, '/pages/about-us') },
     ];
 
     return (
@@ -425,8 +426,8 @@ When you hold our hardware, you feel the mass of monolithic metal, the unmistaka
     ];
 
     const breadcrumbs = [
-      { name: 'Home', url: `/store/${subdomain}` },
-      { name: 'Warranty & Rapid Replacement', url: `/store/${subdomain}/pages/warranty-support` },
+      { name: 'Home', url: getStorefrontUrl(subdomain) },
+      { name: 'Warranty & Rapid Replacement', url: getStorefrontUrl(subdomain, '/pages/warranty-support') },
     ];
 
     return (
@@ -468,7 +469,7 @@ When you hold our hardware, you feel the mass of monolithic metal, the unmistaka
         title: 'Delivered with Surgical Precision',
         subtitle: 'Every instrument is sealed in moisture-barrier foil with calibrated shock sensors and routed via direct air-freight corridors.',
         cta_text: 'Track Active Parcel',
-        cta_url: `/store/${subdomain}/track`,
+        cta_url: getStorefrontUrl(subdomain, '/track'),
         secondary_cta_text: 'Packaging Specs',
         secondary_cta_url: '#specs',
         settings: {
@@ -479,7 +480,7 @@ When you hold our hardware, you feel the mass of monolithic metal, the unmistaka
               title: 'Delivered with Surgical Precision',
               subtitle: 'Every instrument is sealed in moisture-barrier foil with calibrated shock sensors and routed via direct air-freight corridors.',
               cta_text: 'Track Active Parcel',
-              cta_url: `/store/${subdomain}/track`,
+              cta_url: getStorefrontUrl(subdomain, '/track'),
               secondary_cta_text: 'Packaging Specs',
               secondary_cta_url: '#specs',
               desktop_image: 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=1800&q=85',
@@ -535,8 +536,8 @@ When you hold our hardware, you feel the mass of monolithic metal, the unmistaka
     ];
 
     const breadcrumbs = [
-      { name: 'Home', url: `/store/${subdomain}` },
-      { name: 'Armored Shipping & Logistics', url: `/store/${subdomain}/pages/shipping-fulfillment` },
+      { name: 'Home', url: getStorefrontUrl(subdomain) },
+      { name: 'Armored Shipping & Logistics', url: getStorefrontUrl(subdomain, '/pages/shipping-fulfillment') },
     ];
 
     return (
@@ -580,7 +581,7 @@ When you hold our hardware, you feel the mass of monolithic metal, the unmistaka
         cta_text: 'Open Finish Configurator',
         cta_url: '#configurator',
         secondary_cta_text: 'Explore Catalog',
-        secondary_cta_url: `/store/${subdomain}/products`,
+        secondary_cta_url: getStorefrontUrl(subdomain, '/products'),
         settings: {
           slides: [
             {
@@ -591,7 +592,7 @@ When you hold our hardware, you feel the mass of monolithic metal, the unmistaka
               cta_text: 'Open Finish Configurator',
               cta_url: '#configurator',
               secondary_cta_text: 'Explore Catalog',
-              secondary_cta_url: `/store/${subdomain}/products`,
+              secondary_cta_url: getStorefrontUrl(subdomain, '/products'),
               desktop_image: 'https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=1800&q=85',
               overlay_opacity: 45,
             },
@@ -692,8 +693,8 @@ When you hold our hardware, you feel the mass of monolithic metal, the unmistaka
     ];
 
     const breadcrumbs = [
-      { name: 'Home', url: `/store/${subdomain}` },
-      { name: 'Custom Hardware Lab', url: `/store/${subdomain}/pages/custom-lab` },
+      { name: 'Home', url: getStorefrontUrl(subdomain) },
+      { name: 'Custom Hardware Lab', url: getStorefrontUrl(subdomain, '/pages/custom-lab') },
     ];
 
     return (
@@ -750,8 +751,8 @@ When you hold our hardware, you feel the mass of monolithic metal, the unmistaka
     ];
 
     const breadcrumbs = [
-      { name: 'Home', url: `/store/${subdomain}` },
-      { name: 'Help & FAQ', url: `/store/${subdomain}/pages/faq` },
+      { name: 'Home', url: getStorefrontUrl(subdomain) },
+      { name: 'Help & FAQ', url: getStorefrontUrl(subdomain, '/pages/faq') },
     ];
 
     return (
@@ -804,8 +805,8 @@ We promote user repairability: non-destructive opening of the chassis to lubrica
     ];
 
     const breadcrumbs = [
-      { name: 'Home', url: `/store/${subdomain}` },
-      { name: 'Privacy Policy & Terms', url: `/store/${subdomain}/pages/privacy-policy` },
+      { name: 'Home', url: getStorefrontUrl(subdomain) },
+      { name: 'Privacy Policy & Terms', url: getStorefrontUrl(subdomain, '/pages/privacy-policy') },
     ];
 
     return (
@@ -860,7 +861,7 @@ We promote user repairability: non-destructive opening of the chassis to lubrica
         This custom page is currently being updated in the Storefront Page Builder CMS.
       </p>
       <Link
-        to={`/store/${subdomain}/products`}
+        to={getStorefrontUrl(subdomain, '/products')}
         className="inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-xs font-bold shadow-md transition-all cursor-pointer"
         style={{
           backgroundColor: 'var(--store-primary, #10b981)',

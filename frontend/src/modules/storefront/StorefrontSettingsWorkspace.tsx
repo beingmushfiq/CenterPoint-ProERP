@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { api } from '../../lib/api/client';
 import type { StorefrontConfig } from '../../types/api/storefront';
+import { getStorefrontExternalUrl } from '../../lib/storefront/storefrontUrl';
 import { DomainSettingsTab } from './DomainSettingsTab';
 import { CouponsTab } from './CouponsTab';
 import { useWorkspaceTab } from '../../hooks/useWorkspaceTab';
@@ -576,7 +577,7 @@ export const StorefrontSettingsWorkspace: React.FC = () => {
           </a>
 
           <a
-            href={`/store/${form.subdomain}`}
+            href={getStorefrontExternalUrl(form.subdomain as string)}
             target="_blank"
             rel="noreferrer"
             className="inline-flex items-center gap-1.5 rounded-xl border border-default bg-surface px-3.5 py-2 text-xs font-semibold text-default hover:border-emerald-500 hover:text-emerald-600 dark:hover:text-emerald-400 transition-all shadow-xs"

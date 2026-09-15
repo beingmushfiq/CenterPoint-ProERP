@@ -1,6 +1,7 @@
 import React from 'react';
 import { ArrowRight, Sparkles } from 'lucide-react';
 import type { PageBlock } from '../../../modules/storefront/StorefrontPageBuilderWorkspace';
+import { getStorefrontUrl } from '../../../lib/storefront/storefrontUrl';
 
 interface PromoSplitBlockProps {
   block: PageBlock;
@@ -13,10 +14,10 @@ export const PromoSplitBlock: React.FC<PromoSplitBlockProps> = ({ block, subdoma
     block.subtitle ||
     'Built for discerning customers who value authentic craftsmanship, verified materials, and reliable service.';
   const ctaText = block.cta_text || 'Explore Full Catalog';
-  const ctaUrl = block.cta_url || `/store/${subdomain}/products`;
+  const ctaUrl = block.cta_url || getStorefrontUrl(subdomain, '/products');
 
   return (
-    <section className="relative overflow-hidden rounded-3xl border border-zinc-200 dark:border-zinc-800 bg-gradient-to-br from-zinc-900 via-zinc-950 to-black p-8 sm:p-14 text-white shadow-xl">
+    <section className="relative overflow-hidden rounded-3xl border border-zinc-200 dark:border-zinc-800 bg-linear-to-br from-zinc-900 via-zinc-950 to-black p-8 sm:p-14 text-white shadow-xl">
       <div className="relative z-10 max-w-2xl space-y-5">
         <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-semibold backdrop-blur-md">
           <Sparkles className="size-3.5 text-amber-400" />

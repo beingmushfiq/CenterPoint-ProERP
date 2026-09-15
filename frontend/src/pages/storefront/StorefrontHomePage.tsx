@@ -6,6 +6,7 @@ import { notify } from '../../components/ui/Toast';
 import type { StorefrontConfig, StorefrontProduct } from '../../types/api/storefront';
 import type { PageBlock } from '../../modules/storefront/StorefrontPageBuilderWorkspace';
 import { StorefrontBlockRenderer } from '../../components/storefront/StorefrontBlockRenderer';
+import { getStorefrontUrl } from '../../lib/storefront/storefrontUrl';
 
 interface OutletContextType {
   config: StorefrontConfig;
@@ -105,7 +106,7 @@ export const StorefrontHomePage: React.FC = () => {
                 cta_text: 'Explore Catalog',
                 cta_url: '#catalog',
                 secondary_cta_text: 'About Us',
-                secondary_cta_url: `/store/${subdomain}/pages/about-us`,
+                secondary_cta_url: getStorefrontUrl(subdomain, '/pages/about-us'),
                 desktop_image: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?q=80&w=1600&auto=format&fit=crop',
                 text_align: 'left',
                 overlay_opacity: 60,
@@ -116,9 +117,9 @@ export const StorefrontHomePage: React.FC = () => {
                 title: 'Engineered for Performance & Elevated Living',
                 subtitle: 'Discover our latest release of meticulously finished products, created with verified materials and benchmark durability.',
                 cta_text: 'Discover New Releases',
-                cta_url: `/store/${subdomain}/products`,
+                cta_url: getStorefrontUrl(subdomain, '/products'),
                 secondary_cta_text: 'View Catalog',
-                secondary_cta_url: `/store/${subdomain}/products`,
+                secondary_cta_url: getStorefrontUrl(subdomain, '/products'),
                 desktop_image: 'https://images.unsplash.com/photo-1472851294608-062f824d29cc?q=80&w=1600&auto=format&fit=crop',
                 text_align: 'left',
                 overlay_opacity: 65,
@@ -129,9 +130,9 @@ export const StorefrontHomePage: React.FC = () => {
                 title: 'Authentic Quality, Direct From Source',
                 subtitle: 'Transparent production, certified batch integrity, and dedicated support for individual and enterprise clients alike.',
                 cta_text: 'Shop Collection',
-                cta_url: `/store/${subdomain}/products`,
+                cta_url: getStorefrontUrl(subdomain, '/products'),
                 secondary_cta_text: 'Contact Support',
-                secondary_cta_url: `/store/${subdomain}/pages/contact`,
+                secondary_cta_url: getStorefrontUrl(subdomain, '/pages/contact'),
                 desktop_image: 'https://images.unsplash.com/photo-1555529669-e69e7aa0ba9a?q=80&w=1600&auto=format&fit=crop',
                 text_align: 'left',
                 overlay_opacity: 60,
@@ -225,7 +226,7 @@ export const StorefrontHomePage: React.FC = () => {
           }}
           onOrderNow={async (product) => {
             await addItem(product.id, 1);
-            navigate(`/store/${subdomain}/checkout`);
+            navigate(getStorefrontUrl(subdomain, '/checkout'));
           }}
         />
       ))}

@@ -6,6 +6,7 @@ import type { ProductCardStyle } from '../../../lib/storefront/storefrontDesignS
 import { useStorefrontWishlistStore } from '../../../lib/storefront/storefrontWishlistStore';
 import { useStorefrontCartStore } from '../../../lib/storefront/storefrontCartStore';
 import { notify } from '../../ui/Toast';
+import { getStorefrontUrl } from '../../../lib/storefront/storefrontUrl';
 
 export interface ProductCardProps {
   product: StorefrontProduct;
@@ -45,7 +46,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   const hasDiscount = compareNum !== null && compareNum > priceNum;
   const discountPercent = hasDiscount && compareNum ? Math.round(((compareNum - priceNum) / compareNum) * 100) : null;
 
-  const productUrl = `/store/${subdomain}/products/${product.online_slug || product.sku || product.id}`;
+  const productUrl = getStorefrontUrl(subdomain, `/products/${product.online_slug || product.sku || product.id}`);
 
   const primaryImage = product.image_url || product.images?.find((img) => img.is_primary)?.url || product.images?.[0]?.url;
   const secondaryImage = product.images?.[1]?.url || primaryImage;
@@ -67,9 +68,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     } else {
       try {
         await addCartItem(product.id, 1);
-        navigate(`/store/${subdomain}/checkout`);
+        navigate(getStorefrontUrl(subdomain, '/checkout'));
       } catch {
-        navigate(`/store/${subdomain}/checkout`);
+        navigate(getStorefrontUrl(subdomain, '/checkout'));
       }
     }
   };

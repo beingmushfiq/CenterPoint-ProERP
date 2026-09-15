@@ -43,6 +43,7 @@ import { StorefrontThemeToggle } from '../../components/storefront/StorefrontThe
 import { useAuthStore } from '../../lib/auth/authStore';
 import { StorefrontBlockRenderer } from '../../components/storefront/StorefrontBlockRenderer';
 import type { StorefrontProduct } from '../../types/api/storefront';
+import { getStorefrontExternalUrl } from '../../lib/storefront/storefrontUrl';
 
 export type BlockType =
   | 'hero_banner'
@@ -1154,7 +1155,7 @@ export const StorefrontPageBuilderWorkspace: React.FC = () => {
                     <div className="flex items-center gap-1">
                       {/* View Live Storefront Page */}
                       <a
-                        href={isHome ? `/store/${storeSlug}` : `/store/${storeSlug}/pages/${p.slug}`}
+                        href={isHome ? getStorefrontExternalUrl(storeSlug) : getStorefrontExternalUrl(storeSlug, `/pages/${p.slug}`)}
                         target="_blank"
                         rel="noopener noreferrer"
                         onClick={(e) => e.stopPropagation()}
@@ -1326,7 +1327,7 @@ export const StorefrontPageBuilderWorkspace: React.FC = () => {
 
                   {/* View Live */}
                   <a
-                    href={selectedPage.slug === 'home' ? `/store/${storeSlug}` : `/store/${storeSlug}/pages/${selectedPage.slug}`}
+                    href={selectedPage.slug === 'home' ? getStorefrontExternalUrl(storeSlug) : getStorefrontExternalUrl(storeSlug, `/pages/${selectedPage.slug}`)}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl border border-default bg-surface hover:bg-surface-sunken text-xs font-semibold text-default transition-colors"
@@ -1715,7 +1716,7 @@ export const StorefrontPageBuilderWorkspace: React.FC = () => {
                                     <span className="flex size-5 items-center justify-center rounded-md bg-surface border border-default text-[10px] font-mono font-bold text-muted">
                                       {sIdx + 1}
                                     </span>
-                                    <span className="text-xs font-bold text-default truncate max-w-[200px] sm:max-w-xs">
+                                    <span className="text-xs font-bold text-default truncate max-w-50 sm:max-w-xs">
                                       {slide.title || `Slide ${sIdx + 1}`}
                                     </span>
                                   </div>
@@ -2786,8 +2787,8 @@ export const StorefrontPageBuilderWorkspace: React.FC = () => {
                   viewport === 'desktop'
                     ? 'max-w-full'
                     : viewport === 'tablet'
-                    ? 'max-w-[768px]'
-                    : 'max-w-[390px] border-4 border-default/80'
+                    ? 'max-w-3xl'
+                    : 'max-w-97.5 border-4 border-default/80'
                 }`}
               >
                 {selectedPage.blocks && selectedPage.blocks.length > 0 ? (

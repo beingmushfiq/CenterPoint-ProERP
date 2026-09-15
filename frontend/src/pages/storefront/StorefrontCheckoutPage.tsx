@@ -5,6 +5,7 @@ import { api } from '../../lib/api/client';
 import { useStorefrontCartStore } from '../../lib/storefront/storefrontCartStore';
 import type { StorefrontConfig, StorefrontOrderConfirmation } from '../../types/api/storefront';
 import { trackStorefrontInitiateCheckout, trackStorefrontPurchase } from '../../lib/storefront/storefrontTracking';
+import { getStorefrontUrl } from '../../lib/storefront/storefrontUrl';
 
 interface OutletContextType {
   config: StorefrontConfig;
@@ -47,7 +48,7 @@ export const StorefrontCheckoutPage: React.FC = () => {
         <h2 className="text-base font-bold text-zinc-200">Your Cart is Empty</h2>
         <p className="text-xs text-zinc-500 mt-1">Please add some items to your cart before checking out.</p>
         <Link
-          to={`/store/${subdomain}`}
+          to={getStorefrontUrl(subdomain)}
           className="mt-5 inline-flex items-center gap-2 rounded-xl bg-emerald-500 px-4 py-2.5 text-xs font-bold text-zinc-950 hover:bg-emerald-400 transition-all"
         >
           <ArrowLeft className="h-4 w-4" />
@@ -95,7 +96,7 @@ export const StorefrontCheckoutPage: React.FC = () => {
       });
 
       clearCart();
-      navigate(`/store/${subdomain}/order-confirmed`, {
+      navigate(getStorefrontUrl(subdomain, '/order-confirmed'), {
         state: { order: orderData },
       });
     } catch (err: unknown) {
@@ -114,7 +115,7 @@ export const StorefrontCheckoutPage: React.FC = () => {
       {/* Header */}
       <div>
         <Link
-          to={`/store/${subdomain}`}
+          to={getStorefrontUrl(subdomain)}
           className="inline-flex items-center gap-2 text-xs font-semibold text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white transition-colors"
         >
           <ArrowLeft className="h-4 w-4" />

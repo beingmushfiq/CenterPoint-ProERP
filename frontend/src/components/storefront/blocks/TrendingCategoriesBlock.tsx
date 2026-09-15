@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, Layers } from 'lucide-react';
 import type { PageBlock } from '../../../modules/storefront/StorefrontPageBuilderWorkspace';
+import { getStorefrontUrl } from '../../../lib/storefront/storefrontUrl';
 
 interface TrendingCategoriesBlockProps {
   block: PageBlock;
@@ -35,7 +36,7 @@ export const TrendingCategoriesBlock: React.FC<TrendingCategoriesBlockProps> = (
         </div>
 
         <Link
-          to={`/store/${subdomain}/products`}
+          to={getStorefrontUrl(subdomain, '/products')}
           className="hidden sm:inline-flex items-center gap-1 text-xs font-bold text-zinc-700 dark:text-zinc-300 hover:text-zinc-950 dark:hover:text-white transition-colors"
         >
           <span>All Departments</span>
@@ -47,7 +48,7 @@ export const TrendingCategoriesBlock: React.FC<TrendingCategoriesBlockProps> = (
         {categories.slice(0, 12).map((cat) => (
           <Link
             key={cat.id}
-            to={`/store/${subdomain}/products?category_id=${cat.id}`}
+            to={getStorefrontUrl(subdomain, `/products?category_id=${cat.id}`)}
             className="group relative flex flex-col items-center justify-center p-5 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-900/60 hover:border-zinc-400 dark:hover:border-zinc-600 hover:shadow-md transition-all duration-300 text-center"
           >
             <div

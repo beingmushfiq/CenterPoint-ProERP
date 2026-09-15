@@ -12,6 +12,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { SelectDropdown } from '../../components/ui/Dropdown';
+import { getStorefrontExternalUrl } from '../../lib/storefront/storefrontUrl';
 
 export const TenantRegistrationWizard: React.FC = () => {
   const navigate = useNavigate();
@@ -461,7 +462,7 @@ export const TenantRegistrationWizard: React.FC = () => {
               <div className="flex justify-between border-b border-default pb-2">
                 <span className="text-muted">Storefront URL:</span>
                 <a
-                  href={`/store/${provisionedData?.tenant?.slug}`}
+                  href={getStorefrontExternalUrl(provisionedData?.tenant?.slug || '')}
                   target="_blank"
                   rel="noreferrer"
                   className="text-emerald-500 hover:underline flex items-center gap-1 font-semibold"
@@ -485,7 +486,7 @@ export const TenantRegistrationWizard: React.FC = () => {
 
             <div className="pt-6 flex items-center justify-center gap-4 font-mono text-xs">
               <a
-                href={`/store/${provisionedData?.tenant?.slug}`}
+                href={getStorefrontExternalUrl(provisionedData?.tenant?.slug || '')}
                 target="_blank"
                 rel="noreferrer"
                 className="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold transition-colors shadow-lg shadow-emerald-600/20"

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { ShieldCheck, Truck, Clock, Store, MessageCircle, Phone, MapPin, Mail, ExternalLink } from 'lucide-react';
 import { getContrastColor } from '../../lib/storefront/themeSync';
 import type { StorefrontConfig } from '../../types/api/storefront';
+import { getStorefrontUrl } from '../../lib/storefront/storefrontUrl';
 
 interface StorefrontFooterProps {
   config: StorefrontConfig | null;
@@ -54,21 +55,21 @@ export const StorefrontFooter: React.FC<StorefrontFooterProps> = ({ config }) =>
       id: 'quick-links',
       title: 'Store Navigation',
       links: [
-        { label: 'Hardware Catalog', url: `/store/${subdomain}/products` },
-        { label: 'Custom Hardware Lab', url: `/store/${subdomain}/pages/custom-lab` },
-        { label: 'Track Shipment', url: `/store/${subdomain}/track` },
-        { label: 'My Account', url: `/store/${subdomain}/account` },
+        { label: 'Hardware Catalog', url: getStorefrontUrl(subdomain, '/products') },
+        { label: 'Custom Hardware Lab', url: getStorefrontUrl(subdomain, '/pages/custom-lab') },
+        { label: 'Track Shipment', url: getStorefrontUrl(subdomain, '/track') },
+        { label: 'My Account', url: getStorefrontUrl(subdomain, '/account') },
       ],
     },
     {
       id: 'company-help',
       title: 'Engineering & Support',
       links: [
-        { label: 'The Hardware Manifesto', url: `/store/${subdomain}/pages/about-us` },
-        { label: '2-Year Precision Care', url: `/store/${subdomain}/pages/warranty-support` },
-        { label: 'Armored Shipping Protocol', url: `/store/${subdomain}/pages/shipping-fulfillment` },
-        { label: 'Technical & Codec FAQ', url: `/store/${subdomain}/pages/faq` },
-        { label: 'Return Policy', url: `/store/${subdomain}/pages/return-policy` },
+        { label: 'The Hardware Manifesto', url: getStorefrontUrl(subdomain, '/pages/about-us') },
+        { label: '2-Year Precision Care', url: getStorefrontUrl(subdomain, '/pages/warranty-support') },
+        { label: 'Armored Shipping Protocol', url: getStorefrontUrl(subdomain, '/pages/shipping-fulfillment') },
+        { label: 'Technical & Codec FAQ', url: getStorefrontUrl(subdomain, '/pages/faq') },
+        { label: 'Return Policy', url: getStorefrontUrl(subdomain, '/pages/return-policy') },
       ],
     },
   ];
@@ -77,9 +78,10 @@ export const StorefrontFooter: React.FC<StorefrontFooterProps> = ({ config }) =>
 
   const formatFooterUrl = (url: string) => {
     if (url.startsWith('http://') || url.startsWith('https://')) return url;
-    if (url.startsWith(`/store/${subdomain}`)) return url;
-    if (url.startsWith('/')) return `/store/${subdomain}${url}`;
-    return `/store/${subdomain}/${url}`;
+    // Already a correctly-prefixed path — return as-is
+    if (url.startsWith('/')) return url;
+    // Bare relative path — prefix with storefront base
+    return getStorefrontUrl(subdomain, `/${url}`);
   };
 
   return (

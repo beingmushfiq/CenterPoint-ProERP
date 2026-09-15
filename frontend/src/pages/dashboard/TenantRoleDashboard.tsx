@@ -42,6 +42,7 @@ import { useTenantBranding } from '../../lib/theme/useTenantBranding';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../lib/api/client';
 import { cn } from '../../lib/utils';
+import { getStorefrontExternalUrl } from '../../lib/storefront/storefrontUrl';
 import { OnboardingStartupModal } from '../../modules/platform/OnboardingStartupModal';
 import { OnboardingProgressCard } from '../../modules/platform/OnboardingProgressCard';
 import { ExecutiveDashboardView } from './components/ExecutiveDashboardView';
@@ -577,7 +578,7 @@ export const TenantRoleDashboard: React.FC = () => {
 
           <div className="flex items-center gap-2 shrink-0">
             <a
-              href={`/store/${storeSlug}`}
+              href={getStorefrontExternalUrl(storeSlug)}
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-1.5 rounded-xl border border-default bg-surface px-2.5 py-1 text-xs font-semibold text-default hover:text-primary hover:border-primary/40 hover:bg-surface-sunken transition-all shadow-2xs group cursor-pointer"
@@ -676,7 +677,7 @@ export const TenantRoleDashboard: React.FC = () => {
           <span>Quick Actions:</span>
         </span>
         <a
-          href={`/store/${storeSlug}`}
+          href={getStorefrontExternalUrl(storeSlug)}
           target="_blank"
           rel="noopener noreferrer"
           className="inline-flex items-center gap-1.5 rounded-xl border border-default bg-surface px-2.5 py-1 text-xs font-semibold text-default hover:border-primary/40 hover:bg-surface-sunken transition-all shrink-0 shadow-2xs group"

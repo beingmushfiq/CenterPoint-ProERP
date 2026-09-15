@@ -16,6 +16,7 @@ import { BreadcrumbNav } from '../../components/seo/BreadcrumbNav';
 import { SelectDropdown } from '../../components/ui/Dropdown';
 import { ProductCard } from '../../components/storefront/cards/ProductCard';
 import type { StorefrontConfig, StorefrontProduct } from '../../types/api/storefront';
+import { getStorefrontUrl } from '../../lib/storefront/storefrontUrl';
 
 interface OutletContextType {
   config: StorefrontConfig;
@@ -139,9 +140,9 @@ export const StorefrontCatalogPage: React.FC = () => {
     : 'All Products & Collections';
 
   const breadcrumbs = [
-    { name: 'Home', url: `/store/${subdomain}` },
-    { name: 'All Products', url: `/store/${subdomain}/products` },
-    ...(activeCategoryObj ? [{ name: activeCategoryObj.name, url: `/store/${subdomain}/collections/${activeCategoryObj.code || activeCategoryObj.name.toLowerCase()}` }] : []),
+    { name: 'Home', url: getStorefrontUrl(subdomain) },
+    { name: 'All Products', url: getStorefrontUrl(subdomain, '/products') },
+    ...(activeCategoryObj ? [{ name: activeCategoryObj.name, url: getStorefrontUrl(subdomain, `/collections/${activeCategoryObj.code || activeCategoryObj.name.toLowerCase()}`) }] : []),
   ];
 
   const itemListSchema = {
@@ -152,7 +153,7 @@ export const StorefrontCatalogPage: React.FC = () => {
       '@type': 'ListItem',
       position: idx + 1,
       name: p.name,
-      url: `${window.location.origin}/store/${subdomain}/products/${(p as StorefrontProduct & { online_slug?: string }).online_slug || p.sku}`,
+      url: `${window.location.origin}${getStorefrontUrl(subdomain, `/products/${(p as StorefrontProduct & { online_slug?: string }).online_slug || p.sku}`)}`,
     })),
   };
 
@@ -351,7 +352,7 @@ export const StorefrontCatalogPage: React.FC = () => {
               }}
               onOrderNow={async (p) => {
                 await addItem(p.id, 1);
-                navigate(`/store/${subdomain}/checkout`);
+                navigate(getStorefrontUrl(subdomain, '/checkout'));
               }}
             />
           ))}
@@ -373,7 +374,7 @@ export const StorefrontCatalogPage: React.FC = () => {
               }}
               onOrderNow={async (p) => {
                 await addItem(p.id, 1);
-                navigate(`/store/${subdomain}/checkout`);
+                navigate(getStorefrontUrl(subdomain, '/checkout'));
               }}
             />
           ))}

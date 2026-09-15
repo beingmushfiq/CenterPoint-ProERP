@@ -5,6 +5,7 @@ import type { PageBlock } from '../../../modules/storefront/StorefrontPageBuilde
 import type { StorefrontProduct } from '../../../types/api/storefront';
 import type { ProductCardStyle } from '../../../lib/storefront/storefrontDesignSystem';
 import { ProductCard } from '../cards/ProductCard';
+import { getStorefrontUrl } from '../../../lib/storefront/storefrontUrl';
 
 interface ProductGridBlockProps {
   block: PageBlock;
@@ -78,7 +79,7 @@ export const ProductGridBlock: React.FC<ProductGridBlockProps> = ({
         </div>
 
         <Link
-          to={`/store/${subdomain}/products`}
+          to={getStorefrontUrl(subdomain, '/products')}
           className="inline-flex items-center gap-1 text-xs font-bold text-zinc-700 dark:text-zinc-300 hover:text-zinc-950 dark:hover:text-white transition-colors cursor-pointer self-start sm:self-auto"
         >
           <span>View All Products</span>

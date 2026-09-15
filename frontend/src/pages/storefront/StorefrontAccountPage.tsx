@@ -18,6 +18,7 @@ import { api } from '../../lib/api/client';
 import { useStorefrontCustomerStore } from '../../lib/storefront/storefrontCustomerStore';
 import type { StorefrontConfig } from '../../types/api/storefront';
 import { useCurrency } from '../../hooks/useCurrency';
+import { getStorefrontUrl } from '../../lib/storefront/storefrontUrl';
 
 interface OutletContextType {
   config: StorefrontConfig;
@@ -244,7 +245,7 @@ export const StorefrontAccountPage: React.FC = () => {
               <h2 className="text-base font-bold text-slate-900 dark:text-zinc-100">Your Order History</h2>
             </div>
             <Link
-              to={`/store/${subdomain}/track`}
+              to={getStorefrontUrl(subdomain, '/track')}
               className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 transition-colors"
             >
               Track by Reference Number &rarr;
@@ -265,7 +266,7 @@ export const StorefrontAccountPage: React.FC = () => {
                 Explore our newest energy-efficient infrared cookers and precision gas stoves straight from the factory assembly line.
               </p>
               <Link
-                to={`/store/${subdomain}`}
+                to={getStorefrontUrl(subdomain)}
                 className="inline-flex items-center gap-2 rounded-xl bg-emerald-500 px-5 py-2.5 text-xs font-bold text-zinc-950 hover:bg-emerald-400 transition-all shadow-lg shadow-emerald-500/20"
               >
                 <span>Browse Products</span>
@@ -311,7 +312,7 @@ export const StorefrontAccountPage: React.FC = () => {
                         </span>
                       </div>
                       <Link
-                        to={`/store/${subdomain}/track?order=${encodeURIComponent(order.order_number)}`}
+                        to={getStorefrontUrl(subdomain, `/track?order=${encodeURIComponent(order.order_number)}`)}
                         className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 dark:border-zinc-700 bg-slate-50 dark:bg-zinc-800 px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-zinc-200 hover:text-slate-900 dark:hover:text-white hover:border-emerald-500 transition-all shadow-2xs"
                       >
                         <span>Track</span>

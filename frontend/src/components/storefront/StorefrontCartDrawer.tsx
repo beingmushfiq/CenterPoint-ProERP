@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Minus, Plus, ShoppingBag, Trash2, X, ArrowRight } from 'lucide-react';
 import { useStorefrontCartStore } from '../../lib/storefront/storefrontCartStore';
 import type { StorefrontConfig } from '../../types/api/storefront';
+import { getStorefrontUrl } from '../../lib/storefront/storefrontUrl';
 
 interface StorefrontCartDrawerProps {
   config: StorefrontConfig | null;
@@ -21,7 +22,7 @@ export const StorefrontCartDrawer: React.FC<StorefrontCartDrawerProps> = ({ conf
 
   const handleCheckoutClick = () => {
     closeDrawer();
-    navigate(`/store/${subdomain}/checkout`);
+    navigate(getStorefrontUrl(subdomain, '/checkout'));
   };
 
   return (

@@ -3,6 +3,7 @@ import { Link, useLocation, useOutletContext } from 'react-router-dom';
 import { CheckCircle, ArrowRight } from 'lucide-react';
 import type { StorefrontConfig, StorefrontOrderConfirmation } from '../../types/api/storefront';
 import { useCurrency } from '../../hooks/useCurrency';
+import { getStorefrontUrl } from '../../lib/storefront/storefrontUrl';
 
 interface OutletContextType {
   config: StorefrontConfig;
@@ -90,7 +91,7 @@ export const StorefrontOrderConfirmationPage: React.FC = () => {
           )}
 
           <Link
-            to={`/store/${subdomain}`}
+            to={getStorefrontUrl(subdomain)}
             style={{
               backgroundColor: 'var(--store-primary, #10b981)',
               color: 'var(--store-primary-fg, #ffffff)',

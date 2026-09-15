@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { ChevronLeft, ChevronRight, ShoppingBag, ArrowRight, Sparkles } from 'lucide-react';
 import type { PageBlock } from '../../../modules/storefront/StorefrontPageBuilderWorkspace';
+import { getStorefrontUrl } from '../../../lib/storefront/storefrontUrl';
 
 export interface SlideData {
   id?: string;
@@ -46,7 +47,7 @@ export const HeroSliderBlock: React.FC<HeroSliderBlockProps> = ({ block, subdoma
             cta_text: block.cta_text || block.primaryCtaText || 'Explore Catalog',
             cta_url: block.cta_url || '#catalog',
             secondary_cta_text: block.secondary_cta_text || 'About Us',
-            secondary_cta_url: block.secondary_cta_url || `/store/${subdomain}/pages/about-us`,
+            secondary_cta_url: block.secondary_cta_url || getStorefrontUrl(subdomain, '/pages/about-us'),
             desktop_image:
               (block.desktop_image as string) ||
               (block.image_url as string) ||
@@ -64,9 +65,9 @@ export const HeroSliderBlock: React.FC<HeroSliderBlockProps> = ({ block, subdoma
             subtitle:
               'Discover our latest release of meticulously finished products, created with verified materials and benchmark durability.',
             cta_text: 'Discover New Releases',
-            cta_url: `/store/${subdomain}/products`,
+            cta_url: getStorefrontUrl(subdomain, '/products'),
             secondary_cta_text: 'View Catalog',
-            secondary_cta_url: `/store/${subdomain}/products`,
+            secondary_cta_url: getStorefrontUrl(subdomain, '/products'),
             desktop_image:
               'https://images.unsplash.com/photo-1472851294608-062f824d29cc?q=80&w=1600&auto=format&fit=crop',
             mobile_image:
@@ -81,9 +82,9 @@ export const HeroSliderBlock: React.FC<HeroSliderBlockProps> = ({ block, subdoma
             subtitle:
               'Transparent production, certified batch integrity, and dedicated support for individual and enterprise clients alike.',
             cta_text: 'Shop Collection',
-            cta_url: `/store/${subdomain}/products`,
+            cta_url: getStorefrontUrl(subdomain, '/products'),
             secondary_cta_text: 'Contact Support',
-            secondary_cta_url: `/store/${subdomain}/pages/contact`,
+            secondary_cta_url: getStorefrontUrl(subdomain, '/pages/contact'),
             desktop_image:
               'https://images.unsplash.com/photo-1555529669-e69e7aa0ba9a?q=80&w=1600&auto=format&fit=crop',
             mobile_image:
@@ -178,7 +179,7 @@ export const HeroSliderBlock: React.FC<HeroSliderBlockProps> = ({ block, subdoma
       ref={sectionRef}
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
-      className="group/slider relative overflow-hidden rounded-3xl border border-zinc-200 dark:border-zinc-800 bg-zinc-950 text-white shadow-xl transition-all duration-500 outline-none select-none min-h-[440px] sm:min-h-[540px] lg:min-h-[600px] flex items-center"
+      className="group/slider relative overflow-hidden rounded-3xl border border-zinc-200 dark:border-zinc-800 bg-zinc-950 text-white shadow-xl transition-all duration-500 outline-none select-none min-h-110 sm:min-h-135 lg:min-h-150 flex items-center"
       tabIndex={0}
       role="region"
       aria-roledescription="carousel"
@@ -212,7 +213,7 @@ export const HeroSliderBlock: React.FC<HeroSliderBlockProps> = ({ block, subdoma
 
             {/* Custom Contrast Darkening Overlay per Slide */}
             <div
-              className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/65 to-black/35 backdrop-blur-[0.5px]"
+              className="absolute inset-0 bg-linear-to-r from-black/90 via-black/65 to-black/35 backdrop-blur-[0.5px]"
               style={{
                 opacity: (slide.overlay_opacity ?? 60) / 100,
               }}
@@ -279,7 +280,7 @@ export const HeroSliderBlock: React.FC<HeroSliderBlockProps> = ({ block, subdoma
 
             {activeSlide.secondary_cta_text && (
               <a
-                href={activeSlide.secondary_cta_url || `/store/${subdomain}/pages/about-us`}
+                href={activeSlide.secondary_cta_url || getStorefrontUrl(subdomain, '/pages/about-us')}
                 className="inline-flex items-center gap-2 px-6 py-3.5 rounded-xl border border-white/25 bg-white/10 hover:bg-white/20 text-white font-semibold text-xs sm:text-sm transition-all active:scale-95 cursor-pointer backdrop-blur-md shadow-md"
               >
                 <span>{activeSlide.secondary_cta_text}</span>

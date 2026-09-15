@@ -5,6 +5,7 @@ import { useStorefrontWishlistStore } from '../../lib/storefront/storefrontWishl
 import { useStorefrontCartStore } from '../../lib/storefront/storefrontCartStore';
 import { notify } from '../ui/Toast';
 import type { StorefrontConfig } from '../../types/api/storefront';
+import { getStorefrontUrl } from '../../lib/storefront/storefrontUrl';
 
 interface StorefrontWishlistDrawerProps {
   config: StorefrontConfig | null;
@@ -33,7 +34,7 @@ export const StorefrontWishlistDrawer: React.FC<StorefrontWishlistDrawerProps> =
     try {
       await addItem(item.id, 1);
       closeWishlist();
-      navigate(`/store/${subdomain}/checkout`);
+      navigate(getStorefrontUrl(subdomain, '/checkout'));
     } catch {
       notify.error('Failed to proceed to checkout');
     }
@@ -103,7 +104,7 @@ export const StorefrontWishlistDrawer: React.FC<StorefrontWishlistDrawerProps> =
                   type="button"
                   onClick={() => {
                     closeWishlist();
-                    navigate(`/store/${subdomain}/products`);
+                    navigate(getStorefrontUrl(subdomain, '/products'));
                   }}
                   style={{
                     backgroundColor: 'var(--store-primary, #10b981)',
@@ -135,7 +136,7 @@ export const StorefrontWishlistDrawer: React.FC<StorefrontWishlistDrawerProps> =
                         </span>
                       )}
                       <Link
-                        to={`/store/${subdomain}/products/${item.slug}`}
+                        to={getStorefrontUrl(subdomain, `/products/${item.slug}`)}
                         onClick={closeWishlist}
                         className="text-xs font-bold text-slate-900 dark:text-zinc-100 hover:underline line-clamp-1 block"
                       >

@@ -18,6 +18,7 @@ import { useStorefrontCartStore } from '../../lib/storefront/storefrontCartStore
 import { useStorefrontWishlistStore } from '../../lib/storefront/storefrontWishlistStore';
 import { usePwaInstall } from '../../hooks/usePwaInstall';
 import { getContrastColor } from '../../lib/storefront/themeSync';
+import { getStorefrontUrl } from '../../lib/storefront/storefrontUrl';
 import type { StorefrontConfig } from '../../types/api/storefront';
 
 import { StorefrontThemeToggle } from './StorefrontThemeToggle';
@@ -61,11 +62,11 @@ export const StorefrontHeader: React.FC<StorefrontHeaderProps> = ({ config, subd
   const customMenuItems = theme?.menu_items && theme.menu_items.length > 0 ? theme.menu_items : null;
 
   const defaultMenuItems: NavMenuItem[] = [
-    { label: 'Hardware Catalog', url: `/store/${subdomain}/products`, is_external: false },
-    { label: 'Manifesto', url: `/store/${subdomain}/pages/about-us`, is_external: false },
-    { label: 'Custom Lab', url: `/store/${subdomain}/pages/custom-lab`, is_external: false },
-    { label: 'Warranty & Care', url: `/store/${subdomain}/pages/warranty-support`, is_external: false },
-    { label: 'Track Parcel', url: `/store/${subdomain}/track`, is_external: false },
+    { label: 'Hardware Catalog', url: getStorefrontUrl(subdomain, '/products'), is_external: false },
+    { label: 'Manifesto', url: getStorefrontUrl(subdomain, '/pages/about-us'), is_external: false },
+    { label: 'Custom Lab', url: getStorefrontUrl(subdomain, '/pages/custom-lab'), is_external: false },
+    { label: 'Warranty & Care', url: getStorefrontUrl(subdomain, '/pages/warranty-support'), is_external: false },
+    { label: 'Track Parcel', url: getStorefrontUrl(subdomain, '/track'), is_external: false },
   ];
 
   const menuItems: NavMenuItem[] = customMenuItems || defaultMenuItems;
@@ -78,16 +79,17 @@ export const StorefrontHeader: React.FC<StorefrontHeaderProps> = ({ config, subd
 
   const formatMenuUrl = (url: string) => {
     if (url.startsWith('http://') || url.startsWith('https://')) return url;
-    if (url.startsWith(`/store/${subdomain}`)) return url;
-    if (url.startsWith('/')) return `/store/${subdomain}${url}`;
-    return `/store/${subdomain}/${url}`;
+    // Already a correctly prefixed path — return as-is
+    if (url.startsWith('/')) return url;
+    // Bare relative path — prepend storefront base
+    return getStorefrontUrl(subdomain, `/${url}`);
   };
 
   const isLinkActive = (targetUrl: string) => {
     const current = location.pathname;
-    const homeUrl = `/store/${subdomain}`;
+    const homeUrl = getStorefrontUrl(subdomain);
     if (targetUrl === homeUrl || targetUrl === `${homeUrl}/`) {
-      return current === homeUrl || current === `${homeUrl}/`;
+      return current === homeUrl || current === `${homeUrl}/` || current === '/';
     }
     return current === targetUrl || current.startsWith(`${targetUrl}/`);
   };
@@ -158,7 +160,7 @@ export const StorefrontHeader: React.FC<StorefrontHeaderProps> = ({ config, subd
             </button>
 
             <Link
-              to={`/store/${subdomain}`}
+              to={getStorefrontUrl(subdomain)}
               className="group flex items-center gap-2.5 sm:gap-3 transition-transform active:scale-98 cursor-pointer"
             >
               <div
@@ -274,7 +276,7 @@ export const StorefrontHeader: React.FC<StorefrontHeaderProps> = ({ config, subd
 
             {/* Customer Account */}
             <Link
-              to={`/store/${subdomain}/account`}
+              to={getStorefrontUrl(subdomain, '/account')}
               style={{ color: navbarTextColor || undefined }}
               className={`hidden sm:inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-xl transition-all ${
                 isDarkNavbar
@@ -485,7 +487,7 @@ export const StorefrontHeader: React.FC<StorefrontHeaderProps> = ({ config, subd
               )}
 
               <Link
-                to={`/store/${subdomain}/account`}
+                to={getStorefrontUrl(subdomain, '/account')}
                 onClick={() => setMobileMenuOpen(false)}
                 style={{ color: navbarTextColor ? `${navbarTextColor}aa` : undefined }}
                 className={`text-center py-2 text-xs font-semibold ${

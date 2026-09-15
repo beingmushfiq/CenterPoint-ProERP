@@ -9,6 +9,7 @@ import {
 import { api } from '../../lib/api/client';
 import { SeoHead } from '../../components/seo/SeoHead';
 import type { StorefrontConfig } from '../../types/api/storefront';
+import { getStorefrontUrl } from '../../lib/storefront/storefrontUrl';
 
 interface OutletContextType {
   config: StorefrontConfig;
@@ -100,7 +101,7 @@ export const StorefrontOrderTrackingPage: React.FC = () => {
 
       {/* Back Button */}
       <Link
-        to={`/store/${subdomain}/products`}
+        to={getStorefrontUrl(subdomain, '/products')}
         className="inline-flex items-center gap-2 text-xs font-semibold text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white transition-colors"
       >
         <ArrowLeft className="h-4 w-4" />
