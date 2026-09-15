@@ -1,4 +1,4 @@
-# SliceMart ERP / FMS — Multi-Tenant Enterprise Operating System
+# CenterPoint ProERP — Multi-Tenant Enterprise Operating System
 
 [![Build & Test Status](https://img.shields.io/badge/tests-146%20frontend%20%7C%20730%2B%20backend%20passing-emerald.svg?style=flat-square)](#automated-testing--quality-gates)
 [![TypeScript](https://img.shields.io/badge/TypeScript-Strict%20Clean-blue.svg?style=flat-square)](https://www.typescriptlang.org/)
@@ -13,12 +13,9 @@
 
 ## 📖 Executive Summary
 
-**SliceMart ERP/FMS** is an enterprise-grade, multi-tenant Factory Management & Omnichannel Retail Operating System designed for modern manufacturing, wholesale distribution, and direct-to-consumer commerce.
+**CenterPoint ProERP** is an enterprise-grade, multi-tenant Factory Management & Omnichannel Retail Operating System designed for modern manufacturing, wholesale distribution, and direct-to-consumer commerce.
 
 Engineered under the **Master System Prompt** and the **Autonomous Implementation Protocol**, SliceMart cleanly decouples platform governance, tenant operations, and public consumer touchpoints into three unified yet strictly isolated layers.
-
-> 🌟 **The Golden Architectural Rule:**  
-> *Never hardcode Slice Mart-specific assumptions into the platform architecture. Slice Mart is Tenant #1, not the definition of the architecture. The platform architecture natively supports unlimited multi-industry, multi-currency, and multi-tenant expansion.*
 
 ---
 
@@ -42,9 +39,9 @@ Engineered under the **Master System Prompt** and the **Autonomous Implementatio
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-1. **Master Platform (`DevCenterPoint`):** Global superadmin surface for cross-tenant provisioning, subscription plans, platform telemetry, error diagnostics, and system-wide audit logging (`/platform`).
-2. **Tenant Management ERP (`SliceMart`):** The primary operational hub for day-to-day business operations across manufacturing, warehousing, sales, finance, workforce, and courier dispatch (`/`).
-3. **Public Headless Storefront:** Lightning-fast, mobile-first consumer storefront featuring instant cart synchronization, direct WhatsApp order routing, order status tracking, and dynamic SEO structured data (`/store/:subdomain`).
+1. **Master Platform (`DevCenterPoint`):** Global superadmin surface for cross-tenant provisioning, subscription plans, platform telemetry, error diagnostics, and system-wide audit logging (`*/login`).
+2. **Tenant Management ERP (`CenterPoint ProERP`):** The primary operational hub for day-to-day business operations across manufacturing, warehousing, sales, finance, workforce, and courier dispatch (`*devcenterpoint.com/login`).
+3. **Public Headless Storefront:** Lightning-fast, mobile-first consumer storefront featuring instant cart synchronization, direct WhatsApp order routing, order status tracking, and dynamic SEO structured data (`*devcenterpoint.com`).
 
 ---
 
@@ -104,7 +101,7 @@ Engineered under the **Master System Prompt** and the **Autonomous Implementatio
 ## 🚀 Quickstart & Local Setup
 
 ### Prerequisites
-- **PHP:** 8.5 or higher (PHP CLI, Laragon, or Docker)
+- **PHP:** 8.4 or higher (PHP CLI, Laragon, or Docker)
 - **Composer:** 2.x
 - **Node.js:** 22.x LTS or higher (`package.json` specifies `"engines": { "node": ">=22" }`)
 - **Git**
