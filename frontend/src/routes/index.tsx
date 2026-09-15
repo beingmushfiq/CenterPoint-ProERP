@@ -252,11 +252,7 @@ export const router = createBrowserRouter([
           },
           {
             path: '/platform/login',
-            element: (
-              <Suspense fallback={<RouteLoadingFallback />}>
-                <PlatformLoginPage />
-              </Suspense>
-            ),
+            element: <Navigate to="/login" replace />,
           },
           {
             path: '/platform',

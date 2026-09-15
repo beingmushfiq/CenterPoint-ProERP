@@ -69,7 +69,7 @@ export const PlatformProtectedRoute: React.FC = () => {
                 size="sm"
                 onClick={() => {
                   usePlatformAuthStore.getState().logout().then(() => {
-                    window.location.href = '/platform/login';
+                    window.location.href = '/login';
                   });
                 }}
                 leftIcon={<LogIn className="size-3.5" />}
@@ -84,7 +84,7 @@ export const PlatformProtectedRoute: React.FC = () => {
   }
 
   if (status === 'unauthenticated' || !user || !user.is_platform_user) {
-    return <Navigate to="/platform/login" state={{ from: location }} replace />;
+    return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
   return <Outlet />;
