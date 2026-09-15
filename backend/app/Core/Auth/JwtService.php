@@ -67,8 +67,8 @@ class JwtService
      * @param  array<string, mixed>  $customClaims
      */
     public function issueToken(
-        int $userId,
-        ?int $tenantId,
+        int|string $userId,
+        int|string|null $tenantId,
         int $tokenVersion = 1,
         string $permVersion = '',
         array $scopes = [],
@@ -79,10 +79,13 @@ class JwtService
         $lifetime = $ttl ?? $this->ttl;
         $appUrl = config('app.url');
 
+        $numericUserId = (int) $userId;
+        $numericTenantId = ($tenantId !== null && $tenantId !== '') ? (int) $tenantId : null;
+
         $payload = array_merge([
             'iss' => is_string($appUrl) ? $appUrl : 'http://localhost',
-            'sub' => $userId,
-            'tenant_id' => $tenantId,
+            'sub' => $numericUserId,
+            'tenant_id' => $numericTenantId,
             'token_version' => $tokenVersion,
             'perm_version' => $permVersion,
             'scopes' => $scopes,

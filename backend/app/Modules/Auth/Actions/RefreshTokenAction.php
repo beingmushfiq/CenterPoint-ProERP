@@ -60,9 +60,9 @@ class RefreshTokenAction extends Action
         $rawTtl = config('auth.jwt.ttl');
         $ttl = is_numeric($rawTtl) ? (int) $rawTtl : 900;
         $accessToken = $this->jwtService->issueToken(
-            userId: $user->id,
-            tenantId: $user->tenant_id,
-            tokenVersion: $user->token_version,
+            userId: (int) $user->id,
+            tenantId: $user->tenant_id !== null ? (int) $user->tenant_id : null,
+            tokenVersion: (int) $user->token_version,
             permVersion: $permVersion,
             scopes: $scopes,
             ttl: $ttl
