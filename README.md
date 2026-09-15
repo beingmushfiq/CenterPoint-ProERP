@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 <div align="center">
+=======
+# CenterPoint ProERP — Multi-Tenant Enterprise Operating System
+>>>>>>> 4b8cd68d05663aeb82ee5ba71c87f74296bcd119
 
 # ⚡ CenterPoint ProERP
 ### Next-Generation Industrial Manufacturing & Omnichannel Retail Operating System
@@ -32,7 +36,19 @@
 
 ---
 
+<<<<<<< HEAD
 ## 📊 Key Platform Metrics
+=======
+## 📖 Executive Summary
+
+**CenterPoint ProERP** is an enterprise-grade, multi-tenant Factory Management & Omnichannel Retail Operating System designed for modern manufacturing, wholesale distribution, and direct-to-consumer commerce.
+
+Engineered under the **Master System Prompt** and the **Autonomous Implementation Protocol**, SliceMart cleanly decouples platform governance, tenant operations, and public consumer touchpoints into three unified yet strictly isolated layers.
+
+---
+
+## 🏛️ Three-Tier System Architecture
+>>>>>>> 4b8cd68d05663aeb82ee5ba71c87f74296bcd119
 
 ```
 ┌──────────────────────────┬──────────────────────────┬──────────────────────────┬──────────────────────────┐
@@ -42,6 +58,7 @@
 └──────────────────────────┴──────────────────────────┴──────────────────────────┴──────────────────────────┘
 ```
 
+<<<<<<< HEAD
 ---
 
 ## 🧭 Table of Contents
@@ -58,6 +75,11 @@
 - [🔒 Security & Data Confidentiality Standards](#-security--data-confidentiality-standards)
 - [📚 Canonical Architecture Documentation](#-canonical-architecture-documentation)
 - [👥 Authors & Maintainers](#-authors--maintainers)
+=======
+1. **Master Platform (`DevCenterPoint`):** Global superadmin surface for cross-tenant provisioning, subscription plans, platform telemetry, error diagnostics, and system-wide audit logging (`*/login`).
+2. **Tenant Management ERP (`CenterPoint ProERP`):** The primary operational hub for day-to-day business operations across manufacturing, warehousing, sales, finance, workforce, and courier dispatch (`*devcenterpoint.com/login`).
+3. **Public Headless Storefront:** Lightning-fast, mobile-first consumer storefront featuring instant cart synchronization, direct WhatsApp order routing, order status tracking, and dynamic SEO structured data (`*devcenterpoint.com`).
+>>>>>>> 4b8cd68d05663aeb82ee5ba71c87f74296bcd119
 
 ---
 
@@ -355,11 +377,18 @@ React 19.2 (Strict) ──▶ Vite 8.x + Rolldown ──▶ Tailwind CSS v4 ─�
 
 ## 🚀 Quickstart & Local Setup
 
+<<<<<<< HEAD
 ### System Prerequisites
 Ensure the following tools are installed on your workstation:
 - **PHP:** `8.4` or higher with `pdo`, `mbstring`, `openssl`, and `gd` extensions enabled.
 - **Composer:** `2.x`
 - **Node.js:** `22.x LTS` or higher
+=======
+### Prerequisites
+- **PHP:** 8.4 or higher (PHP CLI, Laragon, or Docker)
+- **Composer:** 2.x
+- **Node.js:** 22.x LTS or higher (`package.json` specifies `"engines": { "node": ">=22" }`)
+>>>>>>> 4b8cd68d05663aeb82ee5ba71c87f74296bcd119
 - **Git**
 
 ---
