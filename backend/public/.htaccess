@@ -11,6 +11,12 @@
     # 2. Handle Authorization Header for FastCGI / PHP-FPM
     RewriteCond %{HTTP:Authorization} .
     RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+    RewriteCond %{HTTP:X-Authorization} .
+    RewriteRule .* - [E=HTTP_X_AUTHORIZATION:%{HTTP:X-Authorization}]
+    <IfModule mod_setenvif.c>
+        SetEnvIf Authorization "(.*)" HTTP_AUTHORIZATION=$1
+        SetEnvIf X-Authorization "(.*)" HTTP_X_AUTHORIZATION=$1
+    </IfModule>
 
     # 3. Handle X-XSRF-Token Header
     RewriteCond %{HTTP:x-xsrf-token} .

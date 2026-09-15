@@ -32,12 +32,35 @@ class AuthenticateJwt
      */
     public function handle(Request $request, Closure $next): Response
     {
-        $token = $request->bearerToken() ?? $request->query('token') ?? $request->query('access_token');
+        $token = $request->bearerToken();
+
+        if ($token === null || trim($token) === '') {
+            $rawHeader = $request->header('X-Authorization')
+                ?? $request->header('x-authorization')
+                ?? $request->header('Authorization')
+                ?? (is_string($request->server('HTTP_AUTHORIZATION')) ? $request->server('HTTP_AUTHORIZATION') : null)
+                ?? (is_string($request->server('REDIRECT_HTTP_AUTHORIZATION')) ? $request->server('REDIRECT_HTTP_AUTHORIZATION') : null)
+                ?? (is_string($request->server('REDIRECT_REDIRECT_HTTP_AUTHORIZATION')) ? $request->server('REDIRECT_REDIRECT_HTTP_AUTHORIZATION') : null);
+
+            if (is_string($rawHeader) && trim($rawHeader) !== '') {
+                $rawHeader = trim($rawHeader);
+                if (stripos($rawHeader, 'Bearer ') === 0) {
+                    $token = trim(substr($rawHeader, 7));
+                } else {
+                    $token = $rawHeader;
+                }
+            }
+        }
+
+        if ($token === null || trim($token) === '') {
+            $token = $request->query('token') ?? $request->query('access_token');
+        }
+
         if (is_string($token)) {
             $token = trim($token);
         }
 
-        if ($token === null || trim($token) === '') {
+        if ($token === null || $token === '') {
             return ErrorResponse::make(
                 request: $request,
                 code: 'UNAUTHENTICATED',

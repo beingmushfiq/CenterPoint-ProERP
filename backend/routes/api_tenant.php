@@ -404,6 +404,8 @@ Route::middleware(['auth.jwt', 'tenant.resolve', 'tenant.active'])
                 ->middleware('permission:inventory.movement.view')->name('movements.show');
             Route::get('balances', [App\Modules\Inventory\Controllers\StockMovementController::class, 'balances'])
                 ->middleware('permission:inventory.stock.view')->name('balances.index');
+            Route::get('stock', [App\Modules\Inventory\Controllers\StockMovementController::class, 'balances'])
+                ->middleware('permission:inventory.stock.view')->name('stock.index');
 
             Route::prefix('transfers')->name('transfers.')->group(static function (): void {
                 Route::get('/', [App\Modules\Inventory\Controllers\StockTransferController::class, 'index'])

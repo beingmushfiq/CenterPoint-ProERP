@@ -59,15 +59,14 @@ final class ResolveTenant
 
         // getAttribute() returns mixed; we narrow it to int|null below.
         $rawTenantId = $user->getAttribute('tenant_id');
+        $tenantId = is_numeric($rawTenantId) ? (int) $rawTenantId : null;
 
-        if (! is_int($rawTenantId)) {
+        if ($tenantId === null) {
             throw new AuthenticationException(
                 'Unauthenticated — authenticated user has no tenant_id claim. '
                 .'Platform users may not access tenant-scope routes.'
             );
         }
-
-        $tenantId = $rawTenantId;
 
         // Check for a disagreeing body tenant_id (security event).
         $this->detectBodyTenantMismatch($request, $tenantId);
@@ -88,7 +87,7 @@ final class ResolveTenant
 
         // Load the user's scope rows for this tenant with caching (5 min TTL). Empty = whole-tenant access.
         $rawUserId = $user->getAttribute('id');
-        $userId = is_int($rawUserId) ? $rawUserId : null;
+        $userId = is_numeric($rawUserId) ? (int) $rawUserId : null;
 
         /** @var array<int, array<string, mixed>> $scopes */
         $scopes = $userId !== null

@@ -59,6 +59,13 @@ let accessToken: string | null = null;
 
 export function setAccessToken(token: string | null): void {
   accessToken = token;
+  if (typeof sessionStorage !== 'undefined') {
+    if (token) {
+      sessionStorage.setItem('tenant_access_token', token);
+    } else {
+      sessionStorage.removeItem('tenant_access_token');
+    }
+  }
 }
 
 export function getAccessToken(path?: string): string | null {
@@ -75,11 +82,16 @@ export function getAccessToken(path?: string): string | null {
     return platformToken || null;
   }
 
-  // Tenant / standard context: strictly isolate from platform token (in-memory per ADR-007)
+  // Tenant / standard context: check in-memory first, then sessionStorage fallback for page reload
   if (accessToken) return accessToken;
   if (typeof sessionStorage !== 'undefined') {
     const impToken = sessionStorage.getItem('impersonation_token');
     if (impToken) return impToken;
+    const sessionToken = sessionStorage.getItem('tenant_access_token');
+    if (sessionToken) {
+      accessToken = sessionToken;
+      return sessionToken;
+    }
   }
   return null;
 }
@@ -103,6 +115,9 @@ export function onSessionExpired(listener: SessionExpiredListener): () => void {
 
 function announceSessionExpired(error: ApiError): void {
   accessToken = null;
+  if (typeof sessionStorage !== 'undefined') {
+    sessionStorage.removeItem('tenant_access_token');
+  }
   for (const listener of sessionListeners) listener(error);
 }
 
@@ -401,6 +416,7 @@ async function execute<T>(
   const token = getAccessToken(path);
   if (token && options.skipAuth !== true) {
     headers['Authorization'] = `Bearer ${token}`;
+    headers['X-Authorization'] = `Bearer ${token}`;
   }
   if (options.idempotencyKey) {
     headers['Idempotency-Key'] = options.idempotencyKey;
