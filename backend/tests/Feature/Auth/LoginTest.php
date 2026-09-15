@@ -174,4 +174,69 @@ class LoginTest extends TestCase
         $selectResponse->assertJsonPath('data.tenant.id', $tenant2->id);
         $selectResponse->assertCookie('slicemart_refresh_token');
     }
+
+    public function test_login_using_user_name_succeeds(): void
+    {
+        User::query()->create([
+            'uuid' => (string) Str::uuid(),
+            'tenant_id' => $this->tenant->id,
+            'name' => 'Hasan Production Lead',
+            'email' => 'production@dcp.com',
+            'password' => Hash::make('12345678'),
+            'status' => 'active',
+            'locale' => 'en',
+            'token_version' => 1,
+            'perm_version' => 1,
+        ]);
+
+        $response = $this->postJson('/api/v1/auth/login', [
+            'email' => 'Hasan Production Lead',
+            'password' => '12345678',
+            'tenant_id' => $this->tenant->id,
+        ]);
+
+        $response->assertStatus(200);
+        $response->assertJsonPath('success', true);
+        $response->assertJsonPath('data.user.name', 'Hasan Production Lead');
+        $response->assertJsonPath('data.user.email', 'production@dcp.com');
+    }
+
+    public function test_login_using_role_or_designation_succeeds(): void
+    {
+        $user = User::query()->create([
+            'uuid' => (string) Str::uuid(),
+            'tenant_id' => $this->tenant->id,
+            'name' => 'Farhana QC Lead',
+            'email' => 'qc@dcp.com',
+            'password' => Hash::make('12345678'),
+            'status' => 'active',
+            'locale' => 'en',
+            'token_version' => 1,
+            'perm_version' => 1,
+        ]);
+
+        $roleId = DB::table('roles')->insertGetId([
+            'uuid' => (string) Str::uuid(),
+            'tenant_id' => $this->tenant->id,
+            'name' => 'QC Inspector',
+            'slug' => 'qc_inspector',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        DB::table('role_user')->insert([
+            'user_id' => $user->id,
+            'role_id' => $roleId,
+        ]);
+
+        $response = $this->postJson('/api/v1/auth/login', [
+            'email' => 'QC Inspector',
+            'password' => '12345678',
+            'tenant_id' => $this->tenant->id,
+        ]);
+
+        $response->assertStatus(200);
+        $response->assertJsonPath('success', true);
+        $response->assertJsonPath('data.user.name', 'Farhana QC Lead');
+    }
 }

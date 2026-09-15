@@ -156,7 +156,9 @@ final class PlansAndTenantsSeeder extends Seeder
             ]);
         }
 
-        // 6. Bind Verified Domains for demoerp & slicemart
+        // 6. Bind Verified Domain for demoerp (purge any legacy slicemart domain)
+        DB::table('tenant_domains')->where('domain', 'slicemart.devcenterpoint.com')->delete();
+
         DB::table('tenant_domains')->updateOrInsert(
             ['domain' => 'demoerp.devcenterpoint.com'],
             [
@@ -164,22 +166,6 @@ final class PlansAndTenantsSeeder extends Seeder
                 'uuid' => (string) Str::uuid(),
                 'type' => 'platform_subdomain',
                 'is_primary' => true,
-                'verification_status' => 'verified',
-                'ssl_status' => 'active',
-                'verified_at' => now(),
-                'activated_at' => now(),
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]
-        );
-
-        DB::table('tenant_domains')->updateOrInsert(
-            ['domain' => 'slicemart.devcenterpoint.com'],
-            [
-                'tenant_id' => $tenant->id,
-                'uuid' => (string) Str::uuid(),
-                'type' => 'custom_alias',
-                'is_primary' => false,
                 'verification_status' => 'verified',
                 'ssl_status' => 'active',
                 'verified_at' => now(),

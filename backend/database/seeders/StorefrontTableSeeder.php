@@ -24,6 +24,11 @@ final class StorefrontTableSeeder extends Seeder
         $branch = Branch::first();
         $warehouse = Warehouse::where('type', 'finished_goods')->first() ?? Warehouse::first();
 
+        // Purge any legacy slicemart storefront records
+        Storefront::where('subdomain', 'slicemart')
+            ->orWhere('domain', 'slicemart.devcenterpoint.com')
+            ->delete();
+
         $storefrontConfigs = [
             [
                 'code' => 'SF-DEMOERP',
@@ -32,20 +37,6 @@ final class StorefrontTableSeeder extends Seeder
                 'subdomain' => 'demoerp',
                 'meta_title' => 'CenterPoint ProERP — Next-Gen Manufacturing & Electronics Direct',
                 'meta_description' => 'Direct manufacturer showcase powered by CenterPoint ProERP. High quality cookers, appliances and electronics.',
-                'theme' => [
-                    'primary_color' => '#2563eb',
-                    'accent_color' => '#1d4ed8',
-                    'hero_title' => 'Next-Gen Infrared Cookers & Premium Stoves',
-                    'hero_subtitle' => 'High performance, energy-efficient smokeless infrared cookers and heavy-duty gas stoves direct from manufacturer.',
-                ],
-            ],
-            [
-                'code' => 'SF-SLICEMART',
-                'name' => 'SliceMart Direct Storefront',
-                'domain' => 'slicemart.devcenterpoint.com',
-                'subdomain' => 'slicemart',
-                'meta_title' => 'SliceMart — High-Efficiency Infrared Cookers & Kitchen Stoves',
-                'meta_description' => 'Direct manufacturer of premium infrared cookers, induction plates, and heavy-duty gas stoves with nationwide warranty.',
                 'theme' => [
                     'primary_color' => '#2563eb',
                     'accent_color' => '#1d4ed8',

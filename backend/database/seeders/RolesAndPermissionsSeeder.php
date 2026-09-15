@@ -9,6 +9,7 @@ use App\Models\Permission;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
@@ -162,70 +163,76 @@ final class RolesAndPermissionsSeeder extends Seeder
         );
         $salesRole->permissions()->sync(array_values($salesPerms));
 
-        // 7. Seed Demo Users for CenterPoint ProERP (demoerp.devcenterpoint.com)
-        $defaultPassword = Hash::make('Password123!');
+        // 7. Seed Demo Users for CenterPoint ProERP (@dcp.com)
+        $defaultPassword = Hash::make('12345678');
 
         $demoUsers = [
             [
-                'email' => 'admin@demoerp.com',
+                'email' => 'admin@dcp.com',
                 'name' => 'System Administrator',
                 'phone' => '+8801700000001',
                 'role' => $superAdminRole,
             ],
             [
-                'email' => 'production@demoerp.com',
+                'email' => 'production@dcp.com',
                 'name' => 'Hasan Production Lead',
                 'phone' => '+8801700000002',
                 'role' => $productionManagerRole,
             ],
             [
-                'email' => 'qc@demoerp.com',
+                'email' => 'qc@dcp.com',
                 'name' => 'Farhana QC Lead',
                 'phone' => '+8801700000003',
                 'role' => $qcRole,
             ],
             [
-                'email' => 'store@demoerp.com',
+                'email' => 'store@dcp.com',
                 'name' => 'Rafiq Store In-Charge',
                 'phone' => '+8801700000004',
                 'role' => $storekeeperRole,
             ],
             [
-                'email' => 'sales@demoerp.com',
+                'email' => 'sales@dcp.com',
                 'name' => 'Kamal Sales Officer',
                 'phone' => '+8801700000005',
                 'role' => $salesRole,
             ],
-            // Also keep slicemart aliases for compatibility
+            // Update legacy emails if present to 12345678 as well
             [
-                'email' => 'admin@slicemart.test',
+                'email' => 'admin@demoerp.com',
                 'name' => 'System Administrator',
                 'phone' => '+8801700000011',
                 'role' => $superAdminRole,
             ],
             [
-                'email' => 'production@slicemart.test',
+                'email' => 'production@demoerp.com',
                 'name' => 'Hasan Production Lead',
                 'phone' => '+8801700000012',
                 'role' => $productionManagerRole,
             ],
             [
-                'email' => 'qc@slicemart.test',
+                'email' => 'qc@demoerp.com',
                 'name' => 'Farhana QC Lead',
                 'phone' => '+8801700000013',
                 'role' => $qcRole,
             ],
             [
-                'email' => 'store@slicemart.test',
+                'email' => 'store@demoerp.com',
                 'name' => 'Rafiq Store In-Charge',
                 'phone' => '+8801700000014',
                 'role' => $storekeeperRole,
             ],
             [
-                'email' => 'sales@slicemart.test',
+                'email' => 'sales@demoerp.com',
                 'name' => 'Kamal Sales Officer',
                 'phone' => '+8801700000015',
                 'role' => $salesRole,
+            ],
+            [
+                'email' => 'admin@slicemart.test',
+                'name' => 'System Administrator',
+                'phone' => '+8801700000021',
+                'role' => $superAdminRole,
             ],
         ];
 
@@ -244,13 +251,14 @@ final class RolesAndPermissionsSeeder extends Seeder
             $user->locale = 'en';
             $user->token_version = 1;
             $user->perm_version = 1;
-            $user->is_platform_user = false;
             $user->save();
 
             $user->roles()->syncWithoutDetaching([$demoData['role']->id]);
         }
 
         // 8. Seed / Update Platform Super Administrator (DevCenterPoint Staff - tenant_id = null)
+        \App\Core\Tenancy\TenantContext::flush();
+
         $platformAdmin = User::withoutTenantScope()->where('email', 'admin@devcenterpoint.com')->first();
         if (!$platformAdmin) {
             $platformAdmin = new User();
@@ -265,8 +273,10 @@ final class RolesAndPermissionsSeeder extends Seeder
         $platformAdmin->token_version = 1;
         $platformAdmin->perm_version = 1;
         $platformAdmin->tenant_id = null;
-        $platformAdmin->is_platform_user = true;
         $platformAdmin->save();
+
+        // Ensure database raw column tenant_id is explicitly NULL
+        DB::table('users')->where('id', $platformAdmin->id)->update(['tenant_id' => null]);
 
         $platformOwnerRole = \App\Models\PlatformRole::where('slug', 'platform_owner')->first()
             ?? \App\Models\PlatformRole::where('slug', 'super_admin')->first();

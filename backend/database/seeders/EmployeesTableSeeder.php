@@ -119,7 +119,7 @@ final class EmployeesTableSeeder extends Seeder
                 'desg' => 'DESG-TECH',
                 'shift' => 'SHIFT-MORN',
                 'employment_type' => 'piece_rate',
-                'user_email' => 'production@slicemart.test',
+                'user_email' => 'production@dcp.com',
             ],
             [
                 'code' => 'EMP-002',
@@ -143,7 +143,7 @@ final class EmployeesTableSeeder extends Seeder
                 'desg' => 'DESG-QA',
                 'shift' => 'SHIFT-MORN',
                 'employment_type' => 'piece_rate',
-                'user_email' => 'qc@slicemart.test',
+                'user_email' => 'qc@dcp.com',
             ],
             [
                 'code' => 'EMP-004',

@@ -30,16 +30,26 @@ class AuthController extends Controller
     public function login(Request $request, LoginAction $action): JsonResponse
     {
         $validated = $request->validate([
-            'email' => 'required|email',
+            'email' => 'required|string',
             'password' => 'required|string',
             'remember_device' => 'nullable|boolean',
             'tenant_id' => 'nullable|integer',
         ]);
 
+        $host = $request->getHost();
+        $domainTenantId = $validated['tenant_id'] ?? null;
+        if ($domainTenantId === null && $host) {
+            $domainTenantId = \App\Models\TenantDomain::where('domain', $host)->value('tenant_id');
+            if (! $domainTenantId && str_contains($host, '.')) {
+                $sub = explode('.', $host)[0];
+                $domainTenantId = \App\Models\Tenant::where('slug', $sub)->value('id');
+            }
+        }
+
         $result = $action->execute([
             'email' => $validated['email'],
             'password' => $validated['password'],
-            'tenant_id' => $validated['tenant_id'] ?? null,
+            'tenant_id' => $domainTenantId,
             'ip_address' => $request->ip(),
             'user_agent' => $request->userAgent(),
         ]);

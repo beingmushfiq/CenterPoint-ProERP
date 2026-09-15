@@ -74,7 +74,7 @@ final class ProductionHardeningTest extends TestCase
      */
     public function test_subdomain_dns_validation(): void
     {
-        $this->assertTrue(TenantResolver::isValidSubdomain('slicemart'));
+        $this->assertTrue(TenantResolver::isValidSubdomain('demoerp'));
         $this->assertTrue(TenantResolver::isValidSubdomain('tenant-1'));
         $this->assertTrue(TenantResolver::isValidSubdomain('factory123'));
 
@@ -141,9 +141,9 @@ final class ProductionHardeningTest extends TestCase
             'tenant_id' => null,
         ]);
 
-        // Flagship tenant SliceMart must exist
+        // Flagship tenant DemoERP must exist
         $this->assertDatabaseHas('tenants', [
-            'slug' => 'slicemart',
+            'slug' => 'demoerp',
         ]);
         $this->assertGreaterThan(0, Tenant::count());
     }

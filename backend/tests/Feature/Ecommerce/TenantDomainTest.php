@@ -24,12 +24,13 @@ class TenantDomainTest extends TestCase
         parent::setUp();
         $this->seed(DatabaseSeeder::class);
 
-        $this->tenant = Tenant::where('slug', 'slicemart')->firstOrFail();
-        $this->admin = User::where('email', 'admin@slicemart.test')->firstOrFail();
+        $this->tenant = Tenant::where('slug', 'demoerp')->first() ?? Tenant::firstOrFail();
+        $this->admin = User::where('email', 'admin@dcp.com')->first()
+            ?? User::where('email', 'admin@slicemart.test')->firstOrFail();
 
         $loginRes = $this->postJson('/api/v1/auth/login', [
-            'email' => 'admin@slicemart.test',
-            'password' => 'Password123!',
+            'email' => $this->admin->email,
+            'password' => '12345678',
         ]);
 
         $this->token = $loginRes->json('data.access_token');
@@ -43,7 +44,7 @@ class TenantDomainTest extends TestCase
         $response->assertOk();
         $response->assertJsonPath('success', true);
         $this->assertNotEmpty($response->json('data'));
-        $this->assertEquals('slicemart.devcenterpoint.com', $response->json('data.0.domain'));
+        $this->assertEquals('demoerp.devcenterpoint.com', $response->json('data.0.domain'));
         $this->assertEquals('platform_subdomain', $response->json('data.0.type'));
     }
 

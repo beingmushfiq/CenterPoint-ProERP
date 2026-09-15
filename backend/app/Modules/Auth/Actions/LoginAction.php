@@ -45,8 +45,8 @@ class LoginAction extends Action
      */
     public function execute(array $input): array
     {
-        $rawEmail = $input['email'] ?? '';
-        $email = strtolower(trim(is_string($rawEmail) ? $rawEmail : ''));
+        $rawEmail = $input['email'] ?? $input['login'] ?? $input['username'] ?? '';
+        $identifier = trim(is_string($rawEmail) ? $rawEmail : '');
         $rawPassword = $input['password'] ?? '';
         $password = is_string($rawPassword) ? $rawPassword : '';
         $rawTenantId = $input['tenant_id'] ?? null;
@@ -56,18 +56,45 @@ class LoginAction extends Action
         $rawUserAgent = $input['user_agent'] ?? null;
         $userAgent = is_string($rawUserAgent) ? $rawUserAgent : null;
 
-        if ($email === '' || $password === '') {
+        if ($identifier === '' || $password === '') {
             throw ValidationException::withMessages([
                 'email' => ['The provided credentials are incorrect.'],
             ]);
         }
 
+        $cleanIdentifier = strtolower($identifier);
+
+        /** @var \Illuminate\Database\Eloquent\Builder<User> $query */
+        $query = User::withoutTenantScope()
+            ->with(['tenant', 'roles.permissions', 'scopes', 'employee.designation'])
+            ->where('status', 'active');
+
+        if ($requestedTenantId !== null) {
+            $query->where('tenant_id', $requestedTenantId);
+        }
+
+        $query->where(function ($q) use ($identifier, $cleanIdentifier) {
+            // 1. Email exact match
+            $q->whereRaw('LOWER(email) = ?', [$cleanIdentifier])
+                // 2. Name exact or substring match
+                ->orWhereRaw('LOWER(name) = ?', [$cleanIdentifier])
+                ->orWhere('name', 'LIKE', '%' . $identifier . '%')
+                // 3. User Role / Designation (name or slug)
+                ->orWhereHas('roles', function ($rq) use ($identifier, $cleanIdentifier) {
+                    $rq->whereRaw('LOWER(name) = ?', [$cleanIdentifier])
+                        ->orWhereRaw('LOWER(slug) = ?', [$cleanIdentifier])
+                        ->orWhere('name', 'LIKE', '%' . $identifier . '%')
+                        ->orWhere('slug', 'LIKE', '%' . $identifier . '%');
+                })
+                // 4. Employee Designation title (HR module)
+                ->orWhereHas('employee.designation', function ($dq) use ($identifier, $cleanIdentifier) {
+                    $dq->whereRaw('LOWER(name) = ?', [$cleanIdentifier])
+                        ->orWhere('name', 'LIKE', '%' . $identifier . '%');
+                });
+        });
+
         /** @var \Illuminate\Database\Eloquent\Collection<int, User> $matchingUsers */
-        $matchingUsers = User::withoutTenantScope()
-            ->with(['tenant', 'roles.permissions', 'scopes'])
-            ->where('email', $email)
-            ->where('status', 'active')
-            ->get();
+        $matchingUsers = $query->get();
 
         // Filter by valid password hash
         $validUsers = $matchingUsers->filter(fn (User $u) => Hash::check($password, $u->password))->values();
@@ -77,6 +104,20 @@ class LoginAction extends Action
                 'email' => ['The provided credentials are incorrect.'],
             ]);
         }
+
+        // Sort by relevance: exact email match > exact name match > role match > partial
+        $validUsers = $validUsers->sortByDesc(function (User $u) use ($cleanIdentifier) {
+            if (strtolower($u->email) === $cleanIdentifier) {
+                return 100;
+            }
+            if (strtolower($u->name) === $cleanIdentifier) {
+                return 80;
+            }
+            if ($u->roles->contains(fn ($r) => strtolower($r->name) === $cleanIdentifier || strtolower($r->slug ?? '') === $cleanIdentifier)) {
+                return 60;
+            }
+            return 10;
+        })->values();
 
         // Multi-tenant membership: if user belongs to multiple active tenants and no tenant was requested
         if ($validUsers->count() > 1 && $requestedTenantId === null) {

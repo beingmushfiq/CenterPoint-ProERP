@@ -10,15 +10,15 @@ import { toggleThemeWithTransition } from '../../lib/theme/themeTransition';
 import { useTenantBranding } from '../../lib/theme/useTenantBranding';
 
 const QUICK_ROLES = [
-  { label: 'Admin', role: 'Full Access', email: 'admin@demoerp.com', icon: ShieldCheck },
-  { label: 'Production', role: 'Factory Floor', email: 'production@demoerp.com', icon: Factory },
-  { label: 'QC Inspector', role: 'Quality QA', email: 'qc@demoerp.com', icon: ClipboardCheck },
-  { label: 'Storekeeper', role: 'Inventory', email: 'store@demoerp.com', icon: Boxes },
-  { label: 'Sales Officer', role: 'Commercial / POS', email: 'sales@demoerp.com', icon: ShoppingCart },
+  { label: 'Admin', role: 'Super Admin', email: 'admin@dcp.com', icon: ShieldCheck },
+  { label: 'Production', role: 'Production Lead', email: 'production@dcp.com', icon: Factory },
+  { label: 'QC Inspector', role: 'QC Lead', email: 'qc@dcp.com', icon: ClipboardCheck },
+  { label: 'Storekeeper', role: 'Store In-Charge', email: 'store@dcp.com', icon: Boxes },
+  { label: 'Sales Officer', role: 'Sales Officer', email: 'sales@dcp.com', icon: ShoppingCart },
 ] as const;
 
 const loginSchema = z.object({
-  email: z.string().email('Please enter a valid email address'),
+  email: z.string().min(1, 'Please enter your email, name, or designation'),
   password: z.string().min(6, 'Password must be at least 6 characters'),
 });
 
@@ -102,7 +102,7 @@ export default function LoginPage() {
 
   const handleQuickRole = (email: string) => {
     setValue('email', email, { shouldValidate: true });
-    setValue('password', 'Password123!', { shouldValidate: true });
+    setValue('password', '12345678', { shouldValidate: true });
     setServerError(null);
   };
 
@@ -118,7 +118,7 @@ export default function LoginPage() {
     } catch (err: unknown) {
       if (isApiError(err)) {
         if (err.code === 'UNAUTHENTICATED') {
-          setServerError('Invalid email or password. Please check your credentials.');
+          setServerError('Invalid email, name, designation, or password. Please check your credentials.');
         } else if (err.code === 'ACCOUNT_INACTIVE') {
           setServerError('Your user account has been deactivated. Contact your administrator.');
         } else if (err.code === 'TENANT_INACTIVE') {
@@ -150,13 +150,13 @@ export default function LoginPage() {
         >
           {theme === 'dark' ? (
             <>
-              <Sun className="h-4 w-4 text-amber-400" />
-              <span className="hidden sm:inline">Light Mode</span>
+              <Sun className="h-4 w-4 text-amber-400 animate-spin-once" />
+              <span className="hidden sm:inline">Light</span>
             </>
           ) : (
             <>
-              <Moon className="h-4 w-4 text-slate-600" />
-              <span className="hidden sm:inline">Dark Mode</span>
+              <Moon className="h-4 w-4 text-slate-700 dark:text-slate-300" />
+              <span className="hidden sm:inline">Dark</span>
             </>
           )}
         </button>
@@ -166,16 +166,17 @@ export default function LoginPage() {
       <div className="pointer-events-none absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 h-96 w-96 rounded-full bg-blue-500/10 dark:bg-blue-500/15 blur-[120px]" />
       <div className="pointer-events-none absolute bottom-1/4 right-1/3 h-80 w-80 rounded-full bg-indigo-500/10 dark:bg-indigo-500/15 blur-[140px]" />
 
-      <div className="relative w-full max-w-md space-y-6 rounded-2xl border border-default bg-surface/95 p-5 sm:p-8 shadow-xl dark:shadow-2xl backdrop-blur-xl transition-colors">
+      <div className="w-full max-w-sm sm:max-w-md space-y-6 rounded-2xl border border-default bg-surface p-6 sm:p-8 shadow-xl backdrop-blur-md animate-in fade-in-50 duration-300">
         {/* Brand Header */}
         <div className="text-center">
           {logoUrl && !logoLoadFailed ? (
-            <div className="mx-auto flex h-14 w-auto max-w-55 items-center justify-center">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center overflow-hidden rounded-2xl bg-surface-sunken border border-default shadow-xs">
               <img
                 ref={logoRef}
                 src={logoUrl}
                 alt={displayName}
-                className="max-h-14 max-w-full object-contain drop-shadow-xs"
+                className="h-full w-full object-contain p-1.5"
+                crossOrigin="anonymous"
               />
             </div>
           ) : (
@@ -203,7 +204,7 @@ export default function LoginPage() {
           {/* Email field */}
           <div className="space-y-1.5">
             <label htmlFor="email" className="block text-xs font-semibold text-default">
-              Email Address
+              Email, Name, or Designation
             </label>
             <div className="relative rounded-xl shadow-2xs">
               <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-muted">
@@ -211,9 +212,9 @@ export default function LoginPage() {
               </div>
               <input
                 id="email"
-                type="email"
-                autoComplete="email"
-                placeholder="name@company.com"
+                type="text"
+                autoComplete="username"
+                placeholder="admin@dcp.com, Hasan, or Production Manager"
                 {...register('email')}
                 className={`block w-full rounded-xl border bg-surface-sunken py-2.5 pr-3.5 pl-10 text-xs text-default placeholder:text-muted transition-colors focus:outline-none focus:ring-2 focus:ring-primary/20 ${
                   errors.email
@@ -223,6 +224,9 @@ export default function LoginPage() {
               />
             </div>
             {errors.email && <p className="text-[11px] text-danger">{errors.email.message}</p>}
+            <p className="text-[10px] text-muted">
+              Log in with your email address, display name, or role/designation.
+            </p>
           </div>
 
           {/* Password field */}
@@ -286,7 +290,7 @@ export default function LoginPage() {
             <span className="text-[11px] font-semibold uppercase tracking-wider text-muted">
               Quick Role Login
             </span>
-            <span className="text-[10px] text-muted">Click to auto-fill</span>
+            <span className="text-[10px] text-muted">Password: 12345678</span>
           </div>
           <div className="flex flex-wrap gap-2">
             {QUICK_ROLES.map((item) => {
