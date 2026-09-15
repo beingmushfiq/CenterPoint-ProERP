@@ -163,6 +163,9 @@ if [ "${CAN_RUN_ARTISAN}" = "true" ]; then
         echo "--- Running Database Migrations ---"
         ${PHP_BIN} -d display_errors=1 artisan migrate --force --no-interaction
 
+        echo "--- Ensuring Database Seeded (Platform Super Admin & SliceMart Flagship Tenant) ---"
+        ${PHP_BIN} -d display_errors=1 artisan db:seed --force --no-interaction
+
         echo "--- Rebuilding Production Caches ---"
         ${PHP_BIN} artisan config:clear
         ${PHP_BIN} artisan config:cache

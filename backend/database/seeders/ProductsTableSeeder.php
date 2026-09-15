@@ -21,6 +21,10 @@ final class ProductsTableSeeder extends Seeder
         $tenant = Tenant::findOrFail(1);
         TenantContext::bind($tenant->toArray());
 
+        if (Product::where('tenant_id', $tenant->id)->exists()) {
+            return;
+        }
+
         $pcs = Unit::where('code', 'PCS')->firstOrFail();
         $set = Unit::where('code', 'SET')->first() ?? $pcs;
         $meter = Unit::where('code', 'M')->firstOrFail();

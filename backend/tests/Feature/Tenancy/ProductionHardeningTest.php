@@ -126,19 +126,25 @@ final class ProductionHardeningTest extends TestCase
     }
 
     /**
-     * Test that ProductionSeeder seeds only structural data and never seeds demo tenants.
+     * Test that ProductionSeeder seeds structural data, platform super admin, and the flagship tenant.
      */
-    public function test_production_seeder_does_not_seed_demo_tenant(): void
+    public function test_production_seeder_seeds_flagship_tenant_and_super_admin(): void
     {
         $this->seed(ProductionSeeder::class);
 
         // Plans should be seeded
         $this->assertGreaterThan(0, Plan::count(), 'ProductionSeeder must seed subscription plans.');
 
-        // Demo tenant SliceMart should NOT exist
-        $this->assertDatabaseMissing('tenants', [
+        // Platform Super Admin must exist
+        $this->assertDatabaseHas('users', [
+            'email' => 'admin@devcenterpoint.com',
+            'tenant_id' => null,
+        ]);
+
+        // Flagship tenant SliceMart must exist
+        $this->assertDatabaseHas('tenants', [
             'slug' => 'slicemart',
         ]);
-        $this->assertSame(0, Tenant::count(), 'ProductionSeeder must not seed any tenants.');
+        $this->assertGreaterThan(0, Tenant::count());
     }
 }

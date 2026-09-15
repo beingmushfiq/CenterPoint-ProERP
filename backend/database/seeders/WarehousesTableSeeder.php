@@ -18,6 +18,10 @@ final class WarehousesTableSeeder extends Seeder
         $tenant = Tenant::findOrFail(1);
         TenantContext::bind($tenant->toArray());
 
+        if (Warehouse::where('tenant_id', $tenant->id)->exists()) {
+            return;
+        }
+
         // 1. Raw Materials Central Storage
         $rawWarehouse = Warehouse::create([
             'uuid' => (string) Str::uuid(),

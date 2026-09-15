@@ -17,6 +17,10 @@ final class ReasonCodesTableSeeder extends Seeder
         $tenant = Tenant::findOrFail(1);
         TenantContext::bind($tenant->toArray());
 
+        if (ReasonCode::where('tenant_id', $tenant->id)->exists()) {
+            return;
+        }
+
         $reasons = [
             // QC Defect Reasons
             ['context' => 'qc_defect', 'code' => 'GLASS_CHIP', 'name' => 'Ceramic Glass Scratch / Micro-Crack', 'requires_note' => false, 'sort_order' => 1],

@@ -103,6 +103,36 @@ final class TenantResolver
             }
         }
 
+        // Header fallback for SPA requests sending X-Storefront-Subdomain or X-Storefront-Domain
+        $subHeader = $request->header('X-Storefront-Subdomain');
+        if ($subHeader && self::isValidSubdomain((string) $subHeader) && ! self::isReservedSubdomain((string) $subHeader)) {
+            $tenant = Tenant::where('slug', strtolower((string) $subHeader))
+                ->where('status', '!=', 'suspended')
+                ->first();
+
+            if ($tenant) {
+                return Storefront::withoutTenantScope()
+                    ->where('tenant_id', $tenant->id)
+                    ->where('status', '!=', 'suspended')
+                    ->first();
+            }
+        }
+
+        $domainHeader = $request->header('X-Storefront-Domain');
+        if ($domainHeader) {
+            $tenantDomain = TenantDomain::withoutTenantScope()
+                ->where('domain', strtolower((string) $domainHeader))
+                ->where('verification_status', 'verified')
+                ->first();
+
+            if ($tenantDomain) {
+                return Storefront::withoutTenantScope()
+                    ->where('tenant_id', $tenantDomain->tenant_id)
+                    ->where('status', '!=', 'suspended')
+                    ->first();
+            }
+        }
+
         // In local/testing ONLY: allow default storefront if no explicit subdomain/domain was requested
         $hasExplicitRequest = $request->hasHeader('X-Tenant-Subdomain')
             || $request->hasHeader('X-Storefront-Subdomain')

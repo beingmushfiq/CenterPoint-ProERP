@@ -19,6 +19,10 @@ final class PartiesTableSeeder extends Seeder
         $tenant = Tenant::findOrFail(1);
         TenantContext::bind($tenant->toArray());
 
+        if (Party::where('tenant_id', $tenant->id)->exists()) {
+            return;
+        }
+
         // 1. Raw Material & Component Suppliers
         $bengalGlass = Party::create([
             'uuid' => (string) Str::uuid(),

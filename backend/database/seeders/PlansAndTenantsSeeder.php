@@ -17,114 +17,130 @@ final class PlansAndTenantsSeeder extends Seeder
         $this->call(PlansSeeder::class);
         $enterprisePlanId = DB::table('plans')->where('code', 'ENTERPRISE')->value('id');
 
-        // 2. Seed Default Demo Tenant (SliceMart - Dev Only)
-        $tenant = Tenant::create([
-            'id' => 1,
-            'uuid' => (string) Str::uuid(),
-            'plan_id' => $enterprisePlanId,
-            'name' => 'SliceMart',
-            'slug' => 'slicemart',
-            'status' => 'active',
-            'currency_code' => 'BDT',
-            'timezone' => 'Asia/Dhaka',
-            'locale' => 'en',
-            'date_format' => 'Y-m-d',
-            'number_format' => 'standard',
-        ]);
+        // 2. Seed Default Demo Tenant (SliceMart)
+        $tenant = Tenant::where('slug', 'slicemart')->first();
+        if (! $tenant) {
+            $tenant = Tenant::create([
+                'id' => 1,
+                'uuid' => (string) Str::uuid(),
+                'plan_id' => $enterprisePlanId,
+                'name' => 'SliceMart',
+                'slug' => 'slicemart',
+                'status' => 'active',
+                'currency_code' => 'BDT',
+                'timezone' => 'Asia/Dhaka',
+                'locale' => 'en',
+                'date_format' => 'Y-m-d',
+                'number_format' => 'standard',
+            ]);
+        }
 
         // 3. Tenant Subscription Record
-        DB::table('tenant_subscriptions')->insert([
-            'uuid' => (string) Str::uuid(),
-            'tenant_id' => $tenant->id,
-            'plan_id' => $enterprisePlanId,
-            'status' => 'active',
-            'amount' => '500.0000',
-            'starts_at' => now()->startOfYear(),
-            'ends_at' => now()->addYear(),
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
+        if (! DB::table('tenant_subscriptions')->where('tenant_id', $tenant->id)->exists()) {
+            DB::table('tenant_subscriptions')->insert([
+                'uuid' => (string) Str::uuid(),
+                'tenant_id' => $tenant->id,
+                'plan_id' => $enterprisePlanId,
+                'status' => 'active',
+                'amount' => '500.0000',
+                'starts_at' => now()->startOfYear(),
+                'ends_at' => now()->addYear(),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
 
         // 4. Seed Organization Hierarchy
-        $companyId = DB::table('companies')->insertGetId([
-            'uuid' => (string) Str::uuid(),
-            'tenant_id' => $tenant->id,
-            'name' => 'SliceMart Appliances Ltd.',
-            'legal_name' => 'SliceMart Appliances Ltd.',
-            'tax_identifier' => 'BIN-9876543210',
-            'registration_number' => 'REG-12345678',
-            'address' => 'Plot 45, Tejgaon Industrial Area, Dhaka',
-            'email' => 'info@slicemart.com',
-            'phone' => '+88029876543',
-            'is_default' => true,
-            'is_active' => true,
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
+        $companyId = DB::table('companies')->where('tenant_id', $tenant->id)->value('id');
+        if (! $companyId) {
+            $companyId = DB::table('companies')->insertGetId([
+                'uuid' => (string) Str::uuid(),
+                'tenant_id' => $tenant->id,
+                'name' => 'SliceMart Appliances Ltd.',
+                'legal_name' => 'SliceMart Appliances Ltd.',
+                'tax_identifier' => 'BIN-9876543210',
+                'registration_number' => 'REG-12345678',
+                'address' => 'Plot 45, Tejgaon Industrial Area, Dhaka',
+                'email' => 'info@slicemart.com',
+                'phone' => '+88029876543',
+                'is_default' => true,
+                'is_active' => true,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
 
-        $branchId = DB::table('branches')->insertGetId([
-            'uuid' => (string) Str::uuid(),
-            'tenant_id' => $tenant->id,
-            'company_id' => $companyId,
-            'code' => 'HQ-DHK',
-            'name' => 'Dhaka Main Assembly & Distribution Center',
-            'type' => 'mixed',
-            'address' => 'Tejgaon I/A, Dhaka-1208',
-            'phone' => '+88029876544',
-            'is_default' => true,
-            'is_active' => true,
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
+        $branchId = DB::table('branches')->where('tenant_id', $tenant->id)->value('id');
+        if (! $branchId) {
+            $branchId = DB::table('branches')->insertGetId([
+                'uuid' => (string) Str::uuid(),
+                'tenant_id' => $tenant->id,
+                'company_id' => $companyId,
+                'code' => 'HQ-DHK',
+                'name' => 'Dhaka Main Assembly & Distribution Center',
+                'type' => 'mixed',
+                'address' => 'Tejgaon I/A, Dhaka-1208',
+                'phone' => '+88029876544',
+                'is_default' => true,
+                'is_active' => true,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
 
-        $factoryId = DB::table('factories')->insertGetId([
-            'uuid' => (string) Str::uuid(),
-            'tenant_id' => $tenant->id,
-            'company_id' => $companyId,
-            'branch_id' => $branchId,
-            'code' => 'FAC-DHK-01',
-            'name' => 'Tejgaon Appliance & Cooker Assembly Plant',
-            'address' => 'Plot 45-46, Tejgaon Industrial Area, Dhaka',
-            'is_active' => true,
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
+        $factoryId = DB::table('factories')->where('tenant_id', $tenant->id)->value('id');
+        if (! $factoryId) {
+            $factoryId = DB::table('factories')->insertGetId([
+                'uuid' => (string) Str::uuid(),
+                'tenant_id' => $tenant->id,
+                'company_id' => $companyId,
+                'branch_id' => $branchId,
+                'code' => 'FAC-DHK-01',
+                'name' => 'Tejgaon Appliance & Cooker Assembly Plant',
+                'address' => 'Plot 45-46, Tejgaon Industrial Area, Dhaka',
+                'is_active' => true,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
 
         // 5. Seed Core Production Lines
-        DB::table('production_lines')->insert([
-            [
-                'uuid' => (string) Str::uuid(),
-                'tenant_id' => $tenant->id,
-                'factory_id' => $factoryId,
-                'code' => 'LINE-IC-01',
-                'name' => 'Infrared Cooker Assembly & Testing Line 1',
-                'capacity_per_shift' => '500.0000',
-                'is_active' => true,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
-            [
-                'uuid' => (string) Str::uuid(),
-                'tenant_id' => $tenant->id,
-                'factory_id' => $factoryId,
-                'code' => 'LINE-STV-02',
-                'name' => 'Gas & Induction Stove Assembly Line 2',
-                'capacity_per_shift' => '300.0000',
-                'is_active' => true,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
-            [
-                'uuid' => (string) Str::uuid(),
-                'tenant_id' => $tenant->id,
-                'factory_id' => $factoryId,
-                'code' => 'LINE-PKG-03',
-                'name' => 'Hi-Pot QC, Burn-In & Packaging Line 3',
-                'capacity_per_shift' => '600.0000',
-                'is_active' => true,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
-        ]);
+        if (DB::table('production_lines')->where('tenant_id', $tenant->id)->count() === 0) {
+            DB::table('production_lines')->insert([
+                [
+                    'uuid' => (string) Str::uuid(),
+                    'tenant_id' => $tenant->id,
+                    'factory_id' => $factoryId,
+                    'code' => 'LINE-IC-01',
+                    'name' => 'Infrared Cooker Assembly & Testing Line 1',
+                    'capacity_per_shift' => '500.0000',
+                    'is_active' => true,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ],
+                [
+                    'uuid' => (string) Str::uuid(),
+                    'tenant_id' => $tenant->id,
+                    'factory_id' => $factoryId,
+                    'code' => 'LINE-STV-02',
+                    'name' => 'Gas & Induction Stove Assembly Line 2',
+                    'capacity_per_shift' => '300.0000',
+                    'is_active' => true,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ],
+                [
+                    'uuid' => (string) Str::uuid(),
+                    'tenant_id' => $tenant->id,
+                    'factory_id' => $factoryId,
+                    'code' => 'LINE-PKG-03',
+                    'name' => 'Hi-Pot QC, Burn-In & Packaging Line 3',
+                    'capacity_per_shift' => '600.0000',
+                    'is_active' => true,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ],
+            ]);
+        }
     }
 }

@@ -20,6 +20,10 @@ final class PricingTableSeeder extends Seeder
         $tenant = Tenant::findOrFail(1);
         TenantContext::bind($tenant->toArray());
 
+        if (PriceList::where('tenant_id', $tenant->id)->exists()) {
+            return;
+        }
+
         $cooker2200 = Product::where('sku', 'FG-IC-2200')->firstOrFail();
         $cooker3500 = Product::where('sku', 'FG-IC-3500')->firstOrFail();
         $stoveDouble = Product::where('sku', 'FG-GS-DOUBLE')->firstOrFail();

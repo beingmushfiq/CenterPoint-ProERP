@@ -18,6 +18,11 @@ final class EmployeesTableSeeder extends Seeder
         $factoryId = DB::table('factories')->where('tenant_id', $tenantId)->value('id') ?? 1;
         $adminUserId = DB::table('users')->where('tenant_id', $tenantId)->value('id');
 
+        // Check if employees or shifts already seeded
+        if (DB::table('shifts')->where('tenant_id', $tenantId)->exists()) {
+            return;
+        }
+
         // 1. Shifts
         $shifts = [
             ['code' => 'SHIFT-MORN', 'name' => 'Morning Shift', 'start_time' => '08:00:00', 'end_time' => '16:30:00'],

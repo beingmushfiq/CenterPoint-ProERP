@@ -10,20 +10,37 @@ use Illuminate\Database\Seeder;
 final class ProductionSeeder extends Seeder
 {
     /**
-     * Seed production-ready structural data only.
-     * Absolutely NO demo tenants, mock customers, fake products, or test orders.
+     * Seed production-ready structural data, platform super admin,
+     * and the initial flagship tenant (SliceMart) with its public storefront.
      */
     public function run(): void
     {
         // 1. Seed global platform RBAC roles
         PlatformRbacService::seedDefaultRoles();
 
-        // 2. Seed system permissions catalog
+        // 2. Seed system catalog, platform super admin, and SliceMart flagship tenant
         $this->call([
             SystemPermissionsSeeder::class,
             BusinessTypeSeeder::class,
             IndustryProfileSeeder::class,
-            PlansSeeder::class,
+            PlansAndTenantsSeeder::class,
+            RolesAndPermissionsSeeder::class,
+            UnitsTableSeeder::class,
+            CategoriesTableSeeder::class,
+            BrandsTableSeeder::class,
+            TaxProfilesTableSeeder::class,
+            ReasonCodesTableSeeder::class,
+            WarehousesTableSeeder::class,
+            ProductsTableSeeder::class,
+            BOMTableSeeder::class,
+            PartiesTableSeeder::class,
+            PricingTableSeeder::class,
+            StorefrontTableSeeder::class,
+            EmployeesTableSeeder::class,
+            PosTableSeeder::class,
+            StockTableSeeder::class,
+            ReportDefinitionsTableSeeder::class,
+            CrmLeadsTableSeeder::class,
         ]);
     }
 }

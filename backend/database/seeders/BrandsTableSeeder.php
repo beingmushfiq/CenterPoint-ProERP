@@ -17,6 +17,10 @@ final class BrandsTableSeeder extends Seeder
         $tenant = Tenant::findOrFail(1);
         TenantContext::bind($tenant->toArray());
 
+        if (Brand::where('tenant_id', $tenant->id)->exists()) {
+            return;
+        }
+
         Brand::create([
             'uuid' => (string) Str::uuid(),
             'code' => 'SLICEMART',

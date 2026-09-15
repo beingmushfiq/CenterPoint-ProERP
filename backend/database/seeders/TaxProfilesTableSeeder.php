@@ -17,6 +17,10 @@ final class TaxProfilesTableSeeder extends Seeder
         $tenant = Tenant::findOrFail(1);
         TenantContext::bind($tenant->toArray());
 
+        if (TaxProfile::where('tenant_id', $tenant->id)->exists()) {
+            return;
+        }
+
         TaxProfile::create([
             'uuid' => (string) Str::uuid(),
             'code' => 'VAT-EXEMPT',
