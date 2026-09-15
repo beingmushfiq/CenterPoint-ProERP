@@ -141,7 +141,7 @@ export const StorefrontHeader: React.FC<StorefrontHeaderProps> = ({ config, subd
           isDarkNavbar ? 'border-white/10' : 'border-slate-200/90 dark:border-zinc-800/80'
         } ${!navbarBg ? 'bg-white/95 dark:bg-zinc-950/85 backdrop-blur-xl' : 'backdrop-blur-xl'}`}
       >
-        <div className="mx-auto flex h-16 sm:h-17 max-w-7xl items-center justify-between px-2.5 sm:px-6 lg:px-8 gap-1.5 sm:gap-2 w-full max-w-full overflow-hidden">
+        <div className="mx-auto flex h-16 sm:h-17 max-w-7xl items-center justify-between px-2.5 sm:px-6 lg:px-8 gap-1.5 sm:gap-2 w-full overflow-hidden">
           {/* Brand Logo & Name */}
           <div className="flex items-center gap-1 sm:gap-2.5 min-w-0 flex-1">
             {/* Mobile Menu Toggle Button */}
@@ -174,7 +174,7 @@ export const StorefrontHeader: React.FC<StorefrontHeaderProps> = ({ config, subd
                 <div className="flex items-center gap-1.5 min-w-0">
                   <span
                     style={{ color: navbarTextColor || undefined }}
-                    className={`font-bold tracking-tight text-xs sm:text-base leading-tight transition-colors truncate max-w-[120px] sm:max-w-[260px] md:max-w-[340px] ${
+                    className={`font-bold tracking-tight text-xs sm:text-base leading-tight transition-colors truncate max-w-30 sm:max-w-65 md:max-w-85 ${
                       !navbarTextColor ? 'text-slate-900 dark:text-white' : ''
                     }`}
                   >

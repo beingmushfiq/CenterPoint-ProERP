@@ -6,9 +6,13 @@ namespace Database\Seeders;
 
 use App\Models\Branch;
 use App\Models\Company;
+use App\Models\Coupon;
 use App\Models\Employee;
 use App\Models\Party;
 use App\Models\Product;
+use App\Models\ProductionBatch;
+use App\Models\QcInspection;
+use App\Models\Storefront;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Models\Warehouse;
@@ -32,9 +36,7 @@ use App\Modules\Purchasing\Models\PurchaseOrder;
 use App\Modules\Purchasing\Models\PurchaseOrderItem;
 use App\Modules\Sales\Models\DeliveryOrder;
 use App\Modules\Sales\Models\DeliveryOrderItem;
-use App\Models\ProductionBatch;
-use App\Models\QcInspection;
-use App\Models\Coupon;
+use App\Modules\Sales\Models\SalesOrder;
 use Carbon\Carbon;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
@@ -50,7 +52,7 @@ final class EnterpriseDataSeeder extends Seeder
             return;
         }
 
-        $tenantId = $tenant->id;
+        $tenantId = (string) $tenant->id;
         $company = Company::where('tenant_id', $tenantId)->first();
         if (!$company) {
             $this->command->error('No company found for tenant.');
@@ -60,11 +62,29 @@ final class EnterpriseDataSeeder extends Seeder
         $adminUser = User::where('tenant_id', $tenantId)->first() ?? User::first();
         $userId = $adminUser?->id;
 
+        $branch = Branch::where('tenant_id', $tenantId)->first();
+        $branchId = $branch?->id ?? 1;
+
         $this->command->info("Seeding Enterprise Suite for Tenant [{$tenantId}] Company [{$company->id}]...");
 
-        // ─────────────────────────────────────────────────────────────
-        // 1. Chart of Accounts (COA)
-        // ─────────────────────────────────────────────────────────────
+        $coaMap = $this->seedChartOfAccounts($tenantId, $company, $userId);
+        $bankMap = $this->seedBankAccounts($tenantId, $company, $userId, $coaMap);
+        $this->seedJournalEntries($tenantId, $company, $userId, $coaMap);
+        $this->seedExpenses($tenantId, $company, $branchId, $userId, $coaMap, $bankMap);
+        $this->seedFixedAssets($tenantId, $company, $branchId, $userId);
+        $this->seedPurchasing($tenantId, $company, $branchId, $userId);
+        $this->seedDeliveries($tenantId, $userId);
+        $this->seedPayroll($tenantId, $company, $userId);
+        $this->seedCoupons($tenantId, $userId);
+
+        $this->command->info('Enterprise Suite successfully seeded: COA, Bank Accounts, Balanced Journals, Fixed Assets, Purchasing PO/GRN/Bills, Logistics Shipments, Payroll, and Storefront Coupons.');
+    }
+
+    /**
+     * @return array<string, ChartOfAccount>
+     */
+    private function seedChartOfAccounts(string $tenantId, Company $company, ?int $userId): array
+    {
         $accounts = [
             // Assets
             ['account_code' => '1010', 'name' => 'Cash in Vault & POS Drawers', 'account_type' => 'asset', 'account_subtype' => 'cash', 'normal_balance' => 'debit', 'is_system' => true],
@@ -106,9 +126,15 @@ final class EnterpriseDataSeeder extends Seeder
             $coaMap[$acc['account_code']] = $coa;
         }
 
-        // ─────────────────────────────────────────────────────────────
-        // 2. Bank Accounts
-        // ─────────────────────────────────────────────────────────────
+        return $coaMap;
+    }
+
+    /**
+     * @param array<string, ChartOfAccount> $coaMap
+     * @return array<string, BankAccount>
+     */
+    private function seedBankAccounts(string $tenantId, Company $company, ?int $userId, array $coaMap): array
+    {
         $bankData = [
             [
                 'code' => 'BANK-DBBL-01',
@@ -179,112 +205,120 @@ final class EnterpriseDataSeeder extends Seeder
             $bankMap[$b['code']] = $bank;
         }
 
-        // ─────────────────────────────────────────────────────────────
-        // 3. Balanced Journal Entries & Lines
-        // ─────────────────────────────────────────────────────────────
-        if (JournalEntry::where('tenant_id', $tenantId)->count() === 0) {
-            $journalEntries = [
-                [
-                    'entry_number' => 'JV-2026-0001',
-                    'entry_date' => Carbon::now()->subDays(60)->format('Y-m-d'),
-                    'entry_type' => 'manual',
-                    'source_module' => 'finance',
-                    'narration' => 'Initial Paid-Up Equity & Capital Infusion into Corporate DBBL',
-                    'total_debit' => 5000000.00,
-                    'total_credit' => 5000000.00,
-                    'status' => 'posted',
-                    'lines' => [
-                        ['account_id' => $coaMap['1020']->id, 'debit_amount' => 5000000.00, 'credit_amount' => 0.00, 'narration' => 'DBBL Corporate Account Deposit'],
-                        ['account_id' => $coaMap['3000']->id, 'debit_amount' => 0.00, 'credit_amount' => 5000000.00, 'narration' => 'Founder Share Capital Injection'],
-                    ],
-                ],
-                [
-                    'entry_number' => 'JV-2026-0002',
-                    'entry_date' => Carbon::now()->subDays(45)->format('Y-m-d'),
-                    'entry_type' => 'system',
-                    'source_module' => 'assets',
-                    'narration' => 'Capitalization of High-Speed Dual-Zone Assembly Machinery',
-                    'total_debit' => 1200000.00,
-                    'total_credit' => 1200000.00,
-                    'status' => 'posted',
-                    'lines' => [
-                        ['account_id' => $coaMap['1500']->id, 'debit_amount' => 1200000.00, 'credit_amount' => 0.00, 'narration' => 'Acquisition of Manufacturing Equipment'],
-                        ['account_id' => $coaMap['1020']->id, 'debit_amount' => 0.00, 'credit_amount' => 1200000.00, 'narration' => 'Wire transfer from DBBL'],
-                    ],
-                ],
-                [
-                    'entry_number' => 'JV-2026-0003',
-                    'entry_date' => Carbon::now()->subDays(30)->format('Y-m-d'),
-                    'entry_type' => 'system',
-                    'source_module' => 'purchase',
-                    'narration' => 'Raw Materials & Electronic Components Bulk Procurement',
-                    'total_debit' => 850000.00,
-                    'total_credit' => 850000.00,
-                    'status' => 'posted',
-                    'lines' => [
-                        ['account_id' => $coaMap['1210']->id, 'debit_amount' => 850000.00, 'credit_amount' => 0.00, 'narration' => 'Inventory Received into Raw Materials Store'],
-                        ['account_id' => $coaMap['2000']->id, 'debit_amount' => 0.00, 'credit_amount' => 850000.00, 'narration' => 'Supplier Payable Incurred'],
-                    ],
-                ],
-                [
-                    'entry_number' => 'JV-2026-0004',
-                    'entry_date' => Carbon::now()->subDays(15)->format('Y-m-d'),
-                    'entry_type' => 'system',
-                    'source_module' => 'sales',
-                    'narration' => 'Commercial Appliances Wholesale Revenue & Settlement',
-                    'total_debit' => 420000.00,
-                    'total_credit' => 420000.00,
-                    'status' => 'posted',
-                    'lines' => [
-                        ['account_id' => $coaMap['1030']->id, 'debit_amount' => 420000.00, 'credit_amount' => 0.00, 'narration' => 'Settlement Received into BRAC Bank'],
-                        ['account_id' => $coaMap['4000']->id, 'debit_amount' => 0.00, 'credit_amount' => 420000.00, 'narration' => 'Sales Revenue Recognized'],
-                    ],
-                ],
-                [
-                    'entry_number' => 'JV-2026-0005',
-                    'entry_date' => Carbon::now()->subDays(5)->format('Y-m-d'),
-                    'entry_type' => 'manual',
-                    'source_module' => 'finance',
-                    'narration' => 'Tejgaon Plant Electricity & Natural Gas Monthly Settlement',
-                    'total_debit' => 65000.00,
-                    'total_credit' => 65000.00,
-                    'status' => 'posted',
-                    'lines' => [
-                        ['account_id' => $coaMap['6100']->id, 'debit_amount' => 65000.00, 'credit_amount' => 0.00, 'narration' => 'DESCO Industrial Tariff'],
-                        ['account_id' => $coaMap['1020']->id, 'debit_amount' => 0.00, 'credit_amount' => 65000.00, 'narration' => 'EFT Payment from DBBL'],
-                    ],
-                ],
-            ];
+        return $bankMap;
+    }
 
-            foreach ($journalEntries as $entry) {
-                $lines = $entry['lines'];
-                unset($entry['lines']);
-
-                $je = JournalEntry::create(array_merge($entry, [
-                    'tenant_id' => $tenantId,
-                    'company_id' => $company->id,
-                    'posted_by' => $userId,
-                    'posted_at' => Carbon::now(),
-                    'created_by' => $userId,
-                ]));
-
-                foreach ($lines as $i => $ln) {
-                    JournalLine::create(array_merge($ln, [
-                        'tenant_id' => $tenantId,
-                        'journal_entry_id' => $je->id,
-                        'sort_order' => $i + 1,
-                        'created_by' => $userId,
-                    ]));
-                }
-            }
+    /**
+     * @param array<string, ChartOfAccount> $coaMap
+     */
+    private function seedJournalEntries(string $tenantId, Company $company, ?int $userId, array $coaMap): void
+    {
+        if (JournalEntry::where('tenant_id', $tenantId)->count() > 0) {
+            return;
         }
 
-        $branch = Branch::where('tenant_id', $tenantId)->first();
-        $branchId = $branch?->id ?? 1;
+        $journalEntries = [
+            [
+                'entry_number' => 'JV-2026-0001',
+                'entry_date' => Carbon::now()->subDays(60)->format('Y-m-d'),
+                'entry_type' => 'manual',
+                'source_module' => 'finance',
+                'narration' => 'Initial Paid-Up Equity & Capital Infusion into Corporate DBBL',
+                'total_debit' => 5000000.00,
+                'total_credit' => 5000000.00,
+                'status' => 'posted',
+                'lines' => [
+                    ['account_id' => $coaMap['1020']->id, 'debit_amount' => 5000000.00, 'credit_amount' => 0.00, 'narration' => 'DBBL Corporate Account Deposit'],
+                    ['account_id' => $coaMap['3000']->id, 'debit_amount' => 0.00, 'credit_amount' => 5000000.00, 'narration' => 'Founder Share Capital Injection'],
+                ],
+            ],
+            [
+                'entry_number' => 'JV-2026-0002',
+                'entry_date' => Carbon::now()->subDays(45)->format('Y-m-d'),
+                'entry_type' => 'system',
+                'source_module' => 'assets',
+                'narration' => 'Capitalization of High-Speed Dual-Zone Assembly Machinery',
+                'total_debit' => 1200000.00,
+                'total_credit' => 1200000.00,
+                'status' => 'posted',
+                'lines' => [
+                    ['account_id' => $coaMap['1500']->id, 'debit_amount' => 1200000.00, 'credit_amount' => 0.00, 'narration' => 'Acquisition of Manufacturing Equipment'],
+                    ['account_id' => $coaMap['1020']->id, 'debit_amount' => 0.00, 'credit_amount' => 1200000.00, 'narration' => 'Wire transfer from DBBL'],
+                ],
+            ],
+            [
+                'entry_number' => 'JV-2026-0003',
+                'entry_date' => Carbon::now()->subDays(30)->format('Y-m-d'),
+                'entry_type' => 'system',
+                'source_module' => 'purchase',
+                'narration' => 'Raw Materials & Electronic Components Bulk Procurement',
+                'total_debit' => 850000.00,
+                'total_credit' => 850000.00,
+                'status' => 'posted',
+                'lines' => [
+                    ['account_id' => $coaMap['1210']->id, 'debit_amount' => 850000.00, 'credit_amount' => 0.00, 'narration' => 'Inventory Received into Raw Materials Store'],
+                    ['account_id' => $coaMap['2000']->id, 'debit_amount' => 0.00, 'credit_amount' => 850000.00, 'narration' => 'Supplier Payable Incurred'],
+                ],
+            ],
+            [
+                'entry_number' => 'JV-2026-0004',
+                'entry_date' => Carbon::now()->subDays(15)->format('Y-m-d'),
+                'entry_type' => 'system',
+                'source_module' => 'sales',
+                'narration' => 'Commercial Appliances Wholesale Revenue & Settlement',
+                'total_debit' => 420000.00,
+                'total_credit' => 420000.00,
+                'status' => 'posted',
+                'lines' => [
+                    ['account_id' => $coaMap['1030']->id, 'debit_amount' => 420000.00, 'credit_amount' => 0.00, 'narration' => 'Settlement Received into BRAC Bank'],
+                    ['account_id' => $coaMap['4000']->id, 'debit_amount' => 0.00, 'credit_amount' => 420000.00, 'narration' => 'Sales Revenue Recognized'],
+                ],
+            ],
+            [
+                'entry_number' => 'JV-2026-0005',
+                'entry_date' => Carbon::now()->subDays(5)->format('Y-m-d'),
+                'entry_type' => 'manual',
+                'source_module' => 'finance',
+                'narration' => 'Tejgaon Plant Electricity & Natural Gas Monthly Settlement',
+                'total_debit' => 65000.00,
+                'total_credit' => 65000.00,
+                'status' => 'posted',
+                'lines' => [
+                    ['account_id' => $coaMap['6100']->id, 'debit_amount' => 65000.00, 'credit_amount' => 0.00, 'narration' => 'DESCO Industrial Tariff'],
+                    ['account_id' => $coaMap['1020']->id, 'debit_amount' => 0.00, 'credit_amount' => 65000.00, 'narration' => 'EFT Payment from DBBL'],
+                ],
+            ],
+        ];
 
-        // ─────────────────────────────────────────────────────────────
-        // 4. Expense Categories & Expenses
-        // ─────────────────────────────────────────────────────────────
+        foreach ($journalEntries as $entry) {
+            $lines = $entry['lines'];
+            unset($entry['lines']);
+
+            $je = JournalEntry::create(array_merge($entry, [
+                'tenant_id' => $tenantId,
+                'company_id' => $company->id,
+                'posted_by' => $userId,
+                'posted_at' => Carbon::now(),
+                'created_by' => $userId,
+            ]));
+
+            foreach ($lines as $i => $ln) {
+                JournalLine::create(array_merge($ln, [
+                    'tenant_id' => $tenantId,
+                    'journal_entry_id' => $je->id,
+                    'sort_order' => $i + 1,
+                    'created_by' => $userId,
+                ]));
+            }
+        }
+    }
+
+    /**
+     * @param array<string, ChartOfAccount> $coaMap
+     * @param array<string, BankAccount> $bankMap
+     */
+    private function seedExpenses(string $tenantId, Company $company, int $branchId, ?int $userId, array $coaMap, array $bankMap): void
+    {
         $expCatData = [
             ['code' => 'EXP-UTIL', 'name' => 'Industrial Power, Gas & Water Tariff', 'default_account_id' => $coaMap['6100']->id],
             ['code' => 'EXP-LOG', 'name' => 'Inter-Depot Dispatch & Courier Freights', 'default_account_id' => $coaMap['6100']->id],
@@ -350,10 +384,10 @@ final class EnterpriseDataSeeder extends Seeder
                 'created_by' => $userId,
             ]);
         }
+    }
 
-        // ─────────────────────────────────────────────────────────────
-        // 5. Fixed Assets Categories & Assets
-        // ─────────────────────────────────────────────────────────────
+    private function seedFixedAssets(string $tenantId, Company $company, int $branchId, ?int $userId): void
+    {
         $assetCategories = [
             ['code' => 'CAT-MACH', 'name' => 'Industrial Production Machinery', 'default_depreciation_method' => 'straight_line', 'default_useful_life_months' => 120, 'default_salvage_percentage' => 10],
             ['code' => 'CAT-ELEC', 'name' => 'Electronic SMT & QC Testing Rig', 'default_depreciation_method' => 'straight_line', 'default_useful_life_months' => 60, 'default_salvage_percentage' => 5],
@@ -454,10 +488,10 @@ final class EnterpriseDataSeeder extends Seeder
                 ]));
             }
         }
+    }
 
-        // ─────────────────────────────────────────────────────────────
-        // 6. Purchasing: Purchase Orders, Goods Receipts, Bills
-        // ─────────────────────────────────────────────────────────────
+    private function seedPurchasing(string $tenantId, Company $company, int $branchId, ?int $userId): void
+    {
         $suppliers = Party::where('tenant_id', $tenantId)->limit(3)->get();
         $products = Product::where('tenant_id', $tenantId)->limit(4)->get();
         $warehouse = Warehouse::where('tenant_id', $tenantId)->first();
@@ -582,14 +616,16 @@ final class EnterpriseDataSeeder extends Seeder
                 'created_by' => $userId,
             ]);
         }
+    }
 
-        // ─────────────────────────────────────────────────────────────
-        // 7. Delivery Orders & Shipments
-        // ─────────────────────────────────────────────────────────────
+    private function seedDeliveries(string $tenantId, ?int $userId): void
+    {
+        $suppliers = Party::where('tenant_id', $tenantId)->limit(3)->get();
+        $warehouse = Warehouse::where('tenant_id', $tenantId)->first();
         $courierSteadfast = CourierProvider::where('tenant_id', $tenantId)->where('code', 'STEADFAST')->first();
         $courierPathao = CourierProvider::where('tenant_id', $tenantId)->where('code', 'PATHAO')->first();
 
-        $soList = \App\Modules\Sales\Models\SalesOrder::where('tenant_id', $tenantId)->get();
+        $soList = SalesOrder::where('tenant_id', $tenantId)->get();
         $so1 = $soList->get(0);
         $so2 = $soList->get(1) ?? $so1;
 
@@ -672,10 +708,10 @@ final class EnterpriseDataSeeder extends Seeder
                 ]);
             }
         }
+    }
 
-        // ─────────────────────────────────────────────────────────────
-        // 8. HR / Payroll Period & Payslips
-        // ─────────────────────────────────────────────────────────────
+    private function seedPayroll(string $tenantId, Company $company, ?int $userId): void
+    {
         $employees = Employee::where('tenant_id', $tenantId)->get();
         if (PayrollPeriod::where('tenant_id', $tenantId)->count() === 0 && $employees->isNotEmpty()) {
             $prevMonth = Carbon::now()->subMonth();
@@ -727,11 +763,11 @@ final class EnterpriseDataSeeder extends Seeder
                 ]);
             }
         }
+    }
 
-        // ─────────────────────────────────────────────────────────────
-        // 9. Storefront Coupons
-        // ─────────────────────────────────────────────────────────────
-        $storefront = \App\Models\Storefront::where('tenant_id', $tenantId)->first();
+    private function seedCoupons(string $tenantId, ?int $userId): void
+    {
+        $storefront = Storefront::where('tenant_id', $tenantId)->first();
         $storefrontId = $storefront?->id ?? 1;
 
         $coupons = [
@@ -793,7 +829,5 @@ final class EnterpriseDataSeeder extends Seeder
                 ])
             );
         }
-
-        $this->command->info('Enterprise Suite successfully seeded: COA, Bank Accounts, Balanced Journals, Fixed Assets, Purchasing PO/GRN/Bills, Logistics Shipments, Payroll, and Storefront Coupons.');
     }
 }
