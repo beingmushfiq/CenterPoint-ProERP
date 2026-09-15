@@ -43,9 +43,10 @@ final class PurchaseBillController extends Controller
             });
         }
 
+        $perPage = $request->integer('per_page', 25);
         $bills = $query->orderByDesc('bill_date')
             ->orderByDesc('id')
-            ->paginate((int) $request->query('per_page', 25));
+            ->paginate($perPage);
 
         return PurchaseBillResource::collection($bills);
     }
@@ -55,7 +56,7 @@ final class PurchaseBillController extends Controller
         $tenantId = TenantContext::current()->tenantId();
         $validated = $request->validated();
 
-        /** @var array{party_id: int, bill_date: string, bill_number?: string, purchase_order_id?: int|null, goods_receipt_id?: int|null, due_date?: string|null, supplier_invoice_number?: string|null, currency_code?: string, exchange_rate?: string, notes?: string|null, items: list<array{product_id: int, quantity: string, unit_id: int, unit_price: string, purchase_order_item_id?: int|null, goods_receipt_item_id?: int|null, variant_id?: int|null, discount_amount?: string, tax_profile_id?: int|null, tax_rate?: string, notes?: string|null}>} $validated */
+        /** @var array{party_id: int, bill_date: string, due_date?: string|null, supplier_bill_number?: string|null, currency_code?: string|null, notes?: string|null, goods_receipt_id?: int|null, purchase_order_id?: int|null, discount_amount?: string|null, tax_amount?: string|null, shipping_amount?: string|null, items: list<array{product_id: int, quantity: string, unit_price: string, unit_id: int, discount_amount?: string|null, tax_amount?: string|null, description?: string|null, variant_id?: int|null, purchase_order_item_id?: int|null, goods_receipt_item_id?: int|null}>} $validated */
         $bill = $this->createBill->execute([
             ...$validated,
             'tenant_id' => $tenantId,
@@ -71,11 +72,109 @@ final class PurchaseBillController extends Controller
     {
         $tenantId = TenantContext::current()->tenantId();
 
-        $bill = PurchaseBill::with(['supplier', 'purchaseOrder', 'goodsReceipt', 'items.product', 'items.unit'])
+        $bill = PurchaseBill::with(['supplier', 'items.product', 'items.unit'])
             ->where('tenant_id', $tenantId)
             ->where('id', $id)
             ->firstOrFail();
 
         return new PurchaseBillResource($bill);
+    }
+
+    public function update(int $id, Request $request): JsonResponse
+    {
+        $tenantId = TenantContext::current()->tenantId();
+
+        /** @var PurchaseBill $bill */
+        $bill = PurchaseBill::where('tenant_id', $tenantId)
+            ->where('id', $id)
+            ->firstOrFail();
+
+        if (in_array($bill->status, ['paid', 'approved'], true)) {
+            return response()->json([
+                'message' => 'Cannot update an approved or paid bill.',
+            ], 422);
+        }
+
+        $validated = $request->validate([
+            'due_date' => 'nullable|date',
+            'supplier_invoice_number' => 'nullable|string',
+            'notes' => 'nullable|string',
+        ]);
+
+        $bill->update($validated);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Purchase bill updated.',
+            'data' => new PurchaseBillResource($bill->fresh()),
+            'meta' => ['correlation_id' => (string) $request->header('X-Correlation-Id', '')],
+        ]);
+    }
+
+    public function approve(int $id, Request $request): JsonResponse
+    {
+        $tenantId = TenantContext::current()->tenantId();
+
+        /** @var PurchaseBill $bill */
+        $bill = PurchaseBill::where('tenant_id', $tenantId)
+            ->where('id', $id)
+            ->firstOrFail();
+
+        $bill->update([
+            'status' => 'approved',
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Purchase bill approved.',
+            'data' => new PurchaseBillResource($bill->fresh()),
+            'meta' => ['correlation_id' => (string) $request->header('X-Correlation-Id', '')],
+        ]);
+    }
+
+    public function pay(int $id, Request $request): JsonResponse
+    {
+        $tenantId = TenantContext::current()->tenantId();
+
+        /** @var PurchaseBill $bill */
+        $bill = PurchaseBill::where('tenant_id', $tenantId)
+            ->where('id', $id)
+            ->firstOrFail();
+
+        $bill->update([
+            'status' => 'paid',
+            'paid_amount' => $bill->total_amount,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Purchase bill payment recorded.',
+            'data' => new PurchaseBillResource($bill->fresh()),
+            'meta' => ['correlation_id' => (string) $request->header('X-Correlation-Id', '')],
+        ]);
+    }
+
+    public function destroy(int $id, Request $request): JsonResponse
+    {
+        $tenantId = TenantContext::current()->tenantId();
+
+        /** @var PurchaseBill $bill */
+        $bill = PurchaseBill::where('tenant_id', $tenantId)
+            ->where('id', $id)
+            ->firstOrFail();
+
+        if (in_array($bill->status, ['paid', 'approved'], true)) {
+            return response()->json([
+                'message' => 'Cannot delete an approved or paid bill.',
+            ], 422);
+        }
+
+        $bill->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Purchase bill deleted.',
+            'meta' => ['correlation_id' => (string) $request->header('X-Correlation-Id', '')],
+        ]);
     }
 }

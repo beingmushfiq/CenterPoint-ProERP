@@ -66,8 +66,8 @@ export const StorefrontWishlistDrawer: React.FC<StorefrontWishlistDrawerProps> =
         }}
       />
 
-      <div className="fixed inset-y-0 right-0 flex max-w-full pl-10">
-        <div className="w-screen max-w-md border-l border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-6 shadow-2xl flex flex-col justify-between text-slate-800 dark:text-zinc-100 transition-colors">
+      <div className="fixed inset-y-0 right-0 flex w-full max-w-full sm:max-w-md pl-4 sm:pl-10">
+        <div className="w-full max-w-full border-l border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-4 sm:p-6 shadow-2xl flex flex-col justify-between text-slate-800 dark:text-zinc-100 transition-colors">
           {/* Header */}
           <div className="flex items-center justify-between border-b border-slate-200 dark:border-zinc-800/80 pb-4">
             <div className="flex items-center gap-2">

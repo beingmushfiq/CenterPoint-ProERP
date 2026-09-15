@@ -127,7 +127,7 @@ Route::middleware(['auth.jwt', 'tenant.resolve', 'tenant.active'])
                     ->middleware('permission:catalog.product.update')->name('store');
                 Route::delete('{image}', [App\Modules\Catalogue\Controllers\ProductImageController::class, 'destroy'])
                     ->middleware('permission:catalog.product.update')->name('destroy');
-                Route::patch('{image}/primary', [App\Modules\Catalogue\Controllers\ProductImageController::class, 'setPrimary'])
+                Route::match(['patch', 'post'], '{image}/primary', [App\Modules\Catalogue\Controllers\ProductImageController::class, 'setPrimary'])
                     ->middleware('permission:catalog.product.update')->name('primary');
                 Route::post('reorder', [App\Modules\Catalogue\Controllers\ProductImageController::class, 'reorder'])
                     ->middleware('permission:catalog.product.update')->name('reorder');
@@ -310,6 +310,10 @@ Route::middleware(['auth.jwt', 'tenant.resolve', 'tenant.active'])
             Route::prefix('worker-entries')->name('worker-entries.')->group(static function (): void {
                 Route::post('bulk-import', [App\Modules\Production\Controllers\WorkerProductionEntryController::class, 'bulkImport'])
                     ->middleware('permission:production.worker_entry.create')->name('bulk-import');
+                Route::post('bulk-verify', [App\Modules\Production\Controllers\WorkerProductionEntryController::class, 'bulkVerify'])
+                    ->middleware('permission:production.worker_entry.approve')->name('bulk-verify');
+                Route::post('bulk-delete', [App\Modules\Production\Controllers\WorkerProductionEntryController::class, 'bulkDelete'])
+                    ->middleware('permission:production.worker_entry.delete')->name('bulk-delete');
                 Route::get('/', [App\Modules\Production\Controllers\WorkerProductionEntryController::class, 'index'])
                     ->middleware('permission:production.worker_entry.view')->name('index');
                 Route::get('/summary', [App\Modules\Production\Controllers\WorkerProductionEntryController::class, 'summary'])
@@ -318,7 +322,7 @@ Route::middleware(['auth.jwt', 'tenant.resolve', 'tenant.active'])
                     ->middleware('permission:production.worker_entry.create')->name('store');
                 Route::get('{workerProductionEntry:uuid}', [App\Modules\Production\Controllers\WorkerProductionEntryController::class, 'show'])
                     ->middleware('permission:production.worker_entry.view')->name('show');
-                Route::patch('{workerProductionEntry:uuid}', [App\Modules\Production\Controllers\WorkerProductionEntryController::class, 'update'])
+                Route::match(['patch', 'put'], '{workerProductionEntry:uuid}', [App\Modules\Production\Controllers\WorkerProductionEntryController::class, 'update'])
                     ->middleware('permission:production.worker_entry.update')->name('update');
                 Route::post('{workerProductionEntry:uuid}/verify', [App\Modules\Production\Controllers\WorkerProductionEntryController::class, 'verify'])
                     ->middleware('permission:production.worker_entry.approve')->name('verify');
@@ -340,7 +344,7 @@ Route::middleware(['auth.jwt', 'tenant.resolve', 'tenant.active'])
                     ->middleware('permission:qc.parameter.create')->name('store');
                 Route::get('{qcParameter:uuid}', [App\Modules\QC\Controllers\QcParameterController::class, 'show'])
                     ->middleware('permission:qc.parameter.view')->name('show');
-                Route::patch('{qcParameter:uuid}', [App\Modules\QC\Controllers\QcParameterController::class, 'update'])
+                Route::match(['patch', 'put'], '{qcParameter:uuid}', [App\Modules\QC\Controllers\QcParameterController::class, 'update'])
                     ->middleware('permission:qc.parameter.update')->name('update');
                 Route::delete('{qcParameter:uuid}', [App\Modules\QC\Controllers\QcParameterController::class, 'destroy'])
                     ->middleware('permission:qc.parameter.delete')->name('destroy');
@@ -353,7 +357,7 @@ Route::middleware(['auth.jwt', 'tenant.resolve', 'tenant.active'])
                     ->middleware('permission:qc.inspection.create')->name('store');
                 Route::get('{qcInspection:uuid}', [App\Modules\QC\Controllers\QcInspectionController::class, 'show'])
                     ->middleware('permission:qc.inspection.view')->name('show');
-                Route::patch('{qcInspection:uuid}', [App\Modules\QC\Controllers\QcInspectionController::class, 'update'])
+                Route::match(['patch', 'put'], '{qcInspection:uuid}', [App\Modules\QC\Controllers\QcInspectionController::class, 'update'])
                     ->middleware('permission:qc.inspection.update')->name('update');
                 Route::post('{qcInspection:uuid}/approve', [App\Modules\QC\Controllers\QcInspectionController::class, 'approve'])
                     ->middleware('permission:qc.inspection.approve')->name('approve');
@@ -368,7 +372,7 @@ Route::middleware(['auth.jwt', 'tenant.resolve', 'tenant.active'])
                     ->middleware('permission:qc.wastage.create')->name('store');
                 Route::get('{wastageRecord:uuid}', [App\Modules\QC\Controllers\WastageRecordController::class, 'show'])
                     ->middleware('permission:qc.wastage.view')->name('show');
-                Route::patch('{wastageRecord:uuid}', [App\Modules\QC\Controllers\WastageRecordController::class, 'update'])
+                Route::match(['patch', 'put'], '{wastageRecord:uuid}', [App\Modules\QC\Controllers\WastageRecordController::class, 'update'])
                     ->middleware('permission:qc.wastage.update')->name('update');
                 Route::delete('{wastageRecord:uuid}', [App\Modules\QC\Controllers\WastageRecordController::class, 'destroy'])
                     ->middleware('permission:qc.wastage.delete')->name('destroy');
@@ -414,7 +418,7 @@ Route::middleware(['auth.jwt', 'tenant.resolve', 'tenant.active'])
                     ->middleware('permission:inventory.transfer.create')->name('store');
                 Route::get('{id}', [App\Modules\Inventory\Controllers\StockTransferController::class, 'show'])
                     ->middleware('permission:inventory.transfer.view')->name('show');
-                Route::patch('{id}', [App\Modules\Inventory\Controllers\StockTransferController::class, 'update'])
+                Route::match(['patch', 'put'], '{id}', [App\Modules\Inventory\Controllers\StockTransferController::class, 'update'])
                     ->middleware('permission:inventory.transfer.update')->name('update');
                 Route::post('{id}/dispatch', [App\Modules\Inventory\Controllers\StockTransferController::class, 'dispatch'])
                     ->middleware('permission:inventory.transfer.approve')->name('dispatch');
@@ -431,7 +435,7 @@ Route::middleware(['auth.jwt', 'tenant.resolve', 'tenant.active'])
                     ->middleware('permission:inventory.adjustment.create')->name('store');
                 Route::get('{id}', [App\Modules\Inventory\Controllers\StockAdjustmentController::class, 'show'])
                     ->middleware('permission:inventory.adjustment.view')->name('show');
-                Route::patch('{id}', [App\Modules\Inventory\Controllers\StockAdjustmentController::class, 'update'])
+                Route::match(['patch', 'put'], '{id}', [App\Modules\Inventory\Controllers\StockAdjustmentController::class, 'update'])
                     ->middleware('permission:inventory.adjustment.update')->name('update');
                 Route::post('{id}/approve', [App\Modules\Inventory\Controllers\StockAdjustmentController::class, 'approve'])
                     ->middleware('permission:inventory.adjustment.approve')->name('approve');
@@ -446,7 +450,7 @@ Route::middleware(['auth.jwt', 'tenant.resolve', 'tenant.active'])
                     ->middleware('permission:inventory.count.create')->name('store');
                 Route::get('{id}', [App\Modules\Inventory\Controllers\StockCountController::class, 'show'])
                     ->middleware('permission:inventory.count.view')->name('show');
-                Route::patch('{id}', [App\Modules\Inventory\Controllers\StockCountController::class, 'update'])
+                Route::match(['patch', 'put'], '{id}', [App\Modules\Inventory\Controllers\StockCountController::class, 'update'])
                     ->middleware('permission:inventory.count.update')->name('update');
                 Route::post('{id}/reconcile', [App\Modules\Inventory\Controllers\StockCountController::class, 'reconcile'])
                     ->middleware('permission:inventory.count.approve')->name('reconcile');
@@ -470,8 +474,14 @@ Route::middleware(['auth.jwt', 'tenant.resolve', 'tenant.active'])
                     ->middleware('permission:purchasing.requisition.create')->name('store');
                 Route::get('{id}', [App\Modules\Purchasing\Controllers\PurchaseRequisitionController::class, 'show'])
                     ->middleware('permission:purchasing.requisition.view')->name('show');
+                Route::match(['patch', 'put'], '{id}', [App\Modules\Purchasing\Controllers\PurchaseRequisitionController::class, 'update'])
+                    ->middleware('permission:purchasing.requisition.create')->name('update');
                 Route::post('{id}/approve', [App\Modules\Purchasing\Controllers\PurchaseRequisitionController::class, 'approve'])
                     ->middleware('permission:purchasing.requisition.approve')->name('approve');
+                Route::post('{id}/reject', [App\Modules\Purchasing\Controllers\PurchaseRequisitionController::class, 'reject'])
+                    ->middleware('permission:purchasing.requisition.approve')->name('reject');
+                Route::post('{id}/convert', [App\Modules\Purchasing\Controllers\PurchaseRequisitionController::class, 'convert'])
+                    ->middleware('permission:purchasing.requisition.approve')->name('convert');
                 Route::delete('{id}', [App\Modules\Purchasing\Controllers\PurchaseRequisitionController::class, 'destroy'])
                     ->middleware('permission:purchasing.requisition.delete')->name('destroy');
             });
@@ -483,8 +493,12 @@ Route::middleware(['auth.jwt', 'tenant.resolve', 'tenant.active'])
                     ->middleware('permission:purchasing.order.create')->name('store');
                 Route::get('{id}', [App\Modules\Purchasing\Controllers\PurchaseOrderController::class, 'show'])
                     ->middleware('permission:purchasing.order.view')->name('show');
+                Route::match(['patch', 'put'], '{id}', [App\Modules\Purchasing\Controllers\PurchaseOrderController::class, 'update'])
+                    ->middleware('permission:purchasing.order.create')->name('update');
                 Route::post('{id}/approve', [App\Modules\Purchasing\Controllers\PurchaseOrderController::class, 'approve'])
                     ->middleware('permission:purchasing.order.approve')->name('approve');
+                Route::post('{id}/cancel', [App\Modules\Purchasing\Controllers\PurchaseOrderController::class, 'cancel'])
+                    ->middleware('permission:purchasing.order.create')->name('cancel');
                 Route::delete('{id}', [App\Modules\Purchasing\Controllers\PurchaseOrderController::class, 'destroy'])
                     ->middleware('permission:purchasing.order.delete')->name('destroy');
             });
@@ -505,6 +519,12 @@ Route::middleware(['auth.jwt', 'tenant.resolve', 'tenant.active'])
                     ->middleware('permission:purchasing.receipt.create')->name('store');
                 Route::get('{id}', [App\Modules\Purchasing\Controllers\GoodsReceiptController::class, 'show'])
                     ->middleware('permission:purchasing.receipt.view')->name('show');
+                Route::match(['patch', 'put'], '{id}', [App\Modules\Purchasing\Controllers\GoodsReceiptController::class, 'update'])
+                    ->middleware('permission:purchasing.receipt.create')->name('update');
+                Route::post('{id}/complete', [App\Modules\Purchasing\Controllers\GoodsReceiptController::class, 'complete'])
+                    ->middleware('permission:purchasing.receipt.create')->name('complete');
+                Route::delete('{id}', [App\Modules\Purchasing\Controllers\GoodsReceiptController::class, 'destroy'])
+                    ->middleware('permission:purchasing.receipt.delete')->name('destroy');
             });
 
             Route::prefix('bills')->name('bills.')->group(static function (): void {
@@ -514,6 +534,14 @@ Route::middleware(['auth.jwt', 'tenant.resolve', 'tenant.active'])
                     ->middleware('permission:purchasing.bill.create')->name('store');
                 Route::get('{id}', [App\Modules\Purchasing\Controllers\PurchaseBillController::class, 'show'])
                     ->middleware('permission:purchasing.bill.view')->name('show');
+                Route::match(['patch', 'put'], '{id}', [App\Modules\Purchasing\Controllers\PurchaseBillController::class, 'update'])
+                    ->middleware('permission:purchasing.bill.create')->name('update');
+                Route::post('{id}/approve', [App\Modules\Purchasing\Controllers\PurchaseBillController::class, 'approve'])
+                    ->middleware('permission:purchasing.bill.approve')->name('approve');
+                Route::post('{id}/pay', [App\Modules\Purchasing\Controllers\PurchaseBillController::class, 'pay'])
+                    ->middleware('permission:purchasing.bill.create')->name('pay');
+                Route::delete('{id}', [App\Modules\Purchasing\Controllers\PurchaseBillController::class, 'destroy'])
+                    ->middleware('permission:purchasing.bill.delete')->name('destroy');
             });
 
             Route::prefix('returns')->name('returns.')->group(static function (): void {
@@ -523,6 +551,10 @@ Route::middleware(['auth.jwt', 'tenant.resolve', 'tenant.active'])
                     ->middleware('permission:purchasing.return.create')->name('store');
                 Route::get('{id}', [App\Modules\Purchasing\Controllers\PurchaseReturnController::class, 'show'])
                     ->middleware('permission:purchasing.return.view')->name('show');
+                Route::match(['patch', 'put'], '{id}', [App\Modules\Purchasing\Controllers\PurchaseReturnController::class, 'update'])
+                    ->middleware('permission:purchasing.return.create')->name('update');
+                Route::post('{id}/complete', [App\Modules\Purchasing\Controllers\PurchaseReturnController::class, 'complete'])
+                    ->middleware('permission:purchasing.return.create')->name('complete');
                 Route::delete('{id}', [App\Modules\Purchasing\Controllers\PurchaseReturnController::class, 'destroy'])
                     ->middleware('permission:purchasing.return.delete')->name('destroy');
             });
@@ -562,6 +594,8 @@ Route::middleware(['auth.jwt', 'tenant.resolve', 'tenant.active'])
                     ->middleware('permission:sales.invoice.approve')->name('approve');
                 Route::post('{id}/void', [App\Modules\Sales\Controllers\InvoiceController::class, 'void'])
                     ->middleware('permission:sales.invoice.void')->name('void');
+                Route::delete('{id}', [App\Modules\Sales\Controllers\InvoiceController::class, 'destroy'])
+                    ->middleware('permission:sales.invoice.delete')->name('destroy');
             });
 
             Route::prefix('deliveries')->name('deliveries.')->group(static function (): void {
@@ -571,8 +605,14 @@ Route::middleware(['auth.jwt', 'tenant.resolve', 'tenant.active'])
                     ->middleware('permission:sales.delivery.create')->name('store');
                 Route::get('{id}', [App\Modules\Sales\Controllers\DeliveryOrderController::class, 'show'])
                     ->middleware('permission:sales.delivery.view')->name('show');
+                Route::match(['patch', 'put'], '{id}', [App\Modules\Sales\Controllers\DeliveryOrderController::class, 'update'])
+                    ->middleware('permission:sales.delivery.dispatch')->name('update');
                 Route::post('{id}/dispatch', [App\Modules\Sales\Controllers\DeliveryOrderController::class, 'dispatch'])
                     ->middleware('permission:sales.delivery.dispatch')->name('dispatch');
+                Route::post('{id}/deliver', [App\Modules\Sales\Controllers\DeliveryOrderController::class, 'deliver'])
+                    ->middleware('permission:sales.delivery.dispatch')->name('deliver');
+                Route::delete('{id}', [App\Modules\Sales\Controllers\DeliveryOrderController::class, 'destroy'])
+                    ->middleware('permission:sales.delivery.dispatch')->name('destroy');
             });
 
             Route::prefix('payments')->name('payments.')->group(static function (): void {
@@ -591,6 +631,8 @@ Route::middleware(['auth.jwt', 'tenant.resolve', 'tenant.active'])
                     ->middleware('permission:sales.return.create')->name('store');
                 Route::get('{id}', [App\Modules\Sales\Controllers\SalesReturnController::class, 'show'])
                     ->middleware('permission:sales.return.view')->name('show');
+                Route::match(['patch', 'put'], '{id}', [App\Modules\Sales\Controllers\SalesReturnController::class, 'update'])
+                    ->middleware('permission:sales.return.create')->name('update');
                 Route::post('{id}/approve', [App\Modules\Sales\Controllers\SalesReturnController::class, 'approve'])
                     ->middleware('permission:sales.return.approve')->name('approve');
                 Route::delete('{id}', [App\Modules\Sales\Controllers\SalesReturnController::class, 'destroy'])
@@ -699,6 +741,12 @@ Route::middleware(['auth.jwt', 'tenant.resolve', 'tenant.active'])
                     ->middleware('permission:pos.terminal.create')->name('store');
                 Route::get('{id}', [App\Modules\Pos\Controllers\PosTerminalController::class, 'show'])
                     ->middleware('permission:pos.terminal.view')->name('show');
+                Route::match(['patch', 'put'], '{id}', [App\Modules\Pos\Controllers\PosTerminalController::class, 'update'])
+                    ->middleware('permission:pos.terminal.update')->name('update');
+                Route::post('{id}/toggle-active', [App\Modules\Pos\Controllers\PosTerminalController::class, 'toggleActive'])
+                    ->middleware('permission:pos.terminal.update')->name('toggle-active');
+                Route::delete('{id}', [App\Modules\Pos\Controllers\PosTerminalController::class, 'destroy'])
+                    ->middleware('permission:pos.terminal.delete')->name('destroy');
             });
 
             Route::prefix('sessions')->name('sessions.')->group(static function (): void {
@@ -770,6 +818,14 @@ Route::middleware(['auth.jwt', 'tenant.resolve', 'tenant.active'])
                 Route::get('{reconciliation}', [App\Modules\Delivery\Controllers\CodReconciliationController::class, 'show'])
                     ->middleware('permission:logistics.cod.view')->name('show');
             });
+        });
+
+        // ── Delivery (Alias for Logistics) ──────────────────────────────
+        Route::prefix('delivery')->name('delivery.')->group(static function (): void {
+            Route::get('shipments', [App\Modules\Delivery\Controllers\CourierShipmentController::class, 'index'])
+                ->middleware('permission:logistics.shipment.view')->name('shipments.index');
+            Route::get('shipments/{shipment}', [App\Modules\Delivery\Controllers\CourierShipmentController::class, 'show'])
+                ->middleware('permission:logistics.shipment.view')->name('shipments.show');
         });
 
         // ── Finance & Accounting ──────────────────────────────────────

@@ -88,4 +88,75 @@ final class DeliveryOrderController extends Controller
 
         return new DeliveryOrderResource($dispatched);
     }
+
+    public function deliver(int $id, Request $request): JsonResponse
+    {
+        $tenantId = TenantContext::current()->tenantId();
+
+        $delivery = DeliveryOrder::where('tenant_id', $tenantId)
+            ->where('id', $id)
+            ->firstOrFail();
+
+        $delivery->update([
+            'status' => 'delivered',
+            'delivered_at' => now(),
+            'cod_collected_amount' => $delivery->cod_amount ?? '0.00',
+            'cod_status' => 'collected',
+            'updated_by' => (int) $request->user()?->id,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Delivery marked as completed.',
+            'data' => new DeliveryOrderResource($delivery->fresh()),
+            'meta' => ['correlation_id' => (string) $request->header('X-Correlation-Id', '')],
+        ]);
+    }
+
+    public function update(int $id, Request $request): JsonResponse
+    {
+        $tenantId = TenantContext::current()->tenantId();
+
+        $delivery = DeliveryOrder::where('tenant_id', $tenantId)
+            ->where('id', $id)
+            ->firstOrFail();
+
+        $validated = $request->validate([
+            'recipient_name' => 'nullable|string|max:191',
+            'recipient_phone' => 'nullable|string|max:50',
+            'special_instructions' => 'nullable|string',
+            'status' => 'nullable|string|in:pending,in_transit,delivered,cancelled',
+            'delivery_type' => 'nullable|string',
+            'scheduled_date' => 'nullable|date',
+        ]);
+
+        $delivery->update([
+            ...$validated,
+            'updated_by' => (int) $request->user()?->id,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Delivery order updated.',
+            'data' => new DeliveryOrderResource($delivery->fresh()),
+            'meta' => ['correlation_id' => (string) $request->header('X-Correlation-Id', '')],
+        ]);
+    }
+
+    public function destroy(int $id, Request $request): JsonResponse
+    {
+        $tenantId = TenantContext::current()->tenantId();
+
+        $delivery = DeliveryOrder::where('tenant_id', $tenantId)
+            ->where('id', $id)
+            ->firstOrFail();
+
+        $delivery->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Delivery order deleted.',
+            'meta' => ['correlation_id' => (string) $request->header('X-Correlation-Id', '')],
+        ]);
+    }
 }

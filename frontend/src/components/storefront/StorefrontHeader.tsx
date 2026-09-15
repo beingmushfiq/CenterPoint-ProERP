@@ -106,22 +106,22 @@ export const StorefrontHeader: React.FC<StorefrontHeaderProps> = ({ config, subd
             backgroundColor: announcementBg || undefined,
             color: announcementTextColor || undefined,
           }}
-          className={`text-[11px] py-2 px-4 border-b border-black/10 dark:border-white/10 font-medium select-none shadow-xs transition-colors ${
+          className={`text-[11px] py-2 px-3 sm:px-4 border-b border-black/10 dark:border-white/10 font-medium select-none shadow-xs transition-colors overflow-hidden ${
             !announcementBg ? 'bg-zinc-900 dark:bg-zinc-950 text-zinc-100' : ''
           }`}
         >
-          <div className="mx-auto max-w-7xl flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="flex size-1.5 rounded-full bg-white animate-pulse" />
-              <span className="text-[11px] opacity-95 font-medium">
+          <div className="mx-auto max-w-7xl flex items-center justify-between gap-2 overflow-hidden">
+            <div className="flex items-center gap-2 min-w-0 truncate">
+              <span className="flex size-1.5 shrink-0 rounded-full bg-white animate-pulse" />
+              <span className="text-[10px] sm:text-[11px] opacity-95 font-medium truncate">
                 {announcementText}
               </span>
             </div>
 
-            <div className="flex items-center gap-4 text-[10px] sm:text-[11px] opacity-90">
+            <div className="hidden xs:flex items-center gap-3 text-[10px] sm:text-[11px] opacity-90 shrink-0">
               <div className="flex items-center gap-1.5">
                 <Truck className="size-3.5 opacity-90" />
-                <span>Tracked Dispatch</span>
+                <span className="hidden sm:inline">Tracked Dispatch</span>
               </div>
               <span className="opacity-40 hidden sm:inline">•</span>
               <div className="hidden sm:flex items-center gap-1.5">
@@ -143,15 +143,15 @@ export const StorefrontHeader: React.FC<StorefrontHeaderProps> = ({ config, subd
           isDarkNavbar ? 'border-white/10' : 'border-slate-200/90 dark:border-zinc-800/80'
         } ${!navbarBg ? 'bg-white/95 dark:bg-zinc-950/85 backdrop-blur-xl' : 'backdrop-blur-xl'}`}
       >
-        <div className="mx-auto flex h-16 sm:h-17 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+        <div className="mx-auto flex h-16 sm:h-17 max-w-7xl items-center justify-between px-3 sm:px-6 lg:px-8 gap-2">
           {/* Brand Logo & Name */}
-          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+          <div className="flex items-center gap-1.5 sm:gap-3 min-w-0">
             {/* Mobile Menu Toggle Button */}
             <button
               type="button"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               style={{ color: navbarTextColor || undefined }}
-              className={`md:hidden p-2 rounded-xl transition-colors ${
+              className={`md:hidden p-1.5 sm:p-2 rounded-xl transition-colors shrink-0 ${
                 isDarkNavbar ? 'hover:bg-white/10 text-white' : 'hover:bg-black/5 text-slate-900 dark:text-white'
               }`}
               aria-label="Toggle Navigation Menu"
@@ -161,22 +161,22 @@ export const StorefrontHeader: React.FC<StorefrontHeaderProps> = ({ config, subd
 
             <Link
               to={getStorefrontUrl(subdomain)}
-              className="group flex items-center gap-2.5 sm:gap-3 transition-transform active:scale-98 cursor-pointer"
+              className="group flex items-center gap-2 sm:gap-3 transition-transform active:scale-98 cursor-pointer min-w-0"
             >
               <div
                 style={{
                   backgroundColor: 'var(--store-primary, #10b981)',
                   color: 'var(--store-primary-fg, #ffffff)',
                 }}
-                className="flex size-10 items-center justify-center rounded-xl shadow-md ring-1 ring-black/5 dark:ring-white/20 transition-all shrink-0 group-hover:scale-105"
+                className="flex size-9 sm:size-10 items-center justify-center rounded-xl shadow-md ring-1 ring-black/5 dark:ring-white/20 transition-all shrink-0 group-hover:scale-105"
               >
-                <Store className="size-5.5 stroke-[2.2]" />
+                <Store className="size-5 sm:size-5.5 stroke-[2.2]" />
               </div>
-              <div className="flex flex-col">
-                <div className="flex items-center gap-2">
+              <div className="flex flex-col min-w-0">
+                <div className="flex items-center gap-1.5 min-w-0">
                   <span
                     style={{ color: navbarTextColor || undefined }}
-                    className={`font-bold tracking-tight text-sm sm:text-base leading-tight transition-colors line-clamp-1 max-w-42.5 sm:max-w-65 ${
+                    className={`font-bold tracking-tight text-xs sm:text-base leading-tight transition-colors truncate max-w-32.5 xs:max-w-45 sm:max-w-65 ${
                       !navbarTextColor ? 'text-slate-900 dark:text-white' : ''
                     }`}
                   >

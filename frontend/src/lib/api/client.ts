@@ -66,23 +66,30 @@ export function setAccessToken(token: string | null): void {
       sessionStorage.removeItem('tenant_access_token');
     }
   }
+  if (typeof localStorage !== 'undefined') {
+    if (token) {
+      localStorage.setItem('tenant_access_token', token);
+    } else {
+      localStorage.removeItem('tenant_access_token');
+    }
+  }
 }
 
 export function getAccessToken(path?: string): string | null {
-  if (typeof window === 'undefined' || typeof localStorage === 'undefined') {
+  if (typeof window === 'undefined') {
     return accessToken;
   }
 
   const isPlatform =
     (Boolean(path) && (path!.startsWith('/platform') || path!.startsWith('platform') || path!.includes('/platform/'))) ||
-    window.location.pathname.startsWith('/platform');
+    (typeof window !== 'undefined' && window.location.pathname.startsWith('/platform'));
 
   if (isPlatform) {
-    const platformToken = localStorage.getItem('platform_access_token');
+    const platformToken = typeof localStorage !== 'undefined' ? localStorage.getItem('platform_access_token') : null;
     return platformToken || null;
   }
 
-  // Tenant / standard context: check in-memory first, then sessionStorage fallback for page reload
+  // Tenant / standard context: check in-memory first, then sessionStorage/localStorage fallback for page reload
   if (accessToken) return accessToken;
   if (typeof sessionStorage !== 'undefined') {
     const impToken = sessionStorage.getItem('impersonation_token');
@@ -91,6 +98,13 @@ export function getAccessToken(path?: string): string | null {
     if (sessionToken) {
       accessToken = sessionToken;
       return sessionToken;
+    }
+  }
+  if (typeof localStorage !== 'undefined') {
+    const localToken = localStorage.getItem('tenant_access_token');
+    if (localToken) {
+      accessToken = localToken;
+      return localToken;
     }
   }
   return null;
@@ -117,6 +131,9 @@ function announceSessionExpired(error: ApiError): void {
   accessToken = null;
   if (typeof sessionStorage !== 'undefined') {
     sessionStorage.removeItem('tenant_access_token');
+  }
+  if (typeof localStorage !== 'undefined') {
+    localStorage.removeItem('tenant_access_token');
   }
   for (const listener of sessionListeners) listener(error);
 }
@@ -225,7 +242,8 @@ export interface RequestOptions {
 }
 
 function buildUrl(path: string, params: RequestOptions['params']): string {
-  const url = `${BASE_URL}${path.startsWith('/') ? path : `/${path}`}`;
+  const cleanPath = path.replace(/^\/?api\/v1/, '');
+  const url = `${BASE_URL}${cleanPath.startsWith('/') ? cleanPath : `/${cleanPath}`}`;
   if (!params) return url;
 
   const search = new URLSearchParams();

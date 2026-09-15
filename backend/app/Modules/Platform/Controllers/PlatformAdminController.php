@@ -218,4 +218,37 @@ class PlatformAdminController extends Controller
             'message' => "Administrator '{$admin->name}' deactivated.",
         ]);
     }
+
+    /**
+     * Update an administrator's status.
+     */
+    public function updateStatus(Request $request, int $id): JsonResponse
+    {
+        $admin = User::withoutTenantScope()->where('is_platform_user', true)->findOrFail($id);
+
+        if ($request->user()?->id === $admin->id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'You cannot change the status of your own administrator account.',
+            ], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+
+        $validated = $request->validate([
+            'status' => 'required|string|in:active,inactive,suspended',
+        ]);
+
+        $status = $validated['status'];
+        $isActive = $status === 'active';
+
+        $admin->update([
+            'status' => $status,
+            'is_active' => $isActive,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => "Administrator status updated to '{$status}'.",
+            'data' => $admin->fresh()->load('platformRoles'),
+        ]);
+    }
 }

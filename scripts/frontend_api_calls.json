@@ -1,0 +1,2957 @@
+[
+  {
+    "method": "GET",
+    "endpoint": "/audit-logs/entity/${cleanType}/${entityId}",
+    "file": "src\\components\\audit\\EntityHistoryDrawer.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/notifications",
+    "file": "src\\components\\layout\\AppHeader.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/notifications/read-all",
+    "file": "src\\components\\layout\\AppHeader.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/notifications/${id}/read",
+    "file": "src\\components\\layout\\AppHeader.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/brain/ask",
+    "file": "src\\components\\layout\\SliceMartBrainModal.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/documents/print-profiles",
+    "file": "src\\components\\print\\DocumentEnginePortal.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/documents/paper-sizes",
+    "file": "src\\components\\print\\DocumentEnginePortal.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/documents/templates/${templateId}",
+    "file": "src\\components\\print\\DocumentEnginePortal.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/documents/templates/resolve",
+    "file": "src\\components\\print\\DocumentEnginePortal.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/documents/print-history",
+    "file": "src\\components\\print\\DocumentEnginePortal.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/storefront/whatsapp/order-link",
+    "file": "src\\components\\storefront\\StorefrontCartDrawer.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/storefront/config",
+    "file": "src\\components\\storefront\\StorefrontShell.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/auth/login",
+    "file": "src\\lib\\auth\\authStore.ts"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/auth/logout",
+    "file": "src\\lib\\auth\\authStore.ts"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/auth/me",
+    "file": "src\\lib\\auth\\authStore.ts"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/auth/switch-branch",
+    "file": "src\\lib\\auth\\authStore.ts"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/platform/auth/login",
+    "file": "src\\lib\\auth\\platformAuthStore.ts"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/platform/auth/logout",
+    "file": "src\\lib\\auth\\platformAuthStore.ts"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/platform/auth/me",
+    "file": "src\\lib\\auth\\platformAuthStore.ts"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/tenant/manifest${forceRefresh ? '?refresh=1' : ''}",
+    "file": "src\\lib\\capabilities\\tenantCapabilityStore.ts"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/documents/print-history",
+    "file": "src\\lib\\document\\useReprintHistory.ts"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/documents/print-history",
+    "file": "src\\lib\\document\\useReprintHistory.ts"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/storefront/cart",
+    "file": "src\\lib\\storefront\\storefrontCartStore.ts"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/storefront/cart/items",
+    "file": "src\\lib\\storefront\\storefrontCartStore.ts"
+  },
+  {
+    "method": "PUT",
+    "endpoint": "/storefront/cart/items/${itemId}",
+    "file": "src\\lib\\storefront\\storefrontCartStore.ts"
+  },
+  {
+    "method": "DELETE",
+    "endpoint": "/storefront/cart/items/${itemId}",
+    "file": "src\\lib\\storefront\\storefrontCartStore.ts"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/storefront/cart/coupon",
+    "file": "src\\lib\\storefront\\storefrontCartStore.ts"
+  },
+  {
+    "method": "DELETE",
+    "endpoint": "/storefront/cart/coupon",
+    "file": "src\\lib\\storefront\\storefrontCartStore.ts"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/products/${productUuid}/images",
+    "file": "src\\modules\\catalogue\\components\\ProductImageGalleryUploader.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/products/${productUuid}/images",
+    "file": "src\\modules\\catalogue\\components\\ProductImageGalleryUploader.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/products/${productUuid}/images/${targetId}/primary",
+    "file": "src\\modules\\catalogue\\components\\ProductImageGalleryUploader.tsx"
+  },
+  {
+    "method": "DELETE",
+    "endpoint": "/products/${productUuid}/images/${targetId}",
+    "file": "src\\modules\\catalogue\\components\\ProductImageGalleryUploader.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/products/${productUuid}/images/reorder",
+    "file": "src\\modules\\catalogue\\components\\ProductImageGalleryUploader.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/boms",
+    "file": "src\\modules\\catalogue\\sections\\BillOfMaterialsSection.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/products",
+    "file": "src\\modules\\catalogue\\sections\\BillOfMaterialsSection.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/products",
+    "file": "src\\modules\\catalogue\\sections\\BillOfMaterialsSection.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/units",
+    "file": "src\\modules\\catalogue\\sections\\BillOfMaterialsSection.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/boms",
+    "file": "src\\modules\\catalogue\\sections\\BillOfMaterialsSection.tsx"
+  },
+  {
+    "method": "PATCH",
+    "endpoint": "/boms/${id}",
+    "file": "src\\modules\\catalogue\\sections\\BillOfMaterialsSection.tsx"
+  },
+  {
+    "method": "DELETE",
+    "endpoint": "/boms/${id}",
+    "file": "src\\modules\\catalogue\\sections\\BillOfMaterialsSection.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/brands",
+    "file": "src\\modules\\catalogue\\sections\\BrandsSection.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/brands",
+    "file": "src\\modules\\catalogue\\sections\\BrandsSection.tsx"
+  },
+  {
+    "method": "PATCH",
+    "endpoint": "/brands/${id}",
+    "file": "src\\modules\\catalogue\\sections\\BrandsSection.tsx"
+  },
+  {
+    "method": "DELETE",
+    "endpoint": "/brands/${id}",
+    "file": "src\\modules\\catalogue\\sections\\BrandsSection.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/categories",
+    "file": "src\\modules\\catalogue\\sections\\CategoriesSection.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/categories",
+    "file": "src\\modules\\catalogue\\sections\\CategoriesSection.tsx"
+  },
+  {
+    "method": "PATCH",
+    "endpoint": "/categories/${id}",
+    "file": "src\\modules\\catalogue\\sections\\CategoriesSection.tsx"
+  },
+  {
+    "method": "DELETE",
+    "endpoint": "/categories/${id}",
+    "file": "src\\modules\\catalogue\\sections\\CategoriesSection.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/parties",
+    "file": "src\\modules\\catalogue\\sections\\PartiesSection.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/parties",
+    "file": "src\\modules\\catalogue\\sections\\PartiesSection.tsx"
+  },
+  {
+    "method": "PATCH",
+    "endpoint": "/parties/${id}",
+    "file": "src\\modules\\catalogue\\sections\\PartiesSection.tsx"
+  },
+  {
+    "method": "DELETE",
+    "endpoint": "/parties/${id}",
+    "file": "src\\modules\\catalogue\\sections\\PartiesSection.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/products",
+    "file": "src\\modules\\catalogue\\sections\\ProductsSection.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/units",
+    "file": "src\\modules\\catalogue\\sections\\ProductsSection.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/categories",
+    "file": "src\\modules\\catalogue\\sections\\ProductsSection.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/brands",
+    "file": "src\\modules\\catalogue\\sections\\ProductsSection.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/warehouses",
+    "file": "src\\modules\\catalogue\\sections\\ProductsSection.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/units",
+    "file": "src\\modules\\catalogue\\sections\\ProductsSection.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/categories",
+    "file": "src\\modules\\catalogue\\sections\\ProductsSection.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/brands",
+    "file": "src\\modules\\catalogue\\sections\\ProductsSection.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/products",
+    "file": "src\\modules\\catalogue\\sections\\ProductsSection.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/products/${created.id}/images",
+    "file": "src\\modules\\catalogue\\sections\\ProductsSection.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/products/${created.id}/images",
+    "file": "src\\modules\\catalogue\\sections\\ProductsSection.tsx"
+  },
+  {
+    "method": "PATCH",
+    "endpoint": "/products/${id}",
+    "file": "src\\modules\\catalogue\\sections\\ProductsSection.tsx"
+  },
+  {
+    "method": "DELETE",
+    "endpoint": "/products/${id}",
+    "file": "src\\modules\\catalogue\\sections\\ProductsSection.tsx"
+  },
+  {
+    "method": "PATCH",
+    "endpoint": "/products/${p.id}",
+    "file": "src\\modules\\catalogue\\sections\\ProductsSection.tsx"
+  },
+  {
+    "method": "DELETE",
+    "endpoint": "/products/${p.id}",
+    "file": "src\\modules\\catalogue\\sections\\ProductsSection.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/units",
+    "file": "src\\modules\\catalogue\\sections\\UnitsSection.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/units",
+    "file": "src\\modules\\catalogue\\sections\\UnitsSection.tsx"
+  },
+  {
+    "method": "PATCH",
+    "endpoint": "/units/${id}",
+    "file": "src\\modules\\catalogue\\sections\\UnitsSection.tsx"
+  },
+  {
+    "method": "DELETE",
+    "endpoint": "/units/${id}",
+    "file": "src\\modules\\catalogue\\sections\\UnitsSection.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/warehouses",
+    "file": "src\\modules\\catalogue\\sections\\WarehousesSection.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/warehouses",
+    "file": "src\\modules\\catalogue\\sections\\WarehousesSection.tsx"
+  },
+  {
+    "method": "PATCH",
+    "endpoint": "/warehouses/${id}",
+    "file": "src\\modules\\catalogue\\sections\\WarehousesSection.tsx"
+  },
+  {
+    "method": "DELETE",
+    "endpoint": "/warehouses/${id}",
+    "file": "src\\modules\\catalogue\\sections\\WarehousesSection.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/warehouses/${warehouseId}/locations",
+    "file": "src\\modules\\catalogue\\sections\\WarehousesSection.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/logistics/couriers",
+    "file": "src\\modules\\delivery\\DeliveryWorkspace.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/logistics/shipments",
+    "file": "src\\modules\\delivery\\DeliveryWorkspace.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/finance/accounts",
+    "file": "src\\modules\\finance\\FinanceWorkspace.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/finance/journal-entries",
+    "file": "src\\modules\\finance\\FinanceWorkspace.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/finance/bank-accounts",
+    "file": "src\\modules\\finance\\FinanceWorkspace.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/finance/accounts",
+    "file": "src\\modules\\finance\\FinanceWorkspace.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/finance/journal-entries",
+    "file": "src\\modules\\finance\\FinanceWorkspace.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/finance/bank-accounts",
+    "file": "src\\modules\\finance\\FinanceWorkspace.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/finance/expenses",
+    "file": "src\\modules\\finance\\FinanceWorkspace.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/sales/invoices?per_page=100",
+    "file": "src\\modules\\finance\\sections\\DueCollectionSection.tsx"
+  },
+  {
+    "method": "DELETE",
+    "endpoint": "/sales/invoices/${deletingInvoice.id}",
+    "file": "src\\modules\\finance\\sections\\DueCollectionSection.tsx"
+  },
+  {
+    "method": "DELETE",
+    "endpoint": "/sales/invoices/${id}",
+    "file": "src\\modules\\finance\\sections\\DueCollectionSection.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/hr/employees",
+    "file": "src\\modules\\hr\\HrWorkspace.tsx"
+  },
+  {
+    "method": "PATCH",
+    "endpoint": "/hr/employees/${empId}/status",
+    "file": "src\\modules\\hr\\HrWorkspace.tsx"
+  },
+  {
+    "method": "PUT",
+    "endpoint": "/hr/employees/${accessModalEmp.id}/roles",
+    "file": "src\\modules\\hr\\HrWorkspace.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/hr/employees/${accessModalEmp.id}/provision-user",
+    "file": "src\\modules\\hr\\HrWorkspace.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/production/worker-entries?entry_date=${selectedDate}",
+    "file": "src\\modules\\hr\\sections\\WorkerPerformanceSection.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/hr/employees${qs}",
+    "file": "src\\modules\\hr\\services\\hrApi.ts"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/hr/employees",
+    "file": "src\\modules\\hr\\services\\hrApi.ts"
+  },
+  {
+    "method": "PUT",
+    "endpoint": "/hr/employees/${id}",
+    "file": "src\\modules\\hr\\services\\hrApi.ts"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/hr/employees/${id}/toggle-status",
+    "file": "src\\modules\\hr\\services\\hrApi.ts"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/hr/employees/${id}/documents",
+    "file": "src\\modules\\hr\\services\\hrApi.ts"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/hr/employees/${id}/documents",
+    "file": "src\\modules\\hr\\services\\hrApi.ts"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/hr/departments${activeOnly ? '?active_only=1' : ''}",
+    "file": "src\\modules\\hr\\services\\hrApi.ts"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/hr/departments",
+    "file": "src\\modules\\hr\\services\\hrApi.ts"
+  },
+  {
+    "method": "PUT",
+    "endpoint": "/hr/departments/${id}",
+    "file": "src\\modules\\hr\\services\\hrApi.ts"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/hr/designations${activeOnly ? '?active_only=1' : ''}",
+    "file": "src\\modules\\hr\\services\\hrApi.ts"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/hr/designations",
+    "file": "src\\modules\\hr\\services\\hrApi.ts"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/hr/shifts${activeOnly ? '?active_only=1' : ''}",
+    "file": "src\\modules\\hr\\services\\hrApi.ts"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/hr/shifts",
+    "file": "src\\modules\\hr\\services\\hrApi.ts"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/hr/attendances${qs}",
+    "file": "src\\modules\\hr\\services\\hrApi.ts"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/hr/attendances",
+    "file": "src\\modules\\hr\\services\\hrApi.ts"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/hr/attendances/summary${date ?",
+    "file": "src\\modules\\hr\\services\\hrApi.ts"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/hr/attendances/punch-badge",
+    "file": "src\\modules\\hr\\services\\hrApi.ts"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/hr/leaves${qs}",
+    "file": "src\\modules\\hr\\services\\hrApi.ts"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/hr/leaves/balances${qs}",
+    "file": "src\\modules\\hr\\services\\hrApi.ts"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/hr/leaves",
+    "file": "src\\modules\\hr\\services\\hrApi.ts"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/hr/leaves/${id}/approve",
+    "file": "src\\modules\\hr\\services\\hrApi.ts"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/hr/leaves/${id}/reject",
+    "file": "src\\modules\\hr\\services\\hrApi.ts"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/hr/salary-structures",
+    "file": "src\\modules\\hr\\services\\hrApi.ts"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/hr/salary-structures/components",
+    "file": "src\\modules\\hr\\services\\hrApi.ts"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/hr/salary-structures",
+    "file": "src\\modules\\hr\\services\\hrApi.ts"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/hr/payroll/periods",
+    "file": "src\\modules\\hr\\services\\hrApi.ts"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/hr/payroll/periods",
+    "file": "src\\modules\\hr\\services\\hrApi.ts"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/hr/payroll/periods/${id}/process",
+    "file": "src\\modules\\hr\\services\\hrApi.ts"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/hr/payroll/periods/${id}/disburse",
+    "file": "src\\modules\\hr\\services\\hrApi.ts"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/hr/payroll/payslips${qs}",
+    "file": "src\\modules\\hr\\services\\hrApi.ts"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/hr/payroll/payslips",
+    "file": "src\\modules\\hr\\services\\hrApi.ts"
+  },
+  {
+    "method": "DELETE",
+    "endpoint": "/hr/employees/${id}",
+    "file": "src\\modules\\hr\\services\\hrApi.ts"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/hr/employees/bulk-delete",
+    "file": "src\\modules\\hr\\services\\hrApi.ts"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/hr/employees/bulk-status",
+    "file": "src\\modules\\hr\\services\\hrApi.ts"
+  },
+  {
+    "method": "DELETE",
+    "endpoint": "/hr/departments/${id}",
+    "file": "src\\modules\\hr\\services\\hrApi.ts"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/hr/departments/bulk-delete",
+    "file": "src\\modules\\hr\\services\\hrApi.ts"
+  },
+  {
+    "method": "DELETE",
+    "endpoint": "/hr/designations/${id}",
+    "file": "src\\modules\\hr\\services\\hrApi.ts"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/hr/designations/bulk-delete",
+    "file": "src\\modules\\hr\\services\\hrApi.ts"
+  },
+  {
+    "method": "DELETE",
+    "endpoint": "/hr/shifts/${id}",
+    "file": "src\\modules\\hr\\services\\hrApi.ts"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/hr/shifts/bulk-delete",
+    "file": "src\\modules\\hr\\services\\hrApi.ts"
+  },
+  {
+    "method": "DELETE",
+    "endpoint": "/hr/attendances/${id}",
+    "file": "src\\modules\\hr\\services\\hrApi.ts"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/hr/attendances/bulk-delete",
+    "file": "src\\modules\\hr\\services\\hrApi.ts"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/hr/attendances/bulk-status",
+    "file": "src\\modules\\hr\\services\\hrApi.ts"
+  },
+  {
+    "method": "DELETE",
+    "endpoint": "/hr/leaves/${id}",
+    "file": "src\\modules\\hr\\services\\hrApi.ts"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/hr/leaves/bulk-approve",
+    "file": "src\\modules\\hr\\services\\hrApi.ts"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/hr/leaves/bulk-reject",
+    "file": "src\\modules\\hr\\services\\hrApi.ts"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/hr/leaves/bulk-delete",
+    "file": "src\\modules\\hr\\services\\hrApi.ts"
+  },
+  {
+    "method": "DELETE",
+    "endpoint": "/hr/salary-structures/${id}",
+    "file": "src\\modules\\hr\\services\\hrApi.ts"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/hr/salary-structures/bulk-delete",
+    "file": "src\\modules\\hr\\services\\hrApi.ts"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/hr/salary-structures/${id}/toggle-status",
+    "file": "src\\modules\\hr\\services\\hrApi.ts"
+  },
+  {
+    "method": "DELETE",
+    "endpoint": "/hr/payroll/periods/${id}",
+    "file": "src\\modules\\hr\\services\\hrApi.ts"
+  },
+  {
+    "method": "DELETE",
+    "endpoint": "/hr/payroll/payslips/${id}",
+    "file": "src\\modules\\hr\\services\\hrApi.ts"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/hr/payroll/payslips/bulk-status",
+    "file": "src\\modules\\hr\\services\\hrApi.ts"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/hr/payroll/payslips/bulk-delete",
+    "file": "src\\modules\\hr\\services\\hrApi.ts"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/hr/payroll/advances${qs}",
+    "file": "src\\modules\\hr\\services\\hrApi.ts"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/hr/payroll/advances",
+    "file": "src\\modules\\hr\\services\\hrApi.ts"
+  },
+  {
+    "method": "DELETE",
+    "endpoint": "/hr/payroll/advances/${id}",
+    "file": "src\\modules\\hr\\services\\hrApi.ts"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/hr/payroll/advances/bulk-status",
+    "file": "src\\modules\\hr\\services\\hrApi.ts"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/hr/payroll/advances/bulk-delete",
+    "file": "src\\modules\\hr\\services\\hrApi.ts"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/production/worker-entries/${uuid}/verify",
+    "file": "src\\modules\\hr\\services\\hrApi.ts"
+  },
+  {
+    "method": "DELETE",
+    "endpoint": "/production/worker-entries/${uuid}",
+    "file": "src\\modules\\hr\\services\\hrApi.ts"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/production/worker-entries/bulk-verify",
+    "file": "src\\modules\\hr\\services\\hrApi.ts"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/production/worker-entries/bulk-delete",
+    "file": "src\\modules\\hr\\services\\hrApi.ts"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/inventory/adjustments",
+    "file": "src\\modules\\inventory\\sections\\StockAdjustmentsSection.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/inventory/adjustments/${adjId}/approve",
+    "file": "src\\modules\\inventory\\sections\\StockAdjustmentsSection.tsx"
+  },
+  {
+    "method": "PATCH",
+    "endpoint": "/inventory/adjustments/${adjId}",
+    "file": "src\\modules\\inventory\\sections\\StockAdjustmentsSection.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/inventory/adjustments",
+    "file": "src\\modules\\inventory\\sections\\StockAdjustmentsSection.tsx"
+  },
+  {
+    "method": "PUT",
+    "endpoint": "/inventory/adjustments/${activeAdjustment.id}",
+    "file": "src\\modules\\inventory\\sections\\StockAdjustmentsSection.tsx"
+  },
+  {
+    "method": "DELETE",
+    "endpoint": "/inventory/adjustments/${activeAdjustment.id}",
+    "file": "src\\modules\\inventory\\sections\\StockAdjustmentsSection.tsx"
+  },
+  {
+    "method": "DELETE",
+    "endpoint": "/inventory/adjustments/${id}",
+    "file": "src\\modules\\inventory\\sections\\StockAdjustmentsSection.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/inventory/adjustments/${id}/approve",
+    "file": "src\\modules\\inventory\\sections\\StockAdjustmentsSection.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/inventory/counts",
+    "file": "src\\modules\\inventory\\sections\\StockCountsSection.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/inventory/counts/${countId}/reconcile",
+    "file": "src\\modules\\inventory\\sections\\StockCountsSection.tsx"
+  },
+  {
+    "method": "PATCH",
+    "endpoint": "/inventory/counts/${countId}",
+    "file": "src\\modules\\inventory\\sections\\StockCountsSection.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/inventory/counts",
+    "file": "src\\modules\\inventory\\sections\\StockCountsSection.tsx"
+  },
+  {
+    "method": "PUT",
+    "endpoint": "/inventory/counts/${activeCount.id}",
+    "file": "src\\modules\\inventory\\sections\\StockCountsSection.tsx"
+  },
+  {
+    "method": "DELETE",
+    "endpoint": "/inventory/counts/${activeCount.id}",
+    "file": "src\\modules\\inventory\\sections\\StockCountsSection.tsx"
+  },
+  {
+    "method": "DELETE",
+    "endpoint": "/inventory/counts/${id}",
+    "file": "src\\modules\\inventory\\sections\\StockCountsSection.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/inventory/counts/${id}/reconcile",
+    "file": "src\\modules\\inventory\\sections\\StockCountsSection.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/inventory/balances",
+    "file": "src\\modules\\inventory\\sections\\StockLedgerSection.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/inventory/movements",
+    "file": "src\\modules\\inventory\\sections\\StockLedgerSection.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/inventory/transfers",
+    "file": "src\\modules\\inventory\\sections\\StockLedgerSection.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/inventory/adjustments",
+    "file": "src\\modules\\inventory\\sections\\StockLedgerSection.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/inventory/thresholds",
+    "file": "src\\modules\\inventory\\sections\\StockThresholdsSection.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/inventory/thresholds",
+    "file": "src\\modules\\inventory\\sections\\StockThresholdsSection.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/inventory/transfers",
+    "file": "src\\modules\\inventory\\sections\\StockTransfersSection.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/inventory/transfers/${transferId}/dispatch",
+    "file": "src\\modules\\inventory\\sections\\StockTransfersSection.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/inventory/transfers/${transferId}/receive",
+    "file": "src\\modules\\inventory\\sections\\StockTransfersSection.tsx"
+  },
+  {
+    "method": "PATCH",
+    "endpoint": "/inventory/transfers/${transferId}",
+    "file": "src\\modules\\inventory\\sections\\StockTransfersSection.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/inventory/transfers",
+    "file": "src\\modules\\inventory\\sections\\StockTransfersSection.tsx"
+  },
+  {
+    "method": "PUT",
+    "endpoint": "/inventory/transfers/${activeTransfer.id}",
+    "file": "src\\modules\\inventory\\sections\\StockTransfersSection.tsx"
+  },
+  {
+    "method": "DELETE",
+    "endpoint": "/inventory/transfers/${activeTransfer.id}",
+    "file": "src\\modules\\inventory\\sections\\StockTransfersSection.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/industry-profiles",
+    "file": "src\\modules\\platform\\IndustryProfilePicker.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/tenant/onboarding/state",
+    "file": "src\\modules\\platform\\OnboardingWizard.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/tenant/onboarding/step",
+    "file": "src\\modules\\platform\\OnboardingWizard.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/tenant/onboarding/complete",
+    "file": "src\\modules\\platform\\OnboardingWizard.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/platform/plans",
+    "file": "src\\modules\\platform\\PlanManagerWorkspace.tsx"
+  },
+  {
+    "method": "PATCH",
+    "endpoint": "/platform/plans/${editingPlan.id}",
+    "file": "src\\modules\\platform\\PlanManagerWorkspace.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/platform/plans",
+    "file": "src\\modules\\platform\\PlanManagerWorkspace.tsx"
+  },
+  {
+    "method": "DELETE",
+    "endpoint": "/platform/plans/${plan.id}",
+    "file": "src\\modules\\platform\\PlanManagerWorkspace.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/platform/roles",
+    "file": "src\\modules\\platform\\PlatformAdminWorkspace.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/platform/admins",
+    "file": "src\\modules\\platform\\PlatformAdminWorkspace.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/platform/admins",
+    "file": "src\\modules\\platform\\PlatformAdminWorkspace.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/platform/admins/${id}/reset-password",
+    "file": "src\\modules\\platform\\PlatformAdminWorkspace.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/platform/admins/${id}/status",
+    "file": "src\\modules\\platform\\PlatformAdminWorkspace.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/platform/tenants?per_page=100",
+    "file": "src\\modules\\platform\\PlatformAnnouncementsWorkspace.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/platform/announcements",
+    "file": "src\\modules\\platform\\PlatformAnnouncementsWorkspace.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/platform/announcements",
+    "file": "src\\modules\\platform\\PlatformAnnouncementsWorkspace.tsx"
+  },
+  {
+    "method": "DELETE",
+    "endpoint": "/platform/announcements/${id}",
+    "file": "src\\modules\\platform\\PlatformAnnouncementsWorkspace.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/platform/audit-logs",
+    "file": "src\\modules\\platform\\PlatformAuditWorkspace.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/platform/dashboard/kpis",
+    "file": "src\\modules\\platform\\PlatformDashboardWorkspace.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/platform/errors",
+    "file": "src\\modules\\platform\\PlatformErrorMonitoringWorkspace.tsx"
+  },
+  {
+    "method": "PATCH",
+    "endpoint": "/platform/errors/${id}",
+    "file": "src\\modules\\platform\\PlatformErrorMonitoringWorkspace.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/platform/tenants?per_page=100",
+    "file": "src\\modules\\platform\\PlatformFeatureFlagsWorkspace.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/platform/feature-flags",
+    "file": "src\\modules\\platform\\PlatformFeatureFlagsWorkspace.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/platform/module-registry",
+    "file": "src\\modules\\platform\\PlatformFeatureFlagsWorkspace.tsx"
+  },
+  {
+    "method": "PATCH",
+    "endpoint": "/platform/feature-flags/${id}",
+    "file": "src\\modules\\platform\\PlatformFeatureFlagsWorkspace.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/platform/feature-flags",
+    "file": "src\\modules\\platform\\PlatformFeatureFlagsWorkspace.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/platform/tenants?per_page=100",
+    "file": "src\\modules\\platform\\PlatformPaymentsWorkspace.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/platform/payments",
+    "file": "src\\modules\\platform\\PlatformPaymentsWorkspace.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/platform/tenants/${payload.tenant_id}/payments",
+    "file": "src\\modules\\platform\\PlatformPaymentsWorkspace.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/platform/settings",
+    "file": "src\\modules\\platform\\PlatformSettingsWorkspace.tsx"
+  },
+  {
+    "method": "PATCH",
+    "endpoint": "/platform/settings/${group}",
+    "file": "src\\modules\\platform\\PlatformSettingsWorkspace.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/platform/settings/maintenance",
+    "file": "src\\modules\\platform\\PlatformSettingsWorkspace.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/platform/tenants?per_page=100",
+    "file": "src\\modules\\platform\\PlatformSupportWorkspace.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/platform/support-tickets",
+    "file": "src\\modules\\platform\\PlatformSupportWorkspace.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/platform/support-tickets/${selectedTicket.id}",
+    "file": "src\\modules\\platform\\PlatformSupportWorkspace.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/platform/support-tickets",
+    "file": "src\\modules\\platform\\PlatformSupportWorkspace.tsx"
+  },
+  {
+    "method": "PATCH",
+    "endpoint": "/platform/support-tickets/${id}",
+    "file": "src\\modules\\platform\\PlatformSupportWorkspace.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/platform/support-tickets/${id}/notes",
+    "file": "src\\modules\\platform\\PlatformSupportWorkspace.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/platform/tenants/${id}",
+    "file": "src\\modules\\platform\\TenantDetailWorkspace.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/platform/plans",
+    "file": "src\\modules\\platform\\TenantDetailWorkspace.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/platform/tenants/${id}/payments",
+    "file": "src\\modules\\platform\\TenantDetailWorkspace.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/platform/tenants/${tenant.id}/status",
+    "file": "src\\modules\\platform\\TenantDetailWorkspace.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/platform/tenants/${tenant.id}/manage-subscription",
+    "file": "src\\modules\\platform\\TenantDetailWorkspace.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/platform/tenants/${tenant.id}/payments",
+    "file": "src\\modules\\platform\\TenantDetailWorkspace.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/platform/tenants/${tenant.id}/impersonate",
+    "file": "src\\modules\\platform\\TenantDetailWorkspace.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/platform/tenants/${tenant.id}/override-capabilities",
+    "file": "src\\modules\\platform\\TenantDetailWorkspace.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/platform/tenants/${tenant.id}/override-quotas",
+    "file": "src\\modules\\platform\\TenantDetailWorkspace.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/platform/tenants/${tenant.id}/reset-password",
+    "file": "src\\modules\\platform\\TenantDetailWorkspace.tsx"
+  },
+  {
+    "method": "DELETE",
+    "endpoint": "/platform/tenants/${tenant.id}",
+    "file": "src\\modules\\platform\\TenantDetailWorkspace.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/platform/tenants",
+    "file": "src\\modules\\platform\\TenantDirectoryWorkspace.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/platform/tenants/${selectedTenant.id}/status",
+    "file": "src\\modules\\platform\\TenantDirectoryWorkspace.tsx"
+  },
+  {
+    "method": "DELETE",
+    "endpoint": "/platform/tenants/${selectedTenant.id}",
+    "file": "src\\modules\\platform\\TenantDirectoryWorkspace.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/platform/tenants/${tenant.id}/impersonate",
+    "file": "src\\modules\\platform\\TenantDirectoryWorkspace.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/platform/plans",
+    "file": "src\\modules\\platform\\TenantRegistrationWizard.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/platform/tenants",
+    "file": "src\\modules\\platform\\TenantRegistrationWizard.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/tenant/onboarding/state",
+    "file": "src\\modules\\platform\\useOnboardingProgress.ts"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/sales/invoices?q=${encodeURIComponent(rawSearch)}",
+    "file": "src\\modules\\pos\\components\\PosExchangeModal.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/sales/invoices?q=${encodeURIComponent(altSearch)}",
+    "file": "src\\modules\\pos\\components\\PosExchangeModal.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/sales/exchanges",
+    "file": "src\\modules\\pos\\components\\PosExchangeModal.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/sales/exchanges/${createdExchange.id}/approve",
+    "file": "src\\modules\\pos\\components\\PosExchangeModal.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/sales/invoices?q=${encodeURIComponent(rawSearch)}",
+    "file": "src\\modules\\pos\\components\\PosReturnModal.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/sales/invoices?q=${encodeURIComponent(altSearch)}",
+    "file": "src\\modules\\pos\\components\\PosReturnModal.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/sales/returns",
+    "file": "src\\modules\\pos\\components\\PosReturnModal.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/sales/returns/${createdReturn.id}/approve",
+    "file": "src\\modules\\pos\\components\\PosReturnModal.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/products?per_page=100&include=category,images",
+    "file": "src\\modules\\pos\\POSShell.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/products?page=${p}&per_page=100&include=category,images",
+    "file": "src\\modules\\pos\\POSShell.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/categories",
+    "file": "src\\modules\\pos\\POSShell.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/parties/options?is_customer=true",
+    "file": "src\\modules\\pos\\POSShell.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/pos/held-sales?pos_session_id=${session.id}",
+    "file": "src\\modules\\pos\\POSShell.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/pos/checkout",
+    "file": "src\\modules\\pos\\POSShell.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/pos/held-sales",
+    "file": "src\\modules\\pos\\POSShell.tsx"
+  },
+  {
+    "method": "DELETE",
+    "endpoint": "/pos/held-sales/${heldSale.id}",
+    "file": "src\\modules\\pos\\POSShell.tsx"
+  },
+  {
+    "method": "DELETE",
+    "endpoint": "/pos/held-sales/${id}",
+    "file": "src\\modules\\pos\\POSShell.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/pos/sessions",
+    "file": "src\\modules\\pos\\PosWorkspace.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/pos/sessions",
+    "file": "src\\modules\\pos\\sections\\PosSessionsSection.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/pos/sessions",
+    "file": "src\\modules\\pos\\sections\\PosSessionsSection.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/pos/sessions/${activeSession.id}/close",
+    "file": "src\\modules\\pos\\sections\\PosSessionsSection.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/pos/terminals",
+    "file": "src\\modules\\pos\\sections\\PosTerminalsSection.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/pos/terminals/${termId}/toggle-active",
+    "file": "src\\modules\\pos\\sections\\PosTerminalsSection.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/pos/terminals",
+    "file": "src\\modules\\pos\\sections\\PosTerminalsSection.tsx"
+  },
+  {
+    "method": "PUT",
+    "endpoint": "/pos/terminals/${activeTerminal.id}",
+    "file": "src\\modules\\pos\\sections\\PosTerminalsSection.tsx"
+  },
+  {
+    "method": "DELETE",
+    "endpoint": "/pos/terminals/${activeTerminal.id}",
+    "file": "src\\modules\\pos\\sections\\PosTerminalsSection.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/production/batches",
+    "file": "src\\modules\\production\\components\\ProductionFloorKioskView.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/products",
+    "file": "src\\modules\\production\\modals\\LaunchBatchModal.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/bill-of-materials",
+    "file": "src\\modules\\production\\modals\\LaunchBatchModal.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/production/batches",
+    "file": "src\\modules\\production\\modals\\LaunchBatchModal.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/production/batches",
+    "file": "src\\modules\\production\\modals\\RecordBatchOutputModal.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/warehouses",
+    "file": "src\\modules\\production\\modals\\RecordBatchOutputModal.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/production/batches/${activeBatchId}/outputs",
+    "file": "src\\modules\\production\\modals\\RecordBatchOutputModal.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/production/batches/${activeBatchId}/complete",
+    "file": "src\\modules\\production\\modals\\RecordBatchOutputModal.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/production/batches",
+    "file": "src\\modules\\production\\sections\\ProductionBatchesSection.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/products",
+    "file": "src\\modules\\production\\sections\\ProductionBatchesSection.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/bill-of-materials",
+    "file": "src\\modules\\production\\sections\\ProductionBatchesSection.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/warehouses",
+    "file": "src\\modules\\production\\sections\\ProductionBatchesSection.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/production/batches",
+    "file": "src\\modules\\production\\sections\\ProductionBatchesSection.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/production/batches/${batchId}/start",
+    "file": "src\\modules\\production\\sections\\ProductionBatchesSection.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/production/batches/${batchId}/inputs",
+    "file": "src\\modules\\production\\sections\\ProductionBatchesSection.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/production/batches/${batchId}/outputs",
+    "file": "src\\modules\\production\\sections\\ProductionBatchesSection.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/production/batches/${batchId}/analyze",
+    "file": "src\\modules\\production\\sections\\ProductionBatchesSection.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/production/batches/${batchId}/complete",
+    "file": "src\\modules\\production\\sections\\ProductionBatchesSection.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/production/batches/${batchId}/close",
+    "file": "src\\modules\\production\\sections\\ProductionBatchesSection.tsx"
+  },
+  {
+    "method": "PATCH",
+    "endpoint": "/production/batches/${batchId}",
+    "file": "src\\modules\\production\\sections\\ProductionBatchesSection.tsx"
+  },
+  {
+    "method": "DELETE",
+    "endpoint": "/production/batches/${batchId}",
+    "file": "src\\modules\\production\\sections\\ProductionBatchesSection.tsx"
+  },
+  {
+    "method": "DELETE",
+    "endpoint": "/production/batches/${id}",
+    "file": "src\\modules\\production\\sections\\ProductionBatchesSection.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/production/plans",
+    "file": "src\\modules\\production\\sections\\ProductionPlansSection.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/products",
+    "file": "src\\modules\\production\\sections\\ProductionPlansSection.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/bill-of-materials",
+    "file": "src\\modules\\production\\sections\\ProductionPlansSection.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/production/plans",
+    "file": "src\\modules\\production\\sections\\ProductionPlansSection.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/production/plans/${planId}/approve",
+    "file": "src\\modules\\production\\sections\\ProductionPlansSection.tsx"
+  },
+  {
+    "method": "PATCH",
+    "endpoint": "/production/plans/${planId}",
+    "file": "src\\modules\\production\\sections\\ProductionPlansSection.tsx"
+  },
+  {
+    "method": "DELETE",
+    "endpoint": "/production/plans/${planId}",
+    "file": "src\\modules\\production\\sections\\ProductionPlansSection.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/production/batches",
+    "file": "src\\modules\\production\\sections\\ProductionPlansSection.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/production/worker-entries",
+    "file": "src\\modules\\production\\sections\\WorkerProductionSection.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/production/worker-entries/summary",
+    "file": "src\\modules\\production\\sections\\WorkerProductionSection.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/production/batches",
+    "file": "src\\modules\\production\\sections\\WorkerProductionSection.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/products",
+    "file": "src\\modules\\production\\sections\\WorkerProductionSection.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/hr/employees",
+    "file": "src\\modules\\production\\sections\\WorkerProductionSection.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/workforce/employees",
+    "file": "src\\modules\\production\\sections\\WorkerProductionSection.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/production/worker-entries",
+    "file": "src\\modules\\production\\sections\\WorkerProductionSection.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/production/worker-entries/${id}/verify",
+    "file": "src\\modules\\production\\sections\\WorkerProductionSection.tsx"
+  },
+  {
+    "method": "PATCH",
+    "endpoint": "/production/worker-entries/${draftPayload.id}",
+    "file": "src\\modules\\production\\sections\\WorkerProductionSection.tsx"
+  },
+  {
+    "method": "DELETE",
+    "endpoint": "/production/worker-entries/${id}",
+    "file": "src\\modules\\production\\sections\\WorkerProductionSection.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/production/worker-entries/${id}/verify",
+    "file": "src\\modules\\production\\sections\\WorkerProductionSection.tsx"
+  },
+  {
+    "method": "DELETE",
+    "endpoint": "/production/worker-entries/${id}",
+    "file": "src\\modules\\production\\sections\\WorkerProductionSection.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/purchasing/goods-receipts",
+    "file": "src\\modules\\purchasing\\sections\\GoodsReceiptsSection.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/purchasing/goods-receipts/${grnId}/complete",
+    "file": "src\\modules\\purchasing\\sections\\GoodsReceiptsSection.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/purchasing/goods-receipts",
+    "file": "src\\modules\\purchasing\\sections\\GoodsReceiptsSection.tsx"
+  },
+  {
+    "method": "PUT",
+    "endpoint": "/purchasing/goods-receipts/${activeGrn.id}",
+    "file": "src\\modules\\purchasing\\sections\\GoodsReceiptsSection.tsx"
+  },
+  {
+    "method": "DELETE",
+    "endpoint": "/purchasing/goods-receipts/${activeGrn.id}",
+    "file": "src\\modules\\purchasing\\sections\\GoodsReceiptsSection.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/purchasing/bills",
+    "file": "src\\modules\\purchasing\\sections\\PurchaseBillsSection.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/purchasing/bills/${billId}/approve",
+    "file": "src\\modules\\purchasing\\sections\\PurchaseBillsSection.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/purchasing/bills/${billId}/pay",
+    "file": "src\\modules\\purchasing\\sections\\PurchaseBillsSection.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/purchasing/bills",
+    "file": "src\\modules\\purchasing\\sections\\PurchaseBillsSection.tsx"
+  },
+  {
+    "method": "PUT",
+    "endpoint": "/purchasing/bills/${activeBill.id}",
+    "file": "src\\modules\\purchasing\\sections\\PurchaseBillsSection.tsx"
+  },
+  {
+    "method": "DELETE",
+    "endpoint": "/purchasing/bills/${activeBill.id}",
+    "file": "src\\modules\\purchasing\\sections\\PurchaseBillsSection.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/purchasing/orders",
+    "file": "src\\modules\\purchasing\\sections\\PurchaseOrdersSection.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/purchasing/orders/${orderId}/approve",
+    "file": "src\\modules\\purchasing\\sections\\PurchaseOrdersSection.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/purchasing/orders",
+    "file": "src\\modules\\purchasing\\sections\\PurchaseOrdersSection.tsx"
+  },
+  {
+    "method": "PUT",
+    "endpoint": "/purchasing/orders/${activeOrder.id}",
+    "file": "src\\modules\\purchasing\\sections\\PurchaseOrdersSection.tsx"
+  },
+  {
+    "method": "DELETE",
+    "endpoint": "/purchasing/orders/${activeOrder.id}",
+    "file": "src\\modules\\purchasing\\sections\\PurchaseOrdersSection.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/purchasing/orders/${po.id}/approve",
+    "file": "src\\modules\\purchasing\\sections\\PurchaseOrdersSection.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/purchasing/orders/${po.id}/cancel",
+    "file": "src\\modules\\purchasing\\sections\\PurchaseOrdersSection.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/purchasing/requisitions",
+    "file": "src\\modules\\purchasing\\sections\\PurchaseRequisitionsSection.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/purchasing/requisitions/${reqId}/approve",
+    "file": "src\\modules\\purchasing\\sections\\PurchaseRequisitionsSection.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/purchasing/requisitions/${reqId}/reject",
+    "file": "src\\modules\\purchasing\\sections\\PurchaseRequisitionsSection.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/purchasing/requisitions/${reqId}/convert",
+    "file": "src\\modules\\purchasing\\sections\\PurchaseRequisitionsSection.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/purchasing/requisitions",
+    "file": "src\\modules\\purchasing\\sections\\PurchaseRequisitionsSection.tsx"
+  },
+  {
+    "method": "PUT",
+    "endpoint": "/purchasing/requisitions/${activeReq.id}",
+    "file": "src\\modules\\purchasing\\sections\\PurchaseRequisitionsSection.tsx"
+  },
+  {
+    "method": "DELETE",
+    "endpoint": "/purchasing/requisitions/${activeReq.id}",
+    "file": "src\\modules\\purchasing\\sections\\PurchaseRequisitionsSection.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/purchasing/returns",
+    "file": "src\\modules\\purchasing\\sections\\PurchaseReturnsSection.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/purchasing/returns/${returnId}/complete",
+    "file": "src\\modules\\purchasing\\sections\\PurchaseReturnsSection.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/purchasing/returns",
+    "file": "src\\modules\\purchasing\\sections\\PurchaseReturnsSection.tsx"
+  },
+  {
+    "method": "PUT",
+    "endpoint": "/purchasing/returns/${activeReturn.id}",
+    "file": "src\\modules\\purchasing\\sections\\PurchaseReturnsSection.tsx"
+  },
+  {
+    "method": "DELETE",
+    "endpoint": "/purchasing/returns/${activeReturn.id}",
+    "file": "src\\modules\\purchasing\\sections\\PurchaseReturnsSection.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/qc/inspections",
+    "file": "src\\modules\\qc\\sections\\QcInspectionsSection.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/production/batches",
+    "file": "src\\modules\\qc\\sections\\QcInspectionsSection.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/products",
+    "file": "src\\modules\\qc\\sections\\QcInspectionsSection.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/qc/parameters",
+    "file": "src\\modules\\qc\\sections\\QcInspectionsSection.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/qc/inspections",
+    "file": "src\\modules\\qc\\sections\\QcInspectionsSection.tsx"
+  },
+  {
+    "method": "PUT",
+    "endpoint": "/qc/inspections/${id}",
+    "file": "src\\modules\\qc\\sections\\QcInspectionsSection.tsx"
+  },
+  {
+    "method": "PUT",
+    "endpoint": "/qc/inspections/${id}",
+    "file": "src\\modules\\qc\\sections\\QcInspectionsSection.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/qc/inspections/${id}/approve",
+    "file": "src\\modules\\qc\\sections\\QcInspectionsSection.tsx"
+  },
+  {
+    "method": "DELETE",
+    "endpoint": "/qc/inspections/${id}",
+    "file": "src\\modules\\qc\\sections\\QcInspectionsSection.tsx"
+  },
+  {
+    "method": "DELETE",
+    "endpoint": "/qc/inspections/${id}",
+    "file": "src\\modules\\qc\\sections\\QcInspectionsSection.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/qc/inspections/${id}/approve",
+    "file": "src\\modules\\qc\\sections\\QcInspectionsSection.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/qc/parameters",
+    "file": "src\\modules\\qc\\sections\\QcParametersSection.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/qc/parameters",
+    "file": "src\\modules\\qc\\sections\\QcParametersSection.tsx"
+  },
+  {
+    "method": "PUT",
+    "endpoint": "/qc/parameters/${id}",
+    "file": "src\\modules\\qc\\sections\\QcParametersSection.tsx"
+  },
+  {
+    "method": "DELETE",
+    "endpoint": "/qc/parameters/${id}",
+    "file": "src\\modules\\qc\\sections\\QcParametersSection.tsx"
+  },
+  {
+    "method": "PUT",
+    "endpoint": "/qc/parameters/${param.id}",
+    "file": "src\\modules\\qc\\sections\\QcParametersSection.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/production/batches",
+    "file": "src\\modules\\qc\\sections\\ReworkSection.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/products",
+    "file": "src\\modules\\qc\\sections\\ReworkSection.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/qc/rework-orders",
+    "file": "src\\modules\\qc\\sections\\ReworkSection.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/qc/rework-orders",
+    "file": "src\\modules\\qc\\sections\\ReworkSection.tsx"
+  },
+  {
+    "method": "PATCH",
+    "endpoint": "/qc/rework-orders/${orderId}",
+    "file": "src\\modules\\qc\\sections\\ReworkSection.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/qc/rework-orders/${id}/start",
+    "file": "src\\modules\\qc\\sections\\ReworkSection.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/qc/rework-orders/${selectedOrder.id}/complete",
+    "file": "src\\modules\\qc\\sections\\ReworkSection.tsx"
+  },
+  {
+    "method": "PATCH",
+    "endpoint": "/qc/rework-orders/${editingOrder.id}",
+    "file": "src\\modules\\qc\\sections\\ReworkSection.tsx"
+  },
+  {
+    "method": "DELETE",
+    "endpoint": "/qc/rework-orders/${deletingOrder.id}",
+    "file": "src\\modules\\qc\\sections\\ReworkSection.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/qc/wastage-records",
+    "file": "src\\modules\\qc\\sections\\WastageRecordsSection.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/products",
+    "file": "src\\modules\\qc\\sections\\WastageRecordsSection.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/units",
+    "file": "src\\modules\\qc\\sections\\WastageRecordsSection.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/production/batches",
+    "file": "src\\modules\\qc\\sections\\WastageRecordsSection.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/warehouses",
+    "file": "src\\modules\\qc\\sections\\WastageRecordsSection.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/reason-codes/options",
+    "file": "src\\modules\\qc\\sections\\WastageRecordsSection.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/qc/wastage-records",
+    "file": "src\\modules\\qc\\sections\\WastageRecordsSection.tsx"
+  },
+  {
+    "method": "PUT",
+    "endpoint": "/qc/wastage-records/${id}",
+    "file": "src\\modules\\qc\\sections\\WastageRecordsSection.tsx"
+  },
+  {
+    "method": "DELETE",
+    "endpoint": "/qc/wastage-records/${id}",
+    "file": "src\\modules\\qc\\sections\\WastageRecordsSection.tsx"
+  },
+  {
+    "method": "DELETE",
+    "endpoint": "/qc/wastage-records/${id}",
+    "file": "src\\modules\\qc\\sections\\WastageRecordsSection.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/reports/${code}/data",
+    "file": "src\\modules\\reports\\ReportsWorkspace.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/reports/${selectedReportCode}/data",
+    "file": "src\\modules\\reports\\ReportsWorkspace.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/reports/${activeDef.code}/export",
+    "file": "src\\modules\\reports\\ReportsWorkspace.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/parties/options?is_customer=true",
+    "file": "src\\modules\\sales\\components\\CustomerSearchCombobox.tsx"
+  },
+  {
+    "method": "PATCH",
+    "endpoint": "/sales/orders/${order.id}/status",
+    "file": "src\\modules\\sales\\components\\OrderProcessingModal.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/sales/orders/${order.id}/approve",
+    "file": "src\\modules\\sales\\components\\OrderProcessingModal.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/sales/orders/${order.id}/invoice",
+    "file": "src\\modules\\sales\\components\\OrderProcessingModal.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/sales/orders/${order.id}/payment",
+    "file": "src\\modules\\sales\\components\\OrderProcessingModal.tsx"
+  },
+  {
+    "method": "DELETE",
+    "endpoint": "/sales/orders/${order.id}",
+    "file": "src\\modules\\sales\\components\\OrderProcessingModal.tsx"
+  },
+  {
+    "method": "PATCH",
+    "endpoint": "/parties/${uuid || id}",
+    "file": "src\\modules\\sales\\sections\\CustomersSection.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/parties?type=customer",
+    "file": "src\\modules\\sales\\sections\\CustomersSection.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/sales/deliveries",
+    "file": "src\\modules\\sales\\sections\\DeliveriesSection.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/sales/deliveries/${deliveryId}/dispatch",
+    "file": "src\\modules\\sales\\sections\\DeliveriesSection.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/sales/deliveries/${deliveryId}/deliver",
+    "file": "src\\modules\\sales\\sections\\DeliveriesSection.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/sales/deliveries",
+    "file": "src\\modules\\sales\\sections\\DeliveriesSection.tsx"
+  },
+  {
+    "method": "PUT",
+    "endpoint": "/sales/deliveries/${activeDelivery.id}",
+    "file": "src\\modules\\sales\\sections\\DeliveriesSection.tsx"
+  },
+  {
+    "method": "DELETE",
+    "endpoint": "/sales/deliveries/${activeDelivery.id}",
+    "file": "src\\modules\\sales\\sections\\DeliveriesSection.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/sales/exchanges",
+    "file": "src\\modules\\sales\\sections\\ExchangesSection.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/sales/invoices",
+    "file": "src\\modules\\sales\\sections\\ExchangesSection.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/parties/options?is_customer=true",
+    "file": "src\\modules\\sales\\sections\\ExchangesSection.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/warehouses/options",
+    "file": "src\\modules\\sales\\sections\\ExchangesSection.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/products?per_page=100",
+    "file": "src\\modules\\sales\\sections\\ExchangesSection.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/sales/exchanges/${id}/approve",
+    "file": "src\\modules\\sales\\sections\\ExchangesSection.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/sales/exchanges/${id}/cancel",
+    "file": "src\\modules\\sales\\sections\\ExchangesSection.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/sales/exchanges",
+    "file": "src\\modules\\sales\\sections\\ExchangesSection.tsx"
+  },
+  {
+    "method": "DELETE",
+    "endpoint": "/sales/exchanges/${activeExchange.id}",
+    "file": "src\\modules\\sales\\sections\\ExchangesSection.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/sales/incentives/policies",
+    "file": "src\\modules\\sales\\sections\\IncentivesSection.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/sales/incentives/calculations?period_month=${selectedMonth}",
+    "file": "src\\modules\\sales\\sections\\IncentivesSection.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/sales/incentives/calculate",
+    "file": "src\\modules\\sales\\sections\\IncentivesSection.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/sales/incentives/calculations/${payload.id}/approve",
+    "file": "src\\modules\\sales\\sections\\IncentivesSection.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/sales/incentives/policies",
+    "file": "src\\modules\\sales\\sections\\IncentivesSection.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/sales/invoices",
+    "file": "src\\modules\\sales\\sections\\InvoicesSection.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/sales/invoices/${invoiceId}/approve",
+    "file": "src\\modules\\sales\\sections\\InvoicesSection.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/sales/invoices/${invoiceId}/void",
+    "file": "src\\modules\\sales\\sections\\InvoicesSection.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/sales/leads?per_page=100",
+    "file": "src\\modules\\sales\\sections\\LeadsSection.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/sales/leads",
+    "file": "src\\modules\\sales\\sections\\LeadsSection.tsx"
+  },
+  {
+    "method": "PATCH",
+    "endpoint": "/sales/leads/${id}/stage",
+    "file": "src\\modules\\sales\\sections\\LeadsSection.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/sales/leads/${id}/validate-fake",
+    "file": "src\\modules\\sales\\sections\\LeadsSection.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/sales/leads/${id}/convert",
+    "file": "src\\modules\\sales\\sections\\LeadsSection.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/sales/leads/${id}/verify-sale",
+    "file": "src\\modules\\sales\\sections\\LeadsSection.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/sales/payments",
+    "file": "src\\modules\\sales\\sections\\PaymentsSection.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/sales/payments",
+    "file": "src\\modules\\sales\\sections\\PaymentsSection.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/pricing/price-lists?per_page=100",
+    "file": "src\\modules\\sales\\sections\\PriceListsSection.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/pricing/price-lists/${selectedListForView.uuid}?include=items",
+    "file": "src\\modules\\sales\\sections\\PriceListsSection.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/pricing/price-lists",
+    "file": "src\\modules\\sales\\sections\\PriceListsSection.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/sales/salesmen?period_month=${selectedMonth}",
+    "file": "src\\modules\\sales\\sections\\SalesmanDashboardSection.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/sales/salesmen/${activeSalesmanId}/dashboard?period_month=${selectedMonth}",
+    "file": "src\\modules\\sales\\sections\\SalesmanDashboardSection.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/sales/targets?period_month=${selectedMonth}",
+    "file": "src\\modules\\sales\\sections\\SalesmanTargetsSection.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/hr/employees",
+    "file": "src\\modules\\sales\\sections\\SalesmanTargetsSection.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/sales/targets",
+    "file": "src\\modules\\sales\\sections\\SalesmanTargetsSection.tsx"
+  },
+  {
+    "method": "PUT",
+    "endpoint": "/sales/targets/${id}",
+    "file": "src\\modules\\sales\\sections\\SalesmanTargetsSection.tsx"
+  },
+  {
+    "method": "DELETE",
+    "endpoint": "/sales/targets/${id}",
+    "file": "src\\modules\\sales\\sections\\SalesmanTargetsSection.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/sales/targets/${targetId}/recalculate",
+    "file": "src\\modules\\sales\\sections\\SalesmanTargetsSection.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/sales/salesmen?period_month=${selectedMonth}",
+    "file": "src\\modules\\sales\\sections\\SalesmenProfilesSection.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/sales/targets",
+    "file": "src\\modules\\sales\\sections\\SalesmenProfilesSection.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/sales/targets/${targetId}/recalculate",
+    "file": "src\\modules\\sales\\sections\\SalesmenProfilesSection.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/products?per_page=100",
+    "file": "src\\modules\\sales\\sections\\SalesOrdersSection.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/sales/orders",
+    "file": "src\\modules\\sales\\sections\\SalesOrdersSection.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/sales/orders/${orderId}/approve",
+    "file": "src\\modules\\sales\\sections\\SalesOrdersSection.tsx"
+  },
+  {
+    "method": "PATCH",
+    "endpoint": "/sales/orders/${orderId}/status",
+    "file": "src\\modules\\sales\\sections\\SalesOrdersSection.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/sales/orders/${orderId}/payment",
+    "file": "src\\modules\\sales\\sections\\SalesOrdersSection.tsx"
+  },
+  {
+    "method": "DELETE",
+    "endpoint": "/sales/orders/${orderId}",
+    "file": "src\\modules\\sales\\sections\\SalesOrdersSection.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/sales/orders",
+    "file": "src\\modules\\sales\\sections\\SalesOrdersSection.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/sales/orders/${order.id}/approve",
+    "file": "src\\modules\\sales\\sections\\SalesOrdersSection.tsx"
+  },
+  {
+    "method": "PATCH",
+    "endpoint": "/sales/orders/${order.id}/status",
+    "file": "src\\modules\\sales\\sections\\SalesOrdersSection.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/sales/invoices?q=${encodeURIComponent(rawSearch)}",
+    "file": "src\\modules\\sales\\sections\\SalesReturnsSection.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/sales/invoices?q=${encodeURIComponent(altSearch)}",
+    "file": "src\\modules\\sales\\sections\\SalesReturnsSection.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/sales/returns",
+    "file": "src\\modules\\sales\\sections\\SalesReturnsSection.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/sales/returns/${returnId}/approve",
+    "file": "src\\modules\\sales\\sections\\SalesReturnsSection.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/sales/returns",
+    "file": "src\\modules\\sales\\sections\\SalesReturnsSection.tsx"
+  },
+  {
+    "method": "PUT",
+    "endpoint": "/sales/returns/${activeReturn.id}",
+    "file": "src\\modules\\sales\\sections\\SalesReturnsSection.tsx"
+  },
+  {
+    "method": "DELETE",
+    "endpoint": "/sales/returns/${activeReturn.id}",
+    "file": "src\\modules\\sales\\sections\\SalesReturnsSection.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "settings/upload-asset",
+    "file": "src\\modules\\settings\\components\\fields\\BrandAssetField.tsx"
+  },
+  {
+    "method": "PUT",
+    "endpoint": "/settings/company",
+    "file": "src\\modules\\settings\\documents\\tabs\\BusinessIdentityTab.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/documents/numbering",
+    "file": "src\\modules\\settings\\documents\\tabs\\NumberingTab.tsx"
+  },
+  {
+    "method": "PUT",
+    "endpoint": "/documents/numbering/${editSeq.id}",
+    "file": "src\\modules\\settings\\documents\\tabs\\NumberingTab.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/documents/paper-sizes",
+    "file": "src\\modules\\settings\\documents\\tabs\\PaperSizesTab.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/documents/paper-sizes",
+    "file": "src\\modules\\settings\\documents\\tabs\\PaperSizesTab.tsx"
+  },
+  {
+    "method": "DELETE",
+    "endpoint": "/documents/paper-sizes/${deleteTarget.id}",
+    "file": "src\\modules\\settings\\documents\\tabs\\PaperSizesTab.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/documents/print-profiles",
+    "file": "src\\modules\\settings\\documents\\tabs\\PrintProfilesTab.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/documents/paper-sizes",
+    "file": "src\\modules\\settings\\documents\\tabs\\PrintProfilesTab.tsx"
+  },
+  {
+    "method": "PUT",
+    "endpoint": "/documents/print-profiles/${editProfile.id}",
+    "file": "src\\modules\\settings\\documents\\tabs\\PrintProfilesTab.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/documents/print-profiles",
+    "file": "src\\modules\\settings\\documents\\tabs\\PrintProfilesTab.tsx"
+  },
+  {
+    "method": "DELETE",
+    "endpoint": "/documents/print-profiles/${deleteTarget.id}",
+    "file": "src\\modules\\settings\\documents\\tabs\\PrintProfilesTab.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/documents/paper-sizes",
+    "file": "src\\modules\\settings\\documents\\tabs\\TemplateEditorTab.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/documents/print-profiles",
+    "file": "src\\modules\\settings\\documents\\tabs\\TemplateEditorTab.tsx"
+  },
+  {
+    "method": "PUT",
+    "endpoint": "/documents/templates/${template.id}",
+    "file": "src\\modules\\settings\\documents\\tabs\\TemplateEditorTab.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/documents/templates",
+    "file": "src\\modules\\settings\\documents\\tabs\\TemplateEditorTab.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/documents/templates",
+    "file": "src\\modules\\settings\\documents\\tabs\\TemplatesTab.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/documents/templates/${template.id}/set-default",
+    "file": "src\\modules\\settings\\documents\\tabs\\TemplatesTab.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/documents/templates/${template.id}/duplicate",
+    "file": "src\\modules\\settings\\documents\\tabs\\TemplatesTab.tsx"
+  },
+  {
+    "method": "DELETE",
+    "endpoint": "/documents/templates/${archiveTarget.id}",
+    "file": "src\\modules\\settings\\documents\\tabs\\TemplatesTab.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/documents/templates/${template.id}/versions",
+    "file": "src\\modules\\settings\\documents\\tabs\\TemplatesTab.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/documents/templates/${historyTemplate.id}/versions/${version}/activate",
+    "file": "src\\modules\\settings\\documents\\tabs\\TemplatesTab.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/tenant/custom-fields?module=${selectedTarget.module}&entity=${selectedTarget.entity}",
+    "file": "src\\modules\\settings\\sections\\CustomFieldsManagerSection.tsx"
+  },
+  {
+    "method": "PUT",
+    "endpoint": "/tenant/custom-fields/${editingField.id}",
+    "file": "src\\modules\\settings\\sections\\CustomFieldsManagerSection.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/tenant/custom-fields",
+    "file": "src\\modules\\settings\\sections\\CustomFieldsManagerSection.tsx"
+  },
+  {
+    "method": "DELETE",
+    "endpoint": "/tenant/custom-fields/${id}",
+    "file": "src\\modules\\settings\\sections\\CustomFieldsManagerSection.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "tenant/modules",
+    "file": "src\\modules\\settings\\sections\\ModuleManagerSection.tsx"
+  },
+  {
+    "method": "PUT",
+    "endpoint": "tenant/modules/nav-order",
+    "file": "src\\modules\\settings\\sections\\ModuleManagerSection.tsx"
+  },
+  {
+    "method": "PUT",
+    "endpoint": "tenant/modules/nav-order",
+    "file": "src\\modules\\settings\\sections\\ModuleManagerSection.tsx"
+  },
+  {
+    "method": "PUT",
+    "endpoint": "tenant/modules/${moduleKey}",
+    "file": "src\\modules\\settings\\sections\\ModuleManagerSection.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/tenant/production-stages",
+    "file": "src\\modules\\settings\\sections\\ProductionStagesSection.tsx"
+  },
+  {
+    "method": "PUT",
+    "endpoint": "/tenant/production-stages/${editingStage.id}",
+    "file": "src\\modules\\settings\\sections\\ProductionStagesSection.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/tenant/production-stages",
+    "file": "src\\modules\\settings\\sections\\ProductionStagesSection.tsx"
+  },
+  {
+    "method": "DELETE",
+    "endpoint": "/tenant/production-stages/${id}",
+    "file": "src\\modules\\settings\\sections\\ProductionStagesSection.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/tenant/production-stages/reorder",
+    "file": "src\\modules\\settings\\sections\\ProductionStagesSection.tsx"
+  },
+  {
+    "method": "PATCH",
+    "endpoint": "/tenant/terminology",
+    "file": "src\\modules\\settings\\sections\\TerminologySection.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/settings/schema",
+    "file": "src\\modules\\settings\\SettingsCenterWorkspace.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/storefront/domains",
+    "file": "src\\modules\\settings\\SettingsCenterWorkspace.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/settings/${targetGroup}/test-connection",
+    "file": "src\\modules\\settings\\SettingsCenterWorkspace.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/storefront/domains",
+    "file": "src\\modules\\settings\\SettingsCenterWorkspace.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/storefront/domains/${id}/verify",
+    "file": "src\\modules\\settings\\SettingsCenterWorkspace.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/storefront/domains/${id}/set-primary",
+    "file": "src\\modules\\settings\\SettingsCenterWorkspace.tsx"
+  },
+  {
+    "method": "DELETE",
+    "endpoint": "/storefront/domains/${confirmDeleteDomain.id}",
+    "file": "src\\modules\\settings\\SettingsCenterWorkspace.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/workflows",
+    "file": "src\\modules\\settings\\WorkflowAutomationWorkspace.tsx"
+  },
+  {
+    "method": "PATCH",
+    "endpoint": "/workflows/${id}/toggle",
+    "file": "src\\modules\\settings\\WorkflowAutomationWorkspace.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/storefront/coupons?${params.toString()}",
+    "file": "src\\modules\\storefront\\CouponsTab.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/storefront/coupons?${params.toString()}",
+    "file": "src\\modules\\storefront\\CouponsTab.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/storefront/coupons/${coupon.id}/toggle-status",
+    "file": "src\\modules\\storefront\\CouponsTab.tsx"
+  },
+  {
+    "method": "DELETE",
+    "endpoint": "/storefront/coupons/${coupon.id}",
+    "file": "src\\modules\\storefront\\CouponsTab.tsx"
+  },
+  {
+    "method": "PUT",
+    "endpoint": "/storefront/coupons/${editingCoupon.id}",
+    "file": "src\\modules\\storefront\\CouponsTab.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/storefront/coupons",
+    "file": "src\\modules\\storefront\\CouponsTab.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/storefront/coupons/generate-batch",
+    "file": "src\\modules\\storefront\\CouponsTab.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/storefront/domains",
+    "file": "src\\modules\\storefront\\DomainSettingsTab.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/storefront/domains",
+    "file": "src\\modules\\storefront\\DomainSettingsTab.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/storefront/domains",
+    "file": "src\\modules\\storefront\\DomainSettingsTab.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/storefront/domains/${id}/verify",
+    "file": "src\\modules\\storefront\\DomainSettingsTab.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/storefront/domains/${id}/set-primary",
+    "file": "src\\modules\\storefront\\DomainSettingsTab.tsx"
+  },
+  {
+    "method": "DELETE",
+    "endpoint": "/storefront/domains/${id}",
+    "file": "src\\modules\\storefront\\DomainSettingsTab.tsx"
+  },
+  {
+    "method": "PUT",
+    "endpoint": "/storefront/cms/pages/${page.id}",
+    "file": "src\\modules\\storefront\\StorefrontPageBuilderWorkspace.tsx"
+  },
+  {
+    "method": "PUT",
+    "endpoint": "/storefront/cms/pages/${pageToEdit.id}",
+    "file": "src\\modules\\storefront\\StorefrontPageBuilderWorkspace.tsx"
+  },
+  {
+    "method": "DELETE",
+    "endpoint": "/storefront/cms/pages/${pageToDelete.id}",
+    "file": "src\\modules\\storefront\\StorefrontPageBuilderWorkspace.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/storefront/cms/pages",
+    "file": "src\\modules\\storefront\\StorefrontPageBuilderWorkspace.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/storefront/categories",
+    "file": "src\\modules\\storefront\\StorefrontPageBuilderWorkspace.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/storefront/products",
+    "file": "src\\modules\\storefront\\StorefrontPageBuilderWorkspace.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/storefront/cms/pages/seed-defaults",
+    "file": "src\\modules\\storefront\\StorefrontPageBuilderWorkspace.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/storefront/cms/pages",
+    "file": "src\\modules\\storefront\\StorefrontPageBuilderWorkspace.tsx"
+  },
+  {
+    "method": "PUT",
+    "endpoint": "/storefront/cms/pages/${selectedPage.id}",
+    "file": "src\\modules\\storefront\\StorefrontPageBuilderWorkspace.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/storefront/settings",
+    "file": "src\\modules\\storefront\\StorefrontSettingsWorkspace.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/storefront/cms-products",
+    "file": "src\\modules\\storefront\\StorefrontSettingsWorkspace.tsx"
+  },
+  {
+    "method": "PUT",
+    "endpoint": "/storefront/settings",
+    "file": "src\\modules\\storefront\\StorefrontSettingsWorkspace.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/storefront/cms-products/toggle-publish",
+    "file": "src\\modules\\storefront\\StorefrontSettingsWorkspace.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/storefront/cms-products/bulk-publish-finished",
+    "file": "src\\modules\\storefront\\StorefrontSettingsWorkspace.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/storefront/cms-products",
+    "file": "src\\modules\\storefront\\StorefrontSettingsWorkspace.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/warehouses",
+    "file": "src\\pages\\CataloguePage.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/dashboard/metrics",
+    "file": "src\\pages\\dashboard\\components\\ExecutiveDashboardView.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/sales/invoices?per_page=4",
+    "file": "src\\pages\\dashboard\\components\\ExecutiveDashboardView.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/dashboard/metrics",
+    "file": "src\\pages\\dashboard\\components\\FinanceDashboardView.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/sales/invoices?per_page=10",
+    "file": "src\\pages\\dashboard\\components\\FinanceDashboardView.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/dashboard/metrics",
+    "file": "src\\pages\\dashboard\\components\\InventoryDashboardView.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/inventory/movements",
+    "file": "src\\pages\\dashboard\\components\\InventoryDashboardView.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/inventory/counts",
+    "file": "src\\pages\\dashboard\\components\\InventoryDashboardView.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/inventory/adjustments",
+    "file": "src\\pages\\dashboard\\components\\InventoryDashboardView.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/delivery/shipments?per_page=6",
+    "file": "src\\pages\\dashboard\\components\\LogisticsDashboardView.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/dashboard/metrics",
+    "file": "src\\pages\\dashboard\\components\\ProductionDashboardView.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/sales/invoices?per_page=6",
+    "file": "src\\pages\\dashboard\\components\\ProductionDashboardView.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/purchasing/orders?per_page=6",
+    "file": "src\\pages\\dashboard\\components\\PurchasingDashboardView.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/purchasing/requisitions?per_page=5",
+    "file": "src\\pages\\dashboard\\components\\PurchasingDashboardView.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/dashboard/metrics",
+    "file": "src\\pages\\dashboard\\components\\QcDashboardView.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/qc/parameters",
+    "file": "src\\pages\\dashboard\\components\\QcDashboardView.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/qc/rework-orders",
+    "file": "src\\pages\\dashboard\\components\\QcDashboardView.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/qc/wastage-records",
+    "file": "src\\pages\\dashboard\\components\\QcDashboardView.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/dashboard/metrics",
+    "file": "src\\pages\\dashboard\\components\\SalesDashboardView.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/sales/invoices?per_page=10",
+    "file": "src\\pages\\dashboard\\components\\SalesDashboardView.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/products?per_page=5",
+    "file": "src\\pages\\dashboard\\components\\SalesDashboardView.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/dashboard/metrics",
+    "file": "src\\pages\\dashboard\\components\\WorkforceDashboardView.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/dashboard/metrics",
+    "file": "src\\pages\\dashboard\\TenantRoleDashboard.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/bin",
+    "file": "src\\pages\\settings\\DataBinWorkspace.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/bin",
+    "file": "src\\pages\\settings\\DataBinWorkspace.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/bin/${item.type}/${item.id}/restore",
+    "file": "src\\pages\\settings\\DataBinWorkspace.tsx"
+  },
+  {
+    "method": "DELETE",
+    "endpoint": "/bin/${item.type}/${item.id}/force-delete",
+    "file": "src\\pages\\settings\\DataBinWorkspace.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/bin/empty",
+    "file": "src\\pages\\settings\\DataBinWorkspace.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/roles",
+    "file": "src\\pages\\settings\\RolesManagementWorkspace.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/permissions",
+    "file": "src\\pages\\settings\\RolesManagementWorkspace.tsx"
+  },
+  {
+    "method": "PUT",
+    "endpoint": "/roles/${editingRole.id}",
+    "file": "src\\pages\\settings\\RolesManagementWorkspace.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/roles",
+    "file": "src\\pages\\settings\\RolesManagementWorkspace.tsx"
+  },
+  {
+    "method": "DELETE",
+    "endpoint": "/roles/${roleToDelete.id}",
+    "file": "src\\pages\\settings\\RolesManagementWorkspace.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/roles/${role.id}/users",
+    "file": "src\\pages\\settings\\RolesManagementWorkspace.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/users",
+    "file": "src\\pages\\settings\\RolesManagementWorkspace.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/roles/${membersRole.id}/users",
+    "file": "src\\pages\\settings\\RolesManagementWorkspace.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/roles/${membersRole.id}/users",
+    "file": "src\\pages\\settings\\RolesManagementWorkspace.tsx"
+  },
+  {
+    "method": "DELETE",
+    "endpoint": "/roles/${membersRole.id}/users/${userId}",
+    "file": "src\\pages\\settings\\RolesManagementWorkspace.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/storefront/seo/settings",
+    "file": "src\\pages\\settings\\SeoDiscoverabilityWorkspace.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/storefront/redirects",
+    "file": "src\\pages\\settings\\SeoDiscoverabilityWorkspace.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/storefront/redirects/404-logs",
+    "file": "src\\pages\\settings\\SeoDiscoverabilityWorkspace.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/storefront/seo/audit",
+    "file": "src\\pages\\settings\\SeoDiscoverabilityWorkspace.tsx"
+  },
+  {
+    "method": "PUT",
+    "endpoint": "/storefront/seo/settings",
+    "file": "src\\pages\\settings\\SeoDiscoverabilityWorkspace.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/storefront/seo/audit",
+    "file": "src\\pages\\settings\\SeoDiscoverabilityWorkspace.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/storefront/redirects",
+    "file": "src\\pages\\settings\\SeoDiscoverabilityWorkspace.tsx"
+  },
+  {
+    "method": "DELETE",
+    "endpoint": "/storefront/redirects/${id}",
+    "file": "src\\pages\\settings\\SeoDiscoverabilityWorkspace.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/storefront/redirects/404-logs/${log.id}/resolve",
+    "file": "src\\pages\\settings\\SeoDiscoverabilityWorkspace.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/storefront/seo/indexnow/ping",
+    "file": "src\\pages\\settings\\SeoDiscoverabilityWorkspace.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/storefront/seo/audit",
+    "file": "src\\pages\\settings\\SeoDiscoverabilityWorkspace.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/users",
+    "file": "src\\pages\\settings\\UsersManagementWorkspace.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/roles",
+    "file": "src\\pages\\settings\\UsersManagementWorkspace.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/users",
+    "file": "src\\pages\\settings\\UsersManagementWorkspace.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/roles",
+    "file": "src\\pages\\settings\\UsersManagementWorkspace.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/users/${rolesModalUser.id}/assign-roles",
+    "file": "src\\pages\\settings\\UsersManagementWorkspace.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/users/${passwordModalUser.id}/reset-password",
+    "file": "src\\pages\\settings\\UsersManagementWorkspace.tsx"
+  },
+  {
+    "method": "PATCH",
+    "endpoint": "/users/${user.id}/status",
+    "file": "src\\pages\\settings\\UsersManagementWorkspace.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/users",
+    "file": "src\\pages\\settings\\UsersManagementWorkspace.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/storefront/customer/orders",
+    "file": "src\\pages\\storefront\\StorefrontAccountPage.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/storefront/customer/login",
+    "file": "src\\pages\\storefront\\StorefrontAccountPage.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/storefront/customer/register",
+    "file": "src\\pages\\storefront\\StorefrontAccountPage.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/storefront/products",
+    "file": "src\\pages\\storefront\\StorefrontCatalogPage.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/storefront/categories",
+    "file": "src\\pages\\storefront\\StorefrontCatalogPage.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/storefront/checkout",
+    "file": "src\\pages\\storefront\\StorefrontCheckoutPage.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/storefront/pages/${slug}",
+    "file": "src\\pages\\storefront\\StorefrontDynamicPage.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/storefront/products",
+    "file": "src\\pages\\storefront\\StorefrontDynamicPage.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/storefront/categories",
+    "file": "src\\pages\\storefront\\StorefrontDynamicPage.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/storefront/products",
+    "file": "src\\pages\\storefront\\StorefrontHomePage.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/storefront/categories",
+    "file": "src\\pages\\storefront\\StorefrontHomePage.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/storefront/pages/home",
+    "file": "src\\pages\\storefront\\StorefrontHomePage.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/storefront/orders/track",
+    "file": "src\\pages\\storefront\\StorefrontOrderTrackingPage.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/storefront/products/${idOrSku}",
+    "file": "src\\pages\\storefront\\StorefrontProductDetailPage.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/storefront/whatsapp/order-link",
+    "file": "src\\pages\\storefront\\StorefrontProductDetailPage.tsx"
+  }
+]

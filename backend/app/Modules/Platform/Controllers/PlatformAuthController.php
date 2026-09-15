@@ -136,4 +136,37 @@ class PlatformAuthController extends Controller
             ],
         ]);
     }
+
+    /**
+     * Master SaaS Admin Logout.
+     */
+    public function logout(Request $request, \App\Modules\Auth\Actions\LogoutAction $action): JsonResponse
+    {
+        $cookieName = $this->refreshTokenService->getCookieName();
+        $rawCookie = $request->cookie($cookieName)
+            ?? $request->cookies->get($cookieName)
+            ?? $request->input('refresh_token')
+            ?? $request->header('X-Refresh-Token');
+        $cookieToken = is_string($rawCookie) ? $rawCookie : '';
+
+        if ($cookieToken === '') {
+            $rawHeaderCookie = $request->header('Cookie');
+            if (is_string($rawHeaderCookie) && preg_match('/(?:^|;\s*)'.preg_quote($cookieName, '/').'=([^;]+)/', $rawHeaderCookie, $matches)) {
+                $cookieToken = urldecode($matches[1]);
+            }
+        }
+
+        $result = $action->execute(['refresh_token' => $cookieToken]);
+        /** @var Cookie $cookie */
+        $cookie = $result['cookie'];
+
+        return response()->json([
+            'success' => true,
+            'data' => ['message' => 'Logged out successfully.'],
+            'meta' => [
+                'correlation_id' => (string) $request->header('X-Correlation-Id', ''),
+                'timestamp' => Carbon::now()->toIso8601String(),
+            ],
+        ])->withCookie($cookie);
+    }
 }

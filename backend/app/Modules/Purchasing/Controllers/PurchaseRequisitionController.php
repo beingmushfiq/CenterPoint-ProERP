@@ -123,5 +123,76 @@ final class PurchaseRequisitionController extends Controller
             'message' => "Purchase Requisition {$prNumber} moved to Data Bin successfully.",
         ]);
     }
+
+    public function update(int $id, Request $request): JsonResponse
+    {
+        $tenantId = TenantContext::current()->tenantId();
+
+        $requisition = PurchaseRequisition::where('tenant_id', $tenantId)
+            ->where('id', $id)
+            ->firstOrFail();
+
+        if (in_array($requisition->status, ['approved', 'converted'], true)) {
+            return response()->json([
+                'message' => 'Cannot update an approved or converted requisition.',
+            ], 422);
+        }
+
+        $validated = $request->validate([
+            'warehouse_id' => 'nullable|integer',
+            'department' => 'nullable|string',
+            'required_by_date' => 'nullable|date',
+            'notes' => 'nullable|string',
+        ]);
+
+        $requisition->update($validated);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Purchase requisition updated.',
+            'data' => new PurchaseRequisitionResource($requisition->fresh()),
+            'meta' => ['correlation_id' => (string) $request->header('X-Correlation-Id', '')],
+        ]);
+    }
+
+    public function reject(int $id, Request $request): JsonResponse
+    {
+        $tenantId = TenantContext::current()->tenantId();
+
+        $requisition = PurchaseRequisition::where('tenant_id', $tenantId)
+            ->where('id', $id)
+            ->firstOrFail();
+
+        $requisition->update([
+            'status' => 'rejected',
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Purchase requisition rejected.',
+            'data' => new PurchaseRequisitionResource($requisition->fresh()),
+            'meta' => ['correlation_id' => (string) $request->header('X-Correlation-Id', '')],
+        ]);
+    }
+
+    public function convert(int $id, Request $request): JsonResponse
+    {
+        $tenantId = TenantContext::current()->tenantId();
+
+        $requisition = PurchaseRequisition::where('tenant_id', $tenantId)
+            ->where('id', $id)
+            ->firstOrFail();
+
+        $requisition->update([
+            'status' => 'converted',
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Purchase requisition converted to purchase order.',
+            'data' => new PurchaseRequisitionResource($requisition->fresh()),
+            'meta' => ['correlation_id' => (string) $request->header('X-Correlation-Id', '')],
+        ]);
+    }
 }
 

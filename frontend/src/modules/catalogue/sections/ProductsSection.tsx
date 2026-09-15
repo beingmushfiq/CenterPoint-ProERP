@@ -285,9 +285,9 @@ export function ProductsSection() {
               const fd = new FormData();
               fd.append('image', item.file);
               if (item.is_primary) fd.append('is_primary', '1');
-              await api.post(`/api/v1/products/${created.id}/images`, fd);
+              await api.post(`/products/${created.id}/images`, fd);
             } else if (item.url) {
-              await api.post(`/api/v1/products/${created.id}/images`, {
+              await api.post(`/products/${created.id}/images`, {
                 url: item.url,
                 is_primary: item.is_primary,
               });

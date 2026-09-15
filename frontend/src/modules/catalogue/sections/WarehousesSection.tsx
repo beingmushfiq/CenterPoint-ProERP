@@ -112,11 +112,16 @@ export function WarehousesSection() {
   });
 
   const createLocationMutation = useMutation({
-    mutationFn: (payload: { code: string; name: string; type: string }) =>
-      api.post<WarehouseLocation>(
-        `/warehouses/${selectedWarehouseForLocation?.id}/locations`,
+    mutationFn: (payload: { code: string; name: string; type: string }) => {
+      const warehouseId = selectedWarehouseForLocation?.id;
+      if (!warehouseId) {
+        throw new Error('Please select a warehouse before adding a location.');
+      }
+      return api.post<WarehouseLocation>(
+        `/warehouses/${warehouseId}/locations`,
         payload
-      ),
+      );
+    },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['catalogue', 'warehouses'] });
       setSelectedWarehouseForLocation(null);

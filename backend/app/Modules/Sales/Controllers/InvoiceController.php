@@ -49,9 +49,10 @@ final class InvoiceController extends Controller
             $query->where('invoice_number', 'like', "%{$search}%");
         }
 
+        $perPage = $request->integer('per_page', 25);
         $invoices = $query->orderByDesc('invoice_date')
             ->orderByDesc('id')
-            ->paginate((int) $request->query('per_page', 25));
+            ->paginate($perPage);
 
         return InvoiceResource::collection($invoices);
     }
@@ -175,6 +176,7 @@ final class InvoiceController extends Controller
                     }
                 }
 
+                /** @var \Illuminate\Support\Collection<string, Invoice> $existingByNumber */
                 $existingByNumber = Invoice::query()
                     ->where('tenant_id', $tenantId)
                     ->whereIn('invoice_number', $chunkInvoiceNumbers)
@@ -330,6 +332,41 @@ final class InvoiceController extends Controller
                 $updated,
                 $skipped
             ),
+        ]);
+    }
+
+    public function destroy(int $id, Request $request): JsonResponse
+    {
+        $tenantId = TenantContext::current()->tenantId();
+
+        /** @var Invoice $invoice */
+        $invoice = Invoice::where('tenant_id', $tenantId)
+            ->where('id', $id)
+            ->firstOrFail();
+
+        if (in_array($invoice->status, ['paid', 'partially_paid'], true)) {
+            return response()->json([
+                'message' => 'Cannot delete an invoice that has received payments. Void payments first.',
+            ], 422);
+        }
+
+        if ($invoice->status === 'approved') {
+            $this->voidInvoice->execute(
+                $invoice,
+                (int) $request->user()?->id,
+                'Invoice deleted by user'
+            );
+            return response()->json([
+                'success' => true,
+                'message' => 'Approved invoice was voided successfully.',
+            ]);
+        }
+
+        $invoice->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Invoice deleted successfully.',
         ]);
     }
 }

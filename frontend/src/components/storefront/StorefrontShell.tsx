@@ -187,7 +187,7 @@ export const StorefrontShell: React.FC = () => {
   const websiteSchema = extendedConfig.seo?.website_schema;
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-zinc-950 font-sans text-slate-900 dark:text-zinc-100 flex flex-col justify-between transition-colors duration-200">
+    <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-slate-50 dark:bg-zinc-950 font-sans text-slate-900 dark:text-zinc-100 flex flex-col justify-between transition-colors duration-200">
       <SeoHead
         title={config.meta_title || config.name}
         description={
@@ -199,9 +199,9 @@ export const StorefrontShell: React.FC = () => {
       {orgSchema && <JsonLdSchema id="global-org-schema" schema={orgSchema} />}
       {websiteSchema && <JsonLdSchema id="global-website-schema" schema={websiteSchema} />}
 
-      <div>
+      <div className="w-full max-w-full overflow-x-hidden">
         <StorefrontHeader config={config} subdomain={subdomain} />
-        <main className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
+        <main className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
           <Suspense fallback={<StorefrontRouteLoadingFallback />}>
             <Outlet context={{ config, subdomain }} />
           </Suspense>

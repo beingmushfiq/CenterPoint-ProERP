@@ -44,9 +44,10 @@ final class GoodsReceiptController extends Controller
             $query->where('grn_number', 'like', "%{$search}%");
         }
 
+        $perPage = $request->integer('per_page', 25);
         $receipts = $query->orderByDesc('receipt_date')
             ->orderByDesc('id')
-            ->paginate((int) $request->query('per_page', 25));
+            ->paginate($perPage);
 
         return GoodsReceiptResource::collection($receipts);
     }
@@ -60,7 +61,6 @@ final class GoodsReceiptController extends Controller
         $receipt = $this->createReceipt->execute([
             ...$validated,
             'tenant_id' => $tenantId,
-            'received_by' => (int) $request->user()?->id,
             'created_by' => (int) $request->user()?->id,
         ]);
 
@@ -73,11 +73,86 @@ final class GoodsReceiptController extends Controller
     {
         $tenantId = TenantContext::current()->tenantId();
 
-        $receipt = GoodsReceipt::with(['supplier', 'warehouse', 'purchaseOrder', 'items.product', 'items.unit'])
+        $receipt = GoodsReceipt::with(['supplier', 'warehouse', 'items.product', 'items.unit', 'items.warehouseLocation'])
             ->where('tenant_id', $tenantId)
             ->where('id', $id)
             ->firstOrFail();
 
         return new GoodsReceiptResource($receipt);
+    }
+
+    public function update(int $id, Request $request): JsonResponse
+    {
+        $tenantId = TenantContext::current()->tenantId();
+
+        /** @var GoodsReceipt $receipt */
+        $receipt = GoodsReceipt::where('tenant_id', $tenantId)
+            ->where('id', $id)
+            ->firstOrFail();
+
+        if ($receipt->status === 'completed') {
+            return response()->json([
+                'message' => 'Cannot update a completed goods receipt.',
+            ], 422);
+        }
+
+        $validated = $request->validate([
+            'notes' => 'nullable|string',
+            'supplier_document_number' => 'nullable|string',
+        ]);
+
+        $receipt->update($validated);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Goods receipt updated.',
+            'data' => new GoodsReceiptResource($receipt->fresh()),
+            'meta' => ['correlation_id' => (string) $request->header('X-Correlation-Id', '')],
+        ]);
+    }
+
+    public function complete(int $id, Request $request): JsonResponse
+    {
+        $tenantId = TenantContext::current()->tenantId();
+
+        /** @var GoodsReceipt $receipt */
+        $receipt = GoodsReceipt::where('tenant_id', $tenantId)
+            ->where('id', $id)
+            ->firstOrFail();
+
+        $receipt->update([
+            'status' => 'completed',
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Goods receipt marked as completed.',
+            'data' => new GoodsReceiptResource($receipt->fresh()),
+            'meta' => ['correlation_id' => (string) $request->header('X-Correlation-Id', '')],
+        ]);
+    }
+
+    public function destroy(int $id, Request $request): JsonResponse
+    {
+        $tenantId = TenantContext::current()->tenantId();
+
+        /** @var GoodsReceipt $receipt */
+        $receipt = GoodsReceipt::where('tenant_id', $tenantId)
+            ->where('id', $id)
+            ->firstOrFail();
+
+        if ($receipt->status === 'completed') {
+            return response()->json([
+                'message' => 'Cannot delete a completed goods receipt note.',
+            ], 422);
+        }
+
+        $receipt->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Goods receipt deleted.',
+            'meta' => ['correlation_id' => (string) $request->header('X-Correlation-Id', '')],
+        ]);
     }
 }

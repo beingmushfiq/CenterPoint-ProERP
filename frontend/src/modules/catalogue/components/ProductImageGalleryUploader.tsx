@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, type ChangeEvent, type DragEvent } from 'react';
+import { useState, useRef, type ChangeEvent, type DragEvent } from 'react';
 import {
   Upload,
   Star,
@@ -47,18 +47,18 @@ export function ProductImageGalleryUploader({
   const [urlInput, setUrlInput] = useState('');
   const [isAddingUrl, setIsAddingUrl] = useState(false);
 
-  // Sync state when props change
-  useEffect(() => {
-    if (existingImages && existingImages.length > 0) {
-      setImages(existingImages);
-    }
-  }, [existingImages]);
+  const [prevExisting, setPrevExisting] = useState(existingImages);
+  const [prevQueued, setPrevQueued] = useState(queuedImages);
 
-  useEffect(() => {
-    if (queuedImages) {
-      setLocalQueue(queuedImages);
-    }
-  }, [queuedImages]);
+  if (existingImages && existingImages !== prevExisting) {
+    setPrevExisting(existingImages);
+    setImages(existingImages);
+  }
+
+  if (queuedImages && queuedImages !== prevQueued) {
+    setPrevQueued(queuedImages);
+    setLocalQueue(queuedImages);
+  }
 
   // Handle file uploads (multiple files supported)
   const handleFiles = async (fileList: FileList | null) => {
@@ -94,7 +94,7 @@ export function ProductImageGalleryUploader({
           }
 
           const res = await api.post<{ image: ProductImage }>(
-            `/api/v1/products/${productUuid}/images`,
+            `/products/${productUuid}/images`,
             formData,
             {
               headers: { 'Content-Type': 'multipart/form-data' },
@@ -152,7 +152,7 @@ export function ProductImageGalleryUploader({
       setIsAddingUrl(true);
       try {
         const res = await api.post<{ image: ProductImage }>(
-          `/api/v1/products/${productUuid}/images`,
+          `/products/${productUuid}/images`,
           {
             url,
             is_primary: images.length === 0,
@@ -193,7 +193,7 @@ export function ProductImageGalleryUploader({
   const handleSetPrimary = async (targetId: number | string) => {
     if (productUuid && typeof targetId === 'number') {
       try {
-        await api.post(`/api/v1/products/${productUuid}/images/${targetId}/primary`);
+        await api.post(`/products/${productUuid}/images/${targetId}/primary`);
         setImages((prev) =>
           prev.map((img) => ({
             ...img,
@@ -228,7 +228,7 @@ export function ProductImageGalleryUploader({
   const handleDelete = async (targetId: number | string) => {
     if (productUuid && typeof targetId === 'number') {
       try {
-        await api.delete(`/api/v1/products/${productUuid}/images/${targetId}`);
+        await api.delete(`/products/${productUuid}/images/${targetId}`);
         const updated = images.filter((img) => img.id !== targetId);
         const firstUpdated = updated[0];
         if (images.find((i) => i.id === targetId)?.is_primary && firstUpdated) {
@@ -274,7 +274,7 @@ export function ProductImageGalleryUploader({
       setImages(reordered);
 
       try {
-        await api.post(`/api/v1/products/${productUuid}/images/reorder`, {
+        await api.post(`/products/${productUuid}/images/reorder`, {
           order: reordered.map((img) => img.id),
         });
       } catch (err) {
@@ -296,17 +296,17 @@ export function ProductImageGalleryUploader({
   };
 
   // Drag and Drop handlers
-  const onDragOver = (e: DragEvent<HTMLDivElement>) => {
+  const onDragOver = (e: DragEvent<HTMLElement>) => {
     e.preventDefault();
     setIsDragging(true);
   };
 
-  const onDragLeave = (e: DragEvent<HTMLDivElement>) => {
+  const onDragLeave = (e: DragEvent<HTMLElement>) => {
     e.preventDefault();
     setIsDragging(false);
   };
 
-  const onDrop = (e: DragEvent<HTMLDivElement>) => {
+  const onDrop = (e: DragEvent<HTMLElement>) => {
     e.preventDefault();
     setIsDragging(false);
     handleFiles(e.dataTransfer.files);
@@ -327,11 +327,14 @@ export function ProductImageGalleryUploader({
   return (
     <div className="space-y-4">
       {/* Upload Zone */}
-      <div
+      <button
+        type="button"
+        aria-label="Upload product images"
         onDragOver={onDragOver}
         onDragLeave={onDragLeave}
         onDrop={onDrop}
-        className={`relative border-2 border-dashed rounded-2xl p-5 text-center transition-all ${
+        onClick={() => fileInputRef.current?.click()}
+        className={`w-full relative border-2 border-dashed rounded-2xl p-5 text-center transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary ${
           isDragging
             ? 'border-primary bg-primary/10 ring-4 ring-primary/20 scale-[0.99]'
             : 'border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/40 hover:border-primary/60 hover:bg-slate-100/60 dark:hover:bg-slate-800/80'
@@ -347,7 +350,7 @@ export function ProductImageGalleryUploader({
           disabled={isUploading}
         />
 
-        <div className="flex flex-col items-center justify-center space-y-2">
+        <div className="flex flex-col items-center justify-center space-y-2 pointer-events-none">
           <div className="size-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shadow-xs">
             {isUploading ? (
               <Loader2 className="size-6 animate-spin" />
@@ -362,14 +365,9 @@ export function ProductImageGalleryUploader({
             </span>
             <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
               or{' '}
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={isUploading}
-                className="text-primary font-semibold hover:underline cursor-pointer inline-flex items-center gap-1"
-              >
+              <span className="text-primary font-semibold underline inline-flex items-center gap-1">
                 browse from computer
-              </button>
+              </span>
             </p>
           </div>
 
@@ -381,7 +379,7 @@ export function ProductImageGalleryUploader({
             <span>First photo becomes storefront cover</span>
           </div>
         </div>
-      </div>
+      </button>
 
       {/* Direct Image URL Linker */}
       <div className="flex items-center gap-2">
@@ -441,14 +439,9 @@ export function ProductImageGalleryUploader({
                 {/* Image Aspect Box */}
                 <div className="relative aspect-square w-full overflow-hidden bg-slate-100 dark:bg-slate-900">
                   <img
-                    src={item.url}
+                    src={item.url || '/assets/placeholder-product.svg'}
                     alt={`Product angle ${idx + 1}`}
                     className="size-full object-cover transition-transform duration-300 group-hover:scale-105"
-                    onError={(e) => {
-                      // Fallback for broken link
-                      (e.target as HTMLImageElement).src =
-                        'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 24 24" fill="none" stroke="%2394a3b8" stroke-width="1.5"><rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>';
-                    }}
                   />
 
                   {/* Primary Badge */}

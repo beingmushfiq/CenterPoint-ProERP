@@ -116,4 +116,35 @@ final class SalesReturnController extends Controller
             'message' => "Sales Return {$returnNumber} moved to Data Bin successfully.",
         ]);
     }
+
+    public function update(int $id, Request $request): JsonResponse
+    {
+        $tenantId = TenantContext::current()->tenantId();
+
+        $return = SalesReturn::where('tenant_id', $tenantId)
+            ->where('id', $id)
+            ->firstOrFail();
+
+        if ($return->status === 'approved' || $return->status === 'completed') {
+            return response()->json([
+                'message' => 'Cannot update an approved sales return.',
+            ], 422);
+        }
+
+        $validated = $request->validate([
+            'return_date' => 'nullable|date',
+            'warehouse_id' => 'nullable|integer',
+            'reason_code_id' => 'nullable|integer',
+            'notes' => 'nullable|string',
+        ]);
+
+        $return->update($validated);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Sales return updated.',
+            'data' => new SalesReturnResource($return->fresh()),
+            'meta' => ['correlation_id' => (string) $request->header('X-Correlation-Id', '')],
+        ]);
+    }
 }

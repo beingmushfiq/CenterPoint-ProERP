@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { api, getAccessToken, refreshOnce, setAccessToken } from '../api/client';
+import { api, getAccessToken, onSessionExpired, refreshOnce, setAccessToken } from '../api/client';
 import { useTenantCapabilityStore } from '../capabilities/tenantCapabilityStore';
 import type {
   BranchInfo,
@@ -40,6 +40,7 @@ const initialTenant = getStoredItem<TenantInfo | null>('auth_tenant', null);
 const initialPermissions = new Set<string>(getStoredItem<string[]>('auth_permissions', []));
 const initialBranches = getStoredItem<BranchInfo[]>('auth_branches', []);
 const initialActiveBranch = getStoredItem<BranchInfo | null>('auth_active_branch', null);
+const hasInitialToken = Boolean(getAccessToken());
 
 export const useAuthStore = create<AuthState>((set, get) => ({
   user: initialUser,
@@ -47,7 +48,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   branches: initialBranches,
   activeBranch: initialActiveBranch,
   permissions: initialPermissions,
-  status: initialUser ? 'authenticated' : 'idle',
+  status: initialUser && hasInitialToken ? 'authenticated' : 'idle',
   error: null,
 
   login: async (credentials) => {
@@ -229,3 +230,23 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
 }));
+
+// Automatically clear credentials and notify user when API client announces a dead session
+onSessionExpired((error) => {
+  setAccessToken(null);
+  localStorage.removeItem('auth_user');
+  localStorage.removeItem('auth_tenant');
+  localStorage.removeItem('auth_permissions');
+  localStorage.removeItem('auth_branches');
+  localStorage.removeItem('auth_active_branch');
+
+  useAuthStore.setState({
+    user: null,
+    tenant: null,
+    branches: [],
+    activeBranch: null,
+    permissions: new Set(),
+    status: 'unauthenticated',
+    error: error.message || 'Your session has expired. Please sign in again.',
+  });
+});

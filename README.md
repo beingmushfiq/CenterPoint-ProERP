@@ -1,267 +1,551 @@
-# SliceMart ERP / FMS — Multi-Tenant Enterprise Operating System
+<div align="center">
 
-[![Build & Test Status](https://img.shields.io/badge/tests-146%20frontend%20%7C%20730%2B%20backend%20passing-emerald.svg?style=flat-square)](#automated-testing--quality-gates)
-[![TypeScript](https://img.shields.io/badge/TypeScript-Strict%20Clean-blue.svg?style=flat-square)](https://www.typescriptlang.org/)
-[![Laravel](https://img.shields.io/badge/Laravel-13.x%20REST%20API-red.svg?style=flat-square)](https://laravel.com/)
-[![PHP](https://img.shields.io/badge/PHP-8.5%2B-purple.svg?style=flat-square)](https://www.php.net/)
-[![React](https://img.shields.io/badge/React-19%20%2B%20Vite%208-cyan.svg?style=flat-square)](https://react.dev/)
-[![Tailwind CSS](https://img.shields.io/badge/Tailwind-v4%20Tokens-38bdf8.svg?style=flat-square)](https://tailwindcss.com/)
-[![Architecture](https://img.shields.io/badge/Architecture-Three--Tier%20SaaS-indigo.svg?style=flat-square)](#three-tier-system-architecture)
-[![Roadmap](https://img.shields.io/badge/Roadmap-26%2F26%20Phases%20Signed%20Off-emerald.svg?style=flat-square)](docs/IMPLEMENTATION_ROADMAP.md)
+# ⚡ CenterPoint ProERP
+### Next-Generation Industrial Manufacturing & Omnichannel Retail Operating System
+
+[![Build & Test Status](https://img.shields.io/badge/Test%20Suite-730%2B%20PHPUnit%20%7C%20146%20Vitest%20Passing-10b981?style=for-the-badge&logo=githubactions&logoColor=white)](#-automated-testing--quality-gates)
+[![API Verification](https://img.shields.io/badge/API%20Audit-0%20Unmatched%20Routes%20%28591%2F692%29-3b82f6?style=for-the-badge&logo=fastapi&logoColor=white)](#-automated-testing--quality-gates)
+[![PHP](https://img.shields.io/badge/PHP-8.4%2B%20Strict-777BB4?style=for-the-badge&logo=php&logoColor=white)](https://www.php.net/)
+[![Laravel](https://img.shields.io/badge/Laravel-13.x%20Modular-FF2D20?style=for-the-badge&logo=laravel&logoColor=white)](https://laravel.com/)
+[![React](https://img.shields.io/badge/React-19.2%20Strict-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://react.dev/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-Strict%20Zero--Error-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind-v4%20Design%20Tokens-06B6D4?style=for-the-badge&logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
+[![Architecture](https://img.shields.io/badge/Multi--Tenant-Three--Tier%20SaaS-6366F1?style=for-the-badge&logo=databricks&logoColor=white)](#-three-tier-system-architecture)
+
+<br/>
+
+<p align="center">
+  <b>CenterPoint ProERP</b> is an enterprise-grade, high-throughput multi-tenant <b>Factory Management System (FMS)</b> and <b>Omnichannel Retail ERP</b>.<br/>
+  Engineered with strict domain-driven modularity, it unifies factory-floor manufacturing with headless direct-to-consumer e-commerce, perpetual inventory accounting, and multi-courier 3PL parcel logistics.
+</p>
+
+<p align="center">
+  <a href="#-key-platform-metrics"><b>📊 Metrics</b></a> •
+  <a href="#-quickstart--local-setup"><b>🚀 Quickstart Guide</b></a> •
+  <a href="#-three-tier-system-architecture"><b>🏗️ Architecture</b></a> •
+  <a href="#-core-feature-deep-dive--visual-workspaces"><b>✨ Feature Deep Dive</b></a> •
+  <a href="#-demo--testing-credentials"><b>🔑 Demo Personas</b></a> •
+  <a href="#-canonical-architecture-documentation"><b>📚 Docs</b></a>
+</p>
+
+</div>
 
 ---
 
-## 📖 Executive Summary
-
-**SliceMart ERP/FMS** is an enterprise-grade, multi-tenant Factory Management & Omnichannel Retail Operating System designed for modern manufacturing, wholesale distribution, and direct-to-consumer commerce.
-
-Engineered under the **Master System Prompt** and the **Autonomous Implementation Protocol**, SliceMart cleanly decouples platform governance, tenant operations, and public consumer touchpoints into three unified yet strictly isolated layers.
-
-> 🌟 **The Golden Architectural Rule:**  
-> *Never hardcode Slice Mart-specific assumptions into the platform architecture. Slice Mart is Tenant #1, not the definition of the architecture. The platform architecture natively supports unlimited multi-industry, multi-currency, and multi-tenant expansion.*
-
----
-
-## 🏛️ Three-Tier System Architecture
+## 📊 Key Platform Metrics
 
 ```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                 MASTER SAAS CONTROL PLANE (DevCenterPoint)                  │
-│   Tenant Provisioning · Plan Limits · Global Metrics · Master Audit Trail   │
-└───────────────────────────────────────┬─────────────────────────────────────┘
-                                        │ (Tenant Scope & RBAC)
-┌───────────────────────────────────────▼─────────────────────────────────────┐
-│                   TENANT MANAGEMENT APPLICATION (ERP / FMS)                 │
-│  Manufacturing · Inventory Ledger · 3-Way Match · High-Speed POS · HR & CRM │
-│    FIFO/AVCO Finance · 3PL Couriers · RMS Matrix · Physical Printing        │
-└───────────────────────────────────────┬─────────────────────────────────────┘
-                                        │ (Storefront API & Custom Domains)
-┌───────────────────────────────────────▼─────────────────────────────────────┐
-│                     PUBLIC HEADLESS E-COMMERCE STOREFRONT                   │
-│   Dynamic Catalog · Shopping Bag · WhatsApp Checkout · Order Tracking · SEO │
-└─────────────────────────────────────────────────────────────────────────────┘
+┌──────────────────────────┬──────────────────────────┬──────────────────────────┬──────────────────────────┐
+│      17 WORKSPACES       │      84 RMS REPORTS      │     3 TOP 3PL CARRIERS   │      730+ PASSING TESTS  │
+│  Full Manufacturing,     │ Financial P&L, Balance   │ Steadfast, Pathao, REDX  │ 100% Type-Safe Frontend  │
+│  POS, B2B, HR & Assets   │ Sheets & Inventory Aging │ Automated Consignments   │ Zero Unmatched API Calls │
+└──────────────────────────┴──────────────────────────┴──────────────────────────┴──────────────────────────┘
 ```
 
-1. **Master Platform (`DevCenterPoint`):** Global superadmin surface for cross-tenant provisioning, subscription plans, platform telemetry, error diagnostics, and system-wide audit logging (`/platform`).
-2. **Tenant Management ERP (`SliceMart`):** The primary operational hub for day-to-day business operations across manufacturing, warehousing, sales, finance, workforce, and courier dispatch (`/`).
-3. **Public Headless Storefront:** Lightning-fast, mobile-first consumer storefront featuring instant cart synchronization, direct WhatsApp order routing, order status tracking, and dynamic SEO structured data (`/store/:subdomain`).
+---
+
+## 🧭 Table of Contents
+
+- [🏛️ Executive Summary & Core Philosophy](#️-executive-summary--core-philosophy)
+- [🔄 End-to-End Operational Pipeline](#-end-to-end-operational-pipeline)
+- [🏗️ Three-Tier System Architecture](#️-three-tier-system-architecture)
+- [✨ Core Feature Deep Dive & Visual Workspaces](#-core-feature-deep-dive--visual-workspaces)
+- [🛠️ Technology Stack & Engineering Standards](#️-technology-stack--engineering-standards)
+- [🚀 Quickstart & Local Setup](#-quickstart--local-setup)
+- [🌐 Application Portals & Endpoints](#-application-portals--endpoints)
+- [🔑 Demo & Testing Credentials](#-demo--testing-credentials)
+- [🧪 Automated Testing & Quality Gates](#-automated-testing--quality-gates)
+- [🔒 Security & Data Confidentiality Standards](#-security--data-confidentiality-standards)
+- [📚 Canonical Architecture Documentation](#-canonical-architecture-documentation)
+- [👥 Authors & Maintainers](#-authors--maintainers)
 
 ---
 
-## ⚡ Core Operational Workspaces
+## 🏛️ Executive Summary & Core Philosophy
 
-| Workspace | Domain & Capabilities | Primary Components / Routes |
-|---|---|---|
-| **🏢 Master Data & Catalogue** | Global product catalog, variable SKUs, multi-level units of measure, categories, brands, business parties (customers/suppliers), and warehouses. | `CatalogueWorkspace.tsx` (`/catalogue`) |
-| **🏭 Manufacturing Chain** | Multi-level Bills of Materials (BOM), batch work orders, worker piece-rate logging, material issue tracking, and production output yields. | `ProductionWorkspace.tsx` (`/production`) |
-| **🔬 Quality Control (QC)** | Quality inspection gates, parameter test templates, defect logging, and scrap & wastage governance (Pass / Rework / Scrap / Wastage). | `QcWorkspace.tsx` (`/qc`) |
-| **📦 Perpetual Inventory Ledger** | Strict append-only FIFO/AVCO inventory ledger (`stock_balances` cache), multi-warehouse stock allocations, adjustments, movements, and physical stock counting. | `InventoryWorkspace.tsx` (`/inventory`) |
-| **🛒 Purchasing & 3-Way Match** | Vendor RFQs, purchase requisitions, PO approval workflows, Goods Receipt Notes (GRN), and 3-way discrepancy validation (PO vs. GRN vs. Bill). | `PurchasingWorkspace.tsx` (`/purchasing`) |
-| **⚡ High-Speed POS Terminal** | Offline-resilient dual-session cashier point-of-sale terminal, barcode scanner integration, quick cash presets, thermal receipt printing, and float reconciliation. | `POSShell.tsx`, `PosWorkspace.tsx` (`/pos`) |
-| **🤝 CRM & Sales Pipeline** | B2B lead capture, kanban sales pipeline stages, interaction history, corporate account credit limits, and sales rep commission targets. | `SalesWorkspace.tsx` (`/sales`) |
-| **🚚 Delivery & Courier 3PL** | Multi-courier integration (Steadfast, Pathao, REDX), consignment dispatch, delivery run sheets, and automated COD reconciliation. | `DeliveryWorkspace.tsx` (`/logistics`) |
-| **🛡️ Order Fraud Verification** | Courier delivery performance scoring, customer return risk assessment, phone number verification, and blacklist fraud protection. | `OrderFraudVerificationWorkspace.tsx` (`/fraud-verification`) |
-| **👥 HR & Workforce** | Employee directory, shift scheduling, piece-rate incentive rollups, biometric attendance sync, and monthly salary disbursement. | `HrWorkspace.tsx` (`/hr`) |
-| **📊 Accounting & Finance** | Double-entry general ledger, automated journal entries from operational events, chart of accounts, banking, expense tracking, and real-time trial balance. | `FinanceWorkspace.tsx` (`/finance`) |
-| **🏗️ Fixed Assets & Maintenance** | Asset registry, straight-line and declining depreciation calculation, maintenance work orders, and service logs. | `AssetsWorkspace.tsx` (`/assets`) |
-| **🛍️ Storefront CMS & Page Builder** | Dynamic page builder, hero sliders, collection grids, order tracking, and one-click WhatsApp order dispatch. | `StorefrontSettingsWorkspace.tsx`, `StorefrontPageBuilderWorkspace.tsx` (`/storefront`) |
-| **📈 RMS Reports Matrix** | 58 canonical analytical reports covering financial statements, inventory aging, sales velocity, production wastage, and courier commissions. | `ReportsWorkspace.tsx` (`/reports`) |
-| **🖨️ Document Printing** | Pixel-perfect document generation for Sales Invoices, POs, Challans, Receipts, and thermal barcode labels (A4, A5, 80mm, 58mm). | `DocumentsSection.tsx`, `BarcodeGeneratorModal.tsx` |
-| **🛡️ Activity Log & Audit Trail** | Immutable audit logs with before/after JSON diffs, actor attribution, IP/user-agent tracking, and security event auditing. | `ActivityLogWorkspace.tsx` (`/activity-logs`) |
-| **🔐 Roles & RBAC Management** | Granular Spatie-compatible Role-Based Access Control matrix with module, resource, and action permissions. | `RolesManagementWorkspace.tsx` (`/settings/roles`) |
-| **⚙️ Centralized Settings Center** | 16-domain configuration registry with atomic batch updates, tenant credential vault, and reset-to-default audit tracking. | `SettingsCenterWorkspace.tsx` (`/settings`) |
-| **🔔 Notification Center** | Real-time multi-channel notification dispatcher (In-app, SMS, WhatsApp, Email) with deep-link navigation to operational workspaces. | `AppHeader.tsx`, `NotificationController.php` |
-| **🌐 SEO & Discoverability** | Dynamic JSON-LD structured data (Product, Organization, Breadcrumbs), IndexNow crawler pings, XML sitemaps, and robots.txt. | `SeoDiscoverabilityWorkspace.tsx` (`/settings/seo`) |
-| **👑 Master SaaS Control Plane** | Cross-tenant provisioning, subscription tiers, plan limits, error telemetry, and tenant suspension/activation (`DevCenterPoint`). | `PlatformDashboardWorkspace.tsx` (`/platform`) |
+**CenterPoint ProERP** was engineered under the **Master Autonomous Implementation Protocol** to eliminate friction between industrial factory production, warehouse stock ledgers, and omnichannel consumer commerce.
+
+> [!IMPORTANT]
+> **The Golden Architectural Tenet:**  
+> *Never hardcode tenant-specific assumptions into the SaaS platform. The system natively provides multi-tenant, multi-currency, and multi-industry scalability with absolute tenant isolation at the database, cache, storage, and API routing tiers. SliceMart is Tenant #1—demonstrating real-world industrial and retail capability.*
+
+### Key Strategic Pillars:
+
+| Pillar | Architectural Guarantee | Business Impact |
+| :--- | :--- | :--- |
+| **🔒 Strict Multi-Tenancy** | Single-database schema with automatic Eloquent query scoping (`TenantScope`), emitting `404 Not Found` for unauthorized tenant entities. | Eliminates cross-tenant data leakage while keeping operational database costs low. |
+| **⚡ Perpetual Ledger** | Append-only FIFO and AVCO (Average Cost) valuation with `DECIMAL(18,4)` precision. | Guarantees audit-compliant financial reports and zero floating-point rounding errors. |
+| **🛍️ Omnichannel Sync** | Instant inventory reservation across factory output, POS registers, wholesale B2B quotes, and headless storefronts. | Completely prevents overselling across digital storefronts and physical counters. |
+| **📦 3PL Courier Integration** | Automated consignment booking, barcode shipping labels, and COD reconciliation for Steadfast, Pathao, and REDX. | Accelerates fulfillment from hours to seconds with live tracking webhooks. |
+| **🛡️ Delivery Fraud Defense** | Machine-assisted delivery success scoring, return risk analysis, and customer phone blacklists. | Dramatically decreases costly returned consignments (RTO). |
 
 ---
 
-## 🛠️ Technology Stack
+## 🔄 End-to-End Operational Pipeline
 
-### Backend Framework & Architecture
-- **Framework:** Laravel 13.x (`13.26+`)
-- **Runtime:** PHP 8.5+ (strict types enabled across all domain modules)
-- **Architecture:** Domain-Driven Design (DDD) with modular monolith boundaries
-- **Multi-Tenancy:** Single-database multi-tenancy with tenant identification via subdomain / header and global query scopes (`TenantScope`)
-- **Authentication:** Stateless JWT (`firebase/php-jwt` 7.x) with rotating refresh token family tracking and automated theft detection
-- **Authorization:** Granular Spatie-compatible Role-Based Access Control (RBAC) with user scope restrictions (branch, factory, warehouse)
-- **Database:** SQLite (default zero-config in-memory/file) / MySQL 8.0+ with ACID transactions and compound indexing
-- **Queue & Cache:** Database / Redis-backed async job dispatching with exponential backoff retries
-- **Code Quality & Testing:** PHPUnit 12.x, Laravel Pint, PHPStan / Larastan 3.x (730+ tests)
+CenterPoint ProERP natively tracks items through their entire lifecycle—from raw material purchase requisition to automated parcel dispatch and ledger reconciliation:
 
-### Frontend Application Architecture
-- **Framework:** React 19 + TypeScript (Strict Mode, `typescript ~6.0`)
-- **Build Tool:** Vite 8.x with fast HMR and tree-shaken bundling
-- **State Management:** TanStack React Query v5 (server cache) + Zustand v5 (client UI state)
-- **Styling & Tokens:** Tailwind CSS v4 with semantic CSS design tokens supporting seamless Dark & Light theme switching
-- **Routing:** React Router v7 with protected routes, platform isolation, and route error boundaries
-- **Component Patterns:** Hierarchical 4-Tier Error Boundaries, `useWorkspaceTab` deep-link preservation, and Universal Currency Formatter (`useCurrency()`)
-- **Icons & Visuals:** Lucide React icons, Recharts interactive data visualization, Framer Motion, GSAP, Sonner toast notifications, BWIP-js barcodes
-- **Code Quality & Testing:** Vitest 4.x + Testing Library (146 unit/component tests passing), ESLint 10.x, Oxlint, Dependency Cruiser
+```
+┌───────────────────────────────────────────────────────────────────────────────────────────┐
+│                           CENTERPOINT PROERP OPERATIONAL PIPELINE                          │
+└───────────────────────────────────────────────────────────────────────────────────────────┘
+
+  [1. SOURCING & PROCUREMENT]
+     ├── Purchase Requisitions (Dept. Approval Workflow)
+     ├── Supplier RFQs & Comparative Quotes
+     └── Purchase Orders (Multi-Tier Approval Gates)
+              │
+              ▼
+  [2. RECEIPT & QUALITY CONTROL]
+     ├── Goods Receipt Notes (GRN) with Multi-Bin Staging
+     ├── 3-Way Discrepancy Matching (PO vs. Receipt vs. Invoice)
+     └── Pre-Production & Final QC Gates (AQL Defect Disposition)
+              │
+              ▼
+  [3. INDUSTRIAL MANUFACTURING]
+     ├── Multi-Level Bill of Materials (BOM) with Scrap Ratios
+     ├── Batch Production Work Orders (Machine & Shift Scheduling)
+     └── Worker Piece-Rate Ledger (Biometric Attendance & Pay Rollup)
+              │
+              ▼
+  [4. PERPETUAL INVENTORY LEDGER]
+     ├── Append-Only Stock Movements (AVCO / FIFO Valuation)
+     ├── Multi-Warehouse Bin Allocations & Inter-Branch Transfers
+     └── Barcode Scanner Cycle Counts & Discrepancy Adjustments
+              │
+              ▼
+  [5. OMNICHANNEL SALES ENGINE]
+     ├── B2B Wholesale CRM (Kanban Pipeline, Quotes, Credit Guards)
+     ├── High-Speed POS Terminal (Offline Dual-Session, Thermal Slips)
+     └── Headless DTC E-Commerce (CMS Builder, WhatsApp / COD Cart)
+              │
+              ▼
+  [6. LOGISTICS & 3PL AUTOMATION]
+     ├── One-Click Consignment Booking (Steadfast · Pathao · REDX)
+     ├── Barcode Shipping Labels (A4, A5, 4x6 Thermal) & Courier Run Sheets
+     └── Webhook Delivery Telemetry & Automated COD Balance Reconciliation
+              │
+              ▼
+  [7. FINANCIAL SETTLEMENT & ANALYTICS]
+     ├── Double-Entry General Ledger (Automated Real-Time Journals)
+     ├── Multi-Bank Reconciliation & Petty Cash Vouchers
+     └── 84 RMS Canonical Analytical Reports (P&L, Balance Sheet, Yield)
+```
+
+---
+
+## 🏗️ Three-Tier System Architecture
+
+```
+┌──────────────────────────────────────────────────────────────────────────────────────────┐
+│                         MASTER PLATFORM CONTROL PLANE (DevCenterPoint)                    │
+│   Tenant Provisioning · Subscription Plans · Quotas · Telemetry · Master Audit Trail     │
+│   Domain: https://demoerp.devcenterpoint.com/platform                                    │
+└────────────────────────────────────────────┬─────────────────────────────────────────────┘
+                                             │  (Tenant Scoping, RBAC & Quota Verification)
+┌────────────────────────────────────────────▼─────────────────────────────────────────────┐
+│                       TENANT MANAGEMENT WORKSPACE (ERP / FMS Suite)                      │
+│   BOM & Batch Work Orders · Perpetual Inventory · 3-Way Match · High-Speed POS Terminal │
+│   Sales Pipelines · Double-Entry Accounting · 3PL Couriers · 84 RMS Analytical Reports   │
+│   Domain: https://demoerp.devcenterpoint.com/                                            │
+└────────────────────────────────────────────┬─────────────────────────────────────────────┘
+                                             │  (Headless Storefront API & Custom Domains)
+┌────────────────────────────────────────────▼─────────────────────────────────────────────┐
+│                        PUBLIC HEADLESS E-COMMERCE STOREFRONT                             │
+│   Dynamic CMS Page Builder · Live Cart Sync · WhatsApp Order Routing · Track Parcel      │
+│   Domain: https://demoerp.devcenterpoint.com/store/:subdomain                            │
+└──────────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+1. **Master SaaS Control Plane (`DevCenterPoint`):** Global superadmin surface for managing tenant lifecycles, subscription quotas, feature flags, system health telemetry, and cross-platform audit trails.
+2. **Tenant Operations Workspace (`CenterPoint ProERP`):** Core daily operations cockpit for production managers, warehouse storekeepers, QC inspectors, accountants, sales reps, and cashiers.
+3. **Public Storefront Layer:** Lightning-fast, mobile-first consumer storefront with responsive layouts, JSON-LD structured metadata, server-side caching, and frictionless one-click WhatsApp/COD checkout.
+
+---
+
+## ✨ Core Feature Deep Dive & Visual Workspaces
+
+CenterPoint ProERP features **17 integrated operational workspaces**, accessible through a unified responsive shell with role-based visibility:
+
+### 1. 🏭 Manufacturing & Production Chain
+<details open>
+<summary><b>Click to expand Manufacturing & Work Order details</b></summary>
+
+- **Multi-Level Bill of Materials (BOM):** Nested component hierarchy with yield percentage calculations, auxiliary scrap allowances, and dynamic raw material costing.
+- **Batch Work Orders:** Real-time production tracking from staging to completion with automated raw material reservation and finished goods capitalization.
+- **Worker Piece-Rate Ledger:** Track individual worker output per shift with tiered incentive pay computation and payroll integration.
+- **Scrap & Waste Analytics:** Record component defects during manufacturing with scrap disposition analysis.
+- **Entry File:** [`frontend/src/modules/production/ProductionWorkspace.tsx`](frontend/src/modules/production/ProductionWorkspace.tsx)
+</details>
+
+---
+
+### 2. 🔬 Quality Control (QC) Inspection Gates
+<details>
+<summary><b>Click to expand Quality Control capabilities</b></summary>
+
+- **Three Inspection Gates:** Pre-production material validation, in-line assembly checkpoints, and finished-goods pre-dispatch testing.
+- **Configurable Test Criteria:** Parameterized inspection templates with numeric ranges, boolean checks, and photo evidence uploads.
+- **AQL Defect Disposition:** Instant quarantine routing for failed lots with rework or scrap disposition workflows.
+- **Entry File:** [`frontend/src/modules/qc/QcWorkspace.tsx`](frontend/src/modules/qc/QcWorkspace.tsx)
+</details>
+
+---
+
+### 3. 📦 Perpetual Inventory Ledger & Warehousing
+<details>
+<summary><b>Click to expand Inventory & Ledger capabilities</b></summary>
+
+- **Dual Costing Models:** Native AVCO (Average Cost) and FIFO stock valuation maintained in `DECIMAL(18,4)` precision.
+- **Multi-Warehouse & Multi-Bin:** Organize inventory across physical factory warehouses, staging zones, and shelf bins.
+- **Immutable Audit Trail:** Append-only ledger where every stock movement references its initiating transaction (PO, Work Order, Invoice, or Adjustment).
+- **Barcode Cycle Counting:** Hardware scanner integration for physical stock audits with reconciliation discrepancy journals.
+- **Entry File:** [`frontend/src/modules/inventory/InventoryWorkspace.tsx`](frontend/src/modules/inventory/InventoryWorkspace.tsx)
+</details>
+
+---
+
+### 4. 🛒 Purchasing & 3-Way Match Validation
+<details>
+<summary><b>Click to expand Purchasing & Procurement capabilities</b></summary>
+
+- **Requisition Hierarchy:** Departmental purchase requests with multi-tier approval thresholds.
+- **Supplier RFQs:** Send and compare quotation bids from multiple vendors with historical pricing trends.
+- **3-Way Matching:** Automated discrepancy protection between Purchase Order, Goods Receipt Note (GRN), and Vendor Bill.
+- **Debit Notes & Returns:** Manage vendor returns with automated debit note generation and credit ledger updates.
+- **Entry File:** [`frontend/src/modules/purchasing/PurchasingWorkspace.tsx`](frontend/src/modules/purchasing/PurchasingWorkspace.tsx)
+</details>
+
+---
+
+### 5. ⚡ High-Speed POS Terminal
+<details>
+<summary><b>Click to expand POS Cashier capabilities</b></summary>
+
+- **Dual-Session Cashier Float:** Track opening cash floats, mid-shift drops, and closing drawer balances with variance reports.
+- **Hardware Integration:** Compatible with USB/Bluetooth barcode scanners, thermal receipt printers (58mm, 80mm), and cash drawers.
+- **Rapid Keyboard Shortcuts:** Instant cashier workflows for discounts, customer search, multiple tender types, and quick cash buttons.
+- **Offline Resilience:** Local transaction queue ensuring sales continue smoothly even during intermittent network drops.
+- **Entry File:** [`frontend/src/modules/pos/POSShell.tsx`](frontend/src/modules/pos/POSShell.tsx)
+</details>
+
+---
+
+### 6. 🤝 B2B Sales & CRM Pipeline
+<details>
+<summary><b>Click to expand B2B CRM & Invoicing capabilities</b></summary>
+
+- **Visual Kanban Pipeline:** Track leads from initial inquiry to negotiation, quotation, and contract closure.
+- **Credit Limit Guards:** Automatic checkout locking for wholesale clients exceeding credit lines or with overdue invoices.
+- **Challan & Invoice Lifecycle:** Pro-forma invoices, formal tax invoices, partial dispatches, and delivery challans.
+- **Entry File:** [`frontend/src/modules/sales/SalesWorkspace.tsx`](frontend/src/modules/sales/SalesWorkspace.tsx)
+</details>
+
+---
+
+### 7. 🚚 Logistics & 3PL Courier Hub
+<details>
+<summary><b>Click to expand 3PL Courier capabilities</b></summary>
+
+- **Integrated Couriers:** Native API integrations for **Steadfast**, **Pathao**, and **REDX**.
+- **Automated Consignments:** Single-click consignment booking with automated barcode shipping label generation.
+- **Webhook Status Sync:** Instant parcel status updates (Delivered, In Transit, Returned, Cancelled).
+- **COD Reconciliation:** Track courier cash collections against bank deposits with automated discrepancy alerts.
+- **Entry File:** [`frontend/src/modules/delivery/DeliveryWorkspace.tsx`](frontend/src/modules/delivery/DeliveryWorkspace.tsx)
+</details>
+
+---
+
+### 8. 🛡️ Anti-Fraud & Risk Score Engine
+<details>
+<summary><b>Click to expand Fraud Defense capabilities</b></summary>
+
+- **Delivery Success Rate:** Phone-number intelligence scoring based on historical courier delivery success rates.
+- **Return Risk Profiling:** Flag high-risk COD orders before dispatch to reduce Return to Origin (RTO) costs.
+- **Automated Blacklist:** Centralized customer phone and address blacklist across all storefront channels.
+- **Entry File:** [`frontend/src/modules/fraud/OrderFraudVerificationWorkspace.tsx`](frontend/src/modules/fraud/OrderFraudVerificationWorkspace.tsx)
+</details>
+
+---
+
+### 9. 🛍️ Headless Storefront & CMS Builder
+<details>
+<summary><b>Click to expand E-Commerce Storefront capabilities</b></summary>
+
+- **Drag-and-Drop Visual Page Builder:** Hero carousels, featured collections, banner grids, and marquee tickers.
+- **One-Click WhatsApp Checkout:** Direct cart-to-WhatsApp order dispatch with pre-filled product SKU and customer details.
+- **Mobile-First Responsive Layout:** Zero horizontal scroll overflow with high-speed sliding cart and wishlist drawers.
+- **SEO & Structured Data:** Automatic JSON-LD Schema (`Product`, `BreadcrumbList`, `Organization`) and dynamic XML sitemaps.
+- **Entry File:** [`frontend/src/modules/storefront/StorefrontPageBuilderWorkspace.tsx`](frontend/src/modules/storefront/StorefrontPageBuilderWorkspace.tsx)
+</details>
+
+---
+
+### 10. 📊 Accounting & Financial Ledger
+<details>
+<summary><b>Click to expand Double-Entry Accounting capabilities</b></summary>
+
+- **Double-Entry General Ledger:** Automatic event-driven journal generation from sales, purchases, inventory, and payroll.
+- **Multi-Bank Reconciliations:** Import bank statements, reconcile transactions, and audit petty cash vouchers.
+- **Real-Time Financial Statements:** Instantly generate Trial Balances, Balance Sheets, and Profit & Loss (P&L) statements.
+- **Entry File:** [`frontend/src/modules/finance/FinanceWorkspace.tsx`](frontend/src/modules/finance/FinanceWorkspace.tsx)
+</details>
+
+---
+
+### 11. 📈 RMS Analytical Matrix (84 Reports across 12 Modules)
+<details>
+<summary><b>Click to expand RMS Reporting capabilities</b></summary>
+
+- **84 Canonical Reports:** Dedicated analytical reports across all 12 operational modules (Production: 12, Inventory: 11, Purchasing: 7, Sales: 10, Profit: 5, CRM: 7, Salesmen: 5, Delivery: 7, HR: 5, Finance: 7, Assets: 5, QC: 3).
+- **Export Formats:** High-precision CSV, Excel, and pixel-perfect printable PDF reports.
+- **Entry File:** [`frontend/src/modules/reports/ReportsWorkspace.tsx`](frontend/src/modules/reports/ReportsWorkspace.tsx)
+</details>
+
+---
+
+### Complete Workspaces Summary Matrix
+
+| Workspace | Scope & Enterprise Capabilities | Key Route / Workspace Entry |
+| :--- | :--- | :--- |
+| **🏢 Master Data & Catalogue** | Categories, brands, variable SKUs, multi-UOM conversions, customer/supplier profiles, bins. | [`/catalogue`](frontend/src/modules/catalogue/CatalogueWorkspace.tsx) |
+| **🏭 Manufacturing Chain** | Multi-tier BOMs, batch production work orders, worker piece-rate tracking, scrap analysis. | [`/production`](frontend/src/modules/production/ProductionWorkspace.tsx) |
+| **🔬 Quality Control (QC)** | Pre-production, in-line, final inspection gates, test parameter templates, defect logging. | [`/qc`](frontend/src/modules/qc/QcWorkspace.tsx) |
+| **📦 Perpetual Inventory Ledger** | Immutable audit-logged stock balances, multi-bin allocations, stock transfers, barcode counts. | [`/inventory`](frontend/src/modules/inventory/InventoryWorkspace.tsx) |
+| **🛒 Purchasing & 3-Way Match** | Vendor RFQs, purchase requisitions, PO approval hierarchies, GRN, 3-way discrepancy validation. | [`/purchasing`](frontend/src/modules/purchasing/PurchasingWorkspace.tsx) |
+| **⚡ High-Speed POS Terminal** | Offline-ready dual-session cashier POS, hardware scanner support, thermal receipts, shift audits. | [`/pos`](frontend/src/modules/pos/POSShell.tsx) |
+| **🤝 CRM & B2B Sales** | Lead tracking, kanban opportunity pipeline, customer credit limit guards, quotations, challans. | [`/sales`](frontend/src/modules/sales/SalesWorkspace.tsx) |
+| **🚚 Logistics & 3PL Couriers** | Automated dispatch via Steadfast, Pathao, REDX, digital courier run sheets, COD balance audits. | [`/logistics`](frontend/src/modules/delivery/DeliveryWorkspace.tsx) |
+| **🛡️ Anti-Fraud & Risk Score** | Delivery success rate scoring, phone number authenticity checks, return risk profiling. | [`/fraud-verification`](frontend/src/modules/fraud/OrderFraudVerificationWorkspace.tsx) |
+| **👥 HR & Payroll Engine** | Employee directory, shift scheduling, piece-rate incentive rollups, biometric attendance, slips. | [`/hr`](frontend/src/modules/hr/HrWorkspace.tsx) |
+| **📊 Accounting & Finance** | Double-entry general ledger, automated event-based journal entries, multi-bank reconciliations. | [`/finance`](frontend/src/modules/finance/FinanceWorkspace.tsx) |
+| **🏗️ Fixed Assets & Maintenance** | Asset capitalization, straight-line and reducing balance depreciation, maintenance schedules. | [`/assets`](frontend/src/modules/assets/AssetsWorkspace.tsx) |
+| **🛍️ Storefront CMS Builder** | Visual block page builder, hero sliders, collection highlights, announcement tickers. | [`/storefront`](frontend/src/modules/storefront/StorefrontPageBuilderWorkspace.tsx) |
+| **📈 RMS Analytical Matrix** | 84 canonical analytical reports covering financial P&L, balance sheets, inventory aging. | [`/reports`](frontend/src/modules/reports/ReportsWorkspace.tsx) |
+| **🖨️ Document & Barcode Engine** | Pixel-perfect printing for Tax Invoices, Challans, POs, Receipts, thermal barcode stickers. | [`Unified Document Modal`](frontend/src/components/documents/DocumentModal.tsx) |
+| **🔐 RBAC & Security Center** | Granular module, resource, and action permissions with factory and warehouse scope boundaries. | [`/settings/roles`](frontend/src/modules/settings/RolesManagementWorkspace.tsx) |
+| **⚙️ Central Settings Registry** | 16 configuration domains with atomic transactional persistence, secure credential encryption. | [`/settings`](frontend/src/modules/settings/SettingsCenterWorkspace.tsx) |
+| **👑 SaaS Platform Control** | Master multi-tenant administration, tenant quotas, domain mapping, error telemetry. | [`/platform`](frontend/src/modules/platform/PlatformDashboardWorkspace.tsx) |
+
+---
+
+## 🛠️ Technology Stack & Engineering Standards
+
+### Backend Engine
+```
+PHP 8.4+ Strict Types ──▶ Laravel 13.x Modular Monolith ──▶ MySQL 8.0 / SQLite ──▶ Redis Queues & Caching
+```
+- **Framework:** Laravel 13.x (`13.26+`) running under **PHP 8.4 or higher** with `declare(strict_types=1);` on every file.
+- **Architecture:** Domain-Driven Design (DDD) modular monolith split into discrete feature modules (`Catalogue`, `Production`, `Qc`, `Inventory`, `Sales`, `Purchasing`, `Finance`, `Delivery`, `Pos`, `Hr`, `Ecommerce`, `Platform`).
+- **Security & Tokens:** Stateless JWT authentication (`firebase/php-jwt`) with rotating refresh token family tracking, revocation cascades, and automated replay/theft detection.
+- **Multi-Tenant Context:** `TenantContext` singleton auto-resolved via subdomain or `X-Tenant-ID` header, securing all Eloquent models via `BelongsToTenant` trait.
+- **Database Engine:** MySQL 8.0+ (Production) / SQLite (Zero-config local development and testing) with atomic DB transactions across multi-step mutations.
+
+### Frontend Architecture
+```
+React 19.2 (Strict) ──▶ Vite 8.x + Rolldown ──▶ Tailwind CSS v4 ──▶ TanStack Query v5 + Zustand v5
+```
+- **Framework & Language:** React 19.2 + TypeScript Strict Mode (`noImplicitAny: true`, clean typechecking).
+- **Styling System:** Tailwind CSS v4 CSS-first design token architecture supporting high-contrast Dark & Light themes without visual flickering.
+- **State Management:** TanStack React Query v5 for optimistic server synchronization + Zustand v5 for reactive client-side store isolation.
+- **Resilience:** 4-Tier Hierarchical Error Boundaries preventing white-screen crashes, combined with graceful error toast dispatching.
+- **Routing & Navigation:** React Router v7 with deep-linked workspace tab synchronization (`useWorkspaceTab`).
 
 ---
 
 ## 🚀 Quickstart & Local Setup
 
-### Prerequisites
-- **PHP:** 8.5 or higher (PHP CLI, Laragon, or Docker)
-- **Composer:** 2.x
-- **Node.js:** 22.x LTS or higher (`package.json` specifies `"engines": { "node": ">=22" }`)
+### System Prerequisites
+Ensure the following tools are installed on your workstation:
+- **PHP:** `8.4` or higher with `pdo`, `mbstring`, `openssl`, and `gd` extensions enabled.
+- **Composer:** `2.x`
+- **Node.js:** `22.x LTS` or higher
 - **Git**
 
-### 1. Clone the Repository
+---
+
+### Step 1: Clone Repository
 ```bash
-git clone https://github.com/beingmushfiq/SliceMartFMS.git
-cd SliceMartFMS/slicemart-fms
+git clone https://github.com/beingmushfiq/CenterPoint-ProERP.git
+cd CenterPoint-ProERP
 ```
 
-### 2. Backend Setup
+---
+
+### Step 2: Backend Initialization
 ```bash
 cd backend
+
+# Install PHP dependencies
 composer install
-copy .env.example .env     # On Linux/macOS: cp .env.example .env
+
+# Environment configuration
+cp .env.example .env
+
+# Generate application encryption key
 php artisan key:generate
+
+# Execute migrations and seed demo data (defaults to SQLite zero-config)
 php artisan migrate --seed
 ```
 
-> **Note:** By default, `.env.example` is configured with `DB_CONNECTION=sqlite`, creating a local database automatically with zero database server setup required. For MySQL 8.0+, configure `DB_CONNECTION=mysql` and your database credentials in `.env`.
+> [!TIP]
+> By default, `.env.example` is pre-configured with `DB_CONNECTION=sqlite`, automatically provisioning `database/database.sqlite`. To use MySQL, update your `.env` credentials and run `php artisan migrate --seed`.
 
-### 3. Frontend Setup
-From the repository root (or inside the `frontend` folder):
+---
+
+### Step 3: Frontend Initialization
+From the repository root (`slicemart-fms`):
 ```bash
+# Install NPM dependencies across all workspaces
 npm install
 ```
 
-> **Note:** No `.env` file is required for frontend local development. Vite's dev server is preconfigured to automatically proxy `/api` requests to `http://127.0.0.1:8000`.
+> [!NOTE]
+> No `.env` file is required for frontend local development! Vite is preconfigured to automatically reverse-proxy API queries from `http://localhost:5173/api` to `http://127.0.0.1:8000`.
 
-### 4. Running the Development Servers
+---
 
-**Start Laravel Backend Server (Port 8000):**
-```powershell
+### Step 4: Running Development Servers
+
+Open two terminal sessions or run in background:
+
+**Terminal 1 — Backend REST API:**
+```bash
 cd backend
 php artisan serve --host=127.0.0.1 --port=8000
 ```
 
-**Start React Frontend Vite Server (Port 5173):**
-```powershell
-# From the slicemart-fms workspace root:
+**Terminal 2 — Frontend Vite Application:**
+```bash
+# From slicemart-fms root:
 npm run dev
 
-# Or directly from the frontend directory:
+# Or from the frontend directory:
 cd frontend
 npm run dev
 ```
 
 ---
 
-## 🌐 Application Access & Endpoints
+## 🌐 Application Portals & Endpoints
 
-| Portal / Surface | URL | Description |
-|---|---|---|
-| **Tenant ERP Workspace** | `http://localhost:5173` | Operational ERP workspace for SliceMart (Tenant #1) |
-| **Tenant ERP Dashboard** | `http://localhost:5173/dashboard` | Role-aware operations dashboard & KPI metrics |
-| **Public Headless Storefront** | `http://localhost:5173/store/slicemart` | Customer e-commerce catalog with WhatsApp checkout |
-| **Master SaaS Control Plane** | `http://localhost:5173/platform` | `DevCenterPoint` global tenant management panel |
-| **Master Platform Login** | `http://localhost:5173/platform/login` | Superadmin authentication gateway |
-| **Backend REST API** | `http://127.0.0.1:8000/api/v1` | Public and tenant-scoped REST API surfaces |
-| **Liveness Health Probe** | `http://127.0.0.1:8000/healthz` | Container liveness check for Kubernetes/Docker |
-| **Readiness Health Probe** | `http://127.0.0.1:8000/readyz` | Database & queue connectivity readiness check |
+| Portal / Touchpoint | Local Access URL | Production Domain | Primary Description |
+| :--- | :--- | :--- | :--- |
+| **🏢 Tenant ERP Workspace** | `http://localhost:5173/` | `https://demoerp.devcenterpoint.com/` | Primary operational ERP dashboard and workspaces |
+| **🛍️ Public Headless Storefront** | `http://localhost:5173/store/slicemart` | `https://slicemart.devcenterpoint.com/` | Headless e-commerce catalog with WhatsApp checkout |
+| **👑 Master SaaS Control Plane** | `http://localhost:5173/platform` | `https://demoerp.devcenterpoint.com/platform` | Superadmin tenant provisioning & platform telemetry |
+| **🔌 Backend API Surface** | `http://127.0.0.1:8000/api/v1` | `https://demoerp.devcenterpoint.com/api/v1` | Strict REST API with RFC 7807 envelope specifications |
+| **🩺 Liveness Health Probe** | `http://127.0.0.1:8000/healthz` | `https://demoerp.devcenterpoint.com/healthz` | Container orchestration liveness health check |
+| **⚡ Readiness Health Probe** | `http://127.0.0.1:8000/readyz` | `https://demoerp.devcenterpoint.com/readyz` | Database, cache, and queue readiness validation probe |
 
 ---
 
-### Default Credentials (Seed Data)
+## 🔑 Demo & Testing Credentials
 
-#### 👑 Master Platform Superadmin (DevCenterPoint Staff)
-Access at: `http://localhost:5173/platform/login`
+The automated database seeder provisions verified personas across all operational tiers:
+
+### 👑 Master SaaS Platform Superadmin
+- **Login Portal:** `http://localhost:5173/platform/login`
 - **Email:** `admin@devcenterpoint.com`
 - **Password:** `PlatformAdmin123!`
 
-#### 🏢 Tenant #1 (SliceMart) Seeded Accounts
-Access at: `http://localhost:5173/login`
+---
 
-| Role | Name | Email | Password |
-|---|---|---|---|
-| **Super Administrator** | System Administrator | `admin@slicemart.test` | `Password123!` |
-| **Production Manager** | Hasan Production Lead | `production@slicemart.test` | `Password123!` |
-| **QC Inspector** | Farhana QC Lead | `qc@slicemart.test` | `Password123!` |
-| **Warehouse Storekeeper** | Rafiq Store In-Charge | `store@slicemart.test` | `Password123!` |
-| **Sales Officer** | Tanvir Sales Lead | `sales@slicemart.test` | `Password123!` |
+### 🏢 Tenant #1 (SliceMart Industrial) Personas
+- **Login Portal:** `http://localhost:5173/login`
+
+| Persona / Role | Email | Password | Primary Domain Area |
+| :--- | :--- | :--- | :--- |
+| **Super Administrator** | `admin@slicemart.test` | `Password123!` | Full enterprise tenant access & role management |
+| **Production Manager** | `production@slicemart.test` | `Password123!` | BOMs, batch work orders, worker piece-rate logs |
+| **Quality Inspector** | `qc@slicemart.test` | `Password123!` | Test inspection gates, defect records, scrap tracking |
+| **Warehouse Storekeeper**| `store@slicemart.test` | `Password123!` | Inventory ledger, transfers, and Goods Receipts |
+| **Sales Officer** | `sales@slicemart.test` | `Password123!` | B2B lead CRM, invoices, dispatch, and delivery orders |
 
 ---
 
 ## 🧪 Automated Testing & Quality Gates
 
-SliceMart maintains a strict 100% green test policy. No feature or refactor is merged without passing all unit, integration, and typecheck gates.
+CenterPoint ProERP maintains a **100% green build policy**. Every commit and pull request must satisfy frontend unit tests, strict TypeScript checks, dependency verification, and backend feature contract tests.
 
-### Frontend Unit & Component Tests
+### Frontend Quality Commands
 ```bash
-# Run Vitest test suite (146 unit & component tests passing)
+# Execute Vitest component and unit test suite (146 tests passing)
 npm run test --workspace frontend
 
-# Strict TypeScript typechecking (zero errors)
+# Strict TypeScript typecheck (zero errors)
 npm run typecheck --workspace frontend
 
 # Dependency cycle validation
 npm run depcruise --workspace frontend
 
-# Complete frontend verification suite
+# Complete frontend verification pipeline
 npm run verify
 ```
 
-### Backend Feature & Contract Tests
+### Backend Quality Commands
 ```bash
 cd backend
 
-# Run the complete test suite (730+ tests passing)
+# Execute complete backend PHPUnit test suite (730+ tests passing)
 php artisan test
 
-# Run specific domain test suites
-php artisan test --filter=HealthCheckTest             # Container health probes
-php artisan test --filter=RateLimitingTest            # Named rate limiters
-php artisan test --filter=DatabaseBackupTest          # Automated backup routine
-php artisan test --filter=StorefrontSeoAndDiscoverabilityTest  # Sitemaps & robots
-php artisan test --filter=Delivery                   # Courier 3PL & webhooks
-php artisan test --filter=Report                     # RMS analytical matrix
-php artisan test --filter=DocumentPrintingTest       # Document & thermal labels
-php artisan test --filter=TenantSettingsTest         # Centralized enterprise settings
-php artisan test --filter=NotificationTest           # Real-time multi-channel alerts
-php artisan test --filter=AuthMeTest                 # JWT identity & RBAC resolution
-php artisan test --filter=AssetDepreciationTest      # Fixed asset depreciation engine
+# Verify specific domain feature suites
+php artisan test --filter=DataBinTest                     # Soft-delete data bin & restore
+php artisan test --filter=HealthCheckTest                 # Container liveness probes
+php artisan test --filter=RateLimitingTest                # Named rate limiters
+php artisan test --filter=StorefrontSeoAndDiscoverability # Dynamic XML sitemaps & SEO
+php artisan test --filter=Delivery                        # 3PL courier consignment dispatch
+php artisan test --filter=Report                          # 84 RMS canonical analytical reports
 ```
+
+### API Connection Auditing Script
+To verify that every frontend API call site aligns with compiled backend route signatures without mismatches:
+```bash
+# Run from repository root:
+node scripts/audit_api.cjs
+```
+> **Audit Status:** `591 frontend API call sites` verified against `692 backend routes` with **0 unmatched endpoints**.
+
+---
+
+## 🔒 Security & Data Confidentiality Standards
+
+1. **Strict Tenant Data Isolation:** All Eloquent models inherit `BelongsToTenant`. Every database query is automatically scoped with `tenant_id`. Any attempt to cross-access entities belonging to another tenant returns `404 Not Found` rather than `403 Forbidden`, safeguarding against tenant existence discovery.
+2. **Rotating Refresh Token Security:** Refresh tokens are tracked in cryptographic families. Any replay of an already-used token triggers an instant family revocation cascade to protect against credential interception.
+3. **AES-256 Secret Vault:** Courier API keys, webhook signing secrets, SMS gateway tokens, and payment credentials are encrypted at rest using AES-256 and masked in user interfaces.
+4. **Adaptive Rate Limiting:** Granular throttling per route classification:
+   - Login attempts: `5 requests / 5 minutes` per IP/email
+   - Public headless storefront: `120 requests / minute`
+   - Logistics webhooks: `600 requests / minute`
+5. **Precision Monetary Standard:** Monetary totals and inventory counts are computed and persisted in `DECIMAL(18,4)` format and transmitted as JSON strings to avoid JavaScript floating-point rounding errors.
 
 ---
 
 ## 📚 Canonical Architecture Documentation
 
-Detailed architectural blueprints and module contracts are available in the [`docs/`](docs/) directory:
+Comprehensive engineering blueprints, module lifecycles, and database schemas are maintained in the [`docs/`](docs/) directory:
 
-- [**IMPLEMENTATION_ROADMAP.md**](docs/IMPLEMENTATION_ROADMAP.md) — 26-phase canonical delivery roadmap and sign-off status.
-- [**PLATFORM_ARCHITECTURE.md**](docs/PLATFORM_ARCHITECTURE.md) — Multi-tier SaaS architecture and tenant isolation boundaries.
-- [**MODULE_ARCHITECTURE.md**](docs/MODULE_ARCHITECTURE.md) — Module taxonomy, domain boundaries, and event lifecycles.
-- [**DATABASE_ARCHITECTURE.md**](docs/DATABASE_ARCHITECTURE.md) — ERD definitions, composite indexing, and schema rules.
-- [**API_ARCHITECTURE.md**](docs/API_ARCHITECTURE.md) — RESTful envelope standard (`RFC 7807`) and JWT authentication.
-- [**DESIGN_SYSTEM.md**](docs/DESIGN_SYSTEM.md) — UI tokens, responsive layouts, and universal currency formatting.
-- [**ROLE_PERMISSION_MATRIX.md**](docs/ROLE_PERMISSION_MATRIX.md) — Granular RBAC permissions catalog.
-- [**QA_CHECKLIST.md**](docs/QA_CHECKLIST.md) — 10-point mandatory enterprise quality assurance gates.
-- [**RMS_REPORT_MATRIX.md**](docs/RMS_REPORT_MATRIX.md) — Registry of 58 analytical enterprise reports.
-- [**SETTINGS_ARCHITECTURE.md**](docs/SETTINGS_ARCHITECTURE.md) — 16-domain centralized settings architecture.
-- [**DOCUMENT_PRINTING_ARCHITECTURE.md**](docs/DOCUMENT_PRINTING_ARCHITECTURE.md) — Thermal label & invoice printing specification.
-- [**SEO_ARCHITECTURE.md**](docs/SEO_ARCHITECTURE.md) — Dynamic JSON-LD structured data and search indexation.
-- [**DECISIONS.md**](docs/DECISIONS.md) — Architectural Decision Records (ADRs).
+- 📋 [**IMPLEMENTATION_ROADMAP.md**](docs/IMPLEMENTATION_ROADMAP.md) — 26-phase delivery roadmap and sign-off criteria.
+- 🏛️ [**PLATFORM_ARCHITECTURE.md**](docs/PLATFORM_ARCHITECTURE.md) — Multi-tier SaaS architecture and boundary specifications.
+- 📦 [**MODULE_ARCHITECTURE.md**](docs/MODULE_ARCHITECTURE.md) — Domain taxonomy, entity relations, and event lifecycles.
+- 🗄️ [**DATABASE_ARCHITECTURE.md**](docs/DATABASE_ARCHITECTURE.md) — Complete ERDs, index catalogs, and ledger constraints.
+- 🌐 [**API_ARCHITECTURE.md**](docs/API_ARCHITECTURE.md) — RESTful envelope standard (`RFC 7807`) and JWT lifecycle.
+- 🎨 [**DESIGN_SYSTEM.md**](docs/DESIGN_SYSTEM.md) — Semantic design tokens, dark/light themes, and UI primitives.
+- 🔐 [**ROLE_PERMISSION_MATRIX.md**](docs/ROLE_PERMISSION_MATRIX.md) — Role definitions and granular permission catalogue.
+- 📊 [**RMS_REPORT_MATRIX.md**](docs/RMS_REPORT_MATRIX.md) — Registry and column specs for 84 analytical reports across 12 modules.
+- 🖨️ [**DOCUMENT_PRINTING_ARCHITECTURE.md**](docs/DOCUMENT_PRINTING_ARCHITECTURE.md) — Thermal labels, invoices, and challan printing.
+- ⚙️ [**SETTINGS_ARCHITECTURE.md**](docs/SETTINGS_ARCHITECTURE.md) — 16-domain transactional configuration registry.
+- 🔍 [**SEO_ARCHITECTURE.md**](docs/SEO_ARCHITECTURE.md) — Dynamic JSON-LD structured schemas and search indexation.
 
 ---
 
-## 🔒 Security & Data Integrity Standards
+## 👥 Authors & Maintainers
 
-1. **Multi-Tenant Data Isolation:** Every database entity is constrained by `tenant_id` and enforced through Eloquent global query scopes (`TenantScope`). Cross-tenant access strictly returns `404 Not Found` rather than `403 Forbidden` to guarantee tenant existence confidentiality.
-2. **Brute-Force & Rate Limiting:** Named rate limiters for login (5 attempts / 5 mins), public storefront (120 req/min), and webhooks (600 req/min).
-3. **Sensitive Data Redaction:** API credentials, webhook secrets, and private keys are encrypted at rest with AES-256 and masked in UI views.
-4. **Resilient Error Handling:** 4-tier error boundary architecture catches runtime errors gracefully without white screens, maintaining state preservation and diagnostic references.
-5. **Strict Monetary & Quantity Precision:** Financial and inventory quantities are stored in `DECIMAL(18,4)` and transmitted over the API wire as precise JSON strings.
+- **Lead Architect & Maintainer:** [Mushfiqur Rahman](https://github.com/beingmushfiq) (`beingmushfiq@gmail.com`)
+- **Engineering Platform:** DevCenterPoint Enterprise Cloud Systems
 
----
-
-## 📄 License & Maintainer
-
-Maintained by **Mushfiqur Rahman** (`beingmushfiq@gmail.com`).  
-All rights reserved. Designed and developed as a modern enterprise SaaS platform.
+<div align="center">
+  <sub>Built with ❤️ for modern industrial manufacturing, omnichannel retail, and direct factory commerce.</sub>
+</div>

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../../lib/auth/authStore';
+import { getAccessToken } from '../../lib/api/client';
 import { Button } from '../ui/Button';
 import { RotateCcw, LogIn, AlertCircle } from 'lucide-react';
 
@@ -10,7 +11,7 @@ export function ProtectedRoute() {
   const [showEscalation, setShowEscalation] = useState(false);
 
   useEffect(() => {
-    if (status === 'idle') {
+    if (status === 'idle' || (status === 'authenticated' && !getAccessToken())) {
       void bootstrap();
     }
   }, [status, bootstrap]);

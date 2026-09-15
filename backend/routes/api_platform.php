@@ -44,6 +44,7 @@ Route::prefix('v1/platform')
         // Authenticated Platform Super Admin routes
         Route::middleware(['auth.jwt', 'platform.admin'])->group(static function (): void {
             Route::get('auth/me', [PlatformAuthController::class, 'me'])->name('auth.me');
+            Route::post('auth/logout', [PlatformAuthController::class, 'logout'])->name('auth.logout');
 
             // Operational SaaS Dashboard & Telemetry
             Route::get('dashboard/kpis', [PlatformDashboardController::class, 'kpis'])->name('dashboard.kpis');
@@ -119,6 +120,12 @@ Route::prefix('v1/platform')
             Route::delete('announcements/{id}', [PlatformAnnouncementController::class, 'destroy'])->name('announcements.destroy');
 
             // Support Ticket Management
+            Route::get('support-tickets', [PlatformSupportController::class, 'index'])->name('support-tickets.index');
+            Route::post('support-tickets', [PlatformSupportController::class, 'store'])->name('support-tickets.store');
+            Route::get('support-tickets/{id}', [PlatformSupportController::class, 'show'])->name('support-tickets.show');
+            Route::patch('support-tickets/{id}', [PlatformSupportController::class, 'update'])->name('support-tickets.update');
+            Route::post('support-tickets/{id}/notes', [PlatformSupportController::class, 'addNote'])->name('support-tickets.notes.store');
+
             Route::get('support/tickets', [PlatformSupportController::class, 'index'])->name('support.index');
             Route::post('support/tickets', [PlatformSupportController::class, 'store'])->name('support.store');
             Route::get('support/tickets/{id}', [PlatformSupportController::class, 'show'])->name('support.show');
@@ -135,6 +142,7 @@ Route::prefix('v1/platform')
             Route::get('admins', [PlatformAdminController::class, 'index'])->name('admins.index');
             Route::post('admins', [PlatformAdminController::class, 'store'])->name('admins.store');
             Route::patch('admins/{id}', [PlatformAdminController::class, 'update'])->name('admins.update');
+            Route::post('admins/{id}/status', [PlatformAdminController::class, 'updateStatus'])->name('admins.status');
             Route::post('admins/{id}/reset-password', [PlatformAdminController::class, 'resetPassword'])->name('admins.reset-password');
             Route::delete('admins/{id}', [PlatformAdminController::class, 'destroy'])->name('admins.destroy');
         });

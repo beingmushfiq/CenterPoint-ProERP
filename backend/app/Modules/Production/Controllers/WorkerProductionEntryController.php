@@ -558,5 +558,77 @@ final class WorkerProductionEntryController extends Controller
             ],
         ]);
     }
+
+    public function bulkVerify(Request $request, VerifyWorkerProductionEntryAction $action): JsonResponse
+    {
+        $validated = $request->validate([
+            'ids' => 'required|array',
+            'ids.*' => 'required',
+        ]);
+
+        $actor = $request->user();
+        $ids = $validated['ids'];
+        $count = 0;
+
+        $query = WorkerProductionEntry::query();
+        if (is_numeric($ids[0] ?? null)) {
+            $query->whereIn('id', $ids);
+        } else {
+            $query->whereIn('uuid', $ids);
+        }
+
+        $entries = $query->get();
+        foreach ($entries as $entry) {
+            if ($entry->status !== 'verified' && $entry->status !== 'locked') {
+                $action->execute([
+                    'user' => $actor,
+                    'workerProductionEntry' => $entry,
+                ]);
+                $count++;
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => "Successfully verified {$count} worker production entries.",
+            'meta' => ['correlation_id' => (string) $request->header('X-Correlation-Id', '')],
+        ]);
+    }
+
+    public function bulkDelete(Request $request, DeleteWorkerProductionEntryAction $action): JsonResponse
+    {
+        $validated = $request->validate([
+            'ids' => 'required|array',
+            'ids.*' => 'required',
+        ]);
+
+        $actor = $request->user();
+        $ids = $validated['ids'];
+        $count = 0;
+
+        $query = WorkerProductionEntry::query();
+        if (is_numeric($ids[0] ?? null)) {
+            $query->whereIn('id', $ids);
+        } else {
+            $query->whereIn('uuid', $ids);
+        }
+
+        $entries = $query->get();
+        foreach ($entries as $entry) {
+            if (!in_array($entry->status, ['verified', 'locked'], true)) {
+                $action->execute([
+                    'user' => $actor,
+                    'workerProductionEntry' => $entry,
+                ]);
+                $count++;
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => "Successfully deleted {$count} worker production entries.",
+            'meta' => ['correlation_id' => (string) $request->header('X-Correlation-Id', '')],
+        ]);
+    }
 }
 

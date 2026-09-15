@@ -499,8 +499,9 @@ export const SettingsCenterWorkspace: React.FC = () => {
       setTestLoading(true);
       setTestResult(null);
 
+      const targetGroup = activeGroup === 'delivery' ? 'delivery' : 'integrations';
       const res = await api.post<ConnectionTestResult>(
-        `/settings/${activeGroup === 'integrations' ? 'integrations' : 'delivery'}/test-connection`,
+        `/settings/${targetGroup}/test-connection`,
         {
           provider: testProvider,
           credentials: formValues,

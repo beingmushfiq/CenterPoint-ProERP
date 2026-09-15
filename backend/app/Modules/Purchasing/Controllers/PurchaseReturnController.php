@@ -103,5 +103,55 @@ final class PurchaseReturnController extends Controller
             'message' => "Purchase Return {$returnNumber} moved to Data Bin successfully.",
         ]);
     }
+
+    public function update(int $id, Request $request): JsonResponse
+    {
+        $tenantId = TenantContext::current()->tenantId();
+
+        $return = PurchaseReturn::where('tenant_id', $tenantId)
+            ->where('id', $id)
+            ->firstOrFail();
+
+        if (in_array($return->status, ['completed', 'settled'], true)) {
+            return response()->json([
+                'message' => 'Cannot update a completed or settled purchase return.',
+            ], 422);
+        }
+
+        $validated = $request->validate([
+            'notes' => 'nullable|string',
+            'reason_code_id' => 'nullable|integer',
+            'return_date' => 'nullable|date',
+        ]);
+
+        $return->update($validated);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Purchase return updated.',
+            'data' => new PurchaseReturnResource($return->fresh()),
+            'meta' => ['correlation_id' => (string) $request->header('X-Correlation-Id', '')],
+        ]);
+    }
+
+    public function complete(int $id, Request $request): JsonResponse
+    {
+        $tenantId = TenantContext::current()->tenantId();
+
+        $return = PurchaseReturn::where('tenant_id', $tenantId)
+            ->where('id', $id)
+            ->firstOrFail();
+
+        $return->update([
+            'status' => 'completed',
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Purchase return marked as completed.',
+            'data' => new PurchaseReturnResource($return->fresh()),
+            'meta' => ['correlation_id' => (string) $request->header('X-Correlation-Id', '')],
+        ]);
+    }
 }
 

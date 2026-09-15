@@ -69,4 +69,68 @@ final class PosTerminalController extends Controller
 
         return new PosTerminalResource($terminal);
     }
+
+    public function update(Request $request, int $id): JsonResponse
+    {
+        $tenantId = TenantContext::current()->tenantId();
+
+        $terminal = PosTerminal::where('tenant_id', $tenantId)
+            ->where('id', $id)
+            ->firstOrFail();
+
+        $validated = $request->validate([
+            'code' => 'nullable|string|max:50',
+            'name' => 'nullable|string|max:191',
+            'branch_id' => 'nullable|integer',
+            'default_warehouse_id' => 'nullable|integer',
+            'printer_config' => 'nullable|array',
+            'is_active' => 'nullable|boolean',
+        ]);
+
+        $terminal->update($validated);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Terminal updated successfully.',
+            'data' => new PosTerminalResource($terminal->fresh()),
+            'meta' => ['correlation_id' => (string) $request->header('X-Correlation-Id', '')],
+        ]);
+    }
+
+    public function toggleActive(Request $request, int $id): JsonResponse
+    {
+        $tenantId = TenantContext::current()->tenantId();
+
+        $terminal = PosTerminal::where('tenant_id', $tenantId)
+            ->where('id', $id)
+            ->firstOrFail();
+
+        $terminal->update([
+            'is_active' => ! $terminal->is_active,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Terminal status toggled successfully.',
+            'data' => new PosTerminalResource($terminal->fresh()),
+            'meta' => ['correlation_id' => (string) $request->header('X-Correlation-Id', '')],
+        ]);
+    }
+
+    public function destroy(Request $request, int $id): JsonResponse
+    {
+        $tenantId = TenantContext::current()->tenantId();
+
+        $terminal = PosTerminal::where('tenant_id', $tenantId)
+            ->where('id', $id)
+            ->firstOrFail();
+
+        $terminal->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Terminal deleted successfully.',
+            'meta' => ['correlation_id' => (string) $request->header('X-Correlation-Id', '')],
+        ]);
+    }
 }

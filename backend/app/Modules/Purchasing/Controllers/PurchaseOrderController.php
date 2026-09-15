@@ -121,5 +121,61 @@ final class PurchaseOrderController extends Controller
             'message' => "Purchase Order {$poNumber} moved to Data Bin successfully.",
         ]);
     }
+
+    public function update(int $id, Request $request): JsonResponse
+    {
+        $tenantId = TenantContext::current()->tenantId();
+
+        $order = PurchaseOrder::where('tenant_id', $tenantId)
+            ->where('id', $id)
+            ->firstOrFail();
+
+        if (in_array($order->status, ['completed', 'received', 'cancelled'], true)) {
+            return response()->json([
+                'message' => 'Cannot update an order that is already completed or cancelled.',
+            ], 422);
+        }
+
+        $validated = $request->validate([
+            'expected_delivery_date' => 'nullable|date',
+            'notes' => 'nullable|string',
+            'supplier_reference' => 'nullable|string',
+        ]);
+
+        $order->update($validated);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Purchase order updated.',
+            'data' => new PurchaseOrderResource($order->fresh()),
+            'meta' => ['correlation_id' => (string) $request->header('X-Correlation-Id', '')],
+        ]);
+    }
+
+    public function cancel(int $id, Request $request): JsonResponse
+    {
+        $tenantId = TenantContext::current()->tenantId();
+
+        $order = PurchaseOrder::where('tenant_id', $tenantId)
+            ->where('id', $id)
+            ->firstOrFail();
+
+        if (in_array($order->status, ['completed', 'received'], true)) {
+            return response()->json([
+                'message' => 'Cannot cancel an order that has already been fulfilled.',
+            ], 422);
+        }
+
+        $order->update([
+            'status' => 'cancelled',
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Purchase order cancelled.',
+            'data' => new PurchaseOrderResource($order->fresh()),
+            'meta' => ['correlation_id' => (string) $request->header('X-Correlation-Id', '')],
+        ]);
+    }
 }
 
