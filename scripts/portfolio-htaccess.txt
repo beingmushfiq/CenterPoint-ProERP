@@ -1,0 +1,4 @@
+﻿# NOTE: This file documents the .htaccess that should live at:
+#   /home/devcente/public_html/.htaccess
+# for the PORTFOLIO site at devcenterpoint.com
+# The ProERP .htaccess belongs in /home/devcente/projects/proerp/public/.htaccess

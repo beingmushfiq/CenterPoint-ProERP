@@ -1,0 +1,78 @@
+﻿<!DOCTYPE html>
+<html lang=en>
+<head>
+  <meta charset=UTF-8 />
+  <meta name=viewport content=width=device-width, initial-scale=1.0 />
+  <title>DevCenterPoint — Engineering & Technology Studio</title>
+  <meta name=description content=DevCenterPoint builds enterprise-grade software systems, ERP platforms, and omnichannel storefronts for modern businesses. />
+  <meta name=robots content=index, follow />
+  <link rel=preconnect href=https://fonts.googleapis.com />
+  <link href=https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap rel=stylesheet />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg:#060a14; --surface:rgba(255,255,255,0.04); --border:rgba(255,255,255,0.08); --accent:#6366f1; --accent2:#0ea5e9; --accent3:#10b981; --text:#f1f5f9; --muted:#64748b; }
+    html { scroll-behavior: smooth; }
+    body { font-family:'Inter',system-ui,sans-serif; background:var(--bg); color:var(--text); min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; overflow-x:hidden; padding:2rem 1.5rem; }
+    .blob { position:fixed; border-radius:50%; filter:blur(120px); opacity:0.15; animation:drift 18s ease-in-out infinite; pointer-events:none; }
+    .blob-1 { width:600px; height:600px; background:var(--accent); top:-200px; left:-200px; animation-delay:0s; }
+    .blob-2 { width:500px; height:500px; background:var(--accent2); bottom:-150px; right:-150px; animation-delay:-6s; }
+    .blob-3 { width:400px; height:400px; background:var(--accent3); top:50%; left:50%; transform:translate(-50%,-50%); animation-delay:-12s; }
+    @keyframes drift { 0%,100%{transform:translate(0,0) scale(1);} 33%{transform:translate(30px,-20px) scale(1.05);} 66%{transform:translate(-20px,30px) scale(0.95);} }
+    .container { position:relative; z-index:1; max-width:760px; width:100%; display:flex; flex-direction:column; align-items:center; gap:2.5rem; text-align:center; }
+    .logo-mark { width:72px; height:72px; background:linear-gradient(135deg,var(--accent),var(--accent2)); border-radius:20px; display:flex; align-items:center; justify-content:center; font-size:2rem; font-weight:800; letter-spacing:-2px; color:#fff; box-shadow:0 0 40px rgba(99,102,241,0.4); animation:pulse-glow 3s ease-in-out infinite; }
+    @keyframes pulse-glow { 0%,100%{box-shadow:0 0 40px rgba(99,102,241,0.4);} 50%{box-shadow:0 0 70px rgba(99,102,241,0.7),0 0 120px rgba(14,165,233,0.3);} }
+    .hero h1 { font-size:clamp(2rem,5vw,3.25rem); font-weight:800; line-height:1.1; letter-spacing:-1.5px; background:linear-gradient(135deg,#fff 30%,var(--accent2) 70%,var(--accent)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; margin-bottom:1rem; }
+    .hero p { font-size:1.125rem; color:var(--muted); line-height:1.7; max-width:540px; margin:0 auto; }
+    .badge { display:inline-flex; align-items:center; gap:0.5rem; background:rgba(16,185,129,0.12); border:1px solid rgba(16,185,129,0.25); color:var(--accent3); font-size:0.8rem; font-weight:600; letter-spacing:0.05em; text-transform:uppercase; padding:0.375rem 1rem; border-radius:99px; }
+    .badge-dot { width:7px; height:7px; background:var(--accent3); border-radius:50%; animation:blink 1.5s ease-in-out infinite; }
+    @keyframes blink { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
+    .projects { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:1rem; width:100%; }
+    .card { background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:1.5rem; text-align:left; transition:border-color 0.2s,transform 0.2s,background 0.2s; text-decoration:none; color:inherit; display:block; }
+    .card:hover { border-color:rgba(99,102,241,0.4); background:rgba(99,102,241,0.06); transform:translateY(-3px); }
+    .card-icon { font-size:1.75rem; margin-bottom:0.75rem; }
+    .card-title { font-size:0.95rem; font-weight:600; color:var(--text); margin-bottom:0.35rem; }
+    .card-desc { font-size:0.82rem; color:var(--muted); line-height:1.5; }
+    .card-tag { display:inline-block; margin-top:0.75rem; font-size:0.7rem; font-weight:600; letter-spacing:0.04em; text-transform:uppercase; padding:0.2rem 0.6rem; border-radius:6px; background:rgba(99,102,241,0.15); color:#818cf8; }
+    .card-tag.live { background:rgba(16,185,129,0.15); color:var(--accent3); }
+    footer { font-size:0.8rem; color:var(--muted); }
+    footer a { color:var(--muted); text-decoration:underline; text-underline-offset:3px; }
+    footer a:hover { color:var(--text); }
+  </style>
+</head>
+<body>
+  <div class=blob blob-1></div>
+  <div class=blob blob-2></div>
+  <div class=blob blob-3></div>
+  <div class=container>
+    <div class=logo-mark>DC</div>
+    <div class=badge><span class=badge-dot></span>Systems Online</div>
+    <div class=hero>
+      <h1>DevCenterPoint</h1>
+      <p>Engineering & Technology Studio. We build enterprise-grade ERP systems, omnichannel storefronts, and production-ready SaaS platforms for modern businesses.</p>
+    </div>
+    <div class=projects>
+      <a class=card href=https://proerp.devcenterpoint.com id=proerp-link>
+        <div class=card-icon>⚡</div>
+        <div class=card-title>CenterPoint ProERP</div>
+        <div class=card-desc>Multi-tenant factory management and omnichannel retail operating system.</div>
+        <span class=card-tag live>Live</span>
+      </a>
+      <a class=card href=https://demoerp.devcenterpoint.com id=storefront-link>
+        <div class=card-icon>🛍️</div>
+        <div class=card-title>SliceMart Storefront</div>
+        <div class=card-desc>Headless e-commerce demo tenant powered by ProERP.</div>
+        <span class=card-tag live>Live</span>
+      </a>
+      <div class=card id=portfolio-placeholder>
+        <div class=card-icon>🧑‍💻</div>
+        <div class=card-title>Portfolio — Coming Soon</div>
+        <div class=card-desc>Full portfolio, case studies, and project showcase launching soon.</div>
+        <span class=card-tag>Soon</span>
+      </div>
+    </div>
+    <footer>
+      <p>&copy; 2026 DevCenterPoint. All rights reserved. &nbsp;&middot;&nbsp; <a href=https://proerp.devcenterpoint.com/login>ERP Login</a></p>
+    </footer>
+  </div>
+</body>
+</html>

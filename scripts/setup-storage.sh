@@ -4,6 +4,13 @@
 # ==============================================================================
 # Usage:
 #   bash scripts/setup-storage.sh
+#
+# Scaffolds all Laravel storage subdirs, sets permissions, and creates the
+# public storage symlink from the ProERP document root to backend storage.
+#
+# Multi-project path:
+#   Backend:      /home/devcente/projects/proerp/backend/
+#   Document Root:/home/devcente/projects/proerp/public/
 # ==============================================================================
 
 set -euo pipefail
@@ -13,13 +20,19 @@ HOME_DIR="${HOME:-/home/${CPANEL_USER}}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
-if [ -d "${HOME_DIR}/backend" ]; then
+# Backend: multi-project path first, then legacy, then repo-relative
+if [ -d "${HOME_DIR}/projects/proerp/backend" ]; then
+    BACKEND_DIR="${HOME_DIR}/projects/proerp/backend"
+elif [ -d "${HOME_DIR}/backend" ]; then
     BACKEND_DIR="${HOME_DIR}/backend"
 else
     BACKEND_DIR="${REPO_DIR}/backend"
 fi
 
-if [ -d "${HOME_DIR}/public_html" ]; then
+# Document root: multi-project path first, then legacy, then repo-relative
+if [ -d "${HOME_DIR}/projects/proerp/public" ]; then
+    PUBLIC_HTML_DIR="${HOME_DIR}/projects/proerp/public"
+elif [ -d "${HOME_DIR}/public_html" ]; then
     PUBLIC_HTML_DIR="${HOME_DIR}/public_html"
 else
     PUBLIC_HTML_DIR="${REPO_DIR}/public_html"
@@ -27,8 +40,8 @@ fi
 
 echo "=================================================================="
 echo " ProERP Storage Setup: $(date '+%Y-%m-%d %H:%M:%S')"
-echo " Backend Directory:     ${BACKEND_DIR}"
-echo " Public HTML Directory: ${PUBLIC_HTML_DIR}"
+echo " Backend Directory:      ${BACKEND_DIR}"
+echo " ProERP Document Root:   ${PUBLIC_HTML_DIR}"
 echo "=================================================================="
 
 echo "--- Scaffolding storage subdirectories ---"

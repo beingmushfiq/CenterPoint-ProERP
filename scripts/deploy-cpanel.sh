@@ -2,36 +2,62 @@
 # ==============================================================================
 # DevCenterPoint ProERP — cPanel / Shared Hosting Automated Deployment Script
 # ==============================================================================
-# Usage:
-#   bash scripts/deploy-cpanel.sh
-# Or trigger automatically via .cpanel.yml Git Version Control deployment hook.
+# Triggered by: .cpanel.yml after every git push (backend deployment)
+# Manual use:   bash scripts/deploy-cpanel.sh
+#
+# Server Directory Layout:
+#   /home/devcente/public_html/             → devcenterpoint.com (PORTFOLIO — never touch)
+#   /home/devcente/projects/proerp/public/  → Document Root for *.devcenterpoint.com
+#   /home/devcente/projects/proerp/backend/ → Laravel app (not web-accessible)
+#
+# cPanel Subdomains (configure ONCE in cPanel → Domains → Subdomains):
+#   proerp.devcenterpoint.com  → /home/devcente/projects/proerp/public
+#   demoerp.devcenterpoint.com → /home/devcente/projects/proerp/public
+#   *.devcenterpoint.com       → /home/devcente/projects/proerp/public  (wildcard)
+#
+# cPanel Cron Jobs (configure ONCE in cPanel → Cron Jobs):
+#   Queue worker  (every min): * * * * * /opt/cpanel/ea-php84/root/usr/bin/php /home/devcente/projects/proerp/backend/artisan queue:work --stop-when-empty --max-time=55 >> /home/devcente/logs/proerp-queue.log 2>&1
+#   Task scheduler(every min): * * * * * /opt/cpanel/ea-php84/root/usr/bin/php /home/devcente/projects/proerp/backend/artisan schedule:run >> /home/devcente/logs/proerp-schedule.log 2>&1
 # ==============================================================================
 
 set -euo pipefail
 
 # ------------------------------------------------------------------------------
-# Path Resolution (cPanel /devcente defaults with local/custom fallback)
+# Path Resolution
+# Priority: projects/proerp/ (correct multi-project layout)
+#           → /home/devcente/backend (legacy single-project fallback)
+#           → repo-relative (local dev fallback)
 # ------------------------------------------------------------------------------
 CPANEL_USER="${CPANEL_USER:-devcente}"
 HOME_DIR="${HOME:-/home/${CPANEL_USER}}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
-# If deployed in /home/devcente/backend, use that; otherwise fallback to repo/backend
-if [ -d "${HOME_DIR}/backend" ]; then
+# Backend: prefer projects/proerp/backend (canonical multi-project path)
+if [ -d "${HOME_DIR}/projects/proerp/backend" ]; then
+    BACKEND_DIR="${HOME_DIR}/projects/proerp/backend"
+elif [ -d "${HOME_DIR}/backend" ]; then
+    # Legacy single-project layout — still works but deprecated
     BACKEND_DIR="${HOME_DIR}/backend"
+    echo "WARNING: Using legacy /home/devcente/backend path. Migrate to /home/devcente/projects/proerp/backend."
 else
     BACKEND_DIR="${REPO_DIR}/backend"
 fi
 
-# Web document root
-if [ -d "${HOME_DIR}/public_html" ]; then
+# Document root for ProERP SPA + API: prefer projects/proerp/public
+if [ -d "${HOME_DIR}/projects/proerp/public" ]; then
+    PUBLIC_HTML_DIR="${HOME_DIR}/projects/proerp/public"
+elif [ -d "${HOME_DIR}/public_html" ]; then
+    # Legacy fallback — but note public_html is now reserved for the portfolio
     PUBLIC_HTML_DIR="${HOME_DIR}/public_html"
+    echo "WARNING: Using legacy /home/devcente/public_html as ProERP document root."
+    echo "         This conflicts with the portfolio at devcenterpoint.com."
+    echo "         Migrate ProERP to /home/devcente/projects/proerp/public."
 else
     PUBLIC_HTML_DIR="${REPO_DIR}/public_html"
 fi
 
-# Frontend source
+# Frontend source (pre-built dist is uploaded manually; repo dist is fallback)
 if [ -d "${REPO_DIR}/frontend" ]; then
     FRONTEND_DIR="${REPO_DIR}/frontend"
 elif [ -d "${HOME_DIR}/frontend" ]; then
@@ -40,12 +66,18 @@ else
     FRONTEND_DIR="${BACKEND_DIR}/frontend"
 fi
 
+# Centralized log directory
+LOG_DIR="${HOME_DIR}/logs"
+mkdir -p "${LOG_DIR}"
+
 echo "=================================================================="
 echo " Starting ProERP Deployment: $(date '+%Y-%m-%d %H:%M:%S')"
-echo " Backend Directory:     ${BACKEND_DIR}"
-echo " Public HTML Directory: ${PUBLIC_HTML_DIR}"
-echo " Frontend Directory:    ${FRONTEND_DIR}"
+echo " Backend Directory:      ${BACKEND_DIR}"
+echo " ProERP Document Root:   ${PUBLIC_HTML_DIR}"
+echo " Frontend Source:        ${FRONTEND_DIR}"
+echo " Log Directory:          ${LOG_DIR}"
 echo "=================================================================="
+
 
 # ------------------------------------------------------------------------------
 # 1. PHP CLI Binary Resolution (MultiPHP 8.4 Support)
@@ -182,35 +214,67 @@ else
 fi
 
 # ------------------------------------------------------------------------------
-# 7. Frontend SPA Build & Asset Deployment
+# 7. Frontend SPA — Note on Manual Upload
 # ------------------------------------------------------------------------------
-if [ -d "${FRONTEND_DIR}" ] && command -v npm &> /dev/null; then
-    echo "--- Building Frontend SPA ---"
-    cd "${FRONTEND_DIR}"
-    npm ci --prefer-offline --no-audit || npm install --no-audit
-    npm run build
-
-    echo "--- Syncing SPA build to public_html ---"
-    if [ -d "${FRONTEND_DIR}/dist" ]; then
-        cp -r "${FRONTEND_DIR}/dist/"* "${PUBLIC_HTML_DIR}/"
-        echo "Successfully deployed frontend dist to ${PUBLIC_HTML_DIR}/"
-    fi
+# The frontend dist/ is gitignored and is NOT built by this script on the cPanel
+# server (no Node.js available via Git VC).
+#
+# Workflow:
+#   1. On your LOCAL machine: cd frontend && npm run build
+#   2. Upload the contents of frontend/dist/ to:
+#      /home/devcente/projects/proerp/public/
+#      (via FTP/FileZilla or cPanel File Manager)
+#
+# The script below will sync any pre-built dist if it is present in the repo,
+# which covers the local dev / manual trigger case.
+if [ -d "${REPO_DIR}/frontend/dist" ] && [ "$(ls -A ${REPO_DIR}/frontend/dist)" ]; then
+    echo "--- Syncing pre-built frontend dist to ProERP document root ---"
+    cp -r "${REPO_DIR}/frontend/dist/"* "${PUBLIC_HTML_DIR}/"
+    echo "Synced frontend/dist to ${PUBLIC_HTML_DIR}/"
 else
-    echo "Notice: npm not available on server or frontend build skipped. Ensuring dist from repo or manual build is in place."
-    if [ -d "${REPO_DIR}/frontend/dist" ]; then
-        cp -r "${REPO_DIR}/frontend/dist/"* "${PUBLIC_HTML_DIR}/"
-        echo "Copied pre-built frontend/dist to ${PUBLIC_HTML_DIR}/"
-    fi
+    echo "Notice: No pre-built frontend/dist found in repo. Upload frontend/dist/ contents manually."
 fi
 
-# Ensure web root entry point & .htaccess exist in public_html
-if [ -f "${REPO_DIR}/public_html/index.php" ] && [ ! -f "${PUBLIC_HTML_DIR}/index.php" ]; then
+# ------------------------------------------------------------------------------
+# 8. Ensure ProERP document root has the PHP bootstrap and .htaccess
+# ------------------------------------------------------------------------------
+echo "--- Ensuring ProERP entry point files are in place ---"
+# Copy index.php (always overwrite to pick up changes)
+if [ -f "${REPO_DIR}/public_html/index.php" ]; then
     cp "${REPO_DIR}/public_html/index.php" "${PUBLIC_HTML_DIR}/index.php"
+    echo "Deployed: ${PUBLIC_HTML_DIR}/index.php"
 fi
-if [ -f "${REPO_DIR}/public_html/.htaccess" ] && [ ! -f "${PUBLIC_HTML_DIR}/.htaccess" ]; then
+# Copy .htaccess (always overwrite to pick up changes)
+if [ -f "${REPO_DIR}/public_html/.htaccess" ]; then
     cp "${REPO_DIR}/public_html/.htaccess" "${PUBLIC_HTML_DIR}/.htaccess"
+    echo "Deployed: ${PUBLIC_HTML_DIR}/.htaccess"
+fi
+
+# ------------------------------------------------------------------------------
+# 9. Bootstrap portfolio at devcenterpoint.com (public_html)
+# DO NOT overwrite an existing portfolio — only install if this is a fresh server.
+# ------------------------------------------------------------------------------
+PORTFOLIO_DIR="${HOME_DIR}/public_html"
+mkdir -p "${PORTFOLIO_DIR}"
+
+# Install portfolio .htaccess (only if missing)
+if [ ! -f "${PORTFOLIO_DIR}/.htaccess" ] && [ -f "${REPO_DIR}/portfolio_public_html/.htaccess" ]; then
+    cp "${REPO_DIR}/portfolio_public_html/.htaccess" "${PORTFOLIO_DIR}/.htaccess"
+    echo "Installed portfolio .htaccess to ${PORTFOLIO_DIR}/.htaccess"
+fi
+
+# Install placeholder (only if no index.html exists yet)
+if [ ! -f "${PORTFOLIO_DIR}/index.html" ] && [ -f "${REPO_DIR}/scripts/portfolio-placeholder.html" ]; then
+    cp "${REPO_DIR}/scripts/portfolio-placeholder.html" "${PORTFOLIO_DIR}/index.html"
+    echo "Installed portfolio placeholder to ${PORTFOLIO_DIR}/index.html"
 fi
 
 echo "=================================================================="
 echo " ProERP Deployment Completed Successfully: $(date '+%Y-%m-%d %H:%M:%S')"
+echo ""
+echo " Next steps (if first deploy):"
+echo "   1. Upload frontend/dist/ contents to: ${PUBLIC_HTML_DIR}/"
+echo "      (run: npm run build  in the frontend/ directory locally)"
+echo "   2. Verify: curl https://proerp.devcenterpoint.com/up"
+echo "   3. Verify: curl https://devcenterpoint.com"
 echo "=================================================================="

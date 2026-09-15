@@ -1,0 +1,61 @@
+﻿# ==============================================================================
+# DevCenterPoint Portfolio — Apache config for devcenterpoint.com
+# Document root: /home/devcente/public_html/
+# This is a STATIC site — no Laravel, no SPA deep-link routing required.
+# ==============================================================================
+
+<IfModule mod_dir.c>
+    DirectoryIndex index.html index.php
+</IfModule>
+
+<IfModule mod_rewrite.c>
+    <IfModule mod_negotiation.c>
+        Options -MultiViews -Indexes
+    </IfModule>
+
+    RewriteEngine On
+    RewriteBase /
+
+    # 1. Enforce HTTPS
+    RewriteCond %{HTTPS} off
+    RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+    # 2. Block sensitive files
+    RewriteRule (^|/)\.(?!well-known/) - [F]
+
+    # 3. Serve existing files/directories directly (static assets)
+    RewriteCond %{REQUEST_FILENAME} -f [OR]
+    RewriteCond %{REQUEST_FILENAME} -d
+    RewriteRule ^ - [L]
+
+    # 4. All other requests go to index.html (for future React portfolio)
+    RewriteRule ^ index.html [L]
+</IfModule>
+
+# Security headers
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options nosniff
+    Header always set X-Frame-Options SAMEORIGIN
+    Header always set X-XSS-Protection 1; mode=block
+    Header always set Referrer-Policy strict-origin-when-cross-origin
+    Header always set Strict-Transport-Security max-age=31536000; includeSubDomains; preload env=HTTPS
+
+    # Cache static assets
+    <FilesMatch \.(js|css|woff2?|png|jpe?g|svg|webp|ico)$>
+        Header set Cache-Control public, max-age=31536000, immutable
+    </FilesMatch>
+
+    # No-cache on HTML
+    <FilesMatch \.html$>
+        Header set Cache-Control no-cache, no-store, must-revalidate
+        Header set Pragma no-cache
+        Header set Expires 0
+    </FilesMatch>
+</IfModule>
+
+# Gzip compression
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/html text/plain text/css
+    AddOutputFilterByType DEFLATE application/javascript application/json
+    AddOutputFilterByType DEFLATE image/svg+xml
+</IfModule>

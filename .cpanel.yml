@@ -1,11 +1,47 @@
 ---
+# ==============================================================================
+# DevCenterPoint ProERP — cPanel Git Version Control Deployment
+# ==============================================================================
+# Trigger: Every git push to the tracked branch in cPanel > Git Version Control
+#
+# Directory Layout (Multi-Project):
+#   /home/devcente/public_html/              → devcenterpoint.com  (PORTFOLIO)
+#   /home/devcente/projects/proerp/public/   → proerp.* + demoerp.* + *.devcenterpoint.com
+#   /home/devcente/projects/proerp/backend/  → Laravel app (NOT web-accessible)
+#   /home/devcente/scripts/                  → deployment scripts
+#
+# cPanel Subdomain Document Root settings (configure ONCE in cPanel > Subdomains):
+#   proerp.devcenterpoint.com   →  /home/devcente/projects/proerp/public
+#   demoerp.devcenterpoint.com  →  /home/devcente/projects/proerp/public
+#   *.devcenterpoint.com        →  /home/devcente/projects/proerp/public  (wildcard)
+# ==============================================================================
 deployment:
   tasks:
-    - /bin/mkdir -p /home/devcente/backend
+    # --- Scaffold directory tree ---
+    - /bin/mkdir -p /home/devcente/projects/proerp/public
+    - /bin/mkdir -p /home/devcente/projects/proerp/backend
     - /bin/mkdir -p /home/devcente/public_html
     - /bin/mkdir -p /home/devcente/scripts
-    - /bin/cp -Rf backend/. /home/devcente/backend/
-    - /bin/cp -Rf public_html/. /home/devcente/public_html/
-    - /bin/cp -rf scripts/* /home/devcente/scripts/
+
+    # --- Deploy Laravel backend (Git VC handles this) ---
+    - /bin/cp -Rf backend/. /home/devcente/projects/proerp/backend/
+
+    # --- Deploy static SPA entry-point shim and .htaccess ---
+    # NOTE: The compiled frontend dist/ (index.html + assets/) is NOT deployed
+    # by Git VC because it is gitignored. You must manually upload frontend/dist/
+    # contents to /home/devcente/projects/proerp/public/ after running:
+    #   cd frontend && npm run build
+    # This step only syncs the PHP bootstrap, .htaccess, and static assets
+    # that ARE tracked in git inside the public_html/ source directory.
+    - /bin/cp -Rf public_html/. /home/devcente/projects/proerp/public/
+
+    # --- Deploy scripts ---
+    - /bin/cp -rf scripts/. /home/devcente/scripts/
     - /bin/chmod +x /home/devcente/scripts/*.sh
+
+    # --- Ensure portfolio placeholder exists (devcenterpoint.com) ---
+    # This will NOT overwrite an existing portfolio — only creates if missing.
+    - /bin/test -f /home/devcente/public_html/index.html || /bin/cp /home/devcente/scripts/portfolio-placeholder.html /home/devcente/public_html/index.html
+
+    # --- Run the main backend deployment script ---
     - /bin/bash /home/devcente/scripts/deploy-cpanel.sh
