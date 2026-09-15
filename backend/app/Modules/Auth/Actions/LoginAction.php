@@ -208,6 +208,11 @@ class LoginAction extends Action
                 ->orWhereHas('employee.designation', static function ($dq) use ($identifier, $clean): void {
                     $dq->whereRaw('LOWER(name) = ?', [$clean])
                         ->orWhere('name', 'LIKE', '%' . $identifier . '%');
+                })
+                ->orWhereHas('tenant', static function ($tq) use ($identifier, $clean): void {
+                    $tq->whereRaw('LOWER(slug) = ?', [$clean])
+                        ->orWhereRaw('LOWER(name) = ?', [$clean])
+                        ->orWhere('slug', 'LIKE', '%' . $identifier . '%');
                 });
         });
 
@@ -233,6 +238,9 @@ class LoginAction extends Action
             }
             if ($u->roles->contains(static fn ($r): bool => strtolower($r->name) === $clean || strtolower($r->slug ?? '') === $clean)) {
                 return 60;
+            }
+            if (strtolower($u->tenant?->slug ?? '') === $clean) {
+                return 55;
             }
             return 10;
         })->values();
