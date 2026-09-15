@@ -2,6 +2,10 @@
 # DevCenterPoint ProERP — Production Apache Configuration for cPanel public_html
 # ==============================================================================
 
+<IfModule mod_dir.c>
+    DirectoryIndex index.html index.php
+</IfModule>
+
 <IfModule mod_rewrite.c>
     <IfModule mod_negotiation.c>
         Options -MultiViews -Indexes
@@ -36,7 +40,8 @@
     RewriteRule ^ - [L]
 
     # 7. SPA fallback: If index.html exists, route all browser routes to SPA
-    RewriteCond %{DOCUMENT_ROOT}/index.html -f
+    RewriteCond %{DOCUMENT_ROOT}/index.html -f [OR]
+    RewriteCond index.html -f
     RewriteRule ^ index.html [L]
 
     # 8. Fallback: If no SPA index.html is present, pass to Laravel index.php

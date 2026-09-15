@@ -40,6 +40,12 @@ Follow this strict directory structure:
 
 ## 2. Step-by-Step Deployment Instructions
 
+### Step 0: Set PHP 8.4 in cPanel MultiPHP Manager
+1. In cPanel, search for and open **MultiPHP Manager**.
+2. Select your domains: `devcenterpoint.com` and `proerp.devcenterpoint.com`.
+3. In the **PHP Version** dropdown at the top right, select **`ea-php84`** (PHP 8.4).
+4. Click **Apply**.
+
 ### Step 1: Database Setup
 1. Log into your **Websuru cPanel Dashboard**.
 2. Navigate to **MySQL® Databases** (or **MySQL® Database Wizard**).

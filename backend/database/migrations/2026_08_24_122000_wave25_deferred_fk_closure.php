@@ -28,7 +28,7 @@ return new class extends Migration
             $table->foreign(['tenant_id', 'salary_structure_id'], 'fk_employees_salary_structure')
                 ->references(['tenant_id', 'id'])
                 ->on('salary_structures')
-                ->nullOnDelete();
+                ->restrictOnDelete();
         });
 
         Schema::table('material_issue_items', function (Blueprint $table): void {

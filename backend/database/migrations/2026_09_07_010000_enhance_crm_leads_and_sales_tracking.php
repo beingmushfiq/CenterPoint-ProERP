@@ -32,12 +32,12 @@ return new class extends Migration
                 $table->foreign(['tenant_id', 'lead_id'], 'fk_sales_orders_lead')
                     ->references(['tenant_id', 'id'])
                     ->on('crm_leads')
-                    ->nullOnDelete();
+                    ->restrictOnDelete();
 
                 $table->foreign(['tenant_id', 'salesman_id'], 'fk_sales_orders_salesman')
                     ->references(['tenant_id', 'id'])
                     ->on('employees')
-                    ->nullOnDelete();
+                    ->restrictOnDelete();
             }
         });
 
@@ -49,12 +49,12 @@ return new class extends Migration
                 $table->foreign(['tenant_id', 'lead_id'], 'fk_invoices_lead')
                     ->references(['tenant_id', 'id'])
                     ->on('crm_leads')
-                    ->nullOnDelete();
+                    ->restrictOnDelete();
 
                 $table->foreign(['tenant_id', 'salesman_id'], 'fk_invoices_salesman')
                     ->references(['tenant_id', 'id'])
                     ->on('employees')
-                    ->nullOnDelete();
+                    ->restrictOnDelete();
             }
         });
     }
