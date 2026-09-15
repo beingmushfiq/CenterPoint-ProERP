@@ -51,7 +51,7 @@ final class PartiesTableSeeder extends Seeder
             'line1' => 'Plot 12, Postogola Industrial Area',
             'city' => 'Dhaka',
             'district' => 'Dhaka',
-            'country_code' => 'BGD',
+            'country_code' => 'BD',
             'is_default' => true,
         ]);
 
@@ -92,7 +92,7 @@ final class PartiesTableSeeder extends Seeder
             'line1' => 'Plot 4, Mirpur Industrial Sector',
             'city' => 'Dhaka',
             'district' => 'Dhaka',
-            'country_code' => 'BGD',
+            'country_code' => 'BD',
             'is_default' => true,
         ]);
 
@@ -144,7 +144,7 @@ final class PartiesTableSeeder extends Seeder
             'line1' => 'ACI Centre, 245 Tejgaon Industrial Area',
             'city' => 'Dhaka',
             'district' => 'Dhaka',
-            'country_code' => 'BGD',
+            'country_code' => 'BD',
             'is_default' => true,
         ]);
 
