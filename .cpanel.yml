@@ -9,9 +9,7 @@ deployment:
     - /bin/mkdir -p $PUBLIC_PATH
     - /bin/mkdir -p $SCRIPTS_PATH
     - /bin/cp -Rf backend/. $BACKEND_PATH/
-    - /bin/cp -f public_html/index.php $PUBLIC_PATH/index.php
-    - /bin/cp -f public_html/.htaccess $PUBLIC_PATH/.htaccess
-    - /bin/cp -f public_html/robots.txt $PUBLIC_PATH/robots.txt
+    - /bin/cp -Rf public_html/. $PUBLIC_PATH/
     - /bin/cp -rf scripts/* $SCRIPTS_PATH/
     - /bin/chmod +x $SCRIPTS_PATH/*.sh
     - /bin/bash $SCRIPTS_PATH/deploy-cpanel.sh

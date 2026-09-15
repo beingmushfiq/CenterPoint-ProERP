@@ -26,16 +26,32 @@ export const StorefrontShell: React.FC = () => {
   const tenantSubdomain = useAuthStore((state) => state.tenant?.subdomain);
 
   const host = typeof window !== 'undefined' ? (window.location.hostname.toLowerCase().split(':')[0] ?? '') : '';
+  const tenantBaseDomain = (import.meta.env['VITE_TENANT_BASE_DOMAIN'] || 'devcenterpoint.com').toLowerCase();
+
+  const hostSubdomain = (() => {
+    if (host && host.endsWith('.' + tenantBaseDomain)) {
+      const sub = host.slice(0, -(tenantBaseDomain.length + 1));
+      if (sub && !['www', 'api', 'mail', 'cpanel', 'webmail', 'proerp', 'platform', 'admin'].includes(sub)) {
+        return sub;
+      }
+    }
+    return undefined;
+  })();
+
   const isCustomDomain = Boolean(
     host &&
     !['localhost', '127.0.0.1'].includes(host) &&
+    !hostSubdomain &&
     !host.startsWith('admin.') &&
     !host.startsWith('platform.') &&
     !host.startsWith('app.') &&
-    !host.startsWith('erp.')
+    !host.startsWith('erp.') &&
+    !host.startsWith('proerp.')
   );
 
-  const [activeSubdomain, setActiveSubdomain] = useState<string>(paramSubdomain || tenantSubdomain || 'store');
+  const [activeSubdomain, setActiveSubdomain] = useState<string>(
+    paramSubdomain || hostSubdomain || tenantSubdomain || 'store'
+  );
   const subdomain = activeSubdomain;
 
   const [config, setConfig] = useState<StorefrontConfig | null>(null);
@@ -51,7 +67,9 @@ export const StorefrontShell: React.FC = () => {
       setError(null);
       try {
         const headers: Record<string, string> = {};
-        if (isCustomDomain) {
+        if (hostSubdomain) {
+          headers['X-Storefront-Subdomain'] = hostSubdomain;
+        } else if (isCustomDomain) {
           headers['X-Storefront-Domain'] = host;
         } else if (paramSubdomain) {
           headers['X-Storefront-Subdomain'] = paramSubdomain;

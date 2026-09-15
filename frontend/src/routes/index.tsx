@@ -201,34 +201,27 @@ const isMasterPlatformDomain = (() => {
   return host === masterDomain || host.startsWith('proerp.') || host.startsWith('platform.') || host.startsWith('admin.');
 })();
 
-const isStorefrontCustomDomain = (() => {
+const isTenantStorefrontDomain = (() => {
   if (typeof window === 'undefined' || !window.location) return false;
   const rawHost = window.location.hostname;
   if (!rawHost) return false;
   const host = rawHost.toLowerCase().split(':')[0] ?? '';
   if (!host || ['localhost', '127.0.0.1'].includes(host)) return false;
 
-  const masterDomain = (import.meta.env['VITE_MASTER_DOMAIN'] || 'proerp.devcenterpoint.com').toLowerCase();
+  // Master platform domain is strictly for platform admin
+  if (isMasterPlatformDomain) {
+    return false;
+  }
+
   const tenantBaseDomain = (import.meta.env['VITE_TENANT_BASE_DOMAIN'] || 'devcenterpoint.com').toLowerCase();
 
-  // If host is the master domain or an admin/erp subdomain, it is not a public custom storefront
-  if (
-    host === masterDomain ||
-    host.startsWith('proerp.') ||
-    host.startsWith('platform.') ||
-    host.startsWith('admin.') ||
-    host.startsWith('app.') ||
-    host.startsWith('erp.')
-  ) {
-    return false;
-  }
-
-  // Tenant subdomains on devcenterpoint.com (e.g. {slug}.devcenterpoint.com) are tenant ERPs
+  // Tenant subdomains on devcenterpoint.com (e.g. {slug}.devcenterpoint.com) serve public E-commerce Storefront at root "/"
   if (host.endsWith('.' + tenantBaseDomain)) {
-    return false;
+    const sub = host.slice(0, -(tenantBaseDomain.length + 1));
+    return Boolean(sub && !['www', 'api', 'mail', 'cpanel', 'webmail', 'proerp', 'platform', 'admin'].includes(sub));
   }
 
-  // Any other external domain (e.g. custombrand.com) is treated as a verified custom storefront
+  // Any verified custom domain (e.g. brandstore.com) is also a public storefront
   return true;
 })();
 
@@ -240,336 +233,397 @@ function RootLayout() {
 export const router = createBrowserRouter([
   {
     element: <RootLayout />,
-    children: [
-      // If accessing through master platform domain at root "/", redirect to /platform
-  ...(isMasterPlatformDomain
-    ? [
-        {
-          path: '/',
-          element: <Navigate to="/platform" replace />,
-        },
-      ]
-    : []),
+    children: isMasterPlatformDomain
+      ? [
+          // =========================================================================
+          // 1. MASTER CONTROL PLANE DOMAIN (proerp.devcenterpoint.com)
+          // =========================================================================
+          {
+            path: '/',
+            element: <Navigate to="/platform" replace />,
+          },
+          {
+            path: '/login',
+            element: (
+              <Suspense fallback={<RouteLoadingFallback />}>
+                <PlatformLoginPage />
+              </Suspense>
+            ),
+          },
+          {
+            path: '/platform/login',
+            element: (
+              <Suspense fallback={<RouteLoadingFallback />}>
+                <PlatformLoginPage />
+              </Suspense>
+            ),
+          },
+          {
+            path: '/platform',
+            element: <PlatformProtectedRoute />,
+            errorElement: <RouteErrorBoundary />,
+            children: [
+              {
+                element: <PlatformShell />,
+                children: [
+                  {
+                    index: true,
+                    element: <PlatformDashboardWorkspace />,
+                  },
+                  {
+                    path: 'tenants',
+                    element: <TenantDirectoryWorkspace />,
+                  },
+                  {
+                    path: 'tenants/new',
+                    element: <TenantRegistrationWizard />,
+                  },
+                  {
+                    path: 'tenants/:id',
+                    element: <TenantDetailWorkspace />,
+                  },
+                  {
+                    path: 'plans',
+                    element: <PlanManagerWorkspace />,
+                  },
+                  {
+                    path: 'payments',
+                    element: <PlatformPaymentsWorkspace />,
+                  },
+                  {
+                    path: 'feature-flags',
+                    element: <PlatformFeatureFlagsWorkspace />,
+                  },
+                  {
+                    path: 'announcements',
+                    element: <PlatformAnnouncementsWorkspace />,
+                  },
+                  {
+                    path: 'support',
+                    element: <PlatformSupportWorkspace />,
+                  },
+                  {
+                    path: 'audit-logs',
+                    element: <PlatformAuditWorkspace />,
+                  },
+                  {
+                    path: 'errors',
+                    element: <PlatformErrorMonitoringWorkspace />,
+                  },
+                  {
+                    path: 'admins',
+                    element: <PlatformAdminWorkspace />,
+                  },
+                  {
+                    path: 'settings',
+                    element: <PlatformSettingsWorkspace />,
+                  },
+                  {
+                    path: '*',
+                    element: <NotFoundPage />,
+                  },
+                ],
+              },
+            ],
+          },
+          // On master platform domain, any unknown path goes to /platform
+          {
+            path: '*',
+            element: <Navigate to="/platform" replace />,
+          },
+        ]
+      : [
+          // =========================================================================
+          // 2. TENANT SUBDOMAINS ({tenant}.devcenterpoint.com) & LOCAL ENVIRONMENT
+          // =========================================================================
+          // On tenant subdomains or custom domains: Root "/" is the Public E-Commerce Storefront
+          ...(isTenantStorefrontDomain
+            ? [
+                {
+                  path: '/',
+                  element: <StorefrontShell />,
+                  errorElement: <RouteErrorBoundary />,
+                  children: storefrontRouteChildren,
+                },
+              ]
+            : [
+                // Local dev paths for Storefront testing
+                {
+                  path: '/store',
+                  element: <StorefrontRedirect />,
+                },
+                {
+                  path: '/store/:subdomain',
+                  element: <StorefrontShell />,
+                  errorElement: <RouteErrorBoundary />,
+                  children: storefrontRouteChildren,
+                },
+              ]),
 
-  // If accessing through a verified custom storefront domain, serve the storefront at root "/"
-  ...(isStorefrontCustomDomain
-    ? [
-        {
-          path: '/',
-          element: <StorefrontShell />,
-          errorElement: <RouteErrorBoundary />,
-          children: storefrontRouteChildren,
-        },
-      ]
-    : []),
+          // Tenant ERP Login: /login ALWAYS renders the Tenant ERP Login on tenant subdomains
+          {
+            path: '/login',
+            element: (
+              <Suspense fallback={<RouteLoadingFallback />}>
+                <LoginPage />
+              </Suspense>
+            ),
+          },
 
-  // Public Headless Storefront Routes (subdomain-based)
-  {
-    path: '/store',
-    element: <StorefrontRedirect />,
-  },
-  {
-    path: '/store/:subdomain',
-    element: <StorefrontShell />,
-    errorElement: <RouteErrorBoundary />,
-    children: storefrontRouteChildren,
-  },
+          // Local dev convenience: allow accessing platform login on localhost
+          ...(!isTenantStorefrontDomain
+            ? [
+                {
+                  path: '/platform/login',
+                  element: (
+                    <Suspense fallback={<RouteLoadingFallback />}>
+                      <PlatformLoginPage />
+                    </Suspense>
+                  ),
+                },
+                {
+                  path: '/platform',
+                  element: <PlatformProtectedRoute />,
+                  errorElement: <RouteErrorBoundary />,
+                  children: [
+                    {
+                      element: <PlatformShell />,
+                      children: [
+                        { index: true, element: <PlatformDashboardWorkspace /> },
+                        { path: 'tenants', element: <TenantDirectoryWorkspace /> },
+                        { path: 'tenants/new', element: <TenantRegistrationWizard /> },
+                        { path: 'tenants/:id', element: <TenantDetailWorkspace /> },
+                        { path: 'plans', element: <PlanManagerWorkspace /> },
+                        { path: 'payments', element: <PlatformPaymentsWorkspace /> },
+                        { path: 'feature-flags', element: <PlatformFeatureFlagsWorkspace /> },
+                        { path: 'announcements', element: <PlatformAnnouncementsWorkspace /> },
+                        { path: 'support', element: <PlatformSupportWorkspace /> },
+                        { path: 'audit-logs', element: <PlatformAuditWorkspace /> },
+                        { path: 'errors', element: <PlatformErrorMonitoringWorkspace /> },
+                        { path: 'admins', element: <PlatformAdminWorkspace /> },
+                        { path: 'settings', element: <PlatformSettingsWorkspace /> },
+                        { path: '*', element: <NotFoundPage /> },
+                      ],
+                    },
+                  ],
+                },
+              ]
+            : []),
 
-  // Master SaaS Admin Platform Routes
-  {
-    path: '/platform/login',
-    element: (
-      <Suspense fallback={<RouteLoadingFallback />}>
-        <PlatformLoginPage />
-      </Suspense>
-    ),
-  },
-  {
-    path: '/platform',
-    element: <PlatformProtectedRoute />,
-    errorElement: <RouteErrorBoundary />,
-    children: [
-      {
-        element: <PlatformShell />,
-        children: [
+          // Tenant ERP Application Workspaces (Slice Mart, etc.)
           {
-            index: true,
-            element: <PlatformDashboardWorkspace />,
-          },
-          {
-            path: 'tenants',
-            element: <TenantDirectoryWorkspace />,
-          },
-          {
-            path: 'tenants/new',
-            element: <TenantRegistrationWizard />,
-          },
-          {
-            path: 'tenants/:id',
-            element: <TenantDetailWorkspace />,
-          },
-          {
-            path: 'plans',
-            element: <PlanManagerWorkspace />,
-          },
-          {
-            path: 'payments',
-            element: <PlatformPaymentsWorkspace />,
-          },
-          {
-            path: 'feature-flags',
-            element: <PlatformFeatureFlagsWorkspace />,
-          },
-          {
-            path: 'announcements',
-            element: <PlatformAnnouncementsWorkspace />,
-          },
-          {
-            path: 'support',
-            element: <PlatformSupportWorkspace />,
-          },
-          {
-            path: 'audit-logs',
-            element: <PlatformAuditWorkspace />,
-          },
-          {
-            path: 'errors',
-            element: <PlatformErrorMonitoringWorkspace />,
-          },
-          {
-            path: 'admins',
-            element: <PlatformAdminWorkspace />,
-          },
-          {
-            path: 'settings',
-            element: <PlatformSettingsWorkspace />,
+            path: '/',
+            element: <ProtectedRoute />,
+            errorElement: <RouteErrorBoundary />,
+            children: [
+              {
+                element: <AppShell />,
+                children: [
+                  // For localhost / standard workspace (not storefront root), index route is Tenant ERP Dashboard
+                  ...(!isTenantStorefrontDomain
+                    ? [
+                        {
+                          index: true,
+                          element: <TenantRoleDashboard />,
+                        },
+                      ]
+                    : []),
+                  {
+                    path: 'dashboard',
+                    element: <TenantRoleDashboard />,
+                  },
+                  {
+                    path: 'tutorial',
+                    element: <InteractiveTutorialWorkspace />,
+                  },
+                  {
+                    path: 'guide',
+                    element: <Navigate to="/tutorial" replace />,
+                  },
+                  {
+                    path: 'overview',
+                    element: <Navigate to="/dashboard" replace />,
+                  },
+                  {
+                    path: 'catalogue',
+                    element: <CatalogueWorkspace />,
+                  },
+                  {
+                    path: 'production',
+                    element: <ProductionWorkspace />,
+                  },
+                  {
+                    path: 'qc',
+                    element: <QcWorkspace />,
+                  },
+                  {
+                    path: 'inventory',
+                    element: <InventoryWorkspace />,
+                  },
+                  {
+                    path: 'purchasing',
+                    element: <PurchasingWorkspace />,
+                  },
+                  {
+                    path: 'procurement',
+                    element: <Navigate to="/purchasing" replace />,
+                  },
+                  {
+                    path: 'sales',
+                    element: <SalesWorkspace />,
+                  },
+                  {
+                    path: 'pos',
+                    element: <PosWorkspace />,
+                  },
+                  {
+                    path: 'logistics',
+                    element: <DeliveryWorkspace />,
+                  },
+                  {
+                    path: 'delivery',
+                    element: <Navigate to="/logistics" replace />,
+                  },
+                  {
+                    path: 'finance',
+                    element: <FinanceWorkspace />,
+                  },
+                  {
+                    path: 'accounting',
+                    element: <Navigate to="/finance" replace />,
+                  },
+                  {
+                    path: 'assets',
+                    element: <AssetsWorkspace />,
+                  },
+                  {
+                    path: 'hr',
+                    element: <HrWorkspace />,
+                  },
+                  {
+                    path: 'workforce',
+                    element: <HrWorkspace />,
+                  },
+                  {
+                    path: 'payroll',
+                    element: <Navigate to="/hr?tab=payroll" replace />,
+                  },
+                  {
+                    path: 'employees',
+                    element: <Navigate to="/workforce?tab=employees" replace />,
+                  },
+                  {
+                    path: 'attendance',
+                    element: <Navigate to="/workforce?tab=attendance" replace />,
+                  },
+                  {
+                    path: 'reports',
+                    element: <ReportsWorkspace />,
+                  },
+                  {
+                    path: 'rms',
+                    element: <Navigate to="/reports" replace />,
+                  },
+                  {
+                    path: 'storefront',
+                    element: <StorefrontSettingsWorkspace />,
+                  },
+                  {
+                    path: 'storefront/builder',
+                    element: <StorefrontPageBuilderWorkspace />,
+                  },
+                  {
+                    path: 'audit-logs',
+                    element: <ActivityLogWorkspace />,
+                  },
+                  {
+                    path: 'activity-logs',
+                    element: <ActivityLogWorkspace />,
+                  },
+                  {
+                    path: 'audit',
+                    element: <Navigate to="/audit-logs" replace />,
+                  },
+                  {
+                    path: 'users',
+                    element: <UsersManagementWorkspace />,
+                  },
+                  {
+                    path: 'roles',
+                    element: <RolesManagementWorkspace />,
+                  },
+                  {
+                    path: 'settings',
+                    element: <SettingsCenterWorkspace />,
+                  },
+                  {
+                    path: 'settings/users',
+                    element: <UsersManagementWorkspace />,
+                  },
+                  {
+                    path: 'settings/roles',
+                    element: <RolesManagementWorkspace />,
+                  },
+                  {
+                    path: 'settings/audit-logs',
+                    element: <ActivityLogWorkspace />,
+                  },
+                  {
+                    path: 'settings/profile',
+                    element: <ProfileSettingsWorkspace />,
+                  },
+                  {
+                    path: 'settings/seo',
+                    element: <SeoDiscoverabilityWorkspace />,
+                  },
+                  {
+                    path: 'settings/bin',
+                    element: <DataBinWorkspace />,
+                  },
+                  {
+                    path: 'bin',
+                    element: <Navigate to="/settings/bin" replace />,
+                  },
+                  {
+                    path: 'settings/workflows',
+                    element: <WorkflowAutomationWorkspace />,
+                  },
+                  {
+                    path: 'workflows',
+                    element: <Navigate to="/settings/workflows" replace />,
+                  },
+                  {
+                    path: 'seo',
+                    element: <Navigate to="/settings/seo" replace />,
+                  },
+                  {
+                    path: 'onboarding',
+                    element: <OnboardingWizard />,
+                  },
+                  {
+                    path: 'settings/:group',
+                    element: <SettingsCenterWorkspace />,
+                  },
+                  {
+                    path: 'profile',
+                    element: <ProfileSettingsWorkspace />,
+                  },
+                  {
+                    path: '*',
+                    element: <NotFoundPage />,
+                  },
+                ],
+              },
+            ],
           },
           {
             path: '*',
-            element: <NotFoundPage />,
+            element: (
+              <Suspense fallback={<RouteLoadingFallback />}>
+                <NotFoundPage />
+              </Suspense>
+            ),
           },
         ],
-      },
-    ],
-  },
-
-  // Tenant Application Routes (Slice Mart as Tenant #1)
-  {
-    path: '/login',
-    element: (
-      <Suspense fallback={<RouteLoadingFallback />}>
-        <LoginPage />
-      </Suspense>
-    ),
-  },
-  {
-    path: '/',
-    element: <ProtectedRoute />,
-    errorElement: <RouteErrorBoundary />,
-    children: [
-      {
-        element: <AppShell />,
-        children: [
-          {
-            index: true,
-            element: <TenantRoleDashboard />,
-          },
-          {
-            path: 'dashboard',
-            element: <TenantRoleDashboard />,
-          },
-          {
-            path: 'tutorial',
-            element: <InteractiveTutorialWorkspace />,
-          },
-          {
-            path: 'guide',
-            element: <Navigate to="/tutorial" replace />,
-          },
-          {
-            path: 'overview',
-            element: <Navigate to="/dashboard" replace />,
-          },
-          {
-            path: 'catalogue',
-            element: <CatalogueWorkspace />,
-          },
-          {
-            path: 'production',
-            element: <ProductionWorkspace />,
-          },
-          {
-            path: 'qc',
-            element: <QcWorkspace />,
-          },
-          {
-            path: 'inventory',
-            element: <InventoryWorkspace />,
-          },
-          {
-            path: 'purchasing',
-            element: <PurchasingWorkspace />,
-          },
-          {
-            path: 'procurement',
-            element: <Navigate to="/purchasing" replace />,
-          },
-          {
-            path: 'sales',
-            element: <SalesWorkspace />,
-          },
-          {
-            path: 'pos',
-            element: <PosWorkspace />,
-          },
-          {
-            path: 'logistics',
-            element: <DeliveryWorkspace />,
-          },
-          {
-            path: 'delivery',
-            element: <Navigate to="/logistics" replace />,
-          },
-          {
-            path: 'finance',
-            element: <FinanceWorkspace />,
-          },
-          {
-            path: 'accounting',
-            element: <Navigate to="/finance" replace />,
-          },
-          {
-            path: 'assets',
-            element: <AssetsWorkspace />,
-          },
-          {
-            path: 'hr',
-            element: <HrWorkspace />,
-          },
-          {
-            path: 'workforce',
-            element: <HrWorkspace />,
-          },
-          {
-            path: 'payroll',
-            element: <Navigate to="/hr?tab=payroll" replace />,
-          },
-          {
-            path: 'employees',
-            element: <Navigate to="/workforce?tab=employees" replace />,
-          },
-          {
-            path: 'attendance',
-            element: <Navigate to="/workforce?tab=attendance" replace />,
-          },
-          {
-            path: 'reports',
-            element: <ReportsWorkspace />,
-          },
-          {
-            path: 'rms',
-            element: <Navigate to="/reports" replace />,
-          },
-          {
-            path: 'storefront',
-            element: <StorefrontSettingsWorkspace />,
-          },
-          {
-            path: 'storefront/builder',
-            element: <StorefrontPageBuilderWorkspace />,
-          },
-          {
-            path: 'audit-logs',
-            element: <ActivityLogWorkspace />,
-          },
-          {
-            path: 'activity-logs',
-            element: <ActivityLogWorkspace />,
-          },
-          {
-            path: 'audit',
-            element: <Navigate to="/audit-logs" replace />,
-          },
-          {
-            path: 'users',
-            element: <UsersManagementWorkspace />,
-          },
-          {
-            path: 'roles',
-            element: <RolesManagementWorkspace />,
-          },
-          {
-            path: 'settings',
-            element: <SettingsCenterWorkspace />,
-          },
-          {
-            path: 'settings/users',
-            element: <UsersManagementWorkspace />,
-          },
-          {
-            path: 'settings/roles',
-            element: <RolesManagementWorkspace />,
-          },
-          {
-            path: 'settings/audit-logs',
-            element: <ActivityLogWorkspace />,
-          },
-          {
-            path: 'settings/profile',
-            element: <ProfileSettingsWorkspace />,
-          },
-          {
-            path: 'settings/seo',
-            element: <SeoDiscoverabilityWorkspace />,
-          },
-          {
-            path: 'settings/bin',
-            element: <DataBinWorkspace />,
-          },
-          {
-            path: 'bin',
-            element: <Navigate to="/settings/bin" replace />,
-          },
-          {
-            path: 'settings/workflows',
-            element: <WorkflowAutomationWorkspace />,
-          },
-          {
-            path: 'workflows',
-            element: <Navigate to="/settings/workflows" replace />,
-          },
-          {
-            path: 'seo',
-            element: <Navigate to="/settings/seo" replace />,
-          },
-          {
-            path: 'onboarding',
-            element: <OnboardingWizard />,
-          },
-          {
-            path: 'settings/:group',
-            element: <SettingsCenterWorkspace />,
-          },
-          {
-            path: 'profile',
-            element: <ProfileSettingsWorkspace />,
-          },
-          {
-            path: '*',
-            element: <NotFoundPage />,
-          },
-        ],
-      },
-    ],
-  },
-  {
-    path: '*',
-    element: (
-      <Suspense fallback={<RouteLoadingFallback />}>
-        <NotFoundPage />
-      </Suspense>
-    ),
-  },
-    ],
   },
 ]);

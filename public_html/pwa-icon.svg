@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="pwaBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0F172A" />
+      <stop offset="100%" stop-color="#020617" />
+    </linearGradient>
+
+    <linearGradient id="pwaBlue" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38BDF8" />
+      <stop offset="50%" stop-color="#2563EB" />
+      <stop offset="100%" stop-color="#1D4ED8" />
+    </linearGradient>
+
+    <radialGradient id="pwaHeat" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#F59E0B" stop-opacity="1" />
+      <stop offset="60%" stop-color="#EA580C" stop-opacity="0.8" />
+      <stop offset="100%" stop-color="#DC2626" stop-opacity="0" />
+    </radialGradient>
+
+    <filter id="pwaGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="10" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <rect width="512" height="512" fill="url(#pwaBg)" />
+  <rect width="496" height="496" x="8" y="8" rx="100" fill="none" stroke="#38BDF8" stroke-opacity="0.2" stroke-width="6" />
+
+  <!-- Industrial Sawtooth Factory Roofline -->
+  <path d="M104 368 V 240 L 176 290 V 240 L 248 290 V 240 L 320 290 V 368 Z" fill="#1E293B" opacity="0.85" />
+
+  <!-- Infrared Cooker Heat Coils -->
+  <circle cx="340" cy="270" r="105" fill="none" stroke="#2563EB" stroke-width="14" stroke-dasharray="16 8" filter="url(#pwaGlow)" opacity="0.9" />
+  <circle cx="340" cy="270" r="75" fill="none" stroke="#F59E0B" stroke-width="10" opacity="0.85" />
+  <circle cx="340" cy="270" r="45" fill="url(#pwaHeat)" />
+  <circle cx="340" cy="270" r="22" fill="#FEF3C7" />
+
+  <!-- Slice Dynamic S-Bevel -->
+  <path d="M140 368 L 220 120 L 275 120 L 195 368 Z" fill="url(#pwaBlue)" filter="url(#pwaGlow)" />
+  
+  <!-- Foundation Bar -->
+  <rect x="80" y="368" width="352" height="18" rx="9" fill="#38BDF8" />
+  
+  <circle cx="176" cy="180" r="10" fill="#38BDF8" opacity="0.7" />
+  <circle cx="248" cy="160" r="14" fill="#38BDF8" opacity="0.5" />
+</svg>
