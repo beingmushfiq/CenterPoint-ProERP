@@ -10,11 +10,11 @@ import { toggleThemeWithTransition } from '../../lib/theme/themeTransition';
 import { useTenantBranding } from '../../lib/theme/useTenantBranding';
 
 const QUICK_ROLES = [
-  { label: 'Admin', role: 'Full Access', email: 'admin@slicemart.test', icon: ShieldCheck },
-  { label: 'Production', role: 'Factory Floor', email: 'production@slicemart.test', icon: Factory },
-  { label: 'QC Inspector', role: 'Quality QA', email: 'qc@slicemart.test', icon: ClipboardCheck },
-  { label: 'Storekeeper', role: 'Inventory', email: 'store@slicemart.test', icon: Boxes },
-  { label: 'Sales Officer', role: 'Commercial / POS', email: 'sales@slicemart.test', icon: ShoppingCart },
+  { label: 'Admin', role: 'Full Access', email: 'admin@demoerp.com', icon: ShieldCheck },
+  { label: 'Production', role: 'Factory Floor', email: 'production@demoerp.com', icon: Factory },
+  { label: 'QC Inspector', role: 'Quality QA', email: 'qc@demoerp.com', icon: ClipboardCheck },
+  { label: 'Storekeeper', role: 'Inventory', email: 'store@demoerp.com', icon: Boxes },
+  { label: 'Sales Officer', role: 'Commercial / POS', email: 'sales@demoerp.com', icon: ShoppingCart },
 ] as const;
 
 const loginSchema = z.object({

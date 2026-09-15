@@ -17,21 +17,27 @@ final class PlansAndTenantsSeeder extends Seeder
         $this->call(PlansSeeder::class);
         $enterprisePlanId = DB::table('plans')->where('code', 'ENTERPRISE')->value('id');
 
-        // 2. Seed Default Demo Tenant (SliceMart)
-        $tenant = Tenant::where('slug', 'slicemart')->first();
+        // 2. Seed Flagship Client (CenterPoint ProERP - slug: demoerp)
+        $tenant = Tenant::find(1) ?? Tenant::where('slug', 'demoerp')->orWhere('slug', 'slicemart')->first();
         if (! $tenant) {
             $tenant = Tenant::create([
                 'id' => 1,
                 'uuid' => (string) Str::uuid(),
                 'plan_id' => $enterprisePlanId,
-                'name' => 'SliceMart',
-                'slug' => 'slicemart',
+                'name' => 'CenterPoint ProERP',
+                'slug' => 'demoerp',
                 'status' => 'active',
                 'currency_code' => 'BDT',
                 'timezone' => 'Asia/Dhaka',
                 'locale' => 'en',
                 'date_format' => 'Y-m-d',
                 'number_format' => 'standard',
+            ]);
+        } else {
+            $tenant->update([
+                'name' => 'CenterPoint ProERP',
+                'slug' => 'demoerp',
+                'status' => 'active',
             ]);
         }
 
@@ -51,22 +57,29 @@ final class PlansAndTenantsSeeder extends Seeder
         }
 
         // 4. Seed Organization Hierarchy
-        $companyId = DB::table('companies')->where('tenant_id', $tenant->id)->value('id');
-        if (! $companyId) {
+        $company = DB::table('companies')->where('tenant_id', $tenant->id)->first();
+        if (! $company) {
             $companyId = DB::table('companies')->insertGetId([
                 'uuid' => (string) Str::uuid(),
                 'tenant_id' => $tenant->id,
-                'name' => 'SliceMart Appliances Ltd.',
-                'legal_name' => 'SliceMart Appliances Ltd.',
+                'name' => 'CenterPoint ProERP Ltd.',
+                'legal_name' => 'CenterPoint ProERP Ltd.',
                 'tax_identifier' => 'BIN-9876543210',
                 'registration_number' => 'REG-12345678',
                 'address' => 'Plot 45, Tejgaon Industrial Area, Dhaka',
-                'email' => 'info@slicemart.com',
+                'email' => 'info@devcenterpoint.com',
                 'phone' => '+88029876543',
                 'is_default' => true,
                 'is_active' => true,
                 'created_at' => now(),
                 'updated_at' => now(),
+            ]);
+        } else {
+            $companyId = $company->id;
+            DB::table('companies')->where('id', $companyId)->update([
+                'name' => 'CenterPoint ProERP Ltd.',
+                'legal_name' => 'CenterPoint ProERP Ltd.',
+                'email' => 'info@devcenterpoint.com',
             ]);
         }
 
@@ -142,5 +155,38 @@ final class PlansAndTenantsSeeder extends Seeder
                 ],
             ]);
         }
+
+        // 6. Bind Verified Domains for demoerp & slicemart
+        DB::table('tenant_domains')->updateOrInsert(
+            ['domain' => 'demoerp.devcenterpoint.com'],
+            [
+                'tenant_id' => $tenant->id,
+                'uuid' => (string) Str::uuid(),
+                'type' => 'platform_subdomain',
+                'is_primary' => true,
+                'verification_status' => 'verified',
+                'ssl_status' => 'active',
+                'verified_at' => now(),
+                'activated_at' => now(),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]
+        );
+
+        DB::table('tenant_domains')->updateOrInsert(
+            ['domain' => 'slicemart.devcenterpoint.com'],
+            [
+                'tenant_id' => $tenant->id,
+                'uuid' => (string) Str::uuid(),
+                'type' => 'custom_alias',
+                'is_primary' => false,
+                'verification_status' => 'verified',
+                'ssl_status' => 'active',
+                'verified_at' => now(),
+                'activated_at' => now(),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]
+        );
     }
 }

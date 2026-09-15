@@ -64,6 +64,7 @@ class User extends Authenticatable
     protected $fillable = [
         'uuid',
         'tenant_id',
+        'is_platform_user',
         'name',
         'email',
         'password',

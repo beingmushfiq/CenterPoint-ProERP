@@ -162,104 +162,116 @@ final class RolesAndPermissionsSeeder extends Seeder
         );
         $salesRole->permissions()->sync(array_values($salesPerms));
 
-        // 7. Seed Demo Users
+        // 7. Seed Demo Users for CenterPoint ProERP (demoerp.devcenterpoint.com)
         $defaultPassword = Hash::make('Password123!');
 
-        $adminUser = User::firstOrCreate(
-            ['email' => 'admin@slicemart.test'],
+        $demoUsers = [
             [
-                'uuid' => (string) Str::uuid(),
-                'tenant_id' => $tenantId,
+                'email' => 'admin@demoerp.com',
                 'name' => 'System Administrator',
-                'password' => $defaultPassword,
                 'phone' => '+8801700000001',
-                'status' => 'active',
-                'locale' => 'en',
-                'token_version' => 1,
-                'perm_version' => 1,
-            ]
-        );
-        $adminUser->roles()->syncWithoutDetaching([$superAdminRole->id]);
-
-        $prodUser = User::firstOrCreate(
-            ['email' => 'production@slicemart.test'],
+                'role' => $superAdminRole,
+            ],
             [
-                'uuid' => (string) Str::uuid(),
-                'tenant_id' => $tenantId,
+                'email' => 'production@demoerp.com',
                 'name' => 'Hasan Production Lead',
-                'password' => $defaultPassword,
                 'phone' => '+8801700000002',
-                'status' => 'active',
-                'locale' => 'en',
-                'token_version' => 1,
-                'perm_version' => 1,
-            ]
-        );
-        $prodUser->roles()->syncWithoutDetaching([$productionManagerRole->id]);
-
-        $qcUser = User::firstOrCreate(
-            ['email' => 'qc@slicemart.test'],
+                'role' => $productionManagerRole,
+            ],
             [
-                'uuid' => (string) Str::uuid(),
-                'tenant_id' => $tenantId,
+                'email' => 'qc@demoerp.com',
                 'name' => 'Farhana QC Lead',
-                'password' => $defaultPassword,
                 'phone' => '+8801700000003',
-                'status' => 'active',
-                'locale' => 'en',
-                'token_version' => 1,
-                'perm_version' => 1,
-            ]
-        );
-        $qcUser->roles()->syncWithoutDetaching([$qcRole->id]);
-
-        $storeUser = User::firstOrCreate(
-            ['email' => 'store@slicemart.test'],
+                'role' => $qcRole,
+            ],
             [
-                'uuid' => (string) Str::uuid(),
-                'tenant_id' => $tenantId,
+                'email' => 'store@demoerp.com',
                 'name' => 'Rafiq Store In-Charge',
-                'password' => $defaultPassword,
                 'phone' => '+8801700000004',
-                'status' => 'active',
-                'locale' => 'en',
-                'token_version' => 1,
-                'perm_version' => 1,
-            ]
-        );
-        $storeUser->roles()->syncWithoutDetaching([$storekeeperRole->id]);
-
-        $salesUser = User::firstOrCreate(
-            ['email' => 'sales@slicemart.test'],
+                'role' => $storekeeperRole,
+            ],
             [
-                'uuid' => (string) Str::uuid(),
-                'tenant_id' => $tenantId,
+                'email' => 'sales@demoerp.com',
                 'name' => 'Kamal Sales Officer',
-                'password' => $defaultPassword,
                 'phone' => '+8801700000005',
-                'status' => 'active',
-                'locale' => 'en',
-                'token_version' => 1,
-                'perm_version' => 1,
-            ]
-        );
-        $salesUser->roles()->syncWithoutDetaching([$salesRole->id]);
+                'role' => $salesRole,
+            ],
+            // Also keep slicemart aliases for compatibility
+            [
+                'email' => 'admin@slicemart.test',
+                'name' => 'System Administrator',
+                'phone' => '+8801700000011',
+                'role' => $superAdminRole,
+            ],
+            [
+                'email' => 'production@slicemart.test',
+                'name' => 'Hasan Production Lead',
+                'phone' => '+8801700000012',
+                'role' => $productionManagerRole,
+            ],
+            [
+                'email' => 'qc@slicemart.test',
+                'name' => 'Farhana QC Lead',
+                'phone' => '+8801700000013',
+                'role' => $qcRole,
+            ],
+            [
+                'email' => 'store@slicemart.test',
+                'name' => 'Rafiq Store In-Charge',
+                'phone' => '+8801700000014',
+                'role' => $storekeeperRole,
+            ],
+            [
+                'email' => 'sales@slicemart.test',
+                'name' => 'Kamal Sales Officer',
+                'phone' => '+8801700000015',
+                'role' => $salesRole,
+            ],
+        ];
 
-        // 8. Seed Platform Super Administrator (DevCenterPoint Staff - tenant_id = null)
-        if (!User::where('email', 'admin@devcenterpoint.com')->exists()) {
-            $platformAdmin = new User([
-                'uuid' => (string) Str::uuid(),
-                'name' => 'Platform Super Admin',
-                'email' => 'admin@devcenterpoint.com',
-                'password' => Hash::make('PlatformAdmin123!'),
-                'phone' => '+18005550199',
-                'status' => 'active',
-                'locale' => 'en',
-                'token_version' => 1,
-                'perm_version' => 1,
-            ]);
-            $platformAdmin->tenant_id = null;
-            $platformAdmin->save();
+        foreach ($demoUsers as $demoData) {
+            $user = User::withoutTenantScope()->where('email', $demoData['email'])->first();
+            if (!$user) {
+                $user = new User();
+                $user->uuid = (string) Str::uuid();
+                $user->email = $demoData['email'];
+            }
+            $user->tenant_id = $tenantId;
+            $user->name = $demoData['name'];
+            $user->password = $defaultPassword;
+            $user->phone = $demoData['phone'];
+            $user->status = 'active';
+            $user->locale = 'en';
+            $user->token_version = 1;
+            $user->perm_version = 1;
+            $user->is_platform_user = false;
+            $user->save();
+
+            $user->roles()->syncWithoutDetaching([$demoData['role']->id]);
+        }
+
+        // 8. Seed / Update Platform Super Administrator (DevCenterPoint Staff - tenant_id = null)
+        $platformAdmin = User::withoutTenantScope()->where('email', 'admin@devcenterpoint.com')->first();
+        if (!$platformAdmin) {
+            $platformAdmin = new User();
+            $platformAdmin->uuid = (string) Str::uuid();
+            $platformAdmin->email = 'admin@devcenterpoint.com';
+        }
+        $platformAdmin->name = 'Platform Super Admin';
+        $platformAdmin->password = Hash::make('PlatformAdmin123!');
+        $platformAdmin->phone = '+18005550199';
+        $platformAdmin->status = 'active';
+        $platformAdmin->locale = 'en';
+        $platformAdmin->token_version = 1;
+        $platformAdmin->perm_version = 1;
+        $platformAdmin->tenant_id = null;
+        $platformAdmin->is_platform_user = true;
+        $platformAdmin->save();
+
+        $platformOwnerRole = \App\Models\PlatformRole::where('slug', 'platform_owner')->first()
+            ?? \App\Models\PlatformRole::where('slug', 'super_admin')->first();
+        if ($platformOwnerRole) {
+            $platformAdmin->platformRoles()->syncWithoutDetaching([$platformOwnerRole->id]);
         }
     }
 }
