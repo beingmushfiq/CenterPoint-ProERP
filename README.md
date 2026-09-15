@@ -1,8 +1,5 @@
-<<<<<<< HEAD
 <div align="center">
 =======
-# CenterPoint ProERP — Multi-Tenant Enterprise Operating System
->>>>>>> 4b8cd68d05663aeb82ee5ba71c87f74296bcd119
 
 # ⚡ CenterPoint ProERP
 ### Next-Generation Industrial Manufacturing & Omnichannel Retail Operating System
@@ -36,7 +33,6 @@
 
 ---
 
-<<<<<<< HEAD
 ## 📊 Key Platform Metrics
 =======
 ## 📖 Executive Summary
@@ -56,9 +52,7 @@ Engineered under the **Master System Prompt** and the **Autonomous Implementatio
 │  Full Manufacturing,     │ Financial P&L, Balance   │ Steadfast, Pathao, REDX  │ 100% Type-Safe Frontend  │
 │  POS, B2B, HR & Assets   │ Sheets & Inventory Aging │ Automated Consignments   │ Zero Unmatched API Calls │
 └──────────────────────────┴──────────────────────────┴──────────────────────────┴──────────────────────────┘
-```
 
-<<<<<<< HEAD
 ---
 
 ## 🧭 Table of Contents
@@ -79,7 +73,6 @@ Engineered under the **Master System Prompt** and the **Autonomous Implementatio
 1. **Master Platform (`DevCenterPoint`):** Global superadmin surface for cross-tenant provisioning, subscription plans, platform telemetry, error diagnostics, and system-wide audit logging (`*/login`).
 2. **Tenant Management ERP (`CenterPoint ProERP`):** The primary operational hub for day-to-day business operations across manufacturing, warehousing, sales, finance, workforce, and courier dispatch (`*devcenterpoint.com/login`).
 3. **Public Headless Storefront:** Lightning-fast, mobile-first consumer storefront featuring instant cart synchronization, direct WhatsApp order routing, order status tracking, and dynamic SEO structured data (`*devcenterpoint.com`).
->>>>>>> 4b8cd68d05663aeb82ee5ba71c87f74296bcd119
 
 ---
 
