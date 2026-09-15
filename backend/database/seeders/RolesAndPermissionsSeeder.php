@@ -272,14 +272,12 @@ final class RolesAndPermissionsSeeder extends Seeder
         $platformAdmin->locale = 'en';
         $platformAdmin->token_version = 1;
         $platformAdmin->perm_version = 1;
-        $platformAdmin->is_platform_user = true;
         $platformAdmin->tenant_id = null;
         $platformAdmin->save();
 
-        // Ensure database raw column tenant_id is explicitly NULL and is_platform_user is 1
+        // Ensure database raw column tenant_id is explicitly NULL (is_platform_user will auto-evaluate to 1)
         DB::table('users')->where('id', $platformAdmin->id)->update([
             'tenant_id' => null,
-            'is_platform_user' => 1,
         ]);
 
         $platformOwnerRole = \App\Models\PlatformRole::where('slug', 'platform_owner')->first()
