@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { ShieldCheck, Truck, Clock, Store, MessageCircle, Phone, MapPin, Mail, ExternalLink } from 'lucide-react';
 import { getContrastColor } from '../../lib/storefront/themeSync';
 import type { StorefrontConfig } from '../../types/api/storefront';
-import { getStorefrontUrl } from '../../lib/storefront/storefrontUrl';
+import { getStorefrontUrl, normalizeStorefrontPath } from '../../lib/storefront/storefrontUrl';
 
 interface StorefrontFooterProps {
   config: StorefrontConfig | null;
@@ -77,11 +77,9 @@ export const StorefrontFooter: React.FC<StorefrontFooterProps> = ({ config }) =>
   const columns = customColumns || defaultColumns;
 
   const formatFooterUrl = (url: string) => {
-    if (url.startsWith('http://') || url.startsWith('https://')) return url;
-    // Already a correctly-prefixed path — return as-is
-    if (url.startsWith('/')) return url;
-    // Bare relative path — prefix with storefront base
-    return getStorefrontUrl(subdomain, `/${url}`);
+    // Normalises any URL: strips /store/:subdomain prefixes, resolves aliases,
+    // and returns a clean storefront-relative path (or absolute external URL).
+    return normalizeStorefrontPath(subdomain, url);
   };
 
   return (
@@ -90,7 +88,7 @@ export const StorefrontFooter: React.FC<StorefrontFooterProps> = ({ config }) =>
         backgroundColor: footerBg || undefined,
         color: footerTextColor || undefined,
       }}
-      className={`mt-20 border-t transition-colors ${
+      className={`mt-20 border-t transition-colors w-full max-w-full overflow-x-hidden ${
         isDarkFooter ? 'border-white/10' : 'border-slate-200 dark:border-zinc-800/80'
       } ${!footerBg ? 'bg-white dark:bg-zinc-950/90 text-slate-600 dark:text-zinc-400' : ''}`}
     >

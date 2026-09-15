@@ -201,7 +201,7 @@ export const StorefrontShell: React.FC = () => {
 
       <div className="w-full max-w-full overflow-x-hidden">
         <StorefrontHeader config={config} subdomain={subdomain} />
-        <main className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
+        <main className="mx-auto w-full max-w-7xl px-3 sm:px-6 lg:px-8 py-6 sm:py-8 overflow-x-hidden">
           <Suspense fallback={<StorefrontRouteLoadingFallback />}>
             <Outlet context={{ config, subdomain }} />
           </Suspense>

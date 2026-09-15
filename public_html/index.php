@@ -60,4 +60,3 @@ if (!isset($_SERVER['HTTP_AUTHORIZATION'])) {
 $app = require_once $backendPath . '/bootstrap/app.php';
 
 $app->handleRequest(Request::capture());
-

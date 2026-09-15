@@ -91,23 +91,94 @@ export function getStorefrontUrl(subdomain: string, path: string = '/'): string 
  *
  * If the ERP is on the master domain (proerp.*) and we know the tenant's
  * subdomain, we build the full external storefront URL instead.
+ *
+ * From a tenant subdomain ERP (e.g. demoerp.devcenterpoint.com/dashboard),
+ * we also return the full external URL so it opens correctly.
  */
 export function getStorefrontExternalUrl(subdomain: string, path: string = '/'): string {
   if (typeof window === 'undefined') return getStorefrontUrl(subdomain, path);
 
   const host = window.location.hostname.toLowerCase().split(':')[0] ?? '';
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+
   const isMaster =
     host === MASTER_DOMAIN ||
     host.startsWith('proerp.') ||
     host.startsWith('platform.') ||
     host.startsWith('admin.');
 
-  if (isMaster && subdomain && subdomain !== 'store') {
-    // Build the full external URL for the tenant subdomain
-    const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+  // From master domain or from any non-localhost — always build full external URL
+  if ((isMaster || (!['localhost', '127.0.0.1'].includes(host) && host !== '')) && subdomain && subdomain !== 'store') {
     const tenantHost = `${subdomain}.${TENANT_BASE_DOMAIN}`;
     const protocol = window.location.protocol;
     return normalizedPath === '/' ? `${protocol}//${tenantHost}` : `${protocol}//${tenantHost}${normalizedPath}`;
+  }
+
+  return getStorefrontUrl(subdomain, path);
+}
+
+/**
+ * Canonical path aliases: maps legacy or shorthand paths to their proper
+ * storefront equivalents.
+ */
+const PATH_ALIASES: Record<string, string> = {
+  '/orders': '/track',
+  '/order-tracking': '/track',
+  '/contact': '/pages/contact',
+  '/about': '/pages/about-us',
+  '/about-us': '/pages/about-us',
+  '/collections': '/products',
+  '/catalog': '/products',
+  '/catalogue': '/products',
+  '/cart': '/checkout',
+  '/faq': '/pages/faq',
+  '/warranty': '/pages/warranty-support',
+  '/warranty-care': '/pages/warranty-support',
+  '/shipping': '/pages/shipping-fulfillment',
+  '/returns': '/pages/return-policy',
+  '/privacy': '/pages/privacy-policy',
+  '/terms': '/pages/terms-conditions',
+};
+
+/**
+ * Normalizes any raw menu/footer URL into a correct storefront URL,
+ * stripping legacy `/store/:subdomain` prefixes and resolving aliases.
+ *
+ * Preserves external URLs (http/https/mailto/tel) unchanged.
+ */
+export function normalizeStorefrontPath(subdomain: string, rawUrl: string): string {
+  if (!rawUrl) return getStorefrontUrl(subdomain);
+
+  // External links — leave untouched
+  if (
+    rawUrl.startsWith('http://') ||
+    rawUrl.startsWith('https://') ||
+    rawUrl.startsWith('mailto:') ||
+    rawUrl.startsWith('tel:')
+  ) {
+    return rawUrl;
+  }
+
+  let path = rawUrl;
+
+  // Strip legacy /store/:subdomain or /store prefixes
+  const storeSubPrefix = `/store/${subdomain}`;
+  if (path.startsWith(storeSubPrefix)) {
+    path = path.slice(storeSubPrefix.length) || '/';
+  } else if (path === '/store' || path.startsWith('/store/')) {
+    // Generic /store or /store/someOtherSlug — redirect to root
+    path = '/';
+  }
+
+  // Ensure leading slash
+  if (!path.startsWith('/')) {
+    path = `/${path}`;
+  }
+
+  // Resolve canonical aliases
+  const alias = PATH_ALIASES[path.split('?')[0] ?? path];
+  if (alias) {
+    path = alias;
   }
 
   return getStorefrontUrl(subdomain, path);

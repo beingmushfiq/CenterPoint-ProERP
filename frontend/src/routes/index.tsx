@@ -190,6 +190,27 @@ const storefrontRouteChildren = [
     path: 'pages/:slug',
     element: <StorefrontDynamicPage />,
   },
+  // ── Canonical alias redirects (legacy & alternative paths) ──
+  { path: 'orders', element: <Navigate to="/track" replace /> },
+  { path: 'order-tracking', element: <Navigate to="/track" replace /> },
+  { path: 'contact', element: <Navigate to="/pages/contact" replace /> },
+  { path: 'about', element: <Navigate to="/pages/about-us" replace /> },
+  { path: 'about-us', element: <Navigate to="/pages/about-us" replace /> },
+  { path: 'catalog', element: <Navigate to="/products" replace /> },
+  { path: 'catalogue', element: <Navigate to="/products" replace /> },
+  { path: 'collections', element: <Navigate to="/products" replace /> },
+  { path: 'cart', element: <Navigate to="/checkout" replace /> },
+  { path: 'faq', element: <Navigate to="/pages/faq" replace /> },
+  { path: 'warranty', element: <Navigate to="/pages/warranty-support" replace /> },
+  { path: 'shipping', element: <Navigate to="/pages/shipping-fulfillment" replace /> },
+  { path: 'returns', element: <Navigate to="/pages/return-policy" replace /> },
+  { path: 'privacy-policy', element: <Navigate to="/pages/privacy-policy" replace /> },
+  { path: 'terms', element: <Navigate to="/pages/terms-conditions" replace /> },
+  // Catch-all: render 404 inside storefront shell — never leak to ERP
+  {
+    path: '*',
+    element: <NotFoundPage />,
+  },
 ];
 
 const isMasterPlatformDomain = (() => {
@@ -340,6 +361,19 @@ export const router = createBrowserRouter([
                   element: <StorefrontShell />,
                   errorElement: <RouteErrorBoundary />,
                   children: storefrontRouteChildren,
+                },
+                // Handle legacy /store paths on tenant subdomains by redirecting to root storefront
+                {
+                  path: '/store',
+                  element: <StorefrontRedirect />,
+                },
+                {
+                  path: '/store/:subdomain',
+                  element: <StorefrontRedirect />,
+                },
+                {
+                  path: '/store/:subdomain/*',
+                  element: <StorefrontRedirect />,
                 },
               ]
             : [

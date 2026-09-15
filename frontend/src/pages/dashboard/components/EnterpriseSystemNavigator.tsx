@@ -32,6 +32,7 @@ import {
 import { useAuthStore } from '../../../lib/auth/authStore';
 import { useTenantCapabilityStore } from '../../../lib/capabilities/tenantCapabilityStore';
 import { cn } from '../../../lib/utils';
+import { getStorefrontExternalUrl } from '../../../lib/storefront/storefrontUrl';
 
 export type SubsystemDomain =
   'all' | 'commercial' | 'supply' | 'manufacturing' | 'finance' | 'workforce' | 'governance';
@@ -166,7 +167,7 @@ const SUBSYSTEM_ITEMS: SubsystemItem[] = [
     quickActions: [
       {
         label: 'View Live Store',
-        to: '/store',
+        to: '__STOREFRONT_EXTERNAL_URL__', // resolved dynamically in the component
         icon: Globe,
         isExternal: true,
       },
@@ -546,6 +547,7 @@ const SUBSYSTEM_ITEMS: SubsystemItem[] = [
 export const EnterpriseSystemNavigator: React.FC = () => {
   const hasPermission = useAuthStore((state) => state.hasPermission);
   const isModuleEnabled = useTenantCapabilityStore((state) => state.isModuleEnabled);
+  const tenantSubdomain = useAuthStore((state) => state.tenant?.subdomain || state.tenant?.slug || 'store');
 
   const [selectedDomain, setSelectedDomain] = useState<SubsystemDomain>('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -831,11 +833,14 @@ export const EnterpriseSystemNavigator: React.FC = () => {
                                 )
                                 .map((action, idx) => {
                                   const ActionIcon = action.icon;
+                                  const targetUrl = action.to === '__STOREFRONT_EXTERNAL_URL__'
+                                    ? getStorefrontExternalUrl(tenantSubdomain)
+                                    : action.to;
                                   return (
                                   action.isExternal ? (
                                     <a
                                       key={idx}
-                                      href={action.to}
+                                      href={targetUrl}
                                       target="_blank"
                                       rel="noopener noreferrer"
                                       className="inline-flex items-center gap-1 rounded-md bg-surface-sunken px-2 py-1 text-[10px] font-medium text-muted hover:text-default hover:bg-surface-sunken/80 transition-colors border border-default/50"
@@ -847,7 +852,7 @@ export const EnterpriseSystemNavigator: React.FC = () => {
                                   ) : (
                                     <Link
                                       key={idx}
-                                      to={action.to}
+                                      to={targetUrl}
                                       className="inline-flex items-center gap-1 rounded-md bg-surface-sunken px-2 py-1 text-[10px] font-medium text-muted hover:text-default hover:bg-surface-sunken/80 transition-colors border border-default/50"
                                     >
                                       {ActionIcon && <ActionIcon className="size-2.5" />}
