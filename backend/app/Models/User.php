@@ -258,6 +258,7 @@ class User extends Authenticatable
     protected function casts(): array
     {
         return [
+            'id' => 'integer',
             'tenant_id' => 'integer',
             'email_verified_at' => 'datetime',
             'password' => 'hashed',

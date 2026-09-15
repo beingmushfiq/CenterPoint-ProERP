@@ -173,6 +173,8 @@ class Tenant extends Model
     protected function casts(): array
     {
         return [
+            'id' => 'integer',
+            'plan_id' => 'integer',
             'settings' => 'array',
             'branding' => 'array',
             'business_type_keys' => 'array',

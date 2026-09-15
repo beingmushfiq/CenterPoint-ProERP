@@ -138,7 +138,9 @@ class AuthenticateJwt
                 /** @var Tenant|null $tenant */
                 $tenant = Tenant::query()->find($tenantId);
                 if ($tenant !== null) {
-                    TenantContext::bind($tenant->toArray());
+                    $tenantArray = $tenant->toArray();
+                    $tenantArray['id'] = (int) $tenant->id;
+                    TenantContext::bind($tenantArray);
                 }
             }
         } else {

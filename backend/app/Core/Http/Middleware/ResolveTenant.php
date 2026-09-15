@@ -85,6 +85,8 @@ final class ResolveTenant
             );
         }
 
+        $tenantData['id'] = (int) $tenantData['id'];
+
         // Load the user's scope rows for this tenant with caching (5 min TTL). Empty = whole-tenant access.
         $rawUserId = $user->getAttribute('id');
         $userId = is_numeric($rawUserId) ? (int) $rawUserId : null;

@@ -111,8 +111,7 @@ final class TenantContext
      */
     public function tenantId(): int
     {
-        /** @var int */
-        return $this->tenant['id'];
+        return (int) ($this->tenant['id'] ?? 0);
     }
 
     /**
@@ -120,8 +119,7 @@ final class TenantContext
      */
     public function tenantUuid(): string
     {
-        /** @var string */
-        return $this->tenant['uuid'];
+        return (string) ($this->tenant['uuid'] ?? '');
     }
 
     /**
@@ -129,8 +127,7 @@ final class TenantContext
      */
     public function tenantSlug(): string
     {
-        /** @var string */
-        return $this->tenant['slug'];
+        return (string) ($this->tenant['slug'] ?? '');
     }
 
     /**
@@ -148,8 +145,7 @@ final class TenantContext
      */
     public function tenantStatus(): string
     {
-        /** @var string */
-        return $this->tenant['status'];
+        return (string) ($this->tenant['status'] ?? 'active');
     }
 
     /**
@@ -234,9 +230,9 @@ final class TenantContext
         }
 
         foreach ($this->scopes as $scope) {
-            $rawScopeId = $scope['scope_id'];
+            $rawScopeId = $scope['scope_id'] ?? null;
 
-            if ($scope['scope_type'] === $scopeType && is_int($rawScopeId) && $rawScopeId === $scopeId) {
+            if (($scope['scope_type'] ?? '') === $scopeType && is_numeric($rawScopeId) && (int) $rawScopeId === $scopeId) {
                 return true;
             }
         }
