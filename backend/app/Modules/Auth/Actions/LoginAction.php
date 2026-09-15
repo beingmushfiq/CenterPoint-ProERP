@@ -11,6 +11,8 @@ use App\Core\Auth\RefreshTokenService;
 use App\Models\Tenant;
 use App\Models\User;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\Cookie;
@@ -20,6 +22,18 @@ use Symfony\Component\HttpFoundation\Cookie;
  *
  * Authenticates user credentials with Argon2id, generates access JWT
  * and rotating refresh token cookie. Supports multi-tenant account selection.
+ *
+ * @phpstan-type TenantSummary array{id: int, uuid: string, name: string, slug: string}
+ * @phpstan-type LoginResult array{
+ *     requires_tenant_selection?: bool,
+ *     tenants?: list<TenantSummary>,
+ *     access_token?: string,
+ *     token_type?: string,
+ *     expires_in?: int,
+ *     user?: array<string, mixed>,
+ *     tenant?: array<string, mixed>|null,
+ *     cookie?: Cookie
+ * }
  */
 class LoginAction extends Action
 {
@@ -32,16 +46,7 @@ class LoginAction extends Action
      * Execute login.
      *
      * @param  array<string, mixed>  $input
-     * @return array{
-     *     requires_tenant_selection?: bool,
-     *     tenants?: list<array{id: int, uuid: string, name: string, slug: string}>,
-     *     access_token?: string,
-     *     token_type?: string,
-     *     expires_in?: int,
-     *     user?: array<string, mixed>,
-     *     tenant?: array<string, mixed>|null,
-     *     cookie?: Cookie
-     * }
+     * @return array<string, mixed>
      */
     public function execute(array $input): array
     {
@@ -62,42 +67,12 @@ class LoginAction extends Action
             ]);
         }
 
-        $cleanIdentifier = strtolower($identifier);
+        $matchingUsers = $this->findMatchingUsers($identifier, $requestedTenantId);
 
-        /** @var \Illuminate\Database\Eloquent\Builder<User> $query */
-        $query = User::withoutTenantScope()
-            ->with(['tenant', 'roles.permissions', 'scopes', 'employee.designation'])
-            ->where('status', 'active');
-
-        if ($requestedTenantId !== null) {
-            $query->where('tenant_id', $requestedTenantId);
-        }
-
-        $query->where(function ($q) use ($identifier, $cleanIdentifier) {
-            // 1. Email exact match
-            $q->whereRaw('LOWER(email) = ?', [$cleanIdentifier])
-                // 2. Name exact or substring match
-                ->orWhereRaw('LOWER(name) = ?', [$cleanIdentifier])
-                ->orWhere('name', 'LIKE', '%' . $identifier . '%')
-                // 3. User Role / Designation (name or slug)
-                ->orWhereHas('roles', function ($rq) use ($identifier, $cleanIdentifier) {
-                    $rq->whereRaw('LOWER(name) = ?', [$cleanIdentifier])
-                        ->orWhereRaw('LOWER(slug) = ?', [$cleanIdentifier])
-                        ->orWhere('name', 'LIKE', '%' . $identifier . '%')
-                        ->orWhere('slug', 'LIKE', '%' . $identifier . '%');
-                })
-                // 4. Employee Designation title (HR module)
-                ->orWhereHas('employee.designation', function ($dq) use ($identifier, $cleanIdentifier) {
-                    $dq->whereRaw('LOWER(name) = ?', [$cleanIdentifier])
-                        ->orWhere('name', 'LIKE', '%' . $identifier . '%');
-                });
-        });
-
-        /** @var \Illuminate\Database\Eloquent\Collection<int, User> $matchingUsers */
-        $matchingUsers = $query->get();
-
-        // Filter by valid password hash
-        $validUsers = $matchingUsers->filter(fn (User $u) => Hash::check($password, $u->password))->values();
+        /** @var Collection<int, User> $validUsers */
+        $validUsers = $matchingUsers->filter(
+            static fn (User $u): bool => Hash::check($password, $u->password)
+        )->values();
 
         if ($validUsers->isEmpty()) {
             throw ValidationException::withMessages([
@@ -105,23 +80,11 @@ class LoginAction extends Action
             ]);
         }
 
-        // Sort by relevance: exact email match > exact name match > role match > partial
-        $validUsers = $validUsers->sortByDesc(function (User $u) use ($cleanIdentifier) {
-            if (strtolower($u->email) === $cleanIdentifier) {
-                return 100;
-            }
-            if (strtolower($u->name) === $cleanIdentifier) {
-                return 80;
-            }
-            if ($u->roles->contains(fn ($r) => strtolower($r->name) === $cleanIdentifier || strtolower($r->slug ?? '') === $cleanIdentifier)) {
-                return 60;
-            }
-            return 10;
-        })->values();
+        $sortedUsers = $this->sortUsersByRelevance($validUsers, $identifier);
 
         // Multi-tenant membership: if user belongs to multiple active tenants and no tenant was requested
-        if ($validUsers->count() > 1 && $requestedTenantId === null) {
-            $tenants = array_values($validUsers->map(function (User $u) {
+        if ($sortedUsers->count() > 1 && $requestedTenantId === null) {
+            $tenants = array_values($sortedUsers->map(static function (User $u): array {
                 return [
                     'id' => (int) $u->tenant_id,
                     'uuid' => $u->tenant !== null ? $u->tenant->uuid : '',
@@ -138,8 +101,8 @@ class LoginAction extends Action
 
         /** @var User $user */
         $user = $requestedTenantId !== null
-            ? $validUsers->firstWhere('tenant_id', $requestedTenantId) ?? $validUsers->first()
-            : $validUsers->first();
+            ? ($sortedUsers->firstWhere('tenant_id', $requestedTenantId) ?? $sortedUsers->first())
+            : $sortedUsers->first();
 
         // Update last login timestamp
         $user->update([
@@ -153,7 +116,7 @@ class LoginAction extends Action
 
         // Resolve scopes & permissions
         /** @var list<array<string, mixed>> $scopes */
-        $scopes = array_values($user->scopes->map(fn ($s) => [
+        $scopes = array_values($user->scopes->map(static fn ($s): array => [
             'type' => $s->scope_type,
             'id' => $s->scope_id,
         ])->all());
@@ -213,5 +176,65 @@ class LoginAction extends Action
             'permissions' => $effectivePermissions,
             'cookie' => $cookie,
         ];
+    }
+
+    /**
+     * Query active users matching the given identifier across email, name, role/designation.
+     *
+     * @return EloquentCollection<int, User>
+     */
+    private function findMatchingUsers(string $identifier, ?int $tenantId): EloquentCollection
+    {
+        $clean = strtolower($identifier);
+
+        $query = User::withoutTenantScope()
+            ->with(['tenant', 'roles.permissions', 'scopes', 'employee.designation'])
+            ->where('status', 'active');
+
+        if ($tenantId !== null) {
+            $query->where('tenant_id', $tenantId);
+        }
+
+        $query->where(static function ($q) use ($identifier, $clean): void {
+            $q->whereRaw('LOWER(email) = ?', [$clean])
+                ->orWhereRaw('LOWER(name) = ?', [$clean])
+                ->orWhere('name', 'LIKE', '%' . $identifier . '%')
+                ->orWhereHas('roles', static function ($rq) use ($identifier, $clean): void {
+                    $rq->whereRaw('LOWER(name) = ?', [$clean])
+                        ->orWhereRaw('LOWER(slug) = ?', [$clean])
+                        ->orWhere('name', 'LIKE', '%' . $identifier . '%')
+                        ->orWhere('slug', 'LIKE', '%' . $identifier . '%');
+                })
+                ->orWhereHas('employee.designation', static function ($dq) use ($identifier, $clean): void {
+                    $dq->whereRaw('LOWER(name) = ?', [$clean])
+                        ->orWhere('name', 'LIKE', '%' . $identifier . '%');
+                });
+        });
+
+        return $query->get();
+    }
+
+    /**
+     * Sort users by credential relevance (exact email > exact name > role match > substring).
+     *
+     * @param  Collection<int, User>  $users
+     * @return Collection<int, User>
+     */
+    private function sortUsersByRelevance(Collection $users, string $identifier): Collection
+    {
+        $clean = strtolower($identifier);
+
+        return $users->sortByDesc(static function (User $u) use ($clean): int {
+            if (strtolower($u->email) === $clean) {
+                return 100;
+            }
+            if (strtolower($u->name) === $clean) {
+                return 80;
+            }
+            if ($u->roles->contains(static fn ($r): bool => strtolower($r->name) === $clean || strtolower($r->slug ?? '') === $clean)) {
+                return 60;
+            }
+            return 10;
+        })->values();
     }
 }

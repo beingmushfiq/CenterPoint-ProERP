@@ -118,7 +118,7 @@ export const StorefrontShell: React.FC = () => {
 
     loadConfig();
     fetchCart();
-  }, [paramSubdomain, tenantSubdomain, host, isCustomDomain, setSubdomain, fetchCart]);
+  }, [paramSubdomain, tenantSubdomain, host, isCustomDomain, setSubdomain, fetchCart, hostSubdomain]);
 
   // 2. Real-time Live Theme Subscription across tabs & windows
   useEffect(() => {
