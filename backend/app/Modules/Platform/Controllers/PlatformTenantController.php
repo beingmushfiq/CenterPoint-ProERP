@@ -131,7 +131,29 @@ class PlatformTenantController extends Controller
             'branding' => 'nullable|array',
         ]);
 
-        $result = $action->execute($validated);
+        try {
+            $result = $action->execute($validated);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            throw $e;
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('Tenant provisioning failed: ' . $e->getMessage(), [
+                'exception' => $e,
+                'input' => array_diff_key($validated, ['password' => '']),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Tenant provisioning failed: ' . $e->getMessage(),
+                'error' => [
+                    'message' => $e->getMessage(),
+                    'code' => 'TENANT_PROVISIONING_FAILED',
+                ],
+                'meta' => [
+                    'correlation_id' => (string) $request->header('X-Correlation-Id', ''),
+                    'timestamp' => Carbon::now()->toIso8601String(),
+                ],
+            ], 422);
+        }
 
         return response()->json([
             'success' => true,

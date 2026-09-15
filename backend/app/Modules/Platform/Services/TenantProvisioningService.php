@@ -69,6 +69,21 @@ class TenantProvisioningService
             ]);
         }
 
+        $baseDomain = (string) config('platform.tenant_base_domain', 'devcenterpoint.com');
+        $fullDomain = $slug . '.' . $baseDomain;
+
+        if (TenantDomain::where('domain', $fullDomain)->exists()) {
+            throw ValidationException::withMessages([
+                'slug' => ["The domain '{$fullDomain}' is already assigned to an existing tenant."],
+            ]);
+        }
+
+        if (Storefront::where('subdomain', $slug)->exists()) {
+            throw ValidationException::withMessages([
+                'slug' => ["The storefront subdomain '{$slug}' is already in use."],
+            ]);
+        }
+
         $planId = (int) ($input['plan_id'] ?? 1);
         $plan = Plan::find($planId);
         if ($plan === null) {
@@ -329,13 +344,17 @@ class TenantProvisioningService
                 'is_system' => true,
             ]);
 
-            // Attach all tenant-scope permissions
-            $tenantPermissions = Permission::where('is_platform_only', false)->pluck('id');
+            // Attach all tenant-scope permissions (exclude platform management)
+            $tenantPermissions = Permission::where('module', '!=', 'platform')->pluck('id');
             if ($tenantPermissions->isNotEmpty()) {
                 $adminRole->permissions()->sync($tenantPermissions);
             }
 
-            $owner->roles()->sync([$adminRole->id]);
+            $owner->roles()->syncWithPivotValues([$adminRole->id], [
+                'tenant_id' => $tenant->id,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ]);
 
             // 7. Seed Default System Reason Codes
             $defaultReasons = [
@@ -386,24 +405,28 @@ class TenantProvisioningService
                 ]);
             }
 
-            // 9. Platform Audit Log Record
-            AuditLog::withoutTenantScope()->create([
-                'uuid' => (string) Str::uuid(),
-                'user_id' => $actorId,
-                'action' => \App\Core\Audit\AuditAction::Created,
-                'auditable_type' => 'Tenant',
-                'auditable_id' => $tenant->id,
-                'ip' => request()->ip() ?? '127.0.0.1',
-                'user_agent' => request()->userAgent() ?? 'System / Master Admin',
-                'created_at' => $now,
-                'after' => [
-                    'tenant_id' => $tenant->id,
-                    'slug' => $tenant->slug,
-                    'plan' => $plan->code,
-                    'owner' => $owner->email,
-                    'status' => $tenant->status,
-                ],
-            ]);
+            // 9. Platform Audit Log Record (Fault-tolerant)
+            try {
+                AuditLog::withoutTenantScope()->create([
+                    'uuid' => (string) Str::uuid(),
+                    'user_id' => $actorId,
+                    'action' => \App\Core\Audit\AuditAction::Created,
+                    'auditable_type' => 'App\Models\Tenant',
+                    'auditable_id' => $tenant->id,
+                    'ip' => request()->ip() ?? '127.0.0.1',
+                    'user_agent' => request()->userAgent() ?? 'System / Master Admin',
+                    'created_at' => $now,
+                    'after' => [
+                        'tenant_id' => $tenant->id,
+                        'slug' => $tenant->slug,
+                        'plan' => $plan->code,
+                        'owner' => $owner->email,
+                        'status' => $tenant->status,
+                    ],
+                ]);
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning('Tenant provisioning audit log skipped: ' . $e->getMessage());
+            }
 
             return [
                 'tenant' => $tenant,

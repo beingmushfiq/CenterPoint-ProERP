@@ -163,7 +163,7 @@ class PlatformAdministrationTest extends TestCase
     public function test_platform_admin_can_suspend_and_reactivate_tenant(): void
     {
         $token = $this->getPlatformToken();
-        $tenant = Tenant::where('slug', 'slicemart')->firstOrFail();
+        $tenant = Tenant::where('slug', 'demoerp')->orWhere('slug', 'slicemart')->firstOrFail();
 
         // Suspend
         $response = $this->withToken($token)->postJson("/api/v1/platform/tenants/{$tenant->id}/status", [
@@ -189,7 +189,7 @@ class PlatformAdministrationTest extends TestCase
     public function test_platform_admin_can_extend_subscription(): void
     {
         $token = $this->getPlatformToken();
-        $tenant = Tenant::where('slug', 'slicemart')->firstOrFail();
+        $tenant = Tenant::where('slug', 'demoerp')->orWhere('slug', 'slicemart')->firstOrFail();
 
         $response = $this->withToken($token)->postJson("/api/v1/platform/tenants/{$tenant->id}/manage-subscription", [
             'action' => 'extend',
