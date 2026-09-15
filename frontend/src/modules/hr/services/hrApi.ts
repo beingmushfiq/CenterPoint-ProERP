@@ -273,6 +273,26 @@ export const hrApi = {
     return api.post<{ data: EmployeeApiItem; message: string }>('/hr/employees', payload);
   },
 
+  async createWorkforceEmployee(payload: Record<string, unknown>) {
+    return api.post<{ data: EmployeeApiItem; message: string }>('/workforce/employees', payload);
+  },
+
+  async getEmployeeById(id: number) {
+    return api.get<{ data: EmployeeApiItem }>(`/hr/employees/${id}`);
+  },
+
+  async getWorkforceEmployeeById(id: number) {
+    return api.get<{ data: EmployeeApiItem }>(`/workforce/employees/${id}`);
+  },
+
+  async linkUser(id: number, user_id: number) {
+    return api.post<{ success: boolean; message: string }>(`/hr/employees/${id}/link-user`, { user_id });
+  },
+
+  async unlinkUser(id: number) {
+    return api.delete<{ success: boolean; message: string }>(`/hr/employees/${id}/unlink-user`);
+  },
+
   async updateEmployee(id: number, payload: Record<string, unknown>) {
     return api.put<{ data: EmployeeApiItem; message: string }>(`/hr/employees/${id}`, payload);
   },
@@ -310,26 +330,51 @@ export const hrApi = {
     return api.post<{ data: DesignationApiItem; message: string }>('/hr/designations', payload);
   },
 
+  async updateDesignation(id: number, payload: Partial<DesignationApiItem>) {
+    return api.put<{ data: DesignationApiItem; message: string }>(`/hr/designations/${id}`, payload);
+  },
+
   async getShifts(activeOnly = false) {
     return api.get<{ data: ShiftApiItem[] }>(`/hr/shifts${activeOnly ? '?active_only=1' : ''}`);
+  },
+
+  async getWorkforceShifts() {
+    return api.get<{ data: ShiftApiItem[] }>('/workforce/shifts');
   },
 
   async createShift(payload: { code: string; name: string; start_time: string; end_time: string; break_minutes?: number; grace_in_minutes?: number }) {
     return api.post<{ data: ShiftApiItem; message: string }>('/hr/shifts', payload);
   },
 
+  async updateShift(id: number, payload: Partial<ShiftApiItem>) {
+    return api.put<{ data: ShiftApiItem; message: string }>(`/hr/shifts/${id}`, payload);
+  },
+
   // Attendance & Badge Kiosk
+  async getAttendance(params?: { date?: string; employee_id?: number; status?: string }) {
+    const query = new URLSearchParams();
+    if (params?.date) query.set('date', params.date);
+    if (params?.employee_id) query.set('employee_id', String(params.employee_id));
+    if (params?.status) query.set('status', params.status);
+    const qs = query.toString() ? `?${query.toString()}` : '';
+    return api.get<{ data: AttendanceApiItem[] }>(`/hr/attendance${qs}`);
+  },
+
   async getAttendances(params?: { date?: string; employee_id?: number; status?: string }) {
     const query = new URLSearchParams();
     if (params?.date) query.set('date', params.date);
     if (params?.employee_id) query.set('employee_id', String(params.employee_id));
     if (params?.status) query.set('status', params.status);
     const qs = query.toString() ? `?${query.toString()}` : '';
-    return api.get<{ data: AttendanceApiItem[] }>(`/hr/attendances${qs}`);
+    return api.get<{ data: AttendanceApiItem[] }>(`/hr/attendance${qs}`).catch(() => 
+      api.get<{ data: AttendanceApiItem[] }>(`/hr/attendances${qs}`)
+    );
   },
 
   async recordAttendance(payload: { employee_id: number; attendance_date: string; status?: string; shift_id?: number; check_in_at?: string; check_out_at?: string; remarks?: string }) {
-    return api.post<{ data: AttendanceApiItem; message: string }>('/hr/attendances', payload);
+    return api.post<{ data: AttendanceApiItem; message: string }>('/hr/attendance', payload).catch(() =>
+      api.post<{ data: AttendanceApiItem; message: string }>('/hr/attendances', payload)
+    );
   },
 
   async getAttendanceSummary(date?: string) {
@@ -346,11 +391,19 @@ export const hrApi = {
     if (params?.status) query.set('status', params.status);
     if (params?.employee_id) query.set('employee_id', String(params.employee_id));
     const qs = query.toString() ? `?${query.toString()}` : '';
-    return api.get<{ data: LeaveRequestApiItem[] }>(`/hr/leaves${qs}`);
+    return api.get<{ data: LeaveRequestApiItem[] }>(`/hr/leave-requests${qs}`).catch(() =>
+      api.get<{ data: LeaveRequestApiItem[] }>(`/hr/leaves${qs}`)
+    );
+  },
+
+  async getLeaves(params?: { status?: string; employee_id?: number }) {
+    return this.getLeaveRequests(params);
   },
 
   async getLeaveTypes() {
-    return api.get<{ data: Array<{ id: number; code: string; name: string; days_allowed: number }> }>('/hr/leaves/types');
+    return api.get<{ data: Array<{ id: number; code: string; name: string; days_allowed: number }> }>('/hr/leave-requests/types').catch(() =>
+      api.get<{ data: Array<{ id: number; code: string; name: string; days_allowed: number }> }>('/hr/leaves/types')
+    );
   },
 
   async getLeaveBalances(params?: { employee_id?: number; year?: number }) {
@@ -362,7 +415,9 @@ export const hrApi = {
   },
 
   async submitLeaveRequest(payload: { employee_id: number; leave_type_id: number; start_date: string; end_date: string; total_days: number; reason?: string }) {
-    return api.post<{ data: LeaveRequestApiItem; message: string }>('/hr/leaves', payload);
+    return api.post<{ data: LeaveRequestApiItem; message: string }>('/hr/leave-requests', payload).catch(() =>
+      api.post<{ data: LeaveRequestApiItem; message: string }>('/hr/leaves', payload)
+    );
   },
 
   async approveLeave(id: number) {
@@ -428,6 +483,10 @@ export const hrApi = {
     if (params?.employee_id) query.set('employee_id', String(params.employee_id));
     const qs = query.toString() ? `?${query.toString()}` : '';
     return api.get<{ data: PayslipApiItem[] }>(`/hr/payroll/payslips${qs}`);
+  },
+
+  async getPayslipById(id: number) {
+    return api.get<{ data: PayslipApiItem }>(`/hr/payroll/payslips/${id}`);
   },
 
   async createPayslip(payload: {
@@ -582,11 +641,6 @@ export const hrApi = {
 
   async bulkDeletePayrollAdvances(ids: number[]) {
     return api.post<{ success: boolean; message: string }>('/hr/payroll/advances/bulk-delete', { ids });
-  },
-
-  // Leaves Alias
-  async getLeaves(params?: { status?: string; employee_id?: number }) {
-    return this.getLeaveRequests(params);
   },
 
   // Worker Production Entries

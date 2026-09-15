@@ -45,6 +45,11 @@ export function BrandsSection() {
       }),
   });
 
+  useQuery({
+    queryKey: ['catalogue', 'brands', 'options'],
+    queryFn: ({ signal }) => api.get<Brand[]>('/brands/options', { signal }),
+  });
+
   const createMutation = useMutation({
     mutationFn: (payload: BrandFormDraft) => api.post<Brand>('/brands', payload),
     onSuccess: async () => {
@@ -104,6 +109,10 @@ export function BrandsSection() {
       is_active: brand.is_active,
     });
     setEditingBrand(brand);
+    const brandId = (brand as { uuid?: string }).uuid || brand.id;
+    void api.get<Brand>(`/brands/${brandId}`).then((res) => {
+      if (res.data) setEditingBrand(res.data);
+    }).catch(() => {});
   };
 
   const brands = brandsQuery.data?.data ?? [];

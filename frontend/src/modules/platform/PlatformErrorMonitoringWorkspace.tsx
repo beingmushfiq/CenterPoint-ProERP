@@ -93,6 +93,38 @@ export const PlatformErrorMonitoringWorkspace: React.FC = () => {
     },
   });
 
+  // Telemetry Ingest Mutation
+  const ingestTestErrorMutation = useMutation({
+    mutationFn: async () => {
+      const res = await api.post('/platform/errors/ingest', {
+        error_type: 'FrontendDiagnosticSignal',
+        message: 'Telemetry health probe triggered from Platform Error Console',
+        severity: 'info',
+        module: 'OpsCenter',
+        route: window.location.pathname,
+      });
+      return res.data;
+    },
+    onSuccess: () => {
+      toast.success('Telemetry probe ingested into platform error stream');
+      queryClient.invalidateQueries({ queryKey: ['platform', 'errors'] });
+    },
+    onError: (err: unknown) => {
+      const msg = err instanceof Error ? err.message : 'Failed to ingest telemetry event';
+      toast.error(msg);
+    },
+  });
+
+  const handleOpenDetails = (err: PlatformErrorLogItem) => {
+    setSelectedError(err);
+    setResolutionNote(err.resolution_note || '');
+    void api.get<{ data: PlatformErrorLogItem }>(`/platform/errors/${err.id}`).then((res) => {
+      if (res.data?.data) {
+        setSelectedError(res.data.data);
+      }
+    }).catch(() => {});
+  };
+
   const handleCopy = (key: string, text: string) => {
     navigator.clipboard.writeText(text);
     setCopiedKey(key);
@@ -201,10 +233,7 @@ export const PlatformErrorMonitoringWorkspace: React.FC = () => {
       className: 'text-right',
       cell: (err) => (
         <button
-          onClick={() => {
-            setSelectedError(err);
-            setResolutionNote(err.resolution_note || '');
-          }}
+          onClick={() => handleOpenDetails(err)}
           className="px-3 py-1.5 rounded-xl bg-surface-sunken hover:bg-surface border border-default text-xs font-medium text-default inline-flex items-center gap-1.5 transition-colors cursor-pointer"
         >
           <Eye className="size-3.5" />
@@ -233,6 +262,16 @@ export const PlatformErrorMonitoringWorkspace: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-2.5 shrink-0">
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => ingestTestErrorMutation.mutate()}
+            disabled={ingestTestErrorMutation.isPending}
+            className="flex items-center gap-1.5 font-mono cursor-pointer border-default bg-surface text-default hover:bg-surface-sunken"
+            title="Dispatch Test Telemetry Ingestion"
+          >
+            <span>Simulate Ingest</span>
+          </Button>
           <Button
             variant="secondary"
             size="sm"

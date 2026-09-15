@@ -203,6 +203,17 @@ export function DeliveriesSection() {
     initialData: SAMPLE_DELIVERIES,
   });
 
+  const handleViewDelivery = async (d: DeliveryOrder) => {
+    setActiveDelivery(d);
+    setShowViewModal(true);
+    try {
+      const res = await api.get<DeliveryOrder>(`/sales/deliveries/${d.id}`);
+      if (res.data) setActiveDelivery(res.data);
+    } catch {
+      // Keep cached delivery
+    }
+  };
+
   const handleDispatch = async (deliveryId: number) => {
     setActionLoading(deliveryId);
     try {
@@ -561,10 +572,7 @@ export function DeliveriesSection() {
                     <td className="px-4 py-3.5 text-right">
                       <div className="flex items-center justify-end gap-1.5">
                         <button
-                          onClick={() => {
-                            setActiveDelivery(d);
-                            setShowViewModal(true);
-                          }}
+                          onClick={() => handleViewDelivery(d)}
                           className="p-1.5 text-muted hover:text-default hover:bg-surface-sunken rounded-lg transition-colors cursor-pointer"
                           title="View Delivery Challan"
                         >

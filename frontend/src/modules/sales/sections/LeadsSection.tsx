@@ -141,6 +141,60 @@ export function LeadsSection() {
   const [activeMenuLeadId, setActiveMenuLeadId] = useState<number | null>(null);
   const [selectedLeadForView, setSelectedLeadForView] = useState<Lead | null>(null);
   const [isImportOpen, setIsImportOpen] = useState(false);
+  const [activityType, setActivityType] = useState<'call' | 'visit' | 'email' | 'sms' | 'note' | 'task'>('call');
+  const [activityTitle, setActivityTitle] = useState('');
+  const [activityDescription, setActivityDescription] = useState('');
+  const [activityOutcome, setActivityOutcome] = useState('');
+  const [activitySubmitting, setActivitySubmitting] = useState(false);
+
+  const updateLeadMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: number; data: Partial<Lead> }) => {
+      const res = await api.put<Lead>(`/sales/leads/${id}`, data);
+      return res.data;
+    },
+    onSuccess: (updated) => {
+      toast.success('Lead updated successfully.');
+      if (updated) setSelectedLeadForView(updated);
+      queryClient.invalidateQueries({ queryKey: ['crm', 'leads'] });
+    },
+    onError: () => {
+      toast.error('Failed to update lead');
+    },
+  });
+
+  const handleViewLeadDetails = async (lead: Lead) => {
+    setSelectedLeadForView(lead);
+    setActiveMenuLeadId(null);
+    try {
+      const res = await api.get<Lead>(`/sales/leads/${lead.id}`);
+      if (res.data) setSelectedLeadForView(res.data);
+    } catch {
+      // Keep cached lead
+    }
+  };
+
+  const handleAddActivity = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedLeadForView || !activityTitle.trim()) return;
+    setActivitySubmitting(true);
+    try {
+      await api.post(`/sales/leads/${selectedLeadForView.id}/activities`, {
+        type: activityType,
+        title: activityTitle.trim(),
+        description: activityDescription.trim() || null,
+        outcome: activityOutcome.trim() || null,
+      });
+      toast.success(`Logged ${activityType} activity for lead.`);
+      setActivityTitle('');
+      setActivityDescription('');
+      setActivityOutcome('');
+      queryClient.invalidateQueries({ queryKey: ['crm', 'leads'] });
+    } catch {
+      toast.error('Failed to log activity.');
+    } finally {
+      setActivitySubmitting(false);
+    }
+  };
 
   const handleExportCsv = () => {
     if (leads.length === 0) {
@@ -704,7 +758,7 @@ type ApiError = { response?: { data?: { message?: string } } };
                                   <button
                                     type="button"
                                     onClick={() => {
-                                      setSelectedLeadForView(l);
+                                      handleViewLeadDetails(l);
                                       setActiveMenuLeadId(null);
                                     }}
                                     className="flex w-full items-center gap-2 rounded-xl px-2.5 py-1.5 text-xs font-medium text-default hover:bg-surface-sunken transition-colors cursor-pointer"
@@ -963,6 +1017,62 @@ type ApiError = { response?: { data?: { message?: string } } };
                   </div>
                 </div>
               )}
+
+              {/* Log Activity Action */}
+              <div className="p-3.5 rounded-xl border border-default bg-surface-sunken/40 space-y-2.5">
+                <span className="text-[10px] font-bold uppercase text-muted tracking-wider block">
+                  Log Commercial Follow-up / Activity
+                </span>
+                <form onSubmit={handleAddActivity} className="space-y-2">
+                  <div className="grid grid-cols-3 gap-2">
+                    <select
+                      value={activityType}
+                      onChange={(e) => setActivityType(e.target.value as any)}
+                      className="rounded-lg border border-default bg-surface px-2.5 py-1.5 text-xs text-default"
+                    >
+                      <option value="call">Phone Call</option>
+                      <option value="visit">Client Visit</option>
+                      <option value="email">Email</option>
+                      <option value="sms">SMS</option>
+                      <option value="note">Internal Note</option>
+                      <option value="task">Action Task</option>
+                    </select>
+                    <input
+                      type="text"
+                      placeholder="Title (e.g. Quotation Review Call)"
+                      required
+                      value={activityTitle}
+                      onChange={(e) => setActivityTitle(e.target.value)}
+                      className="col-span-2 rounded-lg border border-default bg-surface px-2.5 py-1.5 text-xs text-default"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <input
+                      type="text"
+                      placeholder="Activity Description / Notes"
+                      value={activityDescription}
+                      onChange={(e) => setActivityDescription(e.target.value)}
+                      className="rounded-lg border border-default bg-surface px-2.5 py-1.5 text-xs text-default"
+                    />
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        placeholder="Outcome / Next Steps"
+                        value={activityOutcome}
+                        onChange={(e) => setActivityOutcome(e.target.value)}
+                        className="flex-1 rounded-lg border border-default bg-surface px-2.5 py-1.5 text-xs text-default"
+                      />
+                      <button
+                        type="submit"
+                        disabled={activitySubmitting || !activityTitle.trim()}
+                        className="px-3 py-1.5 bg-primary text-white text-xs font-semibold rounded-lg shadow-xs hover:bg-primary-hover disabled:opacity-50 shrink-0"
+                      >
+                        {activitySubmitting ? 'Logging...' : 'Log'}
+                      </button>
+                    </div>
+                  </div>
+                </form>
+              </div>
             </div>
 
             {/* Modal Footer Actions */}
@@ -980,6 +1090,23 @@ type ApiError = { response?: { data?: { message?: string } } };
               </button>
 
               <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    updateLeadMutation.mutate({
+                      id: selectedLeadForView.id,
+                      data: {
+                        ...(selectedLeadForView.notes ? { notes: selectedLeadForView.notes } : {}),
+                        ...(selectedLeadForView.stage ? { stage: selectedLeadForView.stage } : {}),
+                      },
+                    });
+                  }}
+                  disabled={updateLeadMutation.isPending}
+                  className="rounded-xl border border-default px-3 py-2 text-xs font-medium text-default hover:bg-surface-sunken transition-colors cursor-pointer disabled:opacity-50"
+                  title="Save any updated lead parameters"
+                >
+                  {updateLeadMutation.isPending ? 'Saving...' : 'Save Details'}
+                </button>
                 <button
                   type="button"
                   onClick={() => setSelectedLeadForView(null)}

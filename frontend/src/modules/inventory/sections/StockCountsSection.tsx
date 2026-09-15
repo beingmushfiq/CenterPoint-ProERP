@@ -704,6 +704,9 @@ export function StockCountsSection() {
                           onClick={() => {
                             setActiveCount(c);
                             setShowViewModal(true);
+                            void api.get<StockCount>(`/inventory/counts/${c.id}`).then((res) => {
+                              if (res.data) setActiveCount(res.data);
+                            }).catch(() => {});
                           }}
                           className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-surface hover:bg-surface-sunken border border-default text-default transition-colors cursor-pointer"
                         >

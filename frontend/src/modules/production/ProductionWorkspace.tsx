@@ -81,7 +81,7 @@ const tabs: TabConfig[] = [
 const VALID_TABS: readonly ProductionTab[] = ['plans', 'batches', 'worker-entries', 'variance-radar'];
 
 export default function ProductionWorkspace() {
-  const [activeTab, setActiveTab] = useWorkspaceTab<ProductionTab>('batches', VALID_TABS);
+  const [activeTab, setActiveTab] = useWorkspaceTab<ProductionTab>('plans', VALID_TABS);
   const [isKioskOpen, setIsKioskOpen] = useState(false);
   const [isGuideOpen, setIsGuideOpen] = useState(false);
   const [isLaunchModalOpen, setIsLaunchModalOpen] = useState(false);

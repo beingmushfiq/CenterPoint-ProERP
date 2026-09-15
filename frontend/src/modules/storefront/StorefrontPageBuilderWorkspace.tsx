@@ -187,6 +187,9 @@ export const StorefrontPageBuilderWorkspace: React.FC = () => {
       meta_description: page.meta_description || '',
     });
     setSelectedPage(page);
+    void api.get<CmsPage>(`/storefront/cms/pages/${page.id || page.slug}`).then((res) => {
+      if (res.data) setSelectedPage(res.data);
+    }).catch(() => {});
   };
 
   const handleSaveEditModal = async (e: React.FormEvent) => {

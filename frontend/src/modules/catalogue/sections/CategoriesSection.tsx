@@ -45,6 +45,11 @@ export function CategoriesSection() {
       }),
   });
 
+  useQuery({
+    queryKey: ['catalogue', 'categories', 'options'],
+    queryFn: ({ signal }) => api.get<Category[]>('/categories/options', { signal }),
+  });
+
   const createMutation = useMutation({
     mutationFn: (payload: CategoryFormDraft) => api.post<Category>('/categories', payload),
     onSuccess: async () => {
@@ -104,6 +109,10 @@ export function CategoriesSection() {
       is_active: category.is_active,
     });
     setEditingCategory(category);
+    const categoryId = (category as { uuid?: string }).uuid || category.id;
+    void api.get<Category>(`/categories/${categoryId}`).then((res) => {
+      if (res.data) setEditingCategory(res.data);
+    }).catch(() => {});
   };
 
   const categories = categoriesQuery.data?.data ?? [];

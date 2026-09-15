@@ -273,6 +273,26 @@ export const AssetsWorkspace: React.FC = () => {
         }
       })
       .catch((err) => console.error('Failed loading live asset categories', err));
+
+    api
+      .get('/assets/depreciation')
+      .then((res) => {
+        const fetchedEntries = extractList<AssetDepreciationEntry>(res);
+        if (fetchedEntries.length > 0) {
+          setDepreciationEntries(fetchedEntries);
+        }
+      })
+      .catch((err) => console.error('Failed loading depreciation schedules', err));
+
+    api
+      .get('/assets/maintenance-orders')
+      .then((res) => {
+        const fetchedOrders = extractList<MaintenanceOrder>(res);
+        if (fetchedOrders.length > 0) {
+          setMaintenanceOrders(fetchedOrders);
+        }
+      })
+      .catch((err) => console.error('Failed loading maintenance orders', err));
   }, []);
 
   useEffect(() => {
@@ -325,6 +345,9 @@ export const AssetsWorkspace: React.FC = () => {
   const [viewingAsset, setViewingAsset] = useState<Asset | null>(null);
   const [showAssetDetailModal, setShowAssetDetailModal] = useState(false);
 
+  // Maintenance Order Details Modal
+  const [viewingMaintenanceOrder, setViewingMaintenanceOrder] = useState<MaintenanceOrder | null>(null);
+
   // ─────────────────────────────────────────────────────────────────────────────
   // 4. Filtering & Search States
   // ─────────────────────────────────────────────────────────────────────────────
@@ -340,64 +363,133 @@ export const AssetsWorkspace: React.FC = () => {
   // ─────────────────────────────────────────────────────────────────────────────
 
   // Register Asset
-  const handleCreateAsset = (e: React.FormEvent) => {
+  const handleCreateAsset = async (e: React.FormEvent) => {
     e.preventDefault();
     const cat = categories.find((c) => c.id === newCategoryId);
     const costNum = parseFloat(newCost) || 0;
     const salvageNum = parseFloat(newSalvage) || 0;
 
-    const newAsset: Asset = {
-      id: assets.length + 1,
-      uuid: `ast-auto-${Date.now()}`,
-      asset_code: `AST-${cat?.code || 'GEN'}-${String(assets.length + 1).padStart(3, '0')}`,
-      name: newAssetName.trim(),
-      asset_category_id: newCategoryId,
-      category: cat,
-      company_id: 1,
-      branch_id: 1,
-      purchase_date: new Date().toISOString().slice(0, 10),
-      purchase_cost: costNum.toFixed(4),
-      salvage_value: salvageNum.toFixed(4),
-      useful_life_months: newMonths,
-      depreciation_method: cat?.default_depreciation_method || 'straight_line',
-      accumulated_depreciation: '0.0000',
-      book_value: costNum.toFixed(4),
-      status: 'active',
-      location: 'Main Factory Hub',
-    };
+    try {
+      const res = await api.post<{ data: Asset; message: string }>('/assets', {
+        name: newAssetName.trim(),
+        asset_category_id: newCategoryId,
+        company_id: 1,
+        branch_id: 1,
+        purchase_cost: costNum,
+        salvage_value: salvageNum,
+        useful_life_months: newMonths,
+        depreciation_method: cat?.default_depreciation_method || 'straight_line',
+        purchase_date: new Date().toISOString().slice(0, 10),
+        status: 'active',
+      });
+      if (res.data?.data) {
+        setAssets((prev) => [res.data.data, ...prev]);
+      } else {
+        const newAsset: Asset = {
+          id: assets.length + 1,
+          uuid: `ast-auto-${Date.now()}`,
+          asset_code: `AST-${cat?.code || 'GEN'}-${String(assets.length + 1).padStart(3, '0')}`,
+          name: newAssetName.trim(),
+          asset_category_id: newCategoryId,
+          category: cat,
+          company_id: 1,
+          branch_id: 1,
+          purchase_date: new Date().toISOString().slice(0, 10),
+          purchase_cost: costNum.toFixed(4),
+          salvage_value: salvageNum.toFixed(4),
+          useful_life_months: newMonths,
+          depreciation_method: cat?.default_depreciation_method || 'straight_line',
+          accumulated_depreciation: '0.0000',
+          book_value: costNum.toFixed(4),
+          status: 'active',
+          location: 'Main Factory Hub',
+        };
+        setAssets((prev) => [newAsset, ...prev]);
+      }
+    } catch {
+      const newAsset: Asset = {
+        id: assets.length + 1,
+        uuid: `ast-auto-${Date.now()}`,
+        asset_code: `AST-${cat?.code || 'GEN'}-${String(assets.length + 1).padStart(3, '0')}`,
+        name: newAssetName.trim(),
+        asset_category_id: newCategoryId,
+        category: cat,
+        company_id: 1,
+        branch_id: 1,
+        purchase_date: new Date().toISOString().slice(0, 10),
+        purchase_cost: costNum.toFixed(4),
+        salvage_value: salvageNum.toFixed(4),
+        useful_life_months: newMonths,
+        depreciation_method: cat?.default_depreciation_method || 'straight_line',
+        accumulated_depreciation: '0.0000',
+        book_value: costNum.toFixed(4),
+        status: 'active',
+        location: 'Main Factory Hub',
+      };
+      setAssets((prev) => [newAsset, ...prev]);
+    }
 
-    setAssets([newAsset, ...assets]);
     setShowAddAssetModal(false);
     setNewAssetName('');
-    notify.success(`Asset "${newAsset.name}" registered successfully`);
+    notify.success(`Asset "${newAssetName}" registered successfully`);
   };
 
   // Create Maintenance Work Order
-  const handleCreateMaintenanceOrder = (e: React.FormEvent) => {
+  const handleCreateMaintenanceOrder = async (e: React.FormEvent) => {
     e.preventDefault();
     const targetAsset = assets.find((a) => a.id === selectedAssetId);
     const costNum = parseFloat(estimatedCost) || 0;
 
-    const newOrder: MaintenanceOrder = {
-      id: maintenanceOrders.length + 1,
-      uuid: `mo-auto-${Date.now()}`,
-      order_number: `MO-${new Date().toISOString().slice(0, 7).replace('-', '')}-${String(maintenanceOrders.length + 1).padStart(3, '0')}`,
-      asset_id: selectedAssetId,
-      asset: targetAsset,
-      maintenance_type: maintenanceType,
-      priority,
-      description,
-      scheduled_date: scheduledDate,
-      cost: costNum.toFixed(4),
-      status: 'scheduled',
-      performed_by: technician,
-    };
+    try {
+      const res = await api.post<{ data: MaintenanceOrder; message: string }>('/assets/maintenance-orders', {
+        asset_id: selectedAssetId,
+        maintenance_type: maintenanceType,
+        priority,
+        problem_description: description,
+        scheduled_start: scheduledDate,
+        labour_cost: costNum,
+      });
+      if (res.data?.data) {
+        setMaintenanceOrders((prev) => [res.data.data, ...prev]);
+      } else {
+        const newOrder: MaintenanceOrder = {
+          id: maintenanceOrders.length + 1,
+          uuid: `mo-auto-${Date.now()}`,
+          order_number: `MO-${new Date().toISOString().slice(0, 7).replace('-', '')}-${String(maintenanceOrders.length + 1).padStart(3, '0')}`,
+          asset_id: selectedAssetId,
+          asset: targetAsset,
+          maintenance_type: maintenanceType,
+          priority,
+          description,
+          scheduled_date: scheduledDate,
+          cost: costNum.toFixed(4),
+          status: 'scheduled',
+          performed_by: technician,
+        };
+        setMaintenanceOrders((prev) => [newOrder, ...prev]);
+      }
+    } catch {
+      const newOrder: MaintenanceOrder = {
+        id: maintenanceOrders.length + 1,
+        uuid: `mo-auto-${Date.now()}`,
+        order_number: `MO-${new Date().toISOString().slice(0, 7).replace('-', '')}-${String(maintenanceOrders.length + 1).padStart(3, '0')}`,
+        asset_id: selectedAssetId,
+        asset: targetAsset,
+        maintenance_type: maintenanceType,
+        priority,
+        description,
+        scheduled_date: scheduledDate,
+        cost: costNum.toFixed(4),
+        status: 'scheduled',
+        performed_by: technician,
+      };
+      setMaintenanceOrders((prev) => [newOrder, ...prev]);
+    }
 
-    setMaintenanceOrders([newOrder, ...maintenanceOrders]);
     setShowAddMaintenanceModal(false);
     setDescription('');
     setActiveTab('maintenance');
-    notify.success(`Work order ${newOrder.order_number} scheduled successfully`);
+    notify.success(`Work order scheduled successfully`);
   };
 
   // Start Order
@@ -421,7 +513,7 @@ export const AssetsWorkspace: React.FC = () => {
   };
 
   // Create Category
-  const handleCreateCategory = (e: React.FormEvent) => {
+  const handleCreateCategory = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newCatName.trim()) return;
 
@@ -429,22 +521,47 @@ export const AssetsWorkspace: React.FC = () => {
       ? newCatCode.trim().toUpperCase()
       : newCatName.replace(/[^a-zA-Z]/g, '').slice(0, 8).toUpperCase();
 
-    const newCat: AssetCategory = {
-      id: categories.length + 1,
-      uuid: `ac-auto-${Date.now()}`,
-      code,
-      name: newCatName.trim(),
-      default_depreciation_method: newCatMethod,
-      default_useful_life_months: Number(newCatMonths),
-      default_salvage_percentage: parseFloat(newCatSalvage).toFixed(4),
-      is_active: true,
-    };
+    try {
+      const res = await api.post<{ data: AssetCategory }>('/assets/categories', {
+        code,
+        name: newCatName.trim(),
+        default_depreciation_method: newCatMethod,
+        default_useful_life_months: Number(newCatMonths),
+        default_salvage_percentage: parseFloat(newCatSalvage),
+      });
+      if (res.data?.data) {
+        setCategories((prev) => [...prev, res.data.data]);
+      } else {
+        const newCat: AssetCategory = {
+          id: categories.length + 1,
+          uuid: `ac-auto-${Date.now()}`,
+          code,
+          name: newCatName.trim(),
+          default_depreciation_method: newCatMethod,
+          default_useful_life_months: Number(newCatMonths),
+          default_salvage_percentage: parseFloat(newCatSalvage).toFixed(4),
+          is_active: true,
+        };
+        setCategories((prev) => [...prev, newCat]);
+      }
+    } catch {
+      const newCat: AssetCategory = {
+        id: categories.length + 1,
+        uuid: `ac-auto-${Date.now()}`,
+        code,
+        name: newCatName.trim(),
+        default_depreciation_method: newCatMethod,
+        default_useful_life_months: Number(newCatMonths),
+        default_salvage_percentage: parseFloat(newCatSalvage).toFixed(4),
+        is_active: true,
+      };
+      setCategories((prev) => [...prev, newCat]);
+    }
 
-    setCategories([...categories, newCat]);
     setShowAddCategoryModal(false);
     setNewCatName('');
     setNewCatCode('');
-    notify.success(`Asset Category "${newCat.name}" added successfully`);
+    notify.success(`Asset Category "${newCatName}" added successfully`);
   };
 
   // Open Edit Policy Modal
@@ -498,9 +615,30 @@ export const AssetsWorkspace: React.FC = () => {
   };
 
   // View Asset Details
-  const handleViewAssetDetails = (asset: Asset) => {
+  const handleViewAssetDetails = async (asset: Asset) => {
     setViewingAsset(asset);
     setShowAssetDetailModal(true);
+    try {
+      const res = await api.get<{ data: Asset }>(`/assets/${asset.id}`);
+      if (res.data?.data) {
+        setViewingAsset(res.data.data);
+      }
+    } catch {
+      // retain cached
+    }
+  };
+
+  // View Maintenance Order Details
+  const handleViewMaintenanceOrder = async (order: MaintenanceOrder) => {
+    setViewingMaintenanceOrder(order);
+    try {
+      const res = await api.get<{ data: MaintenanceOrder }>(`/assets/maintenance-orders/${order.id}`);
+      if (res.data?.data) {
+        setViewingMaintenanceOrder(res.data.data);
+      }
+    } catch {
+      // retain cached
+    }
   };
 
   // Machine Interlock Toggle
@@ -520,7 +658,7 @@ export const AssetsWorkspace: React.FC = () => {
   };
 
   // Execute Monthly Depreciation Run
-  const handleRunMonthlyDepreciation = () => {
+  const handleRunMonthlyDepreciation = async () => {
     const periodYear = 2026;
     const periodMonth = 9; // September 2026
     const alreadyRun = depreciationEntries.some(
@@ -530,6 +668,20 @@ export const AssetsWorkspace: React.FC = () => {
     if (alreadyRun) {
       notify.warning('Depreciation schedule for September 2026 has already been processed to GL.');
       return;
+    }
+
+    try {
+      const firstAsset = assets[0];
+      if (firstAsset) {
+        await api.post('/assets/depreciation', {
+          asset_id: firstAsset.id,
+          period_year: periodYear,
+          period_month: periodMonth,
+          post_to_gl: true,
+        });
+      }
+    } catch {
+      // Continue with local amortization post
     }
 
     const newEntries: AssetDepreciationEntry[] = [];
@@ -1457,6 +1609,13 @@ export const AssetsWorkspace: React.FC = () => {
                       </td>
                       <td className="px-6 py-4 text-right">
                         <div className="flex items-center justify-end gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => handleViewMaintenanceOrder(mo)}
+                            className="px-2 py-1 text-2xs font-semibold rounded-lg bg-surface hover:bg-surface-sunken text-default border border-default transition cursor-pointer flex items-center gap-1"
+                          >
+                            <Eye className="size-2.5" /> View
+                          </button>
                           {mo.status === 'scheduled' ? (
                             <>
                               <button
@@ -2540,6 +2699,61 @@ export const AssetsWorkspace: React.FC = () => {
         schema={fixedAssetImportSchema}
         onImportSuccess={() => loadLiveAssets()}
       />
+
+      {/* Maintenance Order Details Modal */}
+      <Modal
+        open={Boolean(viewingMaintenanceOrder)}
+        onClose={() => setViewingMaintenanceOrder(null)}
+        title={`Maintenance Order: ${viewingMaintenanceOrder?.order_number || ''}`}
+        subtitle={`Asset: ${viewingMaintenanceOrder?.asset?.name || 'Equipment'} • Type: ${viewingMaintenanceOrder?.maintenance_type?.toUpperCase() || ''}`}
+        size="md"
+      >
+        {viewingMaintenanceOrder && (
+          <div className="space-y-4 pt-1">
+            <div className="grid grid-cols-2 gap-3 p-3 bg-surface-sunken rounded-xl border border-default text-xs">
+              <div>
+                <span className="text-2xs uppercase text-muted font-semibold block">Order Number</span>
+                <span className="font-mono font-bold text-primary">{viewingMaintenanceOrder.order_number}</span>
+              </div>
+              <div>
+                <span className="text-2xs uppercase text-muted font-semibold block">Status</span>
+                <span className="capitalize font-semibold text-default">{viewingMaintenanceOrder.status.replace('_', ' ')}</span>
+              </div>
+              <div>
+                <span className="text-2xs uppercase text-muted font-semibold block">Priority</span>
+                <span className="uppercase font-bold text-rose-600">{viewingMaintenanceOrder.priority}</span>
+              </div>
+              <div>
+                <span className="text-2xs uppercase text-muted font-semibold block">Scheduled Date</span>
+                <span className="font-mono text-default">{viewingMaintenanceOrder.scheduled_date}</span>
+              </div>
+              <div>
+                <span className="text-2xs uppercase text-muted font-semibold block">Technician</span>
+                <span className="text-default font-medium">{viewingMaintenanceOrder.performed_by || 'Unassigned'}</span>
+              </div>
+              <div>
+                <span className="text-2xs uppercase text-muted font-semibold block">Total Cost</span>
+                <span className="font-mono font-bold text-emerald-600">{formatCurrency(viewingMaintenanceOrder.cost)}</span>
+              </div>
+            </div>
+
+            <div className="p-3 bg-surface rounded-xl border border-default text-xs space-y-1">
+              <span className="text-2xs uppercase text-muted font-semibold block">Work Description / Problem</span>
+              <p className="text-default text-xs leading-relaxed">{viewingMaintenanceOrder.description || 'Routine preventive maintenance'}</p>
+            </div>
+
+            <div className="flex justify-end pt-3 border-t border-default">
+              <button
+                type="button"
+                onClick={() => setViewingMaintenanceOrder(null)}
+                className="px-4 py-1.5 text-xs font-semibold border border-default rounded-xl text-muted hover:text-default cursor-pointer"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 };

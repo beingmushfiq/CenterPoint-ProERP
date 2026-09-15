@@ -100,6 +100,36 @@ export function InvoicesSection({ onNavigateToTab }: InvoicesSectionProps = {}) 
     },
   });
 
+  const createInvoiceMutation = useMutation({
+    mutationFn: async (payload: {
+      sales_order_id?: number;
+      party_id?: number;
+      invoice_date: string;
+      items: Array<{ product_id: number; quantity: string; unit_price: string; unit_id?: number }>;
+      notes?: string;
+    }) => {
+      const res = await api.post<Invoice>('/sales/invoices', payload);
+      return res.data;
+    },
+    onSuccess: () => {
+      toast.success('Sales invoice created successfully.');
+      queryClient.invalidateQueries({ queryKey: ['sales', 'invoices'] });
+    },
+    onError: (err: unknown) => {
+      toast.error(err instanceof Error ? err.message : 'Failed to create invoice');
+    },
+  });
+
+  const handlePreviewInvoice = async (inv: Invoice) => {
+    setPreviewInvoice(inv);
+    try {
+      const res = await api.get<Invoice>(`/sales/invoices/${inv.id}`);
+      if (res.data) setPreviewInvoice(res.data);
+    } catch {
+      // Keep cached invoice
+    }
+  };
+
   const handleVoid = (e: React.FormEvent) => {
     e.preventDefault();
     if (!showVoidModal) return;
@@ -214,6 +244,23 @@ export function InvoicesSection({ onNavigateToTab }: InvoicesSectionProps = {}) 
           </button>
 
           <button
+            type="button"
+            onClick={() => {
+              createInvoiceMutation.mutate({
+                invoice_date: new Date().toISOString().slice(0, 10),
+                items: [{ product_id: 1, quantity: '1', unit_price: '0.00' }],
+                notes: 'Direct generated invoice draft',
+              });
+            }}
+            disabled={createInvoiceMutation.isPending}
+            className="flex h-9 items-center gap-1.5 rounded-xl bg-primary/10 border border-primary/20 px-3 text-xs font-semibold text-primary hover:bg-primary/20 transition-colors cursor-pointer disabled:opacity-50"
+            title="Create Direct Sales Invoice"
+          >
+            <FileText className="h-3.5 w-3.5" />
+            <span>{createInvoiceMutation.isPending ? 'Creating...' : 'New Invoice'}</span>
+          </button>
+
+          <button
             onClick={() => setShowDesigner(true)}
             className="flex h-9 items-center gap-1.5 rounded-xl bg-surface-sunken border border-default px-3.5 text-xs font-medium text-default hover:bg-surface hover:text-primary transition-colors cursor-pointer"
           >
@@ -305,7 +352,7 @@ export function InvoicesSection({ onNavigateToTab }: InvoicesSectionProps = {}) 
                       <td className="px-4 py-3.5">{getStatusBadge(inv.status)}</td>
                       <td className="px-4 py-3.5 text-right space-x-1.5">
                         <button
-                          onClick={() => setPreviewInvoice(inv)}
+                          onClick={() => handlePreviewInvoice(inv)}
                           className="inline-flex items-center gap-1 rounded-xl bg-surface-sunken border border-default px-2.5 py-1 text-[11px] font-medium text-default hover:bg-surface transition-colors cursor-pointer"
                         >
                           <Printer className="h-3 w-3" /> Print

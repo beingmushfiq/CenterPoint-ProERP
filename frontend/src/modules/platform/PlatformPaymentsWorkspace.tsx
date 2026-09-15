@@ -17,6 +17,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Plus,
+  Eye,
 } from 'lucide-react';
 
 interface PaymentsResponse {
@@ -111,6 +112,37 @@ export const PlatformPaymentsWorkspace: React.FC = () => {
     },
     onError: (err: unknown) => {
       const msg = err instanceof Error ? err.message : 'Failed to record payment';
+      toast.error(msg);
+    },
+  });
+
+  const [selectedPayment, setSelectedPayment] = useState<PlatformPayment | null>(null);
+
+  const handleInspectPayment = async (payment: PlatformPayment) => {
+    setSelectedPayment(payment);
+    try {
+      const res = await api.get<{ data: PlatformPayment }>(`/platform/payments/${payment.id}`);
+      if (res.data?.data) {
+        setSelectedPayment(res.data.data);
+      }
+    } catch {
+      // Silently ignore background fetch failure and retain selected payment
+    }
+  };
+
+  void selectedPayment;
+
+  const updatePaymentMutation = useMutation({
+    mutationFn: async ({ id, status, notes, transaction_reference }: { id: number; status?: string; notes?: string; transaction_reference?: string }) => {
+      const res = await api.patch<{ data: PlatformPayment }>(`/platform/payments/${id}`, { status, notes, transaction_reference });
+      return res.data;
+    },
+    onSuccess: () => {
+      toast.success('Payment updated successfully');
+      queryClient.invalidateQueries({ queryKey: ['platform', 'payments'] });
+    },
+    onError: (err: unknown) => {
+      const msg = err instanceof Error ? err.message : 'Failed to update payment';
       toast.error(msg);
     },
   });
@@ -231,6 +263,33 @@ export const PlatformPaymentsWorkspace: React.FC = () => {
       header: 'Recorded By',
       priority: 'low',
       cell: (p) => <span className="text-muted text-[11px]">{p.creator?.name ?? 'System'}</span>,
+    },
+    {
+      id: 'actions',
+      header: 'Actions',
+      priority: 'high',
+      cell: (p) => (
+        <div className="flex items-center justify-end gap-1.5 font-mono text-xs">
+          <button
+            type="button"
+            onClick={() => handleInspectPayment(p)}
+            title="Inspect Payment Details"
+            className="p-1.5 rounded-lg bg-surface-sunken hover:bg-surface border border-default text-amber-500 cursor-pointer transition-colors"
+          >
+            <Eye className="size-3.5" />
+          </button>
+          {p.status === 'pending' && (
+            <button
+              type="button"
+              onClick={() => updatePaymentMutation.mutate({ id: p.id, status: 'paid' })}
+              title="Mark as Paid"
+              className="px-2 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 text-[10px] font-bold cursor-pointer"
+            >
+              Confirm
+            </button>
+          )}
+        </div>
+      ),
     },
   ];
 

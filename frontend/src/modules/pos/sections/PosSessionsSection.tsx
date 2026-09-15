@@ -387,6 +387,9 @@ export function PosSessionsSection({ onLaunchPOS }: PosSessionsSectionProps) {
                           onClick={() => {
                             setActiveSession(s);
                             setShowViewModal(true);
+                            void api.get<PosSession>(`/pos/sessions/${s.id}`).then((res) => {
+                              if (res.data) setActiveSession(res.data);
+                            }).catch(() => {});
                           }}
                           className="p-1.5 text-muted hover:text-default hover:bg-surface-sunken rounded-lg transition-colors cursor-pointer"
                           title="View Z-Report"

@@ -268,6 +268,19 @@ export function PurchaseBillsSection() {
     },
   });
 
+  const handleViewBill = async (bill: PurchaseBill) => {
+    setActiveBill(bill);
+    setShowViewModal(true);
+    try {
+      const res = await api.get<{ data: PurchaseBill }>(`/purchasing/bills/${bill.id}`);
+      if (res.data?.data) {
+        setActiveBill(res.data.data);
+      }
+    } catch {
+      // keep cached
+    }
+  };
+
   const handleApprove = async (billId: number) => {
     setActionLoading(billId);
     try {
@@ -698,10 +711,7 @@ export function PurchaseBillsSection() {
                       <div className="flex items-center justify-end gap-1.5">
                         <button
                           type="button"
-                          onClick={() => {
-                            setActiveBill(b);
-                            setShowViewModal(true);
-                          }}
+                          onClick={() => handleViewBill(b)}
                           className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-surface hover:bg-surface-sunken border border-default text-default transition-colors cursor-pointer"
                         >
                           View

@@ -19,6 +19,7 @@ export interface AuthState {
   error: string | null;
 
   login: (credentials: { email: string; password: string; tenant_id?: string }) => Promise<void>;
+  selectTenant: (params: { email: string; tenant_id: number }) => Promise<void>;
   logout: () => Promise<void>;
   bootstrap: () => Promise<void>;
   hasPermission: (permission: string | string[]) => boolean;
@@ -94,6 +95,38 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         status: 'unauthenticated',
         error: message,
       });
+      throw err;
+    }
+  },
+
+  selectTenant: async (params) => {
+    set({ status: 'authenticating', error: null });
+    try {
+      const response = await api.post<LoginResponseData>('/auth/select-tenant', params);
+      const data = response.data;
+      setAccessToken(data.access_token);
+      localStorage.setItem('auth_user', JSON.stringify(data.user));
+      localStorage.setItem('auth_tenant', JSON.stringify(data.tenant));
+      localStorage.setItem('auth_permissions', JSON.stringify(data.permissions ?? []));
+
+      set({
+        user: data.user,
+        tenant: data.tenant,
+        branches: [],
+        activeBranch: null,
+        permissions: new Set(data.permissions),
+        status: 'authenticated',
+        error: null,
+      });
+
+      try {
+        useTenantCapabilityStore.getState().bootstrap();
+      } catch {}
+
+      get().bootstrap().catch(() => {});
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Tenant selection failed.';
+      set({ status: 'unauthenticated', error: message });
       throw err;
     }
   },

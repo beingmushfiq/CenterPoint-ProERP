@@ -13,6 +13,7 @@ import {
   Activity,
   Sparkles,
   Info,
+  Plus,
 } from 'lucide-react';
 import { api } from '../../lib/api/client';
 import { Button } from '../../components/ui/Button';
@@ -101,23 +102,36 @@ export const WorkflowAutomationWorkspace: React.FC = () => {
   >(null);
   const [testLoading, setTestLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<'workflows' | 'logs'>('workflows');
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [createSubmitting, setCreateSubmitting] = useState(false);
+  const [newFlow, setNewFlow] = useState({
+    name: '',
+    description: '',
+    category: 'inventory',
+    triggerEvent: 'stock.threshold_breached',
+    triggerLabel: 'Warehouse Stock < Reorder Point',
+    conditionField: 'product.is_purchased',
+    conditionOperator: 'equals',
+    conditionValue: 'true',
+    actionCode: 'purchasing.draft_po',
+    actionLabel: 'Generate Draft Purchase Order with EOQ batch quantity',
+  });
 
   const fetchWorkflows = useCallback(async (showLoading = false) => {
     try {
       if (showLoading) {
         setLoading(true);
       }
-      const res = await api.get<{
-        workflows: WorkflowItem[];
-        logs: WorkflowLog[];
-        stats: WorkflowStats;
-      }>('/workflows');
+      const res = await api.get<any>('/workflows');
+      const payload = (res.data && typeof res.data === 'object' && 'data' in res.data)
+        ? (res.data as any).data
+        : res.data;
 
-      if (res.data?.workflows) {
-        setWorkflows(res.data.workflows);
-        setLogs(res.data.logs || []);
-        if (res.data.stats) {
-          setStats(res.data.stats);
+      if (payload?.workflows) {
+        setWorkflows(payload.workflows);
+        setLogs(payload.logs || []);
+        if (payload.stats) {
+          setStats(payload.stats);
         }
       }
     } catch {
@@ -154,16 +168,15 @@ export const WorkflowAutomationWorkspace: React.FC = () => {
       setTestLoading(true);
       setTestResultSteps(null);
 
-      const res = await api.post<{
-        workflow: WorkflowItem;
-        steps: Array<{ step: number; name: string; detail: string; status: string }>;
-        log: WorkflowLog;
-      }>(`/workflows/${workflow.id}/test`);
+      const res = await api.post<any>(`/workflows/${workflow.id}/test`);
+      const payload = (res.data && typeof res.data === 'object' && 'data' in res.data)
+        ? (res.data as any).data
+        : res.data;
 
-      if (res.data?.steps) {
-        setTestResultSteps(res.data.steps);
-        if (res.data.log) {
-          setLogs((prev) => [res.data.log, ...prev]);
+      if (payload?.steps) {
+        setTestResultSteps(payload.steps);
+        if (payload.log) {
+          setLogs((prev) => [payload.log, ...prev]);
         }
         setWorkflows((prev) =>
           prev.map((w) =>
@@ -182,6 +195,72 @@ export const WorkflowAutomationWorkspace: React.FC = () => {
       notify.error('Failed to execute simulation test.');
     } finally {
       setTestLoading(false);
+    }
+  };
+
+  const handleCreateWorkflow = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newFlow.name.trim()) {
+      notify.error('Workflow name is required');
+      return;
+    }
+
+    try {
+      setCreateSubmitting(true);
+      const payload = {
+        name: newFlow.name,
+        description: newFlow.description,
+        category: newFlow.category,
+        trigger: {
+          event: newFlow.triggerEvent,
+          label: newFlow.triggerLabel,
+        },
+        conditions: [
+          {
+            field: newFlow.conditionField,
+            operator: newFlow.conditionOperator,
+            value: newFlow.conditionValue,
+          },
+        ],
+        actions: [
+          {
+            action: newFlow.actionCode,
+            label: newFlow.actionLabel,
+          },
+        ],
+      };
+
+      const res = await api.post<any>('/workflows', payload);
+      const created = (res.data && typeof res.data === 'object' && 'data' in res.data)
+        ? (res.data as any).data
+        : res.data;
+
+      if (created?.id) {
+        setWorkflows((prev) => [created, ...prev]);
+        setStats((prev) => ({ ...prev, total: prev.total + 1, active: prev.active + 1 }));
+        setIsCreateOpen(false);
+        setNewFlow({
+          name: '',
+          description: '',
+          category: 'inventory',
+          triggerEvent: 'stock.threshold_breached',
+          triggerLabel: 'Warehouse Stock < Reorder Point',
+          conditionField: 'product.is_purchased',
+          conditionOperator: 'equals',
+          conditionValue: 'true',
+          actionCode: 'purchasing.draft_po',
+          actionLabel: 'Generate Draft Purchase Order with EOQ batch quantity',
+        });
+        notify.success(`Workflow '${created.name}' created successfully`);
+      } else {
+        await fetchWorkflows();
+        setIsCreateOpen(false);
+        notify.success('Workflow created successfully');
+      }
+    } catch (err: any) {
+      notify.error(err?.response?.data?.message || 'Failed to create workflow recipe');
+    } finally {
+      setCreateSubmitting(false);
     }
   };
 
@@ -212,6 +291,15 @@ export const WorkflowAutomationWorkspace: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-2.5">
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={() => setIsCreateOpen(true)}
+              className="gap-1.5 cursor-pointer"
+            >
+              <Plus className="size-3.5" />
+              New Recipe
+            </Button>
             <Button
               variant="secondary"
               size="sm"
@@ -546,6 +634,167 @@ export const WorkflowAutomationWorkspace: React.FC = () => {
               </Button>
             </div>
           </div>
+        </Modal>
+      )}
+
+      {/* Create Recipe Modal Dialog */}
+      {isCreateOpen && (
+        <Modal
+          open={isCreateOpen}
+          onClose={() => setIsCreateOpen(false)}
+          title="Create Automation Recipe"
+          subtitle="Configure a real-time event trigger, conditional decision gate, and automated action."
+          size="lg"
+        >
+          <form onSubmit={handleCreateWorkflow} className="space-y-4 pt-2">
+            <div>
+              <label className="block text-xs font-semibold text-default mb-1">Recipe Name *</label>
+              <input
+                type="text"
+                required
+                value={newFlow.name}
+                onChange={(e) => setNewFlow({ ...newFlow, name: e.target.value })}
+                placeholder="e.g. Auto-Release Low-Value Delivery Orders"
+                className="w-full px-3 py-2 text-xs rounded-lg border border-default bg-surface focus:outline-none focus:ring-1 focus:ring-primary"
+              />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-semibold text-default mb-1">Category Domain *</label>
+                <select
+                  value={newFlow.category}
+                  onChange={(e) => setNewFlow({ ...newFlow, category: e.target.value })}
+                  className="w-full px-3 py-2 text-xs rounded-lg border border-default bg-surface focus:outline-none focus:ring-1 focus:ring-primary"
+                >
+                  <option value="inventory">Inventory & Warehousing</option>
+                  <option value="quality">Quality & Inspection</option>
+                  <option value="finance">Finance & Accounts</option>
+                  <option value="sales">Sales & Fulfillment</option>
+                  <option value="logistics">Logistics & Dispatch</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-default mb-1">Trigger Event Key *</label>
+                <input
+                  type="text"
+                  required
+                  value={newFlow.triggerEvent}
+                  onChange={(e) => setNewFlow({ ...newFlow, triggerEvent: e.target.value })}
+                  placeholder="e.g. order.created, qc.failed"
+                  className="w-full px-3 py-2 text-xs rounded-lg border border-default bg-surface focus:outline-none focus:ring-1 focus:ring-primary"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-default mb-1">Trigger Description Label *</label>
+              <input
+                type="text"
+                required
+                value={newFlow.triggerLabel}
+                onChange={(e) => setNewFlow({ ...newFlow, triggerLabel: e.target.value })}
+                placeholder="e.g. When Sales Order value is under ৳5,000"
+                className="w-full px-3 py-2 text-xs rounded-lg border border-default bg-surface focus:outline-none focus:ring-1 focus:ring-primary"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-default mb-1">Description / Intent</label>
+              <textarea
+                rows={2}
+                value={newFlow.description}
+                onChange={(e) => setNewFlow({ ...newFlow, description: e.target.value })}
+                placeholder="Describe what business bottleneck this recipe automates..."
+                className="w-full px-3 py-2 text-xs rounded-lg border border-default bg-surface focus:outline-none focus:ring-1 focus:ring-primary"
+              />
+            </div>
+
+            {/* Decision Gate */}
+            <div className="p-3 bg-surface-sunken rounded-xl border border-default/70 space-y-2">
+              <span className="text-2xs font-bold uppercase tracking-wider text-muted">Condition (Decision Gate)</span>
+              <div className="grid grid-cols-3 gap-2">
+                <input
+                  type="text"
+                  placeholder="Field (e.g. order.total)"
+                  value={newFlow.conditionField}
+                  onChange={(e) => setNewFlow({ ...newFlow, conditionField: e.target.value })}
+                  className="px-2.5 py-1.5 text-xs rounded border border-default bg-surface"
+                />
+                <select
+                  value={newFlow.conditionOperator}
+                  onChange={(e) => setNewFlow({ ...newFlow, conditionOperator: e.target.value })}
+                  className="px-2 py-1.5 text-xs rounded border border-default bg-surface"
+                >
+                  <option value="equals">equals</option>
+                  <option value="not_equals">not equals</option>
+                  <option value="gte">&gt;=</option>
+                  <option value="lte">&lt;=</option>
+                  <option value="contains">contains</option>
+                </select>
+                <input
+                  type="text"
+                  placeholder="Value (e.g. 5000)"
+                  value={newFlow.conditionValue}
+                  onChange={(e) => setNewFlow({ ...newFlow, conditionValue: e.target.value })}
+                  className="px-2.5 py-1.5 text-xs rounded border border-default bg-surface"
+                />
+              </div>
+            </div>
+
+            {/* Action */}
+            <div className="p-3 bg-surface-sunken rounded-xl border border-default/70 space-y-2">
+              <span className="text-2xs font-bold uppercase tracking-wider text-muted">Automated Action</span>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <input
+                  type="text"
+                  placeholder="Action Code (e.g. logistics.auto_dispatch)"
+                  value={newFlow.actionCode}
+                  onChange={(e) => setNewFlow({ ...newFlow, actionCode: e.target.value })}
+                  className="px-2.5 py-1.5 text-xs rounded border border-default bg-surface"
+                />
+                <input
+                  type="text"
+                  placeholder="Action Label (e.g. Approve & Dispatch DO)"
+                  value={newFlow.actionLabel}
+                  onChange={(e) => setNewFlow({ ...newFlow, actionLabel: e.target.value })}
+                  className="px-2.5 py-1.5 text-xs rounded border border-default bg-surface"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-4 border-t border-default">
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={() => setIsCreateOpen(false)}
+                disabled={createSubmitting}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                variant="primary"
+                size="sm"
+                disabled={createSubmitting}
+                className="gap-1.5"
+              >
+                {createSubmitting ? (
+                  <>
+                    <RefreshCw className="size-3 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 className="size-3" />
+                    Save & Activate Recipe
+                  </>
+                )}
+              </Button>
+            </div>
+          </form>
         </Modal>
       )}
     </div>

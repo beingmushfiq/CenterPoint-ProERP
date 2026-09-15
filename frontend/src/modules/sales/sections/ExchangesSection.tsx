@@ -415,6 +415,17 @@ export function ExchangesSection() {
     initialData: SAMPLE_EXCHANGES,
   });
 
+  const handleOpenView = async (ex: Exchange) => {
+    setActiveExchange(ex);
+    setShowViewModal(true);
+    try {
+      const res = await api.get<Exchange>(`/sales/exchanges/${ex.id}`);
+      if (res.data) setActiveExchange(res.data);
+    } catch {
+      // Keep cached exchange
+    }
+  };
+
   // ── Dropdown Options Queries ─────────────────────────────────────────────
   const { data: invoiceOptions = [] } = useQuery<InvoiceOption[]>({
     queryKey: ['sales', 'invoices'],
@@ -789,7 +800,7 @@ export function ExchangesSection() {
                           <div className="flex items-center justify-center gap-1">
                             <button
                               type="button"
-                              onClick={() => { setActiveExchange(ex); setShowViewModal(true); }}
+                              onClick={() => handleOpenView(ex)}
                               className="size-7 rounded flex items-center justify-center text-muted hover:text-default hover:bg-surface-sunken transition-all"
                               title="View Details"
                             >

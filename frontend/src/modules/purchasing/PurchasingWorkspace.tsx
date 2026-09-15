@@ -135,7 +135,7 @@ const tabs: TabConfig[] = [
 ];
 
 export default function PurchasingWorkspace() {
-  const [activeTab, setActiveTab] = useWorkspaceTab<PurchasingTab>('orders', VALID_TABS);
+  const [activeTab, setActiveTab] = useWorkspaceTab<PurchasingTab>('requisitions', VALID_TABS);
   const [isGuideOpen, setIsGuideOpen] = useState(false);
   const [quickJumpOpen, setQuickJumpOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -157,7 +157,7 @@ export default function PurchasingWorkspace() {
     setShowFastBillModal(true);
   };
 
-  const currentTab = tabs.find((t) => t.id === activeTab) ?? tabs[1]!;
+  const currentTab = tabs.find((t) => t.id === activeTab) ?? tabs[0]!;
   const activeCategory = currentTab.category;
 
   // Global Keyboard Shortcuts (1, 2, 3 to switch domain pillars)

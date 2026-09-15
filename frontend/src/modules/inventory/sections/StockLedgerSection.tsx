@@ -700,7 +700,12 @@ export function StockLedgerSection() {
                       <td className="px-4 py-3.5 text-right">
                         <div className="flex items-center justify-end gap-1.5">
                           <button
-                            onClick={() => setViewingMovement(m)}
+                            onClick={() => {
+                              setViewingMovement(m);
+                              void api.get<StockMovement>(`/inventory/movements/${m.id}`).then((res) => {
+                                if (res.data) setViewingMovement(res.data);
+                              }).catch(() => {});
+                            }}
                             className="p-1.5 text-muted hover:text-default hover:bg-surface-sunken rounded-lg transition-colors cursor-pointer"
                             title="Inspect Movement Voucher"
                           >

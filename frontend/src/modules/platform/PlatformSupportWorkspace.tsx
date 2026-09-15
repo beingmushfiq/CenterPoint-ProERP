@@ -86,7 +86,9 @@ export const PlatformSupportWorkspace: React.FC = () => {
       if (priorityFilter !== 'all') params['priority'] = priorityFilter;
       if (search) params['search'] = search;
 
-      const res = await api.get<TicketsResponse>('/platform/support-tickets', { params });
+      const res = await api.get<TicketsResponse>('/platform/support/tickets', { params }).catch(() =>
+        api.get<TicketsResponse>('/platform/support-tickets', { params })
+      );
       return res.data;
     },
   });
@@ -99,7 +101,9 @@ export const PlatformSupportWorkspace: React.FC = () => {
     queryKey: ['platform', 'support-ticket', selectedTicket?.id],
     queryFn: async () => {
       if (!selectedTicket) throw new Error('No ticket selected');
-      const res = await api.get<{ data: PlatformSupportTicket }>(`/platform/support-tickets/${selectedTicket.id}`);
+      const res = await api.get<{ data: PlatformSupportTicket }>(`/platform/support/tickets/${selectedTicket.id}`).catch(() =>
+        api.get<{ data: PlatformSupportTicket }>(`/platform/support-tickets/${selectedTicket.id}`)
+      );
       return res.data.data;
     },
     enabled: Boolean(selectedTicket),
@@ -114,7 +118,9 @@ export const PlatformSupportWorkspace: React.FC = () => {
       priority: 'low' | 'normal' | 'high' | 'urgent';
       description: string;
     }) => {
-      const res = await api.post('/platform/support-tickets', payload);
+      const res = await api.post('/platform/support/tickets', payload).catch(() =>
+        api.post('/platform/support-tickets', payload)
+      );
       return res.data;
     },
     onSuccess: () => {
@@ -134,7 +140,9 @@ export const PlatformSupportWorkspace: React.FC = () => {
   // Update Status Mutation
   const updateStatusMutation = useMutation({
     mutationFn: async ({ id, status }: { id: number; status: string }) => {
-      const res = await api.patch(`/platform/support-tickets/${id}`, { status });
+      const res = await api.patch(`/platform/support/tickets/${id}`, { status }).catch(() =>
+        api.patch(`/platform/support-tickets/${id}`, { status })
+      );
       return res.data;
     },
     onSuccess: () => {
@@ -151,10 +159,15 @@ export const PlatformSupportWorkspace: React.FC = () => {
   // Add Note Mutation
   const addNoteMutation = useMutation({
     mutationFn: async ({ id, note, is_internal }: { id: number; note: string; is_internal: boolean }) => {
-      const res = await api.post(`/platform/support-tickets/${id}/notes`, {
+      const res = await api.post(`/platform/support/tickets/${id}/notes`, {
         note,
         is_internal,
-      });
+      }).catch(() =>
+        api.post(`/platform/support-tickets/${id}/notes`, {
+          note,
+          is_internal,
+        })
+      );
       return res.data;
     },
     onSuccess: () => {

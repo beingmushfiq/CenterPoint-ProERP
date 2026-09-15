@@ -5,6 +5,7 @@ import {
   Sparkles,
   Zap,
 } from 'lucide-react';
+import { api } from '../../../../lib/api/client';
 
 interface LogisticsDispatchSimulatorProps {
   defaultCourierProvider?: string;
@@ -116,9 +117,20 @@ export const LogisticsDispatchSimulator: React.FC<LogisticsDispatchSimulatorProp
               <Barcode className="size-4 text-default" />
               <span>SF98124-COD</span>
             </div>
-            <span className="text-2xs text-success font-medium flex items-center gap-1">
+            <button
+              type="button"
+              onClick={() => {
+                void api.post(`/webhooks/couriers/${defaultCourierProvider || 'steadfast'}`, {
+                  event: 'delivery_status_updated',
+                  consignment_id: 'SF98124-COD',
+                  status: 'delivered',
+                }).catch(() => {});
+              }}
+              className="text-2xs text-success font-medium flex items-center gap-1 hover:underline cursor-pointer"
+              title="Test Courier Webhook"
+            >
               <Zap className="size-2.5" /> Ready for Dock Pickup
-            </span>
+            </button>
           </div>
         </div>
       </div>

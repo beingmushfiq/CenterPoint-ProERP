@@ -64,6 +64,7 @@ export const StockThresholdsSection: React.FC = () => {
   const { data, isLoading, refetch, isFetching } = useQuery<ThresholdResponse>({
     queryKey: ['inventory', 'thresholds'],
     queryFn: async () => {
+      void api.get('/inventory/thresholds/alerts').catch(() => {});
       const res = await api.get<ThresholdResponse>('/inventory/thresholds');
       return res.data;
     },

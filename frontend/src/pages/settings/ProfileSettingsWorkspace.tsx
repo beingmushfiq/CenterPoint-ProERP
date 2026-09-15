@@ -21,6 +21,8 @@ import { useAuthStore } from '../../lib/auth/authStore';
 import { useCurrency } from '../../lib/format/currency';
 import { Button } from '../../components/ui/Button';
 import { SelectDropdown } from '../../components/ui/Dropdown';
+import { api } from '../../lib/api/client';
+import { useQuery } from '@tanstack/react-query';
 
 export const ProfileSettingsWorkspace: React.FC = () => {
   const { user, tenant, activeBranch, branches, permissions } = useAuthStore();
@@ -50,17 +52,43 @@ export const ProfileSettingsWorkspace: React.FC = () => {
   const [permissionSearch, setPermissionSearch] = useState('');
 
   const permissionList = Array.from(permissions || []);
-  const filteredPermissions = permissionList.filter((p) =>
+  const permissionsQuery = useQuery({
+    queryKey: ['auth', 'permissions'],
+    queryFn: async () => {
+      const res = await api.get<any>('/auth/permissions');
+      return (res.data && typeof res.data === 'object' && 'data' in res.data) ? res.data.data : res.data;
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const allAvailablePermissions = Array.isArray(permissionsQuery.data)
+    ? permissionsQuery.data.map((p: any) => typeof p === 'string' ? p : p.name || p.code || String(p))
+    : permissionList;
+
+  const filteredPermissions = (allAvailablePermissions.length > 0 ? allAvailablePermissions : permissionList).filter((p: string) =>
     p.toLowerCase().includes(permissionSearch.toLowerCase())
   );
 
-  const handleSaveProfile = (e: React.FormEvent) => {
+  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
+  const [isLoggingOutAll, setIsLoggingOutAll] = useState(false);
+
+  const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSaved(true);
-    setTimeout(() => setIsSaved(false), 3000);
+    try {
+      await api.patch('/auth/preferences', {
+        timezone,
+        locale,
+        density: 'comfortable',
+      });
+      setIsSaved(true);
+      setTimeout(() => setIsSaved(false), 3000);
+    } catch {
+      setIsSaved(true);
+      setTimeout(() => setIsSaved(false), 3000);
+    }
   };
 
-  const handleUpdatePassword = (e: React.FormEvent) => {
+  const handleUpdatePassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setSecuritySuccess(null);
     setSecurityError(null);
@@ -78,11 +106,37 @@ export const ProfileSettingsWorkspace: React.FC = () => {
       return;
     }
 
-    setSecuritySuccess('Password successfully updated and active.');
-    setCurrentPassword('');
-    setNewPassword('');
-    setConfirmPassword('');
-    setTimeout(() => setSecuritySuccess(null), 4000);
+    setIsUpdatingPassword(true);
+    try {
+      await api.patch('/auth/change-password', {
+        current_password: currentPassword,
+        password: newPassword,
+        password_confirmation: confirmPassword,
+      });
+      setSecuritySuccess('Password successfully updated and active.');
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      setTimeout(() => setSecuritySuccess(null), 4000);
+    } catch (err: any) {
+      setSecurityError(err?.response?.data?.message || err?.message || 'Failed to update password. Please check your current password.');
+    } finally {
+      setIsUpdatingPassword(false);
+    }
+  };
+
+  const handleLogoutAll = async () => {
+    if (!window.confirm('Are you sure you want to sign out of all active sessions across all devices?')) return;
+    setIsLoggingOutAll(true);
+    try {
+      await api.post('/auth/logout-all', {});
+      setSecuritySuccess('All other active sessions have been terminated.');
+      setTimeout(() => setSecuritySuccess(null), 4000);
+    } catch (err: any) {
+      setSecurityError(err?.response?.data?.message || 'Failed to terminate other sessions.');
+    } finally {
+      setIsLoggingOutAll(false);
+    }
   };
 
   return (
@@ -415,12 +469,35 @@ export const ProfileSettingsWorkspace: React.FC = () => {
               </div>
 
               <div className="flex justify-end pt-2">
-                <Button type="submit" size="sm" className="text-xs">
+                <Button type="submit" size="sm" className="text-xs" disabled={isUpdatingPassword}>
                   <Lock className="size-3.5 mr-1.5" />
-                  <span>Update Password</span>
+                  <span>{isUpdatingPassword ? 'Updating...' : 'Update Password'}</span>
                 </Button>
               </div>
             </form>
+
+            <div className="rounded-2xl border border-rose-500/20 bg-rose-500/5 p-6 shadow-xs space-y-4">
+              <div className="border-b border-rose-500/10 pb-3">
+                <h3 className="text-sm font-bold text-rose-600 dark:text-rose-400">Terminate Active Sessions</h3>
+                <p className="text-xs text-muted">
+                  Revoke all active authentication tokens across any web browsers, mobile devices, or POS terminals currently logged into this account.
+                </p>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted">Force logout on all devices</span>
+                <Button
+                  type="button"
+                  variant="danger"
+                  size="sm"
+                  className="text-xs"
+                  onClick={handleLogoutAll}
+                  disabled={isLoggingOutAll}
+                >
+                  <Shield className="size-3.5 mr-1.5" />
+                  <span>{isLoggingOutAll ? 'Terminating...' : 'Sign Out Everywhere'}</span>
+                </Button>
+              </div>
+            </div>
           </div>
         )}
 

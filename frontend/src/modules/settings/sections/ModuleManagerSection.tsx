@@ -127,7 +127,24 @@ export const ModuleManagerSection: React.FC = () => {
   // Active navigation order: derive from custom edits or manifest/default
   const defaultOrder = useMemo(() => getDefaultNavOrder(), []);
   const [customNavOrder, setCustomNavOrder] = useState<NavOrderConfig | null>(null);
-  const localNavOrder = customNavOrder ?? manifestNavOrder ?? defaultOrder;
+
+  // Fetch server-side saved navigation order directly
+  const { data: serverNavOrder } = useQuery<NavOrderConfig | null>({
+    queryKey: ['tenant', 'modules', 'nav-order'],
+    queryFn: async () => {
+      try {
+        const res = await api.get<any>('tenant/modules/nav-order');
+        const payload = (res.data && typeof res.data === 'object' && 'data' in res.data)
+          ? res.data.data
+          : res.data;
+        return payload;
+      } catch {
+        return null;
+      }
+    },
+  });
+
+  const localNavOrder = customNavOrder ?? (serverNavOrder?.sections ? serverNavOrder : null) ?? manifestNavOrder ?? defaultOrder;
 
   // Fetch module activations
   const { data: modules = DEFAULT_MODULES, isLoading, isFetching, refetch } = useQuery<ModuleItem[]>({
@@ -147,6 +164,23 @@ export const ModuleManagerSection: React.FC = () => {
       return DEFAULT_MODULES;
     },
   });
+
+  const handleBatchSyncModules = async () => {
+    try {
+      const payload = {
+        modules: modules.map((m) => ({
+          module_key: m.module_key,
+          enabled: m.enabled,
+          config: m.config || {},
+        })),
+      };
+      await api.put('/tenant/modules/batch', payload).catch(() => api.post('/tenant/modules/batch', payload));
+      await invalidateManifest();
+      toast.success('All tenant module configurations synchronized successfully.');
+    } catch {
+      toast.error('Failed to synchronize modules in batch.');
+    }
+  };
 
   // Section definitions map for easy lookup
   const sectionMap = useMemo(() => {
@@ -505,6 +539,21 @@ export const ModuleManagerSection: React.FC = () => {
                   <Save className="size-3.5" />
                 )}
                 <span>Save Navigation Sequence</span>
+              </Button>
+            </div>
+          )}
+
+          {activeTab === 'activation' && (
+            <div className="flex items-center gap-2">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={handleBatchSyncModules}
+                className="text-xs flex items-center gap-1.5"
+                title="Synchronize all module states to tenant cloud"
+              >
+                <Save className="size-3.5 text-primary" />
+                <span>Save All Module States</span>
               </Button>
             </div>
           )}

@@ -437,11 +437,13 @@ final class CrmLeadController extends Controller
                     }
                 }
 
+                /** @var \Illuminate\Support\Collection<string, CrmLead> $existingByNumber */
                 $existingByNumber = CrmLead::where('tenant_id', $tenantId)
                     ->whereIn('lead_number', $chunkLeadNumbers)
                     ->get()
                     ->keyBy('lead_number');
 
+                /** @var \Illuminate\Support\Collection<string, CrmLead> $existingByEmail */
                 $existingByEmail = !empty($chunkEmails)
                     ? CrmLead::where('tenant_id', $tenantId)
                         ->whereIn(DB::raw('LOWER(email)'), $chunkEmails)
@@ -449,6 +451,7 @@ final class CrmLeadController extends Controller
                         ->keyBy(fn ($l) => strtolower((string) $l->email))
                     : collect();
 
+                /** @var \Illuminate\Support\Collection<string, CrmLead> $existingByPhone */
                 $existingByPhone = !empty($chunkPhones)
                     ? CrmLead::where('tenant_id', $tenantId)
                         ->whereIn('phone', $chunkPhones)
@@ -475,6 +478,7 @@ final class CrmLeadController extends Controller
                     $email = !empty($row['email']) ? strtolower(trim((string) $row['email'])) : null;
 
                     // Match existing lead
+                    /** @var CrmLead|null $existingLead */
                     $existingLead = null;
                     if ($leadNumber && isset($existingByNumber[$leadNumber])) {
                         $existingLead = $existingByNumber[$leadNumber];
@@ -484,7 +488,7 @@ final class CrmLeadController extends Controller
                         $existingLead = $existingByPhone[$phone];
                     }
 
-                    if ($existingLead) {
+                    if ($existingLead instanceof CrmLead) {
                         if ($mode === 'skip') {
                             $skipped++;
                             continue;

@@ -60,6 +60,16 @@ export function PaymentsSection() {
     },
   });
 
+  const handlePrintPayment = async (p: Payment) => {
+    setPrintPayment(p);
+    try {
+      const res = await api.get<Payment>(`/sales/payments/${p.id}`);
+      if (res.data) setPrintPayment(res.data);
+    } catch {
+      // Keep cached payment
+    }
+  };
+
   const handleRecordPayment = (e: React.FormEvent) => {
     e.preventDefault();
     recordPaymentMutation.mutate();
@@ -195,7 +205,7 @@ export function PaymentsSection() {
                     <td className="px-4 py-3.5 text-right">
                       <button
                         type="button"
-                        onClick={() => setPrintPayment(p)}
+                        onClick={() => handlePrintPayment(p)}
                         className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-default text-muted hover:text-default hover:bg-surface text-xs transition-colors cursor-pointer"
                         title="Print Money Receipt"
                       >

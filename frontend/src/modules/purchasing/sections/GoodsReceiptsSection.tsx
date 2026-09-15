@@ -158,7 +158,9 @@ export function GoodsReceiptsSection() {
     queryKey: ['purchasing', 'goods-receipts'],
     queryFn: async () => {
       try {
-        const res = await api.get<GoodsReceipt[]>('/purchasing/goods-receipts');
+        const res = await api.get<GoodsReceipt[]>('/purchasing/goods-receipts').catch(() =>
+          api.get<GoodsReceipt[]>('/purchasing/receipts')
+        );
         const list = extractList<GoodsReceipt>(res);
         if (list.length > 0) {
           return list;
@@ -170,6 +172,21 @@ export function GoodsReceiptsSection() {
     },
     initialData: SAMPLE_RECEIPTS,
   });
+
+  const handleViewGrn = async (grn: GoodsReceipt) => {
+    setActiveGrn(grn);
+    setShowViewModal(true);
+    try {
+      const res = await api.get<{ data: GoodsReceipt }>(`/purchasing/goods-receipts/${grn.id}`).catch(() =>
+        api.get<{ data: GoodsReceipt }>(`/purchasing/receipts/${grn.id}`)
+      );
+      if (res.data?.data) {
+        setActiveGrn(res.data.data);
+      }
+    } catch {
+      // keep cached
+    }
+  };
 
   const handleCompleteGrn = async (grnId: number) => {
     setActionLoading(grnId);
@@ -223,7 +240,9 @@ export function GoodsReceiptsSection() {
       created_at: new Date().toISOString(),
     };
 
-    api.post('/purchasing/goods-receipts', newGrn).catch(() => {});
+    api.post('/purchasing/goods-receipts', newGrn)
+      .catch(() => api.post('/purchasing/receipts', newGrn))
+      .catch(() => {});
     queryClient.setQueryData<GoodsReceipt[]>(['purchasing', 'goods-receipts'], (prev = []) => [newGrn, ...prev]);
     toast.success('Goods receipt note (GRN) created.');
     setShowCreateModal(false);
@@ -505,10 +524,7 @@ export function GoodsReceiptsSection() {
                         <div className="flex items-center justify-end gap-1.5">
                           <button
                             type="button"
-                            onClick={() => {
-                              setActiveGrn(r);
-                              setShowViewModal(true);
-                            }}
+                            onClick={() => handleViewGrn(r)}
                             className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-surface hover:bg-surface-sunken border border-default text-default transition-colors cursor-pointer"
                           >
                             View

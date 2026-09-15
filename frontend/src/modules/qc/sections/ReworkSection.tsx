@@ -391,6 +391,11 @@ export function ReworkSection() {
       scrap_qty: String(order.scrap_qty),
       status: order.status,
     });
+    void api.get<ReworkOrder>(`/qc/rework-orders/${order.id}`).then((res) => {
+      if (res.data) {
+        setEditingOrder(res.data);
+      }
+    }).catch(() => {});
   };
 
   const filteredOrders = reworkOrders.filter((o) => {

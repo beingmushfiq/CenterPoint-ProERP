@@ -5,6 +5,66 @@
     "file": "src\\components\\audit\\EntityHistoryDrawer.tsx"
   },
   {
+    "method": "POST",
+    "endpoint": "/boms/bulk-import",
+    "file": "src\\components\\import\\bulkImportAliases.ts"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/finance/bank-accounts/bulk-import",
+    "file": "src\\components\\import\\bulkImportAliases.ts"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/finance/fixed-assets/bulk-import",
+    "file": "src\\components\\import\\bulkImportAliases.ts"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/finance/journal/bulk-import",
+    "file": "src\\components\\import\\bulkImportAliases.ts"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/finance/reconciliation/bulk-import",
+    "file": "src\\components\\import\\bulkImportAliases.ts"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/hr/advances/bulk-import",
+    "file": "src\\components\\import\\bulkImportAliases.ts"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/hr/attendance/bulk-import",
+    "file": "src\\components\\import\\bulkImportAliases.ts"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/inventory/balances/bulk-import",
+    "file": "src\\components\\import\\bulkImportAliases.ts"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/pricing/bulk-import",
+    "file": "src\\components\\import\\bulkImportAliases.ts"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/production/piece-rate/bulk-import",
+    "file": "src\\components\\import\\bulkImportAliases.ts"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/sales/coupons/bulk-import",
+    "file": "src\\components\\import\\bulkImportAliases.ts"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/sales/price-lists/bulk-import",
+    "file": "src\\components\\import\\bulkImportAliases.ts"
+  },
+  {
     "method": "GET",
     "endpoint": "/notifications",
     "file": "src\\components\\layout\\AppHeader.tsx"
@@ -18,6 +78,16 @@
     "method": "POST",
     "endpoint": "/notifications/${id}/read",
     "file": "src\\components\\layout\\AppHeader.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/health",
+    "file": "src\\components\\layout\\OfflineBanner.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/brain/capabilities",
+    "file": "src\\components\\layout\\SliceMartBrainModal.tsx"
   },
   {
     "method": "POST",
@@ -61,7 +131,17 @@
   },
   {
     "method": "POST",
+    "endpoint": "/auth/refresh",
+    "file": "src\\lib\\api\\client.ts"
+  },
+  {
+    "method": "POST",
     "endpoint": "/auth/login",
+    "file": "src\\lib\\auth\\authStore.ts"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/auth/select-tenant",
     "file": "src\\lib\\auth\\authStore.ts"
   },
   {
@@ -141,6 +221,36 @@
   },
   {
     "method": "POST",
+    "endpoint": "/assets",
+    "file": "src\\modules\\assets\\AssetsWorkspace.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/assets/maintenance-orders",
+    "file": "src\\modules\\assets\\AssetsWorkspace.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/assets/categories",
+    "file": "src\\modules\\assets\\AssetsWorkspace.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/assets/${asset.id}",
+    "file": "src\\modules\\assets\\AssetsWorkspace.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/assets/maintenance-orders/${order.id}",
+    "file": "src\\modules\\assets\\AssetsWorkspace.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/assets/depreciation",
+    "file": "src\\modules\\assets\\AssetsWorkspace.tsx"
+  },
+  {
+    "method": "POST",
     "endpoint": "/products/${productUuid}/images",
     "file": "src\\modules\\catalogue\\components\\ProductImageGalleryUploader.tsx"
   },
@@ -190,8 +300,18 @@
     "file": "src\\modules\\catalogue\\sections\\BillOfMaterialsSection.tsx"
   },
   {
+    "method": "POST",
+    "endpoint": "/bill-of-materials",
+    "file": "src\\modules\\catalogue\\sections\\BillOfMaterialsSection.tsx"
+  },
+  {
     "method": "PATCH",
     "endpoint": "/boms/${id}",
+    "file": "src\\modules\\catalogue\\sections\\BillOfMaterialsSection.tsx"
+  },
+  {
+    "method": "PATCH",
+    "endpoint": "/bill-of-materials/${id}",
     "file": "src\\modules\\catalogue\\sections\\BillOfMaterialsSection.tsx"
   },
   {
@@ -200,8 +320,28 @@
     "file": "src\\modules\\catalogue\\sections\\BillOfMaterialsSection.tsx"
   },
   {
+    "method": "DELETE",
+    "endpoint": "/bill-of-materials/${id}",
+    "file": "src\\modules\\catalogue\\sections\\BillOfMaterialsSection.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/boms/${bomId}",
+    "file": "src\\modules\\catalogue\\sections\\BillOfMaterialsSection.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/bill-of-materials/${bomId}",
+    "file": "src\\modules\\catalogue\\sections\\BillOfMaterialsSection.tsx"
+  },
+  {
     "method": "GET",
     "endpoint": "/brands",
+    "file": "src\\modules\\catalogue\\sections\\BrandsSection.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/brands/options",
     "file": "src\\modules\\catalogue\\sections\\BrandsSection.tsx"
   },
   {
@@ -221,7 +361,17 @@
   },
   {
     "method": "GET",
+    "endpoint": "/brands/${brandId}",
+    "file": "src\\modules\\catalogue\\sections\\BrandsSection.tsx"
+  },
+  {
+    "method": "GET",
     "endpoint": "/categories",
+    "file": "src\\modules\\catalogue\\sections\\CategoriesSection.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/categories/options",
     "file": "src\\modules\\catalogue\\sections\\CategoriesSection.tsx"
   },
   {
@@ -237,6 +387,11 @@
   {
     "method": "DELETE",
     "endpoint": "/categories/${id}",
+    "file": "src\\modules\\catalogue\\sections\\CategoriesSection.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/categories/${categoryId}",
     "file": "src\\modules\\catalogue\\sections\\CategoriesSection.tsx"
   },
   {
@@ -262,6 +417,11 @@
   {
     "method": "GET",
     "endpoint": "/products",
+    "file": "src\\modules\\catalogue\\sections\\ProductsSection.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/products/options",
     "file": "src\\modules\\catalogue\\sections\\ProductsSection.tsx"
   },
   {
@@ -325,6 +485,16 @@
     "file": "src\\modules\\catalogue\\sections\\ProductsSection.tsx"
   },
   {
+    "method": "GET",
+    "endpoint": "/products/${prodId}",
+    "file": "src\\modules\\catalogue\\sections\\ProductsSection.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/products/${prodId}/images",
+    "file": "src\\modules\\catalogue\\sections\\ProductsSection.tsx"
+  },
+  {
     "method": "PATCH",
     "endpoint": "/products/${p.id}",
     "file": "src\\modules\\catalogue\\sections\\ProductsSection.tsx"
@@ -332,6 +502,16 @@
   {
     "method": "DELETE",
     "endpoint": "/products/${p.id}",
+    "file": "src\\modules\\catalogue\\sections\\ProductsSection.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/storefront/products/toggle-publish",
+    "file": "src\\modules\\catalogue\\sections\\ProductsSection.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/storefront/products/toggle-publish",
     "file": "src\\modules\\catalogue\\sections\\ProductsSection.tsx"
   },
   {
@@ -352,6 +532,16 @@
   {
     "method": "DELETE",
     "endpoint": "/units/${id}",
+    "file": "src\\modules\\catalogue\\sections\\UnitsSection.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/units/options",
+    "file": "src\\modules\\catalogue\\sections\\UnitsSection.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/units/${u.uuid || u.id}",
     "file": "src\\modules\\catalogue\\sections\\UnitsSection.tsx"
   },
   {
@@ -381,12 +571,127 @@
   },
   {
     "method": "GET",
+    "endpoint": "/warehouses/${wId}/locations",
+    "file": "src\\modules\\catalogue\\sections\\WarehousesSection.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/warehouses/${wId}/locations/${locationId}",
+    "file": "src\\modules\\catalogue\\sections\\WarehousesSection.tsx"
+  },
+  {
+    "method": "PATCH",
+    "endpoint": "/warehouses/${wId}/locations/${loc.uuid || loc.id}",
+    "file": "src\\modules\\catalogue\\sections\\WarehousesSection.tsx"
+  },
+  {
+    "method": "DELETE",
+    "endpoint": "/warehouses/${wId}/locations/${locationId}",
+    "file": "src\\modules\\catalogue\\sections\\WarehousesSection.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/warehouses/${(w as any).uuid || w.id}",
+    "file": "src\\modules\\catalogue\\sections\\WarehousesSection.tsx"
+  },
+  {
+    "method": "GET",
     "endpoint": "/logistics/couriers",
     "file": "src\\modules\\delivery\\DeliveryWorkspace.tsx"
   },
   {
     "method": "GET",
     "endpoint": "/logistics/shipments",
+    "file": "src\\modules\\delivery\\DeliveryWorkspace.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/logistics/run-sheets",
+    "file": "src\\modules\\delivery\\DeliveryWorkspace.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/logistics/cod-reconciliations",
+    "file": "src\\modules\\delivery\\DeliveryWorkspace.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/logistics/shipments",
+    "file": "src\\modules\\delivery\\DeliveryWorkspace.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/logistics/shipments/${shipmentId}/track",
+    "file": "src\\modules\\delivery\\DeliveryWorkspace.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/logistics/shipments/${shipmentId}",
+    "file": "src\\modules\\delivery\\DeliveryWorkspace.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/delivery/shipments/${shipmentId}",
+    "file": "src\\modules\\delivery\\DeliveryWorkspace.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/logistics/shipments/${shipmentId}/cancel",
+    "file": "src\\modules\\delivery\\DeliveryWorkspace.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/logistics/shipments/${shipment.id}/label",
+    "file": "src\\modules\\delivery\\DeliveryWorkspace.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/logistics/run-sheets",
+    "file": "src\\modules\\delivery\\DeliveryWorkspace.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/logistics/run-sheets/${runSheetId}/complete",
+    "file": "src\\modules\\delivery\\DeliveryWorkspace.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/logistics/run-sheets/${runSheetId}",
+    "file": "src\\modules\\delivery\\DeliveryWorkspace.tsx"
+  },
+  {
+    "method": "PATCH",
+    "endpoint": "/logistics/couriers/${data.id}",
+    "file": "src\\modules\\delivery\\DeliveryWorkspace.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/logistics/couriers/${data.id}",
+    "file": "src\\modules\\delivery\\DeliveryWorkspace.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/logistics/couriers",
+    "file": "src\\modules\\delivery\\DeliveryWorkspace.tsx"
+  },
+  {
+    "method": "PATCH",
+    "endpoint": "/logistics/couriers/${provider.id}",
+    "file": "src\\modules\\delivery\\DeliveryWorkspace.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/logistics/cod-reconciliations",
+    "file": "src\\modules\\delivery\\DeliveryWorkspace.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/logistics/cod-reconciliations/${created.id}",
+    "file": "src\\modules\\delivery\\DeliveryWorkspace.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/logistics/cod-reconciliations/${newRec.id}",
     "file": "src\\modules\\delivery\\DeliveryWorkspace.tsx"
   },
   {
@@ -426,6 +731,66 @@
   },
   {
     "method": "GET",
+    "endpoint": "/finance/costing",
+    "file": "src\\modules\\finance\\FinanceWorkspace.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/finance/expenses/categories",
+    "file": "src\\modules\\finance\\FinanceWorkspace.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/finance/accounts/${acc.id}",
+    "file": "src\\modules\\finance\\FinanceWorkspace.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/finance/expenses/${exp.id}",
+    "file": "src\\modules\\finance\\FinanceWorkspace.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/finance/costing/rollup",
+    "file": "src\\modules\\finance\\FinanceWorkspace.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/finance/costing",
+    "file": "src\\modules\\finance\\FinanceWorkspace.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/finance/journal-entries/${je.id}",
+    "file": "src\\modules\\finance\\FinanceWorkspace.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/finance/bank-accounts",
+    "file": "src\\modules\\finance\\FinanceWorkspace.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/finance/expenses/categories",
+    "file": "src\\modules\\finance\\FinanceWorkspace.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/finance/accounts",
+    "file": "src\\modules\\finance\\FinanceWorkspace.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/finance/journal-entries",
+    "file": "src\\modules\\finance\\FinanceWorkspace.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/finance/expenses",
+    "file": "src\\modules\\finance\\modals\\MoneyOutModal.tsx"
+  },
+  {
+    "method": "GET",
     "endpoint": "/sales/invoices?per_page=100",
     "file": "src\\modules\\finance\\sections\\DueCollectionSection.tsx"
   },
@@ -440,8 +805,38 @@
     "file": "src\\modules\\finance\\sections\\DueCollectionSection.tsx"
   },
   {
+    "method": "GET",
+    "endpoint": "/workforce/shifts",
+    "file": "src\\modules\\hr\\HrWorkspace.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/hr/attendance",
+    "file": "src\\modules\\hr\\HrWorkspace.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/hr/attendances/summary",
+    "file": "src\\modules\\hr\\HrWorkspace.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/hr/leave-requests",
+    "file": "src\\modules\\hr\\HrWorkspace.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/hr/leave-requests/types",
+    "file": "src\\modules\\hr\\HrWorkspace.tsx"
+  },
+  {
     "method": "POST",
     "endpoint": "/hr/employees",
+    "file": "src\\modules\\hr\\HrWorkspace.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/workforce/employees",
     "file": "src\\modules\\hr\\HrWorkspace.tsx"
   },
   {
@@ -460,6 +855,41 @@
     "file": "src\\modules\\hr\\HrWorkspace.tsx"
   },
   {
+    "method": "POST",
+    "endpoint": "/hr/employees/${empId}/link-user",
+    "file": "src\\modules\\hr\\HrWorkspace.tsx"
+  },
+  {
+    "method": "DELETE",
+    "endpoint": "/hr/employees/${empId}/unlink-user",
+    "file": "src\\modules\\hr\\HrWorkspace.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/hr/employees/${emp.id}",
+    "file": "src\\modules\\hr\\HrWorkspace.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/workforce/employees/${emp.id}",
+    "file": "src\\modules\\hr\\HrWorkspace.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/hr/payroll/payslips/${ps.id}",
+    "file": "src\\modules\\hr\\HrWorkspace.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/hr/attendance",
+    "file": "src\\modules\\hr\\HrWorkspace.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/hr/leave-requests",
+    "file": "src\\modules\\hr\\HrWorkspace.tsx"
+  },
+  {
     "method": "GET",
     "endpoint": "/production/worker-entries?entry_date=${selectedDate}",
     "file": "src\\modules\\hr\\sections\\WorkerPerformanceSection.tsx"
@@ -472,6 +902,31 @@
   {
     "method": "POST",
     "endpoint": "/hr/employees",
+    "file": "src\\modules\\hr\\services\\hrApi.ts"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/workforce/employees",
+    "file": "src\\modules\\hr\\services\\hrApi.ts"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/hr/employees/${id}",
+    "file": "src\\modules\\hr\\services\\hrApi.ts"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/workforce/employees/${id}",
+    "file": "src\\modules\\hr\\services\\hrApi.ts"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/hr/employees/${id}/link-user",
+    "file": "src\\modules\\hr\\services\\hrApi.ts"
+  },
+  {
+    "method": "DELETE",
+    "endpoint": "/hr/employees/${id}/unlink-user",
     "file": "src\\modules\\hr\\services\\hrApi.ts"
   },
   {
@@ -520,8 +975,18 @@
     "file": "src\\modules\\hr\\services\\hrApi.ts"
   },
   {
+    "method": "PUT",
+    "endpoint": "/hr/designations/${id}",
+    "file": "src\\modules\\hr\\services\\hrApi.ts"
+  },
+  {
     "method": "GET",
     "endpoint": "/hr/shifts${activeOnly ? '?active_only=1' : ''}",
+    "file": "src\\modules\\hr\\services\\hrApi.ts"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/workforce/shifts",
     "file": "src\\modules\\hr\\services\\hrApi.ts"
   },
   {
@@ -530,8 +995,28 @@
     "file": "src\\modules\\hr\\services\\hrApi.ts"
   },
   {
+    "method": "PUT",
+    "endpoint": "/hr/shifts/${id}",
+    "file": "src\\modules\\hr\\services\\hrApi.ts"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/hr/attendance${qs}",
+    "file": "src\\modules\\hr\\services\\hrApi.ts"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/hr/attendance${qs}",
+    "file": "src\\modules\\hr\\services\\hrApi.ts"
+  },
+  {
     "method": "GET",
     "endpoint": "/hr/attendances${qs}",
+    "file": "src\\modules\\hr\\services\\hrApi.ts"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/hr/attendance",
     "file": "src\\modules\\hr\\services\\hrApi.ts"
   },
   {
@@ -551,12 +1036,22 @@
   },
   {
     "method": "GET",
+    "endpoint": "/hr/leave-requests${qs}",
+    "file": "src\\modules\\hr\\services\\hrApi.ts"
+  },
+  {
+    "method": "GET",
     "endpoint": "/hr/leaves${qs}",
     "file": "src\\modules\\hr\\services\\hrApi.ts"
   },
   {
     "method": "GET",
     "endpoint": "/hr/leaves/balances${qs}",
+    "file": "src\\modules\\hr\\services\\hrApi.ts"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/hr/leave-requests",
     "file": "src\\modules\\hr\\services\\hrApi.ts"
   },
   {
@@ -612,6 +1107,11 @@
   {
     "method": "GET",
     "endpoint": "/hr/payroll/payslips${qs}",
+    "file": "src\\modules\\hr\\services\\hrApi.ts"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/hr/payroll/payslips/${id}",
     "file": "src\\modules\\hr\\services\\hrApi.ts"
   },
   {
@@ -781,6 +1281,11 @@
   },
   {
     "method": "GET",
+    "endpoint": "/reason-codes",
+    "file": "src\\modules\\inventory\\sections\\StockAdjustmentsSection.tsx"
+  },
+  {
+    "method": "GET",
     "endpoint": "/inventory/adjustments",
     "file": "src\\modules\\inventory\\sections\\StockAdjustmentsSection.tsx"
   },
@@ -817,6 +1322,11 @@
   {
     "method": "POST",
     "endpoint": "/inventory/adjustments/${id}/approve",
+    "file": "src\\modules\\inventory\\sections\\StockAdjustmentsSection.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/inventory/adjustments/${a.id}",
     "file": "src\\modules\\inventory\\sections\\StockAdjustmentsSection.tsx"
   },
   {
@@ -861,6 +1371,11 @@
   },
   {
     "method": "GET",
+    "endpoint": "/inventory/counts/${c.id}",
+    "file": "src\\modules\\inventory\\sections\\StockCountsSection.tsx"
+  },
+  {
+    "method": "GET",
     "endpoint": "/inventory/balances",
     "file": "src\\modules\\inventory\\sections\\StockLedgerSection.tsx"
   },
@@ -878,6 +1393,16 @@
     "method": "POST",
     "endpoint": "/inventory/adjustments",
     "file": "src\\modules\\inventory\\sections\\StockLedgerSection.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/inventory/movements/${m.id}",
+    "file": "src\\modules\\inventory\\sections\\StockLedgerSection.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/inventory/thresholds/alerts",
+    "file": "src\\modules\\inventory\\sections\\StockThresholdsSection.tsx"
   },
   {
     "method": "GET",
@@ -926,7 +1451,22 @@
   },
   {
     "method": "GET",
+    "endpoint": "/inventory/transfers/${t.id}",
+    "file": "src\\modules\\inventory\\sections\\StockTransfersSection.tsx"
+  },
+  {
+    "method": "GET",
     "endpoint": "/industry-profiles",
+    "file": "src\\modules\\platform\\IndustryProfilePicker.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/business-types",
+    "file": "src\\modules\\platform\\IndustryProfilePicker.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/industry-profiles/${profile.key}",
     "file": "src\\modules\\platform\\IndustryProfilePicker.tsx"
   },
   {
@@ -971,6 +1511,11 @@
   },
   {
     "method": "GET",
+    "endpoint": "/platform/roles/catalogue",
+    "file": "src\\modules\\platform\\PlatformAdminWorkspace.tsx"
+  },
+  {
+    "method": "GET",
     "endpoint": "/platform/admins",
     "file": "src\\modules\\platform\\PlatformAdminWorkspace.tsx"
   },
@@ -990,6 +1535,31 @@
     "file": "src\\modules\\platform\\PlatformAdminWorkspace.tsx"
   },
   {
+    "method": "PATCH",
+    "endpoint": "/platform/admins/${id}",
+    "file": "src\\modules\\platform\\PlatformAdminWorkspace.tsx"
+  },
+  {
+    "method": "DELETE",
+    "endpoint": "/platform/admins/${id}",
+    "file": "src\\modules\\platform\\PlatformAdminWorkspace.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/platform/roles",
+    "file": "src\\modules\\platform\\PlatformAdminWorkspace.tsx"
+  },
+  {
+    "method": "PATCH",
+    "endpoint": "/platform/roles/${id}",
+    "file": "src\\modules\\platform\\PlatformAdminWorkspace.tsx"
+  },
+  {
+    "method": "DELETE",
+    "endpoint": "/platform/roles/${id}",
+    "file": "src\\modules\\platform\\PlatformAdminWorkspace.tsx"
+  },
+  {
     "method": "GET",
     "endpoint": "/platform/tenants?per_page=100",
     "file": "src\\modules\\platform\\PlatformAnnouncementsWorkspace.tsx"
@@ -1002,6 +1572,11 @@
   {
     "method": "POST",
     "endpoint": "/platform/announcements",
+    "file": "src\\modules\\platform\\PlatformAnnouncementsWorkspace.tsx"
+  },
+  {
+    "method": "PATCH",
+    "endpoint": "/platform/announcements/${id}",
     "file": "src\\modules\\platform\\PlatformAnnouncementsWorkspace.tsx"
   },
   {
@@ -1030,6 +1605,16 @@
     "file": "src\\modules\\platform\\PlatformErrorMonitoringWorkspace.tsx"
   },
   {
+    "method": "POST",
+    "endpoint": "/platform/errors/ingest",
+    "file": "src\\modules\\platform\\PlatformErrorMonitoringWorkspace.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/platform/errors/${err.id}",
+    "file": "src\\modules\\platform\\PlatformErrorMonitoringWorkspace.tsx"
+  },
+  {
     "method": "GET",
     "endpoint": "/platform/tenants?per_page=100",
     "file": "src\\modules\\platform\\PlatformFeatureFlagsWorkspace.tsx"
@@ -1046,6 +1631,11 @@
   },
   {
     "method": "PATCH",
+    "endpoint": "/platform/feature-flags/${id}",
+    "file": "src\\modules\\platform\\PlatformFeatureFlagsWorkspace.tsx"
+  },
+  {
+    "method": "DELETE",
     "endpoint": "/platform/feature-flags/${id}",
     "file": "src\\modules\\platform\\PlatformFeatureFlagsWorkspace.tsx"
   },
@@ -1071,6 +1661,61 @@
   },
   {
     "method": "GET",
+    "endpoint": "/platform/payments/${payment.id}",
+    "file": "src\\modules\\platform\\PlatformPaymentsWorkspace.tsx"
+  },
+  {
+    "method": "PATCH",
+    "endpoint": "/platform/payments/${id}",
+    "file": "src\\modules\\platform\\PlatformPaymentsWorkspace.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/platform/domains",
+    "file": "src\\modules\\platform\\PlatformSettingsWorkspace.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/platform/domains/${domain.id}",
+    "file": "src\\modules\\platform\\PlatformSettingsWorkspace.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/platform/domains/${id}/verify",
+    "file": "src\\modules\\platform\\PlatformSettingsWorkspace.tsx"
+  },
+  {
+    "method": "PATCH",
+    "endpoint": "/platform/domains/${id}/status",
+    "file": "src\\modules\\platform\\PlatformSettingsWorkspace.tsx"
+  },
+  {
+    "method": "DELETE",
+    "endpoint": "/platform/domains/${id}",
+    "file": "src\\modules\\platform\\PlatformSettingsWorkspace.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/platform/jobs?status=failed",
+    "file": "src\\modules\\platform\\PlatformSettingsWorkspace.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/platform/jobs/${id}/retry",
+    "file": "src\\modules\\platform\\PlatformSettingsWorkspace.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/platform/jobs/retry-all",
+    "file": "src\\modules\\platform\\PlatformSettingsWorkspace.tsx"
+  },
+  {
+    "method": "DELETE",
+    "endpoint": "/platform/jobs/${id}",
+    "file": "src\\modules\\platform\\PlatformSettingsWorkspace.tsx"
+  },
+  {
+    "method": "GET",
     "endpoint": "/platform/settings",
     "file": "src\\modules\\platform\\PlatformSettingsWorkspace.tsx"
   },
@@ -1091,7 +1736,17 @@
   },
   {
     "method": "GET",
+    "endpoint": "/platform/support/tickets",
+    "file": "src\\modules\\platform\\PlatformSupportWorkspace.tsx"
+  },
+  {
+    "method": "GET",
     "endpoint": "/platform/support-tickets",
+    "file": "src\\modules\\platform\\PlatformSupportWorkspace.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/platform/support/tickets/${selectedTicket.id}",
     "file": "src\\modules\\platform\\PlatformSupportWorkspace.tsx"
   },
   {
@@ -1101,12 +1756,27 @@
   },
   {
     "method": "POST",
+    "endpoint": "/platform/support/tickets",
+    "file": "src\\modules\\platform\\PlatformSupportWorkspace.tsx"
+  },
+  {
+    "method": "POST",
     "endpoint": "/platform/support-tickets",
     "file": "src\\modules\\platform\\PlatformSupportWorkspace.tsx"
   },
   {
     "method": "PATCH",
+    "endpoint": "/platform/support/tickets/${id}",
+    "file": "src\\modules\\platform\\PlatformSupportWorkspace.tsx"
+  },
+  {
+    "method": "PATCH",
     "endpoint": "/platform/support-tickets/${id}",
+    "file": "src\\modules\\platform\\PlatformSupportWorkspace.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/platform/support/tickets/${id}/notes",
     "file": "src\\modules\\platform\\PlatformSupportWorkspace.tsx"
   },
   {
@@ -1132,6 +1802,11 @@
   {
     "method": "POST",
     "endpoint": "/platform/tenants/${tenant.id}/status",
+    "file": "src\\modules\\platform\\TenantDetailWorkspace.tsx"
+  },
+  {
+    "method": "PATCH",
+    "endpoint": "/platform/tenants/${tenant.id}",
     "file": "src\\modules\\platform\\TenantDetailWorkspace.tsx"
   },
   {
@@ -1280,6 +1955,11 @@
     "file": "src\\modules\\pos\\POSShell.tsx"
   },
   {
+    "method": "GET",
+    "endpoint": "/pos/held-sales/${heldSale.id}",
+    "file": "src\\modules\\pos\\POSShell.tsx"
+  },
+  {
     "method": "DELETE",
     "endpoint": "/pos/held-sales/${heldSale.id}",
     "file": "src\\modules\\pos\\POSShell.tsx"
@@ -1311,6 +1991,11 @@
   },
   {
     "method": "GET",
+    "endpoint": "/pos/sessions/${s.id}",
+    "file": "src\\modules\\pos\\sections\\PosSessionsSection.tsx"
+  },
+  {
+    "method": "GET",
     "endpoint": "/pos/terminals",
     "file": "src\\modules\\pos\\sections\\PosTerminalsSection.tsx"
   },
@@ -1333,6 +2018,21 @@
     "method": "DELETE",
     "endpoint": "/pos/terminals/${activeTerminal.id}",
     "file": "src\\modules\\pos\\sections\\PosTerminalsSection.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/pos/terminals/${t.id}",
+    "file": "src\\modules\\pos\\sections\\PosTerminalsSection.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/production/variance-radar?batch_id=${batchId}",
+    "file": "src\\modules\\production\\components\\ManufacturingVarianceRadar.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/production/variance-radar",
+    "file": "src\\modules\\production\\components\\ManufacturingVarianceRadar.tsx"
   },
   {
     "method": "GET",
@@ -1446,6 +2146,11 @@
   },
   {
     "method": "GET",
+    "endpoint": "/production/batches/${(batch as unknown as { uuid?: string }).uuid || batch.id}",
+    "file": "src\\modules\\production\\sections\\ProductionBatchesSection.tsx"
+  },
+  {
+    "method": "GET",
     "endpoint": "/production/plans",
     "file": "src\\modules\\production\\sections\\ProductionPlansSection.tsx"
   },
@@ -1482,6 +2187,11 @@
   {
     "method": "POST",
     "endpoint": "/production/batches",
+    "file": "src\\modules\\production\\sections\\ProductionPlansSection.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/production/plans/${(plan as unknown as { uuid?: string }).uuid || plan.id}",
     "file": "src\\modules\\production\\sections\\ProductionPlansSection.tsx"
   },
   {
@@ -1550,6 +2260,21 @@
     "file": "src\\modules\\purchasing\\sections\\GoodsReceiptsSection.tsx"
   },
   {
+    "method": "GET",
+    "endpoint": "/purchasing/receipts",
+    "file": "src\\modules\\purchasing\\sections\\GoodsReceiptsSection.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/purchasing/goods-receipts/${grn.id}",
+    "file": "src\\modules\\purchasing\\sections\\GoodsReceiptsSection.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/purchasing/receipts/${grn.id}",
+    "file": "src\\modules\\purchasing\\sections\\GoodsReceiptsSection.tsx"
+  },
+  {
     "method": "POST",
     "endpoint": "/purchasing/goods-receipts/${grnId}/complete",
     "file": "src\\modules\\purchasing\\sections\\GoodsReceiptsSection.tsx"
@@ -1557,6 +2282,11 @@
   {
     "method": "POST",
     "endpoint": "/purchasing/goods-receipts",
+    "file": "src\\modules\\purchasing\\sections\\GoodsReceiptsSection.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/purchasing/receipts",
     "file": "src\\modules\\purchasing\\sections\\GoodsReceiptsSection.tsx"
   },
   {
@@ -1585,6 +2315,11 @@
     "file": "src\\modules\\purchasing\\sections\\PurchaseBillsSection.tsx"
   },
   {
+    "method": "GET",
+    "endpoint": "/purchasing/bills/${bill.id}",
+    "file": "src\\modules\\purchasing\\sections\\PurchaseBillsSection.tsx"
+  },
+  {
     "method": "POST",
     "endpoint": "/purchasing/bills",
     "file": "src\\modules\\purchasing\\sections\\PurchaseBillsSection.tsx"
@@ -1607,6 +2342,11 @@
   {
     "method": "POST",
     "endpoint": "/purchasing/orders/${orderId}/approve",
+    "file": "src\\modules\\purchasing\\sections\\PurchaseOrdersSection.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/purchasing/orders/${order.id}",
     "file": "src\\modules\\purchasing\\sections\\PurchaseOrdersSection.tsx"
   },
   {
@@ -1637,6 +2377,11 @@
   {
     "method": "GET",
     "endpoint": "/purchasing/requisitions",
+    "file": "src\\modules\\purchasing\\sections\\PurchaseRequisitionsSection.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/purchasing/requisitions/${req.id}",
     "file": "src\\modules\\purchasing\\sections\\PurchaseRequisitionsSection.tsx"
   },
   {
@@ -1672,6 +2417,11 @@
   {
     "method": "GET",
     "endpoint": "/purchasing/returns",
+    "file": "src\\modules\\purchasing\\sections\\PurchaseReturnsSection.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/purchasing/returns/${ret.id}",
     "file": "src\\modules\\purchasing\\sections\\PurchaseReturnsSection.tsx"
   },
   {
@@ -1740,6 +2490,11 @@
     "file": "src\\modules\\qc\\sections\\QcInspectionsSection.tsx"
   },
   {
+    "method": "GET",
+    "endpoint": "/qc/inspections/${(insp as unknown as { uuid?: string }).uuid || insp.id}",
+    "file": "src\\modules\\qc\\sections\\QcInspectionsSection.tsx"
+  },
+  {
     "method": "DELETE",
     "endpoint": "/qc/inspections/${id}",
     "file": "src\\modules\\qc\\sections\\QcInspectionsSection.tsx"
@@ -1772,6 +2527,11 @@
   {
     "method": "PUT",
     "endpoint": "/qc/parameters/${param.id}",
+    "file": "src\\modules\\qc\\sections\\QcParametersSection.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/qc/parameters/${(param as unknown as { uuid?: string }).uuid || param.id}",
     "file": "src\\modules\\qc\\sections\\QcParametersSection.tsx"
   },
   {
@@ -1821,6 +2581,11 @@
   },
   {
     "method": "GET",
+    "endpoint": "/qc/rework-orders/${order.id}",
+    "file": "src\\modules\\qc\\sections\\ReworkSection.tsx"
+  },
+  {
+    "method": "GET",
     "endpoint": "/qc/wastage-records",
     "file": "src\\modules\\qc\\sections\\WastageRecordsSection.tsx"
   },
@@ -1865,9 +2630,19 @@
     "file": "src\\modules\\qc\\sections\\WastageRecordsSection.tsx"
   },
   {
+    "method": "GET",
+    "endpoint": "/qc/wastage-records/${(rec as unknown as { uuid?: string }).uuid || rec.id}",
+    "file": "src\\modules\\qc\\sections\\WastageRecordsSection.tsx"
+  },
+  {
     "method": "DELETE",
     "endpoint": "/qc/wastage-records/${id}",
     "file": "src\\modules\\qc\\sections\\WastageRecordsSection.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/reports",
+    "file": "src\\modules\\reports\\ReportsWorkspace.tsx"
   },
   {
     "method": "GET",
@@ -1880,14 +2655,44 @@
     "file": "src\\modules\\reports\\ReportsWorkspace.tsx"
   },
   {
+    "method": "GET",
+    "endpoint": "/reports/${selectedReportCode}/schema",
+    "file": "src\\modules\\reports\\ReportsWorkspace.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/reports/${selectedReportCode}/views",
+    "file": "src\\modules\\reports\\ReportsWorkspace.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/reports/${activeDef.code}/views",
+    "file": "src\\modules\\reports\\ReportsWorkspace.tsx"
+  },
+  {
     "method": "POST",
     "endpoint": "/reports/${activeDef.code}/export",
     "file": "src\\modules\\reports\\ReportsWorkspace.tsx"
   },
   {
     "method": "GET",
+    "endpoint": "/reports/exports/${expData.uuid}",
+    "file": "src\\modules\\reports\\ReportsWorkspace.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/reports/exports/${expData.uuid}/download",
+    "file": "src\\modules\\reports\\ReportsWorkspace.tsx"
+  },
+  {
+    "method": "GET",
     "endpoint": "/parties/options?is_customer=true",
     "file": "src\\modules\\sales\\components\\CustomerSearchCombobox.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/sales/orders/${order.id}",
+    "file": "src\\modules\\sales\\components\\OrderProcessingModal.tsx"
   },
   {
     "method": "PATCH",
@@ -1930,6 +2735,11 @@
     "file": "src\\modules\\sales\\sections\\DeliveriesSection.tsx"
   },
   {
+    "method": "GET",
+    "endpoint": "/sales/deliveries/${d.id}",
+    "file": "src\\modules\\sales\\sections\\DeliveriesSection.tsx"
+  },
+  {
     "method": "POST",
     "endpoint": "/sales/deliveries/${deliveryId}/dispatch",
     "file": "src\\modules\\sales\\sections\\DeliveriesSection.tsx"
@@ -1957,6 +2767,11 @@
   {
     "method": "GET",
     "endpoint": "/sales/exchanges",
+    "file": "src\\modules\\sales\\sections\\ExchangesSection.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/sales/exchanges/${ex.id}",
     "file": "src\\modules\\sales\\sections\\ExchangesSection.tsx"
   },
   {
@@ -2040,6 +2855,31 @@
     "file": "src\\modules\\sales\\sections\\InvoicesSection.tsx"
   },
   {
+    "method": "POST",
+    "endpoint": "/sales/invoices",
+    "file": "src\\modules\\sales\\sections\\InvoicesSection.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/sales/invoices/${inv.id}",
+    "file": "src\\modules\\sales\\sections\\InvoicesSection.tsx"
+  },
+  {
+    "method": "PUT",
+    "endpoint": "/sales/leads/${id}",
+    "file": "src\\modules\\sales\\sections\\LeadsSection.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/sales/leads/${lead.id}",
+    "file": "src\\modules\\sales\\sections\\LeadsSection.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/sales/leads/${selectedLeadForView.id}/activities",
+    "file": "src\\modules\\sales\\sections\\LeadsSection.tsx"
+  },
+  {
     "method": "GET",
     "endpoint": "/sales/leads?per_page=100",
     "file": "src\\modules\\sales\\sections\\LeadsSection.tsx"
@@ -2081,7 +2921,17 @@
   },
   {
     "method": "GET",
+    "endpoint": "/sales/payments/${p.id}",
+    "file": "src\\modules\\sales\\sections\\PaymentsSection.tsx"
+  },
+  {
+    "method": "GET",
     "endpoint": "/pricing/price-lists?per_page=100",
+    "file": "src\\modules\\sales\\sections\\PriceListsSection.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/pricing/price-lists/options",
     "file": "src\\modules\\sales\\sections\\PriceListsSection.tsx"
   },
   {
@@ -2092,6 +2942,71 @@
   {
     "method": "POST",
     "endpoint": "/pricing/price-lists",
+    "file": "src\\modules\\sales\\sections\\PriceListsSection.tsx"
+  },
+  {
+    "method": "PATCH",
+    "endpoint": "/pricing/price-lists/${uuid}",
+    "file": "src\\modules\\sales\\sections\\PriceListsSection.tsx"
+  },
+  {
+    "method": "DELETE",
+    "endpoint": "/pricing/price-lists/${uuid}",
+    "file": "src\\modules\\sales\\sections\\PriceListsSection.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/pricing/discount-rules?per_page=100",
+    "file": "src\\modules\\sales\\sections\\PriceListsSection.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/pricing/discount-rules",
+    "file": "src\\modules\\sales\\sections\\PriceListsSection.tsx"
+  },
+  {
+    "method": "PATCH",
+    "endpoint": "/pricing/discount-rules/${id}",
+    "file": "src\\modules\\sales\\sections\\PriceListsSection.tsx"
+  },
+  {
+    "method": "DELETE",
+    "endpoint": "/pricing/discount-rules/${id}",
+    "file": "src\\modules\\sales\\sections\\PriceListsSection.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/pricing/discount-rules/${id}",
+    "file": "src\\modules\\sales\\sections\\PriceListsSection.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/pricing/tax-profiles?per_page=100",
+    "file": "src\\modules\\sales\\sections\\PriceListsSection.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/pricing/tax-profiles/options",
+    "file": "src\\modules\\sales\\sections\\PriceListsSection.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/pricing/tax-profiles",
+    "file": "src\\modules\\sales\\sections\\PriceListsSection.tsx"
+  },
+  {
+    "method": "PATCH",
+    "endpoint": "/pricing/tax-profiles/${id}",
+    "file": "src\\modules\\sales\\sections\\PriceListsSection.tsx"
+  },
+  {
+    "method": "DELETE",
+    "endpoint": "/pricing/tax-profiles/${id}",
+    "file": "src\\modules\\sales\\sections\\PriceListsSection.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/pricing/tax-profiles/${id}",
     "file": "src\\modules\\sales\\sections\\PriceListsSection.tsx"
   },
   {
@@ -2132,6 +3047,11 @@
   {
     "method": "POST",
     "endpoint": "/sales/targets/${targetId}/recalculate",
+    "file": "src\\modules\\sales\\sections\\SalesmanTargetsSection.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/sales/targets/${t.id}",
     "file": "src\\modules\\sales\\sections\\SalesmanTargetsSection.tsx"
   },
   {
@@ -2210,6 +3130,11 @@
     "file": "src\\modules\\sales\\sections\\SalesReturnsSection.tsx"
   },
   {
+    "method": "GET",
+    "endpoint": "/sales/returns/${r.id}",
+    "file": "src\\modules\\sales\\sections\\SalesReturnsSection.tsx"
+  },
+  {
     "method": "POST",
     "endpoint": "/sales/returns/${returnId}/approve",
     "file": "src\\modules\\sales\\sections\\SalesReturnsSection.tsx"
@@ -2235,6 +3160,11 @@
     "file": "src\\modules\\settings\\components\\fields\\BrandAssetField.tsx"
   },
   {
+    "method": "POST",
+    "endpoint": "/webhooks/couriers/${defaultCourierProvider || 'steadfast'}",
+    "file": "src\\modules\\settings\\components\\previews\\LogisticsDispatchSimulator.tsx"
+  },
+  {
     "method": "PUT",
     "endpoint": "/settings/company",
     "file": "src\\modules\\settings\\documents\\tabs\\BusinessIdentityTab.tsx"
@@ -2250,6 +3180,11 @@
     "file": "src\\modules\\settings\\documents\\tabs\\NumberingTab.tsx"
   },
   {
+    "method": "POST",
+    "endpoint": "/documents/numbering",
+    "file": "src\\modules\\settings\\documents\\tabs\\NumberingTab.tsx"
+  },
+  {
     "method": "GET",
     "endpoint": "/documents/paper-sizes",
     "file": "src\\modules\\settings\\documents\\tabs\\PaperSizesTab.tsx"
@@ -2257,6 +3192,11 @@
   {
     "method": "POST",
     "endpoint": "/documents/paper-sizes",
+    "file": "src\\modules\\settings\\documents\\tabs\\PaperSizesTab.tsx"
+  },
+  {
+    "method": "PUT",
+    "endpoint": "/documents/paper-sizes/${first.id}",
     "file": "src\\modules\\settings\\documents\\tabs\\PaperSizesTab.tsx"
   },
   {
@@ -2361,7 +3301,22 @@
   },
   {
     "method": "GET",
+    "endpoint": "tenant/modules/nav-order",
+    "file": "src\\modules\\settings\\sections\\ModuleManagerSection.tsx"
+  },
+  {
+    "method": "GET",
     "endpoint": "tenant/modules",
+    "file": "src\\modules\\settings\\sections\\ModuleManagerSection.tsx"
+  },
+  {
+    "method": "PUT",
+    "endpoint": "/tenant/modules/batch",
+    "file": "src\\modules\\settings\\sections\\ModuleManagerSection.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/tenant/modules/batch",
     "file": "src\\modules\\settings\\sections\\ModuleManagerSection.tsx"
   },
   {
@@ -2405,6 +3360,16 @@
     "file": "src\\modules\\settings\\sections\\ProductionStagesSection.tsx"
   },
   {
+    "method": "GET",
+    "endpoint": "/industry-profiles",
+    "file": "src\\modules\\settings\\sections\\TerminologySection.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/tenant/apply-industry-profile",
+    "file": "src\\modules\\settings\\sections\\TerminologySection.tsx"
+  },
+  {
     "method": "PATCH",
     "endpoint": "/tenant/terminology",
     "file": "src\\modules\\settings\\sections\\TerminologySection.tsx"
@@ -2417,6 +3382,21 @@
   {
     "method": "GET",
     "endpoint": "/storefront/domains",
+    "file": "src\\modules\\settings\\SettingsCenterWorkspace.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/settings/${group}",
+    "file": "src\\modules\\settings\\SettingsCenterWorkspace.tsx"
+  },
+  {
+    "method": "PUT",
+    "endpoint": "/settings/${activeGroup}",
+    "file": "src\\modules\\settings\\SettingsCenterWorkspace.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/settings/${activeGroup}/reset",
     "file": "src\\modules\\settings\\SettingsCenterWorkspace.tsx"
   },
   {
@@ -2455,13 +3435,48 @@
     "file": "src\\modules\\settings\\WorkflowAutomationWorkspace.tsx"
   },
   {
+    "method": "POST",
+    "endpoint": "/workflows/${workflow.id}/test",
+    "file": "src\\modules\\settings\\WorkflowAutomationWorkspace.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/workflows",
+    "file": "src\\modules\\settings\\WorkflowAutomationWorkspace.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/sales/coupons?${params.toString()}",
+    "file": "src\\modules\\storefront\\CouponsTab.tsx"
+  },
+  {
     "method": "GET",
     "endpoint": "/storefront/coupons?${params.toString()}",
     "file": "src\\modules\\storefront\\CouponsTab.tsx"
   },
   {
     "method": "GET",
+    "endpoint": "/sales/coupons?${params.toString()}",
+    "file": "src\\modules\\storefront\\CouponsTab.tsx"
+  },
+  {
+    "method": "GET",
     "endpoint": "/storefront/coupons?${params.toString()}",
+    "file": "src\\modules\\storefront\\CouponsTab.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/sales/coupons/${coupon.id}",
+    "file": "src\\modules\\storefront\\CouponsTab.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/storefront/coupons/${coupon.id}",
+    "file": "src\\modules\\storefront\\CouponsTab.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/sales/coupons/${coupon.id}/toggle-status",
     "file": "src\\modules\\storefront\\CouponsTab.tsx"
   },
   {
@@ -2471,7 +3486,17 @@
   },
   {
     "method": "DELETE",
+    "endpoint": "/sales/coupons/${coupon.id}",
+    "file": "src\\modules\\storefront\\CouponsTab.tsx"
+  },
+  {
+    "method": "DELETE",
     "endpoint": "/storefront/coupons/${coupon.id}",
+    "file": "src\\modules\\storefront\\CouponsTab.tsx"
+  },
+  {
+    "method": "PUT",
+    "endpoint": "/sales/coupons/${editingCoupon.id}",
     "file": "src\\modules\\storefront\\CouponsTab.tsx"
   },
   {
@@ -2481,7 +3506,17 @@
   },
   {
     "method": "POST",
+    "endpoint": "/sales/coupons",
+    "file": "src\\modules\\storefront\\CouponsTab.tsx"
+  },
+  {
+    "method": "POST",
     "endpoint": "/storefront/coupons",
+    "file": "src\\modules\\storefront\\CouponsTab.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/sales/coupons/generate-batch",
     "file": "src\\modules\\storefront\\CouponsTab.tsx"
   },
   {
@@ -2522,6 +3557,11 @@
   {
     "method": "PUT",
     "endpoint": "/storefront/cms/pages/${page.id}",
+    "file": "src\\modules\\storefront\\StorefrontPageBuilderWorkspace.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/storefront/cms/pages/${page.id || page.slug}",
     "file": "src\\modules\\storefront\\StorefrontPageBuilderWorkspace.tsx"
   },
   {
@@ -2593,6 +3633,51 @@
     "method": "GET",
     "endpoint": "/storefront/cms-products",
     "file": "src\\modules\\storefront\\StorefrontSettingsWorkspace.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/storefront/sitemap.xml",
+    "file": "src\\modules\\storefront\\StorefrontSettingsWorkspace.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/storefront/sitemap-categories.xml",
+    "file": "src\\modules\\storefront\\StorefrontSettingsWorkspace.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/storefront/sitemap-products.xml",
+    "file": "src\\modules\\storefront\\StorefrontSettingsWorkspace.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/storefront/sitemap-pages.xml",
+    "file": "src\\modules\\storefront\\StorefrontSettingsWorkspace.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/storefront/robots.txt",
+    "file": "src\\modules\\storefront\\StorefrontSettingsWorkspace.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/storefront/manifest.json",
+    "file": "src\\modules\\storefront\\StorefrontSettingsWorkspace.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/auth/forgot-password",
+    "file": "src\\pages\\auth\\LoginPage.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/auth/reset-password",
+    "file": "src\\pages\\auth\\LoginPage.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/auth/login",
+    "file": "src\\pages\\auth\\LoginPage.tsx"
   },
   {
     "method": "POST",
@@ -2711,6 +3796,11 @@
   },
   {
     "method": "GET",
+    "endpoint": "/audit-logs/${log.id}",
+    "file": "src\\pages\\settings\\ActivityLogWorkspace.tsx"
+  },
+  {
+    "method": "GET",
     "endpoint": "/bin",
     "file": "src\\pages\\settings\\DataBinWorkspace.tsx"
   },
@@ -2736,12 +3826,37 @@
   },
   {
     "method": "GET",
+    "endpoint": "/auth/permissions",
+    "file": "src\\pages\\settings\\ProfileSettingsWorkspace.tsx"
+  },
+  {
+    "method": "PATCH",
+    "endpoint": "/auth/preferences",
+    "file": "src\\pages\\settings\\ProfileSettingsWorkspace.tsx"
+  },
+  {
+    "method": "PATCH",
+    "endpoint": "/auth/change-password",
+    "file": "src\\pages\\settings\\ProfileSettingsWorkspace.tsx"
+  },
+  {
+    "method": "POST",
+    "endpoint": "/auth/logout-all",
+    "file": "src\\pages\\settings\\ProfileSettingsWorkspace.tsx"
+  },
+  {
+    "method": "GET",
     "endpoint": "/roles",
     "file": "src\\pages\\settings\\RolesManagementWorkspace.tsx"
   },
   {
     "method": "GET",
     "endpoint": "/permissions",
+    "file": "src\\pages\\settings\\RolesManagementWorkspace.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/roles/${role.id}",
     "file": "src\\pages\\settings\\RolesManagementWorkspace.tsx"
   },
   {
@@ -2820,6 +3935,11 @@
     "file": "src\\pages\\settings\\SeoDiscoverabilityWorkspace.tsx"
   },
   {
+    "method": "PUT",
+    "endpoint": "/storefront/redirects/${redirect.id}",
+    "file": "src\\pages\\settings\\SeoDiscoverabilityWorkspace.tsx"
+  },
+  {
     "method": "DELETE",
     "endpoint": "/storefront/redirects/${id}",
     "file": "src\\pages\\settings\\SeoDiscoverabilityWorkspace.tsx"
@@ -2878,6 +3998,21 @@
     "method": "POST",
     "endpoint": "/users",
     "file": "src\\pages\\settings\\UsersManagementWorkspace.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/users/${user.id}",
+    "file": "src\\pages\\settings\\UsersManagementWorkspace.tsx"
+  },
+  {
+    "method": "PUT",
+    "endpoint": "/users/${editingUserData.id}",
+    "file": "src\\pages\\settings\\UsersManagementWorkspace.tsx"
+  },
+  {
+    "method": "GET",
+    "endpoint": "/storefront/customer/profile",
+    "file": "src\\pages\\storefront\\StorefrontAccountPage.tsx"
   },
   {
     "method": "GET",

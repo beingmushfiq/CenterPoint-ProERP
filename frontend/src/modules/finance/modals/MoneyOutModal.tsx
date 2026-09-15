@@ -3,6 +3,7 @@ import { X, ArrowDownRight, ReceiptText, Building2, UserMinus } from 'lucide-rea
 import type { ChartOfAccount, BankAccount, Expense, JournalEntry } from '../../../types/api/finance';
 import { useCurrency } from '../../../hooks/useCurrency';
 import { notify } from '../../../components/ui/Toast';
+import { api } from '../../../lib/api/client';
 
 export interface MoneyOutSuccessPayload {
   expense?: Expense | undefined;
@@ -65,7 +66,7 @@ export const MoneyOutModal: React.FC<MoneyOutModalProps> = ({
   const sourceAccount = accounts.find((a) => a.id === selectedAccountId);
   const sourceBank = bankAccounts.find((b) => b.account_name.includes(sourceAccount?.name || ''));
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const numAmount = parseFloat(amount);
     if (isNaN(numAmount) || numAmount <= 0) {
@@ -95,26 +96,48 @@ export const MoneyOutModal: React.FC<MoneyOutModalProps> = ({
       narration = `Operational Expense: ${cat?.name || 'Disbursement'} paid to ${payeeName || 'Vendor'}. ${description}`.trim();
       debitAccountId = accounts.find((a) => a.account_type === 'expense')?.id ?? 501;
 
-      createdExpense = {
-        id: timestamp % 10000,
-        uuid: `exp-${timestamp}`,
-        company_id: 1,
-        expense_category_id: categoryId,
-        category: {
-          id: categoryId,
-          uuid: `ec-${categoryId}`,
-          code: cat?.code || 'EXP',
-          name: cat?.name || 'Operational Expense',
-          is_active: true,
-        },
-        expense_date: date,
-        amount: numAmount.toFixed(4),
-        payment_method: sourceAccount?.account_subtype === 'cash' ? 'cash' : 'bank_transfer',
-        bank_account_id: sourceBank?.id,
-        payee_name: payeeName || cat?.name,
-        description: description || `Payment from ${sourceAccount?.name}`,
-        status: 'approved',
-      };
+      try {
+        const res = await api.post('/finance/expenses', {
+          company_id: 1,
+          branch_id: 1,
+          expense_category_id: categoryId,
+          expense_date: date,
+          payee_type: 'other',
+          payee_name: payeeName || cat?.name || 'Vendor',
+          description: description || `Payment from ${sourceAccount?.name}`,
+          amount: numAmount,
+          payment_method: sourceAccount?.account_subtype === 'cash' ? 'cash' : 'bank',
+          bank_account_id: sourceBank?.id,
+        });
+        if (res.data) {
+          createdExpense = (res.data as { data?: Expense }).data ?? (res.data as Expense);
+        }
+      } catch {
+        // Fallback to offline created expense
+      }
+
+      if (!createdExpense) {
+        createdExpense = {
+          id: timestamp % 10000,
+          uuid: `exp-${timestamp}`,
+          company_id: 1,
+          expense_category_id: categoryId,
+          category: {
+            id: categoryId,
+            uuid: `ec-${categoryId}`,
+            code: cat?.code || 'EXP',
+            name: cat?.name || 'Operational Expense',
+            is_active: true,
+          },
+          expense_date: date,
+          amount: numAmount.toFixed(4),
+          payment_method: sourceAccount?.account_subtype === 'cash' ? 'cash' : 'bank_transfer',
+          bank_account_id: sourceBank?.id,
+          payee_name: payeeName || cat?.name,
+          description: description || `Payment from ${sourceAccount?.name}`,
+          status: 'approved',
+        };
+      }
     } else if (outType === 'supplier') {
       narration = `Supplier Bill Settlement: Paid ${supplierName} (Ref: ${supplierInvoiceRef || 'N/A'}) via ${sourceAccount?.name}`.trim();
       // Accounts Payable is Liability account

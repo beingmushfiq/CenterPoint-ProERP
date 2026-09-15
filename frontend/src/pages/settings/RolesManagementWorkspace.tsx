@@ -22,6 +22,7 @@ import {
   UserMinus,
 } from 'lucide-react';
 import { api } from '../../lib/api/client';
+import { extractList } from '../../lib/api/apiData';
 import { useAuthStore } from '../../lib/auth/authStore';
 import { Button } from '../../components/ui/Button';
 import { Modal } from '../../components/ui/Modal';
@@ -108,10 +109,12 @@ export const RolesManagementWorkspace: React.FC = () => {
     ])
       .then(([rolesRes, permsRes]) => {
         if (!ignore) {
-          const rolesData = Array.isArray(rolesRes.data) ? rolesRes.data : [];
+          const rolesData = extractList<RoleData>(rolesRes);
           setRoles(rolesData);
 
-          const permsPayload = permsRes.data;
+          const permsPayload = (permsRes.data && typeof permsRes.data === 'object' && 'data' in permsRes.data)
+            ? (permsRes.data as { data: { raw: PermissionItem[]; grouped: ModuleGroup[] } }).data
+            : permsRes.data;
           const rawList = permsPayload?.raw ?? [];
           const groupedList = permsPayload?.grouped ?? [];
 
@@ -149,14 +152,29 @@ export const RolesManagementWorkspace: React.FC = () => {
   };
 
   // Open Edit Role Modal
-  const handleOpenEdit = (role: RoleData) => {
-    setEditingRole(role);
-    setRoleName(role.name);
-    setRoleSlug(role.slug);
-    setRoleDescription(role.description || '');
-    const ids = new Set((role.permissions || []).map((p) => p.id));
-    setSelectedPermIds(ids);
-    setIsModalOpen(true);
+  const handleOpenEdit = async (role: RoleData) => {
+    try {
+      const res = await api.get<any>(`/roles/${role.id}`);
+      const payload = (res.data && typeof res.data === 'object' && 'data' in res.data)
+        ? (res.data as any).data
+        : res.data;
+      const target = payload || role;
+      setEditingRole(target);
+      setRoleName(target.name);
+      setRoleSlug(target.slug);
+      setRoleDescription(target.description || '');
+      const ids = new Set<number>((target.permissions || []).map((p: any) => Number(p.id)));
+      setSelectedPermIds(ids);
+      setIsModalOpen(true);
+    } catch {
+      setEditingRole(role);
+      setRoleName(role.name);
+      setRoleSlug(role.slug);
+      setRoleDescription(role.description || '');
+      const ids = new Set<number>((role.permissions || []).map((p) => Number(p.id)));
+      setSelectedPermIds(ids);
+      setIsModalOpen(true);
+    }
   };
 
   // Clone Role

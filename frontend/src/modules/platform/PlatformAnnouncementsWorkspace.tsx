@@ -91,6 +91,22 @@ export const PlatformAnnouncementsWorkspace: React.FC = () => {
     },
   });
 
+  // Update Announcement Mutation
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, ...payload }: { id: number; is_active?: boolean; title?: string; body?: string; severity?: string }) => {
+      const res = await api.patch(`/platform/announcements/${id}`, payload);
+      return res.data;
+    },
+    onSuccess: () => {
+      toast.success('Announcement status updated');
+      queryClient.invalidateQueries({ queryKey: ['platform', 'announcements'] });
+    },
+    onError: (err: unknown) => {
+      const msg = err instanceof Error ? err.message : 'Failed to update announcement';
+      toast.error(msg);
+    },
+  });
+
   // Delete Announcement Mutation
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
@@ -227,7 +243,15 @@ export const PlatformAnnouncementsWorkspace: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="shrink-0">
+                <div className="shrink-0 flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => updateMutation.mutate({ id: ann.id, is_active: !ann.is_active })}
+                    title={ann.is_active ? 'Archive Announcement' : 'Reactivate Announcement'}
+                    className="p-1.5 rounded-lg bg-surface-sunken hover:bg-surface border border-default text-amber-500 cursor-pointer transition-colors"
+                  >
+                    <Clock className="size-3.5" />
+                  </button>
                   <button
                     type="button"
                     onClick={() => {

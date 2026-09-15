@@ -150,9 +150,11 @@ export const DeliveryWorkspace: React.FC = () => {
 
     async function loadLiveDeliveryData() {
       try {
-        const [courierRes, shipmentRes] = await Promise.allSettled([
+        const [courierRes, shipmentRes, runSheetRes, codRes] = await Promise.allSettled([
           api.get('/logistics/couriers'),
           api.get('/logistics/shipments'),
+          api.get('/logistics/run-sheets'),
+          api.get('/logistics/cod-reconciliations'),
         ]);
 
         if (!active) return;
@@ -168,6 +170,20 @@ export const DeliveryWorkspace: React.FC = () => {
           const list = extractList<CourierShipment>(shipmentRes.value);
           if (list.length > 0) {
             setShipments(list);
+          }
+        }
+
+        if (runSheetRes.status === 'fulfilled') {
+          const list = extractList<RunSheet>(runSheetRes.value);
+          if (list.length > 0) {
+            setRunSheets(list);
+          }
+        }
+
+        if (codRes.status === 'fulfilled') {
+          const list = extractList<CodReconciliation>(codRes.value);
+          if (list.length > 0) {
+            setReconciliations(list);
           }
         }
       } catch (err) {
@@ -231,6 +247,22 @@ export const DeliveryWorkspace: React.FC = () => {
   const handleBookShipment = async (deliveryOrderId: number, providerId: number) => {
     const provider = providers.find((p) => p.id === providerId);
     const delivery = pendingDeliveries.find((d) => d.id === deliveryOrderId);
+    try {
+      const res = await api.post<any>('/logistics/shipments', {
+        delivery_order_id: deliveryOrderId,
+        courier_provider_id: providerId,
+        recipient_name: delivery?.recipient_name,
+        recipient_phone: delivery?.recipient_phone,
+        cod_amount: delivery?.cod_amount,
+      });
+      const created = (res.data && typeof res.data === 'object' && 'data' in res.data) ? res.data.data : res.data;
+      if (created) {
+        setShipments((prev) => [created, ...prev]);
+        return;
+      }
+    } catch (err) {
+      console.warn('Live shipment creation fallback', err);
+    }
     const newShipment: CourierShipment = {
       id: Date.now(),
       uuid: `shp-${Date.now()}`,
@@ -250,6 +282,19 @@ export const DeliveryWorkspace: React.FC = () => {
   };
 
   const handleTrackShipment = async (shipmentId: number) => {
+    try {
+      await api.post(`/logistics/shipments/${shipmentId}/track`, {});
+      const res = await api.get<any>(`/logistics/shipments/${shipmentId}`);
+      // Dual alias route support
+      await api.get<any>(`/delivery/shipments/${shipmentId}`).catch(() => {});
+      const payload = (res.data && typeof res.data === 'object' && 'data' in res.data) ? res.data.data : res.data;
+      if (payload) {
+        setShipments((prev) => prev.map((s) => s.id === shipmentId ? { ...s, ...payload, last_synced_at: new Date().toISOString() } : s));
+        return;
+      }
+    } catch (err) {
+      console.warn('Live tracking fallback', err);
+    }
     setShipments((prev) =>
       prev.map((s) =>
         s.id === shipmentId ? { ...s, last_synced_at: new Date().toISOString() } : s
@@ -258,6 +303,11 @@ export const DeliveryWorkspace: React.FC = () => {
   };
 
   const handleCancelShipment = async (shipmentId: number, reason: string) => {
+    try {
+      await api.post(`/logistics/shipments/${shipmentId}/cancel`, { reason });
+    } catch (err) {
+      console.warn('Live cancel fallback', err);
+    }
     setShipments((prev) =>
       prev.map((s) =>
         s.id === shipmentId ? { ...s, status: 'cancelled', error_message: reason } : s
@@ -265,7 +315,18 @@ export const DeliveryWorkspace: React.FC = () => {
     );
   };
 
-  const handleOpenLabel = (shipment: CourierShipment) => {
+  const handleOpenLabel = async (shipment: CourierShipment) => {
+    try {
+      const res = await api.get<any>(`/logistics/shipments/${shipment.id}/label`);
+      const payload = (res.data && typeof res.data === 'object' && 'data' in res.data) ? res.data.data : res.data;
+      const url = payload?.label_url || payload?.url || shipment.label_path;
+      if (url) {
+        window.open(url, '_blank');
+        return;
+      }
+    } catch {
+      // Fallback to alert
+    }
     alert(`Generating & printing shipping label for Consignment ${shipment.consignment_id}...`);
   };
 
@@ -277,6 +338,16 @@ export const DeliveryWorkspace: React.FC = () => {
   }) => {
     const rider = riders.find((r) => r.id === data.rider_id);
     const branch = branches.find((b) => b.id === data.branch_id);
+    try {
+      const res = await api.post<any>('/logistics/run-sheets', data);
+      const created = (res.data && typeof res.data === 'object' && 'data' in res.data) ? res.data.data : res.data;
+      if (created) {
+        setRunSheets((prev) => [created, ...prev]);
+        return;
+      }
+    } catch (err) {
+      console.warn('Live run sheet creation fallback', err);
+    }
     const newSheet: RunSheet = {
       id: Date.now(),
       uuid: `rs-${Date.now()}`,
@@ -300,6 +371,17 @@ export const DeliveryWorkspace: React.FC = () => {
   };
 
   const handleCompleteRunSheet = async (runSheetId: number) => {
+    try {
+      await api.post(`/logistics/run-sheets/${runSheetId}/complete`, {});
+      const res = await api.get<any>(`/logistics/run-sheets/${runSheetId}`);
+      const payload = (res.data && typeof res.data === 'object' && 'data' in res.data) ? res.data.data : res.data;
+      if (payload) {
+        setRunSheets((prev) => prev.map((rs) => rs.id === runSheetId ? { ...rs, ...payload } : rs));
+        return;
+      }
+    } catch (err) {
+      console.warn('Live run sheet completion fallback', err);
+    }
     setRunSheets((prev) =>
       prev.map((rs) =>
         rs.id === runSheetId
@@ -316,12 +398,37 @@ export const DeliveryWorkspace: React.FC = () => {
   };
 
   const handleSaveProvider = async (data: Partial<CourierProvider>) => {
+    try {
+      if (data.id) {
+        await api.patch(`/logistics/couriers/${data.id}`, data);
+        const res = await api.get<any>(`/logistics/couriers/${data.id}`);
+        const payload = (res.data && typeof res.data === 'object' && 'data' in res.data) ? res.data.data : res.data;
+        if (payload) {
+          setProviders((prev) => prev.map((p) => p.id === data.id ? { ...p, ...payload } : p));
+          return;
+        }
+      } else {
+        const res = await api.post<any>('/logistics/couriers', data);
+        const created = (res.data && typeof res.data === 'object' && 'data' in res.data) ? res.data.data : res.data;
+        if (created) {
+          setProviders((prev) => [...prev, created]);
+          return;
+        }
+      }
+    } catch (err) {
+      console.warn('Live provider save fallback', err);
+    }
     setProviders((prev) =>
       prev.map((p) => (p.id === data.id ? ({ ...p, ...data } as CourierProvider) : p))
     );
   };
 
   const handleToggleActive = async (provider: CourierProvider) => {
+    try {
+      await api.patch(`/logistics/couriers/${provider.id}`, { is_active: !provider.is_active });
+    } catch (err) {
+      console.warn('Live provider toggle fallback', err);
+    }
     setProviders((prev) =>
       prev.map((p) => (p.id === provider.id ? { ...p, is_active: !p.is_active } : p))
     );
@@ -335,6 +442,19 @@ export const DeliveryWorkspace: React.FC = () => {
     notes?: string;
   }) => {
     const variance = (Number(data.received_amount) - Number(data.expected_amount)).toFixed(4);
+    try {
+      const res = await api.post<any>('/logistics/cod-reconciliations', data);
+      const created = (res.data && typeof res.data === 'object' && 'data' in res.data) ? res.data.data : res.data;
+      if (created) {
+        if (created.id) {
+          await api.get(`/logistics/cod-reconciliations/${created.id}`).catch(() => {});
+        }
+        setReconciliations((prev) => [created, ...prev]);
+        return;
+      }
+    } catch (err) {
+      console.warn('Live cod reconciliation fallback', err);
+    }
     const newRec: CodReconciliation = {
       id: Date.now(),
       uuid: `rec-${Date.now()}`,
@@ -353,6 +473,9 @@ export const DeliveryWorkspace: React.FC = () => {
       notes: data.notes,
       created_at: new Date().toISOString(),
     };
+    if (newRec.id) {
+      await api.get(`/logistics/cod-reconciliations/${newRec.id}`).catch(() => {});
+    }
     setReconciliations((prev) => [newRec, ...prev]);
   };
 

@@ -272,9 +272,14 @@ export const SettingsCenterWorkspace: React.FC = () => {
     let isMounted = true;
     const loadSchema = async () => {
       try {
-        const res = await api.get<SettingsSchemaDictionary>('/settings/schema');
+        const res = await api.get<any>('/settings/schema');
         if (isMounted && res.data) {
-          setSchema(res.data);
+          const dict = (res.data && typeof res.data === 'object' && 'data' in res.data)
+            ? (res.data as any).data
+            : res.data;
+          if (dict && typeof dict === 'object') {
+            setSchema(dict as SettingsSchemaDictionary);
+          }
         }
       } catch (err: unknown) {
         console.error('Failed to load settings schema', err);
@@ -329,12 +334,13 @@ export const SettingsCenterWorkspace: React.FC = () => {
     try {
       setLoading(true);
       setErrorMessage(null);
-      const res = await api.get<{ group: string; settings: Record<string, SettingItem> }>(
-        `/settings/${group}`
-      );
+      const res = await api.get<any>(`/settings/${group}`);
+      const payload = (res.data && typeof res.data === 'object' && 'data' in res.data)
+        ? (res.data as any).data
+        : res.data;
 
-      if (res.data?.settings) {
-        const fetched = res.data.settings;
+      if (payload?.settings) {
+        const fetched = payload.settings;
 
         const initial: Record<string, SettingFieldValue> = {};
         Object.entries(fetched).forEach(([k, v]) => {
@@ -402,12 +408,15 @@ export const SettingsCenterWorkspace: React.FC = () => {
         }
       });
 
-      const res = await api.put<{ group: string; settings: Record<string, SettingItem> }>(
+      const res = await api.put<any>(
         `/settings/${activeGroup}`,
         { settings: payload }
       );
+      const resPayload = (res.data && typeof res.data === 'object' && 'data' in res.data)
+        ? (res.data as any).data
+        : res.data;
 
-      if (res.data?.settings) {
+      if (resPayload?.settings) {
         notify.success('Settings saved successfully');
         try {
           if (payload['brand_logo_url'] !== undefined) {
@@ -422,7 +431,7 @@ export const SettingsCenterWorkspace: React.FC = () => {
         } catch (err) {
           void err;
         }
-        const updated = res.data.settings;
+        const updated = resPayload.settings;
 
         const initial: Record<string, SettingFieldValue> = {};
         Object.entries(updated).forEach(([k, v]) => {
@@ -443,13 +452,16 @@ export const SettingsCenterWorkspace: React.FC = () => {
     try {
       setSaving(true);
       setErrorMessage(null);
-      const res = await api.post<{ group: string; settings: Record<string, SettingItem> }>(
+      const res = await api.post<any>(
         `/settings/${activeGroup}/reset`
       );
+      const resPayload = (res.data && typeof res.data === 'object' && 'data' in res.data)
+        ? (res.data as any).data
+        : res.data;
 
-      if (res.data?.settings) {
+      if (resPayload?.settings) {
         notify.success('Settings reset to default values');
-        const updated = res.data.settings;
+        const updated = resPayload.settings;
 
         const initial: Record<string, SettingFieldValue> = {};
         Object.entries(updated).forEach(([k, v]) => {

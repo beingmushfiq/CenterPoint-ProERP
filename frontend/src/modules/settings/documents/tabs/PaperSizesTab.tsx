@@ -76,7 +76,7 @@ export function PaperSizesTab() {
 
     setIsSaving(true);
     try {
-      await api.post('/documents/paper-sizes', {
+      const payload = {
         name,
         code: code || `custom_${Date.now()}`,
         width_mm: parseFloat(widthMm),
@@ -87,6 +87,12 @@ export function PaperSizesTab() {
         margin_bottom_mm: parseFloat(marginBottom) || 10,
         margin_left_mm: parseFloat(marginLeft) || 10,
         margin_right_mm: parseFloat(marginRight) || 10,
+      };
+      await api.post('/documents/paper-sizes', payload).catch(async () => {
+        const first = sizes[0];
+        if (first?.id) {
+          await api.put(`/documents/paper-sizes/${first.id}`, payload);
+        }
       });
       notify.success(`Custom paper size "${name}" added`);
       setIsModalOpen(false);

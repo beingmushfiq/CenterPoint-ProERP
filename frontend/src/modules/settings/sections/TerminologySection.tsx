@@ -1,12 +1,14 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { api } from '../../../lib/api/client';
 import { useTenantCapabilityStore } from '../../../lib/capabilities/tenantCapabilityStore';
 import { Button } from '../../../components/ui/Button';
 import { notify } from '../../../components/ui/Toast';
 import {
   Type,
-  Save,
+  Sparkles,
+  Check,
   RotateCcw,
+  Save,
 } from 'lucide-react';
 
 const STANDARD_TERMS = [
@@ -25,6 +27,43 @@ export const TerminologySection: React.FC = () => {
   const invalidateManifest = useTenantCapabilityStore((state) => state.invalidate);
   const [userOverrides, setUserOverrides] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
+  const [profiles, setProfiles] = useState<any[]>([]);
+  const [selectedProfileKey, setSelectedProfileKey] = useState<string>('');
+  const [applyingProfile, setApplyingProfile] = useState(false);
+
+  useEffect(() => {
+    api.get<any>('/industry-profiles').then((res) => {
+      const list = (res.data && typeof res.data === 'object' && 'data' in res.data)
+        ? res.data.data
+        : res.data;
+      if (Array.isArray(list) && list.length > 0) {
+        setProfiles(list);
+        if (!selectedProfileKey) {
+          setSelectedProfileKey(list[0].key);
+        }
+      }
+    }).catch(() => {});
+  }, [selectedProfileKey]);
+
+  const handleApplyIndustryProfile = async () => {
+    if (!selectedProfileKey) return;
+    setApplyingProfile(true);
+    try {
+      await api.post('/tenant/apply-industry-profile', {
+        industry_profile_key: selectedProfileKey,
+        override_terminology: true,
+        override_stages: true,
+        enable_recommended_modules: true,
+      });
+      await invalidateManifest();
+      setUserOverrides({});
+      notify.success('Industry starter profile applied successfully!');
+    } catch {
+      notify.error('Failed to apply industry profile.');
+    } finally {
+      setApplyingProfile(false);
+    }
+  };
 
   const terms = useMemo(() => {
     return {
@@ -90,6 +129,46 @@ export const TerminologySection: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Industry Starter Profile Preset Card */}
+      {profiles.length > 0 && (
+        <div className="rounded-2xl border border-indigo-500/20 bg-indigo-500/5 p-5 shadow-xs">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <Sparkles className="size-4 text-indigo-500" />
+                <h3 className="text-sm font-semibold text-default">Industry Starter Profiles</h3>
+              </div>
+              <p className="text-xs text-muted">
+                Preconfigure terminology, workflow stages, and recommended modules tailored for your vertical in one click.
+              </p>
+            </div>
+            <div className="flex items-center gap-3">
+              <select
+                value={selectedProfileKey}
+                onChange={(e) => setSelectedProfileKey(e.target.value)}
+                className="rounded-lg border border-default bg-surface px-3 py-2 text-xs text-default focus:border-indigo-500 focus:outline-none"
+              >
+                {profiles.map((p) => (
+                  <option key={p.key || p.id} value={p.key || p.id}>
+                    {p.name || p.title || p.key}
+                  </option>
+                ))}
+              </select>
+              <Button
+                variant="primary"
+                size="md"
+                onClick={handleApplyIndustryProfile}
+                disabled={applyingProfile || !selectedProfileKey}
+                className="text-xs shrink-0 shadow-md shadow-indigo-600/20"
+              >
+                <Check className="size-3.5 mr-1.5" />
+                {applyingProfile ? 'Applying...' : 'Apply Starter Pack'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Terms Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

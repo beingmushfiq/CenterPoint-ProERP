@@ -159,7 +159,7 @@ export function BillOfMaterialsSection() {
             sort_order: idx + 1,
           })),
       };
-      return api.post<BillOfMaterial>('/boms', body);
+      return api.post<BillOfMaterial>('/boms', body).catch(() => api.post<BillOfMaterial>('/bill-of-materials', body));
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['catalogue', 'boms'] });
@@ -214,7 +214,7 @@ export function BillOfMaterialsSection() {
             sort_order: idx + 1,
           }));
       }
-      return api.patch<BillOfMaterial>(`/boms/${id}`, body);
+      return api.patch<BillOfMaterial>(`/boms/${id}`, body).catch(() => api.patch<BillOfMaterial>(`/bill-of-materials/${id}`, body));
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['catalogue', 'boms'] });
@@ -232,7 +232,7 @@ export function BillOfMaterialsSection() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => api.delete(`/boms/${id}`),
+    mutationFn: (id: string) => api.delete(`/boms/${id}`).catch(() => api.delete(`/bill-of-materials/${id}`)),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['catalogue', 'boms'] });
       setDeletingBOM(null);
@@ -262,6 +262,14 @@ export function BillOfMaterialsSection() {
       })),
     });
     setEditingBOM(b);
+    const bomId = (b as { uuid?: string }).uuid || b.id;
+    void api.get<BillOfMaterial>(`/boms/${bomId}`).catch(() =>
+      api.get<BillOfMaterial>(`/bill-of-materials/${bomId}`)
+    ).then((res) => {
+      if (res && res.data) {
+        setEditingBOM(res.data);
+      }
+    }).catch(() => {});
   };
 
   const handleDuplicateBOM = (b: BillOfMaterial) => {
@@ -316,7 +324,7 @@ export function BillOfMaterialsSection() {
     const headers = ['finished_sku', 'bom_name', 'version', 'output_quantity', 'output_unit', 'component_sku', 'component_quantity', 'component_unit', 'scrap_percentage', 'status'];
     const rows: string[][] = [];
     boms.forEach((b) => {
-      const anyB = b as unknown as Record<string, any>;
+      const anyB = b as unknown as { product?: { sku?: string }; output_unit?: { code?: string } };
       const fSku = anyB.product?.sku || b.code || '';
       const bName = b.name || '';
       const ver = String(b.version || 'v1.0');
@@ -328,7 +336,7 @@ export function BillOfMaterialsSection() {
         rows.push([fSku, `"${bName.replace(/"/g, '""')}"`, ver, outQty, outUnit, '', '', '', '0', stat]);
       } else {
         b.items.forEach((it) => {
-          const anyIt = it as unknown as Record<string, any>;
+          const anyIt = it as unknown as { product?: { sku?: string }; unit?: { code?: string } };
           rows.push([
             fSku,
             `"${bName.replace(/"/g, '""')}"`,

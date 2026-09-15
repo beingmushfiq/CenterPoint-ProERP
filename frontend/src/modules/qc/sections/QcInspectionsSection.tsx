@@ -237,6 +237,11 @@ export function QcInspectionsSection() {
       status: (insp.status ?? 'draft') as EditInspectionDraft['status'],
       notes: insp.notes ?? '',
     });
+    void api.get<QcInspection>(`/qc/inspections/${(insp as unknown as { uuid?: string }).uuid || insp.id}`).then((res) => {
+      if (res.data) {
+        setEditingInspection(res.data);
+      }
+    }).catch(() => {});
   };
 
   const [selectedInspectionIds, setSelectedInspectionIds] = useState<Set<string>>(new Set());

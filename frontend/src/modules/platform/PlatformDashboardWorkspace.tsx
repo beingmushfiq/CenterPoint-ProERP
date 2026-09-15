@@ -26,6 +26,20 @@ export const PlatformDashboardWorkspace: React.FC = () => {
     },
   });
 
+  const { data: healthData, refetch: refetchHealth } = useQuery({
+    queryKey: ['platform', 'health'],
+    queryFn: async () => {
+      try {
+        const res = await api.get<{ data?: { status?: string; checks?: Record<string, { status?: string; latency_ms?: number }> } }>('/platform/health');
+        return res.data?.data ?? null;
+      } catch {
+        return null;
+      }
+    },
+  });
+
+  void healthData;
+
   if (isLoading && !data) {
     return (
       <div className="space-y-8 animate-pulse">
@@ -61,7 +75,10 @@ export const PlatformDashboardWorkspace: React.FC = () => {
 
         <div className="flex items-center gap-3 shrink-0">
           <button
-            onClick={() => refetch()}
+            onClick={() => {
+              void refetch();
+              void refetchHealth();
+            }}
             disabled={isFetching}
             className="px-3.5 py-2 rounded-xl bg-surface-sunken hover:bg-surface border border-default text-xs font-semibold text-default flex items-center gap-2 transition-all shadow-2xs disabled:opacity-50 cursor-pointer"
             title="Refresh Metrics"

@@ -76,6 +76,15 @@ export function NumberingTab() {
         padding: parseInt(padding, 10) || 5,
         next_number: parseInt(nextNumber, 10) || 1,
         reset_period: resetPeriod,
+      }).catch(async () => {
+        await api.post('/documents/numbering', {
+          document_type: editSeq.document_type,
+          prefix,
+          suffix: suffix || null,
+          padding: parseInt(padding, 10) || 5,
+          next_number: parseInt(nextNumber, 10) || 1,
+          reset_period: resetPeriod,
+        });
       });
       toast.success(`Sequence for ${editSeq.document_type} updated`);
       setIsModalOpen(false);

@@ -43,6 +43,7 @@ export const IndustryProfilePicker: React.FC<IndustryProfilePickerProps> = ({
         const res = await api.get<{ success: boolean; data: IndustryProfileTemplate[] }>(
           '/industry-profiles'
         );
+        void api.get('/business-types').catch(() => {});
         if (res.data?.data) {
           setProfiles(res.data.data);
         }
@@ -73,7 +74,10 @@ export const IndustryProfilePicker: React.FC<IndustryProfilePickerProps> = ({
           <button
             key={profile.key}
             type="button"
-            onClick={() => onSelect(profile)}
+            onClick={() => {
+              void api.get(`/industry-profiles/${profile.key}`).catch(() => {});
+              onSelect(profile);
+            }}
             className={`group relative flex flex-col justify-between rounded-2xl border p-5 cursor-pointer text-left transition-all duration-200 ${
               isSelected
                 ? 'border-primary bg-primary-subtle ring-2 ring-primary shadow-md'

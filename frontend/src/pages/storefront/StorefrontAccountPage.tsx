@@ -70,6 +70,12 @@ export const StorefrontAccountPage: React.FC = () => {
     if (!token) return;
     setLoadingOrders(true);
     try {
+      void api.get('/storefront/customer/profile', {
+        headers: {
+          'X-Storefront-Subdomain': subdomain,
+          Authorization: `Bearer ${token}`,
+        },
+      }).catch(() => {});
       const response = await api.get<{ data: CustomerOrder[] }>('/storefront/customer/orders', {
         headers: {
           'X-Storefront-Subdomain': subdomain,

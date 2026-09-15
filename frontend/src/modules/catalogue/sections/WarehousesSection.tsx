@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { MapPin, Plus, Search, Warehouse as WarehouseIcon, Eye, Edit2, Trash2, Upload, Download } from 'lucide-react';
+import { MapPin, Plus, Search, Warehouse as WarehouseIcon, Eye, Edit2, Trash2, Upload, Download, Power } from 'lucide-react';
 import { api } from '../../../lib/api/client';
 import { Modal } from '../../../components/ui/Modal';
 import { Button } from '../../../components/ui/Button';
@@ -134,18 +134,89 @@ export function WarehousesSection() {
     },
   });
 
-  const handleOpenEdit = (w: Warehouse) => {
+  const { data: warehouseLocations, refetch: refetchLocations } = useQuery({
+    queryKey: ['catalogue', 'warehouses', viewingWarehouse?.id, 'locations'],
+    queryFn: async () => {
+      if (!viewingWarehouse) return [];
+      const wId = (viewingWarehouse as any).uuid || viewingWarehouse.id;
+      const res = await api.get<any>(`/warehouses/${wId}/locations`);
+      const list = (res.data && typeof res.data === 'object' && 'data' in res.data)
+        ? res.data.data
+        : res.data;
+      return Array.isArray(list) ? list : [];
+    },
+    enabled: Boolean(viewingWarehouse),
+  });
+
+  const handleInspectLocation = async (locationId: string | number) => {
+    if (!viewingWarehouse) return;
+    try {
+      const wId = (viewingWarehouse as any).uuid || viewingWarehouse.id;
+      const res = await api.get<any>(`/warehouses/${wId}/locations/${locationId}`);
+      const loc = (res.data && typeof res.data === 'object' && 'data' in res.data) ? res.data.data : res.data;
+      notify.info(`Storage Bin: ${loc.name} (${loc.code})`);
+    } catch {
+      notify.error('Failed to load storage bin details');
+    }
+  };
+
+  const handleToggleLocationActive = async (loc: any) => {
+    if (!viewingWarehouse) return;
+    try {
+      const wId = (viewingWarehouse as any).uuid || viewingWarehouse.id;
+      await api.patch(`/warehouses/${wId}/locations/${loc.uuid || loc.id}`, {
+        is_active: !loc.is_active,
+      });
+      notify.success('Location bin status updated');
+      refetchLocations();
+    } catch {
+      notify.error('Failed to update storage bin');
+    }
+  };
+
+  const handleDeleteLocation = async (locationId: string | number) => {
+    if (!viewingWarehouse) return;
+    if (!confirm('Are you sure you want to delete this storage location bin?')) return;
+    try {
+      const wId = (viewingWarehouse as any).uuid || viewingWarehouse.id;
+      await api.delete(`/warehouses/${wId}/locations/${locationId}`);
+      notify.success('Storage bin deleted');
+      refetchLocations();
+    } catch {
+      notify.error('Failed to delete storage bin');
+    }
+  };
+
+  const handleOpenEdit = async (w: Warehouse) => {
     setErrorMsg(null);
-    setDraft({
-      code: w.code,
-      name: w.name,
-      type: w.type,
-      address: w.address || '',
-      allows_negative_stock: w.allows_negative_stock,
-      is_default: w.is_default,
-      is_active: w.is_active,
-    });
-    setEditingWarehouse(w);
+    try {
+      const res = await api.get<any>(`/warehouses/${(w as any).uuid || w.id}`);
+      const fresh = (res.data && typeof res.data === 'object' && 'data' in res.data)
+        ? res.data.data
+        : res.data;
+      const target = fresh || w;
+      setDraft({
+        code: target.code,
+        name: target.name,
+        type: target.type,
+        address: target.address || '',
+        allows_negative_stock: target.allows_negative_stock,
+        is_default: target.is_default,
+        is_active: target.is_active,
+      });
+      setEditingWarehouse(target);
+    } catch {
+      setDraft({
+        code: w.code,
+        name: w.name,
+        type: w.type,
+        address: w.address || '',
+        allows_negative_stock: w.allows_negative_stock,
+        is_default: w.is_default,
+        is_active: w.is_active,
+      });
+      setEditingWarehouse(w);
+    }
   };
 
   const warehouses = warehousesQuery.data?.data ?? [];
@@ -657,6 +728,87 @@ export function WarehousesSection() {
               <div>
                 <span className="text-[10px] font-semibold text-muted uppercase tracking-wider block">Default Branch Depot</span>
                 <span className="font-medium text-default">{viewingWarehouse.is_default ? 'Yes' : 'No'}</span>
+              </div>
+            </div>
+
+            {/* Storage Location Bins */}
+            <div className="border border-default rounded-xl overflow-hidden mt-3">
+              <div className="p-3 bg-surface-sunken border-b border-default font-semibold text-default flex items-center justify-between">
+                <span>Storage Location Bins & Racks ({warehouseLocations?.length ?? 0})</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedWarehouseForLocation(viewingWarehouse);
+                  }}
+                  className="text-primary hover:underline text-[11px] font-medium cursor-pointer"
+                >
+                  + Add Storage Bin
+                </button>
+              </div>
+              <div className="max-h-60 overflow-y-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-surface-sunken text-muted text-[10px] uppercase border-b border-default">
+                    <tr>
+                      <th className="px-3 py-2">Bin Code</th>
+                      <th className="px-3 py-2">Name</th>
+                      <th className="px-3 py-2">Type</th>
+                      <th className="px-3 py-2">Status</th>
+                      <th className="px-3 py-2 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-default">
+                    {(warehouseLocations ?? []).length === 0 ? (
+                      <tr>
+                        <td colSpan={5} className="px-3 py-4 text-center text-muted">
+                          No location bins configured. Click "+ Add Storage Bin" to add one.
+                        </td>
+                      </tr>
+                    ) : (
+                      warehouseLocations?.map((loc: any) => (
+                        <tr key={loc.id} className="hover:bg-surface-sunken/50">
+                          <td className="px-3 py-2 font-mono font-semibold text-primary">{loc.code}</td>
+                          <td className="px-3 py-2 font-medium text-default">{loc.name}</td>
+                          <td className="px-3 py-2 capitalize text-muted">{loc.type}</td>
+                          <td className="px-3 py-2">
+                            <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${
+                              loc.is_active ? 'bg-emerald-500/10 text-emerald-600' : 'bg-surface-sunken text-muted'
+                            }`}>
+                              {loc.is_active ? 'Active' : 'Inactive'}
+                            </span>
+                          </td>
+                          <td className="px-3 py-2 text-right">
+                            <div className="inline-flex items-center gap-1">
+                              <button
+                                type="button"
+                                onClick={() => handleInspectLocation(loc.uuid || loc.id)}
+                                className="p-1 text-primary hover:bg-surface-sunken rounded"
+                                title="Inspect bin"
+                              >
+                                <Eye className="size-3" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleToggleLocationActive(loc)}
+                                className="p-1 text-muted hover:text-default hover:bg-surface-sunken rounded"
+                                title={loc.is_active ? 'Deactivate bin' : 'Activate bin'}
+                              >
+                                <Power className={`size-3 ${loc.is_active ? 'text-emerald-500' : 'text-muted'}`} />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteLocation(loc.uuid || loc.id)}
+                                className="p-1 text-muted hover:text-rose-600 hover:bg-rose-500/10 rounded"
+                                title="Delete bin"
+                              >
+                                <Trash2 className="size-3" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
               </div>
             </div>
 

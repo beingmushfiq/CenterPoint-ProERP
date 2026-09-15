@@ -376,6 +376,9 @@ export function PosTerminalsSection() {
                           onClick={() => {
                             setActiveTerminal(t);
                             setShowViewModal(true);
+                            void api.get<PosTerminal>(`/pos/terminals/${t.id}`).then((res) => {
+                              if (res.data) setActiveTerminal(res.data);
+                            }).catch(() => {});
                           }}
                           className="p-1.5 text-muted hover:text-default hover:bg-surface-sunken rounded-lg transition-colors cursor-pointer"
                           title="View Terminal Details"

@@ -138,6 +138,11 @@ export function StockAdjustmentsSection() {
     ],
   });
 
+  useQuery({
+    queryKey: ['catalogue', 'reason-codes'],
+    queryFn: ({ signal }) => api.get<unknown[]>('/reason-codes', { signal }),
+  });
+
   const { data: adjustments = SAMPLE_ADJUSTMENTS, isLoading, isFetching, refetch } = useQuery<StockAdjustment[]>({
     queryKey: ['inventory', 'adjustments'],
     queryFn: async () => {
@@ -688,6 +693,9 @@ export function StockAdjustmentsSection() {
                           onClick={() => {
                             setActiveAdjustment(a);
                             setShowViewModal(true);
+                            void api.get<StockAdjustment>(`/inventory/adjustments/${a.id}`).then((res) => {
+                              if (res.data) setActiveAdjustment(res.data);
+                            }).catch(() => {});
                           }}
                           className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-lg bg-surface-sunken hover:bg-surface border border-default text-default transition-colors cursor-pointer"
                           title="View Voucher"

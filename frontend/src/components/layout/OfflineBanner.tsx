@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { WifiOff, RotateCcw } from 'lucide-react';
 import { Button } from '../ui/Button';
+import { api } from '../../lib/api/client';
 
 export function OfflineBanner() {
   const [isOnline, setIsOnline] = useState(
@@ -24,8 +25,8 @@ export function OfflineBanner() {
   const handleCheckConnection = async () => {
     setIsChecking(true);
     try {
-      // Ping lightweight health endpoint or favicon
-      await fetch('/api/health', { method: 'HEAD', cache: 'no-store' });
+      // Ping lightweight health endpoint
+      await api.get('/health').catch(() => fetch('/api/health', { method: 'HEAD', cache: 'no-store' }));
       setIsOnline(true);
     } catch {
       setIsOnline(false);

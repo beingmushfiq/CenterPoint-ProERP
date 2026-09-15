@@ -262,6 +262,17 @@ export function SalesmanTargetsSection() {
     setActiveMenuTargetId(null);
   };
 
+  const handleViewTarget = async (t: SalesmanTarget) => {
+    setSelectedTargetForView(t);
+    setActiveMenuTargetId(null);
+    try {
+      const res = await api.get<SalesmanTarget>(`/sales/targets/${t.id}`);
+      if (res.data) setSelectedTargetForView(res.data);
+    } catch {
+      // Keep cached target
+    }
+  };
+
   const handleSaveEditTarget = (e: React.FormEvent) => {
     e.preventDefault();
     if (!editModalTarget) return;
@@ -547,10 +558,7 @@ export function SalesmanTargetsSection() {
                               >
                                 <button
                                   type="button"
-                                  onClick={() => {
-                                    setSelectedTargetForView(t);
-                                    setActiveMenuTargetId(null);
-                                  }}
+                                  onClick={() => handleViewTarget(t)}
                                   className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-medium text-default hover:bg-surface-sunken transition-colors cursor-pointer"
                                 >
                                   <Eye className="size-3.5 text-primary" />

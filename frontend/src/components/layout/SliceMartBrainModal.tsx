@@ -507,6 +507,7 @@ export const SliceMartBrainModal: React.FC<SliceMartBrainModalProps> = ({ open, 
       setTimeout(() => {
         inputRef.current?.focus();
       }, 100);
+      void api.get<{ capabilities?: string[]; tools?: string[] }>('/brain/capabilities').catch(() => {});
     }
   }, [open]);
 

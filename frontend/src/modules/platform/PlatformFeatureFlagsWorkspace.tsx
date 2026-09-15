@@ -16,6 +16,7 @@ import {
   XCircle,
   Package,
   Layers,
+  Trash2,
 } from 'lucide-react';
 
 interface ModuleRegistryItem {
@@ -107,6 +108,21 @@ export const PlatformFeatureFlagsWorkspace: React.FC = () => {
     },
     onError: (err: unknown) => {
       const msg = err instanceof Error ? err.message : 'Failed to toggle flag';
+      toast.error(msg);
+    },
+  });
+
+  // Delete Flag Mutation
+  const deleteMutation = useMutation({
+    mutationFn: async (id: number) => {
+      await api.delete(`/platform/feature-flags/${id}`);
+    },
+    onSuccess: () => {
+      toast.success('Feature flag deleted');
+      queryClient.invalidateQueries({ queryKey: ['platform', 'feature-flags'] });
+    },
+    onError: (err: unknown) => {
+      const msg = err instanceof Error ? err.message : 'Failed to delete feature flag';
       toast.error(msg);
     },
   });
@@ -333,23 +349,38 @@ export const PlatformFeatureFlagsWorkspace: React.FC = () => {
                 priority: 'high',
                 align: 'right',
                 render: (flag) => (
-                  <button
-                    type="button"
-                    onClick={() =>
-                      toggleMutation.mutate({
-                        id: flag.id,
-                        enabled: !flag.enabled,
-                      })
-                    }
-                    disabled={toggleMutation.isPending}
-                    className={`px-3 py-1.5 rounded-lg font-bold text-xs cursor-pointer transition-colors ${
-                      flag.enabled
-                        ? 'bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/30'
-                        : 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
-                    }`}
-                  >
-                    {flag.enabled ? 'Deactivate' : 'Activate'}
-                  </button>
+                  <div className="flex items-center justify-end gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        toggleMutation.mutate({
+                          id: flag.id,
+                          enabled: !flag.enabled,
+                        })
+                      }
+                      disabled={toggleMutation.isPending}
+                      className={`px-3 py-1.5 rounded-lg font-bold text-xs cursor-pointer transition-colors ${
+                        flag.enabled
+                          ? 'bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/30'
+                          : 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
+                      }`}
+                    >
+                      {flag.enabled ? 'Deactivate' : 'Activate'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (confirm(`Delete feature flag '${flag.key}'?`)) {
+                          deleteMutation.mutate(flag.id);
+                        }
+                      }}
+                      disabled={deleteMutation.isPending}
+                      title="Delete Feature Flag"
+                      className="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/20 cursor-pointer transition-colors"
+                    >
+                      <Trash2 className="size-3.5" />
+                    </button>
+                  </div>
                 ),
               },
             ]}

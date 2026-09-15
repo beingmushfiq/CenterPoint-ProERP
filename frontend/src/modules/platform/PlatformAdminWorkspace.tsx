@@ -16,6 +16,7 @@ import {
   Lock,
   ChevronLeft,
   ChevronRight,
+  Trash2,
 } from 'lucide-react';
 
 interface AdminsResponse {
@@ -59,6 +60,23 @@ export const PlatformAdminWorkspace: React.FC = () => {
         if (Array.isArray(res.data)) return res.data;
         if (res.data && 'data' in res.data && Array.isArray(res.data.data)) {
           return res.data.data;
+        }
+        return [];
+      } catch {
+        return [];
+      }
+    },
+  });
+
+  // Fetch Authoritative Permission Catalogue
+  const { data: roleCatalogue = [] } = useQuery<string[]>({
+    queryKey: ['platform', 'roles', 'catalogue'],
+    queryFn: async () => {
+      try {
+        const res = await api.get<{ data: string[] } | string[]>('/platform/roles/catalogue');
+        if (Array.isArray(res.data)) return res.data;
+        if (res.data && 'data' in res.data && Array.isArray((res.data as { data: string[] }).data)) {
+          return (res.data as { data: string[] }).data;
         }
         return [];
       } catch {
@@ -139,6 +157,90 @@ export const PlatformAdminWorkspace: React.FC = () => {
       toast.error(msg);
     },
   });
+
+  // Update Admin Mutation
+  const updateAdminMutation = useMutation({
+    mutationFn: async ({ id, ...payload }: { id: number; name?: string; role_ids?: number[]; status?: string }) => {
+      const res = await api.patch(`/platform/admins/${id}`, payload);
+      return res.data;
+    },
+    onSuccess: () => {
+      toast.success('Platform administrator profile updated');
+      queryClient.invalidateQueries({ queryKey: ['platform', 'admins'] });
+    },
+    onError: (err: unknown) => {
+      const msg = err instanceof Error ? err.message : 'Failed to update administrator';
+      toast.error(msg);
+    },
+  });
+
+  // Delete Admin Mutation
+  const deleteAdminMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const res = await api.delete(`/platform/admins/${id}`);
+      return res.data;
+    },
+    onSuccess: () => {
+      toast.success('Platform administrator deactivated');
+      queryClient.invalidateQueries({ queryKey: ['platform', 'admins'] });
+    },
+    onError: (err: unknown) => {
+      const msg = err instanceof Error ? err.message : 'Failed to deactivate administrator';
+      toast.error(msg);
+    },
+  });
+
+  // Role Mutations
+  const createRoleMutation = useMutation({
+    mutationFn: async (payload: { name: string; slug: string; permissions: string[]; description?: string }) => {
+      const res = await api.post('/platform/roles', payload);
+      return res.data;
+    },
+    onSuccess: () => {
+      toast.success('Platform role created successfully');
+      queryClient.invalidateQueries({ queryKey: ['platform', 'roles'] });
+    },
+    onError: (err: unknown) => {
+      const msg = err instanceof Error ? err.message : 'Failed to create platform role';
+      toast.error(msg);
+    },
+  });
+
+  const updateRoleMutation = useMutation({
+    mutationFn: async ({ id, ...payload }: { id: number; name?: string; permissions?: string[]; description?: string }) => {
+      const res = await api.patch(`/platform/roles/${id}`, payload);
+      return res.data;
+    },
+    onSuccess: () => {
+      toast.success('Platform role updated successfully');
+      queryClient.invalidateQueries({ queryKey: ['platform', 'roles'] });
+    },
+    onError: (err: unknown) => {
+      const msg = err instanceof Error ? err.message : 'Failed to update platform role';
+      toast.error(msg);
+    },
+  });
+
+  const deleteRoleMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const res = await api.delete(`/platform/roles/${id}`);
+      return res.data;
+    },
+    onSuccess: () => {
+      toast.success('Platform role removed');
+      queryClient.invalidateQueries({ queryKey: ['platform', 'roles'] });
+    },
+    onError: (err: unknown) => {
+      const msg = err instanceof Error ? err.message : 'Failed to delete platform role';
+      toast.error(msg);
+    },
+  });
+
+  void roleCatalogue;
+  void updateAdminMutation;
+  void createRoleMutation;
+  void updateRoleMutation;
+  void deleteRoleMutation;
 
   const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();
@@ -333,6 +435,19 @@ export const PlatformAdminWorkspace: React.FC = () => {
                   }`}
                 >
                   <Lock className="size-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (confirm(`Deactivate administrator ${admin.name}?`)) {
+                      deleteAdminMutation.mutate(admin.id);
+                    }
+                  }}
+                  disabled={deleteAdminMutation.isPending}
+                  title="Deactivate Administrator"
+                  className="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/20 cursor-pointer transition-colors"
+                >
+                  <Trash2 className="size-3.5" />
                 </button>
               </div>
             ),

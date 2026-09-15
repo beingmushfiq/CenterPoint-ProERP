@@ -177,6 +177,11 @@ export function ProductsSection() {
       }),
   });
 
+  useQuery({
+    queryKey: ['catalogue', 'products', 'options'],
+    queryFn: ({ signal }) => api.get<Product[]>('/products/options', { signal }),
+  });
+
   // Fetch Units options
   const unitsQuery = useQuery({
     queryKey: ['catalogue', 'units', 'options'],
@@ -417,6 +422,11 @@ export function ProductsSection() {
       online_meta: onlineMeta || null,
     });
     setEditingProduct(p);
+    const prodId = (p as { uuid?: string }).uuid || p.id;
+    void api.get<Product>(`/products/${prodId}`).then((res) => {
+      if (res.data) setEditingProduct(res.data);
+    }).catch(() => {});
+    void api.get(`/products/${prodId}/images`).catch(() => {});
   };
 
   const handleDuplicate = (p: Product) => {
@@ -625,6 +635,44 @@ export function ProductsSection() {
     }
   };
 
+  const handleToggleStorefrontPublish = async (product: Product, isPublished: boolean) => {
+    try {
+      await api.post('/storefront/products/toggle-publish', {
+        product_id: product.id,
+        is_published: isPublished,
+      });
+      await queryClient.invalidateQueries({ queryKey: ['catalogue', 'products'] });
+      notify.success(
+        isPublished
+          ? `Published "${product.name}" to online storefront.`
+          : `Removed "${product.name}" from online storefront.`
+      );
+    } catch {
+      notify.error('Failed to update storefront publish status.');
+    }
+  };
+
+  const handleBulkPublishToStorefront = async () => {
+    if (selectedProducts.length === 0) return;
+    setIsBulkUpdating(true);
+    try {
+      const promises = selectedProducts.map((p) =>
+        api.post('/storefront/products/toggle-publish', {
+          product_id: p.id,
+          is_published: true,
+        })
+      );
+      await Promise.allSettled(promises);
+      await queryClient.invalidateQueries({ queryKey: ['catalogue', 'products'] });
+      notify.success(`Published ${selectedProducts.length} product(s) to online storefront.`);
+      clearSelection();
+    } catch {
+      notify.error('Failed to publish selected products to storefront.');
+    } finally {
+      setIsBulkUpdating(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Catalog Intelligence KPI Summary Cards */}
@@ -791,6 +839,17 @@ export function ProductsSection() {
               >
                 <Download className="size-3" />
                 Export CSV
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={handleBulkPublishToStorefront}
+                disabled={isBulkUpdating}
+                className="flex items-center gap-1 text-[11px] py-1 border-indigo-500/30 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/30"
+                title="Publish selected items to Online Storefront"
+              >
+                <Globe className="size-3" />
+                Publish to Storefront
               </Button>
             </>
           ) : (
@@ -1037,6 +1096,19 @@ export function ProductsSection() {
                             title="Thermal Barcode Label"
                           >
                             <QrCode className="size-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleToggleStorefrontPublish(p, !p.is_online)}
+                            className={cn(
+                              "inline-flex items-center justify-center size-7.5 rounded-xl transition-all cursor-pointer border shadow-2xs",
+                              p.is_online
+                                ? "text-indigo-600 dark:text-indigo-400 bg-indigo-500/10 border-indigo-500/30 hover:bg-indigo-500/20"
+                                : "text-slate-400 hover:text-indigo-600 hover:bg-indigo-500/10 border-transparent hover:border-indigo-500/20"
+                            )}
+                            title={p.is_online ? "Published to Online Storefront (Click to unpublish)" : "Publish to Online Storefront"}
+                          >
+                            <Globe className="size-3.5" />
                           </button>
                           <button
                             type="button"

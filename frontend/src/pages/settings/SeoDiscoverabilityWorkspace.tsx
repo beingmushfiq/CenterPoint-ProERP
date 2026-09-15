@@ -22,6 +22,7 @@ import {
   Eye,
   Download,
   X,
+  Power,
 } from 'lucide-react';
 import { api } from '../../lib/api/client';
 import { Button } from '../../components/ui/Button';
@@ -333,6 +334,22 @@ export const SeoDiscoverabilityWorkspace: React.FC<SeoDiscoverabilityWorkspacePr
       notify.error('Failed to create redirect', { description: msg });
     } finally {
       setCreatingRedirect(false);
+    }
+  };
+
+  const handleToggleRedirectActive = async (redirect: RedirectItem) => {
+    try {
+      const res = await api.put<{ data: RedirectItem }>(`/storefront/redirects/${redirect.id}`, {
+        source_path: redirect.source_path,
+        target_path: redirect.target_path,
+        status_code: redirect.status_code,
+        is_active: !redirect.is_active,
+      });
+      setRedirects(redirects.map((r) => (r.id === redirect.id ? res.data.data : r)));
+      notify.success('Redirect rule updated');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to update redirect';
+      notify.error('Failed to update redirect', { description: msg });
     }
   };
 
@@ -1043,6 +1060,17 @@ export const SeoDiscoverabilityWorkspace: React.FC<SeoDiscoverabilityWorkspacePr
                         </td>
                         <td className="py-3 px-4 font-mono text-muted">{r.hits_count}</td>
                         <td className="py-3 px-4 text-right">
+                          <button
+                            type="button"
+                            onClick={() => handleToggleRedirectActive(r)}
+                            className={`p-1.5 rounded-lg transition-colors cursor-pointer mr-1 ${
+                              r.is_active ? 'text-emerald-500 hover:bg-emerald-500/10' : 'text-muted hover:bg-surface-sunken'
+                            }`}
+                            title={r.is_active ? 'Deactivate redirect' : 'Activate redirect'}
+                            aria-label={`Toggle redirect ${r.source_path}`}
+                          >
+                            <Power className="size-3.5" />
+                          </button>
                           <button
                             type="button"
                             onClick={() => handleDeleteRedirect(r.id)}

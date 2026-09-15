@@ -181,6 +181,11 @@ export function WastageRecordsSection() {
       recovered_quantity: (rec as { recovered_quantity?: string }).recovered_quantity ?? '0.0000',
       notes: rec.notes ?? '',
     });
+    void api.get<WastageRecord>(`/qc/wastage-records/${(rec as unknown as { uuid?: string }).uuid || rec.id}`).then((res) => {
+      if (res.data) {
+        setEditingRecord(res.data);
+      }
+    }).catch(() => {});
   };
 
   const [selectedRecordIds, setSelectedRecordIds] = useState<Set<string>>(new Set());

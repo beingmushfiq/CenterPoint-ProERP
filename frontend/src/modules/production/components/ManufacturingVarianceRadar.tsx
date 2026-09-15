@@ -65,8 +65,9 @@ export const ManufacturingVarianceRadar: React.FC = () => {
   const fetchRadarData = useCallback(async (batchId?: number | null) => {
     try {
       setLoading(true);
-      const url = batchId ? `/production/variance-radar?batch_id=${batchId}` : '/production/variance-radar';
-      const res = await api.get<RadarData>(url);
+      const res = batchId
+        ? await api.get<RadarData>(`/production/variance-radar?batch_id=${batchId}`)
+        : await api.get<RadarData>('/production/variance-radar');
       if (res.data) {
         setData(res.data);
         if (!selectedBatchId && res.data.active_batch?.id) {

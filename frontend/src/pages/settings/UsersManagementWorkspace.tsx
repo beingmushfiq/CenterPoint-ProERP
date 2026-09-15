@@ -14,8 +14,10 @@ import {
   Briefcase,
   ChevronRight,
   Filter,
+  Edit,
 } from 'lucide-react';
 import { api } from '../../lib/api/client';
+import { extractList } from '../../lib/api/apiData';
 import { useAuthStore } from '../../lib/auth/authStore';
 import { Button } from '../../components/ui/Button';
 import { Modal } from '../../components/ui/Modal';
@@ -101,6 +103,10 @@ export const UsersManagementWorkspace: React.FC = () => {
   const [rolesModalUser, setRolesModalUser] = useState<UserData | null>(null);
   const [passwordModalUser, setPasswordModalUser] = useState<UserData | null>(null);
   const [toggleStatusUser, setToggleStatusUser] = useState<UserData | null>(null);
+  const [editUserModalOpen, setEditUserModalOpen] = useState(false);
+  const [editingUserData, setEditingUserData] = useState<any | null>(null);
+  const [editLoading, setEditLoading] = useState(false);
+  const [editSubmitting, setEditSubmitting] = useState(false);
 
   // Form states
   const [savingRoles, setSavingRoles] = useState(false);
@@ -130,10 +136,10 @@ export const UsersManagementWorkspace: React.FC = () => {
         api.get<{ data: Array<UnlinkedEmployeeOption & { user_id?: number | null }> } | Array<UnlinkedEmployeeOption & { user_id?: number | null }>>('/hr/employees').catch(() => ({ data: { data: [] } })),
       ]);
 
-      const loadedUsers = Array.isArray(usersRes.data) ? usersRes.data : [];
+      const loadedUsers = extractList<UserData>(usersRes);
       setUsers(loadedUsers);
 
-      const loadedRoles = Array.isArray(rolesRes.data) ? rolesRes.data : [];
+      const loadedRoles = extractList<RoleOption>(rolesRes);
       setAvailableRoles(loadedRoles);
 
       const resData = employeesRes.data;
@@ -161,10 +167,10 @@ export const UsersManagementWorkspace: React.FC = () => {
     ])
       .then(([usersRes, rolesRes, employeesRes]) => {
         if (ignore) return;
-        const loadedUsers = Array.isArray(usersRes.data) ? usersRes.data : [];
+        const loadedUsers = extractList<UserData>(usersRes);
         setUsers(loadedUsers);
 
-        const loadedRoles = Array.isArray(rolesRes.data) ? rolesRes.data : [];
+        const loadedRoles = extractList<RoleOption>(rolesRes);
         setAvailableRoles(loadedRoles);
 
         const resData = employeesRes.data;
@@ -361,6 +367,45 @@ export const UsersManagementWorkspace: React.FC = () => {
     if (emp) {
       if (!newUserName) setNewUserName(emp.display_name);
       if (!newUserEmail && emp.email) setNewUserEmail(emp.email);
+    }
+  };
+
+  const handleOpenEditUser = async (user: UserData) => {
+    setEditUserModalOpen(true);
+    setEditLoading(true);
+    try {
+      const res = await api.get<any>(`/users/${user.id}`);
+      const payload = (res.data && typeof res.data === 'object' && 'data' in res.data)
+        ? (res.data as any).data
+        : res.data;
+      setEditingUserData(payload || user);
+    } catch {
+      setEditingUserData(user);
+    } finally {
+      setEditLoading(false);
+    }
+  };
+
+  const handleSaveUserEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingUserData) return;
+    setEditSubmitting(true);
+    try {
+      await api.put(`/users/${editingUserData.id}`, {
+        name: editingUserData.name,
+        email: editingUserData.email,
+        phone: editingUserData.phone || null,
+        status: editingUserData.status,
+        employee_id: editingUserData.employee?.id || null,
+      });
+      notify.success(`User '${editingUserData.name}' updated successfully.`);
+      setEditUserModalOpen(false);
+      await loadData(true);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to update user';
+      notify.error(msg);
+    } finally {
+      setEditSubmitting(false);
     }
   };
 
@@ -753,6 +798,19 @@ export const UsersManagementWorkspace: React.FC = () => {
 
                           {canUpdateUser && (
                             <Button
+                              variant="secondary"
+                              size="sm"
+                              onClick={() => handleOpenEditUser(user)}
+                              className="h-8 text-xs px-2.5 gap-1"
+                              title="Edit user profile & details"
+                            >
+                              <Edit className="w-3.5 h-3.5 text-blue-600" />
+                              <span>Edit</span>
+                            </Button>
+                          )}
+
+                          {canUpdateUser && (
+                            <Button
                               variant="ghost"
                               size="sm"
                               onClick={() => handleOpenPasswordModal(user)}
@@ -1119,6 +1177,116 @@ export const UsersManagementWorkspace: React.FC = () => {
             </p>
           )}
         </div>
+      </Modal>
+
+      {/* ═══════════════════════════════════════════════════════════════ */}
+      {/* MODAL: EDIT USER PROFILE & ACCESS                               */}
+      {/* ═══════════════════════════════════════════════════════════════ */}
+      <Modal
+        open={editUserModalOpen}
+        onClose={() => setEditUserModalOpen(false)}
+        title="Edit User Account & Access"
+        subtitle={editingUserData ? `Updating account for ${editingUserData.name}` : 'User Profile'}
+        size="md"
+      >
+        {editLoading ? (
+          <div className="py-12 flex flex-col items-center justify-center gap-2">
+            <RefreshCw className="size-6 text-primary animate-spin" />
+            <span className="text-xs text-muted-foreground">Loading account profile...</span>
+          </div>
+        ) : editingUserData ? (
+          <form onSubmit={handleSaveUserEdit} className="space-y-4 pt-2">
+            <div>
+              <label className="block text-xs font-semibold text-foreground mb-1">Full Name *</label>
+              <input
+                type="text"
+                required
+                value={editingUserData.name || ''}
+                onChange={(e) => setEditingUserData({ ...editingUserData, name: e.target.value })}
+                className="w-full px-3 py-2 text-xs rounded-lg border border-border bg-background focus:outline-none focus:ring-1 focus:ring-primary"
+              />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-semibold text-foreground mb-1">Email Address *</label>
+                <input
+                  type="email"
+                  required
+                  value={editingUserData.email || ''}
+                  onChange={(e) => setEditingUserData({ ...editingUserData, email: e.target.value })}
+                  className="w-full px-3 py-2 text-xs rounded-lg border border-border bg-background focus:outline-none focus:ring-1 focus:ring-primary"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-foreground mb-1">Phone Number</label>
+                <input
+                  type="tel"
+                  value={editingUserData.phone || ''}
+                  onChange={(e) => setEditingUserData({ ...editingUserData, phone: e.target.value })}
+                  placeholder="+8801..."
+                  className="w-full px-3 py-2 text-xs rounded-lg border border-border bg-background focus:outline-none focus:ring-1 focus:ring-primary"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-foreground mb-1">Account Status</label>
+              <select
+                value={editingUserData.status || 'active'}
+                onChange={(e) => setEditingUserData({ ...editingUserData, status: e.target.value })}
+                className="w-full px-3 py-2 text-xs rounded-lg border border-border bg-background focus:outline-none focus:ring-1 focus:ring-primary"
+              >
+                <option value="active">Active (Full system login enabled)</option>
+                <option value="suspended">Suspended (Access blocked)</option>
+              </select>
+            </div>
+
+            {editingUserData.employee && (
+              <div className="p-3 bg-muted/30 rounded-xl border border-border/70 space-y-1">
+                <span className="text-2xs font-bold uppercase tracking-wider text-muted-foreground">Linked Employee Record</span>
+                <div className="text-xs font-semibold text-foreground">
+                  {editingUserData.employee.display_name} ({editingUserData.employee.employee_code})
+                </div>
+                <div className="text-2xs text-muted-foreground">
+                  Dept: {editingUserData.employee.department?.name || 'N/A'} • Role: {editingUserData.employee.designation?.name || 'N/A'}
+                </div>
+              </div>
+            )}
+
+            <div className="flex items-center justify-end gap-2 pt-4 border-t border-border">
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={() => setEditUserModalOpen(false)}
+                disabled={editSubmitting}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                variant="primary"
+                size="sm"
+                disabled={editSubmitting}
+                className="gap-1.5"
+              >
+                {editSubmitting ? (
+                  <>
+                    <RefreshCw className="size-3 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Check className="size-3" />
+                    Save Account Changes
+                  </>
+                )}
+              </Button>
+            </div>
+          </form>
+        ) : null}
       </Modal>
     </div>
   );

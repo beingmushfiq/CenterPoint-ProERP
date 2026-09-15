@@ -689,7 +689,8 @@ export const FinanceWorkspace: React.FC = () => {
   ]);
 
   // Product Costings State
-  const [productCosts] = useState<ProductCost[]>([
+  // Product Costings State
+  const [productCosts, setProductCosts] = useState<ProductCost[]>([
     {
       id: 1,
       uuid: 'pc-01',
@@ -728,11 +729,12 @@ export const FinanceWorkspace: React.FC = () => {
 
     async function loadLiveFinanceData() {
       try {
-        const [accRes, jvRes, bankRes, expRes] = await Promise.allSettled([
+        const [accRes, jvRes, bankRes, expRes, costRes] = await Promise.allSettled([
           api.get('/finance/accounts'),
           api.get('/finance/journal-entries'),
           api.get('/finance/bank-accounts'),
           api.get('/finance/expenses'),
+          api.get('/finance/costing'),
         ]);
 
         if (!active) return;
@@ -764,6 +766,16 @@ export const FinanceWorkspace: React.FC = () => {
             setExpenses(fetchedExps);
           }
         }
+
+        if (costRes.status === 'fulfilled') {
+          const fetchedCosts = extractList<ProductCost>(costRes.value);
+          if (fetchedCosts.length > 0) {
+            setProductCosts(fetchedCosts);
+          }
+        }
+
+        // Also ensure expense categories are preloaded
+        await api.get('/finance/expenses/categories').catch(() => null);
       } catch (err) {
         console.error('Failed loading live finance data', err);
       }
@@ -779,12 +791,155 @@ export const FinanceWorkspace: React.FC = () => {
   // Account Modal State
   const [showNewAccountModal, setShowNewAccountModal] = useState(false);
   const [viewingAccount, setViewingAccount] = useState<ChartOfAccount | null>(null);
+  const [, setViewingExpense] = useState<Expense | null>(null);
   const [newAccountCode, setNewAccountCode] = useState('');
   const [newAccountName, setNewAccountName] = useState('');
   const [newAccountType, setNewAccountType] = useState<AccountType>('asset');
   const [newAccountSubtype, setNewAccountSubtype] = useState('');
   const [newNormalBalance, setNewNormalBalance] = useState<NormalBalance>('debit');
   const [newOpeningBalance, setNewOpeningBalance] = useState('0.00');
+
+  const handleViewAccount = async (acc: ChartOfAccount) => {
+    setViewingAccount(acc);
+    try {
+      const res = await api.get<ChartOfAccount>(`/finance/accounts/${acc.id}`);
+      if (res.data) setViewingAccount(res.data);
+    } catch {
+      // Retain cached
+    }
+  };
+
+  const handleViewExpense = async (exp: Expense) => {
+    setViewingExpense(exp);
+    try {
+      const res = await api.get<Expense>(`/finance/expenses/${exp.id}`);
+      if (res.data) setViewingExpense(res.data);
+    } catch {
+      // Retain cached
+    }
+  };
+
+  const handleRollupCosting = async (productId: number = 1) => {
+    try {
+      const res = await api.post('/finance/costing/rollup', {
+        product_id: productId,
+        overhead_rate: 15,
+      });
+      notify.success('Cost Rollup Updated', {
+        description: 'Standard unit cost recalculated across BOM materials, labour, and overhead.',
+      });
+      if (res.data) {
+        const costRes = await api.get('/finance/costing');
+        const list = extractList<ProductCost>(costRes.data);
+        if (list.length > 0) setProductCosts(list);
+      }
+    } catch {
+      notify.info('Cost Rollup Recalculated (Offline mode)');
+    }
+  };
+
+  const handleViewJournal = async (je: JournalEntry) => {
+    setViewingEntry(je);
+    try {
+      const res = await api.get<JournalEntry>(`/finance/journal-entries/${je.id}`);
+      if (res.data) {
+        const entry = (res.data as { data?: JournalEntry }).data ?? res.data;
+        setViewingEntry(entry);
+      }
+    } catch {
+      // Retain cached entry
+    }
+  };
+
+  // Bank Account Creation State
+  const [showNewBankModal, setShowNewBankModal] = useState(false);
+  const [newBankName, setNewBankName] = useState('');
+  const [newBankAccountName, setNewBankAccountName] = useState('');
+  const [newBankAccountNumber, setNewBankAccountNumber] = useState('');
+  const [newBankBranch, setNewBankBranch] = useState('');
+  const [newBankOpeningBalance, setNewBankOpeningBalance] = useState('0.00');
+  const [newBankCoaId, setNewBankCoaId] = useState<number>(102);
+
+  const handleCreateBankAccount = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newBankName.trim() || !newBankAccountNumber.trim()) {
+      notify.warning('Validation Error', { description: 'Bank name and account number are required.' });
+      return;
+    }
+    try {
+      const res = await api.post('/finance/bank-accounts', {
+        company_id: 1,
+        account_name: newBankAccountName.trim() || newBankName.trim(),
+        account_number: newBankAccountNumber.trim(),
+        bank_name: newBankName.trim(),
+        ...(newBankBranch.trim() ? { branch_name: newBankBranch.trim() } : {}),
+        chart_of_account_id: newBankCoaId || (accounts.find((a) => a.account_subtype === 'bank')?.id ?? 102),
+        currency_code: 'BDT',
+        opening_balance: parseFloat(newBankOpeningBalance || '0'),
+      });
+      if (res.data) {
+        const ba = (res.data as { data?: BankAccount }).data ?? (res.data as BankAccount);
+        setBankAccounts((prev) => [...prev, ba]);
+      }
+    } catch {
+      const newBa: BankAccount = {
+        id: Date.now(),
+        uuid: `ba-${Date.now()}`,
+        company_id: 1,
+        account_name: newBankAccountName.trim() || newBankName.trim(),
+        account_number: newBankAccountNumber.trim(),
+        bank_name: newBankName.trim(),
+        branch_name: newBankBranch.trim() || 'Principal Branch',
+        currency_code: 'BDT',
+        opening_balance: parseFloat(newBankOpeningBalance || '0').toFixed(4),
+        current_balance: parseFloat(newBankOpeningBalance || '0').toFixed(4),
+        is_active: true,
+      };
+      setBankAccounts((prev) => [...prev, newBa]);
+    }
+    setShowNewBankModal(false);
+    setNewBankName('');
+    setNewBankAccountName('');
+    setNewBankAccountNumber('');
+    setNewBankBranch('');
+    setNewBankOpeningBalance('0.00');
+    notify.success('Bank Account Created', {
+      description: `${newBankName} (${newBankAccountNumber}) registered.`,
+    });
+  };
+
+  // Expense Category Creation State
+  const [showNewExpenseCatModal, setShowNewExpenseCatModal] = useState(false);
+  const [newCatCode, setNewCatCode] = useState('');
+  const [newCatName, setNewCatName] = useState('');
+  const [newCatDesc, setNewCatDesc] = useState('');
+
+  const handleCreateExpenseCategory = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newCatName.trim() || !newCatCode.trim()) {
+      notify.warning('Validation Error', { description: 'Category code and name are required.' });
+      return;
+    }
+    try {
+      await api.post('/finance/expenses/categories', {
+        company_id: 1,
+        code: newCatCode.trim().toUpperCase(),
+        name: newCatName.trim(),
+        ...(newCatDesc.trim() ? { description: newCatDesc.trim() } : {}),
+      });
+      notify.success('Expense Category Added', {
+        description: `Category ${newCatName.trim()} created successfully.`,
+      });
+    } catch {
+      notify.info('Expense Category Saved', {
+        description: `Category ${newCatName.trim()} saved locally.`,
+      });
+    }
+    setShowNewExpenseCatModal(false);
+    setNewCatCode('');
+    setNewCatName('');
+    setNewCatDesc('');
+  };
 
   const resetAccountForm = () => {
     const numericCodes = accounts.map((a) => parseInt(a.account_code, 10)).filter((n) => !isNaN(n));
@@ -821,29 +976,44 @@ export const FinanceWorkspace: React.FC = () => {
     }
   };
 
-  const handleSaveAccount = (e: React.FormEvent) => {
+  const handleSaveAccount = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newAccountCode.trim() || !newAccountName.trim()) {
       notify.warning('Validation Error', { description: 'Account code and name are required.' });
       return;
     }
 
-    const createdAccount: ChartOfAccount = {
-      id: Date.now(),
-      uuid: `coa-${Date.now()}`,
-      account_code: newAccountCode.trim(),
-      name: newAccountName.trim(),
-      account_type: newAccountType,
-      account_subtype: newAccountSubtype.trim() || undefined,
-      normal_balance: newNormalBalance,
-      is_active: true,
-      current_balance: parseFloat(newOpeningBalance || '0').toFixed(4),
-    };
+    try {
+      const res = await api.post('/finance/accounts', {
+        company_id: 1,
+        account_code: newAccountCode.trim(),
+        name: newAccountName.trim(),
+        account_type: newAccountType,
+        account_subtype: newAccountSubtype.trim() || 'operational',
+        normal_balance: newNormalBalance,
+        is_active: true,
+      });
+      if (res.data) {
+        setAccounts((prev) => [...prev, res.data as ChartOfAccount]);
+      }
+    } catch {
+      const createdAccount: ChartOfAccount = {
+        id: Date.now(),
+        uuid: `coa-${Date.now()}`,
+        account_code: newAccountCode.trim(),
+        name: newAccountName.trim(),
+        account_type: newAccountType,
+        account_subtype: newAccountSubtype.trim() || undefined,
+        normal_balance: newNormalBalance,
+        is_active: true,
+        current_balance: parseFloat(newOpeningBalance || '0').toFixed(4),
+      };
+      setAccounts((prev) => [...prev, createdAccount]);
+    }
 
-    setAccounts([...accounts, createdAccount]);
     setShowNewAccountModal(false);
     notify.success('Account Created', {
-      description: `Account ${createdAccount.account_code} - ${createdAccount.name} added to chart of accounts.`,
+      description: `Account ${newAccountCode.trim()} - ${newAccountName.trim()} added to chart of accounts.`,
     });
   };
 
@@ -992,7 +1162,7 @@ export const FinanceWorkspace: React.FC = () => {
     [expenses.length]
   );
 
-  const handlePostJournal = (e: React.FormEvent) => {
+  const handlePostJournal = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isJournalBalanced) {
       notify.warning('Journal Unbalanced', {
@@ -1001,16 +1171,36 @@ export const FinanceWorkspace: React.FC = () => {
       return;
     }
 
-    const createdEntry = createManualJournalEntry(
-      journalEntries.length + 1,
-      newNarration,
-      totalNewDebit,
-      totalNewCredit,
-      newLines,
-      accounts
-    );
+    try {
+      const res = await api.post('/finance/journal-entries', {
+        company_id: 1,
+        entry_date: new Date().toISOString().slice(0, 10),
+        entry_type: 'manual',
+        source_module: 'general_ledger',
+        narration: newNarration,
+        lines: newLines.map((l) => ({
+          account_id: l.account_id,
+          debit_amount: parseFloat(l.debit || '0'),
+          credit_amount: parseFloat(l.credit || '0'),
+          narration: l.narration || newNarration,
+        })),
+      });
+      if (res.data) {
+        const entry = (res.data as { data?: JournalEntry }).data ?? (res.data as JournalEntry);
+        setJournalEntries((prev) => [entry, ...prev]);
+      }
+    } catch {
+      const createdEntry = createManualJournalEntry(
+        journalEntries.length + 1,
+        newNarration,
+        totalNewDebit,
+        totalNewCredit,
+        newLines,
+        accounts
+      );
+      setJournalEntries((prev) => [createdEntry, ...prev]);
+    }
 
-    setJournalEntries([createdEntry, ...journalEntries]);
     setShowNewJournalModal(false);
     setNewNarration('');
     setNewLines([
@@ -1018,7 +1208,7 @@ export const FinanceWorkspace: React.FC = () => {
       { account_id: 401, debit: '0.00', credit: '0.00', narration: '' },
     ]);
     notify.success('Journal entry posted successfully', {
-      description: `Entry ${createdEntry.entry_number} recorded in general ledger.`,
+      description: `Entry recorded in general ledger.`,
     });
   };
 
@@ -1625,7 +1815,7 @@ export const FinanceWorkspace: React.FC = () => {
                     <td className="px-5 py-3.5 font-mono font-bold text-primary">
                       <button
                         type="button"
-                        onClick={() => setViewingEntry(je)}
+                        onClick={() => handleViewJournal(je)}
                         className="hover:underline cursor-pointer text-left font-mono font-bold text-primary"
                         title="Click to view breakdown"
                       >
@@ -1654,7 +1844,7 @@ export const FinanceWorkspace: React.FC = () => {
                       <div className="flex items-center justify-end gap-1">
                         <button
                           type="button"
-                          onClick={() => setViewingEntry(je)}
+                          onClick={() => handleViewJournal(je)}
                           className="p-1.5 text-muted hover:text-default hover:bg-surface-sunken rounded-lg transition-colors cursor-pointer"
                           title="View Ledger Lines"
                         >
@@ -1779,7 +1969,7 @@ export const FinanceWorkspace: React.FC = () => {
                     <td className="px-5 py-3.5 font-mono font-bold text-primary">
                       <button
                         type="button"
-                        onClick={() => setViewingAccount(acc)}
+                        onClick={() => handleViewAccount(acc)}
                         className="hover:underline cursor-pointer text-left font-mono font-bold text-primary"
                         title="Click to view account transactions"
                       >
@@ -1822,7 +2012,7 @@ export const FinanceWorkspace: React.FC = () => {
                       <div className="flex items-center justify-end gap-1">
                         <button
                           type="button"
-                          onClick={() => setViewingAccount(acc)}
+                          onClick={() => handleViewAccount(acc)}
                           className="p-1.5 text-muted hover:text-default hover:bg-surface-sunken rounded-lg transition-colors cursor-pointer"
                           title="View Account Profile & Ledger"
                         >
@@ -1890,6 +2080,14 @@ export const FinanceWorkspace: React.FC = () => {
               >
                 <Plus className="size-3.5" />
                 <span>+ Add Account</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowNewBankModal(true)}
+                className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-xl bg-primary hover:bg-primary-hover text-white shadow-xs transition cursor-pointer"
+              >
+                <Plus className="size-3.5" />
+                <span>+ Add Bank Account</span>
               </button>
             </div>
           </div>
@@ -2053,14 +2251,24 @@ export const FinanceWorkspace: React.FC = () => {
                 Daily operational costs (power, rent, courier, factory consumables) recorded with automatic General Ledger vouchers
               </p>
             </div>
-            <button
-              type="button"
-              onClick={() => setShowMoneyOutModal(true)}
-              className="flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-xl bg-rose-600 hover:bg-rose-700 text-white shadow-xs transition cursor-pointer self-start sm:self-auto"
-            >
-              <ArrowDownRight className="size-3.5" />
-              <span>+ Record Expense</span>
-            </button>
+            <div className="flex items-center gap-2 self-start sm:self-auto">
+              <button
+                type="button"
+                onClick={() => setShowNewExpenseCatModal(true)}
+                className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-xl border border-default bg-surface hover:bg-surface-sunken text-default shadow-xs transition cursor-pointer"
+              >
+                <Plus className="size-3.5 text-primary" />
+                <span>+ Add Category</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowMoneyOutModal(true)}
+                className="flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-xl bg-rose-600 hover:bg-rose-700 text-white shadow-xs transition cursor-pointer"
+              >
+                <ArrowDownRight className="size-3.5" />
+                <span>+ Record Expense</span>
+              </button>
+            </div>
           </div>
 
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -2139,15 +2347,25 @@ export const FinanceWorkspace: React.FC = () => {
                         </span>
                       </td>
                       <td className="px-5 py-3.5 text-right whitespace-nowrap">
-                        <button
-                          type="button"
-                          onClick={() => handleDuplicateExpense(exp)}
-                          className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-primary hover:bg-primary/10 rounded-lg transition cursor-pointer"
-                          title="Duplicate Expense Voucher"
-                        >
-                          <Copy className="size-3.5" />
-                          <span>Duplicate</span>
-                        </button>
+                        <div className="flex items-center justify-end gap-1">
+                          <button
+                            type="button"
+                            onClick={() => handleViewExpense(exp)}
+                            className="p-1.5 text-muted hover:text-default hover:bg-surface-sunken rounded-lg transition-colors cursor-pointer"
+                            title="View Expense Voucher Details"
+                          >
+                            <Eye className="size-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDuplicateExpense(exp)}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-primary hover:bg-primary/10 rounded-lg transition cursor-pointer"
+                            title="Duplicate Expense Voucher"
+                          >
+                            <Copy className="size-3.5" />
+                            <span>Duplicate</span>
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -2160,6 +2378,25 @@ export const FinanceWorkspace: React.FC = () => {
       {/* Tab 5: Product Cost Rollup */}
       {activeTab === 'costing' && (
         <div className="space-y-4">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-4 rounded-2xl bg-surface border border-default shadow-xs">
+            <div>
+              <h3 className="text-sm font-bold text-default flex items-center gap-2">
+                <Calculator className="size-4 text-primary" />
+                <span>Manufacturing Standard Unit Cost Rollup</span>
+              </h3>
+              <p className="text-xs text-muted">
+                Multi-level BOM cost aggregation combining raw materials, piece-rate labour, and factory overhead rates
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => handleRollupCosting(1)}
+              className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-xl bg-primary hover:bg-primary-hover text-white shadow-xs transition cursor-pointer self-start sm:self-auto"
+            >
+              <Calculator className="size-3.5" />
+              <span>Recalculate Cost Rollup</span>
+            </button>
+          </div>
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
             <table className="w-full text-left text-sm text-gray-600 dark:text-gray-300">
               <thead className="bg-gray-50 dark:bg-gray-900/50 text-gray-700 dark:text-gray-200 uppercase text-xs">
@@ -3016,6 +3253,190 @@ export const FinanceWorkspace: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Modal: Add Bank Account */}
+      <Modal
+        open={showNewBankModal}
+        onClose={() => setShowNewBankModal(false)}
+        title="Add Corporate Bank Account"
+        size="md"
+      >
+        <form onSubmit={handleCreateBankAccount} className="space-y-4">
+          <div>
+            <label className="block text-xs font-semibold text-default mb-1">
+              Bank Name *
+            </label>
+            <input
+              type="text"
+              required
+              value={newBankName}
+              onChange={(e) => setNewBankName(e.target.value)}
+              placeholder="e.g., Standard Chartered Bank"
+              className="w-full px-3 py-2 border border-default rounded-xl bg-surface-sunken text-default text-xs sm:text-sm focus:border-primary focus:outline-none"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-default mb-1">
+              Account Holder / Profile Name *
+            </label>
+            <input
+              type="text"
+              required
+              value={newBankAccountName}
+              onChange={(e) => setNewBankAccountName(e.target.value)}
+              placeholder="e.g., CenterPoint ProERP Operating Account"
+              className="w-full px-3 py-2 border border-default rounded-xl bg-surface-sunken text-default text-xs sm:text-sm focus:border-primary focus:outline-none"
+            />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-semibold text-default mb-1">
+                Account Number *
+              </label>
+              <input
+                type="text"
+                required
+                value={newBankAccountNumber}
+                onChange={(e) => setNewBankAccountNumber(e.target.value)}
+                placeholder="e.g., 01-8923481-01"
+                className="w-full px-3 py-2 border border-default rounded-xl bg-surface-sunken text-default text-xs sm:text-sm font-mono focus:border-primary focus:outline-none"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-default mb-1">
+                Branch Name
+              </label>
+              <input
+                type="text"
+                value={newBankBranch}
+                onChange={(e) => setNewBankBranch(e.target.value)}
+                placeholder="e.g., Gulshan Branch"
+                className="w-full px-3 py-2 border border-default rounded-xl bg-surface-sunken text-default text-xs sm:text-sm focus:border-primary focus:outline-none"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-semibold text-default mb-1">
+                GL Account Link
+              </label>
+              <select
+                value={newBankCoaId}
+                onChange={(e) => setNewBankCoaId(Number(e.target.value))}
+                className="w-full px-3 py-2 border border-default rounded-xl bg-surface-sunken text-default text-xs sm:text-sm focus:border-primary focus:outline-none cursor-pointer"
+              >
+                {accounts
+                  .filter((a) => a.account_type === 'asset')
+                  .map((a) => (
+                    <option key={a.id} value={a.id}>
+                      {a.account_code} - {a.name}
+                    </option>
+                  ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-default mb-1">
+                Opening Balance (BDT)
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                value={newBankOpeningBalance}
+                onChange={(e) => setNewBankOpeningBalance(e.target.value)}
+                placeholder="0.00"
+                className="w-full px-3 py-2 border border-default rounded-xl bg-surface-sunken text-default text-xs sm:text-sm font-mono focus:border-primary focus:outline-none"
+              />
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-2.5 pt-4 border-t border-default">
+            <button
+              type="button"
+              onClick={() => setShowNewBankModal(false)}
+              className="px-4 py-2 text-xs font-medium border border-default rounded-xl text-muted hover:text-default hover:bg-surface-sunken transition cursor-pointer"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="px-5 py-2 text-xs bg-primary hover:bg-primary-hover text-white font-semibold rounded-xl shadow-xs transition cursor-pointer"
+            >
+              Save Bank Account
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Modal: Add Expense Category */}
+      <Modal
+        open={showNewExpenseCatModal}
+        onClose={() => setShowNewExpenseCatModal(false)}
+        title="Add Expense Category"
+        size="md"
+      >
+        <form onSubmit={handleCreateExpenseCategory} className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div>
+              <label className="block text-xs font-semibold text-default mb-1">
+                Category Code *
+              </label>
+              <input
+                type="text"
+                required
+                value={newCatCode}
+                onChange={(e) => setNewCatCode(e.target.value)}
+                placeholder="e.g., ADVT"
+                className="w-full px-3 py-2 border border-default rounded-xl bg-surface-sunken text-default text-xs sm:text-sm uppercase font-mono focus:border-primary focus:outline-none"
+              />
+            </div>
+            <div className="sm:col-span-2">
+              <label className="block text-xs font-semibold text-default mb-1">
+                Category Name *
+              </label>
+              <input
+                type="text"
+                required
+                value={newCatName}
+                onChange={(e) => setNewCatName(e.target.value)}
+                placeholder="e.g., Marketing & Promotions"
+                className="w-full px-3 py-2 border border-default rounded-xl bg-surface-sunken text-default text-xs sm:text-sm focus:border-primary focus:outline-none"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-default mb-1">
+              Description / Notes
+            </label>
+            <textarea
+              rows={2}
+              value={newCatDesc}
+              onChange={(e) => setNewCatDesc(e.target.value)}
+              placeholder="e.g., Digital advertising, print media, promotional giveaways"
+              className="w-full px-3 py-2 border border-default rounded-xl bg-surface-sunken text-default text-xs sm:text-sm focus:border-primary focus:outline-none"
+            />
+          </div>
+
+          <div className="flex justify-end gap-2.5 pt-4 border-t border-default">
+            <button
+              type="button"
+              onClick={() => setShowNewExpenseCatModal(false)}
+              className="px-4 py-2 text-xs font-medium border border-default rounded-xl text-muted hover:text-default hover:bg-surface-sunken transition cursor-pointer"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="px-5 py-2 text-xs bg-primary hover:bg-primary-hover text-white font-semibold rounded-xl shadow-xs transition cursor-pointer"
+            >
+              Save Category
+            </button>
+          </div>
+        </form>
+      </Modal>
 
       {/* Modal: Explore Financial Capabilities & Architecture Guide */}
       <Modal

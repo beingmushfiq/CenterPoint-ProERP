@@ -278,6 +278,15 @@ export function ProductionBatchesSection() {
     }
   };
 
+  const handleOpenBatchDetails = (batch: ProductionBatch) => {
+    setActiveBatchModal({ batch, type: 'details' });
+    void api.get<ProductionBatch>(`/production/batches/${(batch as unknown as { uuid?: string }).uuid || batch.id}`).then((res) => {
+      if (res.data) {
+        setActiveBatchModal((prev) => (prev?.type === 'details' ? { ...prev, batch: res.data } : prev));
+      }
+    }).catch(() => {});
+  };
+
   useEffect(() => {
     const handleOutsideClick = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
@@ -677,7 +686,7 @@ export function ProductionBatchesSection() {
                             {batch.status === 'closed' && (
                               <button
                                 type="button"
-                                onClick={() => setActiveBatchModal({ batch, type: 'details' })}
+                                onClick={() => handleOpenBatchDetails(batch)}
                                 className="px-2.5 py-1 text-xs bg-surface border border-default hover:bg-surface-sunken text-default rounded-lg font-medium transition cursor-pointer flex items-center gap-1 shadow-2xs"
                                 title="View batch details"
                               >
@@ -727,7 +736,7 @@ export function ProductionBatchesSection() {
                                   onClick={() => {
                                     setOpenActionMenuId(null);
                                     setActionMenuAnchor(null);
-                                    setActiveBatchModal({ batch, type: 'details' });
+                                    handleOpenBatchDetails(batch);
                                   }}
                                   className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs text-default hover:bg-surface-sunken transition-colors cursor-pointer"
                                 >

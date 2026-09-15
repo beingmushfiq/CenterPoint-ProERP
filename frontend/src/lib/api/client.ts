@@ -412,6 +412,10 @@ export function refreshOnce(): Promise<boolean> {
   return refreshInFlight;
 }
 
+export function refreshSession(): Promise<ApiResult<{ access_token: string }>> {
+  return api.post<{ access_token: string }>('/auth/refresh', {});
+}
+
 /* ───────────────────────────────────────────────────────────────────────────
    The single request path
    ─────────────────────────────────────────────────────────────────────────── */

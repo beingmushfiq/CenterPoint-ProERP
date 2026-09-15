@@ -11,6 +11,11 @@ import {
   CreditCard,
   Shield,
   AlertTriangle,
+  Server,
+  CheckCircle2,
+  Trash2,
+  RefreshCw,
+  Eye,
 } from 'lucide-react';
 
 interface PlatformSettingsFormProps {
@@ -421,10 +426,360 @@ const PlatformSettingsForm: React.FC<PlatformSettingsFormProps> = ({
   );
 };
 
+interface TenantDomainItem {
+  id: number;
+  domain: string;
+  tenant_id: number;
+  verification_status: 'pending' | 'verified' | 'failed' | 'suspended';
+  ssl_status: 'pending' | 'active' | 'failed' | 'not_required';
+  tenant?: { name: string; slug: string };
+  created_at: string;
+}
+
+const DomainsTabContent: React.FC = () => {
+  const queryClient = useQueryClient();
+  const [selectedDomain, setSelectedDomain] = useState<TenantDomainItem | null>(null);
+
+  const { data: domains = [], isLoading, isFetching, refetch } = useQuery<TenantDomainItem[]>({
+    queryKey: ['platform', 'domains'],
+    queryFn: async () => {
+      const res = await api.get<{ data: TenantDomainItem[] }>('/platform/domains');
+      return res.data?.data ?? [];
+    },
+  });
+
+  const handleInspect = async (domain: TenantDomainItem) => {
+    setSelectedDomain(domain);
+    try {
+      const res = await api.get<{ data: TenantDomainItem }>(`/platform/domains/${domain.id}`);
+      if (res.data?.data) {
+        setSelectedDomain(res.data.data);
+      }
+    } catch {
+      // Silently ignore background domain fetch failure and retain selected domain
+    }
+  };
+
+  const verifyMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const res = await api.post(`/platform/domains/${id}/verify`);
+      return res.data;
+    },
+    onSuccess: () => {
+      toast.success('Domain DNS verification check passed');
+      queryClient.invalidateQueries({ queryKey: ['platform', 'domains'] });
+    },
+    onError: (err: unknown) => {
+      const msg = err instanceof Error ? err.message : 'Domain verification check failed';
+      toast.error(msg);
+    },
+  });
+
+  const statusMutation = useMutation({
+    mutationFn: async ({ id, status }: { id: number; status: string }) => {
+      const res = await api.patch(`/platform/domains/${id}/status`, { verification_status: status });
+      return res.data;
+    },
+    onSuccess: () => {
+      toast.success('Domain routing status updated');
+      queryClient.invalidateQueries({ queryKey: ['platform', 'domains'] });
+    },
+    onError: (err: unknown) => {
+      const msg = err instanceof Error ? err.message : 'Status update failed';
+      toast.error(msg);
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const res = await api.delete(`/platform/domains/${id}`);
+      return res.data;
+    },
+    onSuccess: () => {
+      toast.success('Custom domain released from tenant');
+      queryClient.invalidateQueries({ queryKey: ['platform', 'domains'] });
+    },
+    onError: (err: unknown) => {
+      const msg = err instanceof Error ? err.message : 'Failed to release domain';
+      toast.error(msg);
+    },
+  });
+
+  return (
+    <div className="p-6 rounded-2xl bg-surface border border-default shadow-xs space-y-4 font-mono text-xs">
+      <div className="flex items-center justify-between border-b border-default pb-3">
+        <div>
+          <h2 className="text-sm font-bold text-default font-sans">Multi-Tenant Custom Domains</h2>
+          <p className="text-muted text-[11px]">Tenant custom domains, SSL certificates, and DNS CNAME resolution status.</p>
+        </div>
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={() => refetch()}
+          disabled={isFetching}
+          className="flex items-center gap-1.5 cursor-pointer font-mono text-xs border-default bg-surface text-default hover:bg-surface-sunken"
+        >
+          <RotateCcw className={`size-3.5 ${isFetching ? 'animate-spin' : ''}`} />
+          <span>Refresh</span>
+        </Button>
+      </div>
+
+      {isLoading ? (
+        <div className="p-8 text-center text-muted">Loading custom domain registry...</div>
+      ) : domains.length === 0 ? (
+        <div className="p-8 text-center text-muted">No custom domains configured on platform.</div>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full text-left">
+            <thead>
+              <tr className="border-b border-default text-[11px] text-muted uppercase">
+                <th className="py-2.5 px-3">Domain</th>
+                <th className="py-2.5 px-3">Tenant</th>
+                <th className="py-2.5 px-3">Status</th>
+                <th className="py-2.5 px-3">SSL</th>
+                <th className="py-2.5 px-3 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-default/50">
+              {domains.map((dom) => (
+                <tr key={dom.id} className="hover:bg-surface-sunken/50 transition-colors">
+                  <td className="py-2.5 px-3 font-bold text-default">{dom.domain}</td>
+                  <td className="py-2.5 px-3 text-muted">{dom.tenant?.name ?? `Tenant #${dom.tenant_id}`}</td>
+                  <td className="py-2.5 px-3">
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
+                      dom.verification_status === 'verified'
+                        ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
+                        : 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30'
+                    }`}>
+                      {dom.verification_status}
+                    </span>
+                  </td>
+                  <td className="py-2.5 px-3">
+                    <span className="px-2 py-0.5 rounded-md bg-surface-sunken border border-default text-muted text-[10px] uppercase">
+                      {dom.ssl_status}
+                    </span>
+                  </td>
+                  <td className="py-2.5 px-3 text-right">
+                    <div className="flex items-center justify-end gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => handleInspect(dom)}
+                        title="Inspect Domain"
+                        className="p-1.5 rounded-lg bg-surface-sunken hover:bg-surface border border-default text-default cursor-pointer"
+                      >
+                        <Eye className="size-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => verifyMutation.mutate(dom.id)}
+                        disabled={verifyMutation.isPending}
+                        title="Verify DNS"
+                        className="px-2 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 text-[10px] font-bold cursor-pointer"
+                      >
+                        Verify
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => statusMutation.mutate({ id: dom.id, status: dom.verification_status === 'verified' ? 'suspended' : 'verified' })}
+                        disabled={statusMutation.isPending}
+                        title="Toggle Status"
+                        className="px-2 py-1 rounded-lg bg-surface-sunken hover:bg-surface border border-default text-muted text-[10px] cursor-pointer"
+                      >
+                        Toggle
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (confirm(`Remove custom domain ${dom.domain}?`)) {
+                            deleteMutation.mutate(dom.id);
+                          }
+                        }}
+                        disabled={deleteMutation.isPending}
+                        title="Delete Domain"
+                        className="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/20 cursor-pointer"
+                      >
+                        <Trash2 className="size-3.5" />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {selectedDomain && (
+        <div className="p-3 bg-surface-sunken border border-default rounded-xl mt-3 flex items-center justify-between">
+          <span>Viewing details for: <strong className="text-default">{selectedDomain.domain}</strong></span>
+          <button type="button" onClick={() => setSelectedDomain(null)} className="text-muted hover:text-default">Close</button>
+        </div>
+      )}
+    </div>
+  );
+};
+
+interface QueueJobItem {
+  id: number | string;
+  queue?: string;
+  job_name?: string;
+  exception_summary?: string;
+  failed_at?: string;
+}
+
+const JobsTabContent: React.FC = () => {
+  const queryClient = useQueryClient();
+
+  const { data: jobs = [], isLoading, isFetching, refetch } = useQuery<QueueJobItem[]>({
+    queryKey: ['platform', 'jobs'],
+    queryFn: async () => {
+      const res = await api.get<{ data: QueueJobItem[] }>('/platform/jobs?status=failed');
+      return res.data?.data ?? [];
+    },
+  });
+
+  const retryMutation = useMutation({
+    mutationFn: async (id: number | string) => {
+      const res = await api.post(`/platform/jobs/${id}/retry`);
+      return res.data;
+    },
+    onSuccess: () => {
+      toast.success('Job queued for retry');
+      queryClient.invalidateQueries({ queryKey: ['platform', 'jobs'] });
+    },
+    onError: (err: unknown) => {
+      const msg = err instanceof Error ? err.message : 'Failed to retry job';
+      toast.error(msg);
+    },
+  });
+
+  const retryAllMutation = useMutation({
+    mutationFn: async () => {
+      const res = await api.post('/platform/jobs/retry-all');
+      return res.data;
+    },
+    onSuccess: () => {
+      toast.success('All failed jobs dispatched for retry');
+      queryClient.invalidateQueries({ queryKey: ['platform', 'jobs'] });
+    },
+    onError: (err: unknown) => {
+      const msg = err instanceof Error ? err.message : 'Failed to retry all jobs';
+      toast.error(msg);
+    },
+  });
+
+  const deleteJobMutation = useMutation({
+    mutationFn: async (id: number | string) => {
+      const res = await api.delete(`/platform/jobs/${id}`);
+      return res.data;
+    },
+    onSuccess: () => {
+      toast.success('Job discarded from queue');
+      queryClient.invalidateQueries({ queryKey: ['platform', 'jobs'] });
+    },
+    onError: (err: unknown) => {
+      const msg = err instanceof Error ? err.message : 'Failed to discard job';
+      toast.error(msg);
+    },
+  });
+
+  return (
+    <div className="p-6 rounded-2xl bg-surface border border-default shadow-xs space-y-4 font-mono text-xs">
+      <div className="flex items-center justify-between border-b border-default pb-3">
+        <div>
+          <h2 className="text-sm font-bold text-default font-sans">Background Queue & Worker Telemetry</h2>
+          <p className="text-muted text-[11px]">Inspect failed async workers, dispatch retries, and purge poison-pill jobs.</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => retryAllMutation.mutate()}
+            disabled={retryAllMutation.isPending || jobs.length === 0}
+            className="flex items-center gap-1.5 cursor-pointer font-mono text-xs bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold border-none"
+          >
+            <RefreshCw className={`size-3.5 ${retryAllMutation.isPending ? 'animate-spin' : ''}`} />
+            <span>Retry All Failed</span>
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => refetch()}
+            disabled={isFetching}
+            className="flex items-center gap-1.5 cursor-pointer font-mono text-xs border-default bg-surface text-default hover:bg-surface-sunken"
+          >
+            <RotateCcw className={`size-3.5 ${isFetching ? 'animate-spin' : ''}`} />
+            <span>Refresh</span>
+          </Button>
+        </div>
+      </div>
+
+      {isLoading ? (
+        <div className="p-8 text-center text-muted">Inspecting background queues...</div>
+      ) : jobs.length === 0 ? (
+        <div className="p-8 text-center text-muted flex flex-col items-center gap-2">
+          <CheckCircle2 className="size-6 text-emerald-500" />
+          <span>All background queue workers are operational. No failed jobs recorded.</span>
+        </div>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full text-left">
+            <thead>
+              <tr className="border-b border-default text-[11px] text-muted uppercase">
+                <th className="py-2.5 px-3">Job ID</th>
+                <th className="py-2.5 px-3">Queue</th>
+                <th className="py-2.5 px-3">Job Name</th>
+                <th className="py-2.5 px-3">Exception Summary</th>
+                <th className="py-2.5 px-3 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-default/50">
+              {jobs.map((job) => (
+                <tr key={job.id} className="hover:bg-surface-sunken/50 transition-colors">
+                  <td className="py-2.5 px-3 font-bold text-default">#{job.id}</td>
+                  <td className="py-2.5 px-3 text-muted">{job.queue || 'default'}</td>
+                  <td className="py-2.5 px-3 font-semibold text-default">{job.job_name || 'WorkerJob'}</td>
+                  <td className="py-2.5 px-3 text-muted text-[11px] max-w-xs truncate">{job.exception_summary || 'Unknown failure'}</td>
+                  <td className="py-2.5 px-3 text-right">
+                    <div className="flex items-center justify-end gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => retryMutation.mutate(job.id)}
+                        disabled={retryMutation.isPending}
+                        title="Retry Job"
+                        className="px-2 py-1 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30 text-[10px] font-bold cursor-pointer"
+                      >
+                        Retry
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (confirm(`Discard job #${job.id}?`)) {
+                            deleteJobMutation.mutate(job.id);
+                          }
+                        }}
+                        disabled={deleteJobMutation.isPending}
+                        title="Discard Job"
+                        className="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/20 cursor-pointer"
+                      >
+                        <Trash2 className="size-3.5" />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+};
+
 export const PlatformSettingsWorkspace: React.FC = () => {
   const queryClient = useQueryClient();
 
-  const [activeTab, setActiveTab] = useState<'general' | 'billing' | 'security' | 'maintenance'>('general');
+  const [activeTab, setActiveTab] = useState<'general' | 'billing' | 'security' | 'maintenance' | 'domains' | 'jobs'>('general');
 
   // Fetch Settings
   const { data, isLoading, isFetching, refetch } = useQuery<PlatformSettingsMap>({
@@ -542,9 +897,37 @@ export const PlatformSettingsWorkspace: React.FC = () => {
           <AlertTriangle className="size-3.5" />
           <span>Maintenance</span>
         </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab('domains')}
+          className={`flex-1 py-1.5 text-xs font-semibold rounded-lg flex items-center justify-center gap-1.5 cursor-pointer transition-all ${
+            activeTab === 'domains'
+              ? 'bg-amber-500 text-slate-950 font-bold shadow-xs'
+              : 'text-muted hover:text-default'
+          }`}
+        >
+          <Globe className="size-3.5" />
+          <span>Domains</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab('jobs')}
+          className={`flex-1 py-1.5 text-xs font-semibold rounded-lg flex items-center justify-center gap-1.5 cursor-pointer transition-all ${
+            activeTab === 'jobs'
+              ? 'bg-amber-500 text-slate-950 font-bold shadow-xs'
+              : 'text-muted hover:text-default'
+          }`}
+        >
+          <Server className="size-3.5" />
+          <span>Queue Jobs</span>
+        </button>
       </div>
 
-      {isLoading ? (
+      {activeTab === 'domains' ? (
+        <DomainsTabContent />
+      ) : activeTab === 'jobs' ? (
+        <JobsTabContent />
+      ) : isLoading ? (
         <div className="p-12 text-center text-muted font-mono text-xs">
           Loading platform configuration...
         </div>

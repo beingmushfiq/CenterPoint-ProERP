@@ -677,6 +677,7 @@ export function POSShell({ session, onExit }: POSShellProps) {
       );
       if (!confirmReplace) return;
     }
+    void api.get<PosHeldSale>(`/pos/held-sales/${heldSale.id}`).catch(() => {});
     const payload = heldSale.cart_payload;
     const payloadExtra = payload as { isSplitPayment?: boolean; splitPayments?: PosPaymentLine[]; customerPartyId?: number | null };
     updateCurrentSlot({

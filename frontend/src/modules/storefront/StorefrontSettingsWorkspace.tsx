@@ -576,6 +576,97 @@ export const StorefrontSettingsWorkspace: React.FC = () => {
             <span>Page & Block Builder</span>
           </a>
 
+          <div className="relative group inline-block">
+            <button
+              type="button"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-default bg-surface px-3 py-2 text-xs font-semibold text-default hover:border-emerald-500 transition-all shadow-xs cursor-pointer"
+            >
+              <Globe className="h-3.5 w-3.5 text-primary" />
+              <span>SEO & Feeds</span>
+            </button>
+            <div className="absolute right-0 top-full mt-1.5 w-48 rounded-xl border border-default bg-surface p-1.5 shadow-xl hidden group-hover:block z-50 text-xs">
+              <a
+                href={`${getStorefrontExternalUrl(form.subdomain as string)}/sitemap.xml`}
+                target="_blank"
+                rel="noreferrer"
+                onClick={() => {
+                  void api.get('/storefront/sitemap.xml').catch(() => {});
+                }}
+                className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-surface-sunken text-default transition-colors"
+              >
+                <ExternalLink className="size-3.5 text-muted" />
+                <span>Sitemap Index (.xml)</span>
+              </a>
+              <a
+                href={`${getStorefrontExternalUrl(form.subdomain as string)}/sitemap-categories.xml`}
+                target="_blank"
+                rel="noreferrer"
+                onClick={() => {
+                  void api.get('/storefront/sitemap-categories.xml').catch(() => {});
+                }}
+                className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-surface-sunken text-default transition-colors"
+              >
+                <ExternalLink className="size-3.5 text-muted" />
+                <span>Category Sitemap</span>
+              </a>
+              <a
+                href={`${getStorefrontExternalUrl(form.subdomain as string)}/sitemap-products.xml`}
+                target="_blank"
+                rel="noreferrer"
+                onClick={() => {
+                  void api.get('/storefront/sitemap-products.xml').catch(() => {});
+                }}
+                className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-surface-sunken text-default transition-colors"
+              >
+                <ExternalLink className="size-3.5 text-muted" />
+                <span>Product Sitemap</span>
+              </a>
+              <a
+                href={`${getStorefrontExternalUrl(form.subdomain as string)}/sitemap-pages.xml`}
+                target="_blank"
+                rel="noreferrer"
+                onClick={() => {
+                  void api.get('/storefront/sitemap-pages.xml').catch(() => {});
+                }}
+                className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-surface-sunken text-default transition-colors"
+              >
+                <ExternalLink className="size-3.5 text-muted" />
+                <span>Pages Sitemap</span>
+              </a>
+              <a
+                href={`${getStorefrontExternalUrl(form.subdomain as string)}/robots.txt`}
+                target="_blank"
+                rel="noreferrer"
+                onClick={() => {
+                  void api.get('/storefront/robots.txt').catch(() => {});
+                }}
+                className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-surface-sunken text-default transition-colors"
+              >
+                <ExternalLink className="size-3.5 text-muted" />
+                <span>Robots Rules (.txt)</span>
+              </a>
+              <a
+                href={`${getStorefrontExternalUrl(form.subdomain as string)}/manifest.json`}
+                target="_blank"
+                rel="noreferrer"
+                onClick={() => {
+                  void api.get('/storefront/manifest.json').catch(() => {});
+                }}
+                className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-surface-sunken text-default transition-colors"
+              >
+                <ExternalLink className="size-3.5 text-muted" />
+                <span>PWA Manifest</span>
+              </a>
+              <a
+                href="/settings/seo"
+                className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-surface-sunken text-emerald-600 font-medium transition-colors border-t border-default mt-1"
+              >
+                <ShieldCheck className="size-3.5" />
+                <span>SEO Workspace &rarr;</span>
+              </a>
+            </div>
+          </div>
+
           <a
             href={getStorefrontExternalUrl(form.subdomain as string)}
             target="_blank"

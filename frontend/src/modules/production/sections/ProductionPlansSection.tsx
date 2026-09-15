@@ -426,6 +426,9 @@ export function ProductionPlansSection() {
                                   setOpenActionMenuId(null);
                                   setActionMenuAnchor(null);
                                   setSelectedPlan(plan);
+                                  void api.get<ProductionPlan>(`/production/plans/${(plan as unknown as { uuid?: string }).uuid || plan.id}`).then((res) => {
+                                    if (res.data) setSelectedPlan(res.data);
+                                  }).catch(() => {});
                                 }}
                                 className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs text-default hover:bg-surface-sunken transition-colors cursor-pointer"
                               >

@@ -151,6 +151,19 @@ export function PurchaseReturnsSection() {
     initialData: SAMPLE_RETURNS,
   });
 
+  const handleViewReturn = async (ret: PurchaseReturn) => {
+    setActiveReturn(ret);
+    setShowViewModal(true);
+    try {
+      const res = await api.get<{ data: PurchaseReturn }>(`/purchasing/returns/${ret.id}`);
+      if (res.data?.data) {
+        setActiveReturn(res.data.data);
+      }
+    } catch {
+      // keep cached
+    }
+  };
+
   const handleCompleteReturn = async (returnId: number) => {
     setActionLoading(returnId);
     try {
@@ -469,10 +482,7 @@ export function PurchaseReturnsSection() {
                       <div className="flex items-center justify-end gap-1.5">
                         <button
                           type="button"
-                          onClick={() => {
-                            setActiveReturn(r);
-                            setShowViewModal(true);
-                          }}
+                          onClick={() => handleViewReturn(r)}
                           className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-surface hover:bg-surface-sunken border border-default text-default transition-colors cursor-pointer"
                         >
                           View

@@ -178,6 +178,11 @@ export function QcParametersSection() {
       unit_of_measure: param.unit_of_measure ?? '',
       is_mandatory: Boolean(param.is_mandatory),
     });
+    void api.get<QcParameter>(`/qc/parameters/${(param as unknown as { uuid?: string }).uuid || param.id}`).then((res) => {
+      if (res.data) {
+        setEditingParameter(res.data);
+      }
+    }).catch(() => {});
   };
 
   const parameters = paramsQuery.data?.data ?? [];

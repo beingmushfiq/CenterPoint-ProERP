@@ -10,6 +10,7 @@ export interface UnitConversion {
 
 export interface Unit extends CatalogTimestamped {
   id: string;
+  uuid?: string;
   code: string;
   name: string;
   type: string;

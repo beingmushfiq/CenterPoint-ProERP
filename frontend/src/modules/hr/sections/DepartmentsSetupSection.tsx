@@ -358,7 +358,7 @@ export function DepartmentsSetupSection({
     const target = desList.find((d) => d.id === id);
     if (!target) return;
     try {
-      await hrApi.updateDepartment(id, { is_active: !target.is_active });
+      await hrApi.updateDesignation(id, { is_active: !target.is_active });
     } catch {
       // update optimistic
     }
@@ -368,7 +368,14 @@ export function DepartmentsSetupSection({
     notify.info('Designation status updated');
   };
 
-  const handleToggleShiftStatus = (id: number) => {
+  const handleToggleShiftStatus = async (id: number) => {
+    const target = shiftList.find((s) => s.id === id);
+    if (!target) return;
+    try {
+      await hrApi.updateShift(id, { is_active: !target.is_active });
+    } catch {
+      // update optimistic
+    }
     setShiftList((prev) =>
       prev.map((s) => (s.id === id ? { ...s, is_active: !s.is_active } : s))
     );

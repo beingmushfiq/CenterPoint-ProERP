@@ -118,7 +118,11 @@ export const CouponsTab: React.FC = () => {
       if (typeFilter !== 'all') params.set('discount_type', typeFilter);
 
       const res = await api.get<{ data: Coupon[]; meta?: { stats?: CouponStats } }>(
-        `/storefront/coupons?${params.toString()}`
+        `/sales/coupons?${params.toString()}`
+      ).catch(() =>
+        api.get<{ data: Coupon[]; meta?: { stats?: CouponStats } }>(
+          `/storefront/coupons?${params.toString()}`
+        )
       );
 
       const payload = res.data;
@@ -147,7 +151,11 @@ export const CouponsTab: React.FC = () => {
         if (typeFilter !== 'all') params.set('discount_type', typeFilter);
 
         const res = await api.get<{ data: Coupon[]; meta?: { stats?: CouponStats } }>(
-          `/storefront/coupons?${params.toString()}`
+          `/sales/coupons?${params.toString()}`
+        ).catch(() =>
+          api.get<{ data: Coupon[]; meta?: { stats?: CouponStats } }>(
+            `/storefront/coupons?${params.toString()}`
+          )
         );
 
         if (ignore) return;
@@ -203,6 +211,10 @@ export const CouponsTab: React.FC = () => {
   // Open Edit Modal
   const openEditModal = (coupon: Coupon) => {
     setEditingCoupon(coupon);
+    api.get<any>(`/sales/coupons/${coupon.id}`).catch(() => api.get<any>(`/storefront/coupons/${coupon.id}`)).then((res) => {
+      const live = (res?.data && typeof res.data === 'object' && 'data' in res.data) ? res.data.data : res?.data;
+      if (live) setEditingCoupon((prev) => prev ? { ...prev, ...live } : live);
+    }).catch(() => {});
     setFormData({
       code: coupon.code,
       name: coupon.name,
@@ -222,7 +234,9 @@ export const CouponsTab: React.FC = () => {
   // Toggle active status
   const handleToggleStatus = async (coupon: Coupon) => {
     try {
-      await api.post(`/storefront/coupons/${coupon.id}/toggle-status`);
+      await api.post(`/sales/coupons/${coupon.id}/toggle-status`).catch(() =>
+        api.post(`/storefront/coupons/${coupon.id}/toggle-status`)
+      );
       notify.success(`Coupon ${coupon.code} is now ${coupon.is_active ? 'Disabled' : 'Active'}.`);
       setCoupons((prev) =>
         prev.map((c) => (c.id === coupon.id ? { ...c, is_active: !c.is_active } : c))
@@ -236,7 +250,9 @@ export const CouponsTab: React.FC = () => {
   const handleDeleteCoupon = async (coupon: Coupon) => {
     if (!window.confirm(`Are you sure you want to delete coupon "${coupon.code}"?`)) return;
     try {
-      await api.delete(`/storefront/coupons/${coupon.id}`);
+      await api.delete(`/sales/coupons/${coupon.id}`).catch(() =>
+        api.delete(`/storefront/coupons/${coupon.id}`)
+      );
       notify.success(`Coupon "${coupon.code}" deleted.`);
       setCoupons((prev) => prev.filter((c) => c.id !== coupon.id));
     } catch {
@@ -262,10 +278,14 @@ export const CouponsTab: React.FC = () => {
       };
 
       if (editingCoupon) {
-        await api.put(`/storefront/coupons/${editingCoupon.id}`, payload);
+        await api.put(`/sales/coupons/${editingCoupon.id}`, payload).catch(() =>
+          api.put(`/storefront/coupons/${editingCoupon.id}`, payload)
+        );
         notify.success(`Coupon "${payload.code}" updated successfully!`);
       } else {
-        await api.post('/storefront/coupons', payload);
+        await api.post('/sales/coupons', payload).catch(() =>
+          api.post('/storefront/coupons', payload)
+        );
         notify.success(`Coupon "${payload.code}" created and live!`);
       }
       setShowCreateModal(false);
@@ -296,7 +316,9 @@ export const CouponsTab: React.FC = () => {
         ends_at: batchData.ends_at || null,
       };
 
-      const res = await api.post<{ data: Coupon[]; message: string }>('/storefront/coupons/generate-batch', payload);
+      const res = await api.post<{ data: Coupon[]; message: string }>('/sales/coupons/generate-batch', payload).catch(() =>
+        api.post<{ data: Coupon[]; message: string }>('/storefront/coupons/generate-batch', payload)
+      );
       notify.success(res.data?.message || 'Batch coupons generated successfully!');
       setGeneratedBatchResults(res.data?.data || []);
       fetchCoupons();

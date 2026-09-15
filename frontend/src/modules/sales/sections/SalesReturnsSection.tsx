@@ -275,6 +275,17 @@ export function SalesReturnsSection() {
     initialData: SAMPLE_RETURNS,
   });
 
+  const handleViewReturn = async (r: SalesReturn) => {
+    setActiveReturn(r);
+    setShowViewModal(true);
+    try {
+      const res = await api.get<SalesReturn>(`/sales/returns/${r.id}`);
+      if (res.data) setActiveReturn(res.data);
+    } catch {
+      // Keep cached return
+    }
+  };
+
   const handleApproveReturn = async (returnId: number) => {
     setActionLoading(returnId);
     try {
@@ -659,10 +670,7 @@ export function SalesReturnsSection() {
                     <td className="px-4 py-3.5 text-right">
                       <div className="flex items-center justify-end gap-1.5">
                         <button
-                          onClick={() => {
-                            setActiveReturn(r);
-                            setShowViewModal(true);
-                          }}
+                          onClick={() => handleViewReturn(r)}
                           className="p-1.5 text-muted hover:text-default hover:bg-surface-sunken rounded-lg transition-colors cursor-pointer"
                           title="View Credit Note"
                         >

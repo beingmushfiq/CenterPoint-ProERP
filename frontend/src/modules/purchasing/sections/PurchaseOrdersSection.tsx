@@ -286,6 +286,19 @@ export function PurchaseOrdersSection({ onReceivePo, onCreateBill }: PurchaseOrd
     },
   });
 
+  const handleViewOrder = async (order: PurchaseOrder) => {
+    setActiveOrder(order);
+    setShowViewModal(true);
+    try {
+      const res = await api.get<{ data: PurchaseOrder }>(`/purchasing/orders/${order.id}`);
+      if (res.data?.data) {
+        setActiveOrder(res.data.data);
+      }
+    } catch {
+      // keep cached
+    }
+  };
+
   const handleApprove = async (orderId: number) => {
     setActionLoading(orderId);
     try {
@@ -1000,10 +1013,7 @@ export function PurchaseOrdersSection({ onReceivePo, onCreateBill }: PurchaseOrd
                       <div className="flex items-center justify-end gap-1.5">
                         <button
                           type="button"
-                          onClick={() => {
-                            setActiveOrder(o);
-                            setShowViewModal(true);
-                          }}
+                          onClick={() => handleViewOrder(o)}
                           className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-surface hover:bg-surface-sunken border border-default text-default transition-colors cursor-pointer"
                         >
                           View

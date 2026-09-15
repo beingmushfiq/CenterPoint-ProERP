@@ -86,7 +86,7 @@ export const TenantDetailWorkspace: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'overview' | 'billing' | 'users' | 'usage' | 'authority'>('overview');
 
   // Action Modals
-  const [modalType, setModalType] = useState<'status' | 'extend' | 'plan' | 'delete' | 'payment' | null>(null);
+  const [modalType, setModalType] = useState<'status' | 'extend' | 'plan' | 'delete' | 'payment' | 'edit' | null>(null);
   const [actionReason, setActionReason] = useState('');
   const [extendMode, setExtendMode] = useState<'days' | 'date' | 'grace'>('days');
   const [extendDays, setExtendDays] = useState(30);
@@ -96,6 +96,12 @@ export const TenantDetailWorkspace: React.FC = () => {
   const [actionLoading, setActionLoading] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [deleteConfirmation, setDeleteConfirmation] = useState('');
+
+  // Tenant Metadata Edit State
+  const [editName, setEditName] = useState('');
+  const [editTimezone, setEditTimezone] = useState('');
+  const [editLocale, setEditLocale] = useState('');
+  const [editCurrency, setEditCurrency] = useState('');
 
   // Payment Recording State
   const [paymentAmount, setPaymentAmount] = useState('');
@@ -235,6 +241,30 @@ export const TenantDetailWorkspace: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['platform', 'tenant', id] });
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Action failed';
+      setActionError(msg);
+      toast.error(msg);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleUpdateTenant = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!tenant) return;
+    setActionLoading(true);
+    setActionError(null);
+    try {
+      await api.patch(`/platform/tenants/${tenant.id}`, {
+        name: editName || tenant.name,
+        timezone: editTimezone || tenant.timezone,
+        locale: editLocale || (tenant as unknown as { locale?: string }).locale || 'en',
+        currency_code: editCurrency || tenant.currency_code,
+      });
+      setModalType(null);
+      toast.success('Tenant settings updated successfully');
+      queryClient.invalidateQueries({ queryKey: ['platform', 'tenant', id] });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to update tenant';
       setActionError(msg);
       toast.error(msg);
     } finally {
@@ -569,6 +599,20 @@ export const TenantDetailWorkspace: React.FC = () => {
           >
             <Zap className="size-4" />
             <span>Impersonate Tenant</span>
+          </button>
+
+          <button
+            onClick={() => {
+              setActionError(null);
+              setEditName(tenant.name);
+              setEditTimezone(tenant.timezone || 'Asia/Dhaka');
+              setEditLocale((tenant as unknown as { locale?: string }).locale || 'en');
+              setEditCurrency(tenant.currency_code || 'BDT');
+              setModalType('edit');
+            }}
+            className="px-3 py-2 rounded-xl bg-surface-sunken hover:bg-surface text-default border border-default transition-all cursor-pointer"
+          >
+            Edit Details
           </button>
 
           <button
@@ -1527,6 +1571,86 @@ export const TenantDetailWorkspace: React.FC = () => {
                 {actionLoading ? 'Deleting...' : 'Confirm Deprovision'}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Tenant Settings Modal */}
+      {modalType === 'edit' && (
+        <div className="fixed inset-0 bg-overlay/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-surface-raised border border-default rounded-2xl p-6 max-w-md w-full shadow-2xl font-mono text-xs text-default">
+            <h2 className="text-base font-bold text-default font-sans">Edit Tenant Information</h2>
+            <p className="text-muted mt-1 leading-relaxed">
+              Update organization profile, timezone, locale, and base currency.
+            </p>
+
+            {actionError && (
+              <div className="mt-3 p-3 rounded-xl bg-rose-500/20 border border-rose-500 text-rose-600 dark:text-rose-300">
+                {actionError}
+              </div>
+            )}
+
+            <form onSubmit={handleUpdateTenant} className="mt-4 space-y-3">
+              <div>
+                <label className="block text-default mb-1">Company Name</label>
+                <input
+                  type="text"
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  required
+                  className="w-full bg-surface-sunken border border-default rounded-xl px-3 py-2 text-default focus:outline-hidden focus:border-amber-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-default mb-1">Timezone</label>
+                  <input
+                    type="text"
+                    value={editTimezone}
+                    onChange={(e) => setEditTimezone(e.target.value)}
+                    className="w-full bg-surface-sunken border border-default rounded-xl px-3 py-2 text-default focus:outline-hidden focus:border-amber-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-default mb-1">Locale</label>
+                  <input
+                    type="text"
+                    value={editLocale}
+                    onChange={(e) => setEditLocale(e.target.value)}
+                    className="w-full bg-surface-sunken border border-default rounded-xl px-3 py-2 text-default focus:outline-hidden focus:border-amber-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-default mb-1">Currency Code</label>
+                <input
+                  type="text"
+                  maxLength={3}
+                  value={editCurrency}
+                  onChange={(e) => setEditCurrency(e.target.value.toUpperCase())}
+                  className="w-full bg-surface-sunken border border-default rounded-xl px-3 py-2 text-default focus:outline-hidden focus:border-amber-500 uppercase"
+                />
+              </div>
+
+              <div className="mt-6 flex items-center justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setModalType(null)}
+                  className="px-4 py-2 rounded-xl bg-surface-sunken hover:bg-surface border border-default text-default cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={actionLoading}
+                  className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold cursor-pointer disabled:opacity-50"
+                >
+                  {actionLoading ? 'Saving...' : 'Save Settings'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

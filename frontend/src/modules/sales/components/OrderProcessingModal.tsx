@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   CheckCircle2,
   Clock,
@@ -40,6 +40,18 @@ const LIFECYCLE_STEPS: Array<{ key: SalesOrderStatus; label: string }> = [
 export function OrderProcessingModal({ order, onClose, onNavigateToTab }: OrderProcessingModalProps) {
   const { formatCurrency } = useCurrency();
   const queryClient = useQueryClient();
+
+  const { data: fullOrder } = useQuery<SalesOrder>({
+    queryKey: ['sales', 'orders', order?.id],
+    queryFn: async () => {
+      if (!order?.id) throw new Error('No order id');
+      const res = await api.get<SalesOrder>(`/sales/orders/${order.id}`);
+      return res.data ?? order;
+    },
+    enabled: Boolean(order?.id),
+  });
+
+  const activeOrder = fullOrder ?? order;
   const [cancelReason, setCancelReason] = useState('');
   const [showCancelPrompt, setShowCancelPrompt] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -129,18 +141,18 @@ export function OrderProcessingModal({ order, onClose, onNavigateToTab }: OrderP
     },
   });
 
-  if (!order) return null;
+  if (!order || !activeOrder) return null;
 
-  const currentStepIndex = LIFECYCLE_STEPS.findIndex((s) => s.key === order.status);
-  const isCancelled = order.status === 'cancelled';
+  const currentStepIndex = LIFECYCLE_STEPS.findIndex((s) => s.key === activeOrder.status);
+  const isCancelled = activeOrder.status === 'cancelled';
 
   return (
     <>
     <Modal
-      open={Boolean(order)}
+      open={Boolean(activeOrder)}
       onClose={onClose}
-      title={`Process Order: ${order.order_number}`}
-      subtitle={`Channel: ${order.channel.toUpperCase()} • Created: ${order.order_date}`}
+      title={`Process Order: ${activeOrder.order_number}`}
+      subtitle={`Channel: ${activeOrder.channel.toUpperCase()} • Created: ${activeOrder.order_date}`}
       size="xl"
       footer={
         <div className="flex w-full items-center justify-between gap-3">

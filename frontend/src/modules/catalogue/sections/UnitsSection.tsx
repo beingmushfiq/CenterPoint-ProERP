@@ -112,6 +112,26 @@ export function UnitsSection() {
     setEditingUnit(unit);
   };
 
+  const { data: _unitOptions } = useQuery({
+    queryKey: ['catalogue', 'units', 'options'],
+    queryFn: async () => {
+      const res = await api.get<any>('/units/options');
+      return (res.data && typeof res.data === 'object' && 'data' in res.data) ? res.data.data : res.data;
+    },
+  });
+
+  const handleViewUnit = async (u: Unit) => {
+    try {
+      const res = await api.get<any>(`/units/${u.uuid || u.id}`);
+      const payload = (res.data && typeof res.data === 'object' && 'data' in res.data)
+        ? res.data.data
+        : res.data;
+      setViewingUnit(payload || u);
+    } catch {
+      setViewingUnit(u);
+    }
+  };
+
   const units = unitsQuery.data?.data ?? [];
 
   const handleExportCsv = () => {
@@ -256,7 +276,7 @@ export function UnitsSection() {
                       <div className="inline-flex items-center gap-1">
                         <button
                           type="button"
-                          onClick={() => setViewingUnit(u)}
+                          onClick={() => handleViewUnit(u)}
                           className="inline-flex items-center justify-center size-7 rounded-lg text-muted hover:text-default hover:bg-surface-sunken transition-colors cursor-pointer"
                           title="View Unit Details"
                         >

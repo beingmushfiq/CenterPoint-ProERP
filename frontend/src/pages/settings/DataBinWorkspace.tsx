@@ -177,11 +177,15 @@ export const DataBinWorkspace: React.FC = () => {
         }),
       ]);
 
-      if (statsRes?.data) {
-        setTotalTrashed(statsRes.data.total ?? 0);
-        setTypes(statsRes.data.types ?? []);
-        if (statsRes.data.domains) {
-          setBackendDomains(statsRes.data.domains);
+      const statsPayload = (statsRes?.data && typeof statsRes.data === 'object' && 'data' in statsRes.data)
+        ? (statsRes.data as any).data
+        : statsRes?.data;
+
+      if (statsPayload) {
+        setTotalTrashed(statsPayload.total ?? 0);
+        setTypes(statsPayload.types ?? []);
+        if (statsPayload.domains) {
+          setBackendDomains(statsPayload.domains);
         }
       }
 
@@ -211,11 +215,15 @@ export const DataBinWorkspace: React.FC = () => {
     ])
       .then(([statsRes, listRes]) => {
         if (ignore) return;
-        if (statsRes?.data) {
-          setTotalTrashed(statsRes.data.total ?? 0);
-          setTypes(statsRes.data.types ?? []);
-          if (statsRes.data.domains) {
-            setBackendDomains(statsRes.data.domains);
+        const statsPayload = (statsRes?.data && typeof statsRes.data === 'object' && 'data' in statsRes.data)
+          ? (statsRes.data as any).data
+          : statsRes?.data;
+
+        if (statsPayload) {
+          setTotalTrashed(statsPayload.total ?? 0);
+          setTypes(statsPayload.types ?? []);
+          if (statsPayload.domains) {
+            setBackendDomains(statsPayload.domains);
           }
         }
         const list = extractList<DataBinItem>(listRes);

@@ -3,9 +3,10 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { AlertCircle, Boxes, ClipboardCheck, Eye, EyeOff, Factory, Lock, Mail, Moon, Package, ShieldCheck, ShoppingCart, Sun } from 'lucide-react';
+import { AlertCircle, Boxes, CheckCircle, ClipboardCheck, Eye, EyeOff, Factory, Lock, Mail, Moon, Package, ShieldCheck, ShoppingCart, Sun, X } from 'lucide-react';
 import { useAuthStore } from '../../lib/auth/authStore';
 import { isApiError } from '../../lib/api/errors';
+import { api } from '../../lib/api/client';
 import { toggleThemeWithTransition } from '../../lib/theme/themeTransition';
 import { useTenantBranding } from '../../lib/theme/useTenantBranding';
 
@@ -75,6 +76,7 @@ export default function LoginPage() {
   };
 
   const login = useAuthStore((state) => state.login);
+  const selectTenant = useAuthStore((state) => state.selectTenant);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -86,6 +88,20 @@ export default function LoginPage() {
 
   const state = location.state as LocationState | null;
   const from = state?.from?.pathname ?? '/dashboard';
+
+  // Forgot / Reset Password state
+  const [showForgotModal, setShowForgotModal] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [resetToken, setResetToken] = useState('');
+  const [resetPasswordVal, setResetPasswordVal] = useState('');
+  const [forgotStep, setForgotStep] = useState<'request' | 'reset'>('request');
+  const [forgotStatus, setForgotStatus] = useState<{ error?: string; success?: string }>({});
+  const [isForgotLoading, setIsForgotLoading] = useState(false);
+
+  // Tenant selection modal state
+  const [availableTenants, setAvailableTenants] = useState<{ id: number; name: string; slug?: string }[]>([]);
+  const [pendingEmail, setPendingEmail] = useState('');
+  const [showTenantModal, setShowTenantModal] = useState(false);
 
   const {
     register,
@@ -106,10 +122,76 @@ export default function LoginPage() {
     setServerError(null);
   };
 
+  const handleSendResetLink = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!forgotEmail) return;
+    setIsForgotLoading(true);
+    setForgotStatus({});
+    try {
+      await api.post('/auth/forgot-password', { email: forgotEmail });
+      setForgotStatus({ success: 'Reset token dispatched. Check your email inbox.' });
+      setForgotStep('reset');
+    } catch (err: any) {
+      setForgotStatus({ error: err?.response?.data?.message || err?.message || 'Failed to dispatch reset email.' });
+    } finally {
+      setIsForgotLoading(false);
+    }
+  };
+
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!resetToken || !resetPasswordVal) return;
+    setIsForgotLoading(true);
+    setForgotStatus({});
+    try {
+      await api.post('/auth/reset-password', {
+        email: forgotEmail,
+        token: resetToken,
+        password: resetPasswordVal,
+      });
+      setForgotStatus({ success: 'Password successfully updated! You can now log in.' });
+      setTimeout(() => {
+        setShowForgotModal(false);
+        setValue('email', forgotEmail);
+        setValue('password', resetPasswordVal);
+      }, 1500);
+    } catch (err: any) {
+      setForgotStatus({ error: err?.response?.data?.message || err?.message || 'Failed to reset password.' });
+    } finally {
+      setIsForgotLoading(false);
+    }
+  };
+
+  const handleSelectTenant = async (tenantId: number) => {
+    setIsLoading(true);
+    setServerError(null);
+    try {
+      await selectTenant({ email: pendingEmail, tenant_id: tenantId });
+      setShowTenantModal(false);
+      navigate(from, { replace: true });
+    } catch (err: any) {
+      setServerError(err?.response?.data?.message || err?.message || 'Tenant selection failed.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const onSubmit = async (values: LoginFormValues) => {
     setServerError(null);
     setIsLoading(true);
     try {
+      const res: any = await api.post('/auth/login', {
+        email: values.email,
+        password: values.password,
+      });
+      const data = (res.data && typeof res.data === 'object' && 'data' in res.data) ? res.data.data : res.data;
+      if (data?.requires_tenant_selection && Array.isArray(data?.tenants)) {
+        setPendingEmail(values.email);
+        setAvailableTenants(data.tenants);
+        setShowTenantModal(true);
+        setIsLoading(false);
+        return;
+      }
       await login({
         email: values.email,
         password: values.password,
@@ -235,6 +317,16 @@ export default function LoginPage() {
               <label htmlFor="password" className="block text-xs font-semibold text-default">
                 Password
               </label>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowForgotModal(true);
+                  setForgotStatus({});
+                }}
+                className="text-[11px] font-medium text-primary hover:underline cursor-pointer"
+              >
+                Forgot Password?
+              </button>
             </div>
             <div className="relative rounded-xl shadow-2xs">
               <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-muted">
@@ -324,6 +416,165 @@ export default function LoginPage() {
           </p>
         </div>
       </div>
+
+      {/* Modal: Forgot / Reset Password */}
+      {showForgotModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-in fade-in duration-200">
+          <div className="w-full max-w-md rounded-2xl border border-default bg-surface p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-default pb-3">
+              <h3 className="text-sm font-bold text-default">
+                {forgotStep === 'request' ? 'Password Recovery' : 'Set New Password'}
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowForgotModal(false)}
+                className="rounded-lg p-1 text-muted hover:bg-surface-sunken hover:text-default"
+              >
+                <X className="size-4" />
+              </button>
+            </div>
+
+            {forgotStatus.error && (
+              <div className="flex items-center gap-2 rounded-xl border border-danger/30 bg-danger-subtle p-3 text-xs text-danger">
+                <AlertCircle className="size-4 shrink-0 text-danger" />
+                <span>{forgotStatus.error}</span>
+              </div>
+            )}
+            {forgotStatus.success && (
+              <div className="flex items-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3 text-xs text-emerald-600 dark:text-emerald-400">
+                <CheckCircle className="size-4 shrink-0 text-emerald-500" />
+                <span>{forgotStatus.success}</span>
+              </div>
+            )}
+
+            {forgotStep === 'request' ? (
+              <form onSubmit={handleSendResetLink} className="space-y-4">
+                <p className="text-xs text-muted">
+                  Enter your verified account email address. We will dispatch an authorization token to reset your password.
+                </p>
+                <div>
+                  <label className="block text-[11px] font-semibold text-muted uppercase tracking-wider mb-1">
+                    Email Address
+                  </label>
+                  <input
+                    type="email"
+                    required
+                    value={forgotEmail}
+                    onChange={(e) => setForgotEmail(e.target.value)}
+                    placeholder="user@domain.com"
+                    className="w-full rounded-xl border border-default bg-surface-sunken p-2.5 text-xs text-default focus:border-primary focus:outline-none"
+                  />
+                </div>
+                <div className="flex items-center justify-between pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setForgotStep('reset')}
+                    className="text-xs text-primary hover:underline"
+                  >
+                    Already have a token?
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isForgotLoading}
+                    className="rounded-xl bg-primary px-4 py-2 text-xs font-semibold text-white shadow-xs hover:bg-primary/90 disabled:opacity-50"
+                  >
+                    {isForgotLoading ? 'Dispatching...' : 'Send Reset Code'}
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <form onSubmit={handleResetPassword} className="space-y-4">
+                <div>
+                  <label className="block text-[11px] font-semibold text-muted uppercase tracking-wider mb-1">
+                    Email Address
+                  </label>
+                  <input
+                    type="email"
+                    required
+                    value={forgotEmail}
+                    onChange={(e) => setForgotEmail(e.target.value)}
+                    placeholder="user@domain.com"
+                    className="w-full rounded-xl border border-default bg-surface-sunken p-2.5 text-xs text-default focus:border-primary focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-semibold text-muted uppercase tracking-wider mb-1">
+                    Reset Token / Code
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={resetToken}
+                    onChange={(e) => setResetToken(e.target.value)}
+                    placeholder="Paste reset token from email"
+                    className="w-full rounded-xl border border-default bg-surface-sunken p-2.5 text-xs text-default focus:border-primary focus:outline-none font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-semibold text-muted uppercase tracking-wider mb-1">
+                    New Passphrase
+                  </label>
+                  <input
+                    type="password"
+                    required
+                    minLength={8}
+                    value={resetPasswordVal}
+                    onChange={(e) => setResetPasswordVal(e.target.value)}
+                    placeholder="At least 8 characters"
+                    className="w-full rounded-xl border border-default bg-surface-sunken p-2.5 text-xs text-default focus:border-primary focus:outline-none"
+                  />
+                </div>
+                <div className="flex items-center justify-between pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setForgotStep('request')}
+                    className="text-xs text-muted hover:text-default"
+                  >
+                    Back
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isForgotLoading}
+                    className="rounded-xl bg-primary px-4 py-2 text-xs font-semibold text-white shadow-xs hover:bg-primary/90 disabled:opacity-50"
+                  >
+                    {isForgotLoading ? 'Updating...' : 'Update & Log In'}
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Multi-Tenant Selection */}
+      {showTenantModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-in fade-in duration-200">
+          <div className="w-full max-w-md rounded-2xl border border-default bg-surface p-6 shadow-2xl space-y-4">
+            <div className="border-b border-default pb-3">
+              <h3 className="text-sm font-bold text-default">Select Organization Account</h3>
+              <p className="text-xs text-muted mt-0.5">
+                Your credentials have access to multiple production workspaces. Please choose which tenant to access:
+              </p>
+            </div>
+            <div className="space-y-2 max-h-60 overflow-y-auto">
+              {availableTenants.map((t) => (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => handleSelectTenant(t.id)}
+                  className="w-full flex items-center justify-between p-3 rounded-xl border border-default bg-surface-sunken hover:border-primary/50 hover:bg-primary-subtle text-left transition-colors cursor-pointer group"
+                >
+                  <div>
+                    <p className="text-xs font-bold text-default group-hover:text-primary">{t.name}</p>
+                    {t.slug && <p className="text-[10px] text-muted font-mono">{t.slug}</p>}
+                  </div>
+                  <span className="text-xs text-primary font-semibold">Select &rarr;</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

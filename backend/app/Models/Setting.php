@@ -66,12 +66,16 @@ class Setting extends Model
             }
         }
 
+        if (is_array($raw) && array_key_exists('val', $raw)) {
+            $raw = $raw['val'];
+        }
+
         return match ($this->value_type) {
-            'number' => is_numeric($raw) ? (str_contains((string) $raw, '.') ? (float) $raw : (int) $raw) : 0,
+            'number', 'integer', 'float' => is_numeric($raw) ? (str_contains((string) $raw, '.') ? (float) $raw : (int) $raw) : 0,
             'boolean' => filter_var($raw, FILTER_VALIDATE_BOOLEAN),
-            'json' => is_array($raw) ? $raw : json_decode((string) $raw, true),
-            'date' => (string) $raw,
-            default => (string) $raw,
+            'json' => is_array($raw) ? $raw : (json_decode((string) $raw, true) ?? []),
+            'date' => is_array($raw) ? json_encode($raw) : (string) $raw,
+            default => is_array($raw) ? (count($raw) === 1 && isset($raw[0]) ? (string) $raw[0] : json_encode($raw)) : (string) $raw,
         };
     }
 
@@ -86,10 +90,10 @@ class Setting extends Model
         }
 
         return match ($valueType) {
-            'number' => is_numeric($value) ? (str_contains((string) $value, '.') ? (float) $value : (int) $value) : 0,
+            'number', 'integer', 'float' => is_numeric($value) ? (str_contains((string) $value, '.') ? (float) $value : (int) $value) : 0,
             'boolean' => filter_var($value, FILTER_VALIDATE_BOOLEAN),
             'json' => is_array($value) ? $value : (json_decode((string) $value, true) ?? []),
-            default => $value,
+            default => is_array($value) ? $value : (string) $value,
         };
     }
 }

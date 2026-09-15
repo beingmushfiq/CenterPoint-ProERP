@@ -523,7 +523,12 @@ export const ActivityLogWorkspace: React.FC = () => {
                         <Button
                           variant="secondary"
                           size="sm"
-                          onClick={() => setSelectedLog(log)}
+                          onClick={() => {
+                            setSelectedLog(log);
+                            void api.get<AuditLogEntry>(`/audit-logs/${log.id}`).then((res) => {
+                              if (res.data) setSelectedLog(res.data);
+                            }).catch(() => {});
+                          }}
                           className="text-[11px] h-7 px-2.5 shadow-2xs"
                         >
                           <Eye className="size-3 mr-1 text-primary" />

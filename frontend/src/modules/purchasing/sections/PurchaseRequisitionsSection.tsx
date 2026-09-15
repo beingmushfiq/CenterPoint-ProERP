@@ -167,6 +167,19 @@ export function PurchaseRequisitionsSection() {
     initialData: SAMPLE_REQUISITIONS,
   });
 
+  const handleViewReq = async (req: PurchaseRequisition) => {
+    setActiveReq(req);
+    setShowViewModal(true);
+    try {
+      const res = await api.get<{ data: PurchaseRequisition }>(`/purchasing/requisitions/${req.id}`);
+      if (res.data?.data) {
+        setActiveReq(res.data.data);
+      }
+    } catch {
+      // keep cached
+    }
+  };
+
   const handleApprove = async (reqId: number) => {
     setActionLoading(reqId);
     try {
@@ -539,10 +552,7 @@ export function PurchaseRequisitionsSection() {
                         <div className="flex items-center justify-end gap-1.5">
                           <button
                             type="button"
-                            onClick={() => {
-                              setActiveReq(r);
-                              setShowViewModal(true);
-                            }}
+                            onClick={() => handleViewReq(r)}
                             className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-surface hover:bg-surface-sunken border border-default text-default transition-colors cursor-pointer"
                           >
                             View
