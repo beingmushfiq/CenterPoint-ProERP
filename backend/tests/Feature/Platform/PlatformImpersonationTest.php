@@ -36,7 +36,7 @@ final class PlatformImpersonationTest extends TestCase
 
     public function test_super_admin_can_impersonate_active_tenant(): void
     {
-        $tenant = Tenant::where('slug', 'slicemart')->firstOrFail();
+        $tenant = Tenant::firstOrFail();
 
         $response = $this->withHeaders([
             'Authorization' => "Bearer {$this->superAdminToken}",
@@ -64,7 +64,7 @@ final class PlatformImpersonationTest extends TestCase
 
     public function test_cannot_impersonate_suspended_tenant(): void
     {
-        $tenant = Tenant::where('slug', 'slicemart')->firstOrFail();
+        $tenant = Tenant::firstOrFail();
         $tenant->update(['status' => 'suspended']);
 
         $response = $this->withHeaders([
@@ -72,5 +72,29 @@ final class PlatformImpersonationTest extends TestCase
         ])->postJson("/api/v1/platform/tenants/{$tenant->id}/impersonate");
 
         $response->assertStatus(422);
+    }
+
+    public function test_can_impersonate_tenant_without_existing_user(): void
+    {
+        $template = Tenant::firstOrFail();
+        $attributes = $template->toArray();
+        unset($attributes['id'], $attributes['created_at'], $attributes['updated_at']);
+        $attributes['uuid'] = (string) \Illuminate\Support\Str::uuid();
+        $attributes['name'] = 'Empty Tenant Co';
+        $attributes['slug'] = 'emptytenant';
+        $attributes['status'] = 'active';
+
+        $newTenant = Tenant::create($attributes);
+
+        $response = $this->withHeaders([
+            'Authorization' => "Bearer {$this->superAdminToken}",
+        ])->postJson("/api/v1/platform/tenants/{$newTenant->id}/impersonate");
+
+        $response->assertOk();
+        $response->assertJsonPath('success', true);
+        $this->assertDatabaseHas('users', [
+            'tenant_id' => $newTenant->id,
+            'status' => 'active',
+        ]);
     }
 }
