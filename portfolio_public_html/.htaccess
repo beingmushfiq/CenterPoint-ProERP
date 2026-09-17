@@ -24,10 +24,13 @@
 
     # 3. Subdomain Forwarding:
     # If a request for proerp.devcenterpoint.com, demoerp.devcenterpoint.com,
-    # or any tenant subdomain reaches public_html, internally rewrite it into
-    # the proerp-app symlink pointing to /home/devcente/projects/proerp/public.
+    # or any tenant subdomain reaches public_html, pass it into the proerp-app
+    # symlink pointing to /home/devcente/projects/proerp/public.
     RewriteCond %{HTTP_HOST} !^(www\.)?devcenterpoint\.com$ [NC]
-    RewriteCond %{REQUEST_URI} !^/proerp-app/
+    RewriteCond %{REQUEST_URI} ^/proerp-app/
+    RewriteRule ^ - [L]
+
+    RewriteCond %{HTTP_HOST} !^(www\.)?devcenterpoint\.com$ [NC]
     RewriteCond %{DOCUMENT_ROOT}/proerp-app -d [OR]
     RewriteCond %{DOCUMENT_ROOT}/proerp-app -l
     RewriteRule ^(.*)$ proerp-app/$1 [L,QSA]
@@ -37,7 +40,9 @@
     RewriteCond %{REQUEST_FILENAME} -d
     RewriteRule ^ - [L]
 
-    # 5. Portfolio SPA / static fallback for devcenterpoint.com
+    # 5. Portfolio static fallback (main domain devcenterpoint.com only)
+    RewriteCond %{HTTP_HOST} ^(www\.)?devcenterpoint\.com$ [NC]
+    RewriteCond %{REQUEST_FILENAME} !-f
     RewriteRule ^ index.html [L]
 </IfModule>
 

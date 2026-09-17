@@ -276,6 +276,12 @@ if [ -d "${PUBLIC_HTML_DIR}" ] && [ "${PUBLIC_HTML_DIR}" != "${PORTFOLIO_DIR}" ]
     echo "Created proerp-app routing symlink in ${PORTFOLIO_DIR}/"
 fi
 
+# Ensure portfolio root has NO index.php (so subdomain requests pass via .htaccess to proerp-app)
+if [ -f "${PORTFOLIO_DIR}/index.php" ]; then
+    rm -f "${PORTFOLIO_DIR}/index.php"
+    echo "Removed legacy/shadow index.php from ${PORTFOLIO_DIR}/"
+fi
+
 echo "=================================================================="
 echo " ProERP Deployment Completed Successfully: $(date '+%Y-%m-%d %H:%M:%S')"
 echo ""

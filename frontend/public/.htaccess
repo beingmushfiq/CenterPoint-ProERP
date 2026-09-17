@@ -34,23 +34,27 @@
     RewriteRule ^ - [L]
 
     # 6. Route API requests and Health check directly to Laravel index.php
-    # LiteSpeed / Apache loop guard: only rewrite if not already a real file (like index.php)
     RewriteCond %{REQUEST_FILENAME} !-f
-    RewriteCond %{REQUEST_URI} ^/api [NC,OR]
-    RewriteCond %{REQUEST_URI} ^/up$ [NC]
+    RewriteCond %{REQUEST_URI} (^|/)(index\.php/)?api(/|$) [NC,OR]
+    RewriteCond %{REQUEST_URI} (^|/)(index\.php/)?up$ [NC,OR]
+    RewriteCond %{REQUEST_URI} (^|/)(index\.php/)?healthz? [NC]
     RewriteRule ^ index.php [L,QSA]
 
-    # 7. SPA fallback: Route browser client routes to index.html (never route /api or /up)
+    # 7. SPA fallback: Route browser client routes to index.html (never route API, Health, or Mutations)
+    RewriteCond %{REQUEST_METHOD} ^(GET|HEAD)$
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteCond %{REQUEST_FILENAME} !-d
-    RewriteCond %{REQUEST_URI} !^/api [NC]
-    RewriteCond %{REQUEST_URI} !^/up$ [NC]
+    RewriteCond %{REQUEST_URI} !(^|/)(index\.php/)?api(/|$) [NC]
+    RewriteCond %{REQUEST_URI} !(^|/)(index\.php/)?up$ [NC]
+    RewriteCond %{REQUEST_URI} !(^|/)(index\.php/)?healthz? [NC]
+    RewriteCond %{REQUEST_URI} !(^|/)index\.php [NC]
     RewriteCond %{DOCUMENT_ROOT}/index.html -f [OR]
     RewriteCond index.html -f
     RewriteRule ^ index.html [L]
 
-    # 8. Fallback: If no SPA index.html is present or matched, pass to Laravel index.php
+    # 8. Fallback: Pass non-file requests to Laravel index.php
     RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_URI} !(^|/)index\.php [NC]
     RewriteRule ^ index.php [L,QSA]
 </IfModule>
 

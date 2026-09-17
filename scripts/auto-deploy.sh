@@ -109,9 +109,10 @@ elif [ -f "${SCRIPTS_TARGET}/portfolio-placeholder.html" ]; then
     echo "Deployed portfolio placeholder to ${PORTFOLIO_DIR}/index.html" | tee -a "${LOG_FILE}"
 fi
 
-if [ -f "${REPO_DIR}/portfolio_public_html/index.php" ]; then
-    cp "${REPO_DIR}/portfolio_public_html/index.php" "${PORTFOLIO_DIR}/index.php"
-    echo "Deployed portfolio index.php to ${PORTFOLIO_DIR}/index.php" | tee -a "${LOG_FILE}"
+# Portfolio root must NOT have an index.php, ensuring subdomain routing via .htaccess
+if [ -f "${PORTFOLIO_DIR}/index.php" ]; then
+    rm -f "${PORTFOLIO_DIR}/index.php"
+    echo "Removed legacy/shadow index.php from ${PORTFOLIO_DIR}/" | tee -a "${LOG_FILE}"
 fi
 
 if [ -d "${PUBLIC_TARGET}" ] && [ "${PUBLIC_TARGET}" != "${PORTFOLIO_DIR}" ]; then

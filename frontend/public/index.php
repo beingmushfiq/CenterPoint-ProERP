@@ -2,10 +2,25 @@
 
 declare(strict_types=1);
 
+ini_set('display_errors', '1');
+ini_set('display_startup_errors', '1');
+error_reporting(E_ALL);
+
+register_shutdown_function(function () {
+    $err = error_get_last();
+    if ($err && in_array($err['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR])) {
+        http_response_code(500);
+        header('Content-Type: application/json');
+        echo json_encode(['fatal_error' => $err], JSON_PRETTY_PRINT);
+    }
+});
+
 use Illuminate\Foundation\Application;
 use Illuminate\Http\Request;
 
-define('LARAVEL_START', microtime(true));
+if (!defined('LARAVEL_START')) {
+    define('LARAVEL_START', microtime(true));
+}
 
 // =============================================================================
 // Server Layout (cPanel Multi-Project):
@@ -19,6 +34,8 @@ $possiblePaths = [
     __DIR__ . '/../backend',
     __DIR__ . '/../projects/proerp/backend',
     '/home/devcente/projects/proerp/backend',
+    '/home/devcente/repositories/proerp/backend',
+    '/home/devcente/backend',
     dirname(__DIR__) . '/backend',
 ];
 
@@ -84,8 +101,23 @@ if (!isset($_SERVER['HTTP_AUTHORIZATION'])) {
     }
 }
 
-// Bootstrap Laravel and handle the request...
-/** @var Application $app */
-$app = require_once $backendPath . '/bootstrap/app.php';
+try {
+    // Bootstrap Laravel and handle the request...
+    /** @var Application $app */
+    $app = require_once $backendPath . '/bootstrap/app.php';
 
-$app->handleRequest(Request::capture());
+    $app->handleRequest(Request::capture());
+} catch (Throwable $e) {
+    http_response_code(500);
+    header('Content-Type: application/json');
+    echo json_encode([
+        'success' => false,
+        'error' => [
+            'code' => 'PHP_EXCEPTION',
+            'message' => $e->getMessage(),
+            'file' => $e->getFile(),
+            'line' => $e->getLine(),
+        ],
+    ], JSON_PRETTY_PRINT);
+    exit(1);
+}

@@ -1,49 +1,60 @@
+# ==============================================================================
+# DevCenterPoint ProERP — Production Apache Configuration for cPanel public_html
+# ==============================================================================
+
+<IfModule mod_dir.c>
+    DirectoryIndex index.html index.php
+</IfModule>
+
 <IfModule mod_rewrite.c>
     <IfModule mod_negotiation.c>
         Options -MultiViews -Indexes
     </IfModule>
 
     RewriteEngine On
+    # 1. Enforce HTTPS across all domains and subdomains
+    RewriteCond %{HTTPS} off
+    RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 
-    # 1. Block sensitive hidden files and directories (.env, .git, etc.)
+    # 2. Block sensitive hidden files and directories (.env, .git, etc.)
+    # Allows .well-known/ for Let's Encrypt / AutoSSL verification
     RewriteRule (^|/)\.(?!well-known/) - [F]
 
-    # 2. Handle Authorization Header for FastCGI / PHP-FPM
+    # 3. Handle Authorization Header for FastCGI / PHP-FPM / cPanel Apache / LiteSpeed
     RewriteCond %{HTTP:Authorization} .
     RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
-    RewriteCond %{HTTP:X-Authorization} .
-    RewriteRule .* - [E=HTTP_X_AUTHORIZATION:%{HTTP:X-Authorization}]
-    <IfModule mod_setenvif.c>
-        SetEnvIf Authorization "(.*)" HTTP_AUTHORIZATION=$1
-        SetEnvIf X-Authorization "(.*)" HTTP_X_AUTHORIZATION=$1
-    </IfModule>
 
-    # 3. Handle X-XSRF-Token Header
+    # 4. Handle X-XSRF-Token Header
     RewriteCond %{HTTP:x-xsrf-token} .
     RewriteRule .* - [E=HTTP_X_XSRF_TOKEN:%{HTTP:X-XSRF-Token}]
 
-    # 4. Serve existing static files and directories directly
+    # 5. Serve existing static files and directories directly (CSS, JS, images, fonts)
     RewriteCond %{REQUEST_FILENAME} -f [OR]
     RewriteCond %{REQUEST_FILENAME} -d
     RewriteRule ^ - [L]
 
-    # 5. Route API requests and Health check directly to Laravel index.php
-    # LiteSpeed / Apache loop guard: only rewrite if not already index.php
+    # 6. Route API requests and Health check directly to Laravel index.php
     RewriteCond %{REQUEST_FILENAME} !-f
-    RewriteCond %{REQUEST_URI} ^/api [NC,OR]
-    RewriteCond %{REQUEST_URI} ^/up$ [NC]
+    RewriteCond %{REQUEST_URI} (^|/)(index\.php/)?api(/|$) [NC,OR]
+    RewriteCond %{REQUEST_URI} (^|/)(index\.php/)?up$ [NC,OR]
+    RewriteCond %{REQUEST_URI} (^|/)(index\.php/)?healthz? [NC]
     RewriteRule ^ index.php [L,QSA]
 
-    # 6. SPA fallback: If index.html exists, route all browser routes (except /api) to SPA
+    # 7. SPA fallback: Route browser client routes to index.html (never route API, Health, or Mutations)
+    RewriteCond %{REQUEST_METHOD} ^(GET|HEAD)$
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteCond %{REQUEST_FILENAME} !-d
-    RewriteCond %{REQUEST_URI} !^/api [NC]
-    RewriteCond %{REQUEST_URI} !^/up$ [NC]
-    RewriteCond %{DOCUMENT_ROOT}/index.html -f
+    RewriteCond %{REQUEST_URI} !(^|/)(index\.php/)?api(/|$) [NC]
+    RewriteCond %{REQUEST_URI} !(^|/)(index\.php/)?up$ [NC]
+    RewriteCond %{REQUEST_URI} !(^|/)(index\.php/)?healthz? [NC]
+    RewriteCond %{REQUEST_URI} !(^|/)index\.php [NC]
+    RewriteCond %{DOCUMENT_ROOT}/index.html -f [OR]
+    RewriteCond index.html -f
     RewriteRule ^ index.html [L]
 
-    # 7. Backend fallback: If no SPA index.html is deployed, fallback to Laravel
+    # 8. Fallback: Pass non-file requests to Laravel index.php
     RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_URI} !(^|/)index\.php [NC]
     RewriteRule ^ index.php [L,QSA]
 </IfModule>
 
@@ -55,4 +66,31 @@
     Header always set Referrer-Policy "strict-origin-when-cross-origin"
     Header always set Permissions-Policy "camera=(), microphone=(), geolocation=()"
     Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" env=HTTPS
+
+    # Cache immutable Vite assets for 1 year
+    <FilesMatch "\.(js|css|woff2?|png|jpe?g|svg|webp|ico)$">
+        Header set Cache-Control "public, max-age=31536000, immutable"
+    </FilesMatch>
+
+    # Disable caching on HTML to ensure instant SPA updates
+    <FilesMatch "\.html$">
+        Header set Cache-Control "no-cache, no-store, must-revalidate"
+        Header set Pragma "no-cache"
+        Header set Expires 0
+    </FilesMatch>
+</IfModule>
+
+# Gzip / Deflate Compression
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/plain
+    AddOutputFilterByType DEFLATE text/html
+    AddOutputFilterByType DEFLATE text/xml
+    AddOutputFilterByType DEFLATE text/css
+    AddOutputFilterByType DEFLATE text/javascript
+    AddOutputFilterByType DEFLATE application/xml
+    AddOutputFilterByType DEFLATE application/xhtml+xml
+    AddOutputFilterByType DEFLATE application/rss+xml
+    AddOutputFilterByType DEFLATE application/javascript
+    AddOutputFilterByType DEFLATE application/x-javascript
+    AddOutputFilterByType DEFLATE application/json
 </IfModule>
