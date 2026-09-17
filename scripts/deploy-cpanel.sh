@@ -252,21 +252,28 @@ fi
 
 # ------------------------------------------------------------------------------
 # 9. Bootstrap portfolio at devcenterpoint.com (public_html)
-# DO NOT overwrite an existing portfolio — only install if this is a fresh server.
-# ------------------------------------------------------------------------------
 PORTFOLIO_DIR="${HOME_DIR}/public_html"
 mkdir -p "${PORTFOLIO_DIR}"
 
-# Install portfolio .htaccess (only if missing)
-if [ ! -f "${PORTFOLIO_DIR}/.htaccess" ] && [ -f "${REPO_DIR}/portfolio_public_html/.htaccess" ]; then
+# Install portfolio .htaccess (always keep updated to preserve subdomain routing rules)
+if [ -f "${REPO_DIR}/portfolio_public_html/.htaccess" ]; then
     cp "${REPO_DIR}/portfolio_public_html/.htaccess" "${PORTFOLIO_DIR}/.htaccess"
     echo "Installed portfolio .htaccess to ${PORTFOLIO_DIR}/.htaccess"
 fi
 
-# Install placeholder (only if no index.html exists yet)
-if [ ! -f "${PORTFOLIO_DIR}/index.html" ] && [ -f "${REPO_DIR}/scripts/portfolio-placeholder.html" ]; then
+# Install portfolio index.html
+if [ -f "${REPO_DIR}/portfolio_public_html/index.html" ]; then
+    cp "${REPO_DIR}/portfolio_public_html/index.html" "${PORTFOLIO_DIR}/index.html"
+    echo "Installed portfolio index.html to ${PORTFOLIO_DIR}/index.html"
+elif [ -f "${REPO_DIR}/scripts/portfolio-placeholder.html" ]; then
     cp "${REPO_DIR}/scripts/portfolio-placeholder.html" "${PORTFOLIO_DIR}/index.html"
     echo "Installed portfolio placeholder to ${PORTFOLIO_DIR}/index.html"
+fi
+
+# Create proerp-app symlink in public_html as fail-safe for subdomains
+if [ -d "${PUBLIC_HTML_DIR}" ] && [ "${PUBLIC_HTML_DIR}" != "${PORTFOLIO_DIR}" ]; then
+    ln -sfn "${PUBLIC_HTML_DIR}" "${PORTFOLIO_DIR}/proerp-app" 2>/dev/null || true
+    echo "Created proerp-app routing symlink in ${PORTFOLIO_DIR}/"
 fi
 
 echo "=================================================================="

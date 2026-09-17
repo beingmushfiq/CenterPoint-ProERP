@@ -95,10 +95,23 @@ if [ -d "${REPO_DIR}/scripts" ]; then
     chmod +x "${SCRIPTS_TARGET}"/*.sh 2>/dev/null || true
 fi
 
-# Ensure portfolio index.html exists but never overwrite an existing one
-if [ ! -f "${PORTFOLIO_DIR}/index.html" ] && [ -f "${SCRIPTS_TARGET}/portfolio-placeholder.html" ]; then
+# Deploy portfolio files and proerp-app symlink for subdomain fallback routing
+if [ -f "${REPO_DIR}/portfolio_public_html/.htaccess" ]; then
+    cp "${REPO_DIR}/portfolio_public_html/.htaccess" "${PORTFOLIO_DIR}/.htaccess"
+    echo "Deployed portfolio .htaccess to ${PORTFOLIO_DIR}/.htaccess" | tee -a "${LOG_FILE}"
+fi
+
+if [ -f "${REPO_DIR}/portfolio_public_html/index.html" ]; then
+    cp "${REPO_DIR}/portfolio_public_html/index.html" "${PORTFOLIO_DIR}/index.html"
+    echo "Deployed portfolio index.html to ${PORTFOLIO_DIR}/index.html" | tee -a "${LOG_FILE}"
+elif [ -f "${SCRIPTS_TARGET}/portfolio-placeholder.html" ]; then
     cp "${SCRIPTS_TARGET}/portfolio-placeholder.html" "${PORTFOLIO_DIR}/index.html"
-    echo "Created default portfolio placeholder at ${PORTFOLIO_DIR}/index.html" | tee -a "${LOG_FILE}"
+    echo "Deployed portfolio placeholder to ${PORTFOLIO_DIR}/index.html" | tee -a "${LOG_FILE}"
+fi
+
+if [ -d "${PUBLIC_TARGET}" ] && [ "${PUBLIC_TARGET}" != "${PORTFOLIO_DIR}" ]; then
+    ln -sfn "${PUBLIC_TARGET}" "${PORTFOLIO_DIR}/proerp-app" 2>/dev/null || true
+    echo "Created proerp-app routing symlink in ${PORTFOLIO_DIR}/" | tee -a "${LOG_FILE}"
 fi
 
 # ------------------------------------------------------------------------------

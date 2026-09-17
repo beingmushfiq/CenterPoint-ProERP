@@ -1,7 +1,6 @@
-﻿# ==============================================================================
+# ==============================================================================
 # DevCenterPoint Portfolio — Apache config for devcenterpoint.com
 # Document root: /home/devcente/public_html/
-# This is a STATIC site — no Laravel, no SPA deep-link routing required.
 # ==============================================================================
 
 <IfModule mod_dir.c>
@@ -10,25 +9,35 @@
 
 <IfModule mod_rewrite.c>
     <IfModule mod_negotiation.c>
-        Options -MultiViews -Indexes
+        Options -MultiViews -Indexes +FollowSymLinks
     </IfModule>
 
     RewriteEngine On
     RewriteBase /
 
-    # 1. Enforce HTTPS
+    # 1. Enforce HTTPS across all hostnames
     RewriteCond %{HTTPS} off
     RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 
-    # 2. Block sensitive files
+    # 2. Block sensitive files and directories
     RewriteRule (^|/)\.(?!well-known/) - [F]
 
-    # 3. Serve existing files/directories directly (static assets)
+    # 3. Subdomain Forwarding:
+    # If a request for proerp.devcenterpoint.com, demoerp.devcenterpoint.com,
+    # or any tenant subdomain reaches public_html, internally rewrite it into
+    # the proerp-app symlink pointing to /home/devcente/projects/proerp/public.
+    RewriteCond %{HTTP_HOST} !^(www\.)?devcenterpoint\.com$ [NC]
+    RewriteCond %{REQUEST_URI} !^/proerp-app/
+    RewriteCond %{DOCUMENT_ROOT}/proerp-app -d [OR]
+    RewriteCond %{DOCUMENT_ROOT}/proerp-app -l
+    RewriteRule ^(.*)$ proerp-app/$1 [L,QSA]
+
+    # 4. Serve existing files/directories directly (static portfolio assets)
     RewriteCond %{REQUEST_FILENAME} -f [OR]
     RewriteCond %{REQUEST_FILENAME} -d
     RewriteRule ^ - [L]
 
-    # 4. All other requests go to index.html (for future React portfolio)
+    # 5. Portfolio SPA / static fallback for devcenterpoint.com
     RewriteRule ^ index.html [L]
 </IfModule>
 
@@ -36,19 +45,19 @@
 <IfModule mod_headers.c>
     Header always set X-Content-Type-Options nosniff
     Header always set X-Frame-Options SAMEORIGIN
-    Header always set X-XSS-Protection 1; mode=block
+    Header always set X-XSS-Protection "1; mode=block"
     Header always set Referrer-Policy strict-origin-when-cross-origin
-    Header always set Strict-Transport-Security max-age=31536000; includeSubDomains; preload env=HTTPS
+    Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" env=HTTPS
 
     # Cache static assets
-    <FilesMatch \.(js|css|woff2?|png|jpe?g|svg|webp|ico)$>
-        Header set Cache-Control public, max-age=31536000, immutable
+    <FilesMatch "\.(js|css|woff2?|png|jpe?g|svg|webp|ico)$">
+        Header set Cache-Control "public, max-age=31536000, immutable"
     </FilesMatch>
 
-    # No-cache on HTML
-    <FilesMatch \.html$>
-        Header set Cache-Control no-cache, no-store, must-revalidate
-        Header set Pragma no-cache
+    # No-cache on HTML to ensure updates reflect instantly
+    <FilesMatch "\.html$">
+        Header set Cache-Control "no-cache, no-store, must-revalidate"
+        Header set Pragma "no-cache"
         Header set Expires 0
     </FilesMatch>
 </IfModule>
