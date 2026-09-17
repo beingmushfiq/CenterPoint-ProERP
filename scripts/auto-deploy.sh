@@ -109,6 +109,11 @@ elif [ -f "${SCRIPTS_TARGET}/portfolio-placeholder.html" ]; then
     echo "Deployed portfolio placeholder to ${PORTFOLIO_DIR}/index.html" | tee -a "${LOG_FILE}"
 fi
 
+if [ -f "${REPO_DIR}/portfolio_public_html/index.php" ]; then
+    cp "${REPO_DIR}/portfolio_public_html/index.php" "${PORTFOLIO_DIR}/index.php"
+    echo "Deployed portfolio index.php to ${PORTFOLIO_DIR}/index.php" | tee -a "${LOG_FILE}"
+fi
+
 if [ -d "${PUBLIC_TARGET}" ] && [ "${PUBLIC_TARGET}" != "${PORTFOLIO_DIR}" ]; then
     ln -sfn "${PUBLIC_TARGET}" "${PORTFOLIO_DIR}/proerp-app" 2>/dev/null || true
     echo "Created proerp-app routing symlink in ${PORTFOLIO_DIR}/" | tee -a "${LOG_FILE}"

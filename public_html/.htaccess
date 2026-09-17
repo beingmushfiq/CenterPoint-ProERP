@@ -12,8 +12,6 @@
     </IfModule>
 
     RewriteEngine On
-    RewriteBase /
-
     # 1. Enforce HTTPS across all domains and subdomains
     RewriteCond %{HTTPS} off
     RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
@@ -30,23 +28,30 @@
     RewriteCond %{HTTP:x-xsrf-token} .
     RewriteRule .* - [E=HTTP_X_XSRF_TOKEN:%{HTTP:X-XSRF-Token}]
 
-    # 5. Route API requests and Health check directly to Laravel index.php
-    RewriteCond %{REQUEST_URI} ^/api [NC,OR]
-    RewriteCond %{REQUEST_URI} ^/up$ [NC]
-    RewriteRule ^ index.php [L,QSA]
-
-    # 6. Serve existing static files and directories directly
+    # 5. Serve existing static files and directories directly (CSS, JS, images, fonts)
     RewriteCond %{REQUEST_FILENAME} -f [OR]
     RewriteCond %{REQUEST_FILENAME} -d
     RewriteRule ^ - [L]
 
-    # 7. SPA fallback: If index.html exists, route all browser routes to SPA
+    # 6. Route API requests and Health check directly to Laravel index.php
+    # LiteSpeed / Apache loop guard: only rewrite if not already a real file (like index.php)
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_URI} ^/api [NC,OR]
+    RewriteCond %{REQUEST_URI} ^/up$ [NC]
+    RewriteRule ^ index.php [L,QSA]
+
+    # 7. SPA fallback: Route browser client routes to index.html (never route /api or /up)
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteCond %{REQUEST_URI} !^/api [NC]
+    RewriteCond %{REQUEST_URI} !^/up$ [NC]
     RewriteCond %{DOCUMENT_ROOT}/index.html -f [OR]
     RewriteCond index.html -f
     RewriteRule ^ index.html [L]
 
-    # 8. Fallback: If no SPA index.html is present, pass to Laravel index.php
-    RewriteRule ^ index.php [L]
+    # 8. Fallback: If no SPA index.html is present or matched, pass to Laravel index.php
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteRule ^ index.php [L,QSA]
 </IfModule>
 
 # Security Headers

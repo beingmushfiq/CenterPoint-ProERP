@@ -35,7 +35,15 @@ import { logApiError } from '../observability/logger';
    ─────────────────────────────────────────────────────────────────────────── */
 
 /** Trailing slash stripped so path joining is unambiguous at every call site. */
-const BASE_URL = (import.meta.env['VITE_API_BASE_URL'] ?? '/api/v1').replace(/\/+$/, '');
+let activeApiBase = (import.meta.env['VITE_API_BASE_URL'] ?? '/api/v1').replace(/\/+$/, '');
+
+export function getApiBaseUrl(): string {
+  return activeApiBase;
+}
+
+export function setApiBaseUrl(url: string): void {
+  activeApiBase = url.replace(/\/+$/, '');
+}
 
 /**
  * Client-side deadline.
@@ -242,8 +250,8 @@ export interface RequestOptions {
 }
 
 function buildUrl(path: string, params: RequestOptions['params']): string {
-  const cleanPath = path.replace(/^\/?api\/v1/, '');
-  const url = `${BASE_URL}${cleanPath.startsWith('/') ? cleanPath : `/${cleanPath}`}`;
+  const cleanPath = path.replace(/^\/?(index\.php\/)?api\/v1/, '').replace(/^\/?api\/v1/, '');
+  const url = `${activeApiBase}${cleanPath.startsWith('/') ? cleanPath : `/${cleanPath}`}`;
   if (!params) return url;
 
   const search = new URLSearchParams();
@@ -381,7 +389,7 @@ let refreshInFlight: Promise<boolean> | null = null;
 
 async function performRefresh(): Promise<boolean> {
   try {
-    const response = await fetch(`${BASE_URL}/auth/refresh`, {
+    const response = await fetch(`${activeApiBase}/auth/refresh`, {
       method: 'POST',
       /* The httpOnly refresh cookie IS the credential (§8.2) — there is no
          body, and `credentials: 'include'` is what sends it. */
@@ -529,8 +537,19 @@ async function execute<T>(
 
   let envelope: RawEnvelope;
   try {
-    envelope = (await response.json()) as RawEnvelope;
+    const text = await response.text();
+    // Resilient fallback: if web server rewrite served HTML (e.g. index.html) instead of API JSON,
+    // automatically fallback to /index.php/api/v1
+    if (!isReplay && activeApiBase === '/api/v1' && (text.includes('<!DOCTYPE') || text.includes('<html') || response.headers.get('content-type')?.includes('text/html'))) {
+      activeApiBase = '/index.php/api/v1';
+      return execute<T>(method, path, options, correlationId, true);
+    }
+    envelope = JSON.parse(text) as RawEnvelope;
   } catch {
+    if (!isReplay && activeApiBase === '/api/v1') {
+      activeApiBase = '/index.php/api/v1';
+      return execute<T>(method, path, options, correlationId, true);
+    }
     /* A body that is not JSON did not come from this API. Naming it
        MALFORMED_RESPONSE keeps the real cause (a proxy, a login portal, an
        HTML error page) visible in the log instead of disguising it as a

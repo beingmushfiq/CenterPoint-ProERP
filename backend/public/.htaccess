@@ -22,22 +22,29 @@
     RewriteCond %{HTTP:x-xsrf-token} .
     RewriteRule .* - [E=HTTP_X_XSRF_TOKEN:%{HTTP:X-XSRF-Token}]
 
-    # 4. Route API requests and Health check directly to Laravel index.php
-    RewriteCond %{REQUEST_URI} ^/api [NC,OR]
-    RewriteCond %{REQUEST_URI} ^/up$ [NC]
-    RewriteRule ^ index.php [L]
-
-    # 5. Serve existing static files and directories directly
+    # 4. Serve existing static files and directories directly
     RewriteCond %{REQUEST_FILENAME} -f [OR]
     RewriteCond %{REQUEST_FILENAME} -d
     RewriteRule ^ - [L]
 
-    # 6. SPA fallback: If index.html exists, route all browser routes to SPA
+    # 5. Route API requests and Health check directly to Laravel index.php
+    # LiteSpeed / Apache loop guard: only rewrite if not already index.php
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_URI} ^/api [NC,OR]
+    RewriteCond %{REQUEST_URI} ^/up$ [NC]
+    RewriteRule ^ index.php [L,QSA]
+
+    # 6. SPA fallback: If index.html exists, route all browser routes (except /api) to SPA
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteCond %{REQUEST_URI} !^/api [NC]
+    RewriteCond %{REQUEST_URI} !^/up$ [NC]
     RewriteCond %{DOCUMENT_ROOT}/index.html -f
     RewriteRule ^ index.html [L]
 
     # 7. Backend fallback: If no SPA index.html is deployed, fallback to Laravel
-    RewriteRule ^ index.php [L]
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteRule ^ index.php [L,QSA]
 </IfModule>
 
 # Security Headers

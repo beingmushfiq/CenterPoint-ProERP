@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { api, setAccessToken } from '../api/client';
+import { isApiError } from '../api/errors';
 import type { PlatformUser } from '../../types/api/platform';
 
 export interface PlatformAuthState {
@@ -38,8 +39,12 @@ export const usePlatformAuthStore = create<PlatformAuthState>((set) => ({
     } catch (err: unknown) {
       setAccessToken(null);
       localStorage.removeItem('platform_access_token');
-      const message =
-        err instanceof Error ? err.message : 'Invalid platform credentials. Super Admin access required.';
+      let message = 'Invalid platform credentials. Super Admin access required.';
+      if (isApiError(err)) {
+        message = err.message;
+      } else if (err instanceof Error) {
+        message = err.message;
+      }
       set({
         status: 'unauthenticated',
         error: message,

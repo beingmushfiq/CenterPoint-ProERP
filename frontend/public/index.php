@@ -15,7 +15,24 @@ define('LARAVEL_START', microtime(true));
 // The backend is OUTSIDE the web root — source code, .env, vendor, and all
 // application logic are completely inaccessible to the public internet.
 // =============================================================================
-$backendPath = __DIR__ . '/../backend';
+$possiblePaths = [
+    __DIR__ . '/../backend',
+    __DIR__ . '/../projects/proerp/backend',
+    '/home/devcente/projects/proerp/backend',
+    dirname(__DIR__) . '/backend',
+];
+
+$backendPath = null;
+foreach ($possiblePaths as $candidate) {
+    if (file_exists($candidate . '/bootstrap/app.php')) {
+        $backendPath = $candidate;
+        break;
+    }
+}
+
+if (!$backendPath) {
+    $backendPath = __DIR__ . '/../backend';
+}
 
 // Determine if the application is in maintenance mode...
 if (file_exists($maintenance = $backendPath . '/storage/framework/maintenance.php')) {
@@ -25,7 +42,19 @@ if (file_exists($maintenance = $backendPath . '/storage/framework/maintenance.ph
 // Register the Composer autoloader...
 if (!file_exists($autoloader = $backendPath . '/vendor/autoload.php')) {
     http_response_code(503);
-    echo '<!DOCTYPE html><html><head><title>System Updating</title><style>body{font-family:system-ui,-apple-system,sans-serif;padding:40px;text-align:center;background:#0f172a;color:#f8fafc;}h1{font-size:24px;margin-bottom:12px;}p{color:#94a3b8;}</style></head><body><h1>System Initialization</h1><p>Backend dependencies are being installed. Please run <code>composer install</code> or the deployment script.</p></body></html>';
+    $isApi = isset($_SERVER['REQUEST_URI']) && (str_contains($_SERVER['REQUEST_URI'], '/api/') || str_starts_with($_SERVER['REQUEST_URI'], '/api'));
+    if ($isApi) {
+        header('Content-Type: application/json');
+        echo json_encode([
+            'success' => false,
+            'error' => [
+                'code' => 'SERVICE_UNAVAILABLE',
+                'message' => 'Backend initialization pending. Please complete composer install.',
+            ],
+        ]);
+    } else {
+        echo '<!DOCTYPE html><html><head><title>System Updating</title><style>body{font-family:system-ui,-apple-system,sans-serif;padding:40px;text-align:center;background:#0f172a;color:#f8fafc;}h1{font-size:24px;margin-bottom:12px;}p{color:#94a3b8;}</style></head><body><h1>System Initialization</h1><p>Backend dependencies are being installed. Please run <code>composer install</code> or the deployment script.</p></body></html>';
+    }
     exit(1);
 }
 require $autoloader;
