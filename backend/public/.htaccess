@@ -48,8 +48,6 @@
     RewriteCond %{REQUEST_URI} !(^|/)(index\.php/)?up$ [NC]
     RewriteCond %{REQUEST_URI} !(^|/)(index\.php/)?healthz? [NC]
     RewriteCond %{REQUEST_URI} !(^|/)index\.php [NC]
-    RewriteCond %{DOCUMENT_ROOT}/index.html -f [OR]
-    RewriteCond index.html -f
     RewriteRule ^ index.html [L]
 
     # 8. Fallback: Pass non-file requests to Laravel index.php

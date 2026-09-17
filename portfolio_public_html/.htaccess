@@ -22,25 +22,35 @@
     # 2. Block sensitive files and directories
     RewriteRule (^|/)\.(?!well-known/) - [F]
 
-    # 3. Subdomain Forwarding:
-    # If a request for proerp.devcenterpoint.com, demoerp.devcenterpoint.com,
-    # or any tenant subdomain reaches public_html, pass it into the proerp-app
-    # symlink pointing to /home/devcente/projects/proerp/public.
+    # 3. Subdomain Routing:
+    # Direct all subdomain requests (proerp, demoerp, tenant slugs) to proerp-app
+    
+    # 3a. Serve existing static assets directly from proerp-app
     RewriteCond %{HTTP_HOST} !^(www\.)?devcenterpoint\.com$ [NC]
-    RewriteCond %{REQUEST_URI} ^/proerp-app/
-    RewriteRule ^ - [L]
-
-    RewriteCond %{HTTP_HOST} !^(www\.)?devcenterpoint\.com$ [NC]
-    RewriteCond %{DOCUMENT_ROOT}/proerp-app -d [OR]
-    RewriteCond %{DOCUMENT_ROOT}/proerp-app -l
+    RewriteCond %{DOCUMENT_ROOT}/proerp-app/$1 -f [OR]
+    RewriteCond %{DOCUMENT_ROOT}/proerp-app/$1 -d
     RewriteRule ^(.*)$ proerp-app/$1 [L,QSA]
 
-    # 4. Serve existing files/directories directly (static portfolio assets)
+    # 3b. Route API, Health, and Up endpoints directly to Laravel index.php
+    RewriteCond %{HTTP_HOST} !^(www\.)?devcenterpoint\.com$ [NC]
+    RewriteCond %{REQUEST_URI} (^|/)(index\.php/)?(api|up|health) [NC]
+    RewriteRule ^(.*)$ proerp-app/index.php [L,QSA]
+
+    # 3c. SPA fallback: Route client browser navigation (/login, /dashboard, etc.) to index.html
+    RewriteCond %{HTTP_HOST} !^(www\.)?devcenterpoint\.com$ [NC]
+    RewriteCond %{REQUEST_METHOD} ^(GET|HEAD)$
+    RewriteRule ^(.*)$ proerp-app/index.html [L,QSA]
+
+    # 3d. Pass any remaining dynamic mutations to Laravel index.php
+    RewriteCond %{HTTP_HOST} !^(www\.)?devcenterpoint\.com$ [NC]
+    RewriteRule ^(.*)$ proerp-app/index.php [L,QSA]
+
+    # 4. Main domain (devcenterpoint.com): Serve existing files/directories directly
     RewriteCond %{REQUEST_FILENAME} -f [OR]
     RewriteCond %{REQUEST_FILENAME} -d
     RewriteRule ^ - [L]
 
-    # 5. Portfolio static fallback (main domain devcenterpoint.com only)
+    # 5. Main domain (devcenterpoint.com): Portfolio static fallback
     RewriteCond %{HTTP_HOST} ^(www\.)?devcenterpoint\.com$ [NC]
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteRule ^ index.html [L]
