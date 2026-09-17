@@ -106,6 +106,20 @@ export const PlatformLoginPage: React.FC = () => {
                 </>
               )}
             </button>
+
+            <div className="mt-4 pt-4 border-t border-default/40 flex items-center justify-between text-xs text-muted font-mono">
+              <span>Super Admin Credentials:</span>
+              <button
+                type="button"
+                onClick={() => {
+                  setEmail('admin@devcenterpoint.com');
+                  setPassword('PlatformAdmin123!');
+                }}
+                className="text-amber-500 hover:text-amber-400 font-semibold cursor-pointer underline underline-offset-2"
+              >
+                Auto-fill
+              </button>
+            </div>
           </form>
         </div>
       </div>
