@@ -19,41 +19,53 @@
     RewriteCond %{HTTPS} off
     RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 
-    # 2. Block sensitive files and directories
+    # 2. Block sensitive files and directories (.env, .git, etc.)
     RewriteRule (^|/)\.(?!well-known/) - [F]
 
-    # 3. Subdomain Routing:
-    # Direct all subdomain requests (proerp, demoerp, tenant slugs) to proerp-app
-    
-    # 3a. Serve existing static assets directly from proerp-app
-    RewriteCond %{HTTP_HOST} !^(www\.)?devcenterpoint\.com$ [NC]
-    RewriteCond %{DOCUMENT_ROOT}/proerp-app/$1 -f [OR]
-    RewriteCond %{DOCUMENT_ROOT}/proerp-app/$1 -d
-    RewriteRule ^(.*)$ proerp-app/$1 [L,QSA]
+    # 3. Handle Authorization Header for PHP
+    RewriteCond %{HTTP:Authorization} .
+    RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
 
-    # 3b. Route API, Health, and Up endpoints directly to Laravel index.php
+    # ==========================================================================
+    # SUBDOMAIN ROUTING (proerp, demoerp, tenant slugs)
+    # ==========================================================================
+
+    # 3a. Loop Guard: If request is already rewritten to /proerp-app, STOP immediately
+    RewriteCond %{REQUEST_URI} ^/proerp-app(/|$) [NC]
+    RewriteRule ^ - [L]
+
+    # 3b. Serve existing static assets directly from proerp-app (CSS, JS, images, SVG, fonts)
+    RewriteCond %{HTTP_HOST} !^(www\.)?devcenterpoint\.com$ [NC]
+    RewriteCond %{DOCUMENT_ROOT}/proerp-app/$1 -f
+    RewriteRule ^(.*)$ /proerp-app/$1 [L,QSA]
+
+    # 3c. Route API, Health, and Up endpoints directly to Laravel index.php
     RewriteCond %{HTTP_HOST} !^(www\.)?devcenterpoint\.com$ [NC]
     RewriteCond %{REQUEST_URI} (^|/)(index\.php/)?(api|up|health) [NC]
-    RewriteRule ^(.*)$ proerp-app/index.php [L,QSA]
+    RewriteRule ^.*$ /proerp-app/index.php [L,QSA]
 
-    # 3c. SPA fallback: Route client browser navigation (/login, /dashboard, etc.) to index.html
+    # 3d. SPA fallback: Route client browser navigation (/login, /dashboard, etc.) to proerp-app/index.html
     RewriteCond %{HTTP_HOST} !^(www\.)?devcenterpoint\.com$ [NC]
     RewriteCond %{REQUEST_METHOD} ^(GET|HEAD)$
-    RewriteRule ^(.*)$ proerp-app/index.html [L,QSA]
+    RewriteRule ^.*$ /proerp-app/index.html [L,QSA]
 
-    # 3d. Pass any remaining dynamic mutations to Laravel index.php
+    # 3e. Pass any remaining dynamic mutations to Laravel index.php
     RewriteCond %{HTTP_HOST} !^(www\.)?devcenterpoint\.com$ [NC]
-    RewriteRule ^(.*)$ proerp-app/index.php [L,QSA]
+    RewriteRule ^.*$ /proerp-app/index.php [L,QSA]
 
-    # 4. Main domain (devcenterpoint.com): Serve existing files/directories directly
+    # ==========================================================================
+    # MAIN DOMAIN ROUTING (devcenterpoint.com)
+    # ==========================================================================
+
+    # 4. Main domain: Serve existing files/directories directly (static portfolio assets)
     RewriteCond %{REQUEST_FILENAME} -f [OR]
     RewriteCond %{REQUEST_FILENAME} -d
     RewriteRule ^ - [L]
 
-    # 5. Main domain (devcenterpoint.com): Portfolio static fallback
+    # 5. Main domain: Portfolio static fallback
     RewriteCond %{HTTP_HOST} ^(www\.)?devcenterpoint\.com$ [NC]
     RewriteCond %{REQUEST_FILENAME} !-f
-    RewriteRule ^ index.html [L]
+    RewriteRule ^.*$ /index.html [L]
 </IfModule>
 
 # Security headers

@@ -276,10 +276,10 @@ if [ -d "${PUBLIC_HTML_DIR}" ] && [ "${PUBLIC_HTML_DIR}" != "${PORTFOLIO_DIR}" ]
     echo "Created proerp-app routing symlink in ${PORTFOLIO_DIR}/"
 fi
 
-# Ensure portfolio root has NO index.php (so subdomain requests pass via .htaccess to proerp-app)
-if [ -f "${PORTFOLIO_DIR}/index.php" ]; then
-    rm -f "${PORTFOLIO_DIR}/index.php"
-    echo "Removed legacy/shadow index.php from ${PORTFOLIO_DIR}/"
+# Install portfolio index.php forwarder (safeguard for subdomain API routing)
+if [ -f "${REPO_DIR}/portfolio_public_html/index.php" ]; then
+    cp "${REPO_DIR}/portfolio_public_html/index.php" "${PORTFOLIO_DIR}/index.php"
+    echo "Installed portfolio index.php to ${PORTFOLIO_DIR}/index.php"
 fi
 
 echo "=================================================================="
