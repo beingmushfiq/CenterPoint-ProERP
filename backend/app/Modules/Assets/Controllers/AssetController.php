@@ -251,7 +251,7 @@ class AssetController extends Controller
                             'purchase_date' => $purchaseDate,
                             'status' => $status,
                             'serial_number' => $serial ?? $existing->serial_number,
-                            'model' => $model ?? $existing->model,
+                            'model' => $model ?? $existing->getAttribute('model'),
                             'manufacturer' => $manufacturer ?? $existing->manufacturer,
                             'updated_by' => $userId,
                         ]);
@@ -277,7 +277,7 @@ class AssetController extends Controller
                     $asset->depreciation_method = $depMethod;
                     $asset->purchase_date = $purchaseDate;
                     $asset->serial_number = $serial;
-                    $asset->model = $model;
+                    $asset->setAttribute('model', $model);
                     $asset->manufacturer = $manufacturer;
                     $asset->status = $status;
                     $asset->created_by = $userId;
