@@ -177,7 +177,7 @@
 @theme {
   /* Fonts (§2.2). Self-hosted via @font-face in base.css — no render-blocking
      third-party stylesheet request. */
-  --font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-sans: 'Hind Siliguri', 'Noto Sans Bengali', 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-mono: 'Fira Code', ui-monospace, 'SF Mono', Menlo, monospace;
 
   /* Spacing multiplier — makes Tailwind's dynamic scale (p-4, gap-2) resolve

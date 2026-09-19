@@ -437,8 +437,20 @@ async function execute<T>(
 ): Promise<ApiResult<T>> {
   const deadline = createDeadline(options.signal, options.timeoutMs ?? DEFAULT_TIMEOUT_MS);
 
+  let currentLocale = 'en';
+  try {
+    const stored = typeof localStorage !== 'undefined' ? localStorage.getItem('ui.locale') : null;
+    if (stored === 'bn' || stored === 'en') {
+      currentLocale = stored;
+    }
+  } catch {
+    // Safari private mode or SSR guard
+  }
+
   const headers: Record<string, string> = {
     Accept: 'application/json',
+    'Accept-Language': currentLocale,
+    'X-App-Locale': currentLocale,
     'X-Correlation-Id': correlationId,
     ...options.headers,
   };

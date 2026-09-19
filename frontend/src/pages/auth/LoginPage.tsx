@@ -9,6 +9,7 @@ import { isApiError } from '../../lib/api/errors';
 import { api } from '../../lib/api/client';
 import { toggleThemeWithTransition } from '../../lib/theme/themeTransition';
 import { useTenantBranding } from '../../lib/theme/useTenantBranding';
+import { LanguageSwitcher } from '../../components/ui/LanguageSwitcher';
 
 const QUICK_ROLES = [
   { label: 'Admin', role: 'Super Admin', email: 'admin@dcp.com', icon: ShieldCheck },
@@ -222,8 +223,9 @@ export default function LoginPage() {
 
   return (
     <div className="relative flex min-h-dvh w-full items-center justify-center bg-base px-3 sm:px-6 lg:px-8 py-8 sm:py-12 text-default transition-colors duration-200 overflow-x-hidden">
-      {/* Top-Right Theme Toggle */}
-      <div className="absolute top-4 right-4 sm:top-6 sm:right-6">
+      {/* Top-Right Theme & Language Controls */}
+      <div className="absolute top-4 right-4 sm:top-6 sm:right-6 flex items-center gap-2">
+        <LanguageSwitcher />
         <button
           type="button"
           onClick={handleToggleTheme}

@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { Invoice } from '../../../types/api/sales';
 import type { BusinessConfig } from '../../../lib/document/useBusinessConfig';
 import { formatCurrency, formatDocumentDate } from '../../../lib/document/formatters';
@@ -25,6 +26,7 @@ export function ThermalReceipt({
   changeAmount,
   orderNotes,
 }: ThermalReceiptProps) {
+  const { t: tDoc } = useTranslation('documents');
   const is58mm = paperWidth === '58mm';
 
   const qrSvg = useMemo(() => {
@@ -65,11 +67,11 @@ export function ThermalReceipt({
       {/* Meta */}
       <div className="py-2 text-[8pt] border-b border-black border-dashed space-y-0.5">
         <div className="flex justify-between font-bold">
-          <span>RECEIPT:</span>
+          <span>{tDoc('thermalReceipt')}:</span>
           <span>{invoice.invoice_number}</span>
         </div>
         <div className="flex justify-between">
-          <span>Date:</span>
+          <span>{tDoc('date')}:</span>
           <span>{formatDocumentDate(invoice.invoice_date, true)}</span>
         </div>
         <div className="flex justify-between">
@@ -91,10 +93,10 @@ export function ThermalReceipt({
         <table className="w-full text-left">
           <thead>
             <tr className="border-b border-black border-dashed text-[7.5pt] font-bold">
-              <th className="py-1">ITEM</th>
-              <th className="py-1 text-center">QTY</th>
-              <th className="py-1 text-right">RATE</th>
-              <th className="py-1 text-right">TOTAL</th>
+              <th className="py-1">{tDoc('item')}</th>
+              <th className="py-1 text-center">{tDoc('qty')}</th>
+              <th className="py-1 text-right">{tDoc('rate')}</th>
+              <th className="py-1 text-right">{tDoc('amount')}</th>
             </tr>
           </thead>
           <tbody>

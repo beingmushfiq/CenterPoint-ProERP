@@ -72,7 +72,7 @@ export function AppHeader({
 }: AppHeaderProps) {
   const navigate = useNavigate();
   const { user, branches, activeBranch, switchBranch, logout } = useAuthStore();
-  const { t } = useTranslation(['navigation', 'common']);
+  const { t, i18n } = useTranslation(['navigation', 'common']);
   
   // Menus and dialog states
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
@@ -492,7 +492,7 @@ export function AppHeader({
             <div className="fixed inset-x-2 top-16 sm:absolute sm:inset-x-auto sm:right-0 sm:top-full sm:mt-2 w-auto sm:w-64 max-w-[calc(100vw-1rem)] max-h-[80vh] overflow-y-auto rounded-2xl border border-default bg-surface-raised p-1.5 shadow-2xl z-50 animate-in fade-in duration-150">
               {/* Manufacturing Group */}
               <div className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-muted">
-                Manufacturing & Quality
+                {i18n.language === 'bn' ? 'উৎপাদন ও মান নিয়ন্ত্রণ' : 'Manufacturing & Quality'}
               </div>
               <Link
                 to="/production"
@@ -503,8 +503,8 @@ export function AppHeader({
                   <Factory className="size-3.5" />
                 </div>
                 <div>
-                  <span className="font-semibold block">Production Batch</span>
-                  <span className="text-[10px] text-muted">Schedule line run</span>
+                  <span className="font-semibold block">{i18n.language === 'bn' ? 'প্রোডাকশন ব্যাচ' : 'Production Batch'}</span>
+                  <span className="text-[10px] text-muted">{i18n.language === 'bn' ? 'লাইন রান শিডিউল' : 'Schedule line run'}</span>
                 </div>
               </Link>
               <Link
@@ -516,8 +516,8 @@ export function AppHeader({
                   <ClipboardList className="size-3.5" />
                 </div>
                 <div>
-                  <span className="font-semibold block">Manufacturing Order</span>
-                  <span className="text-[10px] text-muted">BOM work order</span>
+                  <span className="font-semibold block">{i18n.language === 'bn' ? 'ম্যানুফ্যাকচারিং অর্ডার' : 'Manufacturing Order'}</span>
+                  <span className="text-[10px] text-muted">{i18n.language === 'bn' ? 'বিওএম কাজের আদেশ' : 'BOM work order'}</span>
                 </div>
               </Link>
               <Link
@@ -529,14 +529,14 @@ export function AppHeader({
                   <Microscope className="size-3.5" />
                 </div>
                 <div>
-                  <span className="font-semibold block">QC Audit Inspection</span>
-                  <span className="text-[10px] text-muted">Defect & scrap review</span>
+                  <span className="font-semibold block">{i18n.language === 'bn' ? 'কিউসি অডিট পরিদর্শন' : 'QC Audit Inspection'}</span>
+                  <span className="text-[10px] text-muted">{i18n.language === 'bn' ? 'ত্রুটি ও অপচয় যাচাই' : 'Defect & scrap review'}</span>
                 </div>
               </Link>
 
               {/* Procurement & Stock Group */}
               <div className="mt-1 pt-1 border-t border-default/60 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-muted">
-                Procurement & Inventory
+                {i18n.language === 'bn' ? 'ক্রয় ও ইনভেন্টরি' : 'Procurement & Inventory'}
               </div>
               <Link
                 to="/purchasing"
@@ -547,8 +547,8 @@ export function AppHeader({
                   <ShoppingCart className="size-3.5" />
                 </div>
                 <div>
-                  <span className="font-semibold block">Purchase Order (PO)</span>
-                  <span className="text-[10px] text-muted">Vendor requisition</span>
+                  <span className="font-semibold block">{i18n.language === 'bn' ? 'ক্রয় আদেশ (PO)' : 'Purchase Order (PO)'}</span>
+                  <span className="text-[10px] text-muted">{i18n.language === 'bn' ? 'সরবরাহকারী রিকুইজিশন' : 'Vendor requisition'}</span>
                 </div>
               </Link>
               <Link
@@ -560,8 +560,8 @@ export function AppHeader({
                   <PackagePlus className="size-3.5" />
                 </div>
                 <div>
-                  <span className="font-semibold block">Receive Stock</span>
-                  <span className="text-[10px] text-muted">Goods inward docket</span>
+                  <span className="font-semibold block">{i18n.language === 'bn' ? 'পণ্য গ্রহণ' : 'Receive Stock'}</span>
+                  <span className="text-[10px] text-muted">{i18n.language === 'bn' ? 'ইনওয়ার্ড চালান' : 'Goods inward docket'}</span>
                 </div>
               </Link>
               <Link
@@ -573,14 +573,14 @@ export function AppHeader({
                   <Boxes className="size-3.5" />
                 </div>
                 <div>
-                  <span className="font-semibold block">Stock Adjustment</span>
-                  <span className="text-[10px] text-muted">Bin count variance</span>
+                  <span className="font-semibold block">{i18n.language === 'bn' ? 'স্টক সমন্বয়' : 'Stock Adjustment'}</span>
+                  <span className="text-[10px] text-muted">{i18n.language === 'bn' ? 'বিন গণনা ব্যবধান' : 'Bin count variance'}</span>
                 </div>
               </Link>
 
               {/* Sales & Retail Group */}
               <div className="mt-1 pt-1 border-t border-default/60 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-muted">
-                Sales & Storefront
+                {i18n.language === 'bn' ? 'বিক্রয় ও স্টোরফ্রন্ট' : 'Sales & Storefront'}
               </div>
               <Link
                 to="/sales"
@@ -591,8 +591,8 @@ export function AppHeader({
                   <FileText className="size-3.5" />
                 </div>
                 <div>
-                  <span className="font-semibold block">Sales Invoice</span>
-                  <span className="text-[10px] text-muted">B2B invoice bill</span>
+                  <span className="font-semibold block">{i18n.language === 'bn' ? 'বিক্রয় চালান' : 'Sales Invoice'}</span>
+                  <span className="text-[10px] text-muted">{i18n.language === 'bn' ? 'বি২বি চালানপত্র' : 'B2B invoice bill'}</span>
                 </div>
               </Link>
               <Link
@@ -604,8 +604,8 @@ export function AppHeader({
                   <PlusCircle className="size-3.5" />
                 </div>
                 <div>
-                  <span className="font-semibold block">Catalogue Product</span>
-                  <span className="text-[10px] text-muted">New SKU entry</span>
+                  <span className="font-semibold block">{i18n.language === 'bn' ? 'ক্যাটালগ পণ্য' : 'Catalogue Product'}</span>
+                  <span className="text-[10px] text-muted">{i18n.language === 'bn' ? 'নতুন এসকেইউ এন্ট্রি' : 'New SKU entry'}</span>
                 </div>
               </Link>
               <Link
@@ -617,8 +617,8 @@ export function AppHeader({
                   <Truck className="size-3.5" />
                 </div>
                 <div>
-                  <span className="font-semibold block">Dispatch Delivery</span>
-                  <span className="text-[10px] text-muted">Vehicle assignment</span>
+                  <span className="font-semibold block">{i18n.language === 'bn' ? 'ডেলিভারি প্রেরণ' : 'Dispatch Delivery'}</span>
+                  <span className="text-[10px] text-muted">{i18n.language === 'bn' ? 'যানবাহন ও কুরিয়ার দায়িত্ব' : 'Vehicle assignment'}</span>
                 </div>
               </Link>
             </div>
@@ -646,10 +646,10 @@ export function AppHeader({
             <div className="fixed inset-x-2 top-16 sm:absolute sm:inset-x-auto sm:right-0 sm:top-full sm:mt-2 w-auto sm:w-96 max-w-[calc(100vw-1rem)] rounded-2xl border border-default bg-surface-raised shadow-2xl z-50 overflow-hidden animate-fade-in">
               <div className="flex items-center justify-between border-b border-default px-4 py-3 bg-surface-sunken/40">
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold text-default">Factory Telemetry & Alerts</span>
+                  <span className="text-xs font-bold text-default">{i18n.language === 'bn' ? 'ফ্যাক্টরি টেলিমেট্রি ও সতর্কতা' : 'Factory Telemetry & Alerts'}</span>
                   {unreadCount > 0 && (
                     <span className="rounded-full bg-red-500/20 text-red-600 dark:text-red-400 border border-red-500/30 px-2 py-0.5 text-[10px] font-bold">
-                      {unreadCount} new
+                      {unreadCount} {i18n.language === 'bn' ? 'টি নতুন' : 'new'}
                     </span>
                   )}
                 </div>
@@ -660,7 +660,7 @@ export function AppHeader({
                     className="text-[11px] font-semibold text-primary hover:underline flex items-center gap-1 focus-visible:ring-focus cursor-pointer"
                   >
                     <Check className="size-3" />
-                    Mark read
+                    {i18n.language === 'bn' ? 'সব পঠিত চিহ্নিত করুন' : 'Mark read'}
                   </button>
                 )}
               </div>
@@ -668,7 +668,7 @@ export function AppHeader({
               <div className="max-h-80 overflow-y-auto divide-y divide-default">
                 {notifications.length === 0 ? (
                   <div className="p-6 text-center text-xs text-muted">
-                    No active notifications
+                    {i18n.language === 'bn' ? 'কোনো সক্রিয় নোটিফিকেশন নেই' : 'No active notifications'}
                   </div>
                 ) : (
                   notifications.map((notif) => (
@@ -788,7 +788,7 @@ export function AppHeader({
                   className="sm:hidden flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:bg-indigo-500/10 transition-token-colors cursor-pointer"
                 >
                   <Compass className="size-3.5" />
-                  <span>Interactive System Tour</span>
+                  <span>{t('navigation.systemTour', 'Interactive System Tour')}</span>
                 </button>
 
                 <Link
@@ -797,7 +797,7 @@ export function AppHeader({
                   className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-medium text-default hover:bg-surface-sunken transition-token-colors focus-visible:ring-focus"
                 >
                   <User className="size-3.5 text-primary" />
-                  <span>Profile & Account</span>
+                  <span>{i18n.language === 'bn' ? 'প্রোফাইল ও অ্যাকাউন্ট' : 'Profile & Account'}</span>
                 </Link>
 
                 <Link
@@ -806,7 +806,7 @@ export function AppHeader({
                   className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-medium text-default hover:bg-surface-sunken transition-token-colors focus-visible:ring-focus"
                 >
                   <Trash2 className="size-3.5 text-red-500" />
-                  <span>Data Bin & Recovery</span>
+                  <span>{t('navigation.items.bin', 'Data Bin & Recovery')}</span>
                 </Link>
 
                 <button
@@ -818,7 +818,7 @@ export function AppHeader({
                   className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-medium text-red-500 hover:bg-red-500/10 transition-token-colors focus-visible:ring-focus cursor-pointer"
                 >
                   <LogOut className="size-3.5" />
-                  <span>Sign out</span>
+                  <span>{t('common:action.signOut', 'Sign out')}</span>
                 </button>
               </div>
             </div>

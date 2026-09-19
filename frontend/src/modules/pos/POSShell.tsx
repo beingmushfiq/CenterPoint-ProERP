@@ -38,6 +38,7 @@ import { useDocumentPrint } from '../../components/print/useDocumentPrint';
 import { ThermalReceipt } from '../../components/print/receipts/ThermalReceipt';
 import { SalesInvoiceDocument } from '../../components/print/documents/SalesInvoiceDocument';
 import { useBusinessConfig } from '../../lib/document/useBusinessConfig';
+import { LanguageSwitcher } from '../../components/ui/LanguageSwitcher';
 import { PosExchangeModal } from './components/PosExchangeModal';
 import { PosReturnModal } from './components/PosReturnModal';
 
@@ -854,6 +855,9 @@ export function POSShell({ session, onExit }: POSShellProps) {
               {heldSales.length}
             </span>
           </button>
+
+          {/* POS Global Language Switcher */}
+          <LanguageSwitcher />
 
           <button
             onClick={onExit}

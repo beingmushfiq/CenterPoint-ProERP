@@ -22,6 +22,21 @@ declare module 'i18next' {
       validation: (typeof en)['validation'];
       notifications: (typeof en)['notifications'];
       printing: (typeof en)['printing'];
+      platform: (typeof en)['platform'];
+      storefront: (typeof en)['storefront'];
+      catalogue: (typeof en)['catalogue'];
+      production: (typeof en)['production'];
+      inventory: (typeof en)['inventory'];
+      purchasing: (typeof en)['purchasing'];
+      sales: (typeof en)['sales'];
+      pos: (typeof en)['pos'];
+      logistics: (typeof en)['logistics'];
+      finance: (typeof en)['finance'];
+      hr: (typeof en)['hr'];
+      qc: (typeof en)['qc'];
+      assets: (typeof en)['assets'];
+      settings: (typeof en)['settings'];
+      documents: (typeof en)['documents'];
     };
   }
 }

@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { Invoice } from '../../../types/api/sales';
 import type { BusinessConfig } from '../../../lib/document/useBusinessConfig';
 import {
@@ -26,6 +27,7 @@ export function SalesInvoiceDocument({
   copyType = 'ORIGINAL',
   signatureLabels,
 }: SalesInvoiceDocumentProps) {
+  const { t } = useTranslation('documents');
   const qrSvg = useMemo(() => {
     const invPrefix = (businessConfig.name || 'ERP').replace(/[^a-zA-Z0-9]/g, '').slice(0, 10).toUpperCase() || 'ERP';
     return generateBarcodeSvg({
@@ -113,7 +115,7 @@ export function SalesInvoiceDocument({
               {copyType}
             </span>
             <h2 className="text-lg font-black text-slate-950 uppercase tracking-tight">
-              Tax Invoice
+              {t('invoice')}
             </h2>
           </div>
 
@@ -128,7 +130,7 @@ export function SalesInvoiceDocument({
 
           <div className="text-[8pt] text-slate-600 space-y-0.5 font-mono">
             <div>
-              <span className="text-slate-500 font-sans">Date: </span>
+              <span className="text-slate-500 font-sans">{t('date')}: </span>
               <span className="font-bold text-slate-900">{formatDocumentDate(invoice.invoice_date)}</span>
             </div>
             {invoice.due_date && (
@@ -146,7 +148,7 @@ export function SalesInvoiceDocument({
         {/* Customer Info */}
         <div>
           <span className="text-[7.5pt] font-bold uppercase tracking-wider text-slate-500 block mb-1">
-            Bill To (Customer Information)
+            {t('billTo')}
           </span>
           <div className="font-bold text-slate-950 text-[9.5pt]">
             {invoice.customer_name || 'Walk-in Retail Customer'}
@@ -199,12 +201,12 @@ export function SalesInvoiceDocument({
           <thead className="bg-slate-100 border-b border-slate-300 text-[7.5pt] font-bold uppercase text-slate-700 tracking-wider">
             <tr>
               <th className="py-2 px-2 border-r border-slate-300 w-8 text-center">#</th>
-              <th className="py-2 px-2.5 border-r border-slate-300">Item Description & SKU</th>
-              <th className="py-2 px-2 border-r border-slate-300 text-right w-16">Qty</th>
-              <th className="py-2 px-2 border-r border-slate-300 text-right w-20">Rate ({currencySymbol})</th>
-              <th className="py-2 px-2 border-r border-slate-300 text-right w-16">Disc ({currencySymbol})</th>
-              <th className="py-2 px-2 border-r border-slate-300 text-right w-16">VAT ({currencySymbol})</th>
-              <th className="py-2 px-2.5 text-right w-24">Total Amount ({currencySymbol})</th>
+              <th className="py-2 px-2.5 border-r border-slate-300">{t('item')}</th>
+              <th className="py-2 px-2 border-r border-slate-300 text-right w-16">{t('qty')}</th>
+              <th className="py-2 px-2 border-r border-slate-300 text-right w-20">{t('rate')} ({currencySymbol})</th>
+              <th className="py-2 px-2 border-r border-slate-300 text-right w-16">{t('discount')} ({currencySymbol})</th>
+              <th className="py-2 px-2 border-r border-slate-300 text-right w-16">{t('vatTax')} ({currencySymbol})</th>
+              <th className="py-2 px-2.5 text-right w-24">{t('amount')} ({currencySymbol})</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-200">

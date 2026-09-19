@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { usePlatformAuthStore } from '../../lib/auth/platformAuthStore';
 import { ShieldCheck, LogOut, Terminal, Sun, Moon, Menu } from 'lucide-react';
+import { LanguageSwitcher } from '../ui/LanguageSwitcher';
 
 interface PlatformHeaderProps {
   onToggleSidebar?: () => void;
@@ -72,6 +73,9 @@ export const PlatformHeader: React.FC<PlatformHeaderProps> = ({ onToggleSidebar 
         >
           {theme === 'dark' ? <Sun className="size-4 text-amber-400" /> : <Moon className="size-4 text-default" />}
         </button>
+
+        {/* Global Language Switcher */}
+        <LanguageSwitcher />
 
         {/* Super Admin Pill */}
         <div className="hidden sm:flex items-center gap-3 px-3 py-1.5 bg-surface-sunken rounded-xl border border-default text-xs text-default shadow-2xs">

@@ -1,5 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Minus, Plus, ShoppingBag, Trash2, X, ArrowRight } from 'lucide-react';
 import { useStorefrontCartStore } from '../../lib/storefront/storefrontCartStore';
 import type { StorefrontConfig } from '../../types/api/storefront';
@@ -11,6 +12,7 @@ interface StorefrontCartDrawerProps {
 }
 
 export const StorefrontCartDrawer: React.FC<StorefrontCartDrawerProps> = ({ config, subdomain }) => {
+  const { t } = useTranslation('storefront');
   const { cart, isDrawerOpen, closeDrawer, updateQuantity, removeItem } =
     useStorefrontCartStore();
   const navigate = useNavigate();
@@ -44,7 +46,7 @@ export const StorefrontCartDrawer: React.FC<StorefrontCartDrawerProps> = ({ conf
           <div className="flex items-center justify-between border-b border-slate-200 dark:border-zinc-800/80 pb-4">
             <div className="flex items-center gap-2">
               <ShoppingBag className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
-              <h2 className="text-base font-bold text-slate-900 dark:text-zinc-100">Your Cart</h2>
+              <h2 className="text-base font-bold text-slate-900 dark:text-zinc-100">{t('cart')}</h2>
               <span className="rounded-full bg-slate-100 dark:bg-zinc-800 px-2 py-0.5 text-xs text-slate-700 dark:text-zinc-300 font-medium">
                 {cart?.item_count ?? 0}
               </span>
@@ -87,10 +89,7 @@ export const StorefrontCartDrawer: React.FC<StorefrontCartDrawerProps> = ({ conf
                 <div className="flex size-16 items-center justify-center rounded-2xl bg-slate-100 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 text-slate-400 dark:text-zinc-600 mb-3 shadow-inner">
                   <ShoppingBag className="size-8" />
                 </div>
-                <p className="text-sm font-bold text-slate-900 dark:text-zinc-200">Your cart is empty</p>
-                <p className="text-xs text-slate-500 dark:text-zinc-500 mt-1 max-w-xs leading-relaxed">
-                  Explore our verified product catalog and add your favorites to get started.
-                </p>
+                <p className="text-sm font-bold text-slate-900 dark:text-zinc-200">{t('emptyCart')}</p>
               </div>
             ) : (
               items.map((item) => (
@@ -208,7 +207,7 @@ export const StorefrontCartDrawer: React.FC<StorefrontCartDrawerProps> = ({ conf
                   </div>
                 )}
                 <div className="flex items-center justify-between text-sm font-bold text-slate-900 dark:text-zinc-100 pt-1 border-t border-slate-200 dark:border-zinc-800/60">
-                  <span>Total</span>
+                  <span>{t('estimatedTotal')}</span>
                   <span
                     style={{ color: 'var(--store-primary, #10b981)' }}
                     className="font-mono font-extrabold"
@@ -228,7 +227,7 @@ export const StorefrontCartDrawer: React.FC<StorefrontCartDrawerProps> = ({ conf
                   }}
                   className="w-full flex items-center justify-center gap-2 rounded-xl py-3 text-xs font-bold shadow-lg transition-all cursor-pointer active:scale-98 hover:opacity-90"
                 >
-                  <span>Proceed to Checkout</span>
+                  <span>{t('proceedToCheckout')}</span>
                   <ArrowRight className="h-4 w-4" />
                 </button>
 

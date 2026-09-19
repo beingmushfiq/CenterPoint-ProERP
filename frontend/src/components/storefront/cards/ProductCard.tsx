@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { ShoppingBag, Eye, Heart, Star, Check, Zap, MessageCircle } from 'lucide-react';
 import type { StorefrontProduct } from '../../../types/api/storefront';
 import type { ProductCardStyle } from '../../../lib/storefront/storefrontDesignSystem';
@@ -35,6 +36,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   showBadge = true,
   showQuickView = true,
 }) => {
+  const { t } = useTranslation('storefront');
   const navigate = useNavigate();
   const [addedAnim, setAddedAnim] = useState(false);
   const { addItem: addCartItem } = useStorefrontCartStore();
@@ -154,7 +156,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               className="flex-1 py-2 text-xs font-bold backdrop-blur-xs transition-opacity hover:opacity-90 shadow-xs cursor-pointer flex items-center justify-center gap-1"
             >
               <Zap className="size-3 fill-current" />
-              <span>Order</span>
+              <span>{t('buyNow')}</span>
             </button>
             <button
               type="button"
@@ -247,7 +249,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                 className="text-xs font-bold text-white tracking-wider uppercase hover:underline cursor-pointer flex items-center gap-1"
               >
                 <Zap className="size-3.5 fill-current text-amber-400" />
-                <span>Order</span>
+                <span>{t('buyNow')}</span>
               </button>
               <span className="text-white/40">•</span>
               <button
@@ -256,7 +258,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                 className="text-xs font-medium text-white/90 tracking-wider uppercase hover:underline cursor-pointer flex items-center gap-1"
               >
                 {addedAnim ? <Check className="size-3.5 text-emerald-400" /> : <ShoppingBag className="size-3.5" />}
-                <span>{addedAnim ? 'Added' : 'Cart'}</span>
+                <span>{addedAnim ? t('adding') : t('addToCart')}</span>
               </button>
               <button
                 type="button"
@@ -332,7 +334,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           <div>
             <div className="flex items-center justify-between text-[11px] text-zinc-400 font-mono">
               <span>{product.category?.name || 'General Catalog'}</span>
-              <span className="text-emerald-500 font-medium">In Stock</span>
+              <span className="text-emerald-500 font-medium">{t('inStock')}</span>
             </div>
             <Link to={productUrl} className="block text-xs font-bold text-zinc-900 dark:text-zinc-100 hover:text-blue-600 line-clamp-1 mt-0.5">
               {product.name}
@@ -364,7 +366,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                 title="Add to Cart"
               >
                 {addedAnim ? <Check className="size-3.5 text-emerald-500" /> : <ShoppingBag className="size-3.5" />}
-                <span>{addedAnim ? 'Added' : 'Cart'}</span>
+                <span>{addedAnim ? t('adding') : t('addToCart')}</span>
               </button>
 
               <button
@@ -377,7 +379,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold shadow-xs transition-transform active:scale-95 cursor-pointer hover:opacity-90"
               >
                 <Zap className="size-3.5 fill-current" />
-                <span>Order</span>
+                <span>{t('buyNow')}</span>
               </button>
             </div>
           </div>
@@ -438,7 +440,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             className="absolute bottom-2.5 left-1/2 -translate-x-1/2 bg-white/90 dark:bg-zinc-900/90 text-zinc-900 dark:text-zinc-100 text-xs font-semibold px-3 py-1.5 rounded-lg shadow-md backdrop-blur-md opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-200 cursor-pointer flex items-center gap-1.5"
           >
             <Eye className="size-3.5" />
-            <span>Quick View</span>
+            <span>{t('viewDetails')}</span>
           </button>
         )}
       </Link>
@@ -447,13 +449,13 @@ export const ProductCard: React.FC<ProductCardProps> = ({
       <div className="pt-3.5 flex-1 flex flex-col justify-between space-y-3">
         <div className="space-y-1">
           {product.category && (
-            <p className="text-[11px] font-medium text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">
+            <div className="text-[10px] uppercase font-mono tracking-wider text-zinc-400 truncate">
               {product.category.name}
-            </p>
+            </div>
           )}
           <Link
             to={productUrl}
-            className="block text-xs sm:text-sm font-bold text-zinc-900 dark:text-zinc-100 hover:underline line-clamp-1"
+            className="font-semibold text-xs text-zinc-900 dark:text-zinc-100 hover:text-emerald-600 dark:hover:text-emerald-400 line-clamp-1 transition-colors"
           >
             {product.name}
           </Link>
@@ -496,7 +498,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               aria-label={`Order ${product.name} now`}
             >
               <Zap className="size-3.5 fill-current" />
-              <span>Order</span>
+              <span>{t('buyNow')}</span>
             </button>
 
             {/* Add to Cart */}
@@ -508,7 +510,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               aria-label={`Add ${product.name} to cart`}
             >
               {addedAnim ? <Check className="size-3.5 text-emerald-500" /> : <ShoppingBag className="size-3.5" />}
-              <span>{addedAnim ? 'Added' : 'Cart'}</span>
+              <span>{addedAnim ? t('adding') : t('addToCart')}</span>
             </button>
 
             {/* WhatsApp Ordering */}

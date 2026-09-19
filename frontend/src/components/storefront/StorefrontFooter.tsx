@@ -4,6 +4,7 @@ import { ShieldCheck, Truck, Clock, Store, MessageCircle, Phone, MapPin, Mail, E
 import { getContrastColor } from '../../lib/storefront/themeSync';
 import type { StorefrontConfig } from '../../types/api/storefront';
 import { getStorefrontUrl, normalizeStorefrontPath } from '../../lib/storefront/storefrontUrl';
+import { LanguageSwitcher } from '../ui/LanguageSwitcher';
 
 interface StorefrontFooterProps {
   config: StorefrontConfig | null;
@@ -389,8 +390,11 @@ export const StorefrontFooter: React.FC<StorefrontFooterProps> = ({ config }) =>
             </div>
           )}
 
-          <div className="opacity-60 text-[11px] sm:ml-auto">
-            {copyright}
+          <div className="flex items-center gap-3 sm:ml-auto">
+            <LanguageSwitcher />
+            <div className="opacity-60 text-[11px]">
+              {copyright}
+            </div>
           </div>
         </div>
       </div>

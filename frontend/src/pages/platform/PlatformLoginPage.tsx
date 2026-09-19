@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { usePlatformAuthStore } from '../../lib/auth/platformAuthStore';
 import { ShieldCheck, Lock, Mail, AlertCircle, Layers, ArrowRight } from 'lucide-react';
+import { LanguageSwitcher } from '../../components/ui/LanguageSwitcher';
 
 export const PlatformLoginPage: React.FC = () => {
   const navigate = useNavigate();
@@ -21,7 +22,12 @@ export const PlatformLoginPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-base text-default flex flex-col justify-center items-center px-3 sm:px-4 py-8 overflow-x-hidden selection:bg-amber-500 selection:text-slate-950">
+    <div className="relative min-h-screen bg-base text-default flex flex-col justify-center items-center px-3 sm:px-4 py-8 overflow-x-hidden selection:bg-amber-500 selection:text-slate-950">
+      {/* Top-Right Language Switcher */}
+      <div className="absolute top-4 right-4 sm:top-6 sm:right-6">
+        <LanguageSwitcher />
+      </div>
+
       <div className="w-full max-w-md">
         {/* Brand Banner */}
         <div className="text-center mb-8">

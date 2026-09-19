@@ -22,6 +22,7 @@ import { getStorefrontUrl, normalizeStorefrontPath } from '../../lib/storefront/
 import type { StorefrontConfig } from '../../types/api/storefront';
 
 import { StorefrontThemeToggle } from './StorefrontThemeToggle';
+import { LanguageSwitcher } from '../ui/LanguageSwitcher';
 
 interface StorefrontHeaderProps {
   config: StorefrontConfig | null;
@@ -305,6 +306,9 @@ export const StorefrontHeader: React.FC<StorefrontHeaderProps> = ({ config, subd
               </button>
             )}
 
+            {/* Language Switcher */}
+            <LanguageSwitcher />
+
             {/* Theme Toggler (Adapts cleanly to dark or light navbar) */}
             <StorefrontThemeToggle isDarkNavbar={isDarkNavbar} />
 
@@ -430,6 +434,11 @@ export const StorefrontHeader: React.FC<StorefrontHeaderProps> = ({ config, subd
             </nav>
 
             <div className={`pt-3 border-t flex flex-col gap-2 ${isDarkNavbar ? 'border-white/10' : 'border-black/10 dark:border-white/10'}`}>
+              <div className="flex items-center justify-between px-3 py-1.5 rounded-xl text-xs font-semibold">
+                <span className={isDarkNavbar ? 'text-white/70' : 'text-muted'}>Language / ভাষা:</span>
+                <LanguageSwitcher />
+              </div>
+
               <button
                 type="button"
                 onClick={() => {
