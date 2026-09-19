@@ -32,19 +32,19 @@ class StorefrontTest extends TestCase
         $tenant = Tenant::first();
         TenantContext::bind($tenant->toArray());
 
-        $this->storefront = Storefront::where('subdomain', 'slicemart')->first();
+        $this->storefront = Storefront::firstOrFail();
         $this->product = Product::where('status', 'active')->where('type', '!=', 'raw_material')->first();
     }
 
     public function test_can_fetch_public_storefront_config(): void
     {
         $response = $this->withHeaders([
-            'X-Storefront-Subdomain' => 'slicemart',
+            'X-Storefront-Subdomain' => $this->storefront->subdomain,
         ])->getJson('/api/v1/storefront/config');
 
         $response->assertStatus(200)
             ->assertJsonPath('success', true)
-            ->assertJsonPath('data.subdomain', 'slicemart')
+            ->assertJsonPath('data.subdomain', $this->storefront->subdomain)
             ->assertJsonPath('data.currency', 'BDT')
             ->assertJsonPath('data.status', 'live');
     }
@@ -52,7 +52,7 @@ class StorefrontTest extends TestCase
     public function test_can_fetch_storefront_catalog_products(): void
     {
         $response = $this->withHeaders([
-            'X-Storefront-Subdomain' => 'slicemart',
+            'X-Storefront-Subdomain' => $this->storefront->subdomain,
         ])->getJson('/api/v1/storefront/products');
 
         $response->assertStatus(200)
@@ -68,7 +68,7 @@ class StorefrontTest extends TestCase
     public function test_can_fetch_single_product_details(): void
     {
         $response = $this->withHeaders([
-            'X-Storefront-Subdomain' => 'slicemart',
+            'X-Storefront-Subdomain' => $this->storefront->subdomain,
         ])->getJson("/api/v1/storefront/products/{$this->product->sku}");
 
         $response->assertStatus(200)
@@ -82,7 +82,7 @@ class StorefrontTest extends TestCase
 
         // 1. Add item to cart
         $addResponse = $this->withHeaders([
-            'X-Storefront-Subdomain' => 'slicemart',
+            'X-Storefront-Subdomain' => $this->storefront->subdomain,
             'X-Cart-Session' => $sessionToken,
         ])->postJson('/api/v1/storefront/cart/items', [
             'product_id' => $this->product->id,
@@ -97,7 +97,7 @@ class StorefrontTest extends TestCase
 
         // 2. Update item quantity
         $updateResponse = $this->withHeaders([
-            'X-Storefront-Subdomain' => 'slicemart',
+            'X-Storefront-Subdomain' => $this->storefront->subdomain,
             'X-Cart-Session' => $sessionToken,
         ])->putJson("/api/v1/storefront/cart/items/{$itemId}", [
             'quantity' => 5,
@@ -114,7 +114,7 @@ class StorefrontTest extends TestCase
 
         // 1. Add product to cart
         $this->withHeaders([
-            'X-Storefront-Subdomain' => 'slicemart',
+            'X-Storefront-Subdomain' => $this->storefront->subdomain,
             'X-Cart-Session' => $sessionToken,
         ])->postJson('/api/v1/storefront/cart/items', [
             'product_id' => $this->product->id,
@@ -123,7 +123,7 @@ class StorefrontTest extends TestCase
 
         // 2. Perform Checkout
         $checkoutResponse = $this->withHeaders([
-            'X-Storefront-Subdomain' => 'slicemart',
+            'X-Storefront-Subdomain' => $this->storefront->subdomain,
             'X-Cart-Session' => $sessionToken,
         ])->postJson('/api/v1/storefront/checkout', [
             'customer_name' => 'John Retail Customer',

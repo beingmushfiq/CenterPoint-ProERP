@@ -1,11 +1,11 @@
 {
   "summary": {
-    "totalBackendRoutes": 695,
+    "totalBackendRoutes": 703,
     "totalFrontendApiCalls": 826,
     "matchedCallsCount": 825,
     "unmatchedCallsCount": 0,
     "methodMismatchesCount": 1,
-    "uncalledBackendRoutesCount": 48,
+    "uncalledBackendRoutesCount": 56,
     "duplicateActionsCount": 51
   },
   "unmatchedCalls": [],
@@ -531,6 +531,93 @@
       ]
     },
     {
+      "uri": "api/v1/integrations/webhooks",
+      "methods": [
+        "GET",
+        "HEAD"
+      ],
+      "action": "App\\Modules\\Platform\\Controllers\\TenantWebhookController@index",
+      "middleware": [
+        "api",
+        "auth.jwt",
+        "tenant.resolve",
+        "tenant.active",
+        "permission:integrations.webhook.view"
+      ]
+    },
+    {
+      "uri": "api/v1/integrations/webhooks",
+      "methods": [
+        "POST"
+      ],
+      "action": "App\\Modules\\Platform\\Controllers\\TenantWebhookController@store",
+      "middleware": [
+        "api",
+        "auth.jwt",
+        "tenant.resolve",
+        "tenant.active",
+        "permission:integrations.webhook.create"
+      ]
+    },
+    {
+      "uri": "api/v1/integrations/webhooks/{id}",
+      "methods": [
+        "GET",
+        "HEAD"
+      ],
+      "action": "App\\Modules\\Platform\\Controllers\\TenantWebhookController@show",
+      "middleware": [
+        "api",
+        "auth.jwt",
+        "tenant.resolve",
+        "tenant.active",
+        "permission:integrations.webhook.view"
+      ]
+    },
+    {
+      "uri": "api/v1/integrations/webhooks/{id}",
+      "methods": [
+        "PATCH",
+        "PUT"
+      ],
+      "action": "App\\Modules\\Platform\\Controllers\\TenantWebhookController@update",
+      "middleware": [
+        "api",
+        "auth.jwt",
+        "tenant.resolve",
+        "tenant.active",
+        "permission:integrations.webhook.update"
+      ]
+    },
+    {
+      "uri": "api/v1/integrations/webhooks/{id}",
+      "methods": [
+        "DELETE"
+      ],
+      "action": "App\\Modules\\Platform\\Controllers\\TenantWebhookController@destroy",
+      "middleware": [
+        "api",
+        "auth.jwt",
+        "tenant.resolve",
+        "tenant.active",
+        "permission:integrations.webhook.delete"
+      ]
+    },
+    {
+      "uri": "api/v1/integrations/webhooks/{id}/ping",
+      "methods": [
+        "POST"
+      ],
+      "action": "App\\Modules\\Platform\\Controllers\\TenantWebhookController@ping",
+      "middleware": [
+        "api",
+        "auth.jwt",
+        "tenant.resolve",
+        "tenant.active",
+        "permission:integrations.webhook.manage"
+      ]
+    },
+    {
       "uri": "api/v1/inventory/stock",
       "methods": [
         "GET",
@@ -848,6 +935,33 @@
         "tenant.resolve",
         "tenant.active",
         "tenant.feature:ecommerce"
+      ]
+    },
+    {
+      "uri": "api/v1/tenant/export",
+      "methods": [
+        "POST"
+      ],
+      "action": "App\\Modules\\Platform\\Controllers\\TenantDataExportController@export",
+      "middleware": [
+        "api",
+        "auth.jwt",
+        "tenant.resolve",
+        "tenant.active"
+      ]
+    },
+    {
+      "uri": "api/v1/tenant/export/{exportUuid}/download",
+      "methods": [
+        "GET",
+        "HEAD"
+      ],
+      "action": "App\\Modules\\Platform\\Controllers\\TenantDataExportController@download",
+      "middleware": [
+        "api",
+        "auth.jwt",
+        "tenant.resolve",
+        "tenant.active"
       ]
     },
     {

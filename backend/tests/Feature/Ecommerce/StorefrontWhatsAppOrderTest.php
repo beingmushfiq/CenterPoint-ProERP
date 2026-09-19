@@ -24,8 +24,8 @@ class StorefrontWhatsAppOrderTest extends TestCase
         parent::setUp();
         $this->seed(DatabaseSeeder::class);
 
-        $this->tenant = Tenant::where('slug', 'slicemart')->firstOrFail();
-        $this->storefront = Storefront::where('subdomain', 'slicemart')->firstOrFail();
+        $this->tenant = Tenant::firstOrFail();
+        $this->storefront = Storefront::firstOrFail();
 
         $this->storefront->update([
             'whatsapp_number' => '+8801811223344',
@@ -37,7 +37,7 @@ class StorefrontWhatsAppOrderTest extends TestCase
 
     public function test_can_generate_whatsapp_order_link_for_product(): void
     {
-        $response = $this->withHeader('X-Storefront-Subdomain', 'slicemart')
+        $response = $this->withHeader('X-Storefront-Subdomain', $this->storefront->subdomain)
             ->postJson('/api/v1/storefront/whatsapp/order-link', [
                 'product_id' => $this->product->id,
                 'quantity' => 2,

@@ -26,13 +26,13 @@ class StorefrontCustomerAuthTest extends TestCase
         parent::setUp();
         $this->seed(DatabaseSeeder::class);
 
-        $this->tenant = Tenant::where('slug', 'slicemart')->firstOrFail();
-        $this->storefront = Storefront::where('subdomain', 'slicemart')->firstOrFail();
+        $this->tenant = Tenant::firstOrFail();
+        $this->storefront = Storefront::firstOrFail();
     }
 
     public function test_can_register_new_customer_and_receive_jwt(): void
     {
-        $response = $this->withHeader('X-Storefront-Subdomain', 'slicemart')
+        $response = $this->withHeader('X-Storefront-Subdomain', $this->storefront->subdomain)
             ->postJson('/api/v1/storefront/customer/register', [
                 'name' => 'Sara Tancredi',
                 'phone' => '+8801755555555',
@@ -66,7 +66,7 @@ class StorefrontCustomerAuthTest extends TestCase
     public function test_can_login_customer_and_retrieve_profile_and_orders(): void
     {
         // 1. Register customer
-        $registerRes = $this->withHeader('X-Storefront-Subdomain', 'slicemart')
+        $registerRes = $this->withHeader('X-Storefront-Subdomain', $this->storefront->subdomain)
             ->postJson('/api/v1/storefront/customer/register', [
                 'name' => 'Michael Scofield',
                 'phone' => '+8801766666666',
@@ -79,7 +79,7 @@ class StorefrontCustomerAuthTest extends TestCase
         $customer = StorefrontCustomer::where('phone', '+8801766666666')->firstOrFail();
 
         // 2. Login
-        $loginRes = $this->withHeader('X-Storefront-Subdomain', 'slicemart')
+        $loginRes = $this->withHeader('X-Storefront-Subdomain', $this->storefront->subdomain)
             ->postJson('/api/v1/storefront/customer/login', [
                 'phone' => '+8801766666666',
                 'password' => 'foobar123',
@@ -91,7 +91,7 @@ class StorefrontCustomerAuthTest extends TestCase
 
         // 3. Get profile
         $profileRes = $this->withHeaders([
-            'X-Storefront-Subdomain' => 'slicemart',
+            'X-Storefront-Subdomain' => $this->storefront->subdomain,
             'Authorization' => "Bearer {$loginToken}",
         ])->getJson('/api/v1/storefront/customer/profile');
 
@@ -116,7 +116,7 @@ class StorefrontCustomerAuthTest extends TestCase
 
         // 5. Query customer orders
         $ordersRes = $this->withHeaders([
-            'X-Storefront-Subdomain' => 'slicemart',
+            'X-Storefront-Subdomain' => $this->storefront->subdomain,
             'Authorization' => "Bearer {$loginToken}",
         ])->getJson('/api/v1/storefront/customer/orders');
 
@@ -128,7 +128,7 @@ class StorefrontCustomerAuthTest extends TestCase
 
     public function test_rejects_login_with_invalid_credentials(): void
     {
-        $response = $this->withHeader('X-Storefront-Subdomain', 'slicemart')
+        $response = $this->withHeader('X-Storefront-Subdomain', $this->storefront->subdomain)
             ->postJson('/api/v1/storefront/customer/login', [
                 'phone' => '+8801799999999',
                 'password' => 'wrongpassword',

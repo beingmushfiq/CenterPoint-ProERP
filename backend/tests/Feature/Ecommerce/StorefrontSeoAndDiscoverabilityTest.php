@@ -36,7 +36,7 @@ class StorefrontSeoAndDiscoverabilityTest extends TestCase
         parent::setUp();
         $this->seed(DatabaseSeeder::class);
 
-        $this->tenant = Tenant::where('slug', 'slicemart')->firstOrFail();
+        $this->tenant = Tenant::firstOrFail();
         TenantContext::bind($this->tenant->toArray());
 
         $this->tenantUser = User::withoutTenantScope()->where('email', 'admin@slicemart.test')->firstOrFail();
@@ -56,7 +56,7 @@ class StorefrontSeoAndDiscoverabilityTest extends TestCase
     public function test_sitemap_index_returns_valid_xml(): void
     {
         $response = $this->get('/sitemap.xml', [
-            'X-Storefront-Subdomain' => 'slicemart',
+            'X-Storefront-Subdomain' => $this->tenant->slug,
         ]);
 
         $response->assertStatus(200);
@@ -87,7 +87,7 @@ class StorefrontSeoAndDiscoverabilityTest extends TestCase
         ]);
 
         $response = $this->get('/sitemap-products.xml', [
-            'X-Storefront-Subdomain' => 'slicemart',
+            'X-Storefront-Subdomain' => $this->tenant->slug,
         ]);
 
         $response->assertStatus(200);
@@ -98,7 +98,7 @@ class StorefrontSeoAndDiscoverabilityTest extends TestCase
     public function test_robots_txt_returns_proper_directives_and_sitemap(): void
     {
         $response = $this->get('/robots.txt', [
-            'X-Storefront-Subdomain' => 'slicemart',
+            'X-Storefront-Subdomain' => $this->tenant->slug,
         ]);
 
         $response->assertStatus(200);

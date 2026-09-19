@@ -30,7 +30,7 @@ final class StorefrontFeaturesTest extends TestCase
         parent::setUp();
         $this->seed();
 
-        $this->tenant = Tenant::where('slug', 'slicemart')->firstOrFail();
+        $this->tenant = Tenant::firstOrFail();
         $this->tenantAdmin = User::withoutTenantScope()->where('email', 'admin@slicemart.test')->firstOrFail();
 
         $jwtService = app(JwtService::class);
@@ -54,7 +54,7 @@ final class StorefrontFeaturesTest extends TestCase
 
         $response->assertOk();
         $response->assertJsonPath('success', true);
-        $response->assertJsonPath('data.subdomain', 'slicemart');
+        $response->assertJsonPath('data.subdomain', $this->storefront->subdomain);
 
         // 2. Update settings
         $updateResponse = $this->withHeaders([
@@ -154,7 +154,7 @@ final class StorefrontFeaturesTest extends TestCase
         ]);
 
         $response = $this->withHeaders([
-            'X-Storefront-Subdomain' => 'slicemart',
+            'X-Storefront-Subdomain' => $this->storefront->subdomain,
         ])->getJson('/api/v1/storefront/orders/track?order_number=SO-ONL-20260828-9999');
 
         $response->assertOk();
@@ -183,7 +183,7 @@ final class StorefrontFeaturesTest extends TestCase
 
         // 2. Add product to cart
         $this->withHeaders([
-            'X-Storefront-Subdomain' => 'slicemart',
+            'X-Storefront-Subdomain' => $this->storefront->subdomain,
             'X-Cart-Session' => $sessionToken,
         ])->postJson('/api/v1/storefront/cart/items', [
             'product_id' => $product->id,
@@ -192,7 +192,7 @@ final class StorefrontFeaturesTest extends TestCase
 
         // 3. Apply coupon
         $couponRes = $this->withHeaders([
-            'X-Storefront-Subdomain' => 'slicemart',
+            'X-Storefront-Subdomain' => $this->storefront->subdomain,
             'X-Cart-Session' => $sessionToken,
         ])->postJson('/api/v1/storefront/cart/coupon', [
             'code' => 'SAVE20',
@@ -204,7 +204,7 @@ final class StorefrontFeaturesTest extends TestCase
 
         // 4. Remove coupon
         $removeRes = $this->withHeaders([
-            'X-Storefront-Subdomain' => 'slicemart',
+            'X-Storefront-Subdomain' => $this->storefront->subdomain,
             'X-Cart-Session' => $sessionToken,
         ])->deleteJson('/api/v1/storefront/cart/coupon');
 

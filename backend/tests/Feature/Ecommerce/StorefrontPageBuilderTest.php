@@ -27,7 +27,7 @@ class StorefrontPageBuilderTest extends TestCase
         parent::setUp();
         $this->seed();
 
-        $this->tenant = Tenant::where('slug', 'slicemart')->firstOrFail();
+        $this->tenant = Tenant::firstOrFail();
         $this->tenantUser = User::withoutTenantScope()->where('email', 'admin@slicemart.test')->firstOrFail();
 
         $jwtService = app(JwtService::class);
@@ -128,7 +128,7 @@ class StorefrontPageBuilderTest extends TestCase
 
         // 2. Public storefront request
         $response = $this->withHeaders([
-            'X-Storefront-Subdomain' => 'slicemart',
+            'X-Storefront-Subdomain' => $this->storefront->subdomain,
         ])->getJson('/api/v1/storefront/pages/refund-policy');
 
         $response->assertOk();
@@ -151,7 +151,7 @@ class StorefrontPageBuilderTest extends TestCase
         ]);
 
         $response = $this->withHeaders([
-            'X-Storefront-Subdomain' => 'slicemart',
+            'X-Storefront-Subdomain' => $this->storefront->subdomain,
         ])->getJson('/api/v1/storefront/pages/secret-promo');
 
         $response->assertStatus(404);
@@ -177,7 +177,7 @@ class StorefrontPageBuilderTest extends TestCase
 
         // Verify public customer can fetch home page
         $pubResponse = $this->withHeaders([
-            'X-Storefront-Subdomain' => 'slicemart',
+            'X-Storefront-Subdomain' => $this->storefront->subdomain,
         ])->getJson('/api/v1/storefront/pages/home');
 
         $pubResponse->assertOk();

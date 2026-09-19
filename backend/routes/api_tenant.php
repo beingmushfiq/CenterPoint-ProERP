@@ -1337,6 +1337,10 @@ Route::middleware(['auth.jwt', 'tenant.resolve', 'tenant.active'])
             Route::get('onboarding/state', [App\Modules\Platform\Controllers\TenantOnboardingController::class, 'state'])->name('onboarding.state');
             Route::post('onboarding/step', [App\Modules\Platform\Controllers\TenantOnboardingController::class, 'saveStep'])->name('onboarding.step');
             Route::post('onboarding/complete', [App\Modules\Platform\Controllers\TenantOnboardingController::class, 'complete'])->name('onboarding.complete');
+
+            // Tenant Data Export & Portability (GDPR Art. 20)
+            Route::post('export', [App\Modules\Platform\Controllers\TenantDataExportController::class, 'export'])->name('export');
+            Route::get('export/{exportUuid}/download', [App\Modules\Platform\Controllers\TenantDataExportController::class, 'download'])->name('export.download');
         });
 
         // Industry Profiles & Business Types catalog
@@ -1364,6 +1368,22 @@ Route::middleware(['auth.jwt', 'tenant.resolve', 'tenant.active'])
         // ── Manufacturing Cost Variance Radar ─────────────────────────
         Route::prefix('production')->name('production.')->middleware('module.active:production')->group(static function (): void {
             Route::get('variance-radar', [App\Modules\Production\Controllers\CostVarianceRadarController::class, 'radar'])->name('variance-radar');
+        });
+
+        // ── Webhooks & Integrations Subsystem ─────────────────────────
+        Route::prefix('integrations/webhooks')->name('integrations.webhooks.')->group(static function (): void {
+            Route::get('/', [App\Modules\Platform\Controllers\TenantWebhookController::class, 'index'])
+                ->middleware('permission:integrations.webhook.view')->name('index');
+            Route::post('/', [App\Modules\Platform\Controllers\TenantWebhookController::class, 'store'])
+                ->middleware('permission:integrations.webhook.create')->name('store');
+            Route::get('{id}', [App\Modules\Platform\Controllers\TenantWebhookController::class, 'show'])
+                ->middleware('permission:integrations.webhook.view')->name('show');
+            Route::match(['patch', 'put'], '{id}', [App\Modules\Platform\Controllers\TenantWebhookController::class, 'update'])
+                ->middleware('permission:integrations.webhook.update')->name('update');
+            Route::delete('{id}', [App\Modules\Platform\Controllers\TenantWebhookController::class, 'destroy'])
+                ->middleware('permission:integrations.webhook.delete')->name('destroy');
+            Route::post('{id}/ping', [App\Modules\Platform\Controllers\TenantWebhookController::class, 'ping'])
+                ->middleware('permission:integrations.webhook.manage')->name('ping');
         });
 
         // ── Operations AI Brain (100% Self-Contained Agentic AI) ──────────
