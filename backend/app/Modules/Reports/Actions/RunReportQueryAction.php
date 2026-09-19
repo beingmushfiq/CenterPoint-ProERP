@@ -13,8 +13,11 @@ use App\Modules\Reports\Queries\DailyAttendanceReportQuery;
 use App\Modules\Reports\Queries\DailyProductionReportQuery;
 use App\Modules\Reports\Queries\DeliveredOrdersReportQuery;
 use App\Modules\Reports\Queries\EmployeeDirectoryReportQuery;
+use App\Modules\Reports\Queries\FakeLeadsAuditReportQuery;
 use App\Modules\Reports\Queries\GeneralLedgerSummaryReportQuery;
 use App\Modules\Reports\Queries\IncomeStatementReportQuery;
+use App\Modules\Reports\Queries\LeadConversionRateReportQuery;
+use App\Modules\Reports\Queries\LeadSummaryReportQuery;
 use App\Modules\Reports\Queries\LowStockReportQuery;
 use App\Modules\Reports\Queries\OperatingExpensesReportQuery;
 use App\Modules\Reports\Queries\PayrollSummaryReportQuery;
@@ -27,6 +30,7 @@ use App\Modules\Reports\Queries\ReturnedOrdersReportQuery;
 use App\Modules\Reports\Queries\SalesByCustomerReportQuery;
 use App\Modules\Reports\Queries\SalesByProductReportQuery;
 use App\Modules\Reports\Queries\SalesBySalesmanReportQuery;
+use App\Modules\Reports\Queries\SalesmanLeadsReportQuery;
 use App\Modules\Reports\Queries\SalesPerformanceReportQuery;
 use App\Modules\Reports\Queries\StockLedgerReportQuery;
 use App\Modules\Reports\Queries\StockMovementReportQuery;
@@ -73,6 +77,10 @@ class RunReportQueryAction
         'delivered_orders' => DeliveredOrdersReportQuery::class,
         'returned_orders' => ReturnedOrdersReportQuery::class,
         'courier_performance' => CourierPerformanceReportQuery::class,
+        'lead_summary' => LeadSummaryReportQuery::class,
+        'salesman_leads' => SalesmanLeadsReportQuery::class,
+        'fake_leads_audit' => FakeLeadsAuditReportQuery::class,
+        'conversion_rate_source' => LeadConversionRateReportQuery::class,
     ];
 
     public function execute(string $code, array $filters = [], int $page = 1, int $perPage = 25): array
