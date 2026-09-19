@@ -67,16 +67,18 @@ return Application::configure(basePath: dirname(__DIR__))
             'security.headers' => SecurityHeaders::class,
         ]);
 
-        // Middleware order in the api group (ARCHITECTURE §5.1):
-        //   SecurityHeaders → CorrelationId → SubstituteBindings (route model binding) → throttle.
-        //
-        // NOTE: tenant.resolve and auth.jwt are registered as route-level
-        // middleware on the tenant routes in api_tenant.php.  However,
-        // SubstituteBindings (which resolves {unit:uuid} etc.) runs inside
-        // the api group BEFORE route middleware, so the tenant scope is not
-        // yet bound during route model binding.  This is a known limitation
-        // — tenant isolation for route-model-bound resources is enforced at
-        // the controller/action level (or via a future middleware reorder).
+        // Middleware priority: ensure tenant and auth are resolved BEFORE route model binding runs
+        $middleware->priority([
+            SecurityHeaders::class,
+            CorrelationId::class,
+            App\Core\Http\Middleware\HandleCors::class,
+            App\Core\Http\Middleware\AuthenticateJwt::class,
+            ResolveTenant::class,
+            EnsureTenantActive::class,
+            \Illuminate\Routing\Middleware\SubstituteBindings::class,
+            App\Core\Http\Middleware\AuthorizePermission::class,
+        ]);
+
         $middleware->prependToGroup('api', SecurityHeaders::class);
         $middleware->prependToGroup('api', CorrelationId::class);
         $middleware->prependToGroup('web', SecurityHeaders::class);

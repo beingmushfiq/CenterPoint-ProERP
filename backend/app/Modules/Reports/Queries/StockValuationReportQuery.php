@@ -23,7 +23,9 @@ class StockValuationReportQuery implements ReportQueryInterface
 
     public function query(array $filters, int $page = 1, int $perPage = 25): array
     {
-        $tenantId = $filters['tenant_id'] ?? \Illuminate\Support\Facades\Auth::user()?->tenant_id ?? 1;
+        $tenantId = \App\Core\Tenancy\TenantContext::isBound()
+            ? \App\Core\Tenancy\TenantContext::current()->tenantId()
+            : (\Illuminate\Support\Facades\Auth::user()?->tenant_id ?? (int) config('app.default_tenant_id', 1));
 
         $query = DB::table('stock_balances as sb')
             ->join('products as p', 'sb.product_id', '=', 'p.id')
