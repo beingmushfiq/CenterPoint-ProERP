@@ -13,6 +13,8 @@ use App\Modules\Reports\Queries\LowStockReportQuery;
 use App\Modules\Reports\Queries\PayrollSummaryReportQuery;
 use App\Modules\Reports\Queries\ProductionTargetVsAchievementReportQuery;
 use App\Modules\Reports\Queries\ProductionYieldReportQuery;
+use App\Modules\Reports\Queries\PurchaseDetailsReportQuery;
+use App\Modules\Reports\Queries\PurchaseSummaryReportQuery;
 use App\Modules\Reports\Queries\SalesByCustomerReportQuery;
 use App\Modules\Reports\Queries\SalesByProductReportQuery;
 use App\Modules\Reports\Queries\SalesBySalesmanReportQuery;
@@ -20,6 +22,8 @@ use App\Modules\Reports\Queries\SalesPerformanceReportQuery;
 use App\Modules\Reports\Queries\StockLedgerReportQuery;
 use App\Modules\Reports\Queries\StockMovementReportQuery;
 use App\Modules\Reports\Queries\StockValuationReportQuery;
+use App\Modules\Reports\Queries\SupplierDueReportQuery;
+use App\Modules\Reports\Queries\SupplierPurchaseReportQuery;
 use App\Modules\Reports\Queries\WorkerProductionReportQuery;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -39,6 +43,10 @@ class RunReportQueryAction
         'stock_ledger' => StockLedgerReportQuery::class,
         'stock_movement' => StockMovementReportQuery::class,
         'low_stock' => LowStockReportQuery::class,
+        'purchase_summary' => PurchaseSummaryReportQuery::class,
+        'purchase_details' => PurchaseDetailsReportQuery::class,
+        'supplier_purchase' => SupplierPurchaseReportQuery::class,
+        'supplier_due' => SupplierDueReportQuery::class,
         'sales_performance' => SalesPerformanceReportQuery::class,
         'sales_by_product' => SalesByProductReportQuery::class,
         'sales_by_customer' => SalesByCustomerReportQuery::class,
