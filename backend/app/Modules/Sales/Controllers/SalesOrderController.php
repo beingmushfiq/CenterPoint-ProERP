@@ -7,6 +7,7 @@ namespace App\Modules\Sales\Controllers;
 use App\Core\Tenancy\TenantContext;
 use App\Http\Controllers\Controller;
 use App\Modules\Sales\Actions\ApproveSalesOrderAction;
+use App\Modules\Sales\Actions\CancelSalesOrderAction;
 use App\Modules\Sales\Actions\CreateSalesOrderAction;
 use App\Modules\Sales\Models\SalesOrder;
 use App\Modules\Sales\Requests\StoreSalesOrderRequest;
@@ -19,7 +20,8 @@ final class SalesOrderController extends Controller
 {
     public function __construct(
         private readonly CreateSalesOrderAction $createOrder,
-        private readonly ApproveSalesOrderAction $approveOrder
+        private readonly ApproveSalesOrderAction $approveOrder,
+        private readonly CancelSalesOrderAction $cancelOrder
     ) {}
 
     public function index(Request $request): AnonymousResourceCollection
@@ -114,13 +116,20 @@ final class SalesOrderController extends Controller
             ->where('id', $id)
             ->firstOrFail();
 
+        if ($validated['status'] === 'cancelled') {
+            $cancelled = $this->cancelOrder->execute(
+                $order,
+                (int) $request->user()?->id,
+                $validated['notes'] ?? null
+            );
+
+            return new SalesOrderResource($cancelled->fresh(['customer', 'warehouse', 'items.product', 'items.unit', 'lead']));
+        }
+
         $order->status = $validated['status'];
         if ($validated['status'] === 'confirmed' && empty($order->confirmed_at)) {
             $order->confirmed_at = now();
             $order->confirmed_by = (int) $request->user()?->id;
-        } elseif ($validated['status'] === 'cancelled') {
-            $order->cancelled_at = now();
-            $order->cancelled_by = (int) $request->user()?->id;
         }
         if (!empty($validated['notes'])) {
             $order->internal_notes = $validated['notes'];
@@ -218,6 +227,26 @@ final class SalesOrderController extends Controller
             'message' => 'Invoice created successfully',
             'data'    => new \App\Modules\Sales\Resources\InvoiceResource($invoice),
         ], 201);
+    }
+
+    public function cancel(int $id, Request $request): SalesOrderResource
+    {
+        $tenantId = TenantContext::current()->tenantId();
+        $validated = $request->validate([
+            'reason' => 'nullable|string',
+        ]);
+
+        $order = SalesOrder::where('tenant_id', $tenantId)
+            ->where('id', $id)
+            ->firstOrFail();
+
+        $cancelled = $this->cancelOrder->execute(
+            $order,
+            (int) $request->user()?->id,
+            $validated['reason'] ?? null
+        );
+
+        return new SalesOrderResource($cancelled->fresh(['customer', 'warehouse', 'items.product', 'items.unit', 'lead']));
     }
 
     public function destroy(int $id): JsonResponse

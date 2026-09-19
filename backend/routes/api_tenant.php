@@ -573,6 +573,8 @@ Route::middleware(['auth.jwt', 'tenant.resolve', 'tenant.active'])
                     ->middleware('permission:sales.order.approve')->name('approve');
                 Route::patch('{id}/status', [App\Modules\Sales\Controllers\SalesOrderController::class, 'updateStatus'])
                     ->middleware('permission:sales.order.approve,sales.order.create')->name('status');
+                Route::post('{id}/cancel', [App\Modules\Sales\Controllers\SalesOrderController::class, 'cancel'])
+                    ->middleware('permission:sales.order.approve,sales.order.create')->name('cancel');
                 Route::post('{id}/payment', [App\Modules\Sales\Controllers\SalesOrderController::class, 'recordPayment'])
                     ->middleware('permission:sales.order.approve,sales.order.create')->name('payment');
                 Route::post('{id}/invoice', [App\Modules\Sales\Controllers\SalesOrderController::class, 'generateInvoice'])
