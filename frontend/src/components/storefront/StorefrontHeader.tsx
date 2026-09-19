@@ -97,7 +97,7 @@ export const StorefrontHeader: React.FC<StorefrontHeaderProps> = ({ config, subd
   const hasStoreInName = /store|storefront/i.test(storeName);
 
   return (
-    <header className="sticky top-0 z-40 w-full max-w-full overflow-hidden transition-all">
+    <header className="sticky top-0 z-40 w-full max-w-full transition-all">
       {/* Top Announcement Ticker Bar */}
       {announcementEnabled && (
         <div
@@ -138,11 +138,11 @@ export const StorefrontHeader: React.FC<StorefrontHeaderProps> = ({ config, subd
           backgroundColor: navbarBg || undefined,
           color: navbarTextColor || undefined,
         }}
-        className={`border-b transition-colors shadow-xs w-full max-w-full overflow-hidden ${
+        className={`border-b transition-colors shadow-xs w-full max-w-full ${
           isDarkNavbar ? 'border-white/10' : 'border-slate-200/90 dark:border-zinc-800/80'
         } ${!navbarBg ? 'bg-white/95 dark:bg-zinc-950/85 backdrop-blur-xl' : 'backdrop-blur-xl'}`}
       >
-        <div className="mx-auto flex h-16 sm:h-17 max-w-7xl items-center justify-between px-2.5 sm:px-6 lg:px-8 gap-1.5 sm:gap-2 w-full overflow-hidden">
+        <div className="mx-auto flex h-16 sm:h-17 max-w-7xl items-center justify-between px-2.5 sm:px-6 lg:px-8 gap-1.5 sm:gap-2 w-full">
           {/* Brand Logo & Name */}
           <div className="flex items-center gap-1 sm:gap-2.5 min-w-0 flex-1">
             {/* Mobile Menu Toggle Button */}
@@ -307,7 +307,7 @@ export const StorefrontHeader: React.FC<StorefrontHeaderProps> = ({ config, subd
             )}
 
             {/* Language Switcher */}
-            <LanguageSwitcher />
+            <LanguageSwitcher variant="storefront" isDark={isDarkNavbar} />
 
             {/* Theme Toggler (Adapts cleanly to dark or light navbar) */}
             <StorefrontThemeToggle isDarkNavbar={isDarkNavbar} />
@@ -436,7 +436,7 @@ export const StorefrontHeader: React.FC<StorefrontHeaderProps> = ({ config, subd
             <div className={`pt-3 border-t flex flex-col gap-2 ${isDarkNavbar ? 'border-white/10' : 'border-black/10 dark:border-white/10'}`}>
               <div className="flex items-center justify-between px-3 py-1.5 rounded-xl text-xs font-semibold">
                 <span className={isDarkNavbar ? 'text-white/70' : 'text-muted'}>Language / ভাষা:</span>
-                <LanguageSwitcher />
+                <LanguageSwitcher variant="storefront" isDark={isDarkNavbar} />
               </div>
 
               <button

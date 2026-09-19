@@ -391,7 +391,7 @@ export const StorefrontFooter: React.FC<StorefrontFooterProps> = ({ config }) =>
           )}
 
           <div className="flex items-center gap-3 sm:ml-auto">
-            <LanguageSwitcher />
+            <LanguageSwitcher variant="footer" />
             <div className="opacity-70 text-[11px] flex flex-wrap items-center gap-1.5">
               <span>{copyright}</span>
               <span className="opacity-40">•</span>
