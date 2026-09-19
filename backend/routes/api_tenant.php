@@ -329,6 +329,14 @@ Route::middleware(['auth.jwt', 'tenant.resolve', 'tenant.active'])
                 Route::delete('{workerProductionEntry:uuid}', [App\Modules\Production\Controllers\WorkerProductionEntryController::class, 'destroy'])
                     ->middleware('permission:production.worker_entry.delete')->name('destroy');
             });
+            Route::prefix('reconciliation')->name('reconciliation.')->group(static function (): void {
+                Route::get('/', [App\Modules\Production\Controllers\BatchReconciliationController::class, 'index'])
+                    ->middleware('permission:production.batch.view')->name('index');
+                Route::get('{uuid}', [App\Modules\Production\Controllers\BatchReconciliationController::class, 'show'])
+                    ->middleware('permission:production.batch.view')->name('show');
+                Route::post('{uuid}/sign-off', [App\Modules\Production\Controllers\BatchReconciliationController::class, 'signOff'])
+                    ->middleware('permission:production.batch.approve')->name('sign-off');
+            });
             Route::post('piece-rate/bulk-import', [App\Modules\Production\Controllers\WorkerProductionEntryController::class, 'bulkImport'])
                 ->middleware('permission:production.worker_entry.create')->name('piece-rate.bulk-import');
         });

@@ -1,11 +1,11 @@
 {
   "summary": {
-    "totalBackendRoutes": 691,
+    "totalBackendRoutes": 695,
     "totalFrontendApiCalls": 826,
     "matchedCallsCount": 825,
     "unmatchedCallsCount": 0,
     "methodMismatchesCount": 1,
-    "uncalledBackendRoutesCount": 44,
+    "uncalledBackendRoutesCount": 48,
     "duplicateActionsCount": 51
   },
   "unmatchedCalls": [],
@@ -511,7 +511,8 @@
         "api",
         "auth.jwt",
         "tenant.resolve",
-        "tenant.active"
+        "tenant.active",
+        "module.active:hr"
       ]
     },
     {
@@ -525,7 +526,8 @@
         "api",
         "auth.jwt",
         "tenant.resolve",
-        "tenant.active"
+        "tenant.active",
+        "module.active:hr"
       ]
     },
     {
@@ -540,6 +542,7 @@
         "auth.jwt",
         "tenant.resolve",
         "tenant.active",
+        "module.active:inventory",
         "permission:inventory.stock.view"
       ]
     },
@@ -625,6 +628,53 @@
       ]
     },
     {
+      "uri": "api/v1/production/reconciliation",
+      "methods": [
+        "GET",
+        "HEAD"
+      ],
+      "action": "App\\Modules\\Production\\Controllers\\BatchReconciliationController@index",
+      "middleware": [
+        "api",
+        "auth.jwt",
+        "tenant.resolve",
+        "tenant.active",
+        "module.active:production",
+        "permission:production.batch.view"
+      ]
+    },
+    {
+      "uri": "api/v1/production/reconciliation/{uuid}",
+      "methods": [
+        "GET",
+        "HEAD"
+      ],
+      "action": "App\\Modules\\Production\\Controllers\\BatchReconciliationController@show",
+      "middleware": [
+        "api",
+        "auth.jwt",
+        "tenant.resolve",
+        "tenant.active",
+        "module.active:production",
+        "permission:production.batch.view"
+      ]
+    },
+    {
+      "uri": "api/v1/production/reconciliation/{uuid}/sign-off",
+      "methods": [
+        "POST"
+      ],
+      "action": "App\\Modules\\Production\\Controllers\\BatchReconciliationController@signOff",
+      "middleware": [
+        "api",
+        "auth.jwt",
+        "tenant.resolve",
+        "tenant.active",
+        "module.active:production",
+        "permission:production.batch.approve"
+      ]
+    },
+    {
       "uri": "api/v1/purchasing/receipts",
       "methods": [
         "GET",
@@ -636,6 +686,7 @@
         "auth.jwt",
         "tenant.resolve",
         "tenant.active",
+        "module.active:purchasing",
         "permission:purchasing.receipt.view"
       ]
     },
@@ -650,6 +701,7 @@
         "auth.jwt",
         "tenant.resolve",
         "tenant.active",
+        "module.active:purchasing",
         "permission:purchasing.receipt.create"
       ]
     },
@@ -665,6 +717,7 @@
         "auth.jwt",
         "tenant.resolve",
         "tenant.active",
+        "module.active:purchasing",
         "permission:purchasing.receipt.view"
       ]
     },
@@ -679,7 +732,22 @@
         "api",
         "auth.jwt",
         "tenant.resolve",
-        "tenant.active"
+        "tenant.active",
+        "module.active:reports"
+      ]
+    },
+    {
+      "uri": "api/v1/sales/orders/{id}/cancel",
+      "methods": [
+        "POST"
+      ],
+      "action": "App\\Modules\\Sales\\Controllers\\SalesOrderController@cancel",
+      "middleware": [
+        "api",
+        "auth.jwt",
+        "tenant.resolve",
+        "tenant.active",
+        "permission:sales.order.approve,sales.order.create"
       ]
     },
     {
