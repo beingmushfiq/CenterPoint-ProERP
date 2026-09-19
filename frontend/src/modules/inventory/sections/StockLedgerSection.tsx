@@ -20,6 +20,7 @@ import {
   X,
   Upload,
   ChevronDown,
+  Trash2,
 } from 'lucide-react';
 import type { StockMovement, StockBalance } from '../../../types/api/inventory';
 import { api } from '../../../lib/api/client';
@@ -187,6 +188,49 @@ export function StockLedgerSection() {
 
   // Multi-Record Selection State for Balances
   const [selectedBalanceIds, setSelectedBalanceIds] = useState<Set<number>>(new Set());
+  const [deletingBalance, setDeletingBalance] = useState<StockBalance | null>(null);
+  const [isBulkDeleteModalOpen, setIsBulkDeleteModalOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleDeleteSingle = async () => {
+    if (!deletingBalance) return;
+    setIsDeleting(true);
+    try {
+      await api.delete(`/inventory/balances/${deletingBalance.id}`);
+      toast.success(`Position for ${deletingBalance.product_name} deleted.`);
+      queryClient.invalidateQueries({ queryKey: ['inventory'] });
+      refetchBalances();
+      setSelectedBalanceIds((prev) => {
+        const next = new Set(prev);
+        next.delete(deletingBalance.id);
+        return next;
+      });
+      setDeletingBalance(null);
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || err?.message || 'Failed to delete stock balance.');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedBalanceIds.size === 0) return;
+    setIsDeleting(true);
+    try {
+      const ids = Array.from(selectedBalanceIds);
+      const res = await api.post('/inventory/balances/bulk-delete', { ids });
+      toast.success((res.data as any)?.message || `Successfully deleted ${ids.length} stock positions.`);
+      queryClient.invalidateQueries({ queryKey: ['inventory'] });
+      refetchBalances();
+      setSelectedBalanceIds(new Set());
+      setIsBulkDeleteModalOpen(false);
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || err?.message || 'Failed to bulk delete stock positions.');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   const headerCheckboxRef = useRef<HTMLInputElement>(null);
 
   const isAllSelected = filteredBalances.length > 0 && selectedBalanceIds.size === filteredBalances.length;
@@ -630,6 +674,18 @@ export function StockLedgerSection() {
                     <Eye className="size-3.5 text-muted" />
                     <span>Inspect Lot Details</span>
                   </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setOpenActionMenuId(null);
+                      setActionMenuAnchor(null);
+                      setDeletingBalance(b);
+                    }}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-xs text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors cursor-pointer border-t border-default/50 mt-1"
+                  >
+                    <Trash2 className="size-3.5" />
+                    <span>Delete Position</span>
+                  </button>
                 </ActionMenuPortal>
               );
             })()}
@@ -807,6 +863,17 @@ export function StockLedgerSection() {
                 }}
               >
                 Adjust Position
+              </Button>
+              <Button
+                variant="danger"
+                onClick={() => {
+                  const b = viewingBalance;
+                  setViewingBalance(null);
+                  setDeletingBalance(b);
+                }}
+              >
+                <Trash2 className="size-3.5 mr-1" />
+                Delete Position
               </Button>
             </div>
           </div>
@@ -1072,6 +1139,15 @@ export function StockLedgerSection() {
 
               <button
                 type="button"
+                onClick={() => setIsBulkDeleteModalOpen(true)}
+                className="flex h-8 items-center gap-1.5 rounded-xl bg-rose-500/10 border border-rose-500/20 px-3 text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-500/20 transition-colors cursor-pointer"
+              >
+                <Trash2 className="size-3" />
+                Delete Selected ({selectedBalanceIds.size})
+              </button>
+
+              <button
+                type="button"
                 onClick={clearSelection}
                 className="flex size-8 items-center justify-center rounded-xl border border-default bg-surface-sunken text-muted hover:text-default transition-colors cursor-pointer ml-1"
                 title="Deselect all (Esc)"
@@ -1094,6 +1170,121 @@ export function StockLedgerSection() {
           refetchMovements();
         }}
       />
+
+      {/* Single Balance Delete Confirmation Modal */}
+      <Modal
+        open={!!deletingBalance}
+        onClose={() => !isDeleting && setDeletingBalance(null)}
+        title="Delete Stock Position"
+        subtitle="Permanent ledger balance removal"
+        size="sm"
+      >
+        {deletingBalance && (
+          <div className="space-y-4 text-xs">
+            <div className="p-3.5 rounded-xl border border-rose-500/20 bg-rose-500/5 text-rose-700 dark:text-rose-400 space-y-2">
+              <div className="flex items-center gap-2 font-semibold">
+                <ShieldAlert className="size-4 shrink-0 text-rose-500" />
+                <span>Confirm Stock Balance Deletion</span>
+              </div>
+              <p className="text-2xs leading-relaxed text-muted">
+                This will purge this stock balance record from the warehouse position and record an offsetting movement in the audit ledger to preserve financial integrity.
+              </p>
+            </div>
+
+            <div className="rounded-xl border border-default p-3 bg-surface-sunken space-y-1.5 font-mono text-2xs">
+              <div className="flex justify-between">
+                <span className="text-muted">Product:</span>
+                <span className="font-semibold text-default truncate max-w-50">{deletingBalance.product_name}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted">SKU:</span>
+                <span className="text-default">{deletingBalance.product_sku}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted">Warehouse:</span>
+                <span className="text-default truncate max-w-50">{deletingBalance.warehouse_name}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted">Available Quantity:</span>
+                <span className="font-bold text-rose-600 dark:text-rose-400">{deletingBalance.quantity}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted">Valuation:</span>
+                <span className="font-bold text-default">{formatCurrency(deletingBalance.total_value)}</span>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2 border-t border-default">
+              <Button
+                variant="ghost"
+                onClick={() => setDeletingBalance(null)}
+                disabled={isDeleting}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="danger"
+                onClick={handleDeleteSingle}
+                disabled={isDeleting}
+              >
+                {isDeleting ? 'Deleting...' : 'Confirm Delete'}
+              </Button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* Bulk Balance Delete Confirmation Modal */}
+      <Modal
+        open={isBulkDeleteModalOpen}
+        onClose={() => !isDeleting && setIsBulkDeleteModalOpen(false)}
+        title={`Delete ${selectedBalanceIds.size} Stock Position${selectedBalanceIds.size > 1 ? 's' : ''}`}
+        subtitle="Batch removal of selected inventory balances"
+        size="sm"
+      >
+        <div className="space-y-4 text-xs">
+          <div className="p-3.5 rounded-xl border border-rose-500/20 bg-rose-500/5 text-rose-700 dark:text-rose-400 space-y-2">
+            <div className="flex items-center gap-2 font-semibold">
+              <ShieldAlert className="size-4 shrink-0 text-rose-500" />
+              <span>Permanent Batch Deletion Warning</span>
+            </div>
+            <p className="text-2xs leading-relaxed text-muted">
+              You are about to delete <strong>{selectedBalanceIds.size}</strong> stock balance positions across your warehouses. Offsetting audit ledger movements will be recorded automatically to preserve balance sheet consistency.
+            </p>
+          </div>
+
+          <div className="rounded-xl border border-default p-3 bg-surface-sunken text-2xs space-y-1">
+            <div className="text-muted">Total Positions Selected: <strong className="text-default">{selectedBalanceIds.size}</strong></div>
+            <div className="text-muted">
+              Total Valuation to be Purged:{' '}
+              <strong className="text-rose-600 dark:text-rose-400 font-mono">
+                {formatCurrency(
+                  filteredBalances
+                    .filter((b) => selectedBalanceIds.has(b.id))
+                    .reduce((sum, b) => sum + parseFloat(b.total_value || '0'), 0)
+                )}
+              </strong>
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-2 pt-2 border-t border-default">
+            <Button
+              variant="ghost"
+              onClick={() => setIsBulkDeleteModalOpen(false)}
+              disabled={isDeleting}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="danger"
+              onClick={handleBulkDelete}
+              disabled={isDeleting}
+            >
+              {isDeleting ? 'Deleting...' : `Delete ${selectedBalanceIds.size} Positions`}
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

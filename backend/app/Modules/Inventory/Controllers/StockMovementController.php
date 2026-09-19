@@ -411,4 +411,114 @@ final class StockMovementController extends Controller
 
         return StockBalanceResource::collection($balances);
     }
+
+    public function destroyBalance(int $id): JsonResponse
+    {
+        $tenantId = TenantContext::current()->tenantId();
+        $userId = Auth::id();
+
+        $balance = StockBalance::with(['product', 'warehouse'])
+            ->where('tenant_id', $tenantId)
+            ->where('id', $id)
+            ->firstOrFail();
+
+        DB::transaction(function () use ($balance, $tenantId, $userId) {
+            $qty = (float) $balance->quantity;
+            if ($qty > 0) {
+                $unitId = Unit::query()->where('tenant_id', $tenantId)->value('id') ?? 1;
+                $movNumber = 'MOV-DEL-' . date('YmdHis') . '-' . strtoupper(Str::random(6));
+
+                DB::table('stock_movements')->insert([
+                    'tenant_id' => $tenantId,
+                    'uuid' => (string) Str::uuid(),
+                    'movement_number' => $movNumber,
+                    'product_id' => $balance->product_id,
+                    'warehouse_id' => $balance->warehouse_id,
+                    'warehouse_location_id' => $balance->warehouse_location_id,
+                    'batch_code' => $balance->batch_code,
+                    'movement_type' => 'waste_spoilage',
+                    'direction' => 'out',
+                    'stock_state' => $balance->stock_state,
+                    'quantity' => $qty,
+                    'unit_id' => $unitId,
+                    'unit_cost' => (float) $balance->average_cost,
+                    'total_cost' => $qty * (float) $balance->average_cost,
+                    'balance_after' => 0,
+                    'reference_type' => 'stock_position_deletion',
+                    'moved_at' => now(),
+                    'created_by' => $userId,
+                    'created_at' => now(),
+                ]);
+            }
+
+            $balance->delete();
+        });
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Stock balance position deleted successfully.',
+        ]);
+    }
+
+    public function bulkDestroyBalances(Request $request): JsonResponse
+    {
+        $tenantId = TenantContext::current()->tenantId();
+        $userId = Auth::id();
+
+        $validated = $request->validate([
+            'ids' => ['required', 'array', 'min:1'],
+            'ids.*' => ['required', 'integer'],
+        ]);
+
+        $ids = $validated['ids'];
+
+        $balances = StockBalance::with(['product', 'warehouse'])
+            ->where('tenant_id', $tenantId)
+            ->whereIn('id', $ids)
+            ->get();
+
+        $deletedCount = 0;
+
+        DB::transaction(function () use ($balances, $tenantId, $userId, &$deletedCount) {
+            $unitId = Unit::query()->where('tenant_id', $tenantId)->value('id') ?? 1;
+
+            foreach ($balances as $balance) {
+                $qty = (float) $balance->quantity;
+                if ($qty > 0) {
+                    $movNumber = 'MOV-DEL-' . date('YmdHis') . '-' . strtoupper(Str::random(6));
+
+                    DB::table('stock_movements')->insert([
+                        'tenant_id' => $tenantId,
+                        'uuid' => (string) Str::uuid(),
+                        'movement_number' => $movNumber,
+                        'product_id' => $balance->product_id,
+                        'warehouse_id' => $balance->warehouse_id,
+                        'warehouse_location_id' => $balance->warehouse_location_id,
+                        'batch_code' => $balance->batch_code,
+                        'movement_type' => 'waste_spoilage',
+                        'direction' => 'out',
+                        'stock_state' => $balance->stock_state,
+                        'quantity' => $qty,
+                        'unit_id' => $unitId,
+                        'unit_cost' => (float) $balance->average_cost,
+                        'total_cost' => $qty * (float) $balance->average_cost,
+                        'balance_after' => 0,
+                        'reference_type' => 'stock_position_bulk_deletion',
+                        'moved_at' => now(),
+                        'created_by' => $userId,
+                        'created_at' => now(),
+                    ]);
+                }
+
+                $balance->delete();
+                $deletedCount++;
+            }
+        });
+
+        return response()->json([
+            'success' => true,
+            'message' => "Successfully deleted {$deletedCount} stock balance position(s).",
+            'deleted_count' => $deletedCount,
+        ]);
+    }
 }
