@@ -9,6 +9,9 @@ use App\Modules\Reports\Models\ReportDefinition;
 use App\Modules\Reports\Queries\GeneralLedgerSummaryReportQuery;
 use App\Modules\Reports\Queries\PayrollSummaryReportQuery;
 use App\Modules\Reports\Queries\ProductionYieldReportQuery;
+use App\Modules\Reports\Queries\SalesByCustomerReportQuery;
+use App\Modules\Reports\Queries\SalesByProductReportQuery;
+use App\Modules\Reports\Queries\SalesBySalesmanReportQuery;
 use App\Modules\Reports\Queries\SalesPerformanceReportQuery;
 use App\Modules\Reports\Queries\StockValuationReportQuery;
 use Illuminate\Support\Facades\DB;
@@ -23,6 +26,9 @@ class RunReportQueryAction
         'production_yield' => ProductionYieldReportQuery::class,
         'stock_valuation' => StockValuationReportQuery::class,
         'sales_performance' => SalesPerformanceReportQuery::class,
+        'sales_by_product' => SalesByProductReportQuery::class,
+        'sales_by_customer' => SalesByCustomerReportQuery::class,
+        'sales_by_salesman' => SalesBySalesmanReportQuery::class,
         'gl_summary' => GeneralLedgerSummaryReportQuery::class,
         'payroll_summary' => PayrollSummaryReportQuery::class,
     ];
