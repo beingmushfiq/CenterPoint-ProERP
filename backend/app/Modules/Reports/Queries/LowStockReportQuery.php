@@ -7,7 +7,7 @@ namespace App\Modules\Reports\Queries;
 use App\Modules\Reports\Contracts\ReportQueryInterface;
 use App\Modules\Reports\DataProviders\InventoryDataProvider;
 
-class StockValuationReportQuery implements ReportQueryInterface
+class LowStockReportQuery implements ReportQueryInterface
 {
     protected InventoryDataProvider $provider;
 
@@ -21,19 +21,19 @@ class StockValuationReportQuery implements ReportQueryInterface
         return [
             'sku' => ['label' => 'SKU', 'type' => 'string', 'sortable' => true],
             'product_name' => ['label' => 'Product Name', 'type' => 'string'],
-            'category' => ['label' => 'Category', 'type' => 'string'],
-            'product_type' => ['label' => 'Type', 'type' => 'badge'],
-            'warehouse_name' => ['label' => 'Warehouse', 'type' => 'string'],
-            'batch_code' => ['label' => 'Batch #', 'type' => 'string'],
-            'quantity_on_hand' => ['label' => 'Qty On Hand', 'type' => 'number'],
-            'unit_cost' => ['label' => 'Unit Cost (BDT)', 'type' => 'currency'],
-            'total_valuation' => ['label' => 'Total Valuation (BDT)', 'type' => 'currency'],
+            'current_stock' => ['label' => 'Current Stock', 'type' => 'number', 'sortable' => true],
+            'reorder_level' => ['label' => 'Safety Threshold', 'type' => 'number'],
+            'suggested_reorder_qty' => ['label' => 'Suggested Reorder', 'type' => 'number'],
+            'deficit' => ['label' => 'Stock Deficit', 'type' => 'number'],
+            'unit_cost' => ['label' => 'Standard Cost (BDT)', 'type' => 'currency'],
+            'restock_cost' => ['label' => 'Estimated Restock Cost (BDT)', 'type' => 'currency'],
+            'status' => ['label' => 'Alert Severity', 'type' => 'badge'],
         ];
     }
 
     public function query(array $filters, int $page = 1, int $perPage = 25): array
     {
-        return $this->provider->valuation($filters, $page, $perPage);
+        return $this->provider->lowStock($filters, $page, $perPage);
     }
 
     public function summary(array $filters): array

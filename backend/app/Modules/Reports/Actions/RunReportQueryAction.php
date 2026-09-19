@@ -6,13 +6,17 @@ namespace App\Modules\Reports\Actions;
 
 use App\Modules\Reports\Contracts\ReportQueryInterface;
 use App\Modules\Reports\Models\ReportDefinition;
+use App\Modules\Reports\Queries\CurrentStockReportQuery;
 use App\Modules\Reports\Queries\GeneralLedgerSummaryReportQuery;
+use App\Modules\Reports\Queries\LowStockReportQuery;
 use App\Modules\Reports\Queries\PayrollSummaryReportQuery;
 use App\Modules\Reports\Queries\ProductionYieldReportQuery;
 use App\Modules\Reports\Queries\SalesByCustomerReportQuery;
 use App\Modules\Reports\Queries\SalesByProductReportQuery;
 use App\Modules\Reports\Queries\SalesBySalesmanReportQuery;
 use App\Modules\Reports\Queries\SalesPerformanceReportQuery;
+use App\Modules\Reports\Queries\StockLedgerReportQuery;
+use App\Modules\Reports\Queries\StockMovementReportQuery;
 use App\Modules\Reports\Queries\StockValuationReportQuery;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -25,6 +29,10 @@ class RunReportQueryAction
     protected array $queryMap = [
         'production_yield' => ProductionYieldReportQuery::class,
         'stock_valuation' => StockValuationReportQuery::class,
+        'current_stock' => CurrentStockReportQuery::class,
+        'stock_ledger' => StockLedgerReportQuery::class,
+        'stock_movement' => StockMovementReportQuery::class,
+        'low_stock' => LowStockReportQuery::class,
         'sales_performance' => SalesPerformanceReportQuery::class,
         'sales_by_product' => SalesByProductReportQuery::class,
         'sales_by_customer' => SalesByCustomerReportQuery::class,

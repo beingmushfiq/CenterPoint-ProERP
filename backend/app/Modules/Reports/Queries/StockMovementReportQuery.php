@@ -7,7 +7,7 @@ namespace App\Modules\Reports\Queries;
 use App\Modules\Reports\Contracts\ReportQueryInterface;
 use App\Modules\Reports\DataProviders\InventoryDataProvider;
 
-class StockValuationReportQuery implements ReportQueryInterface
+class StockMovementReportQuery implements ReportQueryInterface
 {
     protected InventoryDataProvider $provider;
 
@@ -21,19 +21,17 @@ class StockValuationReportQuery implements ReportQueryInterface
         return [
             'sku' => ['label' => 'SKU', 'type' => 'string', 'sortable' => true],
             'product_name' => ['label' => 'Product Name', 'type' => 'string'],
-            'category' => ['label' => 'Category', 'type' => 'string'],
-            'product_type' => ['label' => 'Type', 'type' => 'badge'],
-            'warehouse_name' => ['label' => 'Warehouse', 'type' => 'string'],
-            'batch_code' => ['label' => 'Batch #', 'type' => 'string'],
-            'quantity_on_hand' => ['label' => 'Qty On Hand', 'type' => 'number'],
-            'unit_cost' => ['label' => 'Unit Cost (BDT)', 'type' => 'currency'],
-            'total_valuation' => ['label' => 'Total Valuation (BDT)', 'type' => 'currency'],
+            'total_in' => ['label' => 'Total Inflow', 'type' => 'number'],
+            'total_out' => ['label' => 'Total Outflow', 'type' => 'number'],
+            'net_change' => ['label' => 'Net Movement', 'type' => 'number'],
+            'transaction_count' => ['label' => 'Total Transactions', 'type' => 'number', 'sortable' => true],
+            'last_movement' => ['label' => 'Latest Movement', 'type' => 'datetime'],
         ];
     }
 
     public function query(array $filters, int $page = 1, int $perPage = 25): array
     {
-        return $this->provider->valuation($filters, $page, $perPage);
+        return $this->provider->movement($filters, $page, $perPage);
     }
 
     public function summary(array $filters): array

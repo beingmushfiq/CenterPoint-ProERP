@@ -7,7 +7,7 @@ namespace App\Modules\Reports\Queries;
 use App\Modules\Reports\Contracts\ReportQueryInterface;
 use App\Modules\Reports\DataProviders\InventoryDataProvider;
 
-class StockValuationReportQuery implements ReportQueryInterface
+class CurrentStockReportQuery implements ReportQueryInterface
 {
     protected InventoryDataProvider $provider;
 
@@ -21,19 +21,19 @@ class StockValuationReportQuery implements ReportQueryInterface
         return [
             'sku' => ['label' => 'SKU', 'type' => 'string', 'sortable' => true],
             'product_name' => ['label' => 'Product Name', 'type' => 'string'],
-            'category' => ['label' => 'Category', 'type' => 'string'],
-            'product_type' => ['label' => 'Type', 'type' => 'badge'],
-            'warehouse_name' => ['label' => 'Warehouse', 'type' => 'string'],
-            'batch_code' => ['label' => 'Batch #', 'type' => 'string'],
-            'quantity_on_hand' => ['label' => 'Qty On Hand', 'type' => 'number'],
-            'unit_cost' => ['label' => 'Unit Cost (BDT)', 'type' => 'currency'],
-            'total_valuation' => ['label' => 'Total Valuation (BDT)', 'type' => 'currency'],
+            'warehouse' => ['label' => 'Warehouse', 'type' => 'string'],
+            'available_qty' => ['label' => 'Available', 'type' => 'number'],
+            'reserved_qty' => ['label' => 'Reserved', 'type' => 'number'],
+            'damaged_qty' => ['label' => 'Damaged', 'type' => 'number'],
+            'total_on_hand' => ['label' => 'Total On-Hand', 'type' => 'number', 'sortable' => true],
+            'reorder_level' => ['label' => 'Reorder Point', 'type' => 'number'],
+            'status' => ['label' => 'Status', 'type' => 'badge'],
         ];
     }
 
     public function query(array $filters, int $page = 1, int $perPage = 25): array
     {
-        return $this->provider->valuation($filters, $page, $perPage);
+        return $this->provider->currentStock($filters, $page, $perPage);
     }
 
     public function summary(array $filters): array
