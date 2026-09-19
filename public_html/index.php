@@ -33,7 +33,6 @@ if (!defined('LARAVEL_START')) {
 $possiblePaths = [
     __DIR__ . '/../backend',
     __DIR__ . '/../projects/proerp/backend',
-    '/home.devcente/projects/proerp/backend',
     '/home/devcente/projects/proerp/backend',
     '/home/devcente/repositories/proerp/backend',
     '/home/devcente/backend',

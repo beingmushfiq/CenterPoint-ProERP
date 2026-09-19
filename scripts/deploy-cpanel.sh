@@ -29,46 +29,30 @@ set -euo pipefail
 #           → repo-relative (local dev fallback)
 # ------------------------------------------------------------------------------
 CPANEL_USER="${CPANEL_USER:-devcente}"
-
-if [ -d "/home.devcente" ]; then
-    DETECTED_HOME="/home.devcente"
-elif [ -d "/home/devcente" ]; then
-    DETECTED_HOME="/home/devcente"
-else
-    DETECTED_HOME="${HOME:-/home/${CPANEL_USER}}"
-fi
-HOME_DIR="${HOME_DIR:-${DETECTED_HOME}}"
+HOME_DIR="${HOME:-/home/${CPANEL_USER}}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
 # Backend: prefer projects/proerp/backend (canonical multi-project path)
-if [ -n "${BACKEND_DIR:-}" ]; then
-    : # already set
-elif [ -d "/home.devcente/projects/proerp/backend" ]; then
-    BACKEND_DIR="/home.devcente/projects/proerp/backend"
-elif [ -d "${HOME_DIR}/projects/proerp/backend" ]; then
+if [ -d "${HOME_DIR}/projects/proerp/backend" ]; then
     BACKEND_DIR="${HOME_DIR}/projects/proerp/backend"
 elif [ -d "${HOME_DIR}/backend" ]; then
     # Legacy single-project layout — still works but deprecated
     BACKEND_DIR="${HOME_DIR}/backend"
-    echo "WARNING: Using legacy /home/devcente/backend path. Migrate to ${HOME_DIR}/projects/proerp/backend."
+    echo "WARNING: Using legacy /home/devcente/backend path. Migrate to /home/devcente/projects/proerp/backend."
 else
     BACKEND_DIR="${REPO_DIR}/backend"
 fi
 
 # Document root for ProERP SPA + API: prefer projects/proerp/public
-if [ -n "${PUBLIC_HTML_DIR:-}" ]; then
-    : # already set
-elif [ -d "/home.devcente/projects/proerp/public" ]; then
-    PUBLIC_HTML_DIR="/home.devcente/projects/proerp/public"
-elif [ -d "${HOME_DIR}/projects/proerp/public" ]; then
+if [ -d "${HOME_DIR}/projects/proerp/public" ]; then
     PUBLIC_HTML_DIR="${HOME_DIR}/projects/proerp/public"
 elif [ -d "${HOME_DIR}/public_html" ]; then
     # Legacy fallback — but note public_html is now reserved for the portfolio
     PUBLIC_HTML_DIR="${HOME_DIR}/public_html"
     echo "WARNING: Using legacy /home/devcente/public_html as ProERP document root."
     echo "         This conflicts with the portfolio at devcenterpoint.com."
-    echo "         Migrate ProERP to ${HOME_DIR}/projects/proerp/public."
+    echo "         Migrate ProERP to /home/devcente/projects/proerp/public."
 else
     PUBLIC_HTML_DIR="${REPO_DIR}/public_html"
 fi

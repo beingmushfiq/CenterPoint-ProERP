@@ -45,17 +45,11 @@ for arg in "$@"; do
         --seed)
             FORCE_SEED=true
             ;;
-        --backend-target=*)
-            BACKEND_TARGET="${arg#*=}"
-            ;;
-        --public-target=*)
-            PUBLIC_TARGET="${arg#*=}"
-            ;;
         --branch=*)
             GIT_BRANCH="${arg#*=}"
             ;;
         --help|-h)
-            echo "Usage: $0 [--skip-git] [--skip-build] [--seed] [--branch=main] [--backend-target=DIR] [--public-target=DIR]"
+            echo "Usage: $0 [--skip-git] [--skip-build] [--seed] [--branch=main]"
             exit 0
             ;;
         *)
@@ -68,15 +62,7 @@ done
 # 1. Environment & Path Resolution
 # ------------------------------------------------------------------------------
 CPANEL_USER="${CPANEL_USER:-$(whoami)}"
-
-if [ -d "/home.devcente" ]; then
-    DETECTED_HOME="/home.devcente"
-elif [ -d "/home/devcente" ]; then
-    DETECTED_HOME="/home/devcente"
-else
-    DETECTED_HOME="${HOME:-/home/${CPANEL_USER}}"
-fi
-HOME_DIR="${HOME_DIR:-${DETECTED_HOME}}"
+HOME_DIR="${HOME:-/home/${CPANEL_USER}}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Resolve repository directory (either parent of scripts/ or current working dir)
@@ -88,12 +74,12 @@ else
     REPO_DIR="$(pwd)"
 fi
 
-PROERP_ROOT="${PROERP_ROOT:-${HOME_DIR}/projects/proerp}"
-BACKEND_TARGET="${BACKEND_TARGET:-${PROERP_ROOT}/backend}"
-PUBLIC_TARGET="${PUBLIC_TARGET:-${PROERP_ROOT}/public}"
-SCRIPTS_TARGET="${SCRIPTS_TARGET:-${HOME_DIR}/scripts}"
-PORTFOLIO_DIR="${PORTFOLIO_DIR:-${HOME_DIR}/public_html}"
-LOG_DIR="${LOG_DIR:-${HOME_DIR}/logs}"
+PROERP_ROOT="${HOME_DIR}/projects/proerp"
+BACKEND_TARGET="${PROERP_ROOT}/backend"
+PUBLIC_TARGET="${PROERP_ROOT}/public"
+SCRIPTS_TARGET="${HOME_DIR}/scripts"
+PORTFOLIO_DIR="${HOME_DIR}/public_html"
+LOG_DIR="${HOME_DIR}/logs"
 
 mkdir -p "${LOG_DIR}"
 LOG_FILE="${LOG_DIR}/deploy-$(date '+%Y-%m-%d').log"
@@ -198,9 +184,6 @@ fi
 # ------------------------------------------------------------------------------
 echo "--- Executing deploy-cpanel.sh ---" | tee -a "${LOG_FILE}"
 export FORCE_SEED="${FORCE_SEED}"
-export BACKEND_DIR="${BACKEND_TARGET}"
-export PUBLIC_HTML_DIR="${PUBLIC_TARGET}"
-export HOME_DIR="${HOME_DIR}"
 
 DEPLOY_CPANEL_SCRIPT=""
 if [ -f "${SCRIPTS_TARGET}/deploy-cpanel.sh" ]; then
