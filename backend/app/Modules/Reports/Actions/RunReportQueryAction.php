@@ -7,7 +7,9 @@ namespace App\Modules\Reports\Actions;
 use App\Modules\Reports\Contracts\ReportQueryInterface;
 use App\Modules\Reports\Models\ReportDefinition;
 use App\Modules\Reports\Queries\CurrentStockReportQuery;
+use App\Modules\Reports\Queries\DailyAttendanceReportQuery;
 use App\Modules\Reports\Queries\DailyProductionReportQuery;
+use App\Modules\Reports\Queries\EmployeeDirectoryReportQuery;
 use App\Modules\Reports\Queries\GeneralLedgerSummaryReportQuery;
 use App\Modules\Reports\Queries\LowStockReportQuery;
 use App\Modules\Reports\Queries\PayrollSummaryReportQuery;
@@ -24,6 +26,7 @@ use App\Modules\Reports\Queries\StockMovementReportQuery;
 use App\Modules\Reports\Queries\StockValuationReportQuery;
 use App\Modules\Reports\Queries\SupplierDueReportQuery;
 use App\Modules\Reports\Queries\SupplierPurchaseReportQuery;
+use App\Modules\Reports\Queries\WorkerPieceRateReportQuery;
 use App\Modules\Reports\Queries\WorkerProductionReportQuery;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -51,8 +54,11 @@ class RunReportQueryAction
         'sales_by_product' => SalesByProductReportQuery::class,
         'sales_by_customer' => SalesByCustomerReportQuery::class,
         'sales_by_salesman' => SalesBySalesmanReportQuery::class,
-        'gl_summary' => GeneralLedgerSummaryReportQuery::class,
         'payroll_summary' => PayrollSummaryReportQuery::class,
+        'employee_directory' => EmployeeDirectoryReportQuery::class,
+        'daily_attendance' => DailyAttendanceReportQuery::class,
+        'worker_piece_rate_summary' => WorkerPieceRateReportQuery::class,
+        'gl_summary' => GeneralLedgerSummaryReportQuery::class,
     ];
 
     public function execute(string $code, array $filters = [], int $page = 1, int $perPage = 25): array
