@@ -168,10 +168,24 @@ export const PlatformSidebar: React.FC<PlatformSidebarProps> = ({ mobileOpen = f
       </div>
 
       {/* Footer Info */}
-      <div className="p-3 border-t border-(--nav-border) text-[10px] text-muted space-y-1 bg-(--nav-bg-deep)">
-        <div className="flex items-center gap-1 text-muted">
-          <Sparkles className="size-3 text-amber-500" />
-          <span>Universal Platform Core v2.0</span>
+      <div className="p-3 border-t border-(--nav-border) text-[10px] text-muted space-y-1.5 bg-(--nav-bg-deep)">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-1 text-muted">
+            <Sparkles className="size-3 text-amber-500" />
+            <span>Platform Core v2.0</span>
+          </div>
+          <span className="font-mono text-[9px] uppercase tracking-wider text-muted/60">Ready</span>
+        </div>
+        <div className="pt-1 border-t border-(--nav-border)/40 flex items-center justify-between text-[10px]">
+          <span className="text-muted/70">Engineered by</span>
+          <a
+            href="https://devcenterpoint.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-amber-500 hover:text-amber-400 font-semibold transition-colors"
+          >
+            DevCenterPoint
+          </a>
         </div>
       </div>
     </div>

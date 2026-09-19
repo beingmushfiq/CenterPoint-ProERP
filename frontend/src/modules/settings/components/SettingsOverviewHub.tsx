@@ -273,6 +273,36 @@ export const SettingsOverviewHub: React.FC<SettingsOverviewHubProps> = ({
           ))}
         </div>
       </div>
+
+      {/* DevCenterPoint Engineering & Platform Architecture Card */}
+      <div className="rounded-2xl border border-default bg-surface p-6 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-3.5">
+          <div className="size-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-600 dark:text-amber-400 shrink-0">
+            <Sparkles className="size-5" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h3 className="text-sm font-bold text-default">DevCenterPoint ProERP Platform Engine</h3>
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-surface-sunken border border-default text-muted">
+                v2.0 Enterprise
+              </span>
+            </div>
+            <p className="text-xs text-muted mt-0.5">
+              High-throughput multi-tenant SaaS, manufacturing MRP, headless e-commerce storefronts & logistics automation.
+            </p>
+          </div>
+        </div>
+
+        <a
+          href="https://devcenterpoint.com"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-surface-sunken hover:bg-surface border border-default hover:border-primary text-xs font-semibold text-default transition-colors shadow-2xs group cursor-pointer"
+        >
+          <span>devcenterpoint.com</span>
+          <ChevronRight className="size-3.5 text-muted group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
+        </a>
+      </div>
     </div>
   );
 };

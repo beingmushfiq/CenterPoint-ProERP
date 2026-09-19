@@ -128,6 +128,21 @@ export const PlatformLoginPage: React.FC = () => {
             </div>
           </form>
         </div>
+
+        <div className="mt-6 text-center">
+          <p className="text-xs text-muted font-mono">
+            Engineered by{' '}
+            <a
+              href="https://devcenterpoint.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-amber-500 hover:text-amber-400 font-semibold transition-colors"
+            >
+              DevCenterPoint
+            </a>
+            {' '}• Cloud ERP & Platform Solutions
+          </p>
+        </div>
       </div>
     </div>
   );

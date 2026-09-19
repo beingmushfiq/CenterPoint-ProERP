@@ -172,7 +172,7 @@ export const SettingsCenterWorkspace: React.FC = () => {
   const getGroupLabel = useCallback(
     (key: string): string => {
       const i18nKey = `settings.groupLabels.${key}`;
-      return t(i18nKey as any, { defaultValue: GROUP_LABELS[key] || schema[key]?.title || key });
+      return t(i18nKey as never, { defaultValue: GROUP_LABELS[key] || schema[key]?.title || key });
     },
     [t, schema]
   );
@@ -286,10 +286,10 @@ export const SettingsCenterWorkspace: React.FC = () => {
     let isMounted = true;
     const loadSchema = async () => {
       try {
-        const res = await api.get<any>('/settings/schema');
+        const res = await api.get<{ data?: SettingsSchemaDictionary } | SettingsSchemaDictionary>('/settings/schema');
         if (isMounted && res.data) {
-          const dict = (res.data && typeof res.data === 'object' && 'data' in res.data)
-            ? (res.data as any).data
+          const dict = (typeof res.data === 'object' && 'data' in res.data && res.data.data)
+            ? res.data.data
             : res.data;
           if (dict && typeof dict === 'object') {
             setSchema(dict as SettingsSchemaDictionary);
@@ -348,9 +348,9 @@ export const SettingsCenterWorkspace: React.FC = () => {
     try {
       setLoading(true);
       setErrorMessage(null);
-      const res = await api.get<any>(`/settings/${group}`);
-      const payload = (res.data && typeof res.data === 'object' && 'data' in res.data)
-        ? (res.data as any).data
+      const res = await api.get<{ data?: { settings?: Record<string, SettingItem> }; settings?: Record<string, SettingItem> }>(`/settings/${group}`);
+      const payload = (res.data && typeof res.data === 'object' && 'data' in res.data && res.data.data)
+        ? res.data.data
         : res.data;
 
       if (payload?.settings) {
@@ -422,12 +422,12 @@ export const SettingsCenterWorkspace: React.FC = () => {
         }
       });
 
-      const res = await api.put<any>(
+      const res = await api.put<{ data?: { settings?: Record<string, SettingItem> }; settings?: Record<string, SettingItem> }>(
         `/settings/${activeGroup}`,
         { settings: payload }
       );
-      const resPayload = (res.data && typeof res.data === 'object' && 'data' in res.data)
-        ? (res.data as any).data
+      const resPayload = (res.data && typeof res.data === 'object' && 'data' in res.data && res.data.data)
+        ? res.data.data
         : res.data;
 
       if (resPayload?.settings) {
@@ -466,11 +466,11 @@ export const SettingsCenterWorkspace: React.FC = () => {
     try {
       setSaving(true);
       setErrorMessage(null);
-      const res = await api.post<any>(
+      const res = await api.post<{ data?: { settings?: Record<string, SettingItem> }; settings?: Record<string, SettingItem> }>(
         `/settings/${activeGroup}/reset`
       );
-      const resPayload = (res.data && typeof res.data === 'object' && 'data' in res.data)
-        ? (res.data as any).data
+      const resPayload = (res.data && typeof res.data === 'object' && 'data' in res.data && res.data.data)
+        ? res.data.data
         : res.data;
 
       if (resPayload?.settings) {

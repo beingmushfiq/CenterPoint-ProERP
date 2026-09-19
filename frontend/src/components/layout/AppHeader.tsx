@@ -820,6 +820,18 @@ export function AppHeader({
                   <LogOut className="size-3.5" />
                   <span>{t('common:action.signOut', 'Sign out')}</span>
                 </button>
+
+                <div className="mt-1 pt-2 border-t border-default/60 px-3 py-1.5 flex items-center justify-between text-[10px] text-muted">
+                  <span>ProERP Engine</span>
+                  <a
+                    href="https://devcenterpoint.com"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary hover:underline font-semibold transition-colors"
+                  >
+                    DevCenterPoint
+                  </a>
+                </div>
               </div>
             </div>
           )}

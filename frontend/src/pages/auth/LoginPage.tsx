@@ -425,9 +425,20 @@ export default function LoginPage() {
         </div>
 
         {/* Footer */}
-        <div className="border-t border-default pt-4 text-center">
+        <div className="border-t border-default pt-4 text-center space-y-1">
           <p className="text-[11px] text-muted">
             {displayName} &bull; Business Operations Platform
+          </p>
+          <p className="text-[10px] text-muted/75">
+            Powered by{' '}
+            <a
+              href="https://devcenterpoint.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary hover:underline font-medium transition-colors"
+            >
+              DevCenterPoint
+            </a>
           </p>
         </div>
       </div>

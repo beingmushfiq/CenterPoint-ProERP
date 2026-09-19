@@ -447,21 +447,40 @@ export function Sidebar({ isOpen, onClose, isCollapsed = false, onToggleCollapse
           </div>
         )}
 
-        {/* Desktop Sidebar Bottom Footer with Version & Status */}
-        <div className="hidden lg:flex items-center justify-between border-t border-(--nav-border) px-3 py-2.5 bg-(--nav-bg-deep)/50 shrink-0">
+        {/* Desktop & Mobile Sidebar Bottom Footer with Version, Status & DevCenterPoint Branding */}
+        <div className="flex flex-col border-t border-(--nav-border) px-3 py-2 bg-(--nav-bg-deep)/50 shrink-0 gap-1">
           {!isCollapsed ? (
             <>
-              <div className="flex items-center gap-1.5 text-xs text-muted/80">
-                <span className="size-1.5 rounded-full bg-emerald-500" />
-                <span className="font-medium text-[11px]">{tenantTier}</span>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5 text-xs text-muted/80">
+                  <span className="size-1.5 rounded-full bg-emerald-500" />
+                  <span className="font-medium text-[11px]">{tenantTier}</span>
+                </div>
+                <span className="text-[9px] font-mono text-muted/60 uppercase">{appVersion}</span>
               </div>
-              <span className="text-[9px] font-mono text-muted/60 uppercase">{appVersion}</span>
+              <div className="text-[10px] text-muted/70 flex items-center justify-between pt-0.5 border-t border-(--nav-border)/40">
+                <span className="truncate">{i18n.language === 'bn' ? 'প্রকৌশল:' : 'Engineered by:'}</span>
+                <a
+                  href="https://devcenterpoint.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-medium text-primary hover:underline transition-colors shrink-0"
+                >
+                  DevCenterPoint
+                </a>
+              </div>
             </>
           ) : (
             <div className="w-full flex items-center justify-center py-0.5">
-              <span className="text-[9px] font-mono text-muted/60 uppercase" title={`${tenantDisplayName} ${appVersion}`}>
-                {appVersion}
-              </span>
+              <a
+                href="https://devcenterpoint.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                title="Engineered by DevCenterPoint (https://devcenterpoint.com)"
+                className="text-[9px] font-mono font-bold text-muted/60 hover:text-primary transition-colors"
+              >
+                DCP
+              </a>
             </div>
           )}
         </div>
