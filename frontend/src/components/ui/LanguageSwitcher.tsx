@@ -42,18 +42,17 @@ export function LanguageSwitcher({
   };
 
   // Button styles depending on variant
-  let buttonClasses = '';
-  if (variant === 'storefront') {
-    buttonClasses = isDark
-      ? 'border-white/15 bg-white/10 text-white/90 hover:bg-white/20 hover:text-white'
-      : 'border-slate-200 dark:border-zinc-800 bg-slate-100 dark:bg-zinc-900/90 text-slate-700 dark:text-zinc-200 hover:text-slate-900 dark:hover:text-white hover:border-slate-300 dark:hover:border-zinc-700';
-  } else if (variant === 'footer') {
-    buttonClasses =
-      'border-slate-200 dark:border-zinc-800 bg-slate-100 dark:bg-zinc-900 text-slate-700 dark:text-zinc-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/80 dark:hover:bg-zinc-800';
-  } else {
-    buttonClasses =
-      'text-muted hover:bg-surface-sunken hover:text-default border-transparent hover:border-default/30';
-  }
+  const buttonClasses = (() => {
+    if (variant === 'storefront') {
+      return isDark
+        ? 'border-white/15 bg-white/10 text-white/90 hover:bg-white/20 hover:text-white'
+        : 'border-slate-200 dark:border-zinc-800 bg-slate-100 dark:bg-zinc-900/90 text-slate-700 dark:text-zinc-200 hover:text-slate-900 dark:hover:text-white hover:border-slate-300 dark:hover:border-zinc-700';
+    }
+    if (variant === 'footer') {
+      return 'border-slate-200 dark:border-zinc-800 bg-slate-100 dark:bg-zinc-900 text-slate-700 dark:text-zinc-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/80 dark:hover:bg-zinc-800';
+    }
+    return 'text-muted hover:bg-surface-sunken hover:text-default border-transparent hover:border-default/30';
+  })();
 
   const isUpward = variant === 'footer';
 
