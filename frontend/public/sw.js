@@ -2,39 +2,46 @@
 // MULTI-ZONE SERVICE WORKER (ERP Console vs E-Commerce Storefront)
 // ─────────────────────────────────────────────────────────────
 
-const ERP_CACHE_NAME = 'slicemart-erp-cache-v2';
-const STORE_CACHE_NAME = 'slicemart-storefront-cache-v2';
+const ERP_CACHE_NAME = 'slicemart-erp-cache-v3';
+const STORE_CACHE_NAME = 'slicemart-storefront-cache-v3';
 
-const ERP_STATIC_ASSETS = [
-  '/',
-  '/dashboard',
-  '/index.html',
+// Only pre-cache static immutable shell assets.
+// Never pre-cache index.html or root navigation to prevent stale module chunk mismatches.
+const STATIC_ASSETS = [
   '/favicon.svg',
   '/manifest.json',
 ];
 
-// 1. Install event — pre-cache core shells
+// 1. Install event — pre-cache core immutable assets
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(ERP_CACHE_NAME).then((cache) => {
-      return cache.addAll(ERP_STATIC_ASSETS);
+      return cache.addAll(STATIC_ASSETS);
     }).then(() => self.skipWaiting())
   );
 });
 
-// 2. Activate event — purge obsolete versions
+// 2. Activate event — immediately purge ALL obsolete cache generations
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) => {
       return Promise.all(
         keys.map((key) => {
           if (key !== ERP_CACHE_NAME && key !== STORE_CACHE_NAME) {
+            console.log('[SW] Purging obsolete cache:', key);
             return caches.delete(key);
           }
         })
       );
     }).then(() => self.clients.claim())
   );
+});
+
+// Allow client app to trigger immediate skipWaiting
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
 });
 
 // 3. Fetch event — route-aware caching strategy
@@ -48,10 +55,10 @@ self.addEventListener('fetch', (event) => {
   const isStorefront = url.pathname.startsWith('/store') || url.pathname.includes('/storefront');
   const targetCache = isStorefront ? STORE_CACHE_NAME : ERP_CACHE_NAME;
 
-  // A. Navigation requests: Network First -> Cache -> Offline Fallback
+  // A. Navigation requests: Network First (strictly fresh from server) -> Cache Fallback (offline only)
   if (request.mode === 'navigate') {
     event.respondWith(
-      fetch(request)
+      fetch(request, { cache: 'no-cache' })
         .then((response) => {
           if (response.status === 200) {
             const clone = response.clone();
@@ -81,6 +88,7 @@ self.addEventListener('fetch', (event) => {
       caches.match(request).then((cached) => {
         if (cached) return cached;
         return fetch(request).then((response) => {
+          // Cache successful responses
           if (response.status === 200) {
             const clone = response.clone();
             caches.open(targetCache).then((cache) => cache.put(request, clone));

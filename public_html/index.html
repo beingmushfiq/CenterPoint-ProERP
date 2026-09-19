@@ -304,7 +304,7 @@
         }
       }
     </style>
-    <script type="module" crossorigin src="/assets/index-BQymEjkv.js"></script>
+    <script type="module" crossorigin src="/assets/index-Br4bCAtX.js"></script>
     <link rel="modulepreload" crossorigin href="/assets/rolldown-runtime-hePW80VL.js">
     <link rel="modulepreload" crossorigin href="/assets/createLucideIcon-CyrWxPaY.js">
     <link rel="modulepreload" crossorigin href="/assets/query-CGhxzULL.js">
@@ -387,7 +387,24 @@
           btn.type = 'button';
           btn.textContent = 'Retry';
           btn.addEventListener('click', function () {
-            location.reload();
+            btn.disabled = true;
+            btn.textContent = 'Updating…';
+            try {
+              if ('caches' in window) {
+                caches.keys().then(function (names) {
+                  return Promise.all(names.map(function(n) { return caches.delete(n); }));
+                }).catch(function() {});
+              }
+              if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.getRegistrations().then(function (regs) {
+                  for (var i = 0; i < regs.length; i++) regs[i].unregister();
+                }).catch(function() {});
+              }
+            } catch(e) {}
+            setTimeout(function () {
+              var sep = location.href.indexOf('?') === -1 ? '?' : '&';
+              location.replace(location.href.split('#')[0] + sep + '_refresh=' + Date.now());
+            }, 350);
           });
           boot.appendChild(btn);
           if (correlationId) {
@@ -398,24 +415,55 @@
           }
         }
 
-        /* Honest escalation. Silence, then an acknowledgement, then an exit. */
+        /* Check if React has mounted its tree to avoid hanging if bootDone was skipped */
+        function checkMounted() {
+          var r = document.getElementById('root');
+          return Boolean(r && r.childNodes && r.childNodes.length > 0);
+        }
+
+        /* Honest escalation. Silence, check mount, acknowledgement, then exit. */
         timers.push(
           setTimeout(function () {
+            if (checkMounted() && window.__boot) {
+              window.__boot.done();
+              return;
+            }
             show('Still loading…');
-          }, 8000)
+          }, 6000)
         );
         timers.push(
           setTimeout(function () {
+            if (checkMounted() && window.__boot) {
+              window.__boot.done();
+              return;
+            }
             show('This is taking longer than expected.');
             escalate(null);
-          }, 20000)
+          }, 12000)
         );
+
+        /* Catch script errors or network failures during startup so the loader fails fast with a refresh affordance */
+        window.addEventListener('error', function (evt) {
+          if (window.__boot && !checkMounted()) {
+            console.error('[Boot] Startup exception caught:', evt);
+            show('Application assets updating. Click Retry to reload.');
+            escalate(null);
+          }
+        }, true);
+
+        window.addEventListener('unhandledrejection', function (evt) {
+          if (window.__boot && !checkMounted()) {
+            console.error('[Boot] Startup rejection caught:', evt);
+            show('Application assets updating. Click Retry to reload.');
+            escalate(null);
+          }
+        });
 
         /* Safety net: if the module bundle itself never executes, the loader is
            the only thing on screen and would sit silently. Mark the milestone
            the browser can prove. */
         window.addEventListener('load', function () {
-          if (window.__boot && Date.now() - started < 20000) window.__boot.step('scripts');
+          if (window.__boot && Date.now() - started < 12000) window.__boot.step('scripts');
         });
       })();
     </script>

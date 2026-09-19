@@ -63,11 +63,19 @@ function syncPublicHtml() {
     let removedCount = 0;
     let copiedCount = 0;
 
-    // Remove stale chunk files not present in new build
+    // Keep stale chunk files for 48 hours so in-flight client sessions can transition without 404s
+    const RETENTION_MS = 48 * 60 * 60 * 1000;
+    const now = Date.now();
     for (const oldFile of oldAssets) {
       if (!newAssets.has(oldFile)) {
-        fs.unlinkSync(path.join(targetAssetsDir, oldFile));
-        removedCount++;
+        try {
+          const filePath = path.join(targetAssetsDir, oldFile);
+          const stat = fs.statSync(filePath);
+          if (now - stat.mtimeMs > RETENTION_MS) {
+            fs.unlinkSync(filePath);
+            removedCount++;
+          }
+        } catch (e) {}
       }
     }
 

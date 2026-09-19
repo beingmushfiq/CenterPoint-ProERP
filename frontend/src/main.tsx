@@ -22,6 +22,12 @@ bootStep('scripts');
    React call stack. Idempotent — safe to call once. */
 installGlobalErrorHandlers();
 
+/* Automatically reload if a dynamic import fails due to new asset hash deployment */
+window.addEventListener('vite:preloadError', (event) => {
+  console.warn('[Vite] Preload chunk error detected, reloading...', event);
+  window.location.reload();
+});
+
 /* §7.6 rule 1 — reduced motion is resolved once, globally, at the provider
    level. The pre-paint script in index.html has already reconciled the stored
    user preference with the OS setting and written the result to
