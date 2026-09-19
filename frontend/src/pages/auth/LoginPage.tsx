@@ -3,21 +3,13 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { AlertCircle, Boxes, CheckCircle, ClipboardCheck, Eye, EyeOff, Factory, Lock, Mail, Moon, Package, ShieldCheck, ShoppingCart, Sun, X } from 'lucide-react';
+import { AlertCircle, CheckCircle, Eye, EyeOff, Lock, Mail, Moon, Package, Sun, X } from 'lucide-react';
 import { useAuthStore } from '../../lib/auth/authStore';
 import { isApiError } from '../../lib/api/errors';
 import { api } from '../../lib/api/client';
 import { toggleThemeWithTransition } from '../../lib/theme/themeTransition';
 import { useTenantBranding } from '../../lib/theme/useTenantBranding';
 import { LanguageSwitcher } from '../../components/ui/LanguageSwitcher';
-
-const QUICK_ROLES = [
-  { label: 'Admin', role: 'Super Admin', email: 'admin@dcp.com', icon: ShieldCheck },
-  { label: 'Production', role: 'Production Lead', email: 'production@dcp.com', icon: Factory },
-  { label: 'QC Inspector', role: 'QC Lead', email: 'qc@dcp.com', icon: ClipboardCheck },
-  { label: 'Storekeeper', role: 'Store In-Charge', email: 'store@dcp.com', icon: Boxes },
-  { label: 'Sales Officer', role: 'Sales Officer', email: 'sales@dcp.com', icon: ShoppingCart },
-] as const;
 
 const loginSchema = z.object({
   email: z.string().min(1, 'Please enter your email, name, or designation'),
@@ -116,12 +108,6 @@ export default function LoginPage() {
       password: '',
     },
   });
-
-  const handleQuickRole = (email: string) => {
-    setValue('email', email, { shouldValidate: true });
-    setValue('password', '12345678', { shouldValidate: true });
-    setServerError(null);
-  };
 
   const handleSendResetLink = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -390,39 +376,6 @@ export default function LoginPage() {
             )}
           </button>
         </form>
-
-        {/* Quick Role Sign-in */}
-        <div className="space-y-2.5 pt-4 border-t border-default">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-muted">
-              Quick Role Login
-            </span>
-            <span className="text-[10px] text-muted">Password: 12345678</span>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {QUICK_ROLES.map((item) => {
-              const Icon = item.icon;
-              return (
-                <button
-                  key={item.email}
-                  type="button"
-                  onClick={() => handleQuickRole(item.email)}
-                  className="group flex flex-1 min-w-24 sm:min-w-26.25 max-w-full flex-col items-start rounded-xl border border-default bg-surface-sunken/60 p-2 text-left transition-all hover:border-primary/40 hover:bg-primary-subtle focus:outline-none focus-visible:ring-2 focus-visible:ring-primary cursor-pointer shadow-2xs"
-                >
-                  <div className="flex items-center gap-1.5 w-full">
-                    <Icon className="h-3.5 w-3.5 text-muted group-hover:text-primary transition-colors shrink-0" />
-                    <span className="text-xs font-semibold text-default group-hover:text-primary transition-colors truncate">
-                      {item.label}
-                    </span>
-                  </div>
-                  <span className="mt-0.5 text-[10px] text-muted group-hover:text-default/80 transition-colors truncate w-full">
-                    {item.role}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
 
         {/* Footer */}
         <div className="border-t border-default pt-4 text-center space-y-1">
