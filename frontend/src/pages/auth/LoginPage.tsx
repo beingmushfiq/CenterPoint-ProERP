@@ -132,8 +132,9 @@ export default function LoginPage() {
       await api.post('/auth/forgot-password', { email: forgotEmail });
       setForgotStatus({ success: 'Reset token dispatched. Check your email inbox.' });
       setForgotStep('reset');
-    } catch (err: any) {
-      setForgotStatus({ error: err?.response?.data?.message || err?.message || 'Failed to dispatch reset email.' });
+    } catch (err: unknown) {
+      const errorObj = err as { response?: { data?: { message?: string } }; message?: string };
+      setForgotStatus({ error: errorObj?.response?.data?.message || errorObj?.message || 'Failed to dispatch reset email.' });
     } finally {
       setIsForgotLoading(false);
     }
@@ -156,8 +157,9 @@ export default function LoginPage() {
         setValue('email', forgotEmail);
         setValue('password', resetPasswordVal);
       }, 1500);
-    } catch (err: any) {
-      setForgotStatus({ error: err?.response?.data?.message || err?.message || 'Failed to reset password.' });
+    } catch (err: unknown) {
+      const errorObj = err as { response?: { data?: { message?: string } }; message?: string };
+      setForgotStatus({ error: errorObj?.response?.data?.message || errorObj?.message || 'Failed to reset password.' });
     } finally {
       setIsForgotLoading(false);
     }
@@ -170,8 +172,9 @@ export default function LoginPage() {
       await selectTenant({ email: pendingEmail, tenant_id: tenantId });
       setShowTenantModal(false);
       navigate(from, { replace: true });
-    } catch (err: any) {
-      setServerError(err?.response?.data?.message || err?.message || 'Tenant selection failed.');
+    } catch (err: unknown) {
+      const errorObj = err as { response?: { data?: { message?: string } }; message?: string };
+      setServerError(errorObj?.response?.data?.message || errorObj?.message || 'Tenant selection failed.');
     } finally {
       setIsLoading(false);
     }
@@ -181,11 +184,21 @@ export default function LoginPage() {
     setServerError(null);
     setIsLoading(true);
     try {
-      const res: any = await api.post('/auth/login', {
+      const res = await api.post<{
+        data?: {
+          requires_tenant_selection?: boolean;
+          tenants?: { id: number; name: string; slug?: string }[];
+        };
+        requires_tenant_selection?: boolean;
+        tenants?: { id: number; name: string; slug?: string }[];
+      }>('/auth/login', {
         email: values.email,
         password: values.password,
       });
-      const data = (res.data && typeof res.data === 'object' && 'data' in res.data) ? res.data.data : res.data;
+      const resPayload = res.data;
+      const data = (resPayload && typeof resPayload === 'object' && 'data' in resPayload && resPayload.data)
+        ? resPayload.data
+        : resPayload;
       if (data?.requires_tenant_selection && Array.isArray(data?.tenants)) {
         setPendingEmail(values.email);
         setAvailableTenants(data.tenants);

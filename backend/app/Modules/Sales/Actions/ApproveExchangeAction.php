@@ -6,6 +6,7 @@ namespace App\Modules\Sales\Actions;
 
 use App\Modules\Inventory\Actions\RecordStockMovementAction;
 use App\Modules\Sales\Models\Exchange;
+use App\Modules\Sales\Models\Invoice;
 use Illuminate\Support\Facades\DB;
 
 final class ApproveExchangeAction
@@ -77,7 +78,8 @@ final class ApproveExchangeAction
 
             // Step 3: Correlate and dynamically update linked Sales Invoice
             if ($exchange->original_invoice_id) {
-                $invoice = \App\Modules\Sales\Models\Invoice::find($exchange->original_invoice_id);
+                /** @var Invoice|null $invoice */
+                $invoice = Invoice::query()->find($exchange->original_invoice_id);
                 if ($invoice) {
                     $diffAmount = (float) $exchange->difference_amount;
 

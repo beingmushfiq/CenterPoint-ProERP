@@ -94,6 +94,21 @@ const MODULE_ICONS: Record<string, React.FC<{ className?: string }>> = {
   Layers: Layers,
 };
 
+const MODULE_ORDER: readonly string[] = [
+  'production',
+  'inventory',
+  'purchasing',
+  'sales',
+  'profit',
+  'crm',
+  'salesmen',
+  'delivery',
+  'hr',
+  'finance',
+  'assets',
+  'qc',
+];
+
 export const ReportsWorkspace: React.FC = () => {
   const { t, i18n } = useTranslation(['reports', 'common']);
   const isBn = i18n.language === 'bn';
@@ -206,21 +221,6 @@ export const ReportsWorkspace: React.FC = () => {
     };
   }, []);
 
-  const MODULE_ORDER = [
-    'production',
-    'inventory',
-    'purchasing',
-    'sales',
-    'profit',
-    'crm',
-    'salesmen',
-    'delivery',
-    'hr',
-    'finance',
-    'assets',
-    'qc',
-  ];
-
   // Filtered definitions based on Module, Category, and Search Query
   const filteredDefinitions = useMemo(() => {
     return definitions
@@ -267,7 +267,7 @@ export const ReportsWorkspace: React.FC = () => {
         }
         return a.name.localeCompare(b.name);
       });
-  }, [definitions, selectedModule, selectedCategory, searchQuery, isBn]);
+  }, [definitions, selectedModule, selectedCategory, searchQuery]);
 
   // Filtered 20 Consolidated Hubs (Phase 5 & 11) based on Module and Search
   const filteredHubs = useMemo(() => {
