@@ -10,12 +10,8 @@ import {
   Microscope,
   Cpu,
   ArrowRight,
-  ShoppingCart,
-  Plus,
   FileText,
-  Boxes,
-  ClipboardCheck,
-  Building2,
+  ShoppingCart,
   CheckCircle2,
   Inbox,
 } from 'lucide-react';
@@ -298,108 +294,7 @@ export const ExecutiveDashboardView: React.FC<ExecutiveDashboardViewProps> = ({
         </div>
       </div>
 
-      {/* ─────────────────────────────────────────────────────────────
-          3. EXECUTIVE QUICK COMMAND HUB
-      ───────────────────────────────────────────────────────────── */}
-      <div className="rounded-2xl border border-default bg-surface p-4 shadow-xs">
-        <div className="flex items-center justify-between mb-3">
-          <span className="text-xs font-bold uppercase tracking-wider text-muted">
-            {t('commandActions.title')}
-          </span>
-          <span className="text-[11px] text-muted">{t('commandActions.subtitle')}</span>
-        </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
-          <Link
-            to="/sales"
-            className="flex items-center gap-2 rounded-xl border border-default bg-surface-sunken/60 hover:bg-primary-subtle hover:border-primary/40 p-2.5 text-left transition-all group cursor-pointer shadow-2xs"
-          >
-            <div className="flex size-7 items-center justify-center rounded-lg bg-blue-500/10 text-blue-600 group-hover:scale-105 transition-transform">
-              <Plus className="size-3.5" />
-            </div>
-            <div className="min-w-0">
-              <div className="text-xs font-bold text-default group-hover:text-primary transition-colors truncate">
-                {t('commandActions.salesOrder')}
-              </div>
-              <div className="text-[10px] text-muted truncate">{t('commandActions.newCommercialPo')}</div>
-            </div>
-          </Link>
 
-          <Link
-            to="/production"
-            className="flex items-center gap-2 rounded-xl border border-default bg-surface-sunken/60 hover:bg-primary-subtle hover:border-primary/40 p-2.5 text-left transition-all group cursor-pointer shadow-2xs"
-          >
-            <div className="flex size-7 items-center justify-center rounded-lg bg-indigo-500/10 text-indigo-600 group-hover:scale-105 transition-transform">
-              <Factory className="size-3.5" />
-            </div>
-            <div className="min-w-0">
-              <div className="text-xs font-bold text-default group-hover:text-primary transition-colors truncate">
-                {t('commandActions.productionPlan')}
-              </div>
-              <div className="text-[10px] text-muted truncate">{t('commandActions.scheduleBatch')}</div>
-            </div>
-          </Link>
-
-          <Link
-            to="/inventory"
-            className="flex items-center gap-2 rounded-xl border border-default bg-surface-sunken/60 hover:bg-primary-subtle hover:border-primary/40 p-2.5 text-left transition-all group cursor-pointer shadow-2xs"
-          >
-            <div className="flex size-7 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600 group-hover:scale-105 transition-transform">
-              <Boxes className="size-3.5" />
-            </div>
-            <div className="min-w-0">
-              <div className="text-xs font-bold text-default group-hover:text-primary transition-colors truncate">
-                {t('commandActions.stockTransfer')}
-              </div>
-              <div className="text-[10px] text-muted truncate">{t('commandActions.whTransfer')}</div>
-            </div>
-          </Link>
-
-          <Link
-            to="/purchasing"
-            className="flex items-center gap-2 rounded-xl border border-default bg-surface-sunken/60 hover:bg-primary-subtle hover:border-primary/40 p-2.5 text-left transition-all group cursor-pointer shadow-2xs"
-          >
-            <div className="flex size-7 items-center justify-center rounded-lg bg-amber-500/10 text-amber-600 group-hover:scale-105 transition-transform">
-              <FileText className="size-3.5" />
-            </div>
-            <div className="min-w-0">
-              <div className="text-xs font-bold text-default group-hover:text-primary transition-colors truncate">
-                {t('commandActions.purchasePo')}
-              </div>
-              <div className="text-[10px] text-muted truncate">{t('commandActions.procureRawMaterials')}</div>
-            </div>
-          </Link>
-
-          <Link
-            to="/qc"
-            className="flex items-center gap-2 rounded-xl border border-default bg-surface-sunken/60 hover:bg-primary-subtle hover:border-primary/40 p-2.5 text-left transition-all group cursor-pointer shadow-2xs"
-          >
-            <div className="flex size-7 items-center justify-center rounded-lg bg-cyan-500/10 text-cyan-600 group-hover:scale-105 transition-transform">
-              <ClipboardCheck className="size-3.5" />
-            </div>
-            <div className="min-w-0">
-              <div className="text-xs font-bold text-default group-hover:text-primary transition-colors truncate">
-                {t('commandActions.qcInspections')}
-              </div>
-              <div className="text-[10px] text-muted truncate">{t('commandActions.auditActiveBatches')}</div>
-            </div>
-          </Link>
-
-          <Link
-            to="/settings"
-            className="flex items-center gap-2 rounded-xl border border-default bg-surface-sunken/60 hover:bg-primary-subtle hover:border-primary/40 p-2.5 text-left transition-all group cursor-pointer shadow-2xs"
-          >
-            <div className="flex size-7 items-center justify-center rounded-lg bg-purple-500/10 text-purple-600 group-hover:scale-105 transition-transform">
-              <Building2 className="size-3.5" />
-            </div>
-            <div className="min-w-0">
-              <div className="text-xs font-bold text-default group-hover:text-primary transition-colors truncate">
-                {t('commandActions.organization')}
-              </div>
-              <div className="text-[10px] text-muted truncate">{t('commandActions.settingsMaster')}</div>
-            </div>
-          </Link>
-        </div>
-      </div>
 
       {/* ─────────────────────────────────────────────────────────────
           4. CROSS-DEPARTMENT OPERATIONAL HEALTH MATRIX
