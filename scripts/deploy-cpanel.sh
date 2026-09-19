@@ -31,7 +31,24 @@ set -euo pipefail
 CPANEL_USER="${CPANEL_USER:-devcente}"
 HOME_DIR="${HOME:-/home/${CPANEL_USER}}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
+
+# Safely resolve REPO_DIR:
+if [ -n "${REPO_DIR:-}" ] && [ -d "${REPO_DIR}" ] && [ -f "${REPO_DIR}/backend/bootstrap/app.php" ]; then
+    : # Keep explicitly passed REPO_DIR
+elif [ -f "${PWD}/backend/bootstrap/app.php" ]; then
+    REPO_DIR="${PWD}"
+elif [ -f "${SCRIPT_DIR}/../backend/bootstrap/app.php" ] && [ "$(cd "${SCRIPT_DIR}/.." && pwd)" != "${HOME_DIR}" ]; then
+    REPO_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
+elif [ -d "${HOME_DIR}/repositories" ]; then
+    FOUND_REPO="$(find "${HOME_DIR}/repositories" -maxdepth 3 -name "app.php" -path "*/backend/bootstrap/*" 2>/dev/null | head -n 1 | sed 's|/backend/bootstrap/app\.php$||' || true)"
+    if [ -n "${FOUND_REPO}" ] && [ -d "${FOUND_REPO}" ]; then
+        REPO_DIR="${FOUND_REPO}"
+    else
+        REPO_DIR="${HOME_DIR}/projects/proerp"
+    fi
+else
+    REPO_DIR="${HOME_DIR}/projects/proerp"
+fi
 
 # Backend: prefer projects/proerp/backend (canonical multi-project path)
 if [ -d "${HOME_DIR}/projects/proerp/backend" ]; then
@@ -40,8 +57,10 @@ elif [ -d "${HOME_DIR}/backend" ]; then
     # Legacy single-project layout — still works but deprecated
     BACKEND_DIR="${HOME_DIR}/backend"
     echo "WARNING: Using legacy /home/devcente/backend path. Migrate to /home/devcente/projects/proerp/backend."
-else
+elif [ -d "${REPO_DIR}/backend" ]; then
     BACKEND_DIR="${REPO_DIR}/backend"
+else
+    BACKEND_DIR="${HOME_DIR}/projects/proerp/backend"
 fi
 
 # Document root for ProERP SPA + API: prefer projects/proerp/public
@@ -261,47 +280,35 @@ fi
 # 8. Ensure ProERP document root has the PHP bootstrap and .htaccess
 # ------------------------------------------------------------------------------
 echo "--- Ensuring ProERP entry point files are in place ---"
-# Copy index.php (always overwrite to pick up changes)
-if [ -f "${REPO_DIR}/public_html/index.php" ]; then
-    cp "${REPO_DIR}/public_html/index.php" "${PUBLIC_HTML_DIR}/index.php"
-    echo "Deployed: ${PUBLIC_HTML_DIR}/index.php"
-fi
-# Copy .htaccess (always overwrite to pick up changes)
-if [ -f "${REPO_DIR}/public_html/.htaccess" ]; then
-    cp "${REPO_DIR}/public_html/.htaccess" "${PUBLIC_HTML_DIR}/.htaccess"
-    echo "Deployed: ${PUBLIC_HTML_DIR}/.htaccess"
+# Only copy from REPO_DIR if REPO_DIR is a valid repository (not HOME_DIR)
+if [ -d "${REPO_DIR}" ] && [ "${REPO_DIR}" != "${HOME_DIR}" ]; then
+    if [ -f "${REPO_DIR}/public_html/index.php" ]; then
+        cp -f "${REPO_DIR}/public_html/index.php" "${PUBLIC_HTML_DIR}/index.php"
+        echo "Deployed: ${PUBLIC_HTML_DIR}/index.php"
+    fi
+    if [ -f "${REPO_DIR}/public_html/.htaccess" ]; then
+        cp -f "${REPO_DIR}/public_html/.htaccess" "${PUBLIC_HTML_DIR}/.htaccess"
+        echo "Deployed: ${PUBLIC_HTML_DIR}/.htaccess"
+    fi
+    if [ -f "${REPO_DIR}/public_html/index.html" ]; then
+        cp -f "${REPO_DIR}/public_html/index.html" "${PUBLIC_HTML_DIR}/index.html"
+        echo "Deployed: ${PUBLIC_HTML_DIR}/index.html"
+    fi
 fi
 
-# ------------------------------------------------------------------------------
-# 9. Bootstrap portfolio at devcenterpoint.com (public_html)
+# Ensure storage symlink is active
+if [ ! -L "${PUBLIC_HTML_DIR}/storage" ] && [ ! -e "${PUBLIC_HTML_DIR}/storage" ]; then
+    ln -s "${BACKEND_DIR}/storage/app/public" "${PUBLIC_HTML_DIR}/storage" || true
+    echo "Symlinked ${BACKEND_DIR}/storage/app/public to ${PUBLIC_HTML_DIR}/storage"
+fi
+
+# Agency portfolio safety: devcenterpoint.com lives at /home/devcente/public_html.
+# Never overwrite portfolio .htaccess or index.html.
 PORTFOLIO_DIR="${HOME_DIR}/public_html"
-mkdir -p "${PORTFOLIO_DIR}"
-
-# Install portfolio .htaccess (always keep updated to preserve subdomain routing rules)
-if [ -f "${REPO_DIR}/portfolio_public_html/.htaccess" ]; then
-    cp "${REPO_DIR}/portfolio_public_html/.htaccess" "${PORTFOLIO_DIR}/.htaccess"
-    echo "Installed portfolio .htaccess to ${PORTFOLIO_DIR}/.htaccess"
-fi
-
-# Install portfolio index.html
-if [ -f "${REPO_DIR}/portfolio_public_html/index.html" ]; then
-    cp "${REPO_DIR}/portfolio_public_html/index.html" "${PORTFOLIO_DIR}/index.html"
-    echo "Installed portfolio index.html to ${PORTFOLIO_DIR}/index.html"
-elif [ -f "${REPO_DIR}/scripts/portfolio-placeholder.html" ]; then
-    cp "${REPO_DIR}/scripts/portfolio-placeholder.html" "${PORTFOLIO_DIR}/index.html"
-    echo "Installed portfolio placeholder to ${PORTFOLIO_DIR}/index.html"
-fi
-
-# Create proerp-app symlink in public_html as fail-safe for subdomains
-if [ -d "${PUBLIC_HTML_DIR}" ] && [ "${PUBLIC_HTML_DIR}" != "${PORTFOLIO_DIR}" ]; then
-    ln -sfn "${PUBLIC_HTML_DIR}" "${PORTFOLIO_DIR}/proerp-app" 2>/dev/null || true
-    echo "Created proerp-app routing symlink in ${PORTFOLIO_DIR}/"
-fi
-
-# Install portfolio index.php forwarder (safeguard for subdomain API routing)
-if [ -f "${REPO_DIR}/portfolio_public_html/index.php" ]; then
-    cp "${REPO_DIR}/portfolio_public_html/index.php" "${PORTFOLIO_DIR}/index.php"
-    echo "Installed portfolio index.php to ${PORTFOLIO_DIR}/index.php"
+if [ -d "${PORTFOLIO_DIR}" ] && [ "${PUBLIC_HTML_DIR}" != "${PORTFOLIO_DIR}" ]; then
+    if [ ! -e "${PORTFOLIO_DIR}/proerp-app" ]; then
+        ln -sfn "${PUBLIC_HTML_DIR}" "${PORTFOLIO_DIR}/proerp-app" 2>/dev/null || true
+    fi
 fi
 
 echo "=================================================================="

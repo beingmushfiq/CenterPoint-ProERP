@@ -58,3 +58,30 @@ Route::get('/readyz', function () {
     }
 });
 
+Route::fallback(function () {
+    $spaIndex = public_path('index.html');
+    if (!file_exists($spaIndex)) {
+        // Multi-project layout fallback: check ../public/index.html
+        $candidate = base_path('../public/index.html');
+        if (file_exists($candidate)) {
+            $spaIndex = $candidate;
+        }
+    }
+
+    if (file_exists($spaIndex)) {
+        return response()->file($spaIndex, [
+            'Content-Type' => 'text/html; charset=utf-8',
+            'Cache-Control' => 'no-cache, no-store, must-revalidate',
+            'Pragma' => 'no-cache',
+            'Expires' => '0',
+        ]);
+    }
+
+    return response()->json([
+        'success' => false,
+        'error' => [
+            'code' => 'NOT_FOUND',
+            'message' => 'The requested endpoint or resource was not found.',
+        ],
+    ], 404);
+});

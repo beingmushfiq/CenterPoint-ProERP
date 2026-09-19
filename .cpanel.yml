@@ -22,10 +22,15 @@ deployment:
 
     # 3. Deploy Frontend Web Root (SPA bundle, index.php, .htaccess, static assets)
     - /bin/cp -Rf public_html/. /home/devcente/projects/proerp/public/
+    - /bin/cp -f public_html/.htaccess /home/devcente/projects/proerp/public/.htaccess
+    - /bin/cp -f public_html/index.php /home/devcente/projects/proerp/public/index.php
+    - /bin/cp -f public_html/index.html /home/devcente/projects/proerp/public/index.html
 
     # 4. Deploy deployment scripts and ensure execution permissions
     - /bin/cp -Rf scripts/. /home/devcente/scripts/
     - /bin/chmod +x /home/devcente/scripts/*.sh 2>/dev/null || true
+    - /bin/chmod +x scripts/*.sh 2>/dev/null || true
 
     # 5. Execute production deployment pipeline (composer, migrations, caches, queue restart)
-    - /bin/bash /home/devcente/scripts/deploy-cpanel.sh
+    - REPO_DIR="$PWD" /bin/bash scripts/deploy-cpanel.sh
+
