@@ -86,7 +86,7 @@ export function LanguageSwitcher({
       {isOpen && (
         <div
           className={cn(
-            'absolute right-0 w-48 rounded-2xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-1.5 shadow-2xl z-[100] animate-in fade-in-50 zoom-in-95 text-xs select-none',
+            'absolute right-0 w-48 rounded-2xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-1.5 shadow-2xl z-100 animate-in fade-in-50 zoom-in-95 text-xs select-none',
             isUpward ? 'bottom-full mb-2 origin-bottom-right' : 'top-full mt-2 origin-top-right'
           )}
           role="menu"
