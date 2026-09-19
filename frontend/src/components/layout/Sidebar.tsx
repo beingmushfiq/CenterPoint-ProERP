@@ -328,7 +328,7 @@ export function Sidebar({ isOpen, onClose, isCollapsed = false, onToggleCollapse
                   >
                     <div className="flex items-center gap-1.5 truncate">
                       <span className="size-1 rounded-full bg-primary/60" />
-                      <span className="truncate">{t(`sections.${section.id}` as any, { defaultValue: section.title })}</span>
+                      <span className="truncate">{t(`sections.${section.id}` as unknown as string, { defaultValue: section.title })}</span>
                       {hasActiveChild && isSectionCollapsed && (
                         <span className="size-1.5 rounded-full bg-primary animate-pulse" title="Active module inside" />
                       )}
@@ -354,7 +354,7 @@ export function Sidebar({ isOpen, onClose, isCollapsed = false, onToggleCollapse
                     {visibleItems.map((item) => {
                       const Icon = item.icon;
                       const itemTransKey = `items.${item.id.replace(/-([a-z])/g, (_, c) => c.toUpperCase())}` as const;
-                      const itemLabel = t(itemTransKey as any, { defaultValue: item.label });
+                      const itemLabel = t(itemTransKey as unknown as string, { defaultValue: item.label });
                       return (
                         <NavLink
                           key={item.id}
@@ -413,7 +413,7 @@ export function Sidebar({ isOpen, onClose, isCollapsed = false, onToggleCollapse
                                         : 'bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30'
                                     )}
                                   >
-                                    {t(`badges.${item.badge.toLowerCase()}` as any, { defaultValue: item.badge })}
+                                    {t(`badges.${item.badge.toLowerCase()}` as unknown as string, { defaultValue: item.badge })}
                                   </span>
                                 )}
                               </>

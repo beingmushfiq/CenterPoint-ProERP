@@ -46,6 +46,14 @@ import { api, getAccessToken } from '../../lib/api/client';
 import * as XLSX from 'xlsx';
 import { notify } from '../../components/ui/Toast';
 import { useTranslation } from 'react-i18next';
+import {
+  getLocalizedReportName,
+  getLocalizedReportDesc,
+  getLocalizedModuleName,
+  getLocalizedModuleShortName,
+  getLocalizedCategoryLabel,
+  getLocalizedPresetLabel,
+} from './reportLocalization';
 
 const MODULE_ICONS: Record<string, React.FC<{ className?: string }>> = {
   all: Layers,
@@ -65,7 +73,8 @@ const MODULE_ICONS: Record<string, React.FC<{ className?: string }>> = {
 };
 
 export const ReportsWorkspace: React.FC = () => {
-  const { t } = useTranslation(['reports', 'common']);
+  const { t, i18n } = useTranslation(['reports', 'common']);
+  const isBn = i18n.language === 'bn';
   const { formatCurrency } = useCurrency();
   const { config: businessConfig } = useBusinessConfig();
 
@@ -77,9 +86,22 @@ export const ReportsWorkspace: React.FC = () => {
   // Selected active report
   const [selectedReportCode, setSelectedReportCode] = useState<string>('production_yield');
 
-  // Date filters & presets
-  const [startDate, setStartDate] = useState<string>('2026-08-01');
-  const [endDate, setEndDate] = useState<string>('2026-08-28');
+  // Date filters & presets (dynamic current-month initialization)
+  const [startDate, setStartDate] = useState<string>(() => {
+    const d = new Date();
+    const start = new Date(d.getFullYear(), d.getMonth(), 1);
+    const y = start.getFullYear();
+    const m = String(start.getMonth() + 1).padStart(2, '0');
+    const day = String(start.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  });
+  const [endDate, setEndDate] = useState<string>(() => {
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  });
   const [datePreset, setDatePreset] = useState<string>('this_month');
 
   // Definitions state (backend or fallback catalogue)
@@ -159,40 +181,68 @@ export const ReportsWorkspace: React.FC = () => {
     };
   }, []);
 
+  const MODULE_ORDER = [
+    'production',
+    'inventory',
+    'purchasing',
+    'sales',
+    'profit',
+    'crm',
+    'salesmen',
+    'delivery',
+    'hr',
+    'finance',
+    'assets',
+    'qc',
+  ];
+
   // Filtered definitions based on Module, Category, and Search Query
   const filteredDefinitions = useMemo(() => {
-    return definitions.filter((def) => {
-      // Module filter
-      if (selectedModule !== 'all') {
-        if (selectedModule === 'sales') {
-          if (def.module !== 'sales' && def.module !== 'pos') {
+    return definitions
+      .filter((def) => {
+        // Module filter
+        if (selectedModule !== 'all') {
+          if (selectedModule === 'sales') {
+            if (def.module !== 'sales' && def.module !== 'pos') {
+              return false;
+            }
+          } else if (def.module !== selectedModule) {
             return false;
           }
-        } else if (def.module !== selectedModule) {
+        }
+
+        // Category filter
+        if (selectedCategory !== 'all' && def.category !== selectedCategory) {
           return false;
         }
-      }
 
-      // Category filter
-      if (selectedCategory !== 'all' && def.category !== selectedCategory) {
-        return false;
-      }
-
-      // Text search
-      if (searchQuery.trim() !== '') {
-        const q = searchQuery.toLowerCase();
-        const matchName = def.name.toLowerCase().includes(q);
-        const matchCode = def.code.toLowerCase().includes(q);
-        const matchDesc = (def.description ?? '').toLowerCase().includes(q);
-        const matchModule = def.module.toLowerCase().includes(q);
-        if (!matchName && !matchCode && !matchDesc && !matchModule) {
-          return false;
+        // Text search (checks code, English name/desc, and Bengali name/desc)
+        if (searchQuery.trim() !== '') {
+          const q = searchQuery.toLowerCase();
+          const bnName = getLocalizedReportName(def.code, '', true).toLowerCase();
+          const bnDesc = getLocalizedReportDesc(def.code, '', true).toLowerCase();
+          const matchName = def.name.toLowerCase().includes(q) || bnName.includes(q);
+          const matchCode = def.code.toLowerCase().includes(q);
+          const matchDesc = (def.description ?? '').toLowerCase().includes(q) || bnDesc.includes(q);
+          const matchModule = def.module.toLowerCase().includes(q);
+          if (!matchName && !matchCode && !matchDesc && !matchModule) {
+            return false;
+          }
         }
-      }
 
-      return true;
-    });
-  }, [definitions, selectedModule, selectedCategory, searchQuery]);
+        return true;
+      })
+      .sort((a, b) => {
+        if (selectedModule === 'all') {
+          const aOrder = MODULE_ORDER.indexOf(a.module);
+          const bOrder = MODULE_ORDER.indexOf(b.module);
+          if (aOrder !== bOrder) {
+            return (aOrder === -1 ? 99 : aOrder) - (bOrder === -1 ? 99 : bOrder);
+          }
+        }
+        return a.name.localeCompare(b.name);
+      });
+  }, [definitions, selectedModule, selectedCategory, searchQuery, isBn]);
 
   // Module counts
   const moduleCounts = useMemo(() => {
@@ -606,7 +656,7 @@ export const ReportsWorkspace: React.FC = () => {
                 }`}
               >
                 <Icon className={`w-4 h-4 ${isSelected ? 'text-white' : 'text-slate-400'}`} />
-                <span>{mod.shortName}</span>
+                <span>{getLocalizedModuleShortName(mod.id, mod.shortName, isBn)}</span>
                 {count > 0 && (
                   <span
                     className={`ml-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
@@ -637,7 +687,7 @@ export const ReportsWorkspace: React.FC = () => {
                   : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
               }`}
             >
-              {cat.label}
+              {getLocalizedCategoryLabel(cat.id, cat.label, isBn)}
             </button>
           ))}
         </div>
@@ -647,7 +697,7 @@ export const ReportsWorkspace: React.FC = () => {
           <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
           <input
             type="text"
-            placeholder="Search reports by name, code..."
+            placeholder={isBn ? 'নাম বা কোড দিয়ে প্রতিবেদন খুঁজুন…' : 'Search reports by name, code...'}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-9 pr-3 py-1.5 text-xs bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:border-indigo-500 transition-colors"
@@ -659,10 +709,23 @@ export const ReportsWorkspace: React.FC = () => {
       <div className="space-y-2">
         <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 px-1">
           <span>
-            Showing <strong className="text-slate-800 dark:text-slate-200">{filteredDefinitions.length}</strong> reports in{' '}
-            <span className="capitalize font-semibold text-indigo-600 dark:text-indigo-400">{activeModule?.name || 'All Modules'}</span>
+            {isBn ? (
+              <>
+                <span className="font-semibold text-indigo-600 dark:text-indigo-400">
+                  {getLocalizedModuleName(activeModule?.id || 'all', activeModule?.name || 'সকল মডিউল', true)}
+                </span>{' '}
+                বিভাগে <strong className="text-slate-800 dark:text-slate-200">{filteredDefinitions.length}</strong>টি প্রতিবেদন প্রদর্শিত হচ্ছে
+              </>
+            ) : (
+              <>
+                Showing <strong className="text-slate-800 dark:text-slate-200">{filteredDefinitions.length}</strong> reports in{' '}
+                <span className="capitalize font-semibold text-indigo-600 dark:text-indigo-400">{activeModule?.name || 'All Modules'}</span>
+              </>
+            )}
           </span>
-          <span className="text-[11px] text-slate-400">Click any card to load live schema & telemetry</span>
+          <span className="text-[11px] text-slate-400">
+            {isBn ? 'লাইভ তথ্য ও স্কিমা দেখতে যেকোনো কার্ডে ক্লিক করুন' : 'Click any card to load live schema & telemetry'}
+          </span>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 max-h-90 overflow-y-auto p-1">
@@ -684,7 +747,7 @@ export const ReportsWorkspace: React.FC = () => {
                   <div className="flex items-center justify-between text-xs mb-1.5">
                     <span className="inline-flex items-center gap-1 font-semibold text-[10px] text-slate-500 uppercase tracking-wider">
                       <ModIcon className="w-3 h-3 text-indigo-500" />
-                      {def.module}
+                      {getLocalizedModuleShortName(def.module, def.module, isBn)}
                     </span>
                     <span
                       className={`inline-flex items-center px-1.5 py-0.5 rounded text-[9.5px] font-bold uppercase tracking-wider ${
@@ -693,18 +756,20 @@ export const ReportsWorkspace: React.FC = () => {
                           : 'bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-300'
                       }`}
                     >
-                      {def.tier}
+                      {def.tier === 'live' ? (isBn ? 'লাইভ' : 'LIVE') : (isBn ? 'দৈনিক' : 'DAILY')}
                     </span>
                   </div>
-                  <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 line-clamp-1">{def.name}</h3>
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 line-clamp-1">
+                    {getLocalizedReportName(def.code, def.name, isBn)}
+                  </h3>
                   <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 mt-1 leading-relaxed">
-                    {def.description}
+                    {getLocalizedReportDesc(def.code, def.description, isBn)}
                   </p>
                 </div>
 
                 <div className="mt-2.5 pt-2 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-[11px] text-slate-400">
                   <span className="font-mono text-[10px]">{def.code}</span>
-                  <span className="capitalize">{def.category}</span>
+                  <span className="capitalize">{getLocalizedCategoryLabel(def.category, def.category, isBn)}</span>
                 </div>
               </button>
             );
@@ -712,16 +777,18 @@ export const ReportsWorkspace: React.FC = () => {
 
           {filteredDefinitions.length === 0 && (
             <div className="col-span-full py-8 text-center bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
-              <p className="text-sm text-slate-500">No reports matched your search criteria.</p>
+              <p className="text-sm text-slate-500">
+                {isBn ? 'আপনার অনুসন্ধানের সাথে কোনো প্রতিবেদন মেলেনি।' : 'No reports matched your search criteria.'}
+              </p>
               <button
                 onClick={() => {
                   setSearchQuery('');
                   setSelectedModule('all');
                   setSelectedCategory('all');
                 }}
-                className="mt-2 text-xs font-semibold text-indigo-600 hover:underline"
+                className="mt-2 text-xs font-semibold text-indigo-600 hover:underline cursor-pointer"
               >
-                Clear all filters
+                {isBn ? 'সকল ফিল্টার রিসেট করুন' : 'Clear all filters'}
               </button>
             </div>
           )}
@@ -735,10 +802,10 @@ export const ReportsWorkspace: React.FC = () => {
             {/* Quick Presets */}
             <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-lg text-xs">
               {[
-                { id: 'today', label: 'Today' },
-                { id: 'this_week', label: 'This Week' },
-                { id: 'this_month', label: 'This Month' },
-                { id: 'last_30_days', label: '30 Days' },
+                { id: 'today', label: isBn ? 'আজ' : 'Today' },
+                { id: 'this_week', label: isBn ? 'চলতি সপ্তাহ' : 'This Week' },
+                { id: 'this_month', label: isBn ? 'চলতি মাস' : 'This Month' },
+                { id: 'last_30_days', label: isBn ? '৩০ দিন' : '30 Days' },
               ].map((p) => (
                 <button
                   key={p.id}
@@ -766,7 +833,7 @@ export const ReportsWorkspace: React.FC = () => {
                 }}
                 className="text-xs border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 rounded-lg px-2.5 py-1.5 text-slate-800 dark:text-slate-200 focus:outline-none focus:border-indigo-500"
               />
-              <span className="text-xs text-slate-400">to</span>
+              <span className="text-xs text-slate-400">{isBn ? 'হতে' : 'to'}</span>
               <input
                 type="date"
                 value={endDate}
@@ -802,7 +869,7 @@ export const ReportsWorkspace: React.FC = () => {
                 title="Save current filters as custom view preset"
               >
                 <Bookmark className="w-3.5 h-3.5 text-indigo-500" />
-                <span>Save View</span>
+                <span>{isBn ? 'ভিউ সংরক্ষণ' : 'Save View'}</span>
               </button>
             </div>
 
@@ -812,7 +879,7 @@ export const ReportsWorkspace: React.FC = () => {
               className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 hover:bg-slate-800 dark:bg-slate-100 dark:hover:bg-white text-white dark:text-slate-900 text-xs font-semibold rounded-lg transition-colors shadow-sm disabled:opacity-50 cursor-pointer"
             >
               <Filter className="w-3.5 h-3.5" />
-              {loading ? 'Executing...' : 'Apply Filters'}
+              {loading ? (isBn ? 'প্রসেস হচ্ছে…' : 'Executing...') : (isBn ? 'ফিল্টার প্রয়োগ' : 'Apply Filters')}
             </button>
           </div>
 
@@ -820,12 +887,12 @@ export const ReportsWorkspace: React.FC = () => {
           {reportResult && (
             <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/70 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700">
               <Clock className="w-3.5 h-3.5 text-slate-400" />
-              <span>Freshness:</span>
+              <span>{isBn ? 'তাত্ক্ষণিকতা:' : 'Freshness:'}</span>
               <span className="font-semibold text-emerald-600 dark:text-emerald-400 uppercase">
-                {reportResult.meta.freshness.tier}
+                {reportResult.meta.freshness.tier === 'live' ? (isBn ? 'লাইভ' : 'LIVE') : reportResult.meta.freshness.tier}
               </span>
               <span className="text-slate-300 dark:text-slate-600">|</span>
-              <span>As of: {new Date(reportResult.meta.freshness.as_of).toLocaleTimeString()}</span>
+              <span>{isBn ? 'সময়:' : 'As of:'} {new Date(reportResult.meta.freshness.as_of).toLocaleTimeString(isBn ? 'bn-BD' : 'en-US')}</span>
             </div>
           )}
         </div>
@@ -861,11 +928,22 @@ export const ReportsWorkspace: React.FC = () => {
         <div className="px-4 py-3.5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Layers className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-            <h2 className="text-sm font-bold text-slate-900 dark:text-slate-100">{activeDef?.name ?? 'Report Data'}</h2>
+            <h2 className="text-sm font-bold text-slate-900 dark:text-slate-100">
+              {getLocalizedReportName(activeDef?.code || '', activeDef?.name ?? 'Report Data', isBn)}
+            </h2>
           </div>
           <span className="text-xs text-slate-500 dark:text-slate-400">
-            Showing <strong className="text-slate-800 dark:text-slate-200">{reportResult?.data.length || 0}</strong> of{' '}
-            {reportResult?.pagination.total || 0} rows
+            {isBn ? (
+              <>
+                মোট {reportResult?.pagination.total || 0} টির মধ্যে{' '}
+                <strong className="text-slate-800 dark:text-slate-200">{reportResult?.data.length || 0}</strong> টি রেকর্ড প্রদর্শিত হচ্ছে
+              </>
+            ) : (
+              <>
+                Showing <strong className="text-slate-800 dark:text-slate-200">{reportResult?.data.length || 0}</strong> of{' '}
+                {reportResult?.pagination.total || 0} rows
+              </>
+            )}
           </span>
         </div>
 
@@ -973,7 +1051,7 @@ export const ReportsWorkspace: React.FC = () => {
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
                 <Download className="w-5 h-5 text-indigo-600" />
-                Export Report Data
+                {isBn ? 'প্রতিবেদন ডেটা এক্সপোর্ট' : 'Export Report Data'}
               </h3>
               <button
                 onClick={() => {
@@ -987,11 +1065,21 @@ export const ReportsWorkspace: React.FC = () => {
             </div>
 
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              Exporting <strong>{activeDef?.name}</strong>. Choose your preferred format to immediately download spreadsheets or open the PDF print document.
+              {isBn ? (
+                <>
+                  <strong>{getLocalizedReportName(activeDef?.code || '', activeDef?.name || '', true)}</strong> এক্সপোর্ট করা হচ্ছে। স্প্রেডশিট ডাউনলোড করতে বা পিডিএফ প্রিন্ট করতে ফরম্যাট নির্বাচন করুন।
+                </>
+              ) : (
+                <>
+                  Exporting <strong>{activeDef?.name}</strong>. Choose your preferred format to immediately download spreadsheets or open the PDF print document.
+                </>
+              )}
             </p>
 
             <div className="space-y-3">
-              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block">Export Format</label>
+              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block">
+                {isBn ? 'এক্সপোর্ট ফরম্যাট' : 'Export Format'}
+              </label>
               <div className="grid grid-cols-3 gap-2">
                 {(['xlsx', 'csv', 'pdf'] as ExportFormat[]).map((fmt) => (
                   <button
@@ -1027,7 +1115,7 @@ export const ReportsWorkspace: React.FC = () => {
                 }}
                 className="px-3.5 py-1.5 text-xs text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg cursor-pointer"
               >
-                Close
+                {isBn ? 'বন্ধ করুন' : 'Close'}
               </button>
               <button
                 onClick={handleExport}
@@ -1035,8 +1123,8 @@ export const ReportsWorkspace: React.FC = () => {
               >
                 <Download className="w-3.5 h-3.5" />
                 {exportFormat === 'pdf'
-                  ? 'Open PDF Preview'
-                  : `Download ${exportFormat.toUpperCase()}`}
+                  ? (isBn ? 'পিডিএফ প্রিভিউ দেখুন' : 'Open PDF Preview')
+                  : (isBn ? `${exportFormat.toUpperCase()} ডাউনলোড` : `Download ${exportFormat.toUpperCase()}`)}
               </button>
             </div>
           </div>
@@ -1108,12 +1196,12 @@ export const ReportsWorkspace: React.FC = () => {
             <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
               <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
                 <Bookmark className="w-4 h-4 text-indigo-600" />
-                Save Custom Report View Preset
+                {isBn ? 'কাস্টম ভিউ প্রিসেট সংরক্ষণ' : 'Save Custom Report View Preset'}
               </h3>
               <button
                 type="button"
                 onClick={() => setSaveViewModalOpen(false)}
-                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -1122,12 +1210,12 @@ export const ReportsWorkspace: React.FC = () => {
             <form onSubmit={handleSaveCustomView} className="space-y-3">
               <div>
                 <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                  Preset View Name *
+                  {isBn ? 'প্রিসেট ভিউয়ের নাম *' : 'Preset View Name *'}
                 </label>
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Month-to-Date Executive View"
+                  placeholder={isBn ? 'যেমন: চলতি মাসের নির্বাহী ভিউ' : 'e.g. Month-to-Date Executive View'}
                   value={newViewName}
                   onChange={(e) => setNewViewName(e.target.value)}
                   className="w-full text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
@@ -1135,10 +1223,12 @@ export const ReportsWorkspace: React.FC = () => {
               </div>
 
               <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 text-xs text-slate-600 dark:text-slate-400 space-y-1">
-                <div className="font-semibold text-slate-700 dark:text-slate-300">Preset Settings Captured:</div>
-                <div>• Date Range: {startDate} to {endDate}</div>
-                <div>• Quick Preset: {datePreset.replace(/_/g, ' ')}</div>
-                <div>• Report: {activeDef?.name}</div>
+                <div className="font-semibold text-slate-700 dark:text-slate-300">
+                  {isBn ? 'সংরক্ষিত ফিল্টার মান:' : 'Preset Settings Captured:'}
+                </div>
+                <div>• {isBn ? 'তারিখের পরিসীমা:' : 'Date Range:'} {startDate} {isBn ? 'হতে' : 'to'} {endDate}</div>
+                <div>• {isBn ? 'কুইক প্রিসেট:' : 'Quick Preset:'} {getLocalizedPresetLabel(datePreset, datePreset, isBn)}</div>
+                <div>• {isBn ? 'প্রতিবেদন:' : 'Report:'} {getLocalizedReportName(activeDef?.code || '', activeDef?.name || '', isBn)}</div>
               </div>
 
               <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-200 dark:border-slate-800">
@@ -1146,16 +1236,16 @@ export const ReportsWorkspace: React.FC = () => {
                   type="button"
                   onClick={() => setSaveViewModalOpen(false)}
                   disabled={savingView}
-                  className="px-3 py-1.5 text-xs text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg"
+                  className="px-3 py-1.5 text-xs text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg cursor-pointer"
                 >
-                  Cancel
+                  {isBn ? 'বাতিল' : 'Cancel'}
                 </button>
                 <button
                   type="submit"
                   disabled={savingView || !newViewName.trim()}
-                  className="px-4 py-1.5 text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg shadow-sm disabled:opacity-50"
+                  className="px-4 py-1.5 text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg shadow-sm disabled:opacity-50 cursor-pointer"
                 >
-                  {savingView ? 'Saving...' : 'Save Preset View'}
+                  {savingView ? (isBn ? 'সংরক্ষণ হচ্ছে…' : 'Saving...') : (isBn ? 'প্রিসেট সংরক্ষণ করুন' : 'Save Preset View')}
                 </button>
               </div>
             </form>
