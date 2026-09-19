@@ -417,6 +417,7 @@ final class StockMovementController extends Controller
         $tenantId = TenantContext::current()->tenantId();
         $userId = Auth::id();
 
+        /** @var StockBalance $balance */
         $balance = StockBalance::with(['product', 'warehouse'])
             ->where('tenant_id', $tenantId)
             ->where('id', $id)
@@ -472,6 +473,7 @@ final class StockMovementController extends Controller
 
         $ids = $validated['ids'];
 
+        /** @var \Illuminate\Database\Eloquent\Collection<int, StockBalance> $balances */
         $balances = StockBalance::with(['product', 'warehouse'])
             ->where('tenant_id', $tenantId)
             ->whereIn('id', $ids)
@@ -482,6 +484,7 @@ final class StockMovementController extends Controller
         DB::transaction(function () use ($balances, $tenantId, $userId, &$deletedCount) {
             $unitId = Unit::query()->where('tenant_id', $tenantId)->value('id') ?? 1;
 
+            /** @var StockBalance $balance */
             foreach ($balances as $balance) {
                 $qty = (float) $balance->quantity;
                 if ($qty > 0) {

@@ -206,8 +206,10 @@ export function StockLedgerSection() {
         return next;
       });
       setDeletingBalance(null);
-    } catch (err: any) {
-      toast.error(err?.response?.data?.message || err?.message || 'Failed to delete stock balance.');
+    } catch (err: unknown) {
+      const apiMsg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      const fallbackMsg = err instanceof Error ? err.message : 'Failed to delete stock balance.';
+      toast.error(apiMsg || fallbackMsg);
     } finally {
       setIsDeleting(false);
     }
@@ -218,14 +220,19 @@ export function StockLedgerSection() {
     setIsDeleting(true);
     try {
       const ids = Array.from(selectedBalanceIds);
-      const res = await api.post('/inventory/balances/bulk-delete', { ids });
-      toast.success((res.data as any)?.message || `Successfully deleted ${ids.length} stock positions.`);
+      const res = await api.post<{ success: boolean; message?: string; deleted_count?: number }>(
+        '/inventory/balances/bulk-delete',
+        { ids }
+      );
+      toast.success(res.data?.message || `Successfully deleted ${ids.length} stock positions.`);
       queryClient.invalidateQueries({ queryKey: ['inventory'] });
       refetchBalances();
       setSelectedBalanceIds(new Set());
       setIsBulkDeleteModalOpen(false);
-    } catch (err: any) {
-      toast.error(err?.response?.data?.message || err?.message || 'Failed to bulk delete stock positions.');
+    } catch (err: unknown) {
+      const apiMsg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      const fallbackMsg = err instanceof Error ? err.message : 'Failed to bulk delete stock positions.';
+      toast.error(apiMsg || fallbackMsg);
     } finally {
       setIsDeleting(false);
     }
