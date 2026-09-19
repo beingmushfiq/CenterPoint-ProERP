@@ -6,20 +6,24 @@ namespace App\Modules\Reports\Actions;
 
 use App\Modules\Reports\Contracts\ReportQueryInterface;
 use App\Modules\Reports\Models\ReportDefinition;
+use App\Modules\Reports\Queries\CourierPerformanceReportQuery;
 use App\Modules\Reports\Queries\CurrentStockReportQuery;
 use App\Modules\Reports\Queries\CustomerArAgingReportQuery;
 use App\Modules\Reports\Queries\DailyAttendanceReportQuery;
 use App\Modules\Reports\Queries\DailyProductionReportQuery;
+use App\Modules\Reports\Queries\DeliveredOrdersReportQuery;
 use App\Modules\Reports\Queries\EmployeeDirectoryReportQuery;
 use App\Modules\Reports\Queries\GeneralLedgerSummaryReportQuery;
 use App\Modules\Reports\Queries\IncomeStatementReportQuery;
 use App\Modules\Reports\Queries\LowStockReportQuery;
 use App\Modules\Reports\Queries\OperatingExpensesReportQuery;
 use App\Modules\Reports\Queries\PayrollSummaryReportQuery;
+use App\Modules\Reports\Queries\PendingDeliveriesReportQuery;
 use App\Modules\Reports\Queries\ProductionTargetVsAchievementReportQuery;
 use App\Modules\Reports\Queries\ProductionYieldReportQuery;
 use App\Modules\Reports\Queries\PurchaseDetailsReportQuery;
 use App\Modules\Reports\Queries\PurchaseSummaryReportQuery;
+use App\Modules\Reports\Queries\ReturnedOrdersReportQuery;
 use App\Modules\Reports\Queries\SalesByCustomerReportQuery;
 use App\Modules\Reports\Queries\SalesByProductReportQuery;
 use App\Modules\Reports\Queries\SalesBySalesmanReportQuery;
@@ -65,6 +69,10 @@ class RunReportQueryAction
         'income_statement' => IncomeStatementReportQuery::class,
         'operating_expenses' => OperatingExpensesReportQuery::class,
         'customer_ar_aging' => CustomerArAgingReportQuery::class,
+        'pending_deliveries' => PendingDeliveriesReportQuery::class,
+        'delivered_orders' => DeliveredOrdersReportQuery::class,
+        'returned_orders' => ReturnedOrdersReportQuery::class,
+        'courier_performance' => CourierPerformanceReportQuery::class,
     ];
 
     public function execute(string $code, array $filters = [], int $page = 1, int $perPage = 25): array
