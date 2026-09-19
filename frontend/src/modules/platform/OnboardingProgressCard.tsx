@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useOnboardingProgress } from './useOnboardingProgress';
 import { Button } from '../../components/ui/Button';
 import {
@@ -22,6 +23,7 @@ const MILESTONE_TITLES: Record<string, string> = {
 };
 
 export const OnboardingProgressCard: React.FC = () => {
+  const { t } = useTranslation(['dashboard', 'common']);
   const {
     shouldShowProgressCard,
     completionPercentage,
@@ -55,14 +57,14 @@ export const OnboardingProgressCard: React.FC = () => {
           <div>
             <div className="flex items-center gap-2">
               <h3 className="text-xs font-bold uppercase tracking-wider text-default">
-                ERP Setup & Profile Completion
+                {t('onboarding.title')}
               </h3>
               <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold font-mono text-primary">
-                {completionPercentage}% Complete
+                {t('onboarding.percentComplete', { percent: completionPercentage })}
               </span>
             </div>
             <p className="text-[11px] text-muted">
-              Configure baseline parameters (legal tax ID, primary warehouse, and floor stages) to unlock full operations.
+              {t('onboarding.description')}
             </p>
           </div>
         </div>
@@ -76,7 +78,7 @@ export const OnboardingProgressCard: React.FC = () => {
             title="Open Interactive System Guide & Tour"
           >
             <Compass className="size-3.5 text-primary" />
-            <span>Interactive Guide</span>
+            <span>{t('onboarding.interactiveGuide')}</span>
           </Button>
 
           <Button
@@ -86,7 +88,7 @@ export const OnboardingProgressCard: React.FC = () => {
             className="text-xs text-muted"
             title="Toggle setup details"
           >
-            <span>{isExpanded ? 'Hide Details' : 'View Checklist'}</span>
+            <span>{isExpanded ? t('onboarding.hideDetails') : t('onboarding.viewChecklist')}</span>
             {isExpanded ? <ChevronUp className="size-3.5 ml-1" /> : <ChevronDown className="size-3.5 ml-1" />}
           </Button>
 
@@ -96,7 +98,7 @@ export const OnboardingProgressCard: React.FC = () => {
             onClick={resumeOnboarding}
             className="flex items-center gap-1.5 min-h-9"
           >
-            <span>Resume Setup</span>
+            <span>{t('onboarding.resumeSetup')}</span>
             <ArrowRight className="size-3.5" />
           </Button>
         </div>
@@ -116,7 +118,7 @@ export const OnboardingProgressCard: React.FC = () => {
       {isExpanded && (
         <div className="mt-3 pt-3 border-t border-default/40 grid grid-cols-2 sm:grid-cols-3 gap-2">
           {allMilestoneKeys.map((key) => {
-            const label = MILESTONE_TITLES[key] || key;
+            const label = t(`onboarding.milestones.${key}`, MILESTONE_TITLES[key] || key);
             const isDone = Boolean(milestones?.completed_milestones?.includes(key));
 
             return (

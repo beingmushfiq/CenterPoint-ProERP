@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   Building2,
@@ -71,6 +72,7 @@ export function AppHeader({
 }: AppHeaderProps) {
   const navigate = useNavigate();
   const { user, branches, activeBranch, switchBranch, logout } = useAuthStore();
+  const { t } = useTranslation(['navigation', 'common']);
   
   // Menus and dialog states
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
@@ -296,7 +298,7 @@ export function AppHeader({
           type="button"
           onClick={() => setIsMobileSearchOpen(true)}
           className="xl:hidden flex items-center justify-center p-2 rounded-lg text-muted hover:text-default hover:bg-surface-sunken transition-colors"
-          title="Search products, orders, batches... (Ctrl+K)"
+          title={t('navigation.searchPlaceholder', 'Search products, orders, batches... (Ctrl+K)')}
         >
           <Search className="size-4.5" />
         </button>
@@ -315,7 +317,7 @@ export function AppHeader({
             }}
             onFocus={() => setIsSearchOpen(true)}
             onKeyDown={handleSearchKeyDown}
-            placeholder="Search products, orders, batches... (Ctrl+K)"
+            placeholder={t('navigation.searchPlaceholder', 'Search products, orders, batches... (Ctrl+K)')}
             className="w-full rounded-xl border border-default bg-surface-sunken pl-9 pr-28 py-1.5 text-xs text-default placeholder:text-muted focus:border-primary focus:outline-hidden focus:ring-1 focus:ring-primary transition-all"
           />
 
@@ -413,7 +415,7 @@ export function AppHeader({
           title="Interactive Beginner Tutorial & System Tour"
         >
           <Compass className="size-3.5" />
-          <span>System Tour</span>
+          <span>{t('navigation.systemTour', 'System Tour')}</span>
         </button>
 
         {/* ── POS (Point of Sale) Register Direct Action Button ──── */}
@@ -423,8 +425,8 @@ export function AppHeader({
           title="Open Point of Sale Counter Terminal"
         >
           <Store className="size-3.5" />
-          <span className="hidden xl:inline">POS Terminal</span>
-          <span className="xl:hidden">POS</span>
+          <span className="hidden xl:inline">{t('navigation.posTerminal', 'POS Terminal')}</span>
+          <span className="xl:hidden">{t('navigation.items.pos', 'POS')}</span>
         </Link>
 
         {/* Branch Selector Dropdown */}
@@ -443,7 +445,7 @@ export function AppHeader({
             {isBranchMenuOpen && (
               <div className="absolute left-0 mt-2 w-56 rounded-xl border border-default bg-surface-raised p-1.5 shadow-xl z-50 animate-fade-in">
                 <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-muted">
-                  Operating Branch
+                  {t('navigation.operatingBranch', 'Operating Branch')}
                 </div>
                 {branches.map((b) => (
                   <button
@@ -479,10 +481,10 @@ export function AppHeader({
             type="button"
             onClick={() => setIsQuickAddOpen(!isQuickAddOpen)}
             className="flex items-center gap-1.5 rounded-xl bg-blue-600 px-2.5 xl:px-3 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-blue-700 transition-colors cursor-pointer"
-            title="Quick Add"
+            title={t('navigation.quickAdd', 'Quick Add')}
           >
             <Plus className="size-3.5" />
-            <span className="hidden xl:inline">Quick Add</span>
+            <span className="hidden xl:inline">{t('navigation.quickAdd', 'Quick Add')}</span>
             <ChevronDown className="size-3 hidden xl:inline" />
           </button>
 
@@ -835,7 +837,7 @@ export function AppHeader({
                 autoFocus
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search products, orders, batches..."
+                placeholder={t('navigation.searchPlaceholder', 'Search products, orders, batches...')}
                 className="w-full bg-transparent text-sm text-default placeholder:text-muted focus:outline-none"
               />
               <button

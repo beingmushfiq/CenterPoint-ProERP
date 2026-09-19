@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import {
   X,
@@ -146,6 +147,7 @@ export const TenantRoleDashboard: React.FC = () => {
   const hasPermission = useAuthStore((state) => state.hasPermission);
   const { companyName, logoUrl } = useTenantBranding();
   const queryClient = useQueryClient();
+  const { t } = useTranslation(['dashboard', 'common', 'navigation']);
 
   const storeSlug = tenant?.subdomain || tenant?.slug || 'store';
 
@@ -276,34 +278,35 @@ export const TenantRoleDashboard: React.FC = () => {
       icon: React.ComponentType<{ className?: string }>;
     }> = [];
     if (canAccessExecutive) {
-      views.push({ id: 'executive', label: 'Executive Overview', icon: LayoutDashboard });
+      views.push({ id: 'executive', label: t('perspectives.executive'), icon: LayoutDashboard });
     }
     if (canAccessProduction) {
-      views.push({ id: 'production', label: 'Factory Production', icon: Factory });
+      views.push({ id: 'production', label: t('perspectives.production'), icon: Factory });
     }
     if (canAccessInventory) {
-      views.push({ id: 'inventory', label: 'Stock & Warehouse', icon: Warehouse });
+      views.push({ id: 'inventory', label: t('perspectives.inventory'), icon: Warehouse });
     }
     if (canAccessQC) {
-      views.push({ id: 'qc', label: 'Quality Control', icon: Microscope });
+      views.push({ id: 'qc', label: t('perspectives.qc'), icon: Microscope });
     }
     if (canAccessSales) {
-      views.push({ id: 'sales', label: 'Sales & POS', icon: ShoppingBag });
+      views.push({ id: 'sales', label: t('perspectives.sales'), icon: ShoppingBag });
     }
     if (canAccessFinance) {
-      views.push({ id: 'finance', label: 'Finance & Accounts', icon: Coins });
+      views.push({ id: 'finance', label: t('perspectives.finance'), icon: Coins });
     }
     if (canAccessWorkforce) {
-      views.push({ id: 'workforce', label: 'Workforce & HR', icon: Users });
+      views.push({ id: 'workforce', label: t('perspectives.workforce'), icon: Users });
     }
     if (canAccessPurchasing) {
-      views.push({ id: 'purchasing', label: 'Procurement & SCM', icon: ShoppingCart });
+      views.push({ id: 'purchasing', label: t('perspectives.purchasing'), icon: ShoppingCart });
     }
     if (canAccessLogistics) {
-      views.push({ id: 'logistics', label: 'Logistics & Dispatch', icon: Truck });
+      views.push({ id: 'logistics', label: t('perspectives.logistics'), icon: Truck });
     }
     return views;
   }, [
+    t,
     canAccessExecutive,
     canAccessProduction,
     canAccessInventory,
@@ -568,10 +571,10 @@ export const TenantRoleDashboard: React.FC = () => {
             <div className="flex items-center gap-2 min-w-0">
               <span className="text-xs font-bold text-default truncate">
                 {user?.role ??
-                  (user?.is_platform_admin ? 'Super Administrator' : 'Operations Member')}
+                  (user?.is_platform_admin ? t('controls.superAdmin') : t('controls.operationsMember'))}
               </span>
               <span className="hidden sm:inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-medium bg-surface-sunken text-muted border border-default">
-                Perspective
+                {t('controls.perspective')}
               </span>
             </div>
           </div>
@@ -585,8 +588,8 @@ export const TenantRoleDashboard: React.FC = () => {
               title="Open public customer storefront in a new tab"
             >
               <Globe className="size-3.5 text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition-transform" />
-              <span className="hidden sm:inline">View Website (Storefront)</span>
-              <span className="sm:hidden">Storefront</span>
+              <span className="hidden sm:inline">{t('controls.viewWebsiteStorefront')}</span>
+              <span className="sm:hidden">{t('controls.storefront')}</span>
               <ExternalLink className="size-3 text-muted group-hover:text-primary transition-colors" />
             </a>
 
@@ -595,7 +598,7 @@ export const TenantRoleDashboard: React.FC = () => {
               onClick={() => {
                 const next = !isLiveTelemetry;
                 setIsLiveTelemetry(next);
-                toast.info(next ? 'Live telemetry active (auto-updating)' : 'Live telemetry paused');
+                toast.info(next ? (t('controls.liveSyncActive', 'Live telemetry active (auto-updating)')) : t('controls.liveSyncPaused', 'Live telemetry paused'));
               }}
               className={cn(
                 'flex items-center gap-1.5 rounded-xl border px-2.5 py-1 text-xs font-semibold transition-all cursor-pointer',
@@ -612,7 +615,7 @@ export const TenantRoleDashboard: React.FC = () => {
                 )}
               />
               <span className="inline">
-                {isLiveTelemetry ? 'Live Sync' : 'Sync Paused'}
+                {isLiveTelemetry ? t('controls.liveSync') : t('controls.syncPaused')}
               </span>
             </button>
 
@@ -625,7 +628,7 @@ export const TenantRoleDashboard: React.FC = () => {
                   queryClient.invalidateQueries({ queryKey: ['sales'] }),
                   queryClient.invalidateQueries({ queryKey: ['inventory'] }),
                 ]);
-                toast.success('Dashboard metrics refreshed');
+                toast.success(t('controls.metricsRefreshed', 'Dashboard metrics refreshed'));
               }}
               disabled={isRefreshingMetrics}
               className="flex items-center gap-1.5 rounded-xl border border-default bg-surface px-2.5 py-1 text-xs font-semibold text-muted hover:text-default hover:bg-surface-sunken transition-all cursor-pointer disabled:opacity-50"
@@ -634,7 +637,7 @@ export const TenantRoleDashboard: React.FC = () => {
               <RefreshCw
                 className={cn('size-3.5', isRefreshingMetrics && 'animate-spin text-primary')}
               />
-              <span className="inline">Refresh</span>
+              <span className="inline">{t('controls.refresh')}</span>
             </button>
           </div>
         </div>
@@ -674,7 +677,7 @@ export const TenantRoleDashboard: React.FC = () => {
       <div className="flex items-center gap-2 overflow-x-auto scrollbar-none py-1 -mt-2">
         <span className="text-[11px] font-bold uppercase tracking-wider text-muted shrink-0 flex items-center gap-1.5 pl-1">
           <Compass className="size-3.5 text-primary" />
-          <span>Quick Actions:</span>
+          <span>{t('controls.quickActions')}</span>
         </span>
         <a
           href={getStorefrontExternalUrl(storeSlug)}
@@ -684,7 +687,7 @@ export const TenantRoleDashboard: React.FC = () => {
           title="Open customer storefront in a new tab"
         >
           <Globe className="size-3 text-emerald-500 group-hover:scale-110 transition-transform" />
-          <span>View Website</span>
+          <span>{t('controls.viewWebsite')}</span>
           <ExternalLink className="size-2.5 text-muted group-hover:text-default transition-colors" />
         </a>
         {hasPermission(['sales.order.view', 'sales.order.create']) && (
@@ -693,7 +696,7 @@ export const TenantRoleDashboard: React.FC = () => {
             className="inline-flex items-center gap-1.5 rounded-xl border border-default bg-surface px-2.5 py-1 text-xs font-semibold text-default hover:border-primary/40 hover:bg-surface-sunken transition-all shrink-0 shadow-2xs"
           >
             <Plus className="size-3 text-primary" />
-            <span>Sales Order</span>
+            <span>{t('actions.salesOrder')}</span>
           </Link>
         )}
         {hasPermission(['pos.terminal.view', 'pos.sale.create']) && (
@@ -702,7 +705,7 @@ export const TenantRoleDashboard: React.FC = () => {
             className="inline-flex items-center gap-1.5 rounded-xl border border-default bg-surface px-2.5 py-1 text-xs font-semibold text-default hover:border-primary/40 hover:bg-surface-sunken transition-all shrink-0 shadow-2xs"
           >
             <ShoppingCart className="size-3 text-blue-500" />
-            <span>POS Register</span>
+            <span>{t('actions.posRegister')}</span>
           </Link>
         )}
         {hasPermission(['production.batch.view', 'production.plan.view']) && (
@@ -711,7 +714,7 @@ export const TenantRoleDashboard: React.FC = () => {
             className="inline-flex items-center gap-1.5 rounded-xl border border-default bg-surface px-2.5 py-1 text-xs font-semibold text-default hover:border-primary/40 hover:bg-surface-sunken transition-all shrink-0 shadow-2xs"
           >
             <Factory className="size-3 text-indigo-500" />
-            <span>Batch Plan</span>
+            <span>{t('actions.batchPlan')}</span>
           </Link>
         )}
         {hasPermission(['inventory.stock.view', 'inventory.movement.view']) && (
@@ -720,7 +723,7 @@ export const TenantRoleDashboard: React.FC = () => {
             className="inline-flex items-center gap-1.5 rounded-xl border border-default bg-surface px-2.5 py-1 text-xs font-semibold text-default hover:border-primary/40 hover:bg-surface-sunken transition-all shrink-0 shadow-2xs"
           >
             <Warehouse className="size-3 text-amber-500" />
-            <span>Transfer Stock</span>
+            <span>{t('actions.transferStock')}</span>
           </Link>
         )}
         {hasPermission(['purchasing.order.view', 'purchasing.requisition.view']) && (
@@ -729,7 +732,7 @@ export const TenantRoleDashboard: React.FC = () => {
             className="inline-flex items-center gap-1.5 rounded-xl border border-default bg-surface px-2.5 py-1 text-xs font-semibold text-default hover:border-primary/40 hover:bg-surface-sunken transition-all shrink-0 shadow-2xs"
           >
             <FileText className="size-3 text-amber-600" />
-            <span>Purchase PO</span>
+            <span>{t('actions.purchasePo')}</span>
           </Link>
         )}
         {hasPermission(['qc.inspection.view']) && (
@@ -738,7 +741,7 @@ export const TenantRoleDashboard: React.FC = () => {
             className="inline-flex items-center gap-1.5 rounded-xl border border-default bg-surface px-2.5 py-1 text-xs font-semibold text-default hover:border-primary/40 hover:bg-surface-sunken transition-all shrink-0 shadow-2xs"
           >
             <Microscope className="size-3 text-cyan-500" />
-            <span>QC Audit</span>
+            <span>{t('actions.qcAudit')}</span>
           </Link>
         )}
         {hasPermission(['finance.account.view']) && (
@@ -747,7 +750,7 @@ export const TenantRoleDashboard: React.FC = () => {
             className="inline-flex items-center gap-1.5 rounded-xl border border-default bg-surface px-2.5 py-1 text-xs font-semibold text-default hover:border-primary/40 hover:bg-surface-sunken transition-all shrink-0 shadow-2xs"
           >
             <DollarSign className="size-3 text-emerald-500" />
-            <span>Due Collection</span>
+            <span>{t('actions.dueCollection')}</span>
           </Link>
         )}
         {hasPermission(['hr.attendance.view']) && (
@@ -756,7 +759,7 @@ export const TenantRoleDashboard: React.FC = () => {
             className="inline-flex items-center gap-1.5 rounded-xl border border-default bg-surface px-2.5 py-1 text-xs font-semibold text-default hover:border-primary/40 hover:bg-surface-sunken transition-all shrink-0 shadow-2xs"
           >
             <Clock className="size-3 text-teal-500" />
-            <span>Attendance</span>
+            <span>{t('actions.attendance')}</span>
           </Link>
         )}
         {hasPermission(['reports.report.view', 'reports.dashboard.view']) && (
@@ -765,7 +768,7 @@ export const TenantRoleDashboard: React.FC = () => {
             className="inline-flex items-center gap-1.5 rounded-xl border border-default bg-surface px-2.5 py-1 text-xs font-semibold text-default hover:border-primary/40 hover:bg-surface-sunken transition-all shrink-0 shadow-2xs"
           >
             <Sparkles className="size-3 text-purple-500" />
-            <span>RMS BI</span>
+            <span>{t('actions.rmsBi')}</span>
           </Link>
         )}
       </div>
@@ -861,9 +864,9 @@ export const TenantRoleDashboard: React.FC = () => {
               </div>
               <div className="min-w-0">
                 <h4 className="font-bold text-xs text-default truncate">
-                  Install {companyName || 'Enterprise Cloud'}
+                  {t('pwa.installTitle', { name: companyName || 'Enterprise Cloud' })}
                 </h4>
-                <span className="text-[10px] text-muted">Business Operations Platform PWA</span>
+                <span className="text-[10px] text-muted">{t('pwa.platformPwa')}</span>
               </div>
             </div>
             <button
@@ -876,8 +879,7 @@ export const TenantRoleDashboard: React.FC = () => {
             </button>
           </div>
           <p className="mt-2 text-xs text-muted leading-relaxed">
-            Add to your home screen for quick offline access, full-screen view & faster business
-            operations.
+            {t('pwa.description')}
           </p>
           <div className="mt-3.5 flex items-center gap-2">
             <Button
@@ -886,7 +888,7 @@ export const TenantRoleDashboard: React.FC = () => {
               onClick={handleInstallPwa}
               leftIcon={<Download className="size-3.5" />}
             >
-              Install App
+              {t('pwa.installApp')}
             </Button>
             <Button
               variant="ghost"
@@ -894,7 +896,7 @@ export const TenantRoleDashboard: React.FC = () => {
               onClick={handleDismissPwa}
               className="text-muted hover:text-default"
             >
-              Maybe Later
+              {t('pwa.maybeLater')}
             </Button>
           </div>
         </aside>

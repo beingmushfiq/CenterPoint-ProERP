@@ -25,7 +25,7 @@ interface SidebarProps {
 }
 
 export function Sidebar({ isOpen, onClose, isCollapsed = false, onToggleCollapse }: SidebarProps) {
-  const { t } = useTranslation(['navigation', 'common']);
+  const { t, i18n } = useTranslation(['navigation', 'common']);
   const user = useAuthStore((state) => state.user);
   const hasPermission = useAuthStore((state) => state.hasPermission);
   const tenant = useAuthStore((state) => state.tenant);
@@ -59,14 +59,24 @@ export function Sidebar({ isOpen, onClose, isCollapsed = false, onToggleCollapse
   };
 
   const workspaceSubtitle = useMemo(() => {
-    if (!user?.role) return 'Operations Workspace';
-    if (user.role.includes('Super Administrator') || user.is_platform_admin) return 'Executive Command';
-    if (user.role.includes('Production')) return 'Production Workspace';
-    if (user.role.includes('QC') || user.role.includes('Quality')) return 'Quality & Assurance';
-    if (user.role.includes('Store') || user.role.includes('Warehouse')) return 'Warehouse & Logistics';
-    if (user.role.includes('Sales') || user.role.includes('Commercial')) return 'Commercial & Retail';
-    return `${user.role} Workspace`;
-  }, [user]);
+    if (!user?.role) return i18n.language === 'bn' ? 'অপারেশনস কর্মক্ষেত্র' : 'Operations Workspace';
+    if (user.role.includes('Super Administrator') || user.is_platform_admin) {
+      return i18n.language === 'bn' ? 'এক্সিকিউটিভ কমান্ড' : 'Executive Command';
+    }
+    if (user.role.includes('Production')) {
+      return i18n.language === 'bn' ? 'উৎপাদন কর্মক্ষেত্র' : 'Production Workspace';
+    }
+    if (user.role.includes('QC') || user.role.includes('Quality')) {
+      return i18n.language === 'bn' ? 'গুণমান ও পরিদর্শন' : 'Quality & Assurance';
+    }
+    if (user.role.includes('Store') || user.role.includes('Warehouse')) {
+      return i18n.language === 'bn' ? 'গুদাম ও লজিস্টিকস' : 'Warehouse & Logistics';
+    }
+    if (user.role.includes('Sales') || user.role.includes('Commercial')) {
+      return i18n.language === 'bn' ? 'বাণিজ্যিক ও খুচরা' : 'Commercial & Retail';
+    }
+    return `${user.role} ${i18n.language === 'bn' ? 'কর্মক্ষেত্র' : 'Workspace'}`;
+  }, [user, i18n.language]);
 
   const isItemActive = (to: string, isActive: boolean) => {
     // 1. If 'to' specifies exact query parameters (e.g., '/sales?tab=leads')
@@ -162,7 +172,11 @@ export function Sidebar({ isOpen, onClose, isCollapsed = false, onToggleCollapse
   }, [isOpen, onClose]);
 
   const appVersion = getAppVersion();
-  const tenantTier = tenant?.status ? `${tenant.status.charAt(0).toUpperCase() + tenant.status.slice(1)} Edition` : 'Enterprise Edition';
+  const statusLabel = tenant?.status === 'active'
+    ? t('common:status.active', 'Active')
+    : (tenant?.status ? tenant.status.charAt(0).toUpperCase() + tenant.status.slice(1) : (i18n.language === 'bn' ? 'এন্টারপ্রাইজ' : 'Enterprise'));
+  const editionLabel = i18n.language === 'bn' ? 'সংস্করণ' : 'Edition';
+  const tenantTier = `${statusLabel} ${editionLabel}`;
   const tenantShortBadge = 'ERP';
 
   return (

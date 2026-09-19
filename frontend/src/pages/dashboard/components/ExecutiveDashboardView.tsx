@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
@@ -65,6 +66,7 @@ export const ExecutiveDashboardView: React.FC<ExecutiveDashboardViewProps> = ({
   trends,
 }) => {
   const { formatCurrency, currencySymbol } = useCurrency();
+  const { t } = useTranslation(['dashboard', 'common']);
 
   const { data: metrics } = useQuery<DashboardMetricsData | null>({
     queryKey: ['tenant', 'dashboard', 'metrics'],
@@ -133,15 +135,15 @@ export const ExecutiveDashboardView: React.FC<ExecutiveDashboardViewProps> = ({
         <div>
           <div className="flex items-center gap-2">
             <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-default font-sans">
-              Executive Operations Overview
+              {t('controls.operationsOverview')}
             </h2>
             <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              All Systems Operational
+              {t('controls.allSystemsOperational')}
             </span>
           </div>
           <p className="text-xs text-muted mt-0.5">
-            Cross-functional enterprise summary • Commercial, Factory, Inventory & Quality
+            {t('controls.enterpriseSummary')}
           </p>
         </div>
 
@@ -151,14 +153,14 @@ export const ExecutiveDashboardView: React.FC<ExecutiveDashboardViewProps> = ({
             className="flex items-center gap-1.5 rounded-xl border border-default bg-surface px-3 py-2 text-xs font-semibold text-default hover:bg-surface-sunken transition-all shadow-2xs"
           >
             <FileText className="size-3.5 text-muted" />
-            <span>RMS Reports</span>
+            <span>{t('controls.rmsReports')}</span>
           </Link>
           <Link
             to="/pos"
             className="flex items-center gap-1.5 rounded-xl bg-linear-to-r from-blue-600 to-indigo-600 px-3.5 py-2 text-xs font-semibold text-white shadow-xs hover:from-blue-500 hover:to-indigo-500 transition-all"
           >
             <ShoppingCart className="size-3.5" />
-            <span>POS Terminal</span>
+            <span>{t('controls.posTerminal')}</span>
           </Link>
         </div>
       </div>
@@ -171,7 +173,7 @@ export const ExecutiveDashboardView: React.FC<ExecutiveDashboardViewProps> = ({
         <div className="rounded-2xl border border-default bg-surface p-4 shadow-xs flex flex-col justify-between hover:border-primary/40 transition-all">
           <div className="flex items-center justify-between">
             <span className="text-[10px] font-bold text-muted uppercase tracking-wider">
-              TODAY'S REVENUE
+              {t('kpi.todayRevenue')}
             </span>
             <div className="flex size-7 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
               <TrendingUp className="size-3.5" />
@@ -182,7 +184,7 @@ export const ExecutiveDashboardView: React.FC<ExecutiveDashboardViewProps> = ({
               {metrics ? formatCurrency(metrics.commercial.today_revenue) : formatCurrency(0)}
             </div>
             <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
-              Month:{' '}
+              {t('kpi.month')}:{' '}
               {metrics ? formatCurrency(metrics.commercial.month_revenue) : formatCurrency(0)}
             </span>
           </div>
@@ -192,7 +194,7 @@ export const ExecutiveDashboardView: React.FC<ExecutiveDashboardViewProps> = ({
         <div className="rounded-2xl border border-default bg-surface p-4 shadow-xs flex flex-col justify-between hover:border-primary/40 transition-all">
           <div className="flex items-center justify-between">
             <span className="text-[10px] font-bold text-muted uppercase tracking-wider">
-              ACTIVE ORDERS
+              {t('kpi.activeOrders')}
             </span>
             <div className="flex size-7 items-center justify-center rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400">
               <ShoppingBag className="size-3.5" />
@@ -200,10 +202,10 @@ export const ExecutiveDashboardView: React.FC<ExecutiveDashboardViewProps> = ({
           </div>
           <div className="mt-2">
             <div className="text-xl sm:text-2xl font-extrabold font-mono text-default">
-              {metrics ? `${metrics.commercial.active_orders} Orders` : '0 Orders'}
+              {metrics ? t('kpi.ordersCount', { count: metrics.commercial.active_orders }) : t('kpi.ordersCount', { count: 0 })}
             </div>
             <span className="text-[10px] font-semibold text-muted">
-              Due:{' '}
+              {t('kpi.due')}:{' '}
               {metrics
                 ? formatCurrency(metrics.commercial.total_receivable_due)
                 : formatCurrency(0)}
@@ -215,7 +217,7 @@ export const ExecutiveDashboardView: React.FC<ExecutiveDashboardViewProps> = ({
         <div className="rounded-2xl border border-default bg-surface p-4 shadow-xs flex flex-col justify-between hover:border-primary/40 transition-all">
           <div className="flex items-center justify-between">
             <span className="text-[10px] font-bold text-muted uppercase tracking-wider">
-              TODAY'S OUTPUT
+              {t('kpi.todayOutput')}
             </span>
             <div className="flex size-7 items-center justify-center rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">
               <Factory className="size-3.5" />
@@ -223,12 +225,12 @@ export const ExecutiveDashboardView: React.FC<ExecutiveDashboardViewProps> = ({
           </div>
           <div className="mt-2">
             <div className="text-xl sm:text-2xl font-extrabold font-mono text-default">
-              {metrics ? `${metrics.production.today_output} pcs` : '0 pcs'}
+              {metrics ? t('kpi.pcsCount', { count: metrics.production.today_output }) : t('kpi.pcsCount', { count: 0 })}
             </div>
             <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
               {metrics
-                ? `${metrics.production.achievement_rate}% Target Achieved`
-                : '0% Target Achieved'}
+                ? t('kpi.targetAchieved', { percent: metrics.production.achievement_rate })
+                : t('kpi.targetAchieved', { percent: 0 })}
             </span>
           </div>
         </div>
@@ -237,7 +239,7 @@ export const ExecutiveDashboardView: React.FC<ExecutiveDashboardViewProps> = ({
         <div className="rounded-2xl border border-default bg-surface p-4 shadow-xs flex flex-col justify-between hover:border-primary/40 transition-all">
           <div className="flex items-center justify-between">
             <span className="text-[10px] font-bold text-muted uppercase tracking-wider">
-              STOCK VALUATION
+              {t('kpi.stockValuation')}
             </span>
             <div className="flex size-7 items-center justify-center rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400">
               <Warehouse className="size-3.5" />
@@ -249,8 +251,8 @@ export const ExecutiveDashboardView: React.FC<ExecutiveDashboardViewProps> = ({
             </div>
             <span className="text-[10px] font-semibold text-amber-600 dark:text-amber-400">
               {metrics
-                ? `${metrics.inventory.low_stock_count} Reorder Warnings`
-                : '0 Reorder Warnings'}
+                ? t('kpi.reorderWarnings', { count: metrics.inventory.low_stock_count })
+                : t('kpi.reorderWarnings', { count: 0 })}
             </span>
           </div>
         </div>
@@ -259,7 +261,7 @@ export const ExecutiveDashboardView: React.FC<ExecutiveDashboardViewProps> = ({
         <div className="rounded-2xl border border-default bg-surface p-4 shadow-xs flex flex-col justify-between hover:border-primary/40 transition-all">
           <div className="flex items-center justify-between">
             <span className="text-[10px] font-bold text-muted uppercase tracking-wider">
-              QC PASS RATE
+              {t('kpi.qcPassRateTitle')}
             </span>
             <div className="flex size-7 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
               <Microscope className="size-3.5" />
@@ -270,7 +272,7 @@ export const ExecutiveDashboardView: React.FC<ExecutiveDashboardViewProps> = ({
               {metrics ? `${metrics.quality.qc_pass_rate}%` : '100%'}
             </div>
             <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
-              {metrics ? `${metrics.quality.pending_inspections} Pending Tests` : '0 Pending Tests'}
+              {metrics ? t('kpi.pendingTests', { count: metrics.quality.pending_inspections }) : t('kpi.pendingTests', { count: 0 })}
             </span>
           </div>
         </div>
@@ -279,7 +281,7 @@ export const ExecutiveDashboardView: React.FC<ExecutiveDashboardViewProps> = ({
         <div className="rounded-2xl border border-default bg-surface p-4 shadow-xs flex flex-col justify-between hover:border-primary/40 transition-all">
           <div className="flex items-center justify-between">
             <span className="text-[10px] font-bold text-muted uppercase tracking-wider">
-              FACILITY CAPACITY
+              {t('kpi.facilityCapacity')}
             </span>
             <div className="flex size-7 items-center justify-center rounded-lg bg-purple-500/10 text-purple-600 dark:text-purple-400">
               <Cpu className="size-3.5" />
@@ -290,7 +292,7 @@ export const ExecutiveDashboardView: React.FC<ExecutiveDashboardViewProps> = ({
               {metrics ? `${metrics.production.achievement_rate}%` : '0%'}
             </div>
             <span className="text-[10px] font-semibold text-muted">
-              {metrics ? `${metrics.production.active_batches} Active Batches` : '0 Active Batches'}
+              {metrics ? t('kpi.activeBatches', { count: metrics.production.active_batches }) : t('kpi.activeBatches', { count: 0 })}
             </span>
           </div>
         </div>
@@ -302,9 +304,9 @@ export const ExecutiveDashboardView: React.FC<ExecutiveDashboardViewProps> = ({
       <div className="rounded-2xl border border-default bg-surface p-4 shadow-xs">
         <div className="flex items-center justify-between mb-3">
           <span className="text-xs font-bold uppercase tracking-wider text-muted">
-            Executive Command Actions
+            {t('commandActions.title')}
           </span>
-          <span className="text-[11px] text-muted">Quick access to key operational workflows</span>
+          <span className="text-[11px] text-muted">{t('commandActions.subtitle')}</span>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
           <Link
@@ -316,9 +318,9 @@ export const ExecutiveDashboardView: React.FC<ExecutiveDashboardViewProps> = ({
             </div>
             <div className="min-w-0">
               <div className="text-xs font-bold text-default group-hover:text-primary transition-colors truncate">
-                Sales Order
+                {t('commandActions.salesOrder')}
               </div>
-              <div className="text-[10px] text-muted truncate">New Commercial PO</div>
+              <div className="text-[10px] text-muted truncate">{t('commandActions.newCommercialPo')}</div>
             </div>
           </Link>
 
@@ -331,9 +333,9 @@ export const ExecutiveDashboardView: React.FC<ExecutiveDashboardViewProps> = ({
             </div>
             <div className="min-w-0">
               <div className="text-xs font-bold text-default group-hover:text-primary transition-colors truncate">
-                Production Plan
+                {t('commandActions.productionPlan')}
               </div>
-              <div className="text-[10px] text-muted truncate">Schedule Batch</div>
+              <div className="text-[10px] text-muted truncate">{t('commandActions.scheduleBatch')}</div>
             </div>
           </Link>
 
@@ -346,9 +348,9 @@ export const ExecutiveDashboardView: React.FC<ExecutiveDashboardViewProps> = ({
             </div>
             <div className="min-w-0">
               <div className="text-xs font-bold text-default group-hover:text-primary transition-colors truncate">
-                Stock Transfer
+                {t('commandActions.stockTransfer')}
               </div>
-              <div className="text-[10px] text-muted truncate">WH-A to WH-B</div>
+              <div className="text-[10px] text-muted truncate">{t('commandActions.whTransfer')}</div>
             </div>
           </Link>
 
@@ -361,9 +363,9 @@ export const ExecutiveDashboardView: React.FC<ExecutiveDashboardViewProps> = ({
             </div>
             <div className="min-w-0">
               <div className="text-xs font-bold text-default group-hover:text-primary transition-colors truncate">
-                Purchase PO
+                {t('commandActions.purchasePo')}
               </div>
-              <div className="text-[10px] text-muted truncate">Procure Raw Materials</div>
+              <div className="text-[10px] text-muted truncate">{t('commandActions.procureRawMaterials')}</div>
             </div>
           </Link>
 
@@ -376,9 +378,9 @@ export const ExecutiveDashboardView: React.FC<ExecutiveDashboardViewProps> = ({
             </div>
             <div className="min-w-0">
               <div className="text-xs font-bold text-default group-hover:text-primary transition-colors truncate">
-                QC Inspections
+                {t('commandActions.qcInspections')}
               </div>
-              <div className="text-[10px] text-muted truncate">Audit Active Batches</div>
+              <div className="text-[10px] text-muted truncate">{t('commandActions.auditActiveBatches')}</div>
             </div>
           </Link>
 
@@ -391,9 +393,9 @@ export const ExecutiveDashboardView: React.FC<ExecutiveDashboardViewProps> = ({
             </div>
             <div className="min-w-0">
               <div className="text-xs font-bold text-default group-hover:text-primary transition-colors truncate">
-                Organization
+                {t('commandActions.organization')}
               </div>
-              <div className="text-[10px] text-muted truncate">Settings & Master</div>
+              <div className="text-[10px] text-muted truncate">{t('commandActions.settingsMaster')}</div>
             </div>
           </Link>
         </div>
@@ -409,21 +411,21 @@ export const ExecutiveDashboardView: React.FC<ExecutiveDashboardViewProps> = ({
             <div className="flex items-center justify-between border-b border-default pb-2.5">
               <div className="flex items-center gap-2">
                 <ShoppingBag className="size-4 text-blue-500" />
-                <span className="text-xs font-bold text-default">Commercial & POS</span>
+                <span className="text-xs font-bold text-default">{t('cards.commercialPos')}</span>
               </div>
               <span className="rounded-full bg-blue-500/10 px-2 py-0.5 text-[10px] font-bold text-blue-600 dark:text-blue-400">
-                {metrics ? `${metrics.commercial.active_orders} Orders` : '0 Orders'}
+                {metrics ? t('kpi.ordersCount', { count: metrics.commercial.active_orders }) : t('kpi.ordersCount', { count: 0 })}
               </span>
             </div>
             <div className="mt-3 space-y-2">
               <div className="flex items-center justify-between text-xs">
-                <span className="text-muted">Today's Revenue:</span>
+                <span className="text-muted">{t('cards.todayRevenue')}:</span>
                 <strong className="text-default font-mono">
                   {metrics ? formatCurrency(metrics.commercial.today_revenue) : formatCurrency(0)}
                 </strong>
               </div>
               <div className="flex items-center justify-between text-xs">
-                <span className="text-muted">Invoices Pending:</span>
+                <span className="text-muted">{t('cards.invoicesPending')}:</span>
                 <strong className="text-amber-500 font-mono">
                   {metrics
                     ? formatCurrency(metrics.commercial.total_receivable_due)
@@ -431,10 +433,10 @@ export const ExecutiveDashboardView: React.FC<ExecutiveDashboardViewProps> = ({
                 </strong>
               </div>
               <div className="flex items-center justify-between text-xs">
-                <span className="text-muted">POS Register:</span>
+                <span className="text-muted">{t('cards.posRegister')}:</span>
                 <span className="text-emerald-500 font-semibold flex items-center gap-1">
                   <span className="size-1.5 rounded-full bg-emerald-500" />
-                  Terminal Online
+                  {t('cards.terminalOnline')}
                 </span>
               </div>
             </div>
@@ -454,7 +456,7 @@ export const ExecutiveDashboardView: React.FC<ExecutiveDashboardViewProps> = ({
             <div className="flex items-center justify-between border-b border-default pb-2.5">
               <div className="flex items-center gap-2">
                 <Factory className="size-4 text-indigo-500" />
-                <span className="text-xs font-bold text-default">Factory Floor</span>
+                <span className="text-xs font-bold text-default">{t('cards.factoryFloor')}</span>
               </div>
               <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
                 {metrics ? `${metrics.production.achievement_rate}% Output` : '0% Output'}
@@ -462,7 +464,7 @@ export const ExecutiveDashboardView: React.FC<ExecutiveDashboardViewProps> = ({
             </div>
             <div className="mt-3 space-y-2">
               <div className="flex items-center justify-between text-xs">
-                <span className="text-muted">Units Produced:</span>
+                <span className="text-muted">{t('cards.unitsProduced')}:</span>
                 <strong className="text-default font-mono">
                   {metrics
                     ? `${metrics.production.today_output} / ${metrics.production.target_output || 0} pcs`
@@ -470,16 +472,16 @@ export const ExecutiveDashboardView: React.FC<ExecutiveDashboardViewProps> = ({
                 </strong>
               </div>
               <div className="flex items-center justify-between text-xs">
-                <span className="text-muted">Active Batches:</span>
+                <span className="text-muted">{t('cards.activeBatches')}:</span>
                 <strong className="text-default font-mono">
-                  {metrics ? `${metrics.production.active_batches} In-Progress` : '0 In-Progress'}
+                  {metrics ? `${metrics.production.active_batches} ${t('cards.inProgress')}` : `0 ${t('cards.inProgress')}`}
                 </strong>
               </div>
               <div className="flex items-center justify-between text-xs">
-                <span className="text-muted">Shift Status:</span>
+                <span className="text-muted">{t('cards.shiftStatus')}:</span>
                 <span className="text-emerald-500 font-semibold flex items-center gap-1">
                   <span className="size-1.5 rounded-full bg-emerald-500" />
-                  Active Shift
+                  {t('cards.activeShift')}
                 </span>
               </div>
             </div>
@@ -499,28 +501,28 @@ export const ExecutiveDashboardView: React.FC<ExecutiveDashboardViewProps> = ({
             <div className="flex items-center justify-between border-b border-default pb-2.5">
               <div className="flex items-center gap-2">
                 <Warehouse className="size-4 text-amber-500" />
-                <span className="text-xs font-bold text-default">Warehouse Stock</span>
+                <span className="text-xs font-bold text-default">{t('cards.warehouseStock')}</span>
               </div>
               <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-bold text-amber-600 dark:text-amber-400">
-                {metrics ? `${metrics.inventory.low_stock_count} Low Items` : '0 Low Items'}
+                {metrics ? t('cards.lowItems', { count: metrics.inventory.low_stock_count }) : t('cards.lowItems', { count: 0 })}
               </span>
             </div>
             <div className="mt-3 space-y-2">
               <div className="flex items-center justify-between text-xs">
-                <span className="text-muted">Valuation:</span>
+                <span className="text-muted">{t('cards.valuation')}:</span>
                 <strong className="text-default font-mono">
                   {metrics ? formatCurrency(metrics.inventory.total_valuation) : formatCurrency(0)}
                 </strong>
               </div>
               <div className="flex items-center justify-between text-xs">
-                <span className="text-muted">Stock Status:</span>
+                <span className="text-muted">{t('cards.stockStatus')}:</span>
                 <strong className="text-default font-mono">
-                  {metrics && metrics.inventory.low_stock_count > 0 ? 'Warnings Active' : 'Normal'}
+                  {metrics && metrics.inventory.low_stock_count > 0 ? t('kpi.reorderWarnings', { count: metrics.inventory.low_stock_count }) : t('cards.normal')}
                 </strong>
               </div>
               <div className="flex items-center justify-between text-xs">
-                <span className="text-muted">Ledger Tracking:</span>
-                <span className="text-blue-500 font-semibold">Active Realtime</span>
+                <span className="text-muted">{t('cards.ledgerTracking')}:</span>
+                <span className="text-blue-500 font-semibold">{t('cards.activeRealtime')}</span>
               </div>
             </div>
           </div>
@@ -539,7 +541,7 @@ export const ExecutiveDashboardView: React.FC<ExecutiveDashboardViewProps> = ({
             <div className="flex items-center justify-between border-b border-default pb-2.5">
               <div className="flex items-center gap-2">
                 <Microscope className="size-4 text-cyan-500" />
-                <span className="text-xs font-bold text-default">Quality Control</span>
+                <span className="text-xs font-bold text-default">{t('cards.qualityAssurance')}</span>
               </div>
               <span className="rounded-full bg-cyan-500/10 px-2 py-0.5 text-[10px] font-bold text-cyan-600 dark:text-cyan-400">
                 {metrics ? `${metrics.quality.qc_pass_rate}% Pass` : '100% Pass'}
