@@ -7,9 +7,11 @@ namespace App\Modules\Reports\Actions;
 use App\Modules\Reports\Contracts\ReportQueryInterface;
 use App\Modules\Reports\Models\ReportDefinition;
 use App\Modules\Reports\Queries\CurrentStockReportQuery;
+use App\Modules\Reports\Queries\DailyProductionReportQuery;
 use App\Modules\Reports\Queries\GeneralLedgerSummaryReportQuery;
 use App\Modules\Reports\Queries\LowStockReportQuery;
 use App\Modules\Reports\Queries\PayrollSummaryReportQuery;
+use App\Modules\Reports\Queries\ProductionTargetVsAchievementReportQuery;
 use App\Modules\Reports\Queries\ProductionYieldReportQuery;
 use App\Modules\Reports\Queries\SalesByCustomerReportQuery;
 use App\Modules\Reports\Queries\SalesByProductReportQuery;
@@ -18,6 +20,7 @@ use App\Modules\Reports\Queries\SalesPerformanceReportQuery;
 use App\Modules\Reports\Queries\StockLedgerReportQuery;
 use App\Modules\Reports\Queries\StockMovementReportQuery;
 use App\Modules\Reports\Queries\StockValuationReportQuery;
+use App\Modules\Reports\Queries\WorkerProductionReportQuery;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -28,6 +31,9 @@ class RunReportQueryAction
      */
     protected array $queryMap = [
         'production_yield' => ProductionYieldReportQuery::class,
+        'daily_production' => DailyProductionReportQuery::class,
+        'production_target_vs_achievement' => ProductionTargetVsAchievementReportQuery::class,
+        'worker_production' => WorkerProductionReportQuery::class,
         'stock_valuation' => StockValuationReportQuery::class,
         'current_stock' => CurrentStockReportQuery::class,
         'stock_ledger' => StockLedgerReportQuery::class,
