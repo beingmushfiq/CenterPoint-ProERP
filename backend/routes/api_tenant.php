@@ -264,7 +264,7 @@ Route::middleware(['auth.jwt', 'tenant.resolve', 'tenant.active'])
         });
 
         // ── Production ────────────────────────────────────────────────
-        Route::prefix('production')->name('production.')->group(static function (): void {
+        Route::prefix('production')->name('production.')->middleware('module.active:production')->group(static function (): void {
             Route::prefix('plans')->name('plans.')->group(static function (): void {
                 Route::post('bulk-import', [App\Modules\Production\Controllers\ProductionPlanController::class, 'bulkImport'])
                     ->middleware('permission:production.plan.create')->name('bulk-import');
@@ -334,7 +334,7 @@ Route::middleware(['auth.jwt', 'tenant.resolve', 'tenant.active'])
         });
 
         // ── Quality Control (QC) & Wastage ───────────────────────────
-        Route::prefix('qc')->name('qc.')->group(static function (): void {
+        Route::prefix('qc')->name('qc.')->middleware('module.active:qc')->group(static function (): void {
             Route::prefix('parameters')->name('parameters.')->group(static function (): void {
                 Route::post('bulk-import', [App\Modules\QC\Controllers\QcParameterController::class, 'bulkImport'])
                     ->middleware('permission:qc.parameter.create')->name('bulk-import');
@@ -396,8 +396,8 @@ Route::middleware(['auth.jwt', 'tenant.resolve', 'tenant.active'])
             });
         });
 
-        // ── Inventory & Stock Operations ──────────────────────────────
-        Route::prefix('inventory')->name('inventory.')->group(static function (): void {
+        // ── Inventory & Logistics ─────────────────────────────────────
+        Route::prefix('inventory')->name('inventory.')->middleware('module.active:inventory')->group(static function (): void {
             Route::post('opening-stock/bulk-import', [App\Modules\Inventory\Controllers\StockMovementController::class, 'bulkImport'])
                 ->middleware('permission:inventory.stock.view')->name('opening-stock.bulk-import');
             Route::post('balances/bulk-import', [App\Modules\Inventory\Controllers\StockMovementController::class, 'bulkImport'])
@@ -466,7 +466,7 @@ Route::middleware(['auth.jwt', 'tenant.resolve', 'tenant.active'])
         });
 
         // ── Purchasing & Procurement ──────────────────────────────────
-        Route::prefix('purchasing')->name('purchasing.')->group(static function (): void {
+        Route::prefix('purchasing')->name('purchasing.')->middleware('module.active:purchasing')->group(static function (): void {
             Route::prefix('requisitions')->name('requisitions.')->group(static function (): void {
                 Route::get('/', [App\Modules\Purchasing\Controllers\PurchaseRequisitionController::class, 'index'])
                     ->middleware('permission:purchasing.requisition.view')->name('index');
@@ -656,7 +656,7 @@ Route::middleware(['auth.jwt', 'tenant.resolve', 'tenant.active'])
             });
 
             // ── CRM Leads ────────────────────────────────────────────────
-            Route::prefix('leads')->name('leads.')->group(static function (): void {
+            Route::prefix('leads')->name('leads.')->middleware('module.active:crm')->group(static function (): void {
                 Route::get('/', [App\Modules\Sales\Controllers\CrmLeadController::class, 'index'])
                     ->middleware('permission:sales.lead.view')->name('index');
                 Route::post('/', [App\Modules\Sales\Controllers\CrmLeadController::class, 'store'])
@@ -733,7 +733,7 @@ Route::middleware(['auth.jwt', 'tenant.resolve', 'tenant.active'])
         });
 
         // ── POS ───────────────────────────────────────────────────────
-        Route::prefix('pos')->name('pos.')->group(static function (): void {
+        Route::prefix('pos')->name('pos.')->middleware('module.active:pos')->group(static function (): void {
             Route::prefix('terminals')->name('terminals.')->group(static function (): void {
                 Route::get('/', [App\Modules\Pos\Controllers\PosTerminalController::class, 'index'])
                     ->middleware('permission:pos.terminal.view')->name('index');
@@ -821,7 +821,7 @@ Route::middleware(['auth.jwt', 'tenant.resolve', 'tenant.active'])
         });
 
         // ── Delivery (Alias for Logistics) ──────────────────────────────
-        Route::prefix('delivery')->name('delivery.')->group(static function (): void {
+        Route::prefix('delivery')->name('delivery.')->middleware('module.active:delivery')->group(static function (): void {
             Route::get('shipments', [App\Modules\Delivery\Controllers\CourierShipmentController::class, 'index'])
                 ->middleware('permission:logistics.shipment.view')->name('shipments.index');
             Route::get('shipments/{shipment}', [App\Modules\Delivery\Controllers\CourierShipmentController::class, 'show'])
@@ -829,7 +829,7 @@ Route::middleware(['auth.jwt', 'tenant.resolve', 'tenant.active'])
         });
 
         // ── Finance & Accounting ──────────────────────────────────────
-        Route::prefix('finance')->name('finance.')->group(static function (): void {
+        Route::prefix('finance')->name('finance.')->middleware('module.active:finance')->group(static function (): void {
             Route::post('accounts/bulk-import', [App\Modules\Finance\Controllers\ChartOfAccountController::class, 'bulkImport'])
                 ->middleware('permission:finance.account.create')->name('accounts.bulk-import');
             Route::post('journal-entries/bulk-import', [App\Modules\Finance\Controllers\JournalEntryController::class, 'bulkImport'])
@@ -892,7 +892,7 @@ Route::middleware(['auth.jwt', 'tenant.resolve', 'tenant.active'])
         });
 
         // ── Fixed Assets & Maintenance ────────────────────────────────
-        Route::prefix('assets')->name('assets.')->group(static function (): void {
+        Route::prefix('assets')->name('assets.')->middleware('module.active:assets')->group(static function (): void {
             Route::post('bulk-import', [App\Modules\Assets\Controllers\AssetController::class, 'bulkImport'])
                 ->middleware('permission:assets.asset.create')->name('bulk-import');
             Route::get('categories', [App\Modules\Assets\Controllers\AssetController::class, 'categories'])
@@ -924,7 +924,7 @@ Route::middleware(['auth.jwt', 'tenant.resolve', 'tenant.active'])
         });
 
         // ── Human Resources & Payroll ─────────────────────────────────
-        Route::prefix('hr')->name('hr.')->group(static function (): void {
+        Route::prefix('hr')->name('hr.')->middleware('module.active:hr')->group(static function (): void {
             // Departments
             Route::get('departments', [App\Modules\HR\Controllers\EmployeeController::class, 'departments'])->name('departments');
             Route::post('departments/bulk-import', [App\Modules\HR\Controllers\EmployeeController::class, 'bulkImportDepartments'])->name('departments.bulk-import');
@@ -1058,7 +1058,7 @@ Route::middleware(['auth.jwt', 'tenant.resolve', 'tenant.active'])
         });
 
         // ── Reports & RMS Engine ──────────────────────────────────────
-        Route::prefix('reports')->name('reports.')->group(static function (): void {
+        Route::prefix('reports')->name('reports.')->middleware('module.active:reports')->group(static function (): void {
             Route::get('/', [App\Modules\Reports\Controllers\ReportRegistryController::class, 'index'])->name('index');
             Route::get('definitions', [App\Modules\Reports\Controllers\ReportRegistryController::class, 'index'])->name('definitions');
             Route::get('{code}/schema', [App\Modules\Reports\Controllers\ReportDataController::class, 'schema'])->name('schema');
@@ -1158,7 +1158,7 @@ Route::middleware(['auth.jwt', 'tenant.resolve', 'tenant.active'])
             Route::get('/', [App\Modules\Auth\Controllers\UserController::class, 'index'])
                 ->middleware('permission:core.user.view')->name('index');
             Route::post('/', [App\Modules\Auth\Controllers\UserController::class, 'store'])
-                ->middleware('permission:core.user.create')->name('store');
+                ->middleware(['permission:core.user.create', 'tenant.quota:users'])->name('store');
             Route::get('{id}', [App\Modules\Auth\Controllers\UserController::class, 'show'])
                 ->middleware('permission:core.user.view')->name('show');
             Route::put('{id}', [App\Modules\Auth\Controllers\UserController::class, 'update'])
@@ -1352,7 +1352,7 @@ Route::middleware(['auth.jwt', 'tenant.resolve', 'tenant.active'])
         });
 
         // ── Manufacturing Cost Variance Radar ─────────────────────────
-        Route::prefix('production')->name('production.')->group(static function (): void {
+        Route::prefix('production')->name('production.')->middleware('module.active:production')->group(static function (): void {
             Route::get('variance-radar', [App\Modules\Production\Controllers\CostVarianceRadarController::class, 'radar'])->name('variance-radar');
         });
 

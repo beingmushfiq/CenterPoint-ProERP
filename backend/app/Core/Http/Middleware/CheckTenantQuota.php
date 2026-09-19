@@ -30,6 +30,7 @@ final class CheckTenantQuota
         'products' => 'max_products',
         'users' => 'max_users',
         'warehouses' => 'max_warehouses',
+        'branches' => 'max_branches',
     ];
 
     public function handle(Request $request, Closure $next, string $resource): Response
@@ -129,6 +130,7 @@ final class CheckTenantQuota
                 'products' => Product::where('tenant_id', $tenantId)->count(),
                 'users' => User::where('tenant_id', $tenantId)->where('is_platform_user', false)->count(),
                 'warehouses' => Warehouse::where('tenant_id', $tenantId)->count(),
+                'branches' => \App\Models\Branch::where('tenant_id', $tenantId)->count(),
                 default => 0,
             };
         });

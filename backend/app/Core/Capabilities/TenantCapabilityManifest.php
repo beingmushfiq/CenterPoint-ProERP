@@ -226,6 +226,9 @@ final class TenantCapabilityManifest
     public static function invalidate(int $tenantId): void
     {
         Cache::forget("tenant_capability_manifest:{$tenantId}");
+        foreach (array_keys(self::ALL_MODULE_KEYS) as $modKey) {
+            Cache::forget("t{$tenantId}:module:{$modKey}");
+        }
     }
 
     public static function defaultManifest(): array
