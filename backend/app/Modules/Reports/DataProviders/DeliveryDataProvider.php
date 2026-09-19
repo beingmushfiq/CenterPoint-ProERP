@@ -239,6 +239,185 @@ class DeliveryDataProvider extends BaseDataProvider
     }
 
     /**
+     * Cancelled and failed shipment audit.
+     */
+    public function cancelledDeliveries(array $filters, int $page = 1, int $perPage = 25): array
+    {
+        $tenantId = $this->getTenantId();
+
+        $query = DB::table('delivery_orders as do')
+            ->leftJoin('courier_providers as cp', 'do.courier_provider_id', '=', 'cp.id')
+            ->leftJoin('reason_codes as rc', 'do.failure_reason_id', '=', 'rc.id')
+            ->where('do.tenant_id', $tenantId)
+            ->whereNull('do.deleted_at')
+            ->whereIn('do.status', ['cancelled', 'failed'])
+            ->select([
+                'do.id',
+                'do.delivery_number',
+                'do.scheduled_date',
+                'do.recipient_name',
+                'do.recipient_phone',
+                'do.delivery_type',
+                DB::raw("COALESCE(cp.name, 'In-House') as courier_name"),
+                'do.attempt_count',
+                'do.status',
+                DB::raw("COALESCE(rc.name, 'Recipient Unavailable / Cancelled') as failure_reason"),
+                'do.special_instructions',
+            ]);
+
+        $this->applyDeliveryFilters($query, $filters);
+
+        $total = $query->count();
+
+        $rows = $query
+            ->orderBy('do.scheduled_date', 'desc')
+            ->orderBy('do.id', 'desc')
+            ->forPage($page, $perPage)
+            ->get()
+            ->map(function ($row): array {
+                return [
+                    'delivery_number' => $row->delivery_number,
+                    'scheduled_date' => $row->scheduled_date ?? '—',
+                    'recipient_name' => $row->recipient_name,
+                    'phone' => $row->recipient_phone ?? '—',
+                    'delivery_type' => ucfirst(str_replace('_', ' ', $row->delivery_type ?? 'standard')),
+                    'courier_name' => $row->courier_name,
+                    'attempts' => (int) $row->attempt_count,
+                    'status' => ucfirst($row->status ?? 'cancelled'),
+                    'reason' => $row->failure_reason,
+                    'instructions' => $row->special_instructions ?? '—',
+                ];
+            })
+            ->all();
+
+        return [
+            'data' => $rows,
+            'total' => $total,
+            'current_page' => $page,
+            'per_page' => $perPage,
+        ];
+    }
+
+    /**
+     * Cash-on-delivery collection reconciliation.
+     */
+    public function codReconciliation(array $filters, int $page = 1, int $perPage = 25): array
+    {
+        $tenantId = $this->getTenantId();
+
+        $query = DB::table('delivery_orders as do')
+            ->leftJoin('courier_providers as cp', 'do.courier_provider_id', '=', 'cp.id')
+            ->where('do.tenant_id', $tenantId)
+            ->whereNull('do.deleted_at')
+            ->where('do.cod_amount', '>', 0)
+            ->select([
+                'do.id',
+                'do.delivery_number',
+                'do.recipient_name',
+                DB::raw("COALESCE(cp.name, 'In-House') as courier_name"),
+                'do.status as delivery_status',
+                'do.delivered_at',
+                'do.cod_amount',
+                'do.cod_collected_amount',
+                'do.cod_status',
+            ]);
+
+        $this->applyDeliveryFilters($query, $filters);
+
+        $total = $query->count();
+
+        $rows = $query
+            ->orderBy('do.id', 'desc')
+            ->forPage($page, $perPage)
+            ->get()
+            ->map(function ($row): array {
+                $expected = (float) $row->cod_amount;
+                $collected = (float) ($row->cod_collected_amount ?? 0);
+                $variance = $expected - $collected;
+
+                return [
+                    'delivery_number' => $row->delivery_number,
+                    'recipient_name' => $row->recipient_name,
+                    'courier_name' => $row->courier_name,
+                    'delivery_status' => ucfirst(str_replace('_', ' ', $row->delivery_status ?? 'pending')),
+                    'delivered_at' => $row->delivered_at ?? '—',
+                    'cod_amount' => $expected,
+                    'collected_amount' => $collected,
+                    'variance' => $variance,
+                    'cod_status' => ucfirst(str_replace('_', ' ', $row->cod_status ?? 'pending')),
+                ];
+            })
+            ->all();
+
+        return [
+            'data' => $rows,
+            'total' => $total,
+            'current_page' => $page,
+            'per_page' => $perPage,
+        ];
+    }
+
+    /**
+     * Delivery SLA adherence and turnaround history.
+     */
+    public function deliverySlaHistory(array $filters, int $page = 1, int $perPage = 25): array
+    {
+        $tenantId = $this->getTenantId();
+
+        $query = DB::table('delivery_orders as do')
+            ->leftJoin('courier_providers as cp', 'do.courier_provider_id', '=', 'cp.id')
+            ->where('do.tenant_id', $tenantId)
+            ->whereNull('do.deleted_at')
+            ->whereNotNull('do.delivered_at')
+            ->select([
+                'do.id',
+                'do.delivery_number',
+                'do.recipient_name',
+                'do.delivery_type',
+                DB::raw("COALESCE(cp.name, 'In-House') as courier_name"),
+                'do.scheduled_date',
+                'do.delivered_at',
+                'do.attempt_count',
+            ]);
+
+        $this->applyDeliveryFilters($query, $filters);
+
+        $total = $query->count();
+
+        $rows = $query
+            ->orderBy('do.delivered_at', 'desc')
+            ->forPage($page, $perPage)
+            ->get()
+            ->map(function ($row): array {
+                $sched = $row->scheduled_date;
+                $deliv = $row->delivered_at;
+                $onTime = true;
+                if ($sched && $deliv) {
+                    $onTime = substr((string) $deliv, 0, 10) <= substr((string) $sched, 0, 10);
+                }
+
+                return [
+                    'delivery_number' => $row->delivery_number,
+                    'recipient_name' => $row->recipient_name,
+                    'delivery_type' => ucfirst(str_replace('_', ' ', $row->delivery_type ?? 'standard')),
+                    'courier_name' => $row->courier_name,
+                    'scheduled_date' => $sched ?? '—',
+                    'delivered_at' => $deliv ?? '—',
+                    'attempts' => (int) $row->attempt_count,
+                    'sla_adherence' => $onTime ? 'On-Time' : 'Delayed SLA Breach',
+                ];
+            })
+            ->all();
+
+        return [
+            'data' => $rows,
+            'total' => $total,
+            'current_page' => $page,
+            'per_page' => $perPage,
+        ];
+    }
+
+    /**
      * Overall logistics fulfillment KPIs.
      */
     public function summary(array $filters): array
@@ -270,4 +449,24 @@ class DeliveryDataProvider extends BaseDataProvider
             'total_cod_collected' => number_format((float) ($stats->total_cod_collected ?? 0), 2, '.', ''),
         ];
     }
+
+    protected function applyDeliveryFilters($query, array $filters): void
+    {
+        if (!empty($filters['start_date'])) {
+            $query->where('do.scheduled_date', '>=', $filters['start_date']);
+        }
+        if (!empty($filters['end_date'])) {
+            $query->where('do.scheduled_date', '<=', $filters['end_date']);
+        }
+        if (!empty($filters['courier_provider_id'])) {
+            $query->where('do.courier_provider_id', $filters['courier_provider_id']);
+        }
+        if (!empty($filters['warehouse_id'])) {
+            $query->where('do.warehouse_id', $filters['warehouse_id']);
+        }
+        if (!empty($filters['status'])) {
+            $query->where('do.status', $filters['status']);
+        }
+    }
 }
+

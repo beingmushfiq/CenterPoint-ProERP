@@ -232,6 +232,190 @@ class CRMDataProvider extends BaseDataProvider
     }
 
     /**
+     * Lead status and pipeline stage distribution.
+     */
+    public function leadStatusDistribution(array $filters, int $page = 1, int $perPage = 25): array
+    {
+        $tenantId = $this->getTenantId();
+
+        $query = DB::table('crm_leads')
+            ->where('tenant_id', $tenantId)
+            ->whereNull('deleted_at')
+            ->groupBy('stage')
+            ->select([
+                'stage',
+                DB::raw('COUNT(*) as total_count'),
+                DB::raw('COALESCE(SUM(expected_value), 0) as total_value'),
+                DB::raw('AVG(COALESCE(expected_value, 0)) as average_value'),
+            ]);
+
+        if (!empty($filters['start_date'])) {
+            $query->where('created_at', '>=', $filters['start_date']);
+        }
+        if (!empty($filters['end_date'])) {
+            $query->where('created_at', '<=', $filters['end_date']);
+        }
+
+        $total = DB::table(DB::raw("({$query->toSql()}) as sub"))
+            ->mergeBindings($query)
+            ->count();
+
+        $rows = $query
+            ->orderBy('total_count', 'desc')
+            ->forPage($page, $perPage)
+            ->get()
+            ->map(function ($row): array {
+                return [
+                    'stage' => ucfirst(str_replace('_', ' ', (string) $row->stage)),
+                    'leads_count' => (int) $row->total_count,
+                    'pipeline_value' => (float) $row->total_value,
+                    'average_deal_size' => round((float) $row->average_value, 2),
+                ];
+            })
+            ->all();
+
+        return [
+            'data' => $rows,
+            'total' => $total,
+            'current_page' => $page,
+            'per_page' => $perPage,
+        ];
+    }
+
+    /**
+     * Converted deals and win rate performance.
+     */
+    public function convertedLeads(array $filters, int $page = 1, int $perPage = 25): array
+    {
+        $tenantId = $this->getTenantId();
+
+        $query = DB::table('crm_leads as l')
+            ->leftJoin('users as u', 'l.assigned_to', '=', 'u.id')
+            ->leftJoin('parties as p', 'l.converted_party_id', '=', 'p.id')
+            ->where('l.tenant_id', $tenantId)
+            ->whereNull('l.deleted_at')
+            ->where(function ($q) {
+                $q->whereIn('l.stage', ['won', 'converted'])
+                    ->orWhereNotNull('l.converted_at');
+            })
+            ->select([
+                'l.id',
+                'l.lead_number',
+                'l.name as contact_name',
+                'l.company_name',
+                'l.phone',
+                'l.source',
+                DB::raw("COALESCE(u.name, 'Unassigned') as salesman_name"),
+                'l.expected_value as deal_value',
+                'l.converted_at',
+                DB::raw("COALESCE(p.name, 'Customer Account Created') as account_name"),
+            ]);
+
+        if (!empty($filters['start_date'])) {
+            $query->where('l.converted_at', '>=', $filters['start_date']);
+        }
+        if (!empty($filters['end_date'])) {
+            $query->where('l.converted_at', '<=', $filters['end_date']);
+        }
+        if (!empty($filters['salesman_id'])) {
+            $query->where('l.assigned_to', $filters['salesman_id']);
+        }
+
+        $total = $query->count();
+
+        $rows = $query
+            ->orderBy('l.converted_at', 'desc')
+            ->orderBy('l.id', 'desc')
+            ->forPage($page, $perPage)
+            ->get()
+            ->map(function ($row): array {
+                return [
+                    'lead_number' => $row->lead_number,
+                    'contact_name' => $row->contact_name,
+                    'company_name' => $row->company_name ?? '—',
+                    'phone' => $row->phone ?? '—',
+                    'source' => ucfirst(str_replace('_', ' ', $row->source ?? 'direct')),
+                    'salesman' => $row->salesman_name,
+                    'deal_value' => (float) ($row->deal_value ?? 0),
+                    'converted_at' => $row->converted_at ?? '—',
+                    'account_name' => $row->account_name,
+                ];
+            })
+            ->all();
+
+        return [
+            'data' => $rows,
+            'total' => $total,
+            'current_page' => $page,
+            'per_page' => $perPage,
+        ];
+    }
+
+    /**
+     * Lost deals root-cause and drop-off analysis.
+     */
+    public function lostLeadsAnalysis(array $filters, int $page = 1, int $perPage = 25): array
+    {
+        $tenantId = $this->getTenantId();
+
+        $query = DB::table('crm_leads as l')
+            ->leftJoin('users as u', 'l.assigned_to', '=', 'u.id')
+            ->leftJoin('reason_codes as rc', 'l.lost_reason_id', '=', 'rc.id')
+            ->where('l.tenant_id', $tenantId)
+            ->whereNull('l.deleted_at')
+            ->where('l.stage', 'lost')
+            ->select([
+                'l.id',
+                'l.lead_number',
+                'l.name as contact_name',
+                'l.company_name',
+                'l.phone',
+                'l.source',
+                DB::raw("COALESCE(u.name, 'Unassigned') as salesman_name"),
+                'l.expected_value as lost_value',
+                DB::raw("COALESCE(rc.name, 'Unspecified Reason') as lost_reason"),
+                'l.notes',
+                'l.updated_at as lost_at',
+            ]);
+
+        if (!empty($filters['start_date'])) {
+            $query->where('l.updated_at', '>=', $filters['start_date']);
+        }
+        if (!empty($filters['end_date'])) {
+            $query->where('l.updated_at', '<=', $filters['end_date']);
+        }
+
+        $total = $query->count();
+
+        $rows = $query
+            ->orderBy('l.updated_at', 'desc')
+            ->orderBy('l.id', 'desc')
+            ->forPage($page, $perPage)
+            ->get()
+            ->map(function ($row): array {
+                return [
+                    'lead_number' => $row->lead_number,
+                    'contact_name' => $row->contact_name,
+                    'company_name' => $row->company_name ?? '—',
+                    'source' => ucfirst(str_replace('_', ' ', $row->source ?? 'direct')),
+                    'salesman' => $row->salesman_name,
+                    'lost_value' => (float) ($row->lost_value ?? 0),
+                    'lost_reason' => $row->lost_reason,
+                    'notes' => $row->notes ?? '—',
+                    'lost_date' => $row->lost_at ? substr((string) $row->lost_at, 0, 10) : '—',
+                ];
+            })
+            ->all();
+
+        return [
+            'data' => $rows,
+            'total' => $total,
+            'current_page' => $page,
+            'per_page' => $perPage,
+        ];
+    }
+
+    /**
      * Overall pipeline health KPIs.
      */
     public function summary(array $filters): array

@@ -45,6 +45,7 @@ import {
 import { api, getAccessToken } from '../../lib/api/client';
 import * as XLSX from 'xlsx';
 import { notify } from '../../components/ui/Toast';
+import { useTranslation } from 'react-i18next';
 
 const MODULE_ICONS: Record<string, React.FC<{ className?: string }>> = {
   all: Layers,
@@ -64,6 +65,7 @@ const MODULE_ICONS: Record<string, React.FC<{ className?: string }>> = {
 };
 
 export const ReportsWorkspace: React.FC = () => {
+  const { t } = useTranslation(['reports', 'common']);
   const { formatCurrency } = useCurrency();
   const { config: businessConfig } = useBusinessConfig();
 
@@ -558,10 +560,10 @@ export const ReportsWorkspace: React.FC = () => {
             <div className="p-2 bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 rounded-xl border border-indigo-100 dark:border-indigo-900/50">
               <FileText className="w-6 h-6" />
             </div>
-            Reports & Analytics (RMS Engine)
+            {t('reports:title')}
           </h1>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-            Enterprise report execution matrix covering all 12 operational domains with multi-tiered data freshness, live audit previews, and async exports.
+            {t('reports:subtitle')}
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -570,7 +572,7 @@ export const ReportsWorkspace: React.FC = () => {
             className="inline-flex items-center gap-2 px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white text-sm font-semibold rounded-lg shadow-sm transition-colors cursor-pointer"
           >
             <Printer className="w-4 h-4" />
-            Print Report
+            {t('reports:printReport')}
           </button>
           <button
             onClick={() => {
@@ -580,7 +582,7 @@ export const ReportsWorkspace: React.FC = () => {
             className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg shadow-sm transition-colors cursor-pointer"
           >
             <Download className="w-4 h-4" />
-            Export Report
+            {t('reports:exportData')}
           </button>
         </div>
       </div>
@@ -924,9 +926,19 @@ export const ReportsWorkspace: React.FC = () => {
                 <tr>
                   <td
                     colSpan={Object.keys(reportResult?.columns || {}).length || 1}
-                    className="px-4 py-8 text-center text-slate-500"
+                    className="px-4 py-12 text-center text-slate-500"
                   >
-                    No operational rows available for the selected filter parameters.
+                    <div className="flex flex-col items-center justify-center space-y-2">
+                      <div className="p-3 bg-slate-100 dark:bg-slate-800 rounded-full text-slate-400">
+                        <FileText className="w-6 h-6" />
+                      </div>
+                      <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                        {t('reports:empty.title')}
+                      </p>
+                      <p className="text-xs text-slate-400 max-w-sm">
+                        {t('reports:empty.description')}
+                      </p>
+                    </div>
                   </td>
                 </tr>
               )}

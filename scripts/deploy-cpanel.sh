@@ -80,16 +80,27 @@ echo "=================================================================="
 
 
 # ------------------------------------------------------------------------------
-# 1. PHP CLI Binary Resolution (MultiPHP 8.4 Support)
+# 1. PHP CLI Binary Resolution (MultiPHP 8.4/8.5 & VPS Support)
 # ------------------------------------------------------------------------------
-if [ -x "/opt/cpanel/ea-php84/root/usr/bin/php" ]; then
+if [ -n "${PHP_BIN:-}" ] && [ -x "${PHP_BIN}" ]; then
+    # Respect explicitly passed PHP_BIN environment variable
+    :
+elif [ -x "/opt/cpanel/ea-php85/root/usr/bin/php" ]; then
+    PHP_BIN="/opt/cpanel/ea-php85/root/usr/bin/php"
+elif [ -x "/opt/cpanel/ea-php84/root/usr/bin/php" ]; then
     PHP_BIN="/opt/cpanel/ea-php84/root/usr/bin/php"
+elif command -v php8.5 &> /dev/null; then
+    PHP_BIN="$(command -v php8.5)"
+elif command -v php8.4 &> /dev/null; then
+    PHP_BIN="$(command -v php8.4)"
 elif command -v php &> /dev/null; then
     PHP_BIN="$(command -v php)"
 elif [ -x "/usr/local/bin/php" ]; then
     PHP_BIN="/usr/local/bin/php"
+elif [ -x "/usr/bin/php" ]; then
+    PHP_BIN="/usr/bin/php"
 else
-    echo "ERROR: PHP CLI binary not found. Please ensure PHP 8.4 is selected in cPanel MultiPHP Manager."
+    echo "ERROR: PHP CLI binary not found. Please ensure PHP 8.4+ is installed."
     exit 1
 fi
 echo "Using PHP: $(${PHP_BIN} -v | head -n 1)"
@@ -195,8 +206,14 @@ if [ "${CAN_RUN_ARTISAN}" = "true" ]; then
         echo "--- Running Database Migrations ---"
         ${PHP_BIN} -d display_errors=1 artisan migrate --force --no-interaction
 
-        echo "--- Ensuring Database Seeded (Platform Super Admin & SliceMart Flagship Tenant) ---"
-        ${PHP_BIN} -d display_errors=1 artisan db:seed --force --no-interaction
+        if [ "${FORCE_SEED:-false}" = "true" ]; then
+            echo "--- Running Full Database Seeders (--seed requested) ---"
+            ${PHP_BIN} -d display_errors=1 artisan db:seed --force --no-interaction
+        else
+            echo "--- Ensuring System Permissions & Report Definitions are Up-to-Date ---"
+            ${PHP_BIN} artisan db:seed --class=SystemPermissionsSeeder --force --no-interaction 2>/dev/null || true
+            ${PHP_BIN} artisan db:seed --class=ReportDefinitionsTableSeeder --force --no-interaction 2>/dev/null || true
+        fi
 
         echo "--- Rebuilding Production Caches ---"
         ${PHP_BIN} artisan config:clear
@@ -206,6 +223,11 @@ if [ "${CAN_RUN_ARTISAN}" = "true" ]; then
         ${PHP_BIN} artisan event:cache
         echo "--- Restarting Queue Workers ---"
         ${PHP_BIN} artisan queue:restart 2>/dev/null || true
+
+        echo "--- Verifying Application Status ---"
+        if ${PHP_BIN} artisan about --only=environment > /dev/null 2>&1; then
+            echo "✓ Laravel core application booted successfully."
+        fi
     else
         echo "--- Skipping Migrations, Config Cache & Queue Restart (.env is pending) ---"
     fi

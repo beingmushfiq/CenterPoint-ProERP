@@ -55,11 +55,41 @@ export function resolveInitialLocale(): AppLocale {
    screen loads only the keys it references and the `errors` namespace stays the
    single `ErrorCode`-checked table. */
 export const resources = {
-  en: { common: en.common, auth: en.auth, errors: en.errors },
-  bn: { common: bn.common, auth: bn.auth, errors: bn.errors },
+  en: {
+    common: en.common,
+    auth: en.auth,
+    errors: en.errors,
+    navigation: en.navigation,
+    reports: en.reports,
+    dashboard: en.dashboard,
+    validation: en.validation,
+    notifications: en.notifications,
+    printing: en.printing,
+  },
+  bn: {
+    common: bn.common,
+    auth: bn.auth,
+    errors: bn.errors,
+    navigation: bn.navigation,
+    reports: bn.reports,
+    dashboard: bn.dashboard,
+    validation: bn.validation,
+    notifications: bn.notifications,
+    printing: bn.printing,
+  },
 } as const;
 
-export const NAMESPACES = ['common', 'auth', 'errors'] as const;
+export const NAMESPACES = [
+  'common',
+  'auth',
+  'errors',
+  'navigation',
+  'reports',
+  'dashboard',
+  'validation',
+  'notifications',
+  'printing',
+] as const;
 
 /* Guard against double init under Vite HMR and StrictMode double-invoke. */
 if (!i18n.isInitialized) {
@@ -88,8 +118,42 @@ export async function changeLocale(locale: AppLocale): Promise<void> {
   await i18n.changeLanguage(locale);
   try {
     localStorage.setItem(LOCALE_STORAGE_KEY, locale);
+    document.documentElement.lang = locale;
   } catch {
     /* Non-fatal: the language still changed for this session. */
+  }
+
+  // Sync preference with backend if authenticated
+  try {
+    const rawAuth = localStorage.getItem('auth-storage');
+    let token: string | null = null;
+    if (rawAuth) {
+      try {
+        const parsed = JSON.parse(rawAuth);
+        token = parsed?.state?.token ?? null;
+      } catch {
+        // Ignore JSON parse error
+      }
+    }
+    if (!token) {
+      token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+    }
+
+    if (token) {
+      void fetch('/api/v1/auth/preferences', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+          'X-App-Locale': locale,
+        },
+        body: JSON.stringify({ locale }),
+      }).catch(() => {
+        // Silently catch background network errors
+      });
+    }
+  } catch {
+    // Non-fatal background sync
   }
 }
 

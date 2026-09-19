@@ -226,6 +226,189 @@ class FinanceDataProvider extends BaseDataProvider
     }
 
     /**
+     * Accounts Payable (AP) Aging schedule for suppliers.
+     */
+    public function supplierApAging(array $filters, int $page = 1, int $perPage = 25): array
+    {
+        $tenantId = $this->getTenantId();
+        $isSqlite = DB::connection()->getDriverName() === 'sqlite';
+        $diffDaysSql = $isSqlite
+            ? "CAST(julianday('now') - julianday(po.order_date) AS INTEGER)"
+            : "DATEDIFF(NOW(), po.order_date)";
+
+        $query = DB::table('purchase_orders as po')
+            ->join('parties as p', 'po.party_id', '=', 'p.id')
+            ->where('po.tenant_id', $tenantId)
+            ->whereNull('po.deleted_at')
+            ->whereNotIn('po.status', ['cancelled', 'draft'])
+            ->whereRaw('(po.total_amount - po.billed_value) > 0')
+            ->groupBy(['p.id', 'p.code', 'p.name'])
+            ->select([
+                'p.code as supplier_code',
+                'p.name as supplier_name',
+                DB::raw("SUM(CASE WHEN {$diffDaysSql} <= 30 THEN (po.total_amount - po.billed_value) ELSE 0 END) as current_30"),
+                DB::raw("SUM(CASE WHEN {$diffDaysSql} > 30 AND {$diffDaysSql} <= 60 THEN (po.total_amount - po.billed_value) ELSE 0 END) as days_31_60"),
+                DB::raw("SUM(CASE WHEN {$diffDaysSql} > 60 AND {$diffDaysSql} <= 90 THEN (po.total_amount - po.billed_value) ELSE 0 END) as days_61_90"),
+                DB::raw("SUM(CASE WHEN {$diffDaysSql} > 90 THEN (po.total_amount - po.billed_value) ELSE 0 END) as days_over_90"),
+                DB::raw('SUM(po.total_amount - po.billed_value) as total_due'),
+            ]);
+
+        $total = DB::table(DB::raw("({$query->toSql()}) as sub"))
+            ->mergeBindings($query)
+            ->count();
+
+        $rows = $query
+            ->orderBy('total_due', 'desc')
+            ->forPage($page, $perPage)
+            ->get()
+            ->map(function ($row): array {
+                return [
+                    'supplier_code' => $row->supplier_code,
+                    'supplier_name' => $row->supplier_name,
+                    'current_30' => (float) $row->current_30,
+                    'days_31_60' => (float) $row->days_31_60,
+                    'days_61_90' => (float) $row->days_61_90,
+                    'days_over_90' => (float) $row->days_over_90,
+                    'total_due' => (float) $row->total_due,
+                ];
+            })
+            ->all();
+
+        return [
+            'data' => $rows,
+            'total' => $total,
+            'current_page' => $page,
+            'per_page' => $perPage,
+        ];
+    }
+
+    /**
+     * Cash and bank account transaction ledger.
+     */
+    public function cashBankLedger(array $filters, int $page = 1, int $perPage = 25): array
+    {
+        $tenantId = $this->getTenantId();
+
+        $query = DB::table('payments as pay')
+            ->leftJoin('parties as p', 'pay.party_id', '=', 'p.id')
+            ->where('pay.tenant_id', $tenantId)
+            ->whereNull('pay.deleted_at')
+            ->select([
+                'pay.id',
+                'pay.payment_number',
+                'pay.payment_date',
+                'pay.direction',
+                DB::raw("COALESCE(p.name, 'General Party') as party_name"),
+                'pay.method',
+                'pay.reference_number',
+                'pay.amount',
+                'pay.status',
+                'pay.notes',
+            ]);
+
+        if (!empty($filters['start_date'])) {
+            $query->where('pay.payment_date', '>=', $filters['start_date']);
+        }
+        if (!empty($filters['end_date'])) {
+            $query->where('pay.payment_date', '<=', $filters['end_date']);
+        }
+        if (!empty($filters['method'])) {
+            $query->where('pay.method', $filters['method']);
+        }
+        if (!empty($filters['direction'])) {
+            $query->where('pay.direction', $filters['direction']);
+        }
+
+        $total = $query->count();
+
+        $rows = $query
+            ->orderBy('pay.payment_date', 'desc')
+            ->orderBy('pay.id', 'desc')
+            ->forPage($page, $perPage)
+            ->get()
+            ->map(function ($row): array {
+                $dir = strtolower((string) $row->direction);
+                $isIn = in_array($dir, ['inbound', 'in', 'receipt', 'receive']);
+
+                return [
+                    'payment_number' => $row->payment_number,
+                    'payment_date' => $row->payment_date,
+                    'party_name' => $row->party_name,
+                    'direction' => $isIn ? 'Inflow (Receipt)' : 'Outflow (Payment)',
+                    'payment_method' => ucfirst($row->method ?? 'cash'),
+                    'reference' => $row->reference_number ?? '—',
+                    'inflow_amount' => $isIn ? (float) $row->amount : 0.0,
+                    'outflow_amount' => !$isIn ? (float) $row->amount : 0.0,
+                    'net_amount' => $isIn ? (float) $row->amount : -((float) $row->amount),
+                    'status' => ucfirst($row->status ?? 'posted'),
+                ];
+            })
+            ->all();
+
+        return [
+            'data' => $rows,
+            'total' => $total,
+            'current_page' => $page,
+            'per_page' => $perPage,
+        ];
+    }
+
+    /**
+     * Breakdown of transactions aggregated by payment method.
+     */
+    public function paymentMethodSummary(array $filters, int $page = 1, int $perPage = 25): array
+    {
+        $tenantId = $this->getTenantId();
+
+        $query = DB::table('payments as pay')
+            ->where('pay.tenant_id', $tenantId)
+            ->whereNull('pay.deleted_at')
+            ->groupBy('pay.method')
+            ->select([
+                DB::raw("COALESCE(pay.method, 'cash') as method_name"),
+                DB::raw('COUNT(pay.id) as total_transactions'),
+                DB::raw("SUM(CASE WHEN pay.direction IN ('inbound', 'in', 'receipt') THEN pay.amount ELSE 0 END) as total_inflow"),
+                DB::raw("SUM(CASE WHEN pay.direction IN ('outbound', 'out', 'payment') THEN pay.amount ELSE 0 END) as total_outflow"),
+            ]);
+
+        if (!empty($filters['start_date'])) {
+            $query->where('pay.payment_date', '>=', $filters['start_date']);
+        }
+        if (!empty($filters['end_date'])) {
+            $query->where('pay.payment_date', '<=', $filters['end_date']);
+        }
+
+        $total = DB::table(DB::raw("({$query->toSql()}) as sub"))
+            ->mergeBindings($query)
+            ->count();
+
+        $rows = $query
+            ->orderBy('total_transactions', 'desc')
+            ->forPage($page, $perPage)
+            ->get()
+            ->map(function ($row): array {
+                $inflow = (float) $row->total_inflow;
+                $outflow = (float) $row->total_outflow;
+
+                return [
+                    'payment_method' => ucfirst((string) $row->method_name),
+                    'transaction_count' => (int) $row->total_transactions,
+                    'total_inflow' => $inflow,
+                    'total_outflow' => $outflow,
+                    'net_cash_flow' => $inflow - $outflow,
+                ];
+            })
+            ->all();
+
+        return [
+            'data' => $rows,
+            'total' => $total,
+            'current_page' => $page,
+            'per_page' => $perPage,
+        ];
+    }
+
+    /**
      * Ledger equilibrium and balance verification.
      */
     public function summary(array $filters): array

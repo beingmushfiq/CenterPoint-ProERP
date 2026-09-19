@@ -1,4 +1,4 @@
-import type { ReportDefinition, ReportDataResponse } from '../../types/api/reports';
+import type { ReportDefinition, ReportDataResponse, ReportColumnDefinition } from '../../types/api/reports';
 
 export interface ModuleCategory {
   id: string;
@@ -1149,609 +1149,64 @@ export const ALL_REPORT_DEFINITIONS: ReportDefinition[] = [
     is_active: true,
     description: 'Retired equipment, salvage amounts recovered, and scrap write-offs.',
   },
-];
-
-// Tailored fallback datasets for all core report categories
-export const REPORT_FALLBACK_DATA: Record<string, ReportDataResponse> = {
-  // 1. Production Yield
-  production_yield: {
-    columns: {
-      batch_number: { label: 'Batch Number', type: 'string', sortable: true },
-      product_name: { label: 'Product / SKU', type: 'string' },
-      batch_date: { label: 'Batch Date', type: 'date', sortable: true },
-      planned_quantity: { label: 'Planned Qty', type: 'number' },
-      actual_quantity: { label: 'Produced Qty', type: 'number' },
-      rejected_quantity: { label: 'Wastage', type: 'number' },
-      yield_percentage: { label: 'Yield Efficiency', type: 'percentage' },
-      status: { label: 'Status', type: 'badge' },
-    },
-    data: [
-      {
-        batch_number: 'BAT-202608-001',
-        product_name: 'Cotton Crew T-Shirt (TSH-001)',
-        batch_date: '2026-08-28',
-        planned_quantity: '1,000.00',
-        actual_quantity: '980.00',
-        rejected_quantity: '20.00',
-        yield_percentage: '98.00%',
-        status: 'completed',
-      },
-      {
-        batch_number: 'BAT-202608-002',
-        product_name: 'Denim Slim Jeans (JNS-002)',
-        batch_date: '2026-08-27',
-        planned_quantity: '500.00',
-        actual_quantity: '492.00',
-        rejected_quantity: '8.00',
-        yield_percentage: '98.40%',
-        status: 'completed',
-      },
-      {
-        batch_number: 'BAT-202608-003',
-        product_name: 'Fleece Hoodie (HOD-003)',
-        batch_date: '2026-08-26',
-        planned_quantity: '750.00',
-        actual_quantity: '730.00',
-        rejected_quantity: '20.00',
-        yield_percentage: '97.33%',
-        status: 'in_progress',
-      },
-    ],
-    summary: {
-      total_batches: 3,
-      total_planned_quantity: '2,250.00',
-      total_actual_quantity: '2,202.00',
-      average_yield_percentage: '97.87%',
-    },
-    pagination: { total: 3, current_page: 1, per_page: 25, last_page: 1 },
-    meta: { freshness: { as_of: new Date().toISOString(), tier: 'live', stale: false } },
-  },
-
-  // 2. Stock Valuation
-  stock_valuation: {
-    columns: {
-      sku: { label: 'Item Code', type: 'string', sortable: true },
-      product_name: { label: 'Item Description', type: 'string' },
-      warehouse_name: { label: 'Warehouse / Facility', type: 'string' },
-      quantity_on_hand: { label: 'On-Hand Stock', type: 'number' },
-      unit_cost: { label: 'Unit Cost', type: 'currency' },
-      total_valuation: { label: 'Total Valuation', type: 'currency' },
-      aging_days: { label: 'Aging (Days)', type: 'number' },
-      health_status: { label: 'Stock Status', type: 'badge' },
-    },
-    data: [
-      {
-        sku: 'TSH-001',
-        product_name: 'Cotton Crew T-Shirt (M / Navy)',
-        warehouse_name: 'Central Factory Hub',
-        quantity_on_hand: '480.00',
-        unit_cost: '320.00',
-        total_valuation: '153600.00',
-        aging_days: '14',
-        health_status: 'in_stock',
-      },
-      {
-        sku: 'JNS-002',
-        product_name: 'Denim Slim Jeans (32 / Blue)',
-        warehouse_name: 'Gulshan Flagship Store',
-        quantity_on_hand: '120.00',
-        unit_cost: '850.00',
-        total_valuation: '102000.00',
-        aging_days: '22',
-        health_status: 'in_stock',
-      },
-      {
-        sku: 'RAW-FAB-01',
-        product_name: '100% Combed Cotton Yarn (Kg)',
-        warehouse_name: 'Raw Material Depot',
-        quantity_on_hand: '2,500.00',
-        unit_cost: '180.00',
-        total_valuation: '450000.00',
-        aging_days: '8',
-        health_status: 'in_stock',
-      },
-    ],
-    summary: {
-      total_skus: 3,
-      total_units_on_hand: '3,100.00',
-      total_valuation: '705,600.00',
-      active_warehouses: 3,
-    },
-    pagination: { total: 3, current_page: 1, per_page: 25, last_page: 1 },
-    meta: { freshness: { as_of: new Date().toISOString(), tier: 'live', stale: false } },
-  },
-
-  // 3. Sales Performance / Omnichannel
-  sales_performance: {
-    columns: {
-      order_number: { label: 'Order / Invoice #', type: 'string', sortable: true },
-      order_date: { label: 'Date', type: 'date', sortable: true },
-      channel: { label: 'Channel', type: 'badge' },
-      customer_name: { label: 'Customer / Entity', type: 'string' },
-      subtotal: { label: 'Subtotal', type: 'currency' },
-      tax_amount: { label: 'Tax', type: 'currency' },
-      grand_total: { label: 'Grand Total', type: 'currency' },
-      payment_status: { label: 'Status', type: 'badge' },
-    },
-    data: [
-      {
-        order_number: 'POS-INV-20260906-001',
-        order_date: '2026-09-06',
-        channel: 'pos',
-        customer_name: 'Walk-in Counter Customer',
-        subtotal: '1250.00',
-        tax_amount: '62.50',
-        grand_total: '1312.50',
-        payment_status: 'paid',
-      },
-      {
-        order_number: 'SO-202609-B2B-042',
-        order_date: '2026-09-05',
-        channel: 'b2b',
-        customer_name: 'Apex Retail Enterprises',
-        subtotal: '148000.00',
-        tax_amount: '7400.00',
-        grand_total: '155400.00',
-        payment_status: 'paid',
-      },
-      {
-        order_number: 'ECO-ORD-202609-019',
-        order_date: '2026-09-06',
-        channel: 'storefront',
-        customer_name: 'Farhana Rahman',
-        subtotal: '2450.00',
-        tax_amount: '122.50',
-        grand_total: '2572.50',
-        payment_status: 'completed',
-      },
-    ],
-    summary: {
-      total_orders: 3,
-      total_subtotal: '151,700.00',
-      total_tax: '7,585.00',
-      total_revenue: '159,285.00',
-    },
-    pagination: { total: 3, current_page: 1, per_page: 25, last_page: 1 },
-    meta: { freshness: { as_of: new Date().toISOString(), tier: 'live', stale: false } },
-  },
-
-  // 4. POS Counter Sales & Tender Reconciliation
-  pos_counter_sales: {
-    columns: {
-      session_id: { label: 'Shift Session', type: 'string', sortable: true },
-      terminal: { label: 'Terminal / Counter', type: 'string' },
-      cashier: { label: 'Cashier Operator', type: 'string' },
-      cash_tendered: { label: 'Cash (BDT)', type: 'currency' },
-      card_tendered: { label: 'POS Card (BDT)', type: 'currency' },
-      mobile_tendered: { label: 'bKash/Nagad (BDT)', type: 'currency' },
-      total_tendered: { label: 'Shift Gross (BDT)', type: 'currency' },
-      shift_status: { label: 'Status', type: 'badge' },
-    },
-    data: [
-      {
-        session_id: 'SES-202608-001',
-        terminal: 'TRM-01 (Gulshan Flagship)',
-        cashier: 'Sadia Jahan',
-        cash_tendered: '18500.00',
-        card_tendered: '12400.00',
-        mobile_tendered: '8600.00',
-        total_tendered: '39500.00',
-        shift_status: 'open',
-      },
-      {
-        session_id: 'SES-202608-002',
-        terminal: 'TRM-02 (Uttara Counter)',
-        cashier: 'Tanvir Ahmed',
-        cash_tendered: '14200.00',
-        card_tendered: '9800.00',
-        mobile_tendered: '5400.00',
-        total_tendered: '29400.00',
-        shift_status: 'closed',
-      },
-    ],
-    summary: {
-      total_sessions: 2,
-      total_cash: '32,700.00',
-      total_digital: '36,200.00',
-      total_pos_volume: '68,900.00',
-    },
-    pagination: { total: 2, current_page: 1, per_page: 25, last_page: 1 },
-    meta: { freshness: { as_of: new Date().toISOString(), tier: 'live', stale: false } },
-  },
-
-  // 5. Salesman Quota & Target Achievement
-  salesman_quota_achievement: {
-    columns: {
-      salesman_code: { label: 'Emp ID', type: 'string', sortable: true },
-      salesman_name: { label: 'Sales Representative', type: 'string' },
-      target_bdt: { label: 'Monthly Quota', type: 'currency' },
-      achieved_bdt: { label: 'Achieved Sales', type: 'currency' },
-      achievement_pct: { label: 'Achievement %', type: 'percentage' },
-      profit_generated: { label: 'Profit Delivered', type: 'currency' },
-      incentive_earned: { label: 'Incentive Accrued', type: 'currency' },
-      status: { label: 'Quota Status', type: 'badge' },
-    },
-    data: [
-      {
-        salesman_code: 'EMP-SLS-01',
-        salesman_name: 'Rafiqul Islam',
-        target_bdt: '1000000.00',
-        achieved_bdt: '720000.00',
-        achievement_pct: '72.00%',
-        profit_generated: '185000.00',
-        incentive_earned: '12500.00',
-        status: 'in_progress',
-      },
-      {
-        salesman_code: 'EMP-SLS-02',
-        salesman_name: 'Kamal Hossain',
-        target_bdt: '800000.00',
-        achieved_bdt: '890000.00',
-        achievement_pct: '111.25%',
-        profit_generated: '240000.00',
-        incentive_earned: '22000.00',
-        status: 'completed',
-      },
-      {
-        salesman_code: 'EMP-SLS-03',
-        salesman_name: 'Nasreen Sultana',
-        target_bdt: '1200000.00',
-        achieved_bdt: '650000.00',
-        achievement_pct: '54.17%',
-        profit_generated: '160000.00',
-        incentive_earned: '6500.00',
-        status: 'in_progress',
-      },
-    ],
-    summary: {
-      total_sales_reps: 3,
-      total_target_quota: '3,000,000.00',
-      total_achieved_sales: '2,260,000.00',
-      total_incentive_accrued: '41,000.00',
-    },
-    pagination: { total: 3, current_page: 1, per_page: 25, last_page: 1 },
-    meta: { freshness: { as_of: new Date().toISOString(), tier: 'live', stale: false } },
-  },
-
-  // 6. CRM & Lead Pipeline
-  lead_summary: {
-    columns: {
-      lead_code: { label: 'Lead Ref', type: 'string', sortable: true },
-      contact_name: { label: 'Client / Contact', type: 'string' },
-      source: { label: 'Source Channel', type: 'badge' },
-      salesman: { label: 'Assigned Salesman', type: 'string' },
-      estimated_value: { label: 'Deal Potential', type: 'currency' },
-      stage: { label: 'Pipeline Stage', type: 'badge' },
-      verification: { label: 'Audit Status', type: 'badge' },
-    },
-    data: [
-      {
-        lead_code: 'LD-202609-001',
-        contact_name: 'Green Valley Garments',
-        source: 'facebook_ad',
-        salesman: 'Rafiqul Islam',
-        estimated_value: '350000.00',
-        stage: 'qualified',
-        verification: 'valid',
-      },
-      {
-        lead_code: 'LD-202609-002',
-        contact_name: 'Spam Auto-Inquiry',
-        source: 'storefront',
-        salesman: 'Unassigned',
-        estimated_value: '0.00',
-        stage: 'lost',
-        verification: 'fake',
-      },
-      {
-        lead_code: 'LD-202609-003',
-        contact_name: 'Metro Fashion Corp',
-        source: 'whatsapp',
-        salesman: 'Kamal Hossain',
-        estimated_value: '520000.00',
-        stage: 'converted',
-        verification: 'valid',
-      },
-    ],
-    summary: {
-      total_pipeline_leads: 3,
-      valid_leads_count: 2,
-      fake_leads_intercepted: 1,
-      conversion_rate: '66.67%',
-    },
-    pagination: { total: 3, current_page: 1, per_page: 25, last_page: 1 },
-    meta: { freshness: { as_of: new Date().toISOString(), tier: 'live', stale: false } },
-  },
-
-  // 7. Delivery & Courier Fulfillment
-  courier_performance: {
-    columns: {
-      courier_partner: { label: 'Courier Partner', type: 'badge', sortable: true },
-      total_dispatched: { label: 'Dispatched Orders', type: 'number' },
-      delivered_count: { label: 'Delivered', type: 'number' },
-      returned_rto: { label: 'Returned (RTO)', type: 'number' },
-      delivery_success_pct: { label: 'Success Rate', type: 'percentage' },
-      cod_collected: { label: 'COD Remitted', type: 'currency' },
-      avg_sla_hours: { label: 'Avg SLA (Hrs)', type: 'number' },
-    },
-    data: [
-      {
-        courier_partner: 'Pathao Courier',
-        total_dispatched: '450',
-        delivered_count: '425',
-        returned_rto: '25',
-        delivery_success_pct: '94.44%',
-        cod_collected: '685000.00',
-        avg_sla_hours: '24',
-      },
-      {
-        courier_partner: 'Steadfast Courier',
-        total_dispatched: '320',
-        delivered_count: '298',
-        returned_rto: '22',
-        delivery_success_pct: '93.12%',
-        cod_collected: '412000.00',
-        avg_sla_hours: '36',
-      },
-      {
-        courier_partner: 'In-House Fleet',
-        total_dispatched: '115',
-        delivered_count: '114',
-        returned_rto: '1',
-        delivery_success_pct: '99.13%',
-        cod_collected: '890000.00',
-        avg_sla_hours: '12',
-      },
-    ],
-    summary: {
-      total_shipments: '885',
-      overall_delivery_rate: '94.58%',
-      total_cod_collected: '1,987,000.00',
-      active_couriers: 3,
-    },
-    pagination: { total: 3, current_page: 1, per_page: 25, last_page: 1 },
-    meta: { freshness: { as_of: new Date().toISOString(), tier: 'live', stale: false } },
-  },
-
-  // 8. General Ledger Trial Balance
-  gl_summary: {
-    columns: {
-      account_code: { label: 'GL Account #', type: 'string', sortable: true },
-      account_name: { label: 'Account Classification', type: 'string' },
-      account_type: { label: 'Account Type', type: 'badge' },
-      debit_bdt: { label: 'Debit', type: 'currency' },
-      credit_bdt: { label: 'Credit', type: 'currency' },
-      balance_bdt: { label: 'Net Balance', type: 'currency' },
-    },
-    data: [
-      {
-        account_code: '1010-CASH',
-        account_name: 'Petty Cash & Store Registers',
-        account_type: 'asset',
-        debit_bdt: '125000.00',
-        credit_bdt: '45000.00',
-        balance_bdt: '80000.00',
-      },
-      {
-        account_code: '1020-BANK',
-        account_name: 'City Bank Corporate Account',
-        account_type: 'asset',
-        debit_bdt: '2450000.00',
-        credit_bdt: '890000.00',
-        balance_bdt: '1560000.00',
-      },
-      {
-        account_code: '4010-SALES',
-        account_name: 'Omnichannel Apparel Sales Revenue',
-        account_type: 'income',
-        debit_bdt: '0.00',
-        credit_bdt: '3250000.00',
-        balance_bdt: '3250000.00',
-      },
-    ],
-    summary: {
-      total_debit: '2,575,000.00',
-      total_credit: '4,185,000.00',
-      net_equity_position: '1,610,000.00',
-      reconciliation_status: 'balanced',
-    },
-    pagination: { total: 3, current_page: 1, per_page: 25, last_page: 1 },
-    meta: { freshness: { as_of: new Date().toISOString(), tier: 'live', stale: false } },
-  },
-
-  // 9. Disbursed Payroll Summary
-  payroll_summary: {
-    columns: {
-      employee_code: { label: 'Employee ID', type: 'string', sortable: true },
-      full_name: { label: 'Staff Member', type: 'string' },
-      department: { label: 'Department', type: 'string' },
-      basic_salary: { label: 'Base Wage', type: 'currency' },
-      piece_rate_bonus: { label: 'Piece Bonus', type: 'currency' },
-      deductions: { label: 'Deductions', type: 'currency' },
-      net_pay: { label: 'Net Disbursed', type: 'currency' },
-      disbursement_status: { label: 'Status', type: 'badge' },
-    },
-    data: [
-      {
-        employee_code: 'EMP-FAC-012',
-        full_name: 'Mohammad Al-Amin',
-        department: 'Production Sewing Line A',
-        basic_salary: '18500.00',
-        piece_rate_bonus: '4200.00',
-        deductions: '500.00',
-        net_pay: '22200.00',
-        disbursement_status: 'posted',
-      },
-      {
-        employee_code: 'EMP-SLS-002',
-        full_name: 'Kamal Hossain',
-        department: 'Showroom Commercial Sales',
-        basic_salary: '25000.00',
-        piece_rate_bonus: '22000.00',
-        deductions: '1200.00',
-        net_pay: '45800.00',
-        disbursement_status: 'posted',
-      },
-      {
-        employee_code: 'EMP-LOG-004',
-        full_name: 'Zahangir Alam',
-        department: 'Warehouse & Dispatch Hub',
-        basic_salary: '16000.00',
-        piece_rate_bonus: '1500.00',
-        deductions: '0.00',
-        net_pay: '17500.00',
-        disbursement_status: 'posted',
-      },
-    ],
-    summary: {
-      total_employees_paid: 3,
-      gross_disbursement: '87,200.00',
-      total_piece_bonuses: '27,700.00',
-      net_payout_total: '85,500.00',
-    },
-    pagination: { total: 3, current_page: 1, per_page: 25, last_page: 1 },
-    meta: { freshness: { as_of: new Date().toISOString(), tier: 'live', stale: false } },
-  },
-
-  // 10. Fixed Asset Register
-  fixed_asset_register: {
-    columns: {
-      asset_tag: { label: 'Asset Tag #', type: 'string', sortable: true },
-      asset_name: { label: 'Asset Description', type: 'string' },
-      category: { label: 'Classification', type: 'string' },
-      assigned_to: { label: 'Assigned Location', type: 'string' },
-      purchase_cost: { label: 'Acquisition Cost', type: 'currency' },
-      net_book_value: { label: 'Net Book Value', type: 'currency' },
-      status: { label: 'Operational Health', type: 'badge' },
-    },
-    data: [
-      {
-        asset_tag: 'AST-SEW-001',
-        asset_name: 'Juki High-Speed Industrial Sewing Machine',
-        category: 'Machinery',
-        assigned_to: 'Assembly Line Alpha',
-        purchase_cost: '65000.00',
-        net_book_value: '52000.00',
-        status: 'operational',
-      },
-      {
-        asset_tag: 'AST-CUT-004',
-        asset_name: 'Eastman Laser Fabric Cutting Table',
-        category: 'Machinery',
-        assigned_to: 'Cutting Line Beta',
-        purchase_cost: '320000.00',
-        net_book_value: '275000.00',
-        status: 'operational',
-      },
-      {
-        asset_tag: 'AST-GEN-002',
-        asset_name: 'Cummins 150kVA Standby Diesel Generator',
-        category: 'Utilities',
-        assigned_to: 'Central Power Station',
-        purchase_cost: '1200000.00',
-        net_book_value: '980000.00',
-        status: 'operational',
-      },
-    ],
-    summary: {
-      total_active_assets: 3,
-      total_asset_cost: '1,585,000.00',
-      net_book_value_total: '1,307,000.00',
-      operational_ratio: '100%',
-    },
-    pagination: { total: 3, current_page: 1, per_page: 25, last_page: 1 },
-    meta: { freshness: { as_of: new Date().toISOString(), tier: 'live', stale: false } },
-  },
-
-  // 11. QC Inspection Pass/Fail
-  qc_inspection_ratio: {
-    columns: {
-      inspection_ref: { label: 'QC Audit #', type: 'string', sortable: true },
-      batch_number: { label: 'Batch Ref', type: 'string' },
-      product_name: { label: 'Inspected Garment', type: 'string' },
-      sample_size: { label: 'Sample Pcs', type: 'number' },
-      defects_found: { label: 'Defects', type: 'number' },
-      pass_rate_pct: { label: 'Pass Rate', type: 'percentage' },
-      aql_result: { label: 'AQL 2.5 Audit', type: 'badge' },
-    },
-    data: [
-      {
-        inspection_ref: 'QC-202608-011',
-        batch_number: 'BAT-202608-001',
-        product_name: 'Cotton Crew T-Shirt',
-        sample_size: '125',
-        defects_found: '2',
-        pass_rate_pct: '98.40%',
-        aql_result: 'passed',
-      },
-      {
-        inspection_ref: 'QC-202608-012',
-        batch_number: 'BAT-202608-002',
-        product_name: 'Denim Slim Jeans',
-        sample_size: '80',
-        defects_found: '1',
-        pass_rate_pct: '98.75%',
-        aql_result: 'passed',
-      },
-      {
-        inspection_ref: 'QC-202608-013',
-        batch_number: 'BAT-202608-003',
-        product_name: 'Fleece Hoodie',
-        sample_size: '100',
-        defects_found: '3',
-        pass_rate_pct: '97.00%',
-        aql_result: 'passed',
-      },
-    ],
-    summary: {
-      inspections_completed: 3,
-      average_pass_rate: '98.05%',
-      total_defects_caught: 6,
-      aql_compliance_rate: '100.00%',
-    },
-    pagination: { total: 3, current_page: 1, per_page: 25, last_page: 1 },
-    meta: { freshness: { as_of: new Date().toISOString(), tier: 'live', stale: false } },
-  },
-};
+];// Production-grade empty fallback structure — ZERO mock/fake records
+export const REPORT_FALLBACK_DATA: Record<string, ReportDataResponse> = {};
 
 /**
- * Returns a tailored fallback report dataset for any report definition code,
- * deriving intelligent structure based on the definition's module if not explicitly defined.
+ * Returns a clean, production-grade empty report dataset for any report definition code,
+ * deriving schema columns from the definition without fake records.
  */
-export function getReportFallbackData(code: string, def?: ReportDefinition): ReportDataResponse {
-  const existing = REPORT_FALLBACK_DATA[code];
-  if (existing) {
-    return existing;
+export function getReportFallbackData(_code: string, def?: ReportDefinition): ReportDataResponse {
+  const columns: Record<string, ReportColumnDefinition> = {};
+
+  if (def?.available_columns && typeof def.available_columns === 'object') {
+    for (const [colKey, colDef] of Object.entries(def.available_columns)) {
+      if (typeof colDef === 'string') {
+        columns[colKey] = {
+          label: colDef.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
+          type: 'string',
+          sortable: true,
+        };
+      } else if (typeof colDef === 'object' && colDef !== null) {
+        const c = colDef as { label?: string; type?: string; sortable?: boolean };
+        const validTypes = ['string', 'number', 'currency', 'date', 'badge', 'percentage'] as const;
+        const resolvedType = (validTypes as readonly string[]).includes(c.type ?? '')
+          ? (c.type as (typeof validTypes)[number])
+          : 'string';
+        columns[colKey] = {
+          label: c.label || colKey.replace(/_/g, ' ').replace(/\b\w/g, (x) => x.toUpperCase()),
+          type: resolvedType,
+          sortable: c.sortable ?? true,
+        };
+      }
+    }
   }
 
-  const moduleName = def?.module || 'general';
-
-  // Fallback to closest module representation
-  switch (moduleName) {
-    case 'production':
-      return REPORT_FALLBACK_DATA['production_yield']!;
-    case 'inventory':
-      return REPORT_FALLBACK_DATA['stock_valuation']!;
-    case 'sales':
-      return REPORT_FALLBACK_DATA['sales_performance']!;
-    case 'pos':
-      return REPORT_FALLBACK_DATA['pos_counter_sales']!;
-    case 'salesmen':
-      return REPORT_FALLBACK_DATA['salesman_quota_achievement']!;
-    case 'crm':
-      return REPORT_FALLBACK_DATA['lead_summary']!;
-    case 'delivery':
-      return REPORT_FALLBACK_DATA['courier_performance']!;
-    case 'hr':
-      return REPORT_FALLBACK_DATA['payroll_summary']!;
-    case 'finance':
-    case 'profit':
-      return REPORT_FALLBACK_DATA['gl_summary']!;
-    case 'assets':
-      return REPORT_FALLBACK_DATA['fixed_asset_register']!;
-    case 'qc':
-      return REPORT_FALLBACK_DATA['qc_inspection_ratio']!;
-    default:
-      return REPORT_FALLBACK_DATA['sales_performance']!;
+  // Fallback minimal columns if none specified in definition
+  if (Object.keys(columns).length === 0) {
+    columns['id'] = { label: 'Reference / Code', type: 'string', sortable: true };
+    columns['date'] = { label: 'Date', type: 'date', sortable: true };
+    columns['title'] = { label: 'Description', type: 'string', sortable: true };
+    columns['amount'] = { label: 'Amount', type: 'currency', sortable: true };
+    columns['status'] = { label: 'Status', type: 'badge', sortable: true };
   }
+
+  return {
+    columns,
+    data: [],
+    summary: {},
+    pagination: {
+      total: 0,
+      current_page: 1,
+      per_page: 25,
+      last_page: 1,
+    },
+    meta: {
+      freshness: {
+        as_of: new Date().toISOString(),
+        tier: def?.tier || 'live',
+        stale: false,
+      },
+    },
+  };
 }

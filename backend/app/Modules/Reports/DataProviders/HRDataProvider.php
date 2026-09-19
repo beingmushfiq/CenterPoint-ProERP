@@ -244,6 +244,74 @@ class HRDataProvider extends BaseDataProvider
     }
 
     /**
+     * Sales commission and incentive payout schedule for sales representatives.
+     */
+    public function salesCommissionPayout(array $filters, int $page = 1, int $perPage = 25): array
+    {
+        $tenantId = $this->getTenantId();
+
+        $query = DB::table('sales_orders as so')
+            ->join('users as u', 'so.salesperson_id', '=', 'u.id')
+            ->leftJoin('employees as e', 'u.id', '=', 'e.user_id')
+            ->where('so.tenant_id', $tenantId)
+            ->whereNull('so.deleted_at')
+            ->whereNotIn('so.status', ['cancelled', 'draft'])
+            ->groupBy(['u.id', 'u.name', 'e.employee_code', 'e.bank_name', 'e.bank_account_number'])
+            ->select([
+                'u.id as user_id',
+                'u.name as salesperson_name',
+                DB::raw("COALESCE(e.employee_code, 'SALES-REP') as employee_code"),
+                DB::raw("COALESCE(e.bank_name, 'Bank Transfer') as payment_channel"),
+                DB::raw("COALESCE(e.bank_account_number, '—') as account_no"),
+                DB::raw('COUNT(so.id) as orders_closed'),
+                DB::raw('SUM(so.total_amount) as total_sales_volume'),
+                DB::raw('SUM(so.paid_amount) as total_collected_volume'),
+                // Standard 3% commission on collected sales
+                DB::raw('SUM(so.paid_amount * 0.03) as commission_earned'),
+            ]);
+
+        if (!empty($filters['start_date'])) {
+            $query->where('so.order_date', '>=', $filters['start_date']);
+        }
+        if (!empty($filters['end_date'])) {
+            $query->where('so.order_date', '<=', $filters['end_date']);
+        }
+
+        $total = DB::table(DB::raw("({$query->toSql()}) as sub"))
+            ->mergeBindings($query)
+            ->count();
+
+        $rows = $query
+            ->orderBy('commission_earned', 'desc')
+            ->forPage($page, $perPage)
+            ->get()
+            ->map(function ($row): array {
+                $commission = (float) $row->commission_earned;
+
+                return [
+                    'employee_code' => $row->employee_code,
+                    'salesperson_name' => $row->salesperson_name,
+                    'orders_closed' => (int) $row->orders_closed,
+                    'sales_volume' => (float) $row->total_sales_volume,
+                    'collected_volume' => (float) $row->total_collected_volume,
+                    'commission_rate' => '3.00%',
+                    'commission_earned' => $commission,
+                    'payout_channel' => $row->payment_channel,
+                    'account_number' => $row->account_no,
+                    'payout_status' => $commission > 0 ? 'Accrued (Pending Payroll Batch)' : 'No Commission',
+                ];
+            })
+            ->all();
+
+        return [
+            'data' => $rows,
+            'total' => $total,
+            'current_page' => $page,
+            'per_page' => $perPage,
+        ];
+    }
+
+    /**
      * Summary metrics across the tenant's workforce and payroll.
      */
     public function summary(array $filters): array

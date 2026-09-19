@@ -22,6 +22,7 @@ export interface ReportDefinition {
   supports_export: boolean;
   tier: FreshnessTier;
   is_active: boolean;
+  available_columns?: Record<string, unknown>;
 }
 
 export interface ReportFreshnessMeta {

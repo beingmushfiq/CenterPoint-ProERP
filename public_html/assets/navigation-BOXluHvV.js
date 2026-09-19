@@ -1,1 +1,0 @@
-import{t as e}from"./createLucideIcon-5Ps8IR2L.js";var t=e(`arrow-down-left`,[[`path`,{d:`M17 7 7 17`,key:`15tmo1`}],[`path`,{d:`M17 17H7V7`,key:`1org7z`}]]),n=e(`navigation`,[[`polygon`,{points:`3 11 22 2 13 21 11 13 3 11`,key:`1ltx0t`}]]);export{t as n,n as t};

@@ -36,6 +36,7 @@ import {
   Compass,
 } from 'lucide-react';
 import { SliceMartBrainModal } from './SliceMartBrainModal';
+import { LanguageSwitcher } from '../ui/LanguageSwitcher';
 import { useAuthStore } from '../../lib/auth/authStore';
 import { useTutorialStore } from '../../modules/tutorial/tutorialStore';
 import { useTenantCapabilityStore } from '../../lib/capabilities/tenantCapabilityStore';
@@ -718,6 +719,9 @@ export function AppHeader({
         >
           <Trash2 className="size-4" />
         </Link>
+
+        {/* Language Switcher (EN / বাংলা) */}
+        <LanguageSwitcher />
 
         {/* Theme Toggle */}
         <button

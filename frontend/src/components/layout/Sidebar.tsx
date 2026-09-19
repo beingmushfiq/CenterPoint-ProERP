@@ -14,6 +14,7 @@ import { buildDynamicNavSections } from '../../lib/capabilities/navRegistry';
 import { useTenantBranding } from '../../lib/theme/useTenantBranding';
 import { getAppVersion } from '../../lib/config/appVersion';
 import { usePwaInstall } from '../../hooks/usePwaInstall';
+import { useTranslation } from 'react-i18next';
 import { cn } from '../../lib/utils';
 
 interface SidebarProps {
@@ -24,6 +25,7 @@ interface SidebarProps {
 }
 
 export function Sidebar({ isOpen, onClose, isCollapsed = false, onToggleCollapse }: SidebarProps) {
+  const { t } = useTranslation(['navigation', 'common']);
   const user = useAuthStore((state) => state.user);
   const hasPermission = useAuthStore((state) => state.hasPermission);
   const tenant = useAuthStore((state) => state.tenant);
@@ -254,7 +256,7 @@ export function Sidebar({ isOpen, onClose, isCollapsed = false, onToggleCollapse
               <Search className="size-3.5 text-muted group-hover:text-primary transition-colors mr-2 shrink-0" />
               <input
                 type="text"
-                placeholder="Search module..."
+                placeholder={t('common:action.search') + '...'}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full bg-transparent text-xs text-default placeholder:text-muted outline-none"
@@ -312,7 +314,7 @@ export function Sidebar({ isOpen, onClose, isCollapsed = false, onToggleCollapse
                   >
                     <div className="flex items-center gap-1.5 truncate">
                       <span className="size-1 rounded-full bg-primary/60" />
-                      <span className="truncate">{section.title}</span>
+                      <span className="truncate">{t(`sections.${section.id}` as any, { defaultValue: section.title })}</span>
                       {hasActiveChild && isSectionCollapsed && (
                         <span className="size-1.5 rounded-full bg-primary animate-pulse" title="Active module inside" />
                       )}
@@ -337,12 +339,14 @@ export function Sidebar({ isOpen, onClose, isCollapsed = false, onToggleCollapse
                   <div className="space-y-0.5">
                     {visibleItems.map((item) => {
                       const Icon = item.icon;
+                      const itemTransKey = `items.${item.id.replace(/-([a-z])/g, (_, c) => c.toUpperCase())}` as const;
+                      const itemLabel = t(itemTransKey as any, { defaultValue: item.label });
                       return (
                         <NavLink
                           key={item.id}
                           to={item.to}
                           onClick={onClose}
-                          title={isCollapsed ? item.label : undefined}
+                          title={isCollapsed ? itemLabel : undefined}
                           className={({ isActive }) => {
                             const active = isItemActive(item.to, isActive);
                             return cn(
@@ -381,7 +385,7 @@ export function Sidebar({ isOpen, onClose, isCollapsed = false, onToggleCollapse
                                       isCollapsed && 'lg:hidden'
                                     )}
                                   >
-                                    {item.label}
+                                    {itemLabel}
                                   </span>
                                 </div>
 
@@ -395,7 +399,7 @@ export function Sidebar({ isOpen, onClose, isCollapsed = false, onToggleCollapse
                                         : 'bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30'
                                     )}
                                   >
-                                    {item.badge}
+                                    {t(`badges.${item.badge.toLowerCase()}` as any, { defaultValue: item.badge })}
                                   </span>
                                 )}
                               </>

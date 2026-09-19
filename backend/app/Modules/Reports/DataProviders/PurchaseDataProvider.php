@@ -261,6 +261,211 @@ class PurchaseDataProvider extends BaseDataProvider
     }
 
     /**
+     * Product-wise purchase history and line totals.
+     */
+    public function productPurchase(array $filters, int $page = 1, int $perPage = 25): array
+    {
+        $tenantId = $this->getTenantId();
+
+        $query = DB::table('purchase_order_items as poi')
+            ->join('purchase_orders as po', 'poi.purchase_order_id', '=', 'po.id')
+            ->join('products as p', 'poi.product_id', '=', 'p.id')
+            ->leftJoin('parties as s', 'po.party_id', '=', 's.id')
+            ->where('po.tenant_id', $tenantId)
+            ->whereNull('po.deleted_at')
+            ->select([
+                'poi.id',
+                'p.sku',
+                'p.name as product_name',
+                DB::raw("COALESCE(s.name, 'Direct Supplier') as supplier_name"),
+                'po.po_number',
+                'po.order_date',
+                'poi.quantity',
+                'poi.unit_price',
+                'poi.discount_amount',
+                'poi.tax_amount',
+                'poi.line_total',
+                'po.status as order_status',
+            ]);
+
+        if (!empty($filters['product_id'])) {
+            $query->where('poi.product_id', $filters['product_id']);
+        }
+        if (!empty($filters['supplier_id'])) {
+            $query->where('po.party_id', $filters['supplier_id']);
+        }
+        if (!empty($filters['start_date'])) {
+            $query->where('po.order_date', '>=', $filters['start_date']);
+        }
+        if (!empty($filters['end_date'])) {
+            $query->where('po.order_date', '<=', $filters['end_date']);
+        }
+
+        $total = $query->count();
+
+        $rows = $query
+            ->orderBy('po.order_date', 'desc')
+            ->orderBy('poi.id', 'desc')
+            ->forPage($page, $perPage)
+            ->get()
+            ->map(function ($row): array {
+                return [
+                    'sku' => $row->sku,
+                    'product_name' => $row->product_name,
+                    'supplier_name' => $row->supplier_name,
+                    'po_number' => $row->po_number,
+                    'order_date' => $row->order_date,
+                    'quantity' => (float) $row->quantity,
+                    'unit_price' => (float) $row->unit_price,
+                    'discount_amount' => (float) $row->discount_amount,
+                    'tax_amount' => (float) $row->tax_amount,
+                    'line_total' => (float) $row->line_total,
+                    'order_status' => ucfirst(str_replace('_', ' ', $row->order_status ?? 'draft')),
+                ];
+            })
+            ->all();
+
+        return [
+            'data' => $rows,
+            'total' => $total,
+            'current_page' => $page,
+            'per_page' => $perPage,
+        ];
+    }
+
+    /**
+     * Purchase return debit notes and returned quantities.
+     */
+    public function purchaseReturn(array $filters, int $page = 1, int $perPage = 25): array
+    {
+        $tenantId = $this->getTenantId();
+
+        $query = DB::table('purchase_returns as pr')
+            ->leftJoin('parties as p', 'pr.party_id', '=', 'p.id')
+            ->leftJoin('warehouses as w', 'pr.warehouse_id', '=', 'w.id')
+            ->where('pr.tenant_id', $tenantId)
+            ->whereNull('pr.deleted_at')
+            ->select([
+                'pr.id',
+                'pr.return_number',
+                'pr.return_date',
+                DB::raw("COALESCE(p.name, 'Supplier') as supplier_name"),
+                DB::raw("COALESCE(w.name, 'Default Warehouse') as warehouse_name"),
+                'pr.debit_note_number',
+                'pr.subtotal',
+                'pr.tax_amount',
+                'pr.total_amount',
+                'pr.status',
+            ]);
+
+        if (!empty($filters['start_date'])) {
+            $query->where('pr.return_date', '>=', $filters['start_date']);
+        }
+        if (!empty($filters['end_date'])) {
+            $query->where('pr.return_date', '<=', $filters['end_date']);
+        }
+        if (!empty($filters['supplier_id'])) {
+            $query->where('pr.party_id', $filters['supplier_id']);
+        }
+
+        $total = $query->count();
+
+        $rows = $query
+            ->orderBy('pr.return_date', 'desc')
+            ->orderBy('pr.id', 'desc')
+            ->forPage($page, $perPage)
+            ->get()
+            ->map(function ($row): array {
+                return [
+                    'return_number' => $row->return_number,
+                    'return_date' => $row->return_date,
+                    'supplier_name' => $row->supplier_name,
+                    'warehouse_name' => $row->warehouse_name,
+                    'debit_note_number' => $row->debit_note_number ?? '—',
+                    'subtotal' => (float) $row->subtotal,
+                    'tax_amount' => (float) $row->tax_amount,
+                    'total_amount' => (float) $row->total_amount,
+                    'status' => ucfirst($row->status ?? 'pending'),
+                ];
+            })
+            ->all();
+
+        return [
+            'data' => $rows,
+            'total' => $total,
+            'current_page' => $page,
+            'per_page' => $perPage,
+        ];
+    }
+
+    /**
+     * Outbound supplier payment history and settlements.
+     */
+    public function supplierPaymentHistory(array $filters, int $page = 1, int $perPage = 25): array
+    {
+        $tenantId = $this->getTenantId();
+
+        $query = DB::table('payments as pay')
+            ->join('parties as p', 'pay.party_id', '=', 'p.id')
+            ->where('pay.tenant_id', $tenantId)
+            ->whereNull('pay.deleted_at')
+            ->whereIn('pay.direction', ['outbound', 'out', 'payment'])
+            ->select([
+                'pay.id',
+                'pay.payment_number',
+                'pay.payment_date',
+                'p.name as supplier_name',
+                'pay.method',
+                'pay.reference_number',
+                'pay.amount',
+                'pay.allocated_amount',
+                'pay.unallocated_amount',
+                'pay.status',
+                'pay.notes',
+            ]);
+
+        if (!empty($filters['start_date'])) {
+            $query->where('pay.payment_date', '>=', $filters['start_date']);
+        }
+        if (!empty($filters['end_date'])) {
+            $query->where('pay.payment_date', '<=', $filters['end_date']);
+        }
+        if (!empty($filters['supplier_id'])) {
+            $query->where('pay.party_id', $filters['supplier_id']);
+        }
+
+        $total = $query->count();
+
+        $rows = $query
+            ->orderBy('pay.payment_date', 'desc')
+            ->orderBy('pay.id', 'desc')
+            ->forPage($page, $perPage)
+            ->get()
+            ->map(function ($row): array {
+                return [
+                    'payment_number' => $row->payment_number,
+                    'payment_date' => $row->payment_date,
+                    'supplier_name' => $row->supplier_name,
+                    'payment_method' => ucfirst($row->method ?? 'bank'),
+                    'reference_number' => $row->reference_number ?? '—',
+                    'amount' => (float) $row->amount,
+                    'allocated_amount' => (float) ($row->allocated_amount ?? 0),
+                    'unallocated_amount' => (float) ($row->unallocated_amount ?? 0),
+                    'status' => ucfirst($row->status ?? 'posted'),
+                    'notes' => $row->notes ?? '—',
+                ];
+            })
+            ->all();
+
+        return [
+            'data' => $rows,
+            'total' => $total,
+            'current_page' => $page,
+            'per_page' => $perPage,
+        ];
+    }
+
+    /**
      * High-level summary metrics across the tenant's purchasing operations.
      */
     public function summary(array $filters): array

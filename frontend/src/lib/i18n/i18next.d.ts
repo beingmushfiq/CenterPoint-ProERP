@@ -16,6 +16,12 @@ declare module 'i18next' {
       common: (typeof en)['common'];
       auth: (typeof en)['auth'];
       errors: (typeof en)['errors'];
+      navigation: (typeof en)['navigation'];
+      reports: (typeof en)['reports'];
+      dashboard: (typeof en)['dashboard'];
+      validation: (typeof en)['validation'];
+      notifications: (typeof en)['notifications'];
+      printing: (typeof en)['printing'];
     };
   }
 }

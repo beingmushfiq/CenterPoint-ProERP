@@ -1,18 +1,11 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// ENGLISH LOCALE                                       API_CONTRACT.md §8 · UI
+// ENGLISH LOCALE (en)                                   API_CONTRACT.md §8 · UI
 // ───────────────────────────────────────────────────────────────────────────
-// Resources live as typed modules, not `.json`, for one load-bearing reason:
-// the `errors` namespace is `satisfies Record<ErrorCode, string>`, so shipping
-// a new `ErrorCode` without a translation is a compile error here rather than a
-// raw code string leaking onto a user's screen. This mirrors the StateView
-// registry rule in `lib/api/errors.ts` — every code has a designed surface.
+// Resources live as typed modules, not `.json`, for compile-checked type safety.
 // ═══════════════════════════════════════════════════════════════════════════
 
 import type { ErrorCode } from '../../api/errors';
 
-/* Every code the transport can produce maps to safe, human copy. The server
-   sends its own already-localised message when it can (§2.3); this is the
-   fallback the StateView registry uses when it cannot. */
 const errors = {
   /* 401 — the session, not the request */
   UNAUTHENTICATED: 'Please sign in to continue.',
@@ -90,6 +83,31 @@ const common = {
     signIn: 'Sign in',
     signOut: 'Sign out',
     search: 'Search',
+    export: 'Export',
+    filter: 'Filter',
+    columns: 'Columns',
+    view: 'View',
+    details: 'Details',
+    all: 'All',
+    clear: 'Clear',
+    refresh: 'Refresh',
+    print: 'Print',
+    download: 'Download',
+  },
+
+  status: {
+    active: 'Active',
+    inactive: 'Inactive',
+    pending: 'Pending',
+    completed: 'Completed',
+    cancelled: 'Cancelled',
+    in_progress: 'In Progress',
+    draft: 'Draft',
+    approved: 'Approved',
+    rejected: 'Rejected',
+    paid: 'Paid',
+    unpaid: 'Unpaid',
+    partially_paid: 'Partially Paid',
   },
 
   state: {
@@ -122,6 +140,15 @@ const common = {
     comfortable: 'Comfortable',
   },
 
+  table: {
+    showing: 'Showing',
+    to: 'to',
+    of: 'of',
+    results: 'results',
+    page: 'Page',
+    noData: 'No records found',
+  },
+
   /* §7 — the id support searches on. Always shown, never hidden. */
   reference: 'Reference',
 };
@@ -140,8 +167,6 @@ const auth = {
   signingIn: 'Signing in…',
   forgotPassword: 'Forgot password?',
 
-  /* §8.1 — a single generic message. "Wrong password" vs "no such user" is
-     never disclosed. */
   invalidCredentials: 'The email or password is incorrect.',
 
   selectTenantTitle: 'Choose a workspace',
@@ -159,4 +184,210 @@ const auth = {
   },
 };
 
-export default { common, auth, errors };
+const navigation = {
+  sections: {
+    overview: 'Overview & Monitoring',
+    crm: 'CRM & Customer Pipeline',
+    sales: 'Sales & Commercials',
+    supply: 'Inventory & Supply',
+    production: 'Production & Quality',
+    finance: 'Finance & Accounts',
+    hr: 'Team & Workforce',
+    system: 'Intelligence & System',
+  },
+  items: {
+    dashboard: 'Executive Dashboard',
+    reports: 'Business Reports & Analytics',
+    crmLeads: 'Customer Leads & CRM',
+    sales: 'Sales & Invoices',
+    pos: 'Point of Sale (POS)',
+    ecommerce: 'Online Store CMS',
+    coupons: 'Coupons & Promo Codes',
+    catalogue: 'Product Catalog & Recipes',
+    purchasing: 'Purchasing & Sourcing',
+    inventory: 'Warehouse & Stock',
+    delivery: 'Delivery & Couriers',
+    production: 'Production Lines',
+    qc: 'Quality Control (QC)',
+    finance: 'Finance & Accounts',
+    assets: 'Asset Management',
+    hr: 'Team & Workforce',
+    users: 'Staff & User Accounts',
+    roles: 'Staff Roles & Permissions',
+    audit: 'Audit Trail & Change History',
+    bin: 'Data Bin & Recovery',
+    workflows: 'Flow Automation',
+    settings: 'System Settings',
+  },
+  badges: {
+    fast: 'Fast',
+    live: 'Live',
+    promo: 'Promo',
+  },
+  systemTour: 'System Tour',
+  collapseSidebar: 'Collapse sidebar',
+  expandSidebar: 'Expand sidebar',
+  operatingBranch: 'Operating Branch',
+  quickAdd: 'Quick Action',
+};
+
+const reports = {
+  title: 'Business Reports & Analytics',
+  subtitle: 'Enterprise operational telemetry, audit logs & business intelligence',
+  searchPlaceholder: 'Search reports by name, code, or description…',
+  allCategories: 'All Categories',
+  allModules: 'All Modules',
+  runReport: 'Generate Report',
+  refreshData: 'Refresh Data',
+  exportData: 'Export Dataset',
+  printReport: 'Print Report',
+  printPreview: 'Print Preview',
+  columns: 'Columns',
+  filters: 'Filters',
+  applyFilters: 'Apply Filters',
+  resetFilters: 'Reset Filters',
+  dateRange: 'Date Range',
+  startDate: 'Start Date',
+  endDate: 'End Date',
+  status: 'Status',
+  warehouse: 'Warehouse',
+  customer: 'Customer',
+  supplier: 'Supplier',
+  salesman: 'Salesman',
+  tier: {
+    live: 'Live Real-time',
+    near_real_time: 'Near Real-time',
+    batch_daily: 'Daily Snapshot',
+  },
+  freshness: {
+    label: 'Data Freshness',
+    asOf: 'As of {{time}}',
+    stale: 'Data may be out of date. Click refresh.',
+  },
+  empty: {
+    title: 'No Data Records Found',
+    description: 'No operational records match the current filter criteria or date range.',
+    action: 'Clear Filters',
+  },
+  summary: {
+    totalRecords: 'Total Records',
+    totalAmount: 'Total Valuation',
+    totalQty: 'Total Quantity',
+    average: 'Average',
+  },
+  export: {
+    title: 'Export Options',
+    csv: 'Download CSV',
+    xlsx: 'Download Excel (.xlsx)',
+    pdf: 'Download PDF',
+    generating: 'Generating export file…',
+    success: 'Export generated successfully',
+  },
+  savedViews: {
+    title: 'Saved Views',
+    saveCurrent: 'Save Current View',
+    viewName: 'View Name',
+    save: 'Save View',
+    delete: 'Delete View',
+  },
+  table: {
+    showing: 'Showing {{from}} to {{to}} of {{total}} results',
+    page: 'Page {{page}} of {{pages}}',
+    prev: 'Previous',
+    next: 'Next',
+    noColumns: 'No columns selected for display',
+  },
+};
+
+const dashboard = {
+  title: 'Operations Dashboard',
+  subtitle: 'Executive KPIs, factory performance & real-time monitoring',
+  kpi: {
+    grossRevenue: 'Gross Revenue',
+    netProfit: 'Operating Profit',
+    ordersToday: 'Orders Processed Today',
+    productionBatches: 'Active Production Batches',
+    stockAlerts: 'Critical Low-Stock Items',
+    qcPassRate: 'QC AQL Pass Rate',
+    receivables: 'Accounts Receivable (Due)',
+    codInTransit: 'COD Remittance in Transit',
+  },
+  charts: {
+    revenueTrends: 'Revenue & Sales Trajectory',
+    productionOutput: 'Factory Output vs Target',
+    inventoryBreakdown: 'Stock Valuation by Category',
+    leadPipeline: 'Sales Pipeline & Conversion',
+  },
+  timeRange: {
+    today: 'Today',
+    yesterday: 'Yesterday',
+    thisWeek: 'This Week',
+    thisMonth: 'This Month',
+    lastMonth: 'Last Month',
+    thisQuarter: 'This Quarter',
+    thisYear: 'This Fiscal Year',
+    custom: 'Custom Range',
+  },
+};
+
+const validation = {
+  required: 'This field is required.',
+  invalidEmail: 'Please enter a valid email address.',
+  minLength: 'Must be at least {{count}} characters.',
+  maxLength: 'Must not exceed {{count}} characters.',
+  invalidNumber: 'Please enter a valid number.',
+  positiveNumber: 'Value must be greater than zero.',
+  invalidDate: 'Please enter a valid date.',
+  dateOrder: 'End date must be after start date.',
+};
+
+const notifications = {
+  title: 'Notifications',
+  empty: 'No unread notifications.',
+  markAllRead: 'Mark all as read',
+  clearAll: 'Clear all',
+  types: {
+    stockAlert: 'Low Stock Alert',
+    productionUpdate: 'Production Milestone',
+    qcFlag: 'Quality Inspection Notice',
+    orderReceived: 'New Omnichannel Order',
+    paymentDue: 'Invoice Payment Due',
+  },
+};
+
+const printing = {
+  documentTitle: 'Official Report Document',
+  confidentialNotice: 'CONFIDENTIAL — FOR INTERNAL AUTHORIZED USE ONLY',
+  generatedAt: 'Generated on',
+  generatedBy: 'Generated by',
+  page: 'Page',
+  of: 'of',
+  orientation: {
+    portrait: 'Portrait',
+    landscape: 'Landscape',
+  },
+  paperSize: {
+    a4: 'A4',
+    letter: 'Letter',
+    legal: 'Legal',
+  },
+  signatures: {
+    preparedBy: 'Prepared By',
+    verifiedBy: 'Verified By',
+    authorizedBy: 'Authorized Signature',
+  },
+  print: 'Print Now',
+  close: 'Close Window',
+};
+
+export default {
+  common,
+  auth,
+  errors,
+  navigation,
+  reports,
+  dashboard,
+  validation,
+  notifications,
+  printing,
+};

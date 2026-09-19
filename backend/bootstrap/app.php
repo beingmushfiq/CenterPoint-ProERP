@@ -66,6 +66,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'tenant.feature' => App\Core\Http\Middleware\EnsureFeatureEnabled::class,
             'module.active' => App\Core\Http\Middleware\EnsureModuleActive::class,
             'security.headers' => SecurityHeaders::class,
+            'locale.resolve' => App\Core\Http\Middleware\ResolveLocale::class,
         ]);
 
         // Middleware priority: ensure tenant and auth are resolved BEFORE route model binding runs
@@ -76,12 +77,14 @@ return Application::configure(basePath: dirname(__DIR__))
             App\Core\Http\Middleware\AuthenticateJwt::class,
             ResolveTenant::class,
             EnsureTenantActive::class,
+            App\Core\Http\Middleware\ResolveLocale::class,
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
             App\Core\Http\Middleware\AuthorizePermission::class,
         ]);
 
         $middleware->prependToGroup('api', SecurityHeaders::class);
         $middleware->prependToGroup('api', CorrelationId::class);
+        $middleware->appendToGroup('api', App\Core\Http\Middleware\ResolveLocale::class);
         $middleware->prependToGroup('web', SecurityHeaders::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

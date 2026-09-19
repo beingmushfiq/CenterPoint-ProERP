@@ -1,14 +1,8 @@
 // ═══════════════════════════════════════════════════════════════════════════
 // BENGALI LOCALE (bn) — LTR                            API_CONTRACT.md §8 · UI
 // ───────────────────────────────────────────────────────────────────────────
-// Bengali ships from the first commit, not as a later "translation pass":
-// tenant #2 is seeded `bn`, so an untranslated string is a visible gap in a
-// demo, not a hypothetical. Bengali is left-to-right — there is no `dir: rtl`
-// anywhere in this app.
-//
-// Typed against the English module so a missing or misspelled key is a compile
-// error, and the `errors` namespace still satisfies `Record<ErrorCode, string>`
-// through that same structural check.
+// Bengali ships with 100% parity across all namespaces in standard business Bengali.
+// Bengali is LEFT-TO-RIGHT (LTR). No RTL direction is used.
 // ═══════════════════════════════════════════════════════════════════════════
 
 import type en from './en';
@@ -82,6 +76,31 @@ const common = {
     signIn: 'সাইন ইন',
     signOut: 'সাইন আউট',
     search: 'অনুসন্ধান',
+    export: 'এক্সপোর্ট',
+    filter: 'ফিল্টার',
+    columns: 'কলামসমূহ',
+    view: 'দেখুন',
+    details: 'বিস্তারিত',
+    all: 'সকল',
+    clear: 'মুছুন',
+    refresh: 'রিফ্রেশ',
+    print: 'প্রিন্ট',
+    download: 'ডাউনলোড',
+  },
+
+  status: {
+    active: 'সক্রিয়',
+    inactive: 'নিষ্ক্রিয়',
+    pending: 'অপেক্ষমাণ',
+    completed: 'সম্পন্ন',
+    cancelled: 'বাতিল',
+    in_progress: 'চলমান',
+    draft: 'খসড়া',
+    approved: 'অনুমোদিত',
+    rejected: 'প্রত্যাখ্যাত',
+    paid: 'পরিশোধিত',
+    unpaid: 'অপরিশোধিত',
+    partially_paid: 'আংশিক পরিশোধিত',
   },
 
   state: {
@@ -112,6 +131,15 @@ const common = {
     label: 'ঘনত্ব',
     compact: 'সংক্ষিপ্ত',
     comfortable: 'স্বচ্ছন্দ',
+  },
+
+  table: {
+    showing: 'প্রদর্শন',
+    to: 'থেকে',
+    of: 'এর মধ্যে',
+    results: 'ফলাফল',
+    page: 'পৃষ্ঠা',
+    noData: 'কোনো তথ্য পাওয়া যায়নি',
   },
 
   reference: 'রেফারেন্স',
@@ -149,4 +177,210 @@ const auth = {
   },
 } satisfies (typeof en)['auth'];
 
-export default { common, auth, errors };
+const navigation = {
+  sections: {
+    overview: 'ওভারভিউ ও মনিটরিং',
+    crm: 'সিআরএম ও গ্রাহক পাইপলাইন',
+    sales: 'বিক্রয় ও বাণিজ্যিক',
+    supply: 'ইনভেন্টরি ও সরবরাহ',
+    production: 'উৎপাদন ও মান নিয়ন্ত্রণ',
+    finance: 'অর্থ ও হিসাবরক্ষণ',
+    hr: 'কর্মী ও মানবসম্পদ',
+    system: 'সিস্টেম ও বুদ্ধিমত্তা',
+  },
+  items: {
+    dashboard: 'নির্বাহী ড্যাশবোর্ড',
+    reports: 'ব্যবসায়িক প্রতিবেদন ও বিশ্লেষণ',
+    crmLeads: 'গ্রাহক লিড ও সিআরএম',
+    sales: 'বিক্রয় ও ইনভয়েস',
+    pos: 'পয়েন্ট অব সেল (POS)',
+    ecommerce: 'অনলাইন স্টোর সিএমএস',
+    coupons: 'কুপন ও প্রমো কোড',
+    catalogue: 'পণ্য ক্যাটালগ ও ফর্মুলা',
+    purchasing: 'ক্রয় ও সংগ্রহ',
+    inventory: 'গুদাম ও মজুদ স্টক',
+    delivery: 'ডেলিভারি ও কুরিয়ার',
+    production: 'উৎপাদন লাইন',
+    qc: 'মান নিয়ন্ত্রণ (QC)',
+    finance: 'অর্থ ও হিসাবরক্ষণ',
+    assets: 'সম্পদ ব্যবস্থাপনা',
+    hr: 'কর্মী ও মানবসম্পদ',
+    users: 'কর্মকর্তা ও ব্যবহারকারী অ্যাকাউন্ট',
+    roles: 'পদবি ও অনুমতি নিয়ন্ত্রণ',
+    audit: 'অডিট ট্রেইল ও পরিবর্তন লগ',
+    bin: 'রিসাইকেল বিন ও পুনরুদ্ধার',
+    workflows: 'অটোমেশন ফ্লো',
+    settings: 'সিস্টেম সেটিংস',
+  },
+  badges: {
+    fast: 'দ্রুত',
+    live: 'সরাসরি',
+    promo: 'অফার',
+  },
+  systemTour: 'সিস্টেম পরিচিতি',
+  collapseSidebar: 'সাইডবার সংকুচিত করুন',
+  expandSidebar: 'সাইডবার প্রসারিত করুন',
+  operatingBranch: 'পরিচালনা শাখা',
+  quickAdd: 'দ্রুত কাজ',
+} satisfies (typeof en)['navigation'];
+
+const reports = {
+  title: 'ব্যবসায়িক প্রতিবেদন ও বিশ্লেষণ',
+  subtitle: 'প্রাতিষ্ঠানিক পরিচালন তথ্য, নিরীক্ষা লগ ও ব্যবসায়িক বুদ্ধিমত্তা',
+  searchPlaceholder: 'নাম, কোড বা বিবরণ দিয়ে প্রতিবেদন খুঁজুন…',
+  allCategories: 'সকল বিভাগ',
+  allModules: 'সকল মডিউল',
+  runReport: 'প্রতিবেদন তৈরি করুন',
+  refreshData: 'তথ্য রিফ্রেশ করুন',
+  exportData: 'ডেটা এক্সপোর্ট করুন',
+  printReport: 'প্রতিবেদন প্রিন্ট করুন',
+  printPreview: 'প্রিন্ট প্রিভিউ',
+  columns: 'কলামসমূহ',
+  filters: 'ফিল্টারসমূহ',
+  applyFilters: 'ফিল্টার প্রয়োগ করুন',
+  resetFilters: 'ফিল্টার রিসেট করুন',
+  dateRange: 'তারিখের পরিসীমা',
+  startDate: 'শুরুর তারিখ',
+  endDate: 'শেষের তারিখ',
+  status: 'অবস্থা',
+  warehouse: 'গুদাম',
+  customer: 'গ্রাহক',
+  supplier: 'সরবরাহকারী',
+  salesman: 'বিক্রয়কর্মী',
+  tier: {
+    live: 'সরাসরি রিয়েল-টাইম',
+    near_real_time: 'প্রায় রিয়েল-টাইম',
+    batch_daily: 'দৈনিক স্ন্যাপশট',
+  },
+  freshness: {
+    label: 'তথ্যের হালনাগাদ স্থিতি',
+    asOf: 'সময়: {{time}}',
+    stale: 'তথ্যটি পুরনো হতে পারে। রিফ্রেশ বাটনে ক্লিক করুন।',
+  },
+  empty: {
+    title: 'কোনো তথ্য পাওয়া যায়নি',
+    description: 'বর্তমান ফিল্টার বা তারিখ অনুযায়ী কোনো রেকর্ড খুঁজে পাওয়া যায়নি।',
+    action: 'ফিল্টার মুছুন',
+  },
+  summary: {
+    totalRecords: 'মোট রেকর্ড',
+    totalAmount: 'মোট মূল্যমান',
+    totalQty: 'মোট পরিমাণ',
+    average: 'গড় মান',
+  },
+  export: {
+    title: 'এক্সপোর্ট অপশন',
+    csv: 'সিএসভি ডাউনলোড করুন',
+    xlsx: 'এক্সেল (.xlsx) ডাউনলোড করুন',
+    pdf: 'পিডিএফ ডাউনলোড করুন',
+    generating: 'ফাইল তৈরি হচ্ছে…',
+    success: 'ফাইল সফলভাবে তৈরি হয়েছে',
+  },
+  savedViews: {
+    title: 'সংরক্ষিত ভিউ',
+    saveCurrent: 'বর্তমান ভিউ সংরক্ষণ করুন',
+    viewName: 'ভিউয়ের নাম',
+    save: 'ভিউ সংরক্ষণ',
+    delete: 'ভিউ মুছুন',
+  },
+  table: {
+    showing: 'প্রদর্শন {{from}} থেকে {{to}}, মোট {{total}} টির মধ্যে',
+    page: 'পৃষ্ঠা {{page}} / {{pages}}',
+    prev: 'পূর্ববর্তী',
+    next: 'পরবর্তী',
+    noColumns: 'প্রদর্শনের জন্য কোনো কলাম নির্বাচন করা হয়নি',
+  },
+} satisfies (typeof en)['reports'];
+
+const dashboard = {
+  title: 'অপারেশনস ড্যাশবোর্ড',
+  subtitle: 'নির্বাহী কেপিআই, কারখানার পারফরম্যান্স ও লাইভ পর্যবেক্ষণ',
+  kpi: {
+    grossRevenue: 'মোট রাজস্ব আয়',
+    netProfit: 'পরিচালন মুনাফা',
+    ordersToday: 'আজকের প্রক্রিয়াকৃত অর্ডার',
+    productionBatches: 'সক্রিয় উৎপাদন ব্যাচ',
+    stockAlerts: 'জরুরি স্বল্প স্টকের আইটেম',
+    qcPassRate: 'কিউসি একিউএল পাসের হার',
+    receivables: 'বকেয়া পাওনা (হিসাব)',
+    codInTransit: 'কুরিয়ারে থাকা সিওডি টাকা',
+  },
+  charts: {
+    revenueTrends: 'রাজস্ব ও বিক্রয়ের গতিধারা',
+    productionOutput: 'লক্ষ্যমাত্রা বনাম বাস্তব উৎপাদন',
+    inventoryBreakdown: 'ক্যাটাগরি অনুযায়ী মজুদ পণ্যের মূল্য',
+    leadPipeline: 'বিক্রয় পাইপলাইন ও কনভার্সন',
+  },
+  timeRange: {
+    today: 'আজ',
+    yesterday: 'গতকাল',
+    thisWeek: 'চলতি সপ্তাহ',
+    thisMonth: 'চলতি মাস',
+    lastMonth: 'গত মাস',
+    thisQuarter: 'চলতি প্রান্তিক',
+    thisYear: 'চলতি অর্থবছর',
+    custom: 'কাস্টম সময়কাল',
+  },
+} satisfies (typeof en)['dashboard'];
+
+const validation = {
+  required: 'এই ঘরটি পূরণ করা আবশ্যক।',
+  invalidEmail: 'একটি সঠিক ইমেইল ঠিকানা লিখুন।',
+  minLength: 'কমপক্ষে {{count}} টি অক্ষর হতে হবে।',
+  maxLength: '{{count}} অক্ষরের বেশি হওয়া যাবে না।',
+  invalidNumber: 'একটি সঠিক সংখ্যা লিখুন।',
+  positiveNumber: 'মান অবশ্যই শূন্যের বেশি হতে হবে।',
+  invalidDate: 'একটি সঠিক তারিখ নির্বাচন করুন।',
+  dateOrder: 'শেষের তারিখ অবশ্যই শুরুর তারিখের পরবর্তী হতে হবে।',
+} satisfies (typeof en)['validation'];
+
+const notifications = {
+  title: 'বিজ্ঞপ্তি',
+  empty: 'নতুন কোনো বিজ্ঞপ্তি নেই।',
+  markAllRead: 'সবগুলো পঠিত চিহ্নিত করুন',
+  clearAll: 'সব মুছে ফেলুন',
+  types: {
+    stockAlert: 'স্বল্প স্টকের সতর্কতা',
+    productionUpdate: 'উৎপাদনের অগ্রগতি বার্তা',
+    qcFlag: 'গুণমান পরিদর্শন নোটিশ',
+    orderReceived: 'নতুন অমনিচ্যানেল অর্ডার',
+    paymentDue: 'ইনভয়েস বিল পরিশোধের তাগিদ',
+  },
+} satisfies (typeof en)['notifications'];
+
+const printing = {
+  documentTitle: 'অফিসিয়াল প্রতিবেদন দলিল',
+  confidentialNotice: 'গোপনীয় — শুধুমাত্র অনুমোদিত অভ্যন্তরীণ ব্যবহারের জন্য',
+  generatedAt: 'তৈরির তারিখ',
+  generatedBy: 'তৈরি করেছেন',
+  page: 'পৃষ্ঠা',
+  of: 'এর মধ্যে',
+  orientation: {
+    portrait: 'পোর্ট্রেট (উল্লম্ব)',
+    landscape: 'ল্যান্ডস্কেপ (অনুভূমিক)',
+  },
+  paperSize: {
+    a4: 'এ৪ (A4)',
+    letter: 'লেটার (Letter)',
+    legal: 'লিগ্যাল (Legal)',
+  },
+  signatures: {
+    preparedBy: 'প্রস্তুতকারী',
+    verifiedBy: 'যাচাইকারী',
+    authorizedBy: 'অনুমোদনকারী স্বাক্ষর',
+  },
+  print: 'এখনই প্রিন্ট করুন',
+  close: 'উইন্ডো বন্ধ করুন',
+} satisfies (typeof en)['printing'];
+
+export default {
+  common,
+  auth,
+  errors,
+  navigation,
+  reports,
+  dashboard,
+  validation,
+  notifications,
+  printing,
+};
