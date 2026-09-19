@@ -7,7 +7,7 @@ namespace App\Modules\Reports\Queries;
 use App\Modules\Reports\Contracts\ReportQueryInterface;
 use App\Modules\Reports\DataProviders\FinanceDataProvider;
 
-class GeneralLedgerSummaryReportQuery implements ReportQueryInterface
+class IncomeStatementReportQuery implements ReportQueryInterface
 {
     protected FinanceDataProvider $provider;
 
@@ -19,19 +19,17 @@ class GeneralLedgerSummaryReportQuery implements ReportQueryInterface
     public function columns(): array
     {
         return [
-            'account_code' => ['label' => 'Code', 'type' => 'string', 'sortable' => true],
+            'account_code' => ['label' => 'Account Code', 'type' => 'string', 'sortable' => true],
             'account_name' => ['label' => 'Account Name', 'type' => 'string'],
-            'account_type' => ['label' => 'Type', 'type' => 'badge'],
-            'normal_balance' => ['label' => 'Normal Balance', 'type' => 'string'],
-            'total_debit' => ['label' => 'Total Debits (BDT)', 'type' => 'currency'],
-            'total_credit' => ['label' => 'Total Credits (BDT)', 'type' => 'currency'],
-            'net_balance' => ['label' => 'Net Balance (BDT)', 'type' => 'currency'],
+            'type' => ['label' => 'Account Type', 'type' => 'badge'],
+            'classification' => ['label' => 'Classification', 'type' => 'badge'],
+            'amount' => ['label' => 'Net Balance (BDT)', 'type' => 'currency'],
         ];
     }
 
     public function query(array $filters, int $page = 1, int $perPage = 25): array
     {
-        return $this->provider->generalLedger($filters, $page, $perPage);
+        return $this->provider->incomeStatement($filters, $page, $perPage);
     }
 
     public function summary(array $filters): array
