@@ -196,8 +196,6 @@ const storefrontRouteChildren = [
   { path: 'contact', element: <Navigate to="/pages/contact" replace /> },
   { path: 'about', element: <Navigate to="/pages/about-us" replace /> },
   { path: 'about-us', element: <Navigate to="/pages/about-us" replace /> },
-  { path: 'catalog', element: <Navigate to="/products" replace /> },
-  { path: 'catalogue', element: <Navigate to="/products" replace /> },
   { path: 'collections', element: <Navigate to="/products" replace /> },
   { path: 'cart', element: <Navigate to="/checkout" replace /> },
   { path: 'faq', element: <Navigate to="/pages/faq" replace /> },
@@ -477,6 +475,10 @@ export const router = createBrowserRouter([
                   {
                     path: 'catalogue',
                     element: <CatalogueWorkspace />,
+                  },
+                  {
+                    path: 'catalog',
+                    element: <Navigate to="/catalogue" replace />,
                   },
                   {
                     path: 'production',

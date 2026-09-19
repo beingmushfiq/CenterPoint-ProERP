@@ -99,7 +99,7 @@ export function getAccessToken(path?: string): string | null {
 
   // Tenant / standard context: check in-memory first, then sessionStorage/localStorage fallback for page reload
   if (accessToken) return accessToken;
-  if (typeof sessionStorage !== 'undefined') {
+  if (typeof sessionStorage !== 'undefined' && typeof sessionStorage.getItem === 'function') {
     const impToken = sessionStorage.getItem('impersonation_token');
     if (impToken) return impToken;
     const sessionToken = sessionStorage.getItem('tenant_access_token');
@@ -108,7 +108,7 @@ export function getAccessToken(path?: string): string | null {
       return sessionToken;
     }
   }
-  if (typeof localStorage !== 'undefined') {
+  if (typeof localStorage !== 'undefined' && typeof localStorage.getItem === 'function') {
     const localToken = localStorage.getItem('tenant_access_token');
     if (localToken) {
       accessToken = localToken;

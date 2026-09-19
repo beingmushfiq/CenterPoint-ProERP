@@ -12,6 +12,7 @@ vi.mock('../../lib/api/client', () => ({
   },
   setAccessToken: vi.fn(),
   clearAccessToken: vi.fn(),
+  getAccessToken: vi.fn(() => null),
 }));
 
 describe('LoginPage', () => {
