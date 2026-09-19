@@ -21,7 +21,28 @@ class AIBrainController extends Controller
             'query' => 'required|string|max:1000',
         ]);
 
-        $result = $this->brainService->processQuery($validated['query']);
+        try {
+            $result = $this->brainService->processQuery($validated['query']);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('AIBrain processing error: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString(),
+                'query' => $validated['query'],
+            ]);
+
+            $result = [
+                'thought' => "Encountered a processing exception in local evaluation ➔ Activated resilient fallback agent.",
+                'answer' => "I encountered an obstacle executing that query: " . $e->getMessage() . ".\n\nYou can rephrase or use the shortcuts below to navigate directly to the desired module.",
+                'metrics' => [
+                    ['label' => 'Brain Status', 'value' => 'Online (Fallback)', 'tone' => 'amber'],
+                    ['label' => 'Execution Mode', 'value' => '100% Local', 'tone' => 'success'],
+                ],
+                'actions' => [
+                    ['label' => 'Open Reports Workspace', 'type' => 'navigate', 'url' => '/reports'],
+                    ['label' => 'Open Executive Dashboard', 'type' => 'navigate', 'url' => '/dashboard'],
+                    ['label' => 'Warehouse Stock Ledger', 'type' => 'navigate', 'url' => '/inventory'],
+                ],
+            ];
+        }
 
         return response()->json([
             'success' => true,

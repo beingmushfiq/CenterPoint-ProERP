@@ -486,6 +486,7 @@ export const SliceMartBrainModal: React.FC<SliceMartBrainModalProps> = ({ open, 
         { label: '➕ Add Customer', type: 'action', action_key: 'quick_add_customer' },
         { label: '➕ Record Expense', type: 'action', action_key: 'quick_add_expense' },
         { label: '➕ Launch Batch', type: 'action', action_key: 'quick_add_batch' },
+        { label: '📊 Reports & Hubs', type: 'navigate', url: '/reports' },
         { label: 'Open Finance Cockpit', type: 'navigate', url: '/finance' },
         { label: 'Warehouse Stock Ledger', type: 'navigate', url: '/inventory' },
       ],
@@ -570,17 +571,19 @@ export const SliceMartBrainModal: React.FC<SliceMartBrainModalProps> = ({ open, 
     try {
       const res = await api.post<{
         thought: string;
-        answer: string;
+        answer?: string;
+        text?: string;
         metrics?: BrainMetric[];
         actions?: BrainAction[];
         interactive_action?: BrainInteractiveAction;
       }>('/brain/ask', { query: textToSend.trim() });
 
       if (res.data) {
+        const text = res.data.answer || res.data.text || '';
         const agentMessage: BrainMessage = {
           id: generateBrainMsgId('agent'),
           sender: 'agent',
-          text: res.data.answer,
+          text,
           thought: res.data.thought,
           metrics: res.data.metrics,
           actions: res.data.actions,
@@ -589,11 +592,23 @@ export const SliceMartBrainModal: React.FC<SliceMartBrainModalProps> = ({ open, 
         };
         setMessages((prev) => [...prev, agentMessage]);
       }
-    } catch {
+    } catch (err: unknown) {
+      console.warn('[Operations AI Brain] query execution obstacle:', err);
+      const errMessage = err && typeof err === 'object' && 'message' in err && typeof (err as { message?: unknown }).message === 'string'
+        ? (err as { message: string }).message
+        : null;
+
       const errorMessage: BrainMessage = {
         id: generateBrainMsgId('err'),
         sender: 'agent',
-        text: 'Apologies, I encountered a temporary obstacle processing this query through the local toolchain. Please try again.',
+        text: errMessage && !errMessage.includes('500')
+          ? `Apologies, I encountered a temporary obstacle processing this query: ${errMessage}. You can try rephrasing or use the direct shortcuts below.`
+          : 'Apologies, I encountered a temporary obstacle processing this query through the local toolchain. Please try again or use the direct module shortcuts below.',
+        actions: [
+          { label: '📊 Open Reports Workspace', type: 'navigate', url: '/reports' },
+          { label: '📈 Executive Dashboard', type: 'navigate', url: '/dashboard' },
+          { label: '📦 Warehouse Stock Ledger', type: 'navigate', url: '/inventory' },
+        ],
         timestamp: new Date().toISOString(),
       };
       setMessages((prev) => [...prev, errorMessage]);
