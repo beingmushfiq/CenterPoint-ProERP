@@ -1,0 +1,978 @@
+{
+  "summary": {
+    "totalBackendRoutes": 691,
+    "totalFrontendApiCalls": 826,
+    "matchedCallsCount": 825,
+    "unmatchedCallsCount": 0,
+    "methodMismatchesCount": 1,
+    "uncalledBackendRoutesCount": 44,
+    "duplicateActionsCount": 51
+  },
+  "unmatchedCalls": [],
+  "methodMismatches": [
+    {
+      "call": {
+        "method": "GET",
+        "rawEndpoint": "/hr/attendances/summary${date ?",
+        "file": "frontend/src/modules/hr/services/hrApi.ts",
+        "line": 377
+      },
+      "cleanPath": "hr/attendances/summary${date",
+      "availableMethods": [
+        "DELETE"
+      ],
+      "matchingRoutes": [
+        {
+          "uri": "api/v1/hr/attendances/{id}",
+          "methods": [
+            "DELETE"
+          ],
+          "action": "App\\Modules\\HR\\Controllers\\AttendanceController@destroy"
+        }
+      ]
+    }
+  ],
+  "duplicateActions": [
+    {
+      "action": "GET|HEAD ==> Closure",
+      "uris": [
+        "/",
+        "api/health",
+        "api/v1/health",
+        "healthz",
+        "readyz",
+        "storage/{path}",
+        "up"
+      ]
+    },
+    {
+      "action": "POST ==> App\\Modules\\Assets\\Controllers\\AssetController@bulkImport",
+      "uris": [
+        "api/v1/assets/bulk-import",
+        "api/v1/finance/fixed-assets/bulk-import"
+      ]
+    },
+    {
+      "action": "GET|HEAD ==> App\\Modules\\Catalogue\\Controllers\\BillOfMaterialController@index",
+      "uris": [
+        "api/v1/bill-of-materials",
+        "api/v1/boms"
+      ]
+    },
+    {
+      "action": "POST ==> App\\Modules\\Catalogue\\Controllers\\BillOfMaterialController@store",
+      "uris": [
+        "api/v1/bill-of-materials",
+        "api/v1/boms"
+      ]
+    },
+    {
+      "action": "POST ==> App\\Modules\\Catalogue\\Controllers\\BillOfMaterialController@bulkImport",
+      "uris": [
+        "api/v1/bill-of-materials/bulk-import",
+        "api/v1/boms/bulk-import"
+      ]
+    },
+    {
+      "action": "GET|HEAD ==> App\\Modules\\Catalogue\\Controllers\\BillOfMaterialController@show",
+      "uris": [
+        "api/v1/bill-of-materials/{billOfMaterial:uuid}",
+        "api/v1/boms/{billOfMaterial:uuid}"
+      ]
+    },
+    {
+      "action": "PATCH ==> App\\Modules\\Catalogue\\Controllers\\BillOfMaterialController@update",
+      "uris": [
+        "api/v1/bill-of-materials/{billOfMaterial:uuid}",
+        "api/v1/boms/{billOfMaterial:uuid}"
+      ]
+    },
+    {
+      "action": "DELETE ==> App\\Modules\\Catalogue\\Controllers\\BillOfMaterialController@destroy",
+      "uris": [
+        "api/v1/bill-of-materials/{billOfMaterial:uuid}",
+        "api/v1/boms/{billOfMaterial:uuid}"
+      ]
+    },
+    {
+      "action": "GET|HEAD ==> App\\Modules\\Delivery\\Controllers\\CourierShipmentController@index",
+      "uris": [
+        "api/v1/delivery/shipments",
+        "api/v1/logistics/shipments"
+      ]
+    },
+    {
+      "action": "GET|HEAD ==> App\\Modules\\Delivery\\Controllers\\CourierShipmentController@show",
+      "uris": [
+        "api/v1/delivery/shipments/{shipment}",
+        "api/v1/logistics/shipments/{shipment}"
+      ]
+    },
+    {
+      "action": "POST ==> App\\Modules\\Finance\\Controllers\\BankAccountController@bulkImport",
+      "uris": [
+        "api/v1/finance/bank-accounts/bulk-import",
+        "api/v1/finance/bank-transactions/bulk-import",
+        "api/v1/finance/reconciliation/bulk-import"
+      ]
+    },
+    {
+      "action": "POST ==> App\\Modules\\Finance\\Controllers\\JournalEntryController@bulkImport",
+      "uris": [
+        "api/v1/finance/journal-entries/bulk-import",
+        "api/v1/finance/journal/bulk-import"
+      ]
+    },
+    {
+      "action": "POST ==> App\\Modules\\HR\\Controllers\\PayrollController@bulkImportAdvances",
+      "uris": [
+        "api/v1/hr/advances/bulk-import",
+        "api/v1/hr/payroll/advances/bulk-import"
+      ]
+    },
+    {
+      "action": "GET|HEAD ==> App\\Modules\\HR\\Controllers\\AttendanceController@index",
+      "uris": [
+        "api/v1/hr/attendance",
+        "api/v1/hr/attendances"
+      ]
+    },
+    {
+      "action": "POST ==> App\\Modules\\HR\\Controllers\\AttendanceController@store",
+      "uris": [
+        "api/v1/hr/attendance",
+        "api/v1/hr/attendances"
+      ]
+    },
+    {
+      "action": "POST ==> App\\Modules\\HR\\Controllers\\AttendanceController@bulkImport",
+      "uris": [
+        "api/v1/hr/attendance/bulk-import",
+        "api/v1/hr/attendances/bulk-import"
+      ]
+    },
+    {
+      "action": "GET|HEAD ==> App\\Modules\\HR\\Controllers\\EmployeeController@index",
+      "uris": [
+        "api/v1/hr/employees",
+        "api/v1/workforce/employees"
+      ]
+    },
+    {
+      "action": "POST ==> App\\Modules\\HR\\Controllers\\EmployeeController@store",
+      "uris": [
+        "api/v1/hr/employees",
+        "api/v1/workforce/employees"
+      ]
+    },
+    {
+      "action": "GET|HEAD ==> App\\Modules\\HR\\Controllers\\EmployeeController@show",
+      "uris": [
+        "api/v1/hr/employees/{id}",
+        "api/v1/workforce/employees/{id}"
+      ]
+    },
+    {
+      "action": "GET|HEAD ==> App\\Modules\\HR\\Controllers\\LeaveRequestController@index",
+      "uris": [
+        "api/v1/hr/leave-requests",
+        "api/v1/hr/leaves"
+      ]
+    },
+    {
+      "action": "POST ==> App\\Modules\\HR\\Controllers\\LeaveRequestController@store",
+      "uris": [
+        "api/v1/hr/leave-requests",
+        "api/v1/hr/leaves"
+      ]
+    },
+    {
+      "action": "GET|HEAD ==> App\\Modules\\HR\\Controllers\\LeaveRequestController@leaveTypes",
+      "uris": [
+        "api/v1/hr/leave-requests/types",
+        "api/v1/hr/leaves/types"
+      ]
+    },
+    {
+      "action": "GET|HEAD ==> App\\Modules\\HR\\Controllers\\EmployeeController@shifts",
+      "uris": [
+        "api/v1/hr/shifts",
+        "api/v1/workforce/shifts"
+      ]
+    },
+    {
+      "action": "GET|HEAD ==> App\\Modules\\Inventory\\Controllers\\StockMovementController@balances",
+      "uris": [
+        "api/v1/inventory/balances",
+        "api/v1/inventory/stock"
+      ]
+    },
+    {
+      "action": "POST ==> App\\Modules\\Inventory\\Controllers\\StockMovementController@bulkImport",
+      "uris": [
+        "api/v1/inventory/balances/bulk-import",
+        "api/v1/inventory/opening-stock/bulk-import"
+      ]
+    },
+    {
+      "action": "GET|HEAD ==> App\\Modules\\Platform\\Controllers\\PlatformSupportController@index",
+      "uris": [
+        "api/v1/platform/support-tickets",
+        "api/v1/platform/support/tickets"
+      ]
+    },
+    {
+      "action": "POST ==> App\\Modules\\Platform\\Controllers\\PlatformSupportController@store",
+      "uris": [
+        "api/v1/platform/support-tickets",
+        "api/v1/platform/support/tickets"
+      ]
+    },
+    {
+      "action": "GET|HEAD ==> App\\Modules\\Platform\\Controllers\\PlatformSupportController@show",
+      "uris": [
+        "api/v1/platform/support-tickets/{id}",
+        "api/v1/platform/support/tickets/{id}"
+      ]
+    },
+    {
+      "action": "PATCH ==> App\\Modules\\Platform\\Controllers\\PlatformSupportController@update",
+      "uris": [
+        "api/v1/platform/support-tickets/{id}",
+        "api/v1/platform/support/tickets/{id}"
+      ]
+    },
+    {
+      "action": "POST ==> App\\Modules\\Platform\\Controllers\\PlatformSupportController@addNote",
+      "uris": [
+        "api/v1/platform/support-tickets/{id}/notes",
+        "api/v1/platform/support/tickets/{id}/notes"
+      ]
+    },
+    {
+      "action": "POST ==> App\\Modules\\Pricing\\Controllers\\PriceListController@bulkImport",
+      "uris": [
+        "api/v1/pricing/bulk-import",
+        "api/v1/pricing/price-lists/bulk-import",
+        "api/v1/sales/price-lists/bulk-import"
+      ]
+    },
+    {
+      "action": "POST ==> App\\Modules\\Production\\Controllers\\WorkerProductionEntryController@bulkImport",
+      "uris": [
+        "api/v1/production/piece-rate/bulk-import",
+        "api/v1/production/worker-entries/bulk-import"
+      ]
+    },
+    {
+      "action": "GET|HEAD ==> App\\Modules\\Purchasing\\Controllers\\GoodsReceiptController@index",
+      "uris": [
+        "api/v1/purchasing/goods-receipts",
+        "api/v1/purchasing/receipts"
+      ]
+    },
+    {
+      "action": "POST ==> App\\Modules\\Purchasing\\Controllers\\GoodsReceiptController@store",
+      "uris": [
+        "api/v1/purchasing/goods-receipts",
+        "api/v1/purchasing/receipts"
+      ]
+    },
+    {
+      "action": "GET|HEAD ==> App\\Modules\\Purchasing\\Controllers\\GoodsReceiptController@show",
+      "uris": [
+        "api/v1/purchasing/goods-receipts/{id}",
+        "api/v1/purchasing/receipts/{id}"
+      ]
+    },
+    {
+      "action": "GET|HEAD ==> App\\Modules\\Reports\\Controllers\\ReportRegistryController@index",
+      "uris": [
+        "api/v1/reports",
+        "api/v1/reports/definitions"
+      ]
+    },
+    {
+      "action": "GET|HEAD ==> App\\Modules\\Ecommerce\\Controllers\\TenantCouponController@index",
+      "uris": [
+        "api/v1/sales/coupons",
+        "api/v1/storefront/coupons"
+      ]
+    },
+    {
+      "action": "POST ==> App\\Modules\\Ecommerce\\Controllers\\TenantCouponController@store",
+      "uris": [
+        "api/v1/sales/coupons",
+        "api/v1/storefront/coupons"
+      ]
+    },
+    {
+      "action": "POST ==> App\\Modules\\Ecommerce\\Controllers\\TenantCouponController@bulkImport",
+      "uris": [
+        "api/v1/sales/coupons/bulk-import",
+        "api/v1/storefront/coupons/bulk-import"
+      ]
+    },
+    {
+      "action": "POST ==> App\\Modules\\Ecommerce\\Controllers\\TenantCouponController@generateBatch",
+      "uris": [
+        "api/v1/sales/coupons/generate-batch",
+        "api/v1/storefront/coupons/generate-batch"
+      ]
+    },
+    {
+      "action": "GET|HEAD ==> App\\Modules\\Ecommerce\\Controllers\\TenantCouponController@show",
+      "uris": [
+        "api/v1/sales/coupons/{id}",
+        "api/v1/storefront/coupons/{id}"
+      ]
+    },
+    {
+      "action": "PUT ==> App\\Modules\\Ecommerce\\Controllers\\TenantCouponController@update",
+      "uris": [
+        "api/v1/sales/coupons/{id}",
+        "api/v1/storefront/coupons/{id}"
+      ]
+    },
+    {
+      "action": "DELETE ==> App\\Modules\\Ecommerce\\Controllers\\TenantCouponController@destroy",
+      "uris": [
+        "api/v1/sales/coupons/{id}",
+        "api/v1/storefront/coupons/{id}"
+      ]
+    },
+    {
+      "action": "POST ==> App\\Modules\\Ecommerce\\Controllers\\TenantCouponController@toggleStatus",
+      "uris": [
+        "api/v1/sales/coupons/{id}/toggle-status",
+        "api/v1/storefront/coupons/{id}/toggle-status"
+      ]
+    },
+    {
+      "action": "POST ==> App\\Modules\\Ecommerce\\Controllers\\StorefrontCustomizerController@togglePublishProduct",
+      "uris": [
+        "api/v1/storefront/cms-products/toggle-publish",
+        "api/v1/storefront/products/toggle-publish"
+      ]
+    },
+    {
+      "action": "GET|HEAD ==> App\\Modules\\Ecommerce\\Controllers\\StorefrontManifestController@manifest",
+      "uris": [
+        "api/v1/storefront/manifest.json",
+        "manifest.json",
+        "store/{subdomain}/manifest.json"
+      ]
+    },
+    {
+      "action": "GET|HEAD ==> App\\Modules\\Ecommerce\\Controllers\\StorefrontRobotsController",
+      "uris": [
+        "api/v1/storefront/robots.txt",
+        "robots.txt",
+        "store/{subdomain}/robots.txt"
+      ]
+    },
+    {
+      "action": "GET|HEAD ==> App\\Modules\\Ecommerce\\Controllers\\StorefrontSitemapController@categories",
+      "uris": [
+        "api/v1/storefront/sitemap-categories.xml",
+        "sitemap-categories.xml",
+        "store/{subdomain}/sitemap-categories.xml"
+      ]
+    },
+    {
+      "action": "GET|HEAD ==> App\\Modules\\Ecommerce\\Controllers\\StorefrontSitemapController@pages",
+      "uris": [
+        "api/v1/storefront/sitemap-pages.xml",
+        "sitemap-pages.xml",
+        "store/{subdomain}/sitemap-pages.xml"
+      ]
+    },
+    {
+      "action": "GET|HEAD ==> App\\Modules\\Ecommerce\\Controllers\\StorefrontSitemapController@products",
+      "uris": [
+        "api/v1/storefront/sitemap-products.xml",
+        "sitemap-products.xml",
+        "store/{subdomain}/sitemap-products.xml"
+      ]
+    },
+    {
+      "action": "GET|HEAD ==> App\\Modules\\Ecommerce\\Controllers\\StorefrontSitemapController@index",
+      "uris": [
+        "api/v1/storefront/sitemap.xml",
+        "sitemap.xml",
+        "store/{subdomain}/sitemap.xml"
+      ]
+    }
+  ],
+  "uncalledBackendRoutes": [
+    {
+      "uri": "/",
+      "methods": [
+        "GET",
+        "HEAD"
+      ],
+      "action": "Closure",
+      "middleware": [
+        "web"
+      ]
+    },
+    {
+      "uri": "api/v1/bill-of-materials",
+      "methods": [
+        "POST"
+      ],
+      "action": "App\\Modules\\Catalogue\\Controllers\\BillOfMaterialController@store",
+      "middleware": [
+        "api",
+        "auth.jwt",
+        "tenant.resolve",
+        "tenant.active",
+        "permission:catalog.bom.create"
+      ]
+    },
+    {
+      "uri": "api/v1/bill-of-materials/{billOfMaterial:uuid}",
+      "methods": [
+        "GET",
+        "HEAD"
+      ],
+      "action": "App\\Modules\\Catalogue\\Controllers\\BillOfMaterialController@show",
+      "middleware": [
+        "api",
+        "auth.jwt",
+        "tenant.resolve",
+        "tenant.active",
+        "permission:catalog.bom.view"
+      ]
+    },
+    {
+      "uri": "api/v1/bill-of-materials/{billOfMaterial:uuid}",
+      "methods": [
+        "PATCH"
+      ],
+      "action": "App\\Modules\\Catalogue\\Controllers\\BillOfMaterialController@update",
+      "middleware": [
+        "api",
+        "auth.jwt",
+        "tenant.resolve",
+        "tenant.active",
+        "permission:catalog.bom.update"
+      ]
+    },
+    {
+      "uri": "api/v1/bill-of-materials/{billOfMaterial:uuid}",
+      "methods": [
+        "DELETE"
+      ],
+      "action": "App\\Modules\\Catalogue\\Controllers\\BillOfMaterialController@destroy",
+      "middleware": [
+        "api",
+        "auth.jwt",
+        "tenant.resolve",
+        "tenant.active",
+        "permission:catalog.bom.delete"
+      ]
+    },
+    {
+      "uri": "api/v1/bin/stats",
+      "methods": [
+        "GET",
+        "HEAD"
+      ],
+      "action": "App\\Modules\\Platform\\Controllers\\DataBinController@stats",
+      "middleware": [
+        "api",
+        "auth.jwt",
+        "tenant.resolve",
+        "tenant.active"
+      ]
+    },
+    {
+      "uri": "api/v1/brain/execute",
+      "methods": [
+        "POST"
+      ],
+      "action": "App\\Modules\\Platform\\Controllers\\AIBrainController@execute",
+      "middleware": [
+        "api",
+        "auth.jwt",
+        "tenant.resolve",
+        "tenant.active"
+      ]
+    },
+    {
+      "uri": "api/v1/hr/leaves/types",
+      "methods": [
+        "GET",
+        "HEAD"
+      ],
+      "action": "App\\Modules\\HR\\Controllers\\LeaveRequestController@leaveTypes",
+      "middleware": [
+        "api",
+        "auth.jwt",
+        "tenant.resolve",
+        "tenant.active"
+      ]
+    },
+    {
+      "uri": "api/v1/hr/payroll/periods/{id}/bank-advice",
+      "methods": [
+        "GET",
+        "HEAD"
+      ],
+      "action": "App\\Modules\\HR\\Controllers\\PayrollController@bankAdvice",
+      "middleware": [
+        "api",
+        "auth.jwt",
+        "tenant.resolve",
+        "tenant.active"
+      ]
+    },
+    {
+      "uri": "api/v1/inventory/stock",
+      "methods": [
+        "GET",
+        "HEAD"
+      ],
+      "action": "App\\Modules\\Inventory\\Controllers\\StockMovementController@balances",
+      "middleware": [
+        "api",
+        "auth.jwt",
+        "tenant.resolve",
+        "tenant.active",
+        "permission:inventory.stock.view"
+      ]
+    },
+    {
+      "uri": "api/v1/platform/health",
+      "methods": [
+        "GET",
+        "HEAD"
+      ],
+      "action": "App\\Modules\\Platform\\Controllers\\PlatformSystemHealthController@index",
+      "middleware": [
+        "api",
+        "correlation.id",
+        "auth.jwt",
+        "platform.admin"
+      ]
+    },
+    {
+      "uri": "api/v1/platform/support-tickets",
+      "methods": [
+        "GET",
+        "HEAD"
+      ],
+      "action": "App\\Modules\\Platform\\Controllers\\PlatformSupportController@index",
+      "middleware": [
+        "api",
+        "correlation.id",
+        "auth.jwt",
+        "platform.admin"
+      ]
+    },
+    {
+      "uri": "api/v1/platform/support-tickets",
+      "methods": [
+        "POST"
+      ],
+      "action": "App\\Modules\\Platform\\Controllers\\PlatformSupportController@store",
+      "middleware": [
+        "api",
+        "correlation.id",
+        "auth.jwt",
+        "platform.admin"
+      ]
+    },
+    {
+      "uri": "api/v1/platform/support-tickets/{id}",
+      "methods": [
+        "GET",
+        "HEAD"
+      ],
+      "action": "App\\Modules\\Platform\\Controllers\\PlatformSupportController@show",
+      "middleware": [
+        "api",
+        "correlation.id",
+        "auth.jwt",
+        "platform.admin"
+      ]
+    },
+    {
+      "uri": "api/v1/platform/support-tickets/{id}",
+      "methods": [
+        "PATCH"
+      ],
+      "action": "App\\Modules\\Platform\\Controllers\\PlatformSupportController@update",
+      "middleware": [
+        "api",
+        "correlation.id",
+        "auth.jwt",
+        "platform.admin"
+      ]
+    },
+    {
+      "uri": "api/v1/platform/support-tickets/{id}/notes",
+      "methods": [
+        "POST"
+      ],
+      "action": "App\\Modules\\Platform\\Controllers\\PlatformSupportController@addNote",
+      "middleware": [
+        "api",
+        "correlation.id",
+        "auth.jwt",
+        "platform.admin"
+      ]
+    },
+    {
+      "uri": "api/v1/purchasing/receipts",
+      "methods": [
+        "GET",
+        "HEAD"
+      ],
+      "action": "App\\Modules\\Purchasing\\Controllers\\GoodsReceiptController@index",
+      "middleware": [
+        "api",
+        "auth.jwt",
+        "tenant.resolve",
+        "tenant.active",
+        "permission:purchasing.receipt.view"
+      ]
+    },
+    {
+      "uri": "api/v1/purchasing/receipts",
+      "methods": [
+        "POST"
+      ],
+      "action": "App\\Modules\\Purchasing\\Controllers\\GoodsReceiptController@store",
+      "middleware": [
+        "api",
+        "auth.jwt",
+        "tenant.resolve",
+        "tenant.active",
+        "permission:purchasing.receipt.create"
+      ]
+    },
+    {
+      "uri": "api/v1/purchasing/receipts/{id}",
+      "methods": [
+        "GET",
+        "HEAD"
+      ],
+      "action": "App\\Modules\\Purchasing\\Controllers\\GoodsReceiptController@show",
+      "middleware": [
+        "api",
+        "auth.jwt",
+        "tenant.resolve",
+        "tenant.active",
+        "permission:purchasing.receipt.view"
+      ]
+    },
+    {
+      "uri": "api/v1/reports",
+      "methods": [
+        "GET",
+        "HEAD"
+      ],
+      "action": "App\\Modules\\Reports\\Controllers\\ReportRegistryController@index",
+      "middleware": [
+        "api",
+        "auth.jwt",
+        "tenant.resolve",
+        "tenant.active"
+      ]
+    },
+    {
+      "uri": "api/v1/storefront/coupons",
+      "methods": [
+        "GET",
+        "HEAD"
+      ],
+      "action": "App\\Modules\\Ecommerce\\Controllers\\TenantCouponController@index",
+      "middleware": [
+        "api",
+        "auth.jwt",
+        "tenant.resolve",
+        "tenant.active",
+        "tenant.feature:ecommerce"
+      ]
+    },
+    {
+      "uri": "api/v1/storefront/coupons",
+      "methods": [
+        "POST"
+      ],
+      "action": "App\\Modules\\Ecommerce\\Controllers\\TenantCouponController@store",
+      "middleware": [
+        "api",
+        "auth.jwt",
+        "tenant.resolve",
+        "tenant.active",
+        "tenant.feature:ecommerce"
+      ]
+    },
+    {
+      "uri": "api/v1/storefront/coupons/generate-batch",
+      "methods": [
+        "POST"
+      ],
+      "action": "App\\Modules\\Ecommerce\\Controllers\\TenantCouponController@generateBatch",
+      "middleware": [
+        "api",
+        "auth.jwt",
+        "tenant.resolve",
+        "tenant.active",
+        "tenant.feature:ecommerce"
+      ]
+    },
+    {
+      "uri": "api/v1/storefront/coupons/{id}",
+      "methods": [
+        "GET",
+        "HEAD"
+      ],
+      "action": "App\\Modules\\Ecommerce\\Controllers\\TenantCouponController@show",
+      "middleware": [
+        "api",
+        "auth.jwt",
+        "tenant.resolve",
+        "tenant.active",
+        "tenant.feature:ecommerce"
+      ]
+    },
+    {
+      "uri": "api/v1/storefront/coupons/{id}",
+      "methods": [
+        "PUT"
+      ],
+      "action": "App\\Modules\\Ecommerce\\Controllers\\TenantCouponController@update",
+      "middleware": [
+        "api",
+        "auth.jwt",
+        "tenant.resolve",
+        "tenant.active",
+        "tenant.feature:ecommerce"
+      ]
+    },
+    {
+      "uri": "api/v1/storefront/coupons/{id}",
+      "methods": [
+        "DELETE"
+      ],
+      "action": "App\\Modules\\Ecommerce\\Controllers\\TenantCouponController@destroy",
+      "middleware": [
+        "api",
+        "auth.jwt",
+        "tenant.resolve",
+        "tenant.active",
+        "tenant.feature:ecommerce"
+      ]
+    },
+    {
+      "uri": "api/v1/storefront/coupons/{id}/toggle-status",
+      "methods": [
+        "POST"
+      ],
+      "action": "App\\Modules\\Ecommerce\\Controllers\\TenantCouponController@toggleStatus",
+      "middleware": [
+        "api",
+        "auth.jwt",
+        "tenant.resolve",
+        "tenant.active",
+        "tenant.feature:ecommerce"
+      ]
+    },
+    {
+      "uri": "healthz",
+      "methods": [
+        "GET",
+        "HEAD"
+      ],
+      "action": "Closure",
+      "middleware": [
+        "web"
+      ]
+    },
+    {
+      "uri": "manifest.json",
+      "methods": [
+        "GET",
+        "HEAD"
+      ],
+      "action": "App\\Modules\\Ecommerce\\Controllers\\StorefrontManifestController@manifest",
+      "middleware": [
+        "web",
+        "App\\Core\\Http\\Middleware\\ResolveStorefrontTenant"
+      ]
+    },
+    {
+      "uri": "readyz",
+      "methods": [
+        "GET",
+        "HEAD"
+      ],
+      "action": "Closure",
+      "middleware": [
+        "web"
+      ]
+    },
+    {
+      "uri": "robots.txt",
+      "methods": [
+        "GET",
+        "HEAD"
+      ],
+      "action": "App\\Modules\\Ecommerce\\Controllers\\StorefrontRobotsController",
+      "middleware": [
+        "web",
+        "App\\Core\\Http\\Middleware\\ResolveStorefrontTenant"
+      ]
+    },
+    {
+      "uri": "sitemap-categories.xml",
+      "methods": [
+        "GET",
+        "HEAD"
+      ],
+      "action": "App\\Modules\\Ecommerce\\Controllers\\StorefrontSitemapController@categories",
+      "middleware": [
+        "web",
+        "App\\Core\\Http\\Middleware\\ResolveStorefrontTenant"
+      ]
+    },
+    {
+      "uri": "sitemap-pages.xml",
+      "methods": [
+        "GET",
+        "HEAD"
+      ],
+      "action": "App\\Modules\\Ecommerce\\Controllers\\StorefrontSitemapController@pages",
+      "middleware": [
+        "web",
+        "App\\Core\\Http\\Middleware\\ResolveStorefrontTenant"
+      ]
+    },
+    {
+      "uri": "sitemap-products.xml",
+      "methods": [
+        "GET",
+        "HEAD"
+      ],
+      "action": "App\\Modules\\Ecommerce\\Controllers\\StorefrontSitemapController@products",
+      "middleware": [
+        "web",
+        "App\\Core\\Http\\Middleware\\ResolveStorefrontTenant"
+      ]
+    },
+    {
+      "uri": "sitemap.xml",
+      "methods": [
+        "GET",
+        "HEAD"
+      ],
+      "action": "App\\Modules\\Ecommerce\\Controllers\\StorefrontSitemapController@index",
+      "middleware": [
+        "web",
+        "App\\Core\\Http\\Middleware\\ResolveStorefrontTenant"
+      ]
+    },
+    {
+      "uri": "storage/{path}",
+      "methods": [
+        "GET",
+        "HEAD"
+      ],
+      "action": "Closure",
+      "middleware": []
+    },
+    {
+      "uri": "storage/{path}",
+      "methods": [
+        "PUT"
+      ],
+      "action": "Closure",
+      "middleware": []
+    },
+    {
+      "uri": "store/{subdomain}/manifest.json",
+      "methods": [
+        "GET",
+        "HEAD"
+      ],
+      "action": "App\\Modules\\Ecommerce\\Controllers\\StorefrontManifestController@manifest",
+      "middleware": [
+        "web",
+        "App\\Core\\Http\\Middleware\\ResolveStorefrontTenant"
+      ]
+    },
+    {
+      "uri": "store/{subdomain}/robots.txt",
+      "methods": [
+        "GET",
+        "HEAD"
+      ],
+      "action": "App\\Modules\\Ecommerce\\Controllers\\StorefrontRobotsController",
+      "middleware": [
+        "web",
+        "App\\Core\\Http\\Middleware\\ResolveStorefrontTenant"
+      ]
+    },
+    {
+      "uri": "store/{subdomain}/sitemap-categories.xml",
+      "methods": [
+        "GET",
+        "HEAD"
+      ],
+      "action": "App\\Modules\\Ecommerce\\Controllers\\StorefrontSitemapController@categories",
+      "middleware": [
+        "web",
+        "App\\Core\\Http\\Middleware\\ResolveStorefrontTenant"
+      ]
+    },
+    {
+      "uri": "store/{subdomain}/sitemap-pages.xml",
+      "methods": [
+        "GET",
+        "HEAD"
+      ],
+      "action": "App\\Modules\\Ecommerce\\Controllers\\StorefrontSitemapController@pages",
+      "middleware": [
+        "web",
+        "App\\Core\\Http\\Middleware\\ResolveStorefrontTenant"
+      ]
+    },
+    {
+      "uri": "store/{subdomain}/sitemap-products.xml",
+      "methods": [
+        "GET",
+        "HEAD"
+      ],
+      "action": "App\\Modules\\Ecommerce\\Controllers\\StorefrontSitemapController@products",
+      "middleware": [
+        "web",
+        "App\\Core\\Http\\Middleware\\ResolveStorefrontTenant"
+      ]
+    },
+    {
+      "uri": "store/{subdomain}/sitemap.xml",
+      "methods": [
+        "GET",
+        "HEAD"
+      ],
+      "action": "App\\Modules\\Ecommerce\\Controllers\\StorefrontSitemapController@index",
+      "middleware": [
+        "web",
+        "App\\Core\\Http\\Middleware\\ResolveStorefrontTenant"
+      ]
+    },
+    {
+      "uri": "up",
+      "methods": [
+        "GET",
+        "HEAD"
+      ],
+      "action": "Closure",
+      "middleware": []
+    }
+  ]
+}

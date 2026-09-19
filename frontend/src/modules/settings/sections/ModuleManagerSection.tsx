@@ -174,7 +174,7 @@ export const ModuleManagerSection: React.FC = () => {
           config: m.config || {},
         })),
       };
-      await api.put('/tenant/modules/batch', payload).catch(() => api.post('/tenant/modules/batch', payload));
+      await api.put('/tenant/modules/batch', payload);
       await invalidateManifest();
       toast.success('All tenant module configurations synchronized successfully.');
     } catch {

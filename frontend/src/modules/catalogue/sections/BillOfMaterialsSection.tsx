@@ -159,7 +159,7 @@ export function BillOfMaterialsSection() {
             sort_order: idx + 1,
           })),
       };
-      return api.post<BillOfMaterial>('/boms', body).catch(() => api.post<BillOfMaterial>('/bill-of-materials', body));
+      return api.post<BillOfMaterial>('/boms', body);
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['catalogue', 'boms'] });
@@ -214,7 +214,7 @@ export function BillOfMaterialsSection() {
             sort_order: idx + 1,
           }));
       }
-      return api.patch<BillOfMaterial>(`/boms/${id}`, body).catch(() => api.patch<BillOfMaterial>(`/bill-of-materials/${id}`, body));
+      return api.patch<BillOfMaterial>(`/boms/${id}`, body);
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['catalogue', 'boms'] });
@@ -232,7 +232,7 @@ export function BillOfMaterialsSection() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => api.delete(`/boms/${id}`).catch(() => api.delete(`/bill-of-materials/${id}`)),
+    mutationFn: (id: string) => api.delete(`/boms/${id}`),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['catalogue', 'boms'] });
       setDeletingBOM(null);
@@ -263,9 +263,7 @@ export function BillOfMaterialsSection() {
     });
     setEditingBOM(b);
     const bomId = (b as { uuid?: string }).uuid || b.id;
-    void api.get<BillOfMaterial>(`/boms/${bomId}`).catch(() =>
-      api.get<BillOfMaterial>(`/bill-of-materials/${bomId}`)
-    ).then((res) => {
+    void api.get<BillOfMaterial>(`/boms/${bomId}`).then((res) => {
       if (res && res.data) {
         setEditingBOM(res.data);
       }

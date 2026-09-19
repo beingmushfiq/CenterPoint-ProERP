@@ -949,6 +949,7 @@ Route::middleware(['auth.jwt', 'tenant.resolve', 'tenant.active'])
             Route::put('shifts/{id}', [App\Modules\HR\Controllers\EmployeeController::class, 'updateShift'])->name('shifts.update');
             Route::delete('shifts/{id}', [App\Modules\HR\Controllers\EmployeeController::class, 'destroyShift'])->name('shifts.destroy');
             Route::post('shifts/bulk-delete', [App\Modules\HR\Controllers\EmployeeController::class, 'bulkDeleteShifts'])->name('shifts.bulk-delete');
+            Route::post('advances/bulk-import', [App\Modules\HR\Controllers\PayrollController::class, 'bulkImportAdvances'])->name('advances.bulk-import');
 
             // Employees
             Route::prefix('employees')->name('employees.')->group(static function (): void {
@@ -964,6 +965,12 @@ Route::middleware(['auth.jwt', 'tenant.resolve', 'tenant.active'])
                 Route::post('{id}/toggle-status', [App\Modules\HR\Controllers\EmployeeController::class, 'toggleStatus'])->name('toggle-status');
                 Route::get('{id}/documents', [App\Modules\HR\Controllers\EmployeeController::class, 'documents'])->name('documents');
                 Route::post('{id}/documents', [App\Modules\HR\Controllers\EmployeeController::class, 'storeDocument'])->name('documents.store');
+
+                // Role & User Access provisioning for Employee
+                Route::post('{id}/provision-user', [App\Modules\HR\Controllers\EmployeeController::class, 'provisionUser'])->name('provision-user');
+                Route::put('{id}/roles', [App\Modules\HR\Controllers\EmployeeController::class, 'updateRoles'])->name('update-roles');
+                Route::post('{id}/link-user', [App\Modules\HR\Controllers\EmployeeController::class, 'linkUser'])->name('link-user');
+                Route::delete('{id}/unlink-user', [App\Modules\HR\Controllers\EmployeeController::class, 'unlinkUser'])->name('unlink-user');
             });
 
             // Attendance & Kiosk Punch
@@ -978,6 +985,13 @@ Route::middleware(['auth.jwt', 'tenant.resolve', 'tenant.active'])
                 Route::post('punch-badge', [App\Modules\HR\Controllers\AttendanceController::class, 'punchBadge'])->name('punch-badge');
             });
 
+            // Attendance Alias for Frontend Compatibility
+            Route::prefix('attendance')->name('attendance.')->group(static function (): void {
+                Route::post('bulk-import', [App\Modules\HR\Controllers\AttendanceController::class, 'bulkImport'])->name('bulk-import');
+                Route::get('/', [App\Modules\HR\Controllers\AttendanceController::class, 'index'])->name('index');
+                Route::post('/', [App\Modules\HR\Controllers\AttendanceController::class, 'store'])->name('store');
+            });
+
             // Leaves & Balances
             Route::prefix('leaves')->name('leaves.')->group(static function (): void {
                 Route::get('types', [App\Modules\HR\Controllers\LeaveRequestController::class, 'leaveTypes'])->name('types');
@@ -990,6 +1004,13 @@ Route::middleware(['auth.jwt', 'tenant.resolve', 'tenant.active'])
                 Route::post('{id}/approve', [App\Modules\HR\Controllers\LeaveRequestController::class, 'approve'])->name('approve');
                 Route::post('{id}/reject', [App\Modules\HR\Controllers\LeaveRequestController::class, 'reject'])->name('reject');
                 Route::delete('{id}', [App\Modules\HR\Controllers\LeaveRequestController::class, 'destroy'])->name('destroy');
+            });
+
+            // Leave Requests Alias for Frontend Compatibility
+            Route::prefix('leave-requests')->name('leave-requests.')->group(static function (): void {
+                Route::get('/', [App\Modules\HR\Controllers\LeaveRequestController::class, 'index'])->name('index');
+                Route::post('/', [App\Modules\HR\Controllers\LeaveRequestController::class, 'store'])->name('store');
+                Route::get('types', [App\Modules\HR\Controllers\LeaveRequestController::class, 'leaveTypes'])->name('types');
             });
 
             // Salary Structures & Compensation
@@ -1119,7 +1140,7 @@ Route::middleware(['auth.jwt', 'tenant.resolve', 'tenant.active'])
             Route::get('nav-order', [App\Modules\Platform\Controllers\TenantModuleController::class, 'getNavOrder'])->name('nav-order.get');
             Route::put('nav-order', [App\Modules\Platform\Controllers\TenantModuleController::class, 'updateNavOrder'])->name('nav-order.update');
             Route::put('{moduleKey}', [App\Modules\Platform\Controllers\TenantModuleController::class, 'update'])->name('update');
-            Route::post('batch', [App\Modules\Platform\Controllers\TenantModuleController::class, 'batchUpdate'])->name('batch');
+            Route::match(['put', 'post'], 'batch', [App\Modules\Platform\Controllers\TenantModuleController::class, 'batchUpdate'])->name('batch');
         });
 
         // ── Settings & Configuration System ─────────────────────────
@@ -1174,65 +1195,6 @@ Route::middleware(['auth.jwt', 'tenant.resolve', 'tenant.active'])
 
         Route::get('permissions', [App\Modules\Auth\Controllers\RoleController::class, 'permissions'])
             ->middleware('permission:core.permission.view')->name('permissions.index');
-
-        // ── Human Resources & Staff Management ──────────────────────
-        Route::prefix('hr')->name('hr.')->group(static function (): void {
-            // Departments & Designations & Shifts
-            Route::get('departments', [App\Modules\HR\Controllers\EmployeeController::class, 'departments'])->name('departments.index');
-            Route::post('departments/bulk-import', [App\Modules\HR\Controllers\EmployeeController::class, 'bulkImportDepartments'])->name('departments.bulk-import');
-            Route::post('departments', [App\Modules\HR\Controllers\EmployeeController::class, 'storeDepartment'])->name('departments.store');
-            Route::put('departments/{id}', [App\Modules\HR\Controllers\EmployeeController::class, 'updateDepartment'])->name('departments.update');
-
-            Route::get('designations', [App\Modules\HR\Controllers\EmployeeController::class, 'designations'])->name('designations.index');
-            Route::post('designations/bulk-import', [App\Modules\HR\Controllers\EmployeeController::class, 'bulkImportDesignations'])->name('designations.bulk-import');
-            Route::post('designations', [App\Modules\HR\Controllers\EmployeeController::class, 'storeDesignation'])->name('designations.store');
-            Route::put('designations/{id}', [App\Modules\HR\Controllers\EmployeeController::class, 'updateDesignation'])->name('designations.update');
-
-            Route::get('shifts', [App\Modules\HR\Controllers\EmployeeController::class, 'shifts'])->name('shifts.index');
-            Route::post('shifts/bulk-import', [App\Modules\HR\Controllers\EmployeeController::class, 'bulkImportShifts'])->name('shifts.bulk-import');
-            Route::post('shifts/roster/bulk-import', [App\Modules\HR\Controllers\EmployeeController::class, 'bulkImportRosters'])->name('shifts.roster.bulk-import');
-            Route::post('shifts', [App\Modules\HR\Controllers\EmployeeController::class, 'storeShift'])->name('shifts.store');
-            Route::put('shifts/{id}', [App\Modules\HR\Controllers\EmployeeController::class, 'updateShift'])->name('shifts.update');
-            Route::post('advances/bulk-import', [App\Modules\HR\Controllers\PayrollController::class, 'bulkImportAdvances'])->name('advances.bulk-import');
-
-            // Employees CRUD & Access Provisioning
-            Route::prefix('employees')->name('employees.')->group(static function (): void {
-                Route::get('/', [App\Modules\HR\Controllers\EmployeeController::class, 'index'])->name('index');
-                Route::post('/', [App\Modules\HR\Controllers\EmployeeController::class, 'store'])->name('store');
-                Route::post('bulk-import', [App\Modules\HR\Controllers\EmployeeController::class, 'bulkImport'])->name('bulk-import');
-                Route::get('{id}', [App\Modules\HR\Controllers\EmployeeController::class, 'show'])->name('show');
-                Route::put('{id}', [App\Modules\HR\Controllers\EmployeeController::class, 'update'])->name('update');
-                Route::delete('{id}', [App\Modules\HR\Controllers\EmployeeController::class, 'destroy'])->name('destroy');
-                Route::patch('{id}/status', [App\Modules\HR\Controllers\EmployeeController::class, 'toggleStatus'])->name('status');
-
-                // Role & User Access provisioning for Employee
-                Route::post('{id}/provision-user', [App\Modules\HR\Controllers\EmployeeController::class, 'provisionUser'])->name('provision-user');
-                Route::put('{id}/roles', [App\Modules\HR\Controllers\EmployeeController::class, 'updateRoles'])->name('update-roles');
-                Route::post('{id}/link-user', [App\Modules\HR\Controllers\EmployeeController::class, 'linkUser'])->name('link-user');
-                Route::delete('{id}/unlink-user', [App\Modules\HR\Controllers\EmployeeController::class, 'unlinkUser'])->name('unlink-user');
-            });
-
-            // Attendance
-            Route::prefix('attendance')->name('attendance.')->group(static function (): void {
-                Route::post('bulk-import', [App\Modules\HR\Controllers\AttendanceController::class, 'bulkImport'])->name('bulk-import');
-                Route::get('/', [App\Modules\HR\Controllers\AttendanceController::class, 'index'])->name('index');
-                Route::post('/', [App\Modules\HR\Controllers\AttendanceController::class, 'store'])->name('store');
-            });
-
-            // Leave Requests
-            Route::prefix('leave-requests')->name('leave-requests.')->group(static function (): void {
-                Route::get('/', [App\Modules\HR\Controllers\LeaveRequestController::class, 'index'])->name('index');
-                Route::post('/', [App\Modules\HR\Controllers\LeaveRequestController::class, 'store'])->name('store');
-                Route::get('types', [App\Modules\HR\Controllers\LeaveRequestController::class, 'leaveTypes'])->name('types');
-            });
-
-            // Salary Structures
-            Route::prefix('salary-structures')->name('salary-structures.')->group(static function (): void {
-                Route::get('/', [App\Modules\HR\Controllers\SalaryStructureController::class, 'index'])->name('index');
-                Route::get('components', [App\Modules\HR\Controllers\SalaryStructureController::class, 'components'])->name('components');
-                Route::post('/', [App\Modules\HR\Controllers\SalaryStructureController::class, 'store'])->name('store');
-            });
-        });
 
         // ── System Audit Logging & Entity History ───────────────────
         Route::prefix('audit-logs')->name('audit-logs.')->group(static function (): void {
@@ -1341,7 +1303,7 @@ Route::middleware(['auth.jwt', 'tenant.resolve', 'tenant.active'])
 
             // Dynamic Modules Enable/Disable
             Route::get('modules', [App\Modules\Platform\Controllers\TenantModuleController::class, 'index'])->name('modules.index');
-            Route::put('modules/batch', [App\Modules\Platform\Controllers\TenantModuleController::class, 'batchUpdate'])->name('modules.batch');
+            Route::match(['put', 'post'], 'modules/batch', [App\Modules\Platform\Controllers\TenantModuleController::class, 'batchUpdate'])->name('modules.batch');
             Route::put('modules/{moduleKey}', [App\Modules\Platform\Controllers\TenantModuleController::class, 'update'])->name('modules.update');
 
             // Dynamic Production Stages

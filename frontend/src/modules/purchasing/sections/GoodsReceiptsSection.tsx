@@ -158,9 +158,7 @@ export function GoodsReceiptsSection() {
     queryKey: ['purchasing', 'goods-receipts'],
     queryFn: async () => {
       try {
-        const res = await api.get<GoodsReceipt[]>('/purchasing/goods-receipts').catch(() =>
-          api.get<GoodsReceipt[]>('/purchasing/receipts')
-        );
+        const res = await api.get<GoodsReceipt[]>('/purchasing/goods-receipts');
         const list = extractList<GoodsReceipt>(res);
         if (list.length > 0) {
           return list;
@@ -177,9 +175,7 @@ export function GoodsReceiptsSection() {
     setActiveGrn(grn);
     setShowViewModal(true);
     try {
-      const res = await api.get<{ data: GoodsReceipt }>(`/purchasing/goods-receipts/${grn.id}`).catch(() =>
-        api.get<{ data: GoodsReceipt }>(`/purchasing/receipts/${grn.id}`)
-      );
+      const res = await api.get<{ data: GoodsReceipt }>(`/purchasing/goods-receipts/${grn.id}`);
       if (res.data?.data) {
         setActiveGrn(res.data.data);
       }
@@ -241,7 +237,6 @@ export function GoodsReceiptsSection() {
     };
 
     api.post('/purchasing/goods-receipts', newGrn)
-      .catch(() => api.post('/purchasing/receipts', newGrn))
       .catch(() => {});
     queryClient.setQueryData<GoodsReceipt[]>(['purchasing', 'goods-receipts'], (prev = []) => [newGrn, ...prev]);
     toast.success('Goods receipt note (GRN) created.');

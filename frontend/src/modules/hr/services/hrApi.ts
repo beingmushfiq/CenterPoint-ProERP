@@ -357,7 +357,7 @@ export const hrApi = {
     if (params?.employee_id) query.set('employee_id', String(params.employee_id));
     if (params?.status) query.set('status', params.status);
     const qs = query.toString() ? `?${query.toString()}` : '';
-    return api.get<{ data: AttendanceApiItem[] }>(`/hr/attendance${qs}`);
+    return api.get<{ data: AttendanceApiItem[] }>(`/hr/attendances${qs}`);
   },
 
   async getAttendances(params?: { date?: string; employee_id?: number; status?: string }) {
@@ -366,15 +366,11 @@ export const hrApi = {
     if (params?.employee_id) query.set('employee_id', String(params.employee_id));
     if (params?.status) query.set('status', params.status);
     const qs = query.toString() ? `?${query.toString()}` : '';
-    return api.get<{ data: AttendanceApiItem[] }>(`/hr/attendance${qs}`).catch(() => 
-      api.get<{ data: AttendanceApiItem[] }>(`/hr/attendances${qs}`)
-    );
+    return api.get<{ data: AttendanceApiItem[] }>(`/hr/attendances${qs}`);
   },
 
   async recordAttendance(payload: { employee_id: number; attendance_date: string; status?: string; shift_id?: number; check_in_at?: string; check_out_at?: string; remarks?: string }) {
-    return api.post<{ data: AttendanceApiItem; message: string }>('/hr/attendance', payload).catch(() =>
-      api.post<{ data: AttendanceApiItem; message: string }>('/hr/attendances', payload)
-    );
+    return api.post<{ data: AttendanceApiItem; message: string }>('/hr/attendances', payload);
   },
 
   async getAttendanceSummary(date?: string) {
@@ -391,9 +387,7 @@ export const hrApi = {
     if (params?.status) query.set('status', params.status);
     if (params?.employee_id) query.set('employee_id', String(params.employee_id));
     const qs = query.toString() ? `?${query.toString()}` : '';
-    return api.get<{ data: LeaveRequestApiItem[] }>(`/hr/leave-requests${qs}`).catch(() =>
-      api.get<{ data: LeaveRequestApiItem[] }>(`/hr/leaves${qs}`)
-    );
+    return api.get<{ data: LeaveRequestApiItem[] }>(`/hr/leaves${qs}`);
   },
 
   async getLeaves(params?: { status?: string; employee_id?: number }) {
@@ -401,9 +395,7 @@ export const hrApi = {
   },
 
   async getLeaveTypes() {
-    return api.get<{ data: Array<{ id: number; code: string; name: string; days_allowed: number }> }>('/hr/leave-requests/types').catch(() =>
-      api.get<{ data: Array<{ id: number; code: string; name: string; days_allowed: number }> }>('/hr/leaves/types')
-    );
+    return api.get<{ data: Array<{ id: number; code: string; name: string; days_allowed: number }> }>('/hr/leaves/types');
   },
 
   async getLeaveBalances(params?: { employee_id?: number; year?: number }) {
@@ -415,9 +407,7 @@ export const hrApi = {
   },
 
   async submitLeaveRequest(payload: { employee_id: number; leave_type_id: number; start_date: string; end_date: string; total_days: number; reason?: string }) {
-    return api.post<{ data: LeaveRequestApiItem; message: string }>('/hr/leave-requests', payload).catch(() =>
-      api.post<{ data: LeaveRequestApiItem; message: string }>('/hr/leaves', payload)
-    );
+    return api.post<{ data: LeaveRequestApiItem; message: string }>('/hr/leaves', payload);
   },
 
   async approveLeave(id: number) {

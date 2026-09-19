@@ -137,7 +137,6 @@ export const ReportsWorkspace: React.FC = () => {
     let isMounted = true;
     api
       .get<ReportDefinition[]>('/reports/definitions')
-      .catch(() => api.get<ReportDefinition[]>('/reports'))
       .then((res: unknown) => {
         if (!isMounted) return;
         const resp = res as { data?: ReportDefinition[] | { data?: ReportDefinition[] } };
