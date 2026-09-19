@@ -2,4 +2,9 @@
 deployment:
   tasks:
     - export DEPLOYPATH=/home/devcente/projects/proerp/public
-    - /bin/bash ./scripts/auto-deploy.sh
+    - /bin/mkdir -p /home/devcente/projects/proerp/backend /home/devcente/projects/proerp/public /home/devcente/logs /home/devcente/scripts
+    - /bin/cp -Rf backend/. /home/devcente/projects/proerp/backend/
+    - /bin/cp -Rf public_html/. /home/devcente/projects/proerp/public/
+    - /bin/cp -Rf scripts/. /home/devcente/scripts/
+    - /bin/chmod -R 755 /home/devcente/scripts
+    - CPANEL_USER=devcente HOME=/home/devcente BACKEND_DIR=/home/devcente/projects/proerp/backend PUBLIC_HTML_DIR=/home/devcente/projects/proerp/public /bin/bash /home/devcente/scripts/auto-deploy.sh --skip-git --backend-target=/home/devcente/projects/proerp/backend --public-target=/home/devcente/projects/proerp/public

@@ -198,6 +198,9 @@ fi
 # ------------------------------------------------------------------------------
 echo "--- Executing deploy-cpanel.sh ---" | tee -a "${LOG_FILE}"
 export FORCE_SEED="${FORCE_SEED}"
+export BACKEND_DIR="${BACKEND_TARGET}"
+export PUBLIC_HTML_DIR="${PUBLIC_TARGET}"
+export HOME_DIR="${HOME_DIR}"
 
 DEPLOY_CPANEL_SCRIPT=""
 if [ -f "${SCRIPTS_TARGET}/deploy-cpanel.sh" ]; then
