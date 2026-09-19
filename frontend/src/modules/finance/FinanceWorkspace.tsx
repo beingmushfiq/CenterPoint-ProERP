@@ -1,4 +1,5 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   BookOpen,
   ReceiptText,
@@ -73,120 +74,16 @@ interface CategoryConfig {
   defaultTab: FinanceTab;
 }
 
-const CATEGORIES: CategoryConfig[] = [
-  {
-    id: 'operations',
-    label: 'Daily Cash & Operations',
-    tagline: 'Live bank balances, operating expenses & customer collections',
-    shortcut: '1',
-    icon: Landmark,
-    tabs: ['banking', 'expenses', 'due-collection'],
-    defaultTab: 'banking',
-  },
-  {
-    id: 'reports',
-    label: 'Reports & Accounting Records',
-    tagline: 'Profit & Loss, balance sheet & general ledger audit',
-    shortcut: '2',
-    icon: TrendingUp,
-    tabs: ['statements', 'journal', 'coa'],
-    defaultTab: 'statements',
-  },
-  {
-    id: 'costing',
-    label: 'Manufacturing Cost Rollup',
-    tagline: 'Standard unit costing (BOM materials + piece-rate labour + overhead)',
-    shortcut: '3',
-    icon: Calculator,
-    tabs: ['costing'],
-    defaultTab: 'costing',
-  },
-];
-
-interface FinanceTabConfig {
+export interface FinanceTabConfig {
   id: FinanceTab;
   step: number;
   label: string;
   shortLabel: string;
   category: FinanceCategory;
-  badge?: string;
   icon: typeof BookOpen;
   description: string;
   highlights: string[];
 }
-
-const FINANCE_TAB_CONFIGS: FinanceTabConfig[] = [
-  {
-    id: 'banking',
-    step: 1,
-    label: 'Cash & Bank Accounts',
-    shortLabel: 'Cash & Banks',
-    category: 'operations',
-    icon: Landmark,
-    description: 'Live cash drawer balances, bank accounts, fund transfers and deposits',
-    highlights: ['Operating Bank Accounts', 'Cash-in-Transit Buffers', 'Instant Fund Movement'],
-  },
-  {
-    id: 'expenses',
-    step: 2,
-    label: 'Operating Expenses & Bills',
-    shortLabel: 'Expenses & Bills',
-    category: 'operations',
-    icon: ReceiptText,
-    description: 'Operational spending vouchers (Power, Rent, Courier, Supplies) with 1-click recording',
-    highlights: ['Disbursement Vouchers', 'Auto Double-Entry Posting', 'Category Breakdowns'],
-  },
-  {
-    id: 'due-collection',
-    step: 3,
-    label: 'Customer Dues & Aging',
-    shortLabel: 'Customer Dues',
-    category: 'operations',
-    icon: Coins,
-    description: 'Customer receivable aging analysis (0-30, 31-60, 61-90, 90+ days) with 1-click collections',
-    highlights: ['Aging Bucket Analysis', '1-Click Fast Collection', 'Customer Credit Limits'],
-  },
-  {
-    id: 'statements',
-    step: 4,
-    label: 'Financial Statements (P&L)',
-    shortLabel: 'Financial Statements',
-    category: 'reports',
-    icon: TrendingUp,
-    description: 'Automated Balance Sheet, Income Statement (P&L), and Trial Balance generated from posted journals',
-    highlights: ['Balance Sheet Snapshot', 'Income Statement P&L', 'Full Trial Balance Rec'],
-  },
-  {
-    id: 'journal',
-    step: 5,
-    label: 'General Ledger & Audit Trail',
-    shortLabel: 'General Ledger',
-    category: 'reports',
-    icon: BookOpen,
-    description: 'Double-entry general ledger with balanced debit/credit voucher postings, line audits & source trace',
-    highlights: ['Complete Audit Trail', 'Voucher Line Inspection', '1-Click Reversal Entries'],
-  },
-  {
-    id: 'coa',
-    step: 6,
-    label: 'Chart of Accounts (COA)',
-    shortLabel: 'Chart of Accounts',
-    category: 'reports',
-    icon: Scale,
-    description: 'Hierarchical account structure (Asset, Liability, Equity, Income, Expense) with normal balance rules',
-    highlights: ['Multi-Tier Account Hierarchy', 'Normal Balance Validation', 'Real-time Balance Aggregations'],
-  },
-  {
-    id: 'costing',
-    step: 7,
-    label: 'Product Manufacturing Cost',
-    shortLabel: 'Product Costing',
-    category: 'costing',
-    icon: Calculator,
-    description: 'Multi-component production cost rollup (Raw Materials, Direct Labour, Machine Overhead, Energy)',
-    highlights: ['BOM Direct Materials Cost', 'Labour & Machine Overhead', 'Target Margin Pricing'],
-  },
-];
 
 function createManualJournalEntry(
   entryIndex: number,
@@ -226,6 +123,7 @@ function createManualJournalEntry(
 }
 
 export const FinanceWorkspace: React.FC = () => {
+  const { t } = useTranslation();
   const { formatCurrency } = useCurrency();
   const { config: businessConfig } = useBusinessConfig();
   const [showPrintStatementModal, setShowPrintStatementModal] = useState(false);
@@ -242,11 +140,120 @@ export const FinanceWorkspace: React.FC = () => {
     'costing',
   ] as const);
 
+  const categories: CategoryConfig[] = useMemo(
+    () => [
+      {
+        id: 'operations',
+        label: t('finance.categories.operations.label'),
+        tagline: t('finance.categories.operations.tagline'),
+        shortcut: '1',
+        icon: Landmark,
+        tabs: ['banking', 'expenses', 'due-collection'],
+        defaultTab: 'banking',
+      },
+      {
+        id: 'reports',
+        label: t('finance.categories.reports.label'),
+        tagline: t('finance.categories.reports.tagline'),
+        shortcut: '2',
+        icon: TrendingUp,
+        tabs: ['statements', 'journal', 'coa'],
+        defaultTab: 'statements',
+      },
+      {
+        id: 'costing',
+        label: t('finance.categories.costing.label'),
+        tagline: t('finance.categories.costing.tagline'),
+        shortcut: '3',
+        icon: Calculator,
+        tabs: ['costing'],
+        defaultTab: 'costing',
+      },
+    ],
+    [t]
+  );
+
+  const financeTabConfigs: FinanceTabConfig[] = useMemo(
+    () => [
+      {
+        id: 'banking',
+        step: 1,
+        label: t('finance.tabs.banking.label'),
+        shortLabel: t('finance.tabs.banking.shortLabel'),
+        category: 'operations',
+        icon: Landmark,
+        description: t('finance.tabs.banking.description'),
+        highlights: (t('finance.tabs.banking.highlights', { returnObjects: true }) as string[]) || [],
+      },
+      {
+        id: 'expenses',
+        step: 2,
+        label: t('finance.tabs.expenses.label'),
+        shortLabel: t('finance.tabs.expenses.shortLabel'),
+        category: 'operations',
+        icon: ReceiptText,
+        description: t('finance.tabs.expenses.description'),
+        highlights: (t('finance.tabs.expenses.highlights', { returnObjects: true }) as string[]) || [],
+      },
+      {
+        id: 'due-collection',
+        step: 3,
+        label: t('finance.tabs.dueCollection.label'),
+        shortLabel: t('finance.tabs.dueCollection.shortLabel'),
+        category: 'operations',
+        icon: Coins,
+        description: t('finance.tabs.dueCollection.description'),
+        highlights: (t('finance.tabs.dueCollection.highlights', { returnObjects: true }) as string[]) || [],
+      },
+      {
+        id: 'statements',
+        step: 4,
+        label: t('finance.tabs.statements.label'),
+        shortLabel: t('finance.tabs.statements.shortLabel'),
+        category: 'reports',
+        icon: TrendingUp,
+        description: t('finance.tabs.statements.description'),
+        highlights: (t('finance.tabs.statements.highlights', { returnObjects: true }) as string[]) || [],
+      },
+      {
+        id: 'journal',
+        step: 5,
+        label: t('finance.tabs.journal.label'),
+        shortLabel: t('finance.tabs.journal.shortLabel'),
+        category: 'reports',
+        icon: BookOpen,
+        description: t('finance.tabs.journal.description'),
+        highlights: (t('finance.tabs.journal.highlights', { returnObjects: true }) as string[]) || [],
+      },
+      {
+        id: 'coa',
+        step: 6,
+        label: t('finance.tabs.coa.label'),
+        shortLabel: t('finance.tabs.coa.shortLabel'),
+        category: 'reports',
+        icon: Scale,
+        description: t('finance.tabs.coa.description'),
+        highlights: (t('finance.tabs.coa.highlights', { returnObjects: true }) as string[]) || [],
+      },
+      {
+        id: 'costing',
+        step: 7,
+        label: t('finance.tabs.costing.label'),
+        shortLabel: t('finance.tabs.costing.shortLabel'),
+        category: 'costing',
+        icon: Calculator,
+        description: t('finance.tabs.costing.description'),
+        highlights: (t('finance.tabs.costing.highlights', { returnObjects: true }) as string[]) || [],
+      },
+    ],
+    [t]
+  );
+
   const [quickJumpOpen, setQuickJumpOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const quickJumpRef = useRef<HTMLDivElement>(null);
 
-  const activeCategory = CATEGORIES.find((cat) => cat.tabs.includes(activeTab))?.id ?? 'operations';
+  const activeCategory = categories.find((cat) => cat.tabs.includes(activeTab))?.id ?? 'operations';
 
   const lastActivePerCategory = useRef<Record<FinanceCategory, FinanceTab>>({
     operations: 'banking',
@@ -255,11 +262,11 @@ export const FinanceWorkspace: React.FC = () => {
   });
 
   useEffect(() => {
-    const cat = CATEGORIES.find((c) => c.tabs.includes(activeTab))?.id;
+    const cat = categories.find((c) => c.tabs.includes(activeTab))?.id;
     if (cat) {
       lastActivePerCategory.current[cat] = activeTab;
     }
-  }, [activeTab]);
+  }, [activeTab, categories]);
 
   const [isGuideOpen, setIsGuideOpen] = useState(false);
   const [selectedJournalIds, setSelectedJournalIds] = useState<Set<number>>(new Set());
@@ -1221,49 +1228,49 @@ export const FinanceWorkspace: React.FC = () => {
   }> = [
     {
       id: 'banking',
-      label: 'Cash & Bank Accounts',
+      label: t('finance.tabs.banking.label'),
       category: 'operations',
       icon: Landmark,
       count: bankAccounts.length,
     },
     {
       id: 'expenses',
-      label: 'Operating Expenses & Bills',
+      label: t('finance.tabs.expenses.label'),
       category: 'operations',
       icon: ReceiptText,
       count: expenses.length,
     },
     {
       id: 'due-collection',
-      label: 'Customer Dues & Aging',
+      label: t('finance.tabs.dueCollection.label'),
       category: 'operations',
       icon: Coins,
       count: 'Aging',
     },
     {
       id: 'statements',
-      label: 'Financial Statements (P&L)',
+      label: t('finance.tabs.statements.label'),
       category: 'reports',
       icon: TrendingUp,
       count: 'Live',
     },
     {
       id: 'journal',
-      label: 'General Ledger & Audit Trail',
+      label: t('finance.tabs.journal.label'),
       category: 'reports',
       icon: BookOpen,
       count: journalEntries.length,
     },
     {
       id: 'coa',
-      label: 'Chart of Accounts (COA)',
+      label: t('finance.tabs.coa.label'),
       category: 'reports',
       icon: Scale,
       count: accounts.length,
     },
     {
       id: 'costing',
-      label: 'Product Manufacturing Cost',
+      label: t('finance.tabs.costing.label'),
       category: 'costing',
       icon: Calculator,
       count: productCosts.length,
@@ -1272,9 +1279,9 @@ export const FinanceWorkspace: React.FC = () => {
 
   const filteredFinanceTabs = searchQuery.trim()
     ? financeTabsList.filter(
-        (t) =>
-          t.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          t.id.toLowerCase().includes(searchQuery.toLowerCase())
+        (tabItem) =>
+          tabItem.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          tabItem.id.toLowerCase().includes(searchQuery.toLowerCase())
       )
     : financeTabsList;
 
@@ -1285,18 +1292,22 @@ export const FinanceWorkspace: React.FC = () => {
         <div>
           <div className="flex items-center gap-2 mb-1.5 flex-wrap">
             <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-primary bg-primary-subtle px-2.5 py-0.5 rounded-full border border-primary/20">
-              Finance & Cash Management
+              {t('finance.managementTag')}
             </span>
             <span className="text-muted text-xs">•</span>
             <span className="text-xs font-semibold text-primary">
-              Stage {FINANCE_TAB_CONFIGS.find((t) => t.id === activeTab)?.step || 1} of 7: {FINANCE_TAB_CONFIGS.find((t) => t.id === activeTab)?.label}
+              {t('finance.stageCounter', {
+                step: financeTabConfigs.find((tConfig) => tConfig.id === activeTab)?.step || 1,
+                total: 7,
+                label: financeTabConfigs.find((tConfig) => tConfig.id === activeTab)?.label,
+              })}
             </span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-default">
-            Treasury & Financial Operations
+            {t('finance.title')}
           </h1>
           <p className="mt-1.5 text-xs text-muted max-w-2xl leading-relaxed">
-            Live Cash & Bank Balances, Operating Expenses, Customer Collections, and Automated Double-Entry Books
+            {t('finance.subtitle')}
           </p>
         </div>
         <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
@@ -1308,7 +1319,7 @@ export const FinanceWorkspace: React.FC = () => {
             title="Record an operating expense, pay a supplier bill, or owner withdrawal"
           >
             <ArrowDownRight className="size-4" />
-            <span>💸 Money Out</span>
+            <span>{t('finance.moneyOut')}</span>
           </button>
 
           {/* Money In */}
@@ -1322,7 +1333,7 @@ export const FinanceWorkspace: React.FC = () => {
             title="Collect customer dues, record scrap sales, or deposit owner capital"
           >
             <ArrowUpRight className="size-4" />
-            <span>💰 Money In</span>
+            <span>{t('finance.moneyIn')}</span>
           </button>
 
           {/* Move Money */}
@@ -1336,7 +1347,7 @@ export const FinanceWorkspace: React.FC = () => {
             title="Transfer funds between Bank accounts and Cash on hand"
           >
             <ArrowLeftRight className="size-4" />
-            <span>🔄 Move Money</span>
+            <span>{t('finance.moveMoney')}</span>
           </button>
 
           {/* Advanced Journal */}
@@ -1347,7 +1358,7 @@ export const FinanceWorkspace: React.FC = () => {
             title="For Certified Accountants: Post manual double-entry adjusting vouchers"
           >
             <BookOpen className="size-3.5 text-muted" />
-            <span>⚖️ Adjusting Journal</span>
+            <span>{t('finance.adjustingJournal')}</span>
           </button>
 
           {activeTab === 'coa' && (
@@ -1358,7 +1369,7 @@ export const FinanceWorkspace: React.FC = () => {
               }}
               className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl shadow-xs transition flex items-center gap-1.5 text-xs cursor-pointer"
             >
-              <span>+</span> New Account
+              <span>+</span> {t('finance.newAccount')}
             </button>
           )}
 
@@ -1369,7 +1380,7 @@ export const FinanceWorkspace: React.FC = () => {
             title="Open Finance Capabilities and Architecture Guide"
           >
             <Compass className="size-3.5 text-primary" />
-            <span>Guide</span>
+            <span>{t('finance.guideBtn')}</span>
           </button>
         </div>
       </div>
@@ -1378,7 +1389,7 @@ export const FinanceWorkspace: React.FC = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-surface rounded-2xl p-6 shadow-xs border border-default">
           <div className="text-[11px] font-semibold uppercase tracking-wider text-muted">
-            Total Liquid Assets
+            {t('finance.kpiLiquidAssets')}
           </div>
           <div className="text-2xl font-extrabold text-emerald-600 dark:text-emerald-400 mt-2 font-mono">
             {formatCurrency(
@@ -1388,38 +1399,38 @@ export const FinanceWorkspace: React.FC = () => {
             )}
           </div>
           <div className="text-[11px] text-muted mt-1">
-            Cash ({formatCurrency(accounts.filter((a) => a.account_subtype === 'cash').reduce((sum, a) => sum + parseFloat(a.current_balance || '0'), 0))}) + Bank ({formatCurrency(accounts.filter((a) => a.account_subtype === 'bank').reduce((sum, a) => sum + parseFloat(a.current_balance || '0'), 0))})
+            {t('finance.kpiCashPrefix')} ({formatCurrency(accounts.filter((a) => a.account_subtype === 'cash').reduce((sum, a) => sum + parseFloat(a.current_balance || '0'), 0))}) + {t('finance.kpiBankPrefix')} ({formatCurrency(accounts.filter((a) => a.account_subtype === 'bank').reduce((sum, a) => sum + parseFloat(a.current_balance || '0'), 0))})
           </div>
         </div>
 
         <div className="bg-surface rounded-2xl p-6 shadow-xs border border-default">
           <div className="text-[11px] font-semibold uppercase tracking-wider text-muted">
-            Total Receivables
+            {t('finance.kpiReceivables')}
           </div>
           <div className="text-2xl font-extrabold text-indigo-600 dark:text-indigo-400 mt-2 font-mono">
             {formatCurrency(accounts.find((a) => a.account_code === '1050')?.current_balance || '340000')}
           </div>
-          <div className="text-[11px] text-muted mt-1">Accounts Receivable (GL 1050)</div>
+          <div className="text-[11px] text-muted mt-1">{t('finance.kpiReceivablesSubtitle')}</div>
         </div>
 
         <div className="bg-surface rounded-2xl p-6 shadow-xs border border-default">
           <div className="text-[11px] font-semibold uppercase tracking-wider text-muted">
-            Total Payables
+            {t('finance.kpiPayables')}
           </div>
           <div className="text-2xl font-extrabold text-amber-600 dark:text-amber-400 mt-2 font-mono">
             {formatCurrency(accounts.find((a) => a.account_code === '2010')?.current_balance || '210000')}
           </div>
-          <div className="text-[11px] text-muted mt-1">Supplier Bills & Logistics</div>
+          <div className="text-[11px] text-muted mt-1">{t('finance.kpiPayablesSubtitle')}</div>
         </div>
 
         <div className="bg-surface rounded-2xl p-6 shadow-xs border border-default">
           <div className="text-[11px] font-semibold uppercase tracking-wider text-muted">
-            Recognized Sales Revenue
+            {t('finance.kpiSalesRevenue')}
           </div>
           <div className="text-2xl font-extrabold text-primary mt-2 font-mono">
             {formatCurrency(accounts.find((a) => a.account_code === '4010')?.current_balance || '950000')}
           </div>
-          <div className="text-[11px] text-muted mt-1">Current Fiscal Period</div>
+          <div className="text-[11px] text-muted mt-1">{t('finance.kpiPeriodSubtitle')}</div>
         </div>
       </div>
 
@@ -1429,10 +1440,10 @@ export const FinanceWorkspace: React.FC = () => {
         aria-label="Financial Domains"
         className="grid grid-cols-1 lg:grid-cols-3 gap-3"
       >
-        {CATEGORIES.map((cat) => {
+        {categories.map((cat) => {
           const isCatActive = activeCategory === cat.id;
           const Icon = cat.icon;
-          const childTabs = FINANCE_TAB_CONFIGS.filter((t) => t.category === cat.id);
+          const childTabs = financeTabConfigs.filter((tConfig) => tConfig.category === cat.id);
 
           return (
             <div
@@ -1491,7 +1502,7 @@ export const FinanceWorkspace: React.FC = () => {
                           : 'bg-surface-sunken text-muted border-default'
                       )}
                     >
-                      {childTabs.length} views
+                      {t('finance.viewsCount', { count: childTabs.length })}
                     </span>
                   </div>
 
@@ -1521,7 +1532,7 @@ export const FinanceWorkspace: React.FC = () => {
                           ? 'bg-primary text-primary-fg font-semibold shadow-xs ring-1 ring-primary'
                           : 'bg-surface-sunken text-muted hover:text-default hover:bg-surface border border-default/70'
                       )}
-                      title={`Open ${subTab.label}`}
+                      title={t('finance.openStage', { label: subTab.label })}
                     >
                       <SubIcon className={cn('size-3', isCurrent ? 'text-primary-fg' : 'text-muted')} />
                       <span>{subTab.shortLabel}</span>
@@ -1531,7 +1542,7 @@ export const FinanceWorkspace: React.FC = () => {
                           isCurrent ? 'bg-white/20 text-white' : 'bg-surface text-muted border border-default/50'
                         )}
                       >
-                        Stage {subTab.step}
+                        {t('finance.stagePill', { step: subTab.step })}
                       </span>
                       {isCurrent && <span className="size-1.5 rounded-full bg-white animate-pulse" />}
                     </button>
@@ -1553,12 +1564,12 @@ export const FinanceWorkspace: React.FC = () => {
         <div className="flex items-center justify-between px-1 text-[11px] font-semibold text-muted">
           <div className="flex items-center gap-1.5">
             <Zap className="size-3.5 text-primary" />
-            <span className="font-bold text-default">7-Stage Financial Execution Pipeline</span>
+            <span className="font-bold text-default">{t('finance.pipelineTitle')}</span>
           </div>
 
           <div className="flex items-center gap-3">
             <span className="text-[10px] font-mono text-muted hidden sm:inline">
-              Press [1..7] to jump directly
+              {t('finance.shortcutPipeline')}
             </span>
 
             {/* Quick Jump Dropdown Popover */}
@@ -1573,10 +1584,10 @@ export const FinanceWorkspace: React.FC = () => {
                   'flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold border border-default bg-surface hover:bg-surface-sunken text-default transition-all shadow-2xs cursor-pointer',
                   quickJumpOpen && 'border-primary/40 bg-surface-sunken'
                 )}
-                title="Jump directly to any of the 7 finance views"
+                title={t('finance.jumpTitle')}
               >
                 <SlidersHorizontal className="size-3 text-primary" />
-                <span>All 7 Views</span>
+                <span>{t('finance.allViews')}</span>
               </button>
 
               {quickJumpOpen && (
@@ -1587,7 +1598,7 @@ export const FinanceWorkspace: React.FC = () => {
                       type="text"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      placeholder="Search finance views..."
+                      placeholder={t('finance.searchPlaceholder')}
                       autoFocus
                       className="w-full pl-8 pr-7 py-1.5 text-xs bg-surface-sunken rounded-lg border border-default focus:border-primary focus:outline-none text-default"
                     />
@@ -1602,8 +1613,8 @@ export const FinanceWorkspace: React.FC = () => {
                   </div>
 
                   <div className="max-h-72 overflow-y-auto space-y-1 pr-1">
-                    {CATEGORIES.map((cat) => {
-                      const catTabs = filteredFinanceTabs.filter((t) => t.category === cat.id);
+                    {categories.map((cat) => {
+                      const catTabs = filteredFinanceTabs.filter((tabItem) => tabItem.category === cat.id);
                       if (catTabs.length === 0) return null;
 
                       return (
@@ -1657,7 +1668,7 @@ export const FinanceWorkspace: React.FC = () => {
 
                     {filteredFinanceTabs.length === 0 && (
                       <div className="py-6 text-center text-xs text-muted">
-                        No finance views found matching &quot;{searchQuery}&quot;
+                        {t('finance.noViewsFound', { query: searchQuery })}
                       </div>
                     )}
                   </div>
@@ -1668,7 +1679,7 @@ export const FinanceWorkspace: React.FC = () => {
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2">
-          {FINANCE_TAB_CONFIGS.map((tab) => {
+          {financeTabConfigs.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
             return (
@@ -3442,24 +3453,22 @@ export const FinanceWorkspace: React.FC = () => {
       <Modal
         open={isGuideOpen}
         onClose={() => setIsGuideOpen(false)}
-        title="Finance & General Ledger Architecture Guide"
+        title={t('finance.guide.modalTitle')}
         size="xl"
       >
         <div className="space-y-6">
           <div className="rounded-xl bg-primary-subtle/50 border border-primary/20 p-4">
             <h4 className="text-sm font-bold text-primary flex items-center gap-2 mb-1">
               <BookOpen className="size-4" />
-              Double-Entry Financial Integrity & Cost Governance
+              {t('finance.guide.heroTitle')}
             </h4>
             <p className="text-xs text-muted leading-relaxed">
-              The Finance engine provides continuous double-entry ledger balancing, audit-trailed journals,
-              hierarchical COA management, real-time trial balance and automated P&L statements, customer aging
-              collection analysis, and multi-component production cost rollups.
+              {t('finance.guide.heroDesc')}
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {FINANCE_TAB_CONFIGS.map((tab) => {
+            {financeTabConfigs.map((tab) => {
               const TabIcon = tab.icon;
               return (
                 <div
@@ -3480,7 +3489,7 @@ export const FinanceWorkspace: React.FC = () => {
                     </div>
                     <p className="text-xs text-muted leading-relaxed mb-3">{tab.description}</p>
                     <div className="space-y-1 mb-4">
-                      {tab.highlights.map((h, idx) => (
+                      {tab.highlights.map((h: string, idx: number) => (
                         <div key={idx} className="flex items-center gap-1.5 text-[11px] text-default/80">
                           <CheckCircle2 className="size-3 text-emerald-500 shrink-0" />
                           <span>{h}</span>
@@ -3498,7 +3507,7 @@ export const FinanceWorkspace: React.FC = () => {
                       setIsGuideOpen(false);
                     }}
                   >
-                    <span>{activeTab === tab.id ? 'Current View' : `Switch to ${tab.shortLabel}`}</span>
+                    <span>{activeTab === tab.id ? t('finance.guide.currentView') : t('finance.guide.switchTo', { label: tab.shortLabel })}</span>
                     <ArrowRight className="size-3" />
                   </Button>
                 </div>
@@ -3508,10 +3517,10 @@ export const FinanceWorkspace: React.FC = () => {
 
           <div className="rounded-xl bg-surface-sunken p-4 border border-default flex items-center justify-between">
             <div className="text-xs text-muted">
-              Keyboard shortcut: Press <kbd className="px-1.5 py-0.5 bg-surface rounded border border-default font-mono text-[10px] font-bold">1</kbd> for GL & Accounts, <kbd className="px-1.5 py-0.5 bg-surface rounded border border-default font-mono text-[10px] font-bold">2</kbd> for Treasury, <kbd className="px-1.5 py-0.5 bg-surface rounded border border-default font-mono text-[10px] font-bold">3</kbd> for Costing.
+              {t('finance.guide.shortcutHint')}
             </div>
             <Button variant="ghost" size="sm" onClick={() => setIsGuideOpen(false)}>
-              Close Guide
+              {t('finance.guide.close')}
             </Button>
           </div>
         </div>

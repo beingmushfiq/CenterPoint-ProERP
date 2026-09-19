@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import {
   ClipboardList,
   Factory,
@@ -39,53 +40,54 @@ interface TabConfig {
   pillar: 1 | 2;
 }
 
-const tabs: TabConfig[] = [
-  {
-    id: 'plans',
-    step: 1,
-    label: 'Production Plans',
-    badge: 'Step 1',
-    icon: ClipboardList,
-    description: 'Master manufacturing schedules, product recipe formulas and multi-item production planning',
-    pillar: 1,
-  },
-  {
-    id: 'batches',
-    step: 2,
-    label: 'Production Batches',
-    badge: 'Step 2',
-    icon: Factory,
-    description: 'Shop floor batch execution, raw material requests, output recording & yield checks',
-    pillar: 1,
-  },
-  {
-    id: 'worker-entries',
-    step: 3,
-    label: 'Worker Output & Wages',
-    badge: 'Step 3',
-    icon: Users,
-    description: 'Daily touch entry for worker production output and output-based wage calculations',
-    pillar: 2,
-  },
-  {
-    id: 'variance-radar',
-    step: 4,
-    label: 'Cost Variance Radar',
-    badge: 'Flagship ABC',
-    icon: TrendingUp,
-    description: 'Standard vs. Actual ABC cost decomposition (material, labor, machine) with live waterfall variance',
-    pillar: 2,
-  },
-];
-
 const VALID_TABS: readonly ProductionTab[] = ['plans', 'batches', 'worker-entries', 'variance-radar'];
 
 export default function ProductionWorkspace() {
+  const { t } = useTranslation(['production', 'common']);
   const [activeTab, setActiveTab] = useWorkspaceTab<ProductionTab>('plans', VALID_TABS);
   const [isKioskOpen, setIsKioskOpen] = useState(false);
   const [isGuideOpen, setIsGuideOpen] = useState(false);
   const [isLaunchModalOpen, setIsLaunchModalOpen] = useState(false);
   const [isOutputModalOpen, setIsOutputModalOpen] = useState(false);
+
+  const tabs: TabConfig[] = useMemo(() => [
+    {
+      id: 'plans',
+      step: 1,
+      label: t('production.tabPlansLabel'),
+      badge: t('production.stepLabel', { step: 1 }),
+      icon: ClipboardList,
+      description: t('production.tabPlansDesc'),
+      pillar: 1,
+    },
+    {
+      id: 'batches',
+      step: 2,
+      label: t('production.tabBatchesLabel'),
+      badge: t('production.stepLabel', { step: 2 }),
+      icon: Factory,
+      description: t('production.tabBatchesDesc'),
+      pillar: 1,
+    },
+    {
+      id: 'worker-entries',
+      step: 3,
+      label: t('production.tabWorkerEntriesLabel'),
+      badge: t('production.stepLabel', { step: 3 }),
+      icon: Users,
+      description: t('production.tabWorkerEntriesDesc'),
+      pillar: 2,
+    },
+    {
+      id: 'variance-radar',
+      step: 4,
+      label: t('production.tabVarianceRadarLabel'),
+      badge: 'ABC',
+      icon: TrendingUp,
+      description: t('production.tabVarianceRadarDesc'),
+      pillar: 2,
+    },
+  ], [t]);
 
   // Global hotkeys (1, 2, 3, 4) to quickly jump between primary manufacturing stages
   useEffect(() => {
@@ -122,10 +124,10 @@ export default function ProductionWorkspace() {
             <div className="flex items-center gap-2 mb-1.5">
               <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-primary bg-primary-subtle px-2.5 py-0.5 rounded-full border border-primary/20 flex items-center gap-1">
                 <Factory className="size-3 text-primary" />
-                Manufacturing Operations Lifecycle
+                {t('production.manufacturingLifecycle')}
               </span>
               <span className="text-[10px] font-mono font-bold text-muted bg-surface-sunken px-2 py-0.5 rounded-md border border-default">
-                Stage {currentTab.step} of 4
+                {t('production.stageOfFour', { step: currentTab.step })}
               </span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-default">
@@ -145,8 +147,8 @@ export default function ProductionWorkspace() {
               title="View and edit product formulas & bills of materials"
             >
               <BookOpen className="size-3.5 text-primary" />
-              <span className="hidden lg:inline">Product Recipes (BOM)</span>
-              <span className="lg:hidden">Recipes</span>
+              <span className="hidden lg:inline">{t('production.recipesBomLink')}</span>
+              <span className="lg:hidden">{t('production.recipesShort')}</span>
             </Link>
 
             <Link
@@ -155,8 +157,8 @@ export default function ProductionWorkspace() {
               title="Check live raw material stock in warehouse"
             >
               <Boxes className="size-3.5 text-primary" />
-              <span className="hidden lg:inline">Warehouse Stock</span>
-              <span className="lg:hidden">Stock</span>
+              <span className="hidden lg:inline">{t('production.warehouseStockLink')}</span>
+              <span className="lg:hidden">{t('production.stockShort')}</span>
             </Link>
 
             <Button
@@ -166,7 +168,7 @@ export default function ProductionWorkspace() {
               className="flex items-center gap-1.5 text-xs text-muted hover:text-default"
             >
               <Compass className="size-3.5 text-primary" />
-              <span>Explore Capabilities</span>
+              <span>{t('production.exploreCapabilities')}</span>
             </Button>
 
             {/* Kiosk Mode Launcher */}
@@ -177,7 +179,7 @@ export default function ProductionWorkspace() {
               title="Launch full-screen high-contrast display for wall-mounted TVs on the shop floor"
             >
               <Monitor className="size-4 text-primary" />
-              <span>Floor Kiosk Mode</span>
+              <span>{t('production.floorKioskMode')}</span>
             </button>
           </div>
         </div>
@@ -208,14 +210,14 @@ export default function ProductionWorkspace() {
                 <div className="min-w-0">
                   <div className="flex items-center gap-1.5">
                     <span className="text-xs font-bold text-default truncate">
-                      Scheduling & Batch Execution
+                      {t('production.pillar1Title')}
                     </span>
                     <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-surface-sunken text-muted border border-default shrink-0">
-                      Pillar 1
+                      {t('production.pillar1Badge')}
                     </span>
                   </div>
                   <span className="text-[11px] text-muted truncate block">
-                    Recipe schedules, material requests & shopfloor batches
+                    {t('production.pillar1Desc')}
                   </span>
                 </div>
               </div>
@@ -235,13 +237,13 @@ export default function ProductionWorkspace() {
               >
                 <div className="flex items-center gap-2 min-w-0 truncate">
                   <ClipboardList className="size-4 shrink-0" />
-                  <span className="truncate">Production Plans</span>
+                  <span className="truncate">{t('production.tabPlansLabel')}</span>
                 </div>
                 <span className={cn(
                   'text-[9px] font-mono px-1.5 py-0.5 rounded shrink-0',
                   activeTab === 'plans' ? 'bg-white/20 text-white' : 'bg-surface text-muted border border-default/50'
                 )}>
-                  Step 1
+                  {t('production.stepLabel', { step: 1 })}
                 </span>
               </button>
 
@@ -257,13 +259,13 @@ export default function ProductionWorkspace() {
               >
                 <div className="flex items-center gap-2 min-w-0 truncate">
                   <Factory className="size-4 shrink-0" />
-                  <span className="truncate">Production Batches</span>
+                  <span className="truncate">{t('production.tabBatchesLabel')}</span>
                 </div>
                 <span className={cn(
                   'text-[9px] font-mono px-1.5 py-0.5 rounded shrink-0',
                   activeTab === 'batches' ? 'bg-white/20 text-white' : 'bg-surface text-muted border border-default/50'
                 )}>
-                  Step 2
+                  {t('production.stepLabel', { step: 2 })}
                 </span>
               </button>
             </div>
@@ -293,14 +295,14 @@ export default function ProductionWorkspace() {
                 <div className="min-w-0">
                   <div className="flex items-center gap-1.5">
                     <span className="text-xs font-bold text-default truncate">
-                      Floor Labor & Cost Analytics
+                      {t('production.pillar2Title')}
                     </span>
                     <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-surface-sunken text-muted border border-default shrink-0">
-                      Pillar 2
+                      {t('production.pillar2Badge')}
                     </span>
                   </div>
                   <span className="text-[11px] text-muted truncate block">
-                    Touch entry for worker output, daily wages & ABC variance
+                    {t('production.pillar2Desc')}
                   </span>
                 </div>
               </div>
@@ -320,13 +322,13 @@ export default function ProductionWorkspace() {
               >
                 <div className="flex items-center gap-2 min-w-0 truncate">
                   <Users className="size-4 shrink-0" />
-                  <span className="truncate">Worker Output & Wages</span>
+                  <span className="truncate">{t('production.tabWorkerEntriesLabel')}</span>
                 </div>
                 <span className={cn(
                   'text-[9px] font-mono px-1.5 py-0.5 rounded shrink-0',
                   activeTab === 'worker-entries' ? 'bg-white/20 text-white' : 'bg-surface text-muted border border-default/50'
                 )}>
-                  Step 3
+                  {t('production.stepLabel', { step: 3 })}
                 </span>
               </button>
 
@@ -342,13 +344,13 @@ export default function ProductionWorkspace() {
               >
                 <div className="flex items-center gap-2 min-w-0 truncate">
                   <TrendingUp className="size-4 shrink-0" />
-                  <span className="truncate">Cost Variance Radar</span>
+                  <span className="truncate">{t('production.tabVarianceRadarLabel')}</span>
                 </div>
                 <span className={cn(
                   'text-[9px] font-mono px-1.5 py-0.5 rounded shrink-0',
                   activeTab === 'variance-radar' ? 'bg-white/20 text-white' : 'bg-surface text-muted border border-default/50'
                 )}>
-                  Step 4
+                  {t('production.stepLabel', { step: 4 })}
                 </span>
               </button>
             </div>
@@ -361,10 +363,10 @@ export default function ProductionWorkspace() {
             <div>
               <div className="flex items-center gap-1.5 text-xs font-bold text-default">
                 <Zap className="size-3.5 text-amber-500 fill-amber-500" />
-                <span>Quick Actions • What do you want to do today?</span>
+                <span>{t('production.quickActionsTitle')}</span>
               </div>
               <p className="text-[11px] text-muted">
-                Zero hassle manufacturing shortcuts — start runs, record output, or log wages with 1 click.
+                {t('production.quickActionsDesc')}
               </p>
             </div>
             <div className="flex items-center gap-2 flex-wrap">
@@ -374,7 +376,7 @@ export default function ProductionWorkspace() {
                 className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs transition-all cursor-pointer"
               >
                 <Factory className="size-3.5" />
-                <span>Start New Batch</span>
+                <span>{t('production.startNewBatch')}</span>
               </button>
               <button
                 type="button"
@@ -382,31 +384,31 @@ export default function ProductionWorkspace() {
                 className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-emerald-700/90 hover:bg-emerald-800 text-white shadow-xs transition-all cursor-pointer"
               >
                 <CheckCircle2 className="size-3.5" />
-                <span>Record Finished Output</span>
+                <span>{t('production.recordFinishedOutput')}</span>
               </button>
               <button
                 type="button"
                 onClick={() => setActiveTab('plans')}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-surface hover:bg-surface-sunken text-default border border-default shadow-2xs transition-all cursor-pointer"
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-surface hover:bg-surface-sunken text-default border border-default shadow-2xs transition-all cursor-pointer"
               >
                 <ClipboardList className="size-3.5 text-primary" />
-                <span>Plan Production</span>
+                <span>{t('production.planProduction')}</span>
               </button>
               <button
                 type="button"
                 onClick={() => setActiveTab('worker-entries')}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-surface hover:bg-surface-sunken text-default border border-default shadow-2xs transition-all cursor-pointer"
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-surface hover:bg-surface-sunken text-default border border-default shadow-2xs transition-all cursor-pointer"
               >
                 <Users className="size-3.5 text-primary" />
-                <span>Log Worker Wages</span>
+                <span>{t('production.logWorkerWages')}</span>
               </button>
               <button
                 type="button"
                 onClick={() => setActiveTab('variance-radar')}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 shadow-2xs transition-all cursor-pointer"
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 shadow-2xs transition-all cursor-pointer"
               >
                 <TrendingUp className="size-3.5" />
-                <span>Cost Variance Radar</span>
+                <span>{t('production.costVarianceRadar')}</span>
               </button>
             </div>
           </div>
@@ -417,10 +419,10 @@ export default function ProductionWorkspace() {
           <div className="flex items-center justify-between gap-2 px-1 mb-2">
             <div className="flex items-center gap-1.5 text-[11px] font-semibold text-muted uppercase tracking-wider">
               <SlidersHorizontal className="size-3 text-primary" />
-              <span>Manufacturing Stages Execution Ribbon</span>
+              <span>{t('production.stagesRibbon')}</span>
             </div>
             <span className="text-[10px] text-muted font-mono">
-              4 Stages & Analytics Available • Instant Access
+              {t('production.stagesAvailable')}
             </span>
           </div>
 
@@ -481,11 +483,11 @@ export default function ProductionWorkspace() {
       <Modal
         open={isGuideOpen}
         onClose={() => setIsGuideOpen(false)}
-        title="Manufacturing & Production Operations Architecture"
+        title={t('production.guideModalTitle')}
       >
         <div className="space-y-4 text-xs text-default py-1">
           <p className="text-muted leading-relaxed">
-            The manufacturing operations engine seamlessly bridges high-level BOM schedules with real-time shop floor execution, raw material consumption tracking, finished goods receipt, and piece-rate worker payroll.
+            {t('production.guideModalIntro')}
           </p>
 
           <div className="space-y-3 pt-2">
@@ -494,14 +496,14 @@ export default function ProductionWorkspace() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-1.5 font-bold text-default">
                   <ClipboardList className="size-4 text-primary" />
-                  <span>Step 1: Production Plans & BOM Scheduling</span>
+                  <span>{t('production.guideStep1Title')}</span>
                 </div>
                 <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-surface border border-default text-muted">
                   Tab: plans
                 </span>
               </div>
               <p className="text-muted">
-                Create master production plans linked to customer orders or inventory forecast. Generates total component demand across multiple Bill-of-Materials before releasing batches to the floor.
+                {t('production.guideStep1Desc')}
               </p>
             </div>
 
@@ -510,14 +512,14 @@ export default function ProductionWorkspace() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-1.5 font-bold text-default">
                   <Factory className="size-4 text-primary" />
-                  <span>Step 2: Shop Floor Batches & Material Issuance</span>
+                  <span>{t('production.guideStep2Title')}</span>
                 </div>
                 <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-surface border border-default text-muted">
                   Tab: batches [1]
                 </span>
               </div>
               <p className="text-muted">
-                Live execution of batches. Issues raw materials from specific warehouse bins, logs finished good outputs, records defect rejects, and triggers automated yield analysis to detect material variances.
+                {t('production.guideStep2Desc')}
               </p>
             </div>
 
@@ -526,14 +528,14 @@ export default function ProductionWorkspace() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-1.5 font-bold text-default">
                   <Users className="size-4 text-primary" />
-                  <span>Step 3: Worker Output & Daily Piece Wages</span>
+                  <span>{t('production.guideStep3Title')}</span>
                 </div>
                 <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-surface border border-default text-muted">
                   Tab: worker-entries [2]
                 </span>
               </div>
               <p className="text-muted">
-                Supervisor touch interface for logging operator output per operation (cutting, stitching, assembly). Auto-calculates piece-rate wages and connects directly to general ledger payroll expenses.
+                {t('production.guideStep3Desc')}
               </p>
             </div>
 
@@ -542,14 +544,14 @@ export default function ProductionWorkspace() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-1.5 font-bold text-primary">
                   <Monitor className="size-4 text-primary" />
-                  <span>Shop Floor Kiosk Mode</span>
+                  <span>{t('production.guideKioskTitle')}</span>
                 </div>
                 <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-surface border border-primary/20 text-primary">
-                  Wall TV Display
+                  {t('production.guideKioskBadge')}
                 </span>
               </div>
               <p className="text-muted">
-                Full-screen, high-contrast dashboard designed for touch tablets and wall displays on the factory floor. Displays active batch metrics, target progress gauges, and real-time operator entry prompts.
+                {t('production.guideKioskDesc')}
               </p>
             </div>
           </div>
@@ -557,10 +559,10 @@ export default function ProductionWorkspace() {
           <div className="pt-2 flex justify-between items-center border-t border-default">
             <div className="flex items-center gap-1 text-[11px] text-muted">
               <Zap className="size-3.5 text-primary" />
-              <span>Hotkeys: Press <kbd className="font-mono bg-surface px-1.5 py-0.5 rounded border border-default">1</kbd> for Batches, <kbd className="font-mono bg-surface px-1.5 py-0.5 rounded border border-default">2</kbd> for Worker Output</span>
+              <span>{t('production.guideHotkeys')}</span>
             </div>
             <Button variant="secondary" size="sm" onClick={() => setIsGuideOpen(false)}>
-              Got it
+              {t('production.gotIt')}
             </Button>
           </div>
         </div>

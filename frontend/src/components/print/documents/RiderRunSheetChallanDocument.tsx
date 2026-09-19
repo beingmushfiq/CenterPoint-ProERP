@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { RunSheet } from '../../../types/api/delivery';
 import type { BusinessConfig } from '../../../lib/document/useBusinessConfig';
 import { DEFAULT_BUSINESS_CONFIG } from '../../../lib/document/useBusinessConfig';
@@ -82,6 +83,7 @@ export function RiderRunSheetChallanDocument({
   stops: propStops,
   businessConfig = DEFAULT_BUSINESS_CONFIG,
 }: RiderRunSheetChallanDocumentProps) {
+  const { t } = useTranslation('documents');
   const stops: RunSheetManifestStop[] = useMemo(() => {
     if (propStops && propStops.length > 0) return propStops;
     if (SAMPLE_RUN_SHEET_STOPS[runSheet.run_sheet_number]) {
@@ -152,7 +154,7 @@ export function RiderRunSheetChallanDocument({
                 {businessConfig.name || 'Enterprise'}
               </h1>
               <p className="text-[7pt] font-bold text-slate-600 tracking-wider uppercase">
-                Fleet Logistics & Dispatch Division • রাইডার ডেলিভারি চালান
+                {t('riderRunSheetSubtitle')} • {t('riderRunSheet')}
               </p>
             </div>
           </div>
@@ -167,18 +169,18 @@ export function RiderRunSheetChallanDocument({
 
         <div className="flex flex-col items-end text-right">
           <h2 className="text-sm font-black text-slate-950 uppercase tracking-tight">
-            Rider Delivery Run Sheet
+            {t('riderRunSheet')}
           </h2>
           <div className="font-mono text-xs font-black text-blue-700 mb-0.5">
             {runSheet.run_sheet_number}
           </div>
           <div className="text-[7.5pt] text-slate-600 font-mono space-y-0.5">
             <div>
-              <span>Run Date: </span>
+              <span>{t('date')}: </span>
               <span className="font-bold text-slate-900">{runSheet.run_date}</span>
             </div>
             <div>
-              <span>Dispatch: </span>
+              <span>{t('dispatchDate')}: </span>
               <span className="font-bold text-slate-900">
                 {runSheet.dispatched_at
                   ? formatDocumentDate(runSheet.dispatched_at, true)
@@ -189,11 +191,10 @@ export function RiderRunSheetChallanDocument({
         </div>
       </div>
 
-      {/* Fleet & Rider Metadata Summary Card */}
       <div className="grid grid-cols-4 gap-2 bg-slate-50 border border-slate-300 rounded p-2 mb-2 text-[7.5pt]">
         <div>
           <span className="text-[6.5pt] font-bold uppercase tracking-wider text-slate-500 block">
-            Dispatch Hub / Branch
+            {t('hubBranch')}
           </span>
           <span className="font-bold text-slate-950 text-[8.5pt]">
             {runSheet.branch_name || 'Dhaka Central Hub'}
@@ -201,7 +202,7 @@ export function RiderRunSheetChallanDocument({
         </div>
         <div>
           <span className="text-[6.5pt] font-bold uppercase tracking-wider text-slate-500 block">
-            Assigned Delivery Rider
+            {t('riderName')}
           </span>
           <span className="font-bold text-slate-950 text-[8.5pt]">
             {runSheet.rider_name || 'Karim Rider (+8801811111111)'}
@@ -209,27 +210,26 @@ export function RiderRunSheetChallanDocument({
         </div>
         <div>
           <span className="text-[6.5pt] font-bold uppercase tracking-wider text-slate-500 block">
-            Total Stops / Parcels
+            {t('totalStops')}
           </span>
           <span className="font-bold text-slate-950 text-[8.5pt]">
-            {stops.length} Deliveries ({totalPackages} Pkgs)
+            {stops.length} ({totalPackages} Pkgs)
           </span>
         </div>
         <div>
           <span className="text-[6.5pt] font-bold uppercase tracking-wider text-slate-500 block">
-            Current Run Status
+            {t('status')}
           </span>
           <span className="inline-block font-mono font-bold text-[7.5pt] text-blue-800 uppercase bg-blue-100 px-1.5 py-0.5 rounded border border-blue-200">
-            {runSheet.status} ({runSheet.completed_stops || 0}/{runSheet.total_stops || stops.length} Done)
+            {runSheet.status} ({runSheet.completed_stops || 0}/{runSheet.total_stops || stops.length})
           </span>
         </div>
       </div>
 
-      {/* Financial COD Collection Highlights */}
       <div className="grid grid-cols-3 gap-2 mb-2 text-[8pt]">
         <div className="p-2 bg-slate-50 border border-slate-300 rounded">
           <span className="text-[6.5pt] font-bold uppercase tracking-wider text-slate-500 block">
-            Total COD Expected
+            {t('codExpected')}
           </span>
           <span className="font-mono text-xs font-black text-slate-900">
             {formatCurrency(totalCodExpected.toFixed(2), businessConfig.currencySymbol || '৳')}
@@ -237,7 +237,7 @@ export function RiderRunSheetChallanDocument({
         </div>
         <div className="p-2 bg-emerald-50 border border-emerald-300 rounded">
           <span className="text-[6.5pt] font-bold uppercase tracking-wider text-emerald-700 block">
-            COD Cash Collected
+            {t('codCollected')}
           </span>
           <span className="font-mono text-xs font-black text-emerald-800">
             {formatCurrency(totalCodCollected.toFixed(2), businessConfig.currencySymbol || '৳')}
@@ -245,7 +245,7 @@ export function RiderRunSheetChallanDocument({
         </div>
         <div className="p-2 bg-amber-50 border border-amber-300 rounded">
           <span className="text-[6.5pt] font-bold uppercase tracking-wider text-amber-700 block">
-            Pending Collection Balance
+            {t('pendingBalance')}
           </span>
           <span className="font-mono text-xs font-black text-amber-900">
             {formatCurrency((totalCodExpected - totalCodCollected).toFixed(2), businessConfig.currencySymbol || '৳')}
@@ -257,10 +257,10 @@ export function RiderRunSheetChallanDocument({
       <div className="mb-2">
         <div className="flex items-center justify-between mb-1">
           <h3 className="text-[7.5pt] font-bold uppercase tracking-wider text-slate-800">
-            Itemized Multi-Stop Delivery Manifest (ডেলিভারি বিস্তারিত)
+            {t('manifestTableTitle')}
           </h3>
           <span className="text-[6.5pt] text-slate-500 font-medium">
-            Page 1 of 1 • Verify recipient signature at each drop-off
+            Page 1 of 1 • {t('customerSignature')}
           </span>
         </div>
 
@@ -268,13 +268,13 @@ export function RiderRunSheetChallanDocument({
           <thead className="bg-slate-100 border-b border-slate-300 text-[6.5pt] font-bold uppercase text-slate-700 tracking-wider">
             <tr>
               <th className="py-1 px-1 border-r border-slate-300 text-center w-6">#</th>
-              <th className="py-1 px-1.5 border-r border-slate-300 w-24">Order / DO #</th>
-              <th className="py-1 px-1.5 border-r border-slate-300 w-36">Customer & Contact</th>
-              <th className="py-1 px-1.5 border-r border-slate-300">Delivery Address & Destination</th>
-              <th className="py-1 px-1.5 border-r border-slate-300 w-32">Items & Description</th>
-              <th className="py-1 px-1.5 border-r border-slate-300 text-right w-16">COD Due</th>
-              <th className="py-1 px-1.5 border-r border-slate-300 text-center w-14">Status</th>
-              <th className="py-1 px-1.5 text-center w-24">Customer Sign</th>
+              <th className="py-1 px-1.5 border-r border-slate-300 w-24">{t('orderNo')} / {t('deliveryNo')}</th>
+              <th className="py-1 px-1.5 border-r border-slate-300 w-36">{t('customerContact')}</th>
+              <th className="py-1 px-1.5 border-r border-slate-300">{t('destinationAddress')}</th>
+              <th className="py-1 px-1.5 border-r border-slate-300 w-32">{t('item')}</th>
+              <th className="py-1 px-1.5 border-r border-slate-300 text-right w-16">{t('codAmount')}</th>
+              <th className="py-1 px-1.5 border-r border-slate-300 text-center w-14">{t('status')}</th>
+              <th className="py-1 px-1.5 text-center w-24">{t('customerSignature')}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-200">
@@ -308,22 +308,22 @@ export function RiderRunSheetChallanDocument({
                 <td className="py-1.5 px-1.5 border-r border-slate-200 text-center font-semibold text-[6.5pt]">
                   {stop.status === 'delivered' ? (
                     <span className="text-emerald-700 bg-emerald-100 px-1 py-0.5 rounded uppercase font-bold">
-                      Delivered
+                      {t('delivered')}
                     </span>
                   ) : (
                     <span className="text-amber-700 bg-amber-100 px-1 py-0.5 rounded uppercase font-bold">
-                      In Transit
+                      {t('inTransit')}
                     </span>
                   )}
                 </td>
                 <td className="py-1.5 px-1.5 text-center text-[6.5pt] text-slate-400">
                   {stop.status === 'delivered' ? (
                     <div className="text-emerald-700 font-bold text-[7pt]">
-                      ✓ Signed
+                      ✓ {t('delivered')}
                     </div>
                   ) : (
                     <div className="border border-dashed border-slate-300 rounded h-6 flex items-center justify-center text-[6pt] text-slate-400">
-                      Sign / Seal
+                      {t('customerSignature')}
                     </div>
                   )}
                 </td>
@@ -333,7 +333,7 @@ export function RiderRunSheetChallanDocument({
           <tfoot className="bg-slate-100 border-t border-slate-300 font-bold text-slate-900 text-[7.5pt]">
             <tr>
               <td colSpan={4} className="py-1 px-1.5 border-r border-slate-300 text-right uppercase">
-                Grand Total Deliveries & Collection:
+                {t('grandTotal')}:
               </td>
               <td className="py-1 px-1.5 border-r border-slate-300 text-left font-mono">
                 {totalPackages} Pkgs Total
@@ -342,19 +342,18 @@ export function RiderRunSheetChallanDocument({
                 {formatCurrency(totalCodExpected.toFixed(2), businessConfig.currencySymbol || '৳')}
               </td>
               <td colSpan={2} className="py-1 px-1.5 text-center text-slate-600 text-[6.5pt]">
-                Collected: {formatCurrency(totalCodCollected.toFixed(2), businessConfig.currencySymbol || '৳')}
+                {t('collectedAmount')}: {formatCurrency(totalCodCollected.toFixed(2), businessConfig.currencySymbol || '৳')}
               </td>
             </tr>
           </tfoot>
         </table>
       </div>
 
-      {/* Driver Instructions & Barcode */}
       <div className="grid grid-cols-3 gap-2 mb-2">
         <div className="col-span-2 p-1.5 bg-slate-50 border border-slate-200 rounded text-[7pt] leading-tight">
-          <span className="font-bold text-slate-800 block mb-0.5">Rider Code of Conduct & Dispatch Protocol:</span>
+          <span className="font-bold text-slate-800 block mb-0.5">{t('codeOfConductTitle')}:</span>
           <p className="text-slate-600">
-            1. Hand over goods only after collecting total COD cash. 2. Verify recipient identity. 3. Immediately report returned or damaged items to Dhaka Central Hub. 4. Reconcile all cash and undelivered parcels before 18:00 daily.
+            {t('codeOfConductText')}
           </p>
         </div>
         <div className="flex flex-col items-center justify-center p-1 bg-slate-50 border border-slate-200 rounded">
@@ -365,25 +364,24 @@ export function RiderRunSheetChallanDocument({
         </div>
       </div>
 
-      {/* 3 Official Signatures */}
       <div className="grid grid-cols-3 gap-4 pt-3 border-t border-slate-300 text-center text-[7pt] break-inside-avoid page-break-avoid">
         <div>
           <div className="border-t border-slate-500 pt-1 font-bold text-slate-900">
-            Dispatch Supervisor
+            {t('dispatchSupervisor')}
           </div>
-          <div className="text-[6.5pt] text-slate-500">Dhaka Central Logistics Hub</div>
+          <div className="text-[6.5pt] text-slate-500">{runSheet.branch_name || 'Central Hub'}</div>
         </div>
         <div>
           <div className="border-t border-slate-500 pt-1 font-bold text-slate-900">
-            Delivery Rider (Handover Sign)
+            {t('riderSignoff')}
           </div>
-          <div className="text-[6.5pt] text-slate-500">{runSheet.rider_name || 'Assigned Rider'}</div>
+          <div className="text-[6.5pt] text-slate-500">{runSheet.rider_name || t('riderName')}</div>
         </div>
         <div>
           <div className="border-t border-slate-500 pt-1 font-bold text-slate-900">
-            Accounts & Cash Reconciliation
+            {t('reconciliationSignoff')}
           </div>
-          <div className="text-[6.5pt] text-slate-500">Cash Received & Audited</div>
+          <div className="text-[6.5pt] text-slate-500">{t('cashierSeal')}</div>
         </div>
       </div>
     </div>

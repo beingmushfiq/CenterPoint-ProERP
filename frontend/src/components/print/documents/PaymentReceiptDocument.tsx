@@ -7,6 +7,7 @@ import {
   numberToWords,
 } from '../../../lib/document/formatters';
 import { generateBarcodeSvg } from '../../../lib/barcode/engine';
+import { useTranslation } from 'react-i18next';
 
 export interface PaymentReceiptDocumentProps {
   payment: Payment;
@@ -14,6 +15,7 @@ export interface PaymentReceiptDocumentProps {
 }
 
 export function PaymentReceiptDocument({ payment, businessConfig }: PaymentReceiptDocumentProps) {
+  const { t } = useTranslation('documents');
   const barcodeSvg = useMemo(() => {
     return generateBarcodeSvg({
       bcid: 'code128',
@@ -38,7 +40,7 @@ export function PaymentReceiptDocument({ payment, businessConfig }: PaymentRecei
                 {businessConfig.name}
               </h1>
               <p className="text-[7.5pt] font-semibold text-slate-600 tracking-wide uppercase">
-                Accounts & Treasury Collection Desk
+                {t('moneyReceiptSubtitle')}
               </p>
             </div>
           </div>
@@ -49,13 +51,13 @@ export function PaymentReceiptDocument({ payment, businessConfig }: PaymentRecei
 
         <div className="flex flex-col items-end text-right">
           <h2 className="text-lg font-black text-slate-950 uppercase tracking-tight">
-            Money Receipt
+            {t('moneyReceipt')}
           </h2>
           <div className="font-mono text-xs font-bold text-slate-950 mb-1">
             {payment.payment_number}
           </div>
           <div className="text-[8pt] text-slate-600 font-mono">
-            <span>Payment Date: </span>
+            <span>{t('paymentDate')}: </span>
             <span className="font-bold text-slate-900">{formatDocumentDate(payment.payment_date, true)}</span>
           </div>
         </div>
@@ -64,21 +66,21 @@ export function PaymentReceiptDocument({ payment, businessConfig }: PaymentRecei
       {/* Main Receipt Body Box */}
       <div className="border border-slate-300 rounded-xl p-4 bg-slate-50/50 space-y-3 mb-6">
         <div className="flex items-center justify-between border-b border-slate-200 pb-2">
-          <span className="text-slate-600">Received with thanks from:</span>
+          <span className="text-slate-600">{t('receivedWithThanks')}:</span>
           <span className="font-bold text-slate-950 text-[10pt] uppercase">
             {payment.customer_name || 'Designated Customer / Client'}
           </span>
         </div>
 
         <div className="flex items-center justify-between border-b border-slate-200 pb-2">
-          <span className="text-slate-600">The sum of amount:</span>
+          <span className="text-slate-600">{t('theSumOf')}:</span>
           <span className="font-mono font-black text-[11pt] text-emerald-800">
             {formatCurrency(payment.amount, payment.currency_code || businessConfig.currencySymbol || '৳')}
           </span>
         </div>
 
         <div className="border-b border-slate-200 pb-2">
-          <span className="text-[7.5pt] font-bold text-slate-500 uppercase block mb-0.5">Amount in Words:</span>
+          <span className="text-[7.5pt] font-bold text-slate-500 uppercase block mb-0.5">{t('inWords')}:</span>
           <p className="font-bold italic text-slate-900 text-[8.5pt]">
             {numberToWords(
               payment.amount,
@@ -90,24 +92,24 @@ export function PaymentReceiptDocument({ payment, businessConfig }: PaymentRecei
 
         <div className="grid grid-cols-3 gap-2 text-[8pt] pt-1">
           <div>
-            <span className="text-slate-500 block">Payment Instrument</span>
+            <span className="text-slate-500 block">{t('paymentInstrument')}</span>
             <span className="font-bold uppercase text-slate-900">{payment.method}</span>
           </div>
           <div>
-            <span className="text-slate-500 block">Transaction Reference #</span>
+            <span className="text-slate-500 block">{t('transactionRef')}</span>
             <span className="font-mono font-bold text-slate-900">{payment.reference_number || 'TXN-CASH'}</span>
           </div>
           <div>
-            <span className="text-slate-500 block">Receipt Direction</span>
+            <span className="text-slate-500 block">{t('receiptDirection')}</span>
             <span className="font-bold text-emerald-700 uppercase">
-              {payment.direction === 'in' ? 'Inward Collection' : 'Disbursement'}
+              {payment.direction === 'in' ? t('inwardCollection') : t('disbursement')}
             </span>
           </div>
         </div>
 
         {payment.notes && (
           <div className="text-[8pt] text-slate-600 pt-2 border-t border-slate-200">
-            <span className="font-bold text-slate-700">Particulars / Remarks: </span>
+            <span className="font-bold text-slate-700">{t('particulars')}: </span>
             <span>{payment.notes}</span>
           </div>
         )}
@@ -116,7 +118,7 @@ export function PaymentReceiptDocument({ payment, businessConfig }: PaymentRecei
       {/* Barcode */}
       <div className="flex justify-between items-center mb-6">
         <div className="text-[7.5pt] text-slate-500 italic max-w-sm">
-          * Subject to realization in case of Cheque/Demand Draft. Computer generated receipt.
+          {t('receiptNotice')}
         </div>
         <div className="max-w-50" dangerouslySetInnerHTML={{ __html: barcodeSvg }} />
       </div>
@@ -125,12 +127,12 @@ export function PaymentReceiptDocument({ payment, businessConfig }: PaymentRecei
       <div className="grid grid-cols-2 gap-12 pt-14 mt-6 border-t border-slate-200 text-center text-[7.5pt] break-inside-avoid">
         <div>
           <div className="border-t border-slate-400 pt-1 font-semibold text-slate-800">
-            Customer / Payer Signature
+            {t('customerSignature')}
           </div>
         </div>
         <div>
           <div className="border-t border-slate-400 pt-1 font-semibold text-slate-800">
-            Authorized Cashier / Cash Collector Seal
+            {t('cashierSeal')}
           </div>
         </div>
       </div>

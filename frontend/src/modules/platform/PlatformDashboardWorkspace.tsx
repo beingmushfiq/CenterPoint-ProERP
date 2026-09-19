@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../../lib/api/client';
 import type { PlatformDashboardData } from '../../types/api/platform';
@@ -18,6 +19,8 @@ import {
 } from 'lucide-react';
 
 export const PlatformDashboardWorkspace: React.FC = () => {
+  const { t, i18n } = useTranslation(['platform', 'common']);
+  const isBn = i18n.language === 'bn';
   const { data, isLoading, isFetching, refetch, error } = useQuery<PlatformDashboardData | null>({
     queryKey: ['platform', 'dashboard', 'kpis'],
     queryFn: async () => {
@@ -62,14 +65,16 @@ export const PlatformDashboardWorkspace: React.FC = () => {
         <div>
           <div className="flex items-center gap-2 mb-1.5">
             <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2.5 py-0.5 rounded-full border border-amber-500/20">
-              Master SaaS Telemetry
+              {isBn ? 'মাস্টার সাশ টেলিমেট্রি' : 'Master SaaS Telemetry'}
             </span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-default">
-            Platform Engine Overview
+            {isBn ? 'প্ল্যাটফর্ম ইঞ্জিন সার্বিক চিত্র' : 'Platform Engine Overview'}
           </h1>
           <p className="mt-1.5 text-xs text-muted max-w-2xl leading-relaxed">
-            High-level SaaS tenancy health, MRR performance, cluster status, and platform audit telemetry.
+            {isBn
+              ? 'সাশ টেন্যান্টদের স্থিতি, এমআরআর কার্যক্ষমতা, ক্লাস্টার স্বাস্থ্য ও প্ল্যাটফর্ম অডিট টেলিমেট্রি।'
+              : 'High-level SaaS tenancy health, MRR performance, cluster status, and platform audit telemetry.'}
           </p>
         </div>
 
@@ -81,17 +86,17 @@ export const PlatformDashboardWorkspace: React.FC = () => {
             }}
             disabled={isFetching}
             className="px-3.5 py-2 rounded-xl bg-surface-sunken hover:bg-surface border border-default text-xs font-semibold text-default flex items-center gap-2 transition-all shadow-2xs disabled:opacity-50 cursor-pointer"
-            title="Refresh Metrics"
+            title={t('common:action.refresh', 'Refresh')}
           >
             <RefreshCw className={`size-3.5 ${isFetching ? 'animate-spin text-primary' : ''}`} />
-            <span>Refresh</span>
+            <span>{t('common:action.refresh', 'Refresh')}</span>
           </button>
           <Link
             to="/platform/tenants/new"
             className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs flex items-center gap-1.5 shadow-xs transition-all cursor-pointer"
           >
             <UserPlus className="size-4" />
-            <span>Onboard Tenant</span>
+            <span>{isBn ? 'নতুন টেন্যান্ট যুক্ত করুন' : 'Onboard Tenant'}</span>
           </Link>
         </div>
       </div>
@@ -109,7 +114,7 @@ export const PlatformDashboardWorkspace: React.FC = () => {
         <div className="p-6 rounded-2xl bg-surface border border-default shadow-xs flex flex-col justify-between">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-semibold uppercase tracking-wider text-muted">
-              Total Tenants
+              {isBn ? 'মোট টেন্যান্ট' : 'Total Tenants'}
             </span>
             <div className="p-2.5 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
               <Building2 className="size-5" />
@@ -120,11 +125,11 @@ export const PlatformDashboardWorkspace: React.FC = () => {
               {kpis?.total_tenants ?? 0}
             </div>
             <div className="flex items-center gap-2 mt-2 text-[11px] text-muted font-mono">
-              <span className="text-emerald-600 dark:text-emerald-400 font-semibold">{kpis?.active_tenants ?? 0} Active</span>
+              <span className="text-emerald-600 dark:text-emerald-400 font-semibold">{kpis?.active_tenants ?? 0} {t('common:status.active', 'Active')}</span>
               <span>•</span>
-              <span className="text-blue-600 dark:text-blue-400">{kpis?.trial_tenants ?? 0} Trial</span>
+              <span className="text-blue-600 dark:text-blue-400">{kpis?.trial_tenants ?? 0} {isBn ? 'ট্রায়াল' : 'Trial'}</span>
               <span>•</span>
-              <span className="text-rose-600 dark:text-rose-400">{kpis?.suspended_tenants ?? 0} Suspended</span>
+              <span className="text-rose-600 dark:text-rose-400">{kpis?.suspended_tenants ?? 0} {isBn ? 'স্থগিত' : 'Suspended'}</span>
             </div>
           </div>
         </div>
@@ -133,7 +138,7 @@ export const PlatformDashboardWorkspace: React.FC = () => {
         <div className="p-6 rounded-2xl bg-surface border border-default shadow-xs flex flex-col justify-between">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-semibold uppercase tracking-wider text-muted">
-              Estimated MRR
+              {isBn ? 'আনুমানিক মাসিক আয় (MRR)' : 'Estimated MRR'}
             </span>
             <div className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
               <DollarSign className="size-5" />
@@ -141,10 +146,10 @@ export const PlatformDashboardWorkspace: React.FC = () => {
           </div>
           <div className="mt-4">
             <div className="text-3xl font-extrabold text-default font-mono">
-              BDT {(kpis?.estimated_mrr ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+              ৳ {(kpis?.estimated_mrr ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
             </div>
             <p className="mt-2 text-[11px] text-muted">
-              Based on active tenant subscription tiers
+              {isBn ? 'সক্রিয় টেন্যান্ট সাবস্ক্রিপশন প্ল্যানের ওপর ভিত্তি করে' : 'Based on active tenant subscription tiers'}
             </p>
           </div>
         </div>
@@ -153,7 +158,7 @@ export const PlatformDashboardWorkspace: React.FC = () => {
         <div className="p-6 rounded-2xl bg-surface border border-default shadow-xs flex flex-col justify-between">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-semibold uppercase tracking-wider text-muted">
-              Expiring in 30d
+              {isBn ? '৩০ দিনে মেয়াদোত্তীর্ণ' : 'Expiring in 30d'}
             </span>
             <div className="p-2.5 rounded-xl bg-orange-500/10 text-orange-600 dark:text-orange-400 border border-orange-500/20">
               <AlertTriangle className="size-5" />
@@ -164,7 +169,7 @@ export const PlatformDashboardWorkspace: React.FC = () => {
               {kpis?.expiring_subscriptions_30d ?? 0}
             </div>
             <p className="mt-2 text-[11px] text-orange-600 dark:text-orange-400 font-mono">
-              Tenants requiring renewal or extension
+              {isBn ? 'যেসব টেন্যান্টের নবায়ন বা বৃদ্ধি প্রয়োজন' : 'Tenants requiring renewal or extension'}
             </p>
           </div>
         </div>
@@ -173,7 +178,7 @@ export const PlatformDashboardWorkspace: React.FC = () => {
         <div className="p-6 rounded-2xl bg-surface border border-default shadow-xs flex flex-col justify-between">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-semibold uppercase tracking-wider text-muted">
-              Total Platform Users
+              {isBn ? 'প্ল্যাটফর্ম ব্যবহারকারী' : 'Total Platform Users'}
             </span>
             <div className="p-2.5 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
               <Users className="size-5" />
@@ -184,7 +189,7 @@ export const PlatformDashboardWorkspace: React.FC = () => {
               {kpis?.total_users ?? 0}
             </div>
             <p className="mt-2 text-[11px] text-muted font-mono">
-              Across all isolated tenant workspaces
+              {isBn ? 'সকল আইসোলেটেড টেন্যান্ট ওয়ার্কস্পেস জুড়ে' : 'Across all isolated tenant workspaces'}
             </p>
           </div>
         </div>
@@ -198,14 +203,14 @@ export const PlatformDashboardWorkspace: React.FC = () => {
             <div className="flex items-center gap-2">
               <CreditCard className="size-4 text-amber-500" />
               <h2 className="text-sm font-bold text-default uppercase tracking-wider font-mono">
-                Subscription Plan Distribution
+                {isBn ? 'সাবস্ক্রিপশন প্ল্যান বণ্টন' : 'Subscription Plan Distribution'}
               </h2>
             </div>
             <Link
               to="/platform/plans"
               className="text-xs text-amber-600 dark:text-amber-400 hover:underline font-semibold"
             >
-              Configure Plans →
+              {isBn ? 'প্ল্যান কনফিগার করুন →' : 'Configure Plans →'}
             </Link>
           </div>
 
@@ -227,9 +232,9 @@ export const PlatformDashboardWorkspace: React.FC = () => {
                     </div>
                     <div className="text-right">
                       <span className="text-sm font-bold text-default font-mono">
-                        {plan.tenants_count} Tenants
+                        {plan.tenants_count} {isBn ? 'টি টেন্যান্ট' : 'Tenants'}
                       </span>
-                      <span className="text-xs text-muted font-mono ml-2">(BDT {plan.price}/mo)</span>
+                      <span className="text-xs text-muted font-mono ml-2">(৳ {plan.price}{isBn ? '/মাস' : '/mo'})</span>
                     </div>
                   </div>
                   <div className="w-full bg-surface h-2 rounded-full overflow-hidden border border-default/50">
@@ -250,41 +255,41 @@ export const PlatformDashboardWorkspace: React.FC = () => {
             <div className="flex items-center gap-2 mb-6">
               <Server className="size-4 text-emerald-500" />
               <h2 className="text-sm font-bold text-default uppercase tracking-wider font-mono">
-                System Health & Nodes
+                {isBn ? 'সিস্টেম স্বাস্থ্য ও নোডস' : 'System Health & Nodes'}
               </h2>
             </div>
 
             <div className="space-y-3 font-mono text-xs">
               <div className="p-3.5 rounded-xl bg-surface-sunken border border-default flex items-center justify-between">
-                <span className="text-muted">Database Engine</span>
+                <span className="text-muted">{isBn ? 'ডাটাবেস ইঞ্জিন' : 'Database Engine'}</span>
                 <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 font-bold text-[10px]">
                   {data?.system_health.database}
                 </span>
               </div>
               <div className="p-3.5 rounded-xl bg-surface-sunken border border-default flex items-center justify-between">
-                <span className="text-muted">Distributed Cache</span>
+                <span className="text-muted">{isBn ? 'ডিস্ট্রিবিউটেড ক্যাশ' : 'Distributed Cache'}</span>
                 <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 font-bold text-[10px]">
                   {data?.system_health.cache}
                 </span>
               </div>
               <div className="p-3.5 rounded-xl bg-surface-sunken border border-default flex items-center justify-between">
-                <span className="text-muted">Queue Processing</span>
+                <span className="text-muted">{isBn ? 'কিউ প্রসেসিং' : 'Queue Processing'}</span>
                 <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 font-bold text-[10px]">
                   {data?.system_health.queue}
                 </span>
               </div>
               <div className="p-3.5 rounded-xl bg-surface-sunken border border-default flex items-center justify-between">
-                <span className="text-muted">Cluster Status</span>
+                <span className="text-muted">{isBn ? 'ক্লাস্টার স্থিতি' : 'Cluster Status'}</span>
                 <span className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-bold text-xs">
                   <CheckCircle2 className="size-3.5" />
-                  <span>OPERATIONAL</span>
+                  <span>{isBn ? 'কার্যক্ষম (অপারেশনাল)' : 'OPERATIONAL'}</span>
                 </span>
               </div>
             </div>
           </div>
 
           <div className="mt-6 pt-4 border-t border-default text-[11px] text-muted font-mono">
-            Telemetry Heartbeat: {data?.system_health.server_time ? new Date(data.system_health.server_time).toLocaleTimeString() : 'N/A'}
+            {isBn ? 'টেলিমেট্রি সংকেত' : 'Telemetry Heartbeat'}: {data?.system_health.server_time ? new Date(data.system_health.server_time).toLocaleTimeString() : 'N/A'}
           </div>
         </div>
       </div>
@@ -295,26 +300,26 @@ export const PlatformDashboardWorkspace: React.FC = () => {
           <div className="flex items-center gap-2">
             <Activity className="size-4 text-amber-500" />
             <h2 className="text-sm font-bold text-default uppercase tracking-wider font-mono">
-              Live Platform Audit Stream
+              {isBn ? 'লাইভ প্ল্যাটফর্ম অডিট স্ট্রিম' : 'Live Platform Audit Stream'}
             </h2>
           </div>
           <Link
             to="/platform/audit-logs"
             className="text-xs text-amber-600 dark:text-amber-400 hover:underline font-semibold"
           >
-            View Full Audit Trail →
+            {isBn ? 'সম্পূর্ণ অডিট ট্রেইল দেখুন →' : 'View Full Audit Trail →'}
           </Link>
         </div>
 
         <ResponsiveDataTable<PlatformDashboardData['recent_activity'][number]>
           data={data?.recent_activity ?? []}
           isLoading={isLoading}
-          emptyMessage="No platform audit entries recorded yet."
+          emptyMessage={isBn ? 'এখনও কোনো প্ল্যাটফর্ম অডিট রেকর্ড নেই।' : 'No platform audit entries recorded yet.'}
           keyExtractor={(log) => log.id}
           columns={[
             {
               key: 'timestamp',
-              header: 'Timestamp',
+              header: isBn ? 'সময়' : 'Timestamp',
               priority: 'high',
               render: (log) => (
                 <span className="text-muted font-mono text-xs">
@@ -324,7 +329,7 @@ export const PlatformDashboardWorkspace: React.FC = () => {
             },
             {
               key: 'action',
-              header: 'Action',
+              header: isBn ? 'কর্ম' : 'Action',
               priority: 'high',
               render: (log) => (
                 <span className="px-2.5 py-0.5 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30 font-bold uppercase text-[9px] font-mono">
@@ -334,7 +339,7 @@ export const PlatformDashboardWorkspace: React.FC = () => {
             },
             {
               key: 'target',
-              header: 'Target Entity',
+              header: isBn ? 'টার্গেট এনটিটি' : 'Target Entity',
               priority: 'medium',
               render: (log) => (
                 <span className="text-default font-semibold font-mono">
@@ -344,13 +349,13 @@ export const PlatformDashboardWorkspace: React.FC = () => {
             },
             {
               key: 'actor',
-              header: 'Actor',
+              header: isBn ? 'ব্যবহারকারী' : 'Actor',
               priority: 'high',
               render: (log) => <span className="text-muted font-mono">{log.actor_name}</span>,
             },
             {
               key: 'details',
-              header: 'Summary',
+              header: isBn ? 'সারাংশ' : 'Summary',
               priority: 'low',
               render: (log) => (
                 <span className="text-muted truncate max-w-xs block font-mono text-[11px]">

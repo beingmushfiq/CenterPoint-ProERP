@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate, useOutletContext } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { ArrowLeft, CheckCircle2, CreditCard, Lock, ShoppingBag, Truck } from 'lucide-react';
 import { api } from '../../lib/api/client';
 import { useStorefrontCartStore } from '../../lib/storefront/storefrontCartStore';
@@ -13,6 +14,7 @@ interface OutletContextType {
 }
 
 export const StorefrontCheckoutPage: React.FC = () => {
+  const { t } = useTranslation(['storefront', 'common']);
   const { config, subdomain } = useOutletContext<OutletContextType>();
   const { cart, sessionToken, clearCart } = useStorefrontCartStore();
   const navigate = useNavigate();
@@ -45,14 +47,14 @@ export const StorefrontCheckoutPage: React.FC = () => {
     return (
       <div className="rounded-3xl border border-zinc-800 bg-zinc-900/40 p-12 text-center max-w-lg mx-auto">
         <ShoppingBag className="h-12 w-12 text-zinc-600 mx-auto mb-3" />
-        <h2 className="text-base font-bold text-zinc-200">Your Cart is Empty</h2>
-        <p className="text-xs text-zinc-500 mt-1">Please add some items to your cart before checking out.</p>
+        <h2 className="text-base font-bold text-zinc-200">{t('storefront.cartEmptyTitle')}</h2>
+        <p className="text-xs text-zinc-500 mt-1">{t('storefront.cartEmptyDesc')}</p>
         <Link
           to={getStorefrontUrl(subdomain)}
           className="mt-5 inline-flex items-center gap-2 rounded-xl bg-emerald-500 px-4 py-2.5 text-xs font-bold text-zinc-950 hover:bg-emerald-400 transition-all"
         >
           <ArrowLeft className="h-4 w-4" />
-          <span>Return to Catalog</span>
+          <span>{t('storefront.returnToCatalog')}</span>
         </Link>
       </div>
     );
@@ -119,10 +121,10 @@ export const StorefrontCheckoutPage: React.FC = () => {
           className="inline-flex items-center gap-2 text-xs font-semibold text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white transition-colors"
         >
           <ArrowLeft className="h-4 w-4" />
-          <span>Continue Shopping</span>
+          <span>{t('storefront.continueShopping')}</span>
         </Link>
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white mt-2">Secure Checkout</h1>
-        <p className="text-xs text-slate-500 dark:text-zinc-400">Direct factory fulfillment to your doorstep.</p>
+        <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white mt-2">{t('storefront.secureCheckout')}</h1>
+        <p className="text-xs text-slate-500 dark:text-zinc-400">{t('storefront.factoryFulfillment')}</p>
       </div>
 
       {error && (
@@ -138,13 +140,13 @@ export const StorefrontCheckoutPage: React.FC = () => {
           <div className="rounded-2xl border border-slate-200 dark:border-zinc-800/80 bg-white dark:bg-zinc-900/40 p-6 space-y-4 shadow-xs">
             <div className="flex items-center gap-2 border-b border-slate-100 dark:border-zinc-800/80 pb-3">
               <Truck className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-              <h2 className="text-sm font-bold text-slate-900 dark:text-zinc-100">Delivery Information</h2>
+              <h2 className="text-sm font-bold text-slate-900 dark:text-zinc-100">{t('storefront.deliveryInfo')}</h2>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="text-[11px] font-semibold text-slate-700 dark:text-zinc-400 uppercase tracking-wider block mb-1">
-                  Full Name *
+                  {t('storefront.fullName')}
                 </label>
                 <input
                   type="text"
@@ -158,7 +160,7 @@ export const StorefrontCheckoutPage: React.FC = () => {
 
               <div>
                 <label className="text-[11px] font-semibold text-slate-700 dark:text-zinc-400 uppercase tracking-wider block mb-1">
-                  Phone Number *
+                  {t('storefront.phoneRequired')}
                 </label>
                 <input
                   type="tel"
@@ -173,7 +175,7 @@ export const StorefrontCheckoutPage: React.FC = () => {
 
             <div>
               <label className="text-[11px] font-semibold text-muted uppercase tracking-wider block mb-1">
-                Email Address (Optional)
+                {t('storefront.emailOptional')}
               </label>
               <input
                 type="email"
@@ -186,7 +188,7 @@ export const StorefrontCheckoutPage: React.FC = () => {
 
             <div>
               <label className="text-[11px] font-semibold text-muted uppercase tracking-wider block mb-1">
-                Delivery Address *
+                {t('storefront.deliveryAddress')}
               </label>
               <textarea
                 required
@@ -200,7 +202,7 @@ export const StorefrontCheckoutPage: React.FC = () => {
 
             <div>
               <label className="text-[11px] font-semibold text-muted uppercase tracking-wider block mb-1">
-                City / Region
+                {t('storefront.cityRegion')}
               </label>
               <input
                 type="text"
@@ -216,7 +218,7 @@ export const StorefrontCheckoutPage: React.FC = () => {
           <div className="rounded-2xl border border-slate-200 dark:border-zinc-800/80 bg-white dark:bg-zinc-900/40 p-6 space-y-4 shadow-xs">
             <div className="flex items-center gap-2 border-b border-slate-100 dark:border-zinc-800/80 pb-3">
               <CreditCard className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-              <h2 className="text-sm font-bold text-slate-900 dark:text-zinc-100">Payment Option</h2>
+              <h2 className="text-sm font-bold text-slate-900 dark:text-zinc-100">{t('storefront.paymentOption')}</h2>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -237,8 +239,8 @@ export const StorefrontCheckoutPage: React.FC = () => {
                 />
                 <CheckCircle2 className="h-4 w-4 shrink-0" />
                 <div>
-                  <div className="text-xs font-bold">Cash on Delivery (COD)</div>
-                  <div className="text-[10px] text-slate-500 dark:text-zinc-500">Pay cash upon parcel arrival</div>
+                  <div className="text-xs font-bold">{t('storefront.codTitle')}</div>
+                  <div className="text-[10px] text-slate-500 dark:text-zinc-500">{t('storefront.codDesc')}</div>
                 </div>
               </label>
 
@@ -259,8 +261,8 @@ export const StorefrontCheckoutPage: React.FC = () => {
                 />
                 <CheckCircle2 className="h-4 w-4 shrink-0" />
                 <div>
-                  <div className="text-xs font-bold">Online Gateway</div>
-                  <div className="text-[10px] text-slate-500 dark:text-zinc-500">bKash / Nagad / Cards</div>
+                  <div className="text-xs font-bold">{t('storefront.onlineGatewayTitle')}</div>
+                  <div className="text-[10px] text-slate-500 dark:text-zinc-500">{t('storefront.onlineGatewayDesc')}</div>
                 </div>
               </label>
             </div>
@@ -271,7 +273,7 @@ export const StorefrontCheckoutPage: React.FC = () => {
         <div className="space-y-6">
           <div className="rounded-2xl border border-slate-200 dark:border-zinc-800/80 bg-white dark:bg-zinc-900/40 p-6 space-y-4 shadow-xs">
             <h2 className="text-sm font-bold text-slate-900 dark:text-zinc-100 border-b border-slate-100 dark:border-zinc-800/80 pb-3">
-              Order Summary
+              {t('storefront.orderSummary')}
             </h2>
 
             <div className="divide-y divide-slate-100 dark:divide-zinc-800/60 max-h-56 overflow-y-auto space-y-2">
@@ -290,15 +292,15 @@ export const StorefrontCheckoutPage: React.FC = () => {
 
             <div className="border-t border-slate-100 dark:border-zinc-800/80 pt-3 space-y-2 text-xs">
               <div className="flex justify-between text-slate-600 dark:text-zinc-400">
-                <span>Subtotal</span>
+                <span>{t('storefront.subtotal')}</span>
                 <span>{currency} {parseFloat(cart?.subtotal ?? '0').toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-slate-600 dark:text-zinc-400">
-                <span>Delivery Charge</span>
-                <span>Free (Direct)</span>
+                <span>{t('storefront.deliveryCharge')}</span>
+                <span>{t('storefront.freeDirect')}</span>
               </div>
               <div className="flex justify-between text-sm font-extrabold text-slate-900 dark:text-white pt-2 border-t border-slate-100 dark:border-zinc-800">
-                <span>Total Amount</span>
+                <span>{t('storefront.totalAmount')}</span>
                 <span className="text-emerald-600 dark:text-emerald-400">
                   {currency} {parseFloat(cart?.total_amount ?? '0').toFixed(2)}
                 </span>
@@ -311,11 +313,11 @@ export const StorefrontCheckoutPage: React.FC = () => {
               className="w-full min-h-12 flex items-center justify-center gap-2 rounded-xl bg-linear-to-r from-emerald-500 to-teal-500 py-3.5 text-sm font-bold text-zinc-950 shadow-lg shadow-emerald-500/20 hover:from-emerald-400 hover:to-teal-400 transition-all cursor-pointer disabled:opacity-50 touch-target active:scale-95"
             >
               {loading ? (
-                <span>Placing Order...</span>
+                <span>{t('storefront.placingOrderText')}</span>
               ) : (
                 <>
                   <Lock className="h-4 w-4" />
-                  <span>Confirm & Place Order</span>
+                  <span>{t('storefront.confirmPlaceOrder')}</span>
                 </>
               )}
             </button>

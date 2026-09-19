@@ -1,5 +1,6 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import {
   AlertOctagon,
   Microscope,
@@ -38,25 +39,6 @@ interface CategoryConfig {
   defaultTab: QcTab;
 }
 
-const CATEGORIES: CategoryConfig[] = [
-  {
-    id: 'verification',
-    label: 'Quality Verification & Specs',
-    tagline: 'Incoming, floor process & final batch inspection runs with standard parameter tolerance rules',
-    shortcut: '1',
-    icon: Microscope,
-    defaultTab: 'inspections',
-  },
-  {
-    id: 'disposition',
-    label: 'Rework & Scrap Governance',
-    tagline: 'Defect rework salvage routing, recovery yield tracking & process loss valuation ledger',
-    shortcut: '2',
-    icon: ShieldCheck,
-    defaultTab: 'rework',
-  },
-];
-
 interface TabConfig {
   id: QcTab;
   step: number;
@@ -69,63 +51,85 @@ interface TabConfig {
   highlights: string[];
 }
 
-const tabs: TabConfig[] = [
-  {
-    id: 'inspections',
-    step: 1,
-    label: 'QC Inspections & QA',
-    shortLabel: 'Inspections',
-    category: 'verification',
-    badge: 'Runs',
-    icon: Microscope,
-    description:
-      'Incoming raw material, in-process shopfloor, and final batch inspection runs with multi-defect severity logging',
-    highlights: ['Incoming, In-Process & Final Runs', 'Multi-Defect Severity Logging', 'Sample Size & AQL Tolerance'],
-  },
-  {
-    id: 'parameters',
-    step: 2,
-    label: 'Standard Specifications',
-    shortLabel: 'Standard Specs',
-    category: 'verification',
-    badge: 'Tolerances',
-    icon: Sliders,
-    description:
-      'Define mandatory physical/chemical test parameters, minimum/maximum tolerance bands and unit criteria',
-    highlights: ['Min/Max Tolerance Limits', 'Mandatory Test Criteria', 'SKU-Specific Standard Bands'],
-  },
-  {
-    id: 'rework',
-    step: 3,
-    label: 'Rework & Salvage',
-    shortLabel: 'Rework & Salvage',
-    category: 'disposition',
-    badge: 'Salvage',
-    icon: RotateCcw,
-    description:
-      'Defect re-routing, secondary workstation corrections, salvage recovery yield auditing & re-inspection gate',
-    highlights: ['Secondary Workstation Re-routing', 'Salvage Recovery Yield Calculation', 'Defect Correction Validation'],
-  },
-  {
-    id: 'wastage',
-    step: 4,
-    label: 'Wastage & Scrap Ledger',
-    shortLabel: 'Scrap Ledger',
-    category: 'disposition',
-    badge: 'Loss Audit',
-    icon: AlertOctagon,
-    description:
-      'Process loss logging with mandatory reason codes, unit valuation, physical write-off and salvage tracking',
-    highlights: ['Process Loss Valuation', 'Mandatory Scrap Reason Codes', 'Financial Ledger Write-off Trail'],
-  },
-];
-
 export default function QcWorkspace() {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useWorkspaceTab<QcTab>('inspections', VALID_TABS);
   const [quickJumpOpen, setQuickJumpOpen] = useState(false);
   const [isGuideOpen, setIsGuideOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const quickJumpRef = useRef<HTMLDivElement>(null);
+
+  const categories: CategoryConfig[] = useMemo(
+    () => [
+      {
+        id: 'verification',
+        label: t('qc.categories.verification.label'),
+        tagline: t('qc.categories.verification.tagline'),
+        shortcut: '1',
+        icon: Microscope,
+        defaultTab: 'inspections',
+      },
+      {
+        id: 'disposition',
+        label: t('qc.categories.disposition.label'),
+        tagline: t('qc.categories.disposition.tagline'),
+        shortcut: '2',
+        icon: ShieldCheck,
+        defaultTab: 'rework',
+      },
+    ],
+    [t]
+  );
+
+  const tabs: TabConfig[] = useMemo(
+    () => [
+      {
+        id: 'inspections',
+        step: 1,
+        label: t('qc.tabs.inspections.label'),
+        shortLabel: t('qc.tabs.inspections.shortLabel'),
+        category: 'verification',
+        badge: t('qc.tabs.inspections.badge'),
+        icon: Microscope,
+        description: t('qc.tabs.inspections.description'),
+        highlights: (t('qc.tabs.inspections.highlights', { returnObjects: true }) as string[]) || [],
+      },
+      {
+        id: 'parameters',
+        step: 2,
+        label: t('qc.tabs.parameters.label'),
+        shortLabel: t('qc.tabs.parameters.shortLabel'),
+        category: 'verification',
+        badge: t('qc.tabs.parameters.badge'),
+        icon: Sliders,
+        description: t('qc.tabs.parameters.description'),
+        highlights: (t('qc.tabs.parameters.highlights', { returnObjects: true }) as string[]) || [],
+      },
+      {
+        id: 'rework',
+        step: 3,
+        label: t('qc.tabs.rework.label'),
+        shortLabel: t('qc.tabs.rework.shortLabel'),
+        category: 'disposition',
+        badge: t('qc.tabs.rework.badge'),
+        icon: RotateCcw,
+        description: t('qc.tabs.rework.description'),
+        highlights: (t('qc.tabs.rework.highlights', { returnObjects: true }) as string[]) || [],
+      },
+      {
+        id: 'wastage',
+        step: 4,
+        label: t('qc.tabs.wastage.label'),
+        shortLabel: t('qc.tabs.wastage.shortLabel'),
+        category: 'disposition',
+        badge: t('qc.tabs.wastage.badge'),
+        icon: AlertOctagon,
+        description: t('qc.tabs.wastage.description'),
+        highlights: (t('qc.tabs.wastage.highlights', { returnObjects: true }) as string[]) || [],
+      },
+    ],
+    [t]
+  );
 
   const currentTab = tabs.find((t) => t.id === activeTab) ?? tabs[0]!;
   const activeCategory = currentTab.category;
@@ -188,10 +192,12 @@ export default function QcWorkspace() {
         <div>
           <div className="flex items-center gap-2 mb-1.5 flex-wrap">
             <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-primary bg-primary-subtle px-2.5 py-0.5 rounded-full border border-primary/20">
-              Quality Assurance & Scrap Governance
+              {t('qc.workspaceTag')}
             </span>
             <span className="text-muted/50 text-xs">/</span>
-            <span className="text-[11px] font-semibold text-default">Stage {currentTab.step} of 4: {currentTab.label}</span>
+            <span className="text-[11px] font-semibold text-default">
+              {t('qc.stageCounter', { step: currentTab.step, total: 4, label: currentTab.label })}
+            </span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-default flex items-center gap-3">
             <span>{currentTab.label}</span>
@@ -212,10 +218,10 @@ export default function QcWorkspace() {
             type="button"
             onClick={() => setIsGuideOpen(true)}
             className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-xl border border-primary/30 bg-primary-subtle hover:bg-primary/10 text-primary transition-all shadow-2xs cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-            title="Open Quality & Scrap Architecture Guide"
+            title={t('qc.exploreCapabilitiesTitle')}
           >
             <Compass className="size-3.5 text-primary" />
-            <span>Explore Capabilities</span>
+            <span>{t('qc.exploreCapabilities')}</span>
           </button>
 
           {/* Quick Jump Dropdown Popover */}
@@ -230,10 +236,10 @@ export default function QcWorkspace() {
                 'flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold border border-default bg-surface hover:bg-surface-sunken text-default transition-all shadow-2xs cursor-pointer',
                 quickJumpOpen && 'border-primary/40 bg-surface-sunken'
               )}
-              title="Jump directly to any of the 4 QC views"
+              title={t('qc.jumpTitle')}
             >
               <SlidersHorizontal className="size-3.5 text-primary" />
-              <span>All 4 Views</span>
+              <span>{t('qc.allViews')}</span>
             </button>
 
             {quickJumpOpen && (
@@ -244,7 +250,7 @@ export default function QcWorkspace() {
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Search QC views..."
+                    placeholder={t('qc.searchPlaceholder')}
                     autoFocus
                     className="w-full pl-8 pr-7 py-1.5 text-xs bg-surface-sunken rounded-lg border border-default focus:border-primary focus:outline-none text-default"
                   />
@@ -259,7 +265,7 @@ export default function QcWorkspace() {
                 </div>
 
                 <div className="max-h-72 overflow-y-auto space-y-1 pr-1">
-                  {CATEGORIES.map((cat) => {
+                  {categories.map((cat) => {
                     const catTabs = filteredTabs.filter((t) => t.category === cat.id);
                     if (catTabs.length === 0) return null;
 
@@ -316,7 +322,7 @@ export default function QcWorkspace() {
 
                   {filteredTabs.length === 0 && (
                     <div className="py-6 text-center text-xs text-muted">
-                      No quality views found matching &quot;{searchQuery}&quot;
+                      {t('qc.noViewsFound', { query: searchQuery })}
                     </div>
                   )}
                 </div>
@@ -332,10 +338,10 @@ export default function QcWorkspace() {
           <div>
             <div className="flex items-center gap-1.5 text-xs font-bold text-default">
               <Zap className="size-3.5 text-amber-500 fill-amber-500" />
-              <span>Quick Actions • Quality & Scrap Shortcuts</span>
+              <span>{t('qc.quickActionsTitle')}</span>
             </div>
             <p className="text-[11px] text-muted">
-              Inspect incoming supplies, release verified goods to inventory, or salvage defective items with 1 click.
+              {t('qc.quickActionsSubtitle')}
             </p>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
@@ -345,14 +351,14 @@ export default function QcWorkspace() {
               className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs transition-all cursor-pointer"
             >
               <Microscope className="size-3.5" />
-              <span>New Inspection Run</span>
+              <span>{t('qc.actionNewInspection')}</span>
             </button>
             <Link
               to="/inventory"
               className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-xs transition-all cursor-pointer"
             >
               <Boxes className="size-3.5" />
-              <span>Release to Stock</span>
+              <span>{t('qc.actionReleaseStock')}</span>
             </Link>
             <button
               type="button"
@@ -360,7 +366,7 @@ export default function QcWorkspace() {
               className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-surface hover:bg-surface-sunken text-default border border-default shadow-2xs transition-all cursor-pointer"
             >
               <RotateCcw className="size-3.5 text-amber-500" />
-              <span>Route to Rework</span>
+              <span>{t('qc.actionRouteRework')}</span>
             </button>
             <button
               type="button"
@@ -368,7 +374,7 @@ export default function QcWorkspace() {
               className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-surface hover:bg-surface-sunken text-default border border-default shadow-2xs transition-all cursor-pointer"
             >
               <AlertOctagon className="size-3.5 text-rose-500" />
-              <span>Log Scrap & Waste</span>
+              <span>{t('qc.actionLogScrap')}</span>
             </button>
           </div>
         </div>
@@ -380,7 +386,7 @@ export default function QcWorkspace() {
         aria-label="Quality Control Domains"
         className="grid grid-cols-1 md:grid-cols-2 gap-3"
       >
-        {CATEGORIES.map((cat) => {
+        {categories.map((cat) => {
           const isCatActive = activeCategory === cat.id;
           const Icon = cat.icon;
           const childTabs = tabs.filter((t) => t.category === cat.id);
@@ -442,7 +448,7 @@ export default function QcWorkspace() {
                           : 'bg-surface-sunken text-muted border-default'
                       )}
                     >
-                      {childTabs.length} views
+                      {t('qc.viewsCount', { count: childTabs.length })}
                     </span>
                   </div>
 
@@ -452,7 +458,7 @@ export default function QcWorkspace() {
                 </div>
               </div>
 
-              {/* In-Pillar Quick Navigation Grid (Zero Collisions & Balanced Layout) */}
+              {/* In-Pillar Quick Navigation Grid */}
               <div className="mt-4 pt-3 border-t border-default/60 grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {childTabs.map((subTab) => {
                   const isCurrent = activeTab === subTab.id;
@@ -471,7 +477,7 @@ export default function QcWorkspace() {
                           ? 'bg-primary text-primary-fg font-semibold shadow-xs'
                           : 'bg-surface-sunken text-default hover:text-default hover:bg-surface border border-default/60 hover:border-primary/40'
                       )}
-                      title={`Open ${subTab.label}`}
+                      title={t('qc.openStage', { label: subTab.label })}
                     >
                       <div className="flex items-center gap-2 min-w-0 truncate">
                         <SubIcon className={cn('size-4 shrink-0', isCurrent ? 'text-primary-fg' : 'text-primary')} />
@@ -485,7 +491,7 @@ export default function QcWorkspace() {
                             : 'bg-surface text-muted border border-default/50'
                         )}
                       >
-                        Stage {subTab.step}
+                        {t('qc.stagePill', { step: subTab.step })}
                       </span>
                     </button>
                   );
@@ -506,10 +512,10 @@ export default function QcWorkspace() {
         <div className="flex items-center justify-between gap-2 px-1 mb-2">
           <div className="flex items-center gap-1.5 text-[11px] font-semibold text-muted uppercase tracking-wider">
             <SlidersHorizontal className="size-3 text-primary" />
-            <span>Quality & Scrap Stages Execution Ribbon</span>
+            <span>{t('qc.stagesRibbonTitle')}</span>
           </div>
           <span className="text-[10px] text-muted font-mono">
-            4 Stages & Governance Available • Instant Access
+            {t('qc.stagesRibbonSubtitle')}
           </span>
         </div>
 
@@ -571,18 +577,17 @@ export default function QcWorkspace() {
       <Modal
         open={isGuideOpen}
         onClose={() => setIsGuideOpen(false)}
-        title="Quality Assurance & Scrap Governance Architecture Guide"
+        title={t('qc.guide.modalTitle')}
         size="xl"
       >
         <div className="space-y-6">
           <div className="rounded-xl bg-primary-subtle/50 border border-primary/20 p-4">
             <h4 className="text-sm font-bold text-primary flex items-center gap-2 mb-1">
               <Microscope className="size-4" />
-              Standardized Quality Controls & Material Disposition
+              {t('qc.guide.heroTitle')}
             </h4>
             <p className="text-xs text-muted leading-relaxed">
-              The Quality Control engine enforces multi-tier quality gates from receiving dock to final packing, standard tolerance
-              band parameter rules, rework defect routing with salvage yield auditing, and strict process scrap valuation.
+              {t('qc.guide.heroDesc')}
             </p>
           </div>
 
@@ -628,7 +633,11 @@ export default function QcWorkspace() {
                       setIsGuideOpen(false);
                     }}
                   >
-                    <span>{activeTab === tab.id ? 'Current View' : `Switch to ${tab.shortLabel}`}</span>
+                    <span>
+                      {activeTab === tab.id
+                        ? t('qc.guide.currentView')
+                        : t('qc.guide.switchTo', { label: tab.shortLabel })}
+                    </span>
                     <ArrowRight className="size-3" />
                   </Button>
                 </div>
@@ -638,10 +647,10 @@ export default function QcWorkspace() {
 
           <div className="rounded-xl bg-surface-sunken p-4 border border-default flex items-center justify-between">
             <div className="text-xs text-muted">
-              Keyboard shortcut: Press <kbd className="px-1.5 py-0.5 bg-surface rounded border border-default font-mono text-[10px] font-bold">1</kbd> for Verification & Specs, <kbd className="px-1.5 py-0.5 bg-surface rounded border border-default font-mono text-[10px] font-bold">2</kbd> for Rework & Scrap.
+              {t('qc.guide.shortcutHint')}
             </div>
             <Button variant="ghost" size="sm" onClick={() => setIsGuideOpen(false)}>
-              Close Guide
+              {t('qc.guide.close')}
             </Button>
           </div>
         </div>

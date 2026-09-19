@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { Clock, HardDrive, Play, Zap } from 'lucide-react';
 import { PosSessionsSection } from './sections/PosSessionsSection';
 import { PosTerminalsSection } from './sections/PosTerminalsSection';
@@ -17,22 +18,6 @@ interface TabConfig {
   icon: typeof Clock;
   description: string;
 }
-
-const tabs: TabConfig[] = [
-  {
-    id: 'sessions',
-    label: 'POS Shift Sessions',
-    icon: Clock,
-    description:
-      'Active cashier shifts, cash floats, live transactions & end-of-day reconciliation',
-  },
-  {
-    id: 'terminals',
-    label: 'Terminals & Hardware',
-    icon: HardDrive,
-    description: 'Cash register registers, receipt printer configurations & branch assignments',
-  },
-];
 
 const DEFAULT_OPEN_SESSION: PosSession = {
   id: 1,
@@ -63,9 +48,28 @@ const DEFAULT_OPEN_SESSION: PosSession = {
 };
 
 export default function PosWorkspace() {
+  const { t } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState<PosTab>('sessions');
   const [manualSession, setManualSession] = useState<PosSession | null>(null);
+
+  const tabs: TabConfig[] = useMemo(
+    () => [
+      {
+        id: 'sessions',
+        label: t('pos.tabs.sessions.label'),
+        icon: Clock,
+        description: t('pos.tabs.sessions.description'),
+      },
+      {
+        id: 'terminals',
+        label: t('pos.tabs.terminals.label'),
+        icon: HardDrive,
+        description: t('pos.tabs.terminals.description'),
+      },
+    ],
+    [t]
+  );
 
   // Fetch all sessions to find the currently active open session
   const { data: sessions = [DEFAULT_OPEN_SESSION] } = useQuery<PosSession[]>({
@@ -120,7 +124,7 @@ export default function PosWorkspace() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <div className="text-[11px] font-semibold uppercase tracking-wider text-emerald-500">
-            Retail & Counter Checkout Management
+            {t('pos.managementTag')}
           </div>
           <h1 className="text-2xl font-bold tracking-tight text-default sm:text-3xl">
             {currentTab?.label}
@@ -135,7 +139,7 @@ export default function PosWorkspace() {
             className="flex items-center gap-1.5 shadow-xs"
           >
             <Play className="size-3.5 fill-current" />
-            <span>Open POS Interface</span>
+            <span>{t('pos.openPosInterface')}</span>
           </Button>
         </div>
       </div>
@@ -146,10 +150,10 @@ export default function PosWorkspace() {
           <div>
             <div className="flex items-center gap-1.5 text-xs font-bold text-default">
               <Zap className="size-3.5 text-amber-500 fill-amber-500" />
-              <span>Quick Actions • Cash Counter & Hardware Operations</span>
+              <span>{t('pos.quickActionsTitle')}</span>
             </div>
             <p className="text-[11px] text-muted">
-              Launch full-screen cashier register, reconcile cash floats, or configure receipt printers with 1 click.
+              {t('pos.quickActionsSubtitle')}
             </p>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
@@ -160,7 +164,7 @@ export default function PosWorkspace() {
               className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs"
             >
               <Play className="size-3.5 fill-current" />
-              <span>Resume Cashier Screen</span>
+              <span>{t('pos.resumeCashier')}</span>
             </Button>
             <button
               type="button"
@@ -168,7 +172,7 @@ export default function PosWorkspace() {
               className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-surface hover:bg-surface-sunken text-default border border-default shadow-2xs transition-all cursor-pointer"
             >
               <Clock className="size-3.5 text-primary" />
-              <span>Shift Reconciliations</span>
+              <span>{t('pos.shiftReconciliations')}</span>
             </button>
             <button
               type="button"
@@ -176,7 +180,7 @@ export default function PosWorkspace() {
               className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-surface hover:bg-surface-sunken text-default border border-default shadow-2xs transition-all cursor-pointer"
             >
               <HardDrive className="size-3.5 text-cyan-600" />
-              <span>Terminals & Hardware</span>
+              <span>{t('pos.terminalsHardware')}</span>
             </button>
           </div>
         </div>

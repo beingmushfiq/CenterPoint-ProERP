@@ -33,6 +33,7 @@ import {
   Upload,
 } from 'lucide-react';
 import { api } from '../../lib/api/client';
+import { useTranslation } from 'react-i18next';
 import { hrApi } from './services/hrApi';
 import { useWorkspaceTab } from '../../hooks/useWorkspaceTab';
 import { useCurrency } from '../../hooks/useCurrency';
@@ -87,82 +88,7 @@ export interface HrStageConfig {
   description: string;
 }
 
-const HR_STAGES: HrStageConfig[] = [
-  {
-    id: 'employees',
-    step: 1,
-    label: 'Employee Directory',
-    shortLabel: 'Staff',
-    icon: Users,
-    category: 'people',
-    description: 'Staff directory & ERP credentials',
-  },
-  {
-    id: 'departments',
-    step: 2,
-    label: 'Departments & Hierarchy',
-    shortLabel: 'Departments',
-    icon: Building2,
-    category: 'people',
-    description: 'Org units, job titles & shifts',
-  },
-  {
-    id: 'performance',
-    step: 3,
-    label: 'Worker Output & Wages',
-    shortLabel: 'Piece-Rates',
-    icon: Zap,
-    category: 'people',
-    description: 'Factory piece-rates & machine quotas',
-  },
-  {
-    id: 'attendance',
-    step: 4,
-    label: 'Daily Attendance & Shifts',
-    shortLabel: 'Attendance',
-    icon: Clock,
-    category: 'compensation',
-    description: 'Biometric punches & shift logs',
-  },
-  {
-    id: 'leaves',
-    step: 5,
-    label: 'Leave & Time Off',
-    shortLabel: 'Leaves',
-    icon: CalendarCheck,
-    category: 'compensation',
-    description: 'Leave approvals & quotas',
-  },
-  {
-    id: 'payroll',
-    step: 6,
-    label: 'Salary Payouts & Payslips',
-    shortLabel: 'Payroll',
-    icon: Wallet,
-    category: 'compensation',
-    description: 'Payroll runs & bank advice',
-  },
-  {
-    id: 'salary-structures',
-    step: 7,
-    label: 'Salary Structures & Tiers',
-    shortLabel: 'Structures',
-    icon: DollarSign,
-    category: 'compensation',
-    description: 'Grade rules & allowance matrices',
-  },
-  {
-    id: 'advances',
-    step: 8,
-    label: 'Salary Advances & Loans',
-    shortLabel: 'Advances',
-    icon: CreditCard,
-    category: 'compensation',
-    description: 'Emergency loans & recovery',
-  },
-];
-
-interface CategoryConfig {
+export interface CategoryConfig {
   id: HrCategory;
   label: string;
   tagline: string;
@@ -170,25 +96,6 @@ interface CategoryConfig {
   tabs: HrTab[];
   defaultTab: HrTab;
 }
-
-const CATEGORIES: CategoryConfig[] = [
-  {
-    id: 'people',
-    label: 'Team Members & Structure',
-    tagline: 'Employee profiles, departments & factory worker output wages',
-    icon: Users,
-    tabs: ['employees', 'departments', 'performance'],
-    defaultTab: 'employees',
-  },
-  {
-    id: 'compensation',
-    label: 'Payroll, Attendance & Loans',
-    tagline: 'Salary payouts, daily attendance, advances, structures & leave requests',
-    icon: Wallet,
-    tabs: ['payroll', 'attendance', 'leaves', 'salary-structures', 'advances'],
-    defaultTab: 'payroll',
-  },
-];
 
 function generateRandomPassword(): string {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%&*';
@@ -200,9 +107,110 @@ function generateRandomPassword(): string {
 }
 
 export const HrWorkspace: React.FC = () => {
+  const { t } = useTranslation();
   const { formatCurrency } = useCurrency();
   const { config: businessConfig } = useBusinessConfig();
   const { printDocument, isPrinting: isPrintingBadge } = useDocumentPrint();
+
+  const hrStages: HrStageConfig[] = useMemo(
+    () => [
+      {
+        id: 'employees',
+        step: 1,
+        label: t('hr.stages.employees.label'),
+        shortLabel: t('hr.stages.employees.shortLabel'),
+        icon: Users,
+        category: 'people',
+        description: t('hr.stages.employees.description'),
+      },
+      {
+        id: 'departments',
+        step: 2,
+        label: t('hr.stages.departments.label'),
+        shortLabel: t('hr.stages.departments.shortLabel'),
+        icon: Building2,
+        category: 'people',
+        description: t('hr.stages.departments.description'),
+      },
+      {
+        id: 'performance',
+        step: 3,
+        label: t('hr.stages.performance.label'),
+        shortLabel: t('hr.stages.performance.shortLabel'),
+        icon: Zap,
+        category: 'people',
+        description: t('hr.stages.performance.description'),
+      },
+      {
+        id: 'attendance',
+        step: 4,
+        label: t('hr.stages.attendance.label'),
+        shortLabel: t('hr.stages.attendance.shortLabel'),
+        icon: Clock,
+        category: 'compensation',
+        description: t('hr.stages.attendance.description'),
+      },
+      {
+        id: 'leaves',
+        step: 5,
+        label: t('hr.stages.leaves.label'),
+        shortLabel: t('hr.stages.leaves.shortLabel'),
+        icon: CalendarCheck,
+        category: 'compensation',
+        description: t('hr.stages.leaves.description'),
+      },
+      {
+        id: 'payroll',
+        step: 6,
+        label: t('hr.stages.payroll.label'),
+        shortLabel: t('hr.stages.payroll.shortLabel'),
+        icon: Wallet,
+        category: 'compensation',
+        description: t('hr.stages.payroll.description'),
+      },
+      {
+        id: 'salary-structures',
+        step: 7,
+        label: t('hr.stages.salaryStructures.label'),
+        shortLabel: t('hr.stages.salaryStructures.shortLabel'),
+        icon: DollarSign,
+        category: 'compensation',
+        description: t('hr.stages.salaryStructures.description'),
+      },
+      {
+        id: 'advances',
+        step: 8,
+        label: t('hr.stages.advances.label'),
+        shortLabel: t('hr.stages.advances.shortLabel'),
+        icon: CreditCard,
+        category: 'compensation',
+        description: t('hr.stages.advances.description'),
+      },
+    ],
+    [t]
+  );
+
+  const categories: CategoryConfig[] = useMemo(
+    () => [
+      {
+        id: 'people',
+        label: t('hr.categories.people.label'),
+        tagline: t('hr.categories.people.tagline'),
+        icon: Users,
+        tabs: ['employees', 'departments', 'performance'],
+        defaultTab: 'employees',
+      },
+      {
+        id: 'compensation',
+        label: t('hr.categories.compensation.label'),
+        tagline: t('hr.categories.compensation.tagline'),
+        icon: Wallet,
+        tabs: ['payroll', 'attendance', 'leaves', 'salary-structures', 'advances'],
+        defaultTab: 'payroll',
+      },
+    ],
+    [t]
+  );
 
   const handlePrintPayslip = (slip: Payslip) => {
     printDocument(
@@ -231,14 +239,14 @@ export const HrWorkspace: React.FC = () => {
   const [isKioskModalOpen, setIsKioskModalOpen] = useState(false);
   const quickJumpRef = useRef<HTMLDivElement>(null);
 
-  const activeCategory = CATEGORIES.find((cat) => cat.tabs.includes(activeTab))?.id ?? 'people';
+  const activeCategory = categories.find((cat) => cat.tabs.includes(activeTab))?.id ?? 'people';
 
   const lastActivePerCategory = useRef<Record<HrCategory, HrTab>>({
     people: 'employees',
     compensation: 'payroll',
   });
 
-  const currentStage = (HR_STAGES.find((s) => s.id === activeTab) ?? HR_STAGES[0])!;
+  const currentStage = (hrStages.find((s) => s.id === activeTab) ?? hrStages[0])!;
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -253,7 +261,7 @@ export const HrWorkspace: React.FC = () => {
       }
       const num = parseInt(e.key, 10);
       if (num >= 1 && num <= 8) {
-        const stage = HR_STAGES.find((s) => s.step === num);
+        const stage = hrStages.find((s) => s.step === num);
         if (stage) {
           e.preventDefault();
           setActiveTab(stage.id);
@@ -262,14 +270,14 @@ export const HrWorkspace: React.FC = () => {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [setActiveTab]);
+  }, [setActiveTab, hrStages]);
 
   useEffect(() => {
-    const cat = CATEGORIES.find((c) => c.tabs.includes(activeTab))?.id;
+    const cat = categories.find((c) => c.tabs.includes(activeTab))?.id;
     if (cat) {
       lastActivePerCategory.current[cat] = activeTab;
     }
-  }, [activeTab]);
+  }, [activeTab, categories]);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -287,7 +295,7 @@ export const HrWorkspace: React.FC = () => {
     if (categoryId === activeCategory) return;
     const targetTab =
       lastActivePerCategory.current[categoryId] ??
-      CATEGORIES.find((cat) => cat.id === categoryId)?.defaultTab ??
+      categories.find((cat) => cat.id === categoryId)?.defaultTab ??
       'payroll';
     setActiveTab(targetTab);
   };
@@ -688,8 +696,8 @@ export const HrWorkspace: React.FC = () => {
   const [selectedLeaveIds, setSelectedLeaveIds] = useState<number[]>([]);
   const [selectedPayslipIds, setSelectedPayslipIds] = useState<number[]>([]);
   const [isBulkProcessing, setIsBulkProcessing] = useState(false);
-  const [lastSyncedTime, setLastSyncedTime] = useState<string | null>(null);
-  const [isSyncingAll, setIsSyncingAll] = useState(false);
+  const [, setLastSyncedTime] = useState<string | null>(null);
+  const [, setIsSyncingAll] = useState(false);
   const [openActionMenuId, setOpenActionMenuId] = useState<number | string | null>(null);
   const [actionMenuAnchor, setActionMenuAnchor] = useState<HTMLElement | null>(null);
 
@@ -1733,17 +1741,17 @@ export const HrWorkspace: React.FC = () => {
           <div className="flex items-center gap-2 mb-1.5 flex-wrap">
             <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-primary bg-primary-subtle px-2.5 py-0.5 rounded-full border border-primary/20 flex items-center gap-1">
               <Users className="size-3 text-primary" />
-              Enterprise Human Capital & Payroll
+              {t('hr.workspaceTag')}
             </span>
             <span className="text-xs font-semibold text-muted">
-              Stage {currentStage.step} of 8: {currentStage.label}
+              {t('hr.stageCounter', { step: currentStage.step, total: 8, label: currentStage.label })}
             </span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-default">
-            Team, Attendance & Payroll
+            {t('hr.title')}
           </h1>
           <p className="mt-1 text-xs text-muted max-w-2xl leading-relaxed">
-            Employee directory, shift attendance tracking, factory worker piece-rate output, and automated payroll payouts.
+            {t('hr.subtitle')}
           </p>
         </div>
 
@@ -1755,10 +1763,10 @@ export const HrWorkspace: React.FC = () => {
                 type="button"
                 onClick={handleExportBankAdvice}
                 className="px-3 py-2 bg-surface hover:bg-surface-sunken border border-default text-default font-semibold rounded-xl shadow-2xs transition flex items-center gap-1.5 text-xs cursor-pointer"
-                title="Export Bank Advice to CSV"
+                title={t('hr.exportBankAdviceTitle')}
               >
                 <FileSpreadsheet className="size-3.5 text-emerald-600" />
-                <span>Export Bank Advice</span>
+                <span>{t('hr.exportBankAdvice')}</span>
               </button>
               <button
                 type="button"
@@ -1766,7 +1774,7 @@ export const HrWorkspace: React.FC = () => {
                 className="px-3 py-2 bg-surface hover:bg-surface-sunken border border-default text-default font-semibold rounded-xl shadow-2xs transition flex items-center gap-1.5 text-xs cursor-pointer"
               >
                 <Plus className="size-3.5 text-muted" />
-                <span>New Pay Period</span>
+                <span>{t('hr.newPayPeriod')}</span>
               </button>
               <button
                 type="button"
@@ -1774,7 +1782,7 @@ export const HrWorkspace: React.FC = () => {
                 className="px-3.5 py-2 bg-primary hover:bg-primary/90 text-primary-fg font-semibold rounded-xl shadow-xs transition flex items-center gap-1.5 text-xs cursor-pointer"
               >
                 <Plus className="size-3.5" />
-                <span>Create Payslip</span>
+                <span>{t('hr.createPayslip')}</span>
               </button>
             </>
           ) : activeTab === 'attendance' ? (
@@ -1783,19 +1791,19 @@ export const HrWorkspace: React.FC = () => {
                 type="button"
                 onClick={() => setIsKioskModalOpen(true)}
                 className="px-3 py-2 bg-slate-950 hover:bg-slate-900 text-emerald-400 font-semibold rounded-xl shadow-2xs transition flex items-center gap-1.5 text-xs cursor-pointer border border-slate-800"
-                title="Open Biometric & RFID Attendance Kiosk"
+                title={t('hr.biometricKioskTitle')}
               >
                 <Scan className="size-3.5 text-emerald-400" />
-                <span>Biometric Kiosk</span>
+                <span>{t('hr.biometricKiosk')}</span>
               </button>
               <button
                 type="button"
                 onClick={() => setShowImportAttendanceModal(true)}
                 className="px-3 py-2 bg-surface hover:bg-surface-sunken border border-default text-default font-semibold rounded-xl shadow-2xs transition flex items-center gap-1.5 text-xs cursor-pointer"
-                title="Bulk import biometric punch logs"
+                title={t('hr.importAttendanceTitle')}
               >
                 <Upload className="size-3.5 text-primary" />
-                <span>Import</span>
+                <span>{t('hr.importAttendance')}</span>
               </button>
               <button
                 type="button"
@@ -1803,7 +1811,7 @@ export const HrWorkspace: React.FC = () => {
                 className="px-3 py-2 bg-surface hover:bg-surface-sunken border border-default text-default font-semibold rounded-xl shadow-2xs transition flex items-center gap-1.5 text-xs cursor-pointer"
               >
                 <Download className="size-3.5 text-muted" />
-                <span>Export Log</span>
+                <span>{t('hr.exportLog')}</span>
               </button>
               <button
                 type="button"
@@ -1811,7 +1819,7 @@ export const HrWorkspace: React.FC = () => {
                 className="px-3.5 py-2 bg-primary hover:bg-primary/90 text-primary-fg font-semibold rounded-xl shadow-xs transition flex items-center gap-1.5 text-xs cursor-pointer"
               >
                 <Clock className="size-3.5" />
-                <span>Mark Attendance</span>
+                <span>{t('hr.markAttendance')}</span>
               </button>
             </>
           ) : activeTab === 'leaves' ? (
@@ -1821,20 +1829,20 @@ export const HrWorkspace: React.FC = () => {
               className="px-3.5 py-2 bg-primary hover:bg-primary/90 text-primary-fg font-semibold rounded-xl shadow-xs transition flex items-center gap-1.5 text-xs cursor-pointer"
             >
               <Plus className="size-3.5" />
-              <span>Request Leave</span>
+              <span>{t('hr.requestLeave')}</span>
             </button>
           ) : activeTab === 'salary-structures' ? (
             <div className="flex items-center gap-2">
               <span className="px-3 py-1.5 rounded-xl border border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 text-xs font-semibold flex items-center gap-1.5">
                 <CheckCircle2 className="size-3.5 text-emerald-600" />
-                <span>Salary Packages Active</span>
+                <span>{t('hr.salaryPackagesActive')}</span>
               </span>
             </div>
           ) : activeTab === 'advances' ? (
             <div className="flex items-center gap-2">
               <span className="px-3 py-1.5 rounded-xl border border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300 text-xs font-semibold flex items-center gap-1.5">
                 <CreditCard className="size-3.5 text-amber-600" />
-                <span>Auto-Payroll Recovery Linked</span>
+                <span>{t('hr.autoPayrollRecovery')}</span>
               </span>
             </div>
           ) : activeTab === 'employees' ? (
@@ -1845,7 +1853,7 @@ export const HrWorkspace: React.FC = () => {
                 className="px-3 py-2 bg-surface hover:bg-surface-sunken border border-default text-default font-semibold rounded-xl shadow-2xs transition flex items-center gap-1.5 text-xs cursor-pointer"
               >
                 <Download className="size-3.5 text-muted" />
-                <span>Export Staff</span>
+                <span>{t('hr.exportStaff')}</span>
               </button>
               <button
                 type="button"
@@ -1853,7 +1861,7 @@ export const HrWorkspace: React.FC = () => {
                 className="px-3 py-2 bg-surface hover:bg-surface-sunken border border-default text-default font-semibold rounded-xl shadow-2xs transition flex items-center gap-1.5 text-xs cursor-pointer"
               >
                 <Upload className="size-3.5 text-muted" />
-                <span>Import Staff</span>
+                <span>{t('hr.importStaff')}</span>
               </button>
               <button
                 type="button"
@@ -1861,7 +1869,7 @@ export const HrWorkspace: React.FC = () => {
                 className="px-3.5 py-2 bg-primary hover:bg-primary/90 text-primary-fg font-semibold rounded-xl shadow-xs transition flex items-center gap-1.5 text-xs cursor-pointer"
               >
                 <UserPlus className="size-3.5" />
-                <span>Add Employee</span>
+                <span>{t('hr.addEmployee')}</span>
               </button>
             </>
           ) : (
@@ -1871,7 +1879,7 @@ export const HrWorkspace: React.FC = () => {
               className="px-3.5 py-2 bg-primary hover:bg-primary/90 text-primary-fg font-semibold rounded-xl shadow-xs transition flex items-center gap-1.5 text-xs cursor-pointer"
             >
               <UserPlus className="size-3.5" />
-              <span>Add Employee</span>
+              <span>{t('hr.addEmployee')}</span>
             </button>
           )}
         </div>
@@ -1883,46 +1891,46 @@ export const HrWorkspace: React.FC = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-surface rounded-2xl p-5 shadow-2xs border border-default">
           <div className="text-xs font-semibold uppercase tracking-wider text-muted">
-            Active Workforce
+            {t('hr.activeWorkforce')}
           </div>
           <div className="text-2xl font-extrabold text-default mt-2">
-            {employees.length} Personnel
+            {t('hr.personnelCount', { count: employees.length })}
           </div>
           <div className="text-xs text-muted mt-1">
-            {pieceRateCount} Production Output | {salariedCount} Monthly Salary
+            {t('hr.personnelSubtitle', { pieceRate: pieceRateCount, salaried: salariedCount })}
           </div>
         </div>
 
         <div className="bg-surface rounded-2xl p-5 shadow-2xs border border-default">
           <div className="text-xs font-semibold uppercase tracking-wider text-muted">
-            Monthly Payroll Run
+            {t('hr.monthlyPayrollRun')}
           </div>
           <div className="text-2xl font-extrabold text-primary mt-2 font-mono">
             {formatCurrency(payrollPeriods[0]?.total_net || '0')}
           </div>
           <div className="text-xs text-muted mt-1">
-            Period: {payrollPeriods[0]?.period_code} ({payrollPeriods[0]?.status.toUpperCase()})
+            {t('hr.periodBadge', { period: payrollPeriods[0]?.period_code, status: (payrollPeriods[0]?.status || '').toUpperCase() })}
           </div>
         </div>
 
         <div className="bg-surface rounded-2xl p-5 shadow-2xs border border-default">
           <div className="text-xs font-semibold uppercase tracking-wider text-muted">
-            Today's Present Rate
+            {t('hr.todayPresentRate')}
           </div>
           <div className="text-2xl font-extrabold text-emerald-600 dark:text-emerald-400 mt-2">
             100%
           </div>
-          <div className="text-xs text-muted mt-1">Shift Grace In: 15 Minutes</div>
+          <div className="text-xs text-muted mt-1">{t('hr.shiftGrace')}</div>
         </div>
 
         <div className="bg-surface rounded-2xl p-5 shadow-2xs border border-default">
           <div className="text-xs font-semibold uppercase tracking-wider text-muted">
-            Pending / Approved Leaves
+            {t('hr.pendingApprovedLeaves')}
           </div>
           <div className="text-2xl font-extrabold text-blue-600 dark:text-blue-400 mt-2">
-            {leaveRequests.length} Scheduled
+            {t('hr.scheduledCount', { count: leaveRequests.length })}
           </div>
-          <div className="text-xs text-muted mt-1">Casual & Medical Quota</div>
+          <div className="text-xs text-muted mt-1">{t('hr.leaveQuotaSubtitle')}</div>
         </div>
       </div>
 
@@ -1930,105 +1938,23 @@ export const HrWorkspace: React.FC = () => {
           Universal Workforce & HR Quick-Action Ribbon
           ───────────────────────────────────────────────────────────────────────────── */}
       <div className="rounded-2xl border border-primary/20 bg-linear-to-r from-primary/5 via-surface to-surface-raised p-3.5 shadow-xs">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div>
-            <div className="flex items-center gap-1.5 text-xs font-bold text-default">
-              <Zap className="size-3.5 text-amber-500 fill-amber-500" />
-              <span>Quick Actions • Workforce & Payroll Management</span>
-            </div>
-            <p className="text-[11px] text-muted">
-              Add new team members, log shift attendance, submit leave, or disburse monthly salary payouts with 1 click.
-            </p>
-          </div>
-          <div className="flex items-center gap-2 flex-wrap">
-            <button
-              type="button"
-              onClick={() => void loadHrData(true)}
-              disabled={isSyncingAll}
-              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-surface hover:bg-surface-sunken text-default border border-default shadow-2xs transition-all cursor-pointer disabled:opacity-50"
-              title={lastSyncedTime ? `Last synced with backend: ${lastSyncedTime}` : 'Sync all data with live backend'}
-            >
-              <RefreshCw className={`size-3.5 text-primary ${isSyncingAll ? 'animate-spin' : ''}`} />
-              <span>{isSyncingAll ? 'Syncing...' : 'Sync API'}</span>
-              {lastSyncedTime && (
-                <span className="text-[10px] text-muted font-mono hidden sm:inline ml-0.5">
-                  ({lastSyncedTime})
-                </span>
-              )}
-            </button>
-            <button
-              type="button"
-              onClick={() => setIsKioskModalOpen(true)}
-              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-slate-950 hover:bg-slate-900 text-emerald-400 border border-slate-800 shadow-2xs transition-all cursor-pointer"
-            >
-              <Scan className="size-3.5 text-emerald-400" />
-              <span>Biometric Kiosk</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setShowOnboardModal(true)}
-              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs transition-all cursor-pointer"
-            >
-              <UserPlus className="size-3.5" />
-              <span>Add Employee</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setActiveTab('attendance');
-                setShowMarkAttendanceModal(true);
-              }}
-              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-surface hover:bg-surface-sunken text-default border border-default shadow-2xs transition-all cursor-pointer"
-            >
-              <Clock className="size-3.5 text-primary" />
-              <span>Mark Attendance</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setActiveTab('leaves');
-                setShowLeaveRequestModal(true);
-              }}
-              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-surface hover:bg-surface-sunken text-default border border-default shadow-2xs transition-all cursor-pointer"
-            >
-              <CalendarCheck className="size-3.5 text-blue-500" />
-              <span>Leave Requests</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setActiveTab('payroll');
-                handleExportBankAdvice();
-              }}
-              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-surface hover:bg-surface-sunken text-default border border-default shadow-2xs transition-all cursor-pointer"
-            >
-              <Wallet className="size-3.5 text-emerald-600" />
-              <span>Payroll Advice</span>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* ─────────────────────────────────────────────────────────────────────────────
-          Responsive 8-Stage Numeric Execution Ribbon Grid
-          ───────────────────────────────────────────────────────────────────────────── */}
-      <div className="space-y-3">
+         <div className="space-y-3">
         <div className="flex items-center justify-between gap-2 px-1">
           <div className="flex items-center gap-2">
             <span className="text-xs font-bold uppercase tracking-wider text-muted">
-              HR & Payroll Pipeline Stages
+              {t('hr.pipelineTitle')}
             </span>
             <span className="text-[10px] font-mono text-muted bg-surface-sunken px-2 py-0.5 rounded-full border border-default">
-              Shortcuts: 1-8
+              {t('hr.shortcutHint')}
             </span>
           </div>
           <span className="text-xs font-mono text-muted">
-            Stage {currentStage.step} of 8: {currentStage.label}
+            {t('hr.stageCounter', { step: currentStage.step, total: 8, label: currentStage.label })}
           </span>
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2">
-          {HR_STAGES.map((st) => {
+          {hrStages.map((st) => {
             const Icon = st.icon;
             const isActive = activeTab === st.id;
             return (
@@ -2075,10 +2001,10 @@ export const HrWorkspace: React.FC = () => {
 
         {/* Tier 1: Category Pillars */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
-          {CATEGORIES.map((cat) => {
+          {categories.map((cat) => {
             const Icon = cat.icon;
             const isCatActive = activeCategory === cat.id;
-            const stageRange = cat.id === 'people' ? 'Stages 1-3' : 'Stages 4-8';
+            const stageRange = cat.id === 'people' ? t('hr.stagesRange', { range: '1-3' }) : t('hr.stagesRange', { range: '4-8' });
             return (
               <button
                 key={cat.id}
@@ -2132,7 +2058,7 @@ export const HrWorkspace: React.FC = () => {
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-2 bg-surface rounded-2xl border border-default shadow-2xs">
           {/* Sub-Tabs for Active Category */}
           <div className="flex items-center gap-1.5 overflow-x-auto py-0.5 px-1 scrollbar-none min-w-0">
-            {HR_STAGES
+            {hrStages
               .filter((st) => st.category === activeCategory)
               .map((st) => {
                 const Icon = st.icon;
@@ -2164,7 +2090,7 @@ export const HrWorkspace: React.FC = () => {
                         isActive ? 'bg-white/20 text-white' : 'bg-primary/10 text-primary'
                       }`}
                     >
-                      Stage {st.step}
+                      {t('hr.stageBadge', { step: st.step })}
                     </span>
                     <span
                       className={`text-[10px] font-mono px-1.5 py-0.2 rounded-full shrink-0 ${
@@ -2191,10 +2117,10 @@ export const HrWorkspace: React.FC = () => {
                   ? 'bg-surface-sunken text-default border border-default'
                   : 'text-muted hover:text-default hover:bg-surface-sunken/60 border border-transparent'
               }`}
-              title="Jump directly to any of the 8 HR views"
+              title={t('hr.jumpTitle')}
             >
               <SlidersHorizontal className="size-3.5 text-muted" />
-              <span>All Views</span>
+              <span>{t('hr.allViews')}</span>
               <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-surface-sunken text-muted border border-default">
                 8
               </span>
@@ -2208,7 +2134,7 @@ export const HrWorkspace: React.FC = () => {
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Search workforce views..."
+                    placeholder={t('hr.searchPlaceholder')}
                     autoFocus
                     className="w-full pl-8 pr-7 py-1.5 text-xs bg-surface-sunken rounded-lg border border-default focus:border-primary focus:outline-none text-default"
                   />
@@ -2223,23 +2149,23 @@ export const HrWorkspace: React.FC = () => {
                 </div>
 
                 <div className="max-h-72 overflow-y-auto space-y-1 pr-1">
-                  {CATEGORIES.map((cat) => {
+                  {categories.map((cat) => {
                     const allTabs = [
-                      { id: 'payroll', label: 'Payroll Runs & Payslips', category: 'compensation', icon: Wallet, count: payslips.length },
-                      { id: 'attendance', label: 'Shifts & Attendance', category: 'compensation', icon: Clock, count: attendances.length },
-                      { id: 'leaves', label: 'Leave Management', category: 'compensation', icon: CalendarCheck, count: leaveRequests.length },
-                      { id: 'salary-structures', label: 'Salary Structures & Tiers', category: 'compensation', icon: DollarSign, count: 3 },
-                      { id: 'advances', label: 'Salary Advances & Loans', category: 'compensation', icon: CreditCard, count: 3 },
-                      { id: 'employees', label: 'Employee Directory', category: 'people', icon: Users, count: employees.length },
-                      { id: 'departments', label: 'Departments & Setup', category: 'people', icon: Building2, count: departments.length },
-                      { id: 'performance', label: 'Worker Performance', category: 'people', icon: Zap, count: 4 },
+                      { id: 'payroll', label: t('hr.stages.payroll.label'), category: 'compensation', icon: Wallet, count: payslips.length },
+                      { id: 'attendance', label: t('hr.stages.attendance.label'), category: 'compensation', icon: Clock, count: attendances.length },
+                      { id: 'leaves', label: t('hr.stages.leaves.label'), category: 'compensation', icon: CalendarCheck, count: leaveRequests.length },
+                      { id: 'salary-structures', label: t('hr.stages.salaryStructures.label'), category: 'compensation', icon: DollarSign, count: 3 },
+                      { id: 'advances', label: t('hr.stages.advances.label'), category: 'compensation', icon: CreditCard, count: 3 },
+                      { id: 'employees', label: t('hr.stages.employees.label'), category: 'people', icon: Users, count: employees.length },
+                      { id: 'departments', label: t('hr.stages.departments.label'), category: 'people', icon: Building2, count: departments.length },
+                      { id: 'performance', label: t('hr.stages.performance.label'), category: 'people', icon: Zap, count: 4 },
                     ];
                     const catTabs = allTabs
-                      .filter((t) => t.category === cat.id)
-                      .filter((t) =>
+                      .filter((tItem) => tItem.category === cat.id)
+                      .filter((tItem) =>
                         searchQuery
-                          ? t.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                            t.id.toLowerCase().includes(searchQuery.toLowerCase())
+                          ? tItem.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                            tItem.id.toLowerCase().includes(searchQuery.toLowerCase())
                           : true
                       );
                     if (catTabs.length === 0) return null;
@@ -2262,7 +2188,7 @@ export const HrWorkspace: React.FC = () => {
                                   setActiveTab(tab.id as HrTab);
                                   setQuickJumpOpen(false);
                                 }}
-                                className={`w-full flex items-center justify-between px-2 py-2 rounded-lg text-xs text-left transition cursor-pointer ${
+                                className={`w-full flex items-center justify-between px-2.5 py-2 rounded-lg text-xs text-left transition cursor-pointer ${
                                   isTabActive
                                     ? 'bg-primary text-primary-fg font-semibold'
                                     : 'hover:bg-surface-sunken text-default'
@@ -2292,10 +2218,37 @@ export const HrWorkspace: React.FC = () => {
                       </div>
                     );
                   })}
+
+                  {categories.every((cat) => {
+                    const allTabs = [
+                      { id: 'payroll', label: t('hr.stages.payroll.label'), category: 'compensation' },
+                      { id: 'attendance', label: t('hr.stages.attendance.label'), category: 'compensation' },
+                      { id: 'leaves', label: t('hr.stages.leaves.label'), category: 'compensation' },
+                      { id: 'salary-structures', label: t('hr.stages.salaryStructures.label'), category: 'compensation' },
+                      { id: 'advances', label: t('hr.stages.advances.label'), category: 'compensation' },
+                      { id: 'employees', label: t('hr.stages.employees.label'), category: 'people' },
+                      { id: 'departments', label: t('hr.stages.departments.label'), category: 'people' },
+                      { id: 'performance', label: t('hr.stages.performance.label'), category: 'people' },
+                    ];
+                    const catTabs = allTabs
+                      .filter((tItem) => tItem.category === cat.id)
+                      .filter((tItem) =>
+                        searchQuery
+                          ? tItem.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                            tItem.id.toLowerCase().includes(searchQuery.toLowerCase())
+                          : true
+                      );
+                    return catTabs.length === 0;
+                  }) && (
+                    <div className="py-6 text-center text-xs text-muted">
+                      {t('hr.noViewsFound', { query: searchQuery })}
+                    </div>
+                  )}
                 </div>
               </div>
             )}
           </div>
+        </div>
         </div>
       </div>
 

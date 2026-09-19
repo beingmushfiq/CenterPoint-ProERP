@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { PurchaseOrder } from '../../../types/api/purchasing';
 import type { BusinessConfig } from '../../../lib/document/useBusinessConfig';
 import {
@@ -14,6 +15,7 @@ export interface PurchaseOrderDocumentProps {
 }
 
 export function PurchaseOrderDocument({ po, businessConfig }: PurchaseOrderDocumentProps) {
+  const { t } = useTranslation('documents');
   const barcodeSvg = useMemo(() => {
     return generateBarcodeSvg({
       bcid: 'code128',
@@ -41,7 +43,7 @@ export function PurchaseOrderDocument({ po, businessConfig }: PurchaseOrderDocum
                 {businessConfig.name}
               </h1>
               <p className="text-[7.5pt] font-semibold text-slate-600 tracking-wide uppercase">
-                Procurement & Supply Chain Division
+                {t('procurementDivision')}
               </p>
             </div>
           </div>
@@ -56,18 +58,18 @@ export function PurchaseOrderDocument({ po, businessConfig }: PurchaseOrderDocum
 
         <div className="flex flex-col items-end text-right">
           <h2 className="text-lg font-black text-slate-950 uppercase tracking-tight">
-            Purchase Order
+            {t('purchaseOrder')}
           </h2>
           <div className="font-mono text-xs font-bold text-slate-950 mb-1">
             {po.po_number}
           </div>
           <div className="text-[8pt] text-slate-600 space-y-0.5 font-mono">
             <div>
-              <span className="text-slate-500 font-sans">PO Date: </span>
+              <span className="text-slate-500 font-sans">{t('date')}: </span>
               <span className="font-bold text-slate-900">{formatDocumentDate(po.order_date)}</span>
             </div>
             <div>
-              <span className="text-slate-500 font-sans">Expected Delivery: </span>
+              <span className="text-slate-500 font-sans">{t('expectedDelivery')}: </span>
               <span className="font-bold text-slate-900">{formatDocumentDate(po.expected_delivery_date)}</span>
             </div>
           </div>
@@ -78,26 +80,26 @@ export function PurchaseOrderDocument({ po, businessConfig }: PurchaseOrderDocum
       <div className="grid grid-cols-2 gap-4 bg-slate-50 border border-slate-200 rounded-lg p-3 mb-4 text-[8.5pt]">
         <div>
           <span className="text-[7.5pt] font-bold uppercase tracking-wider text-slate-500 block mb-1">
-            Vendor / Supplier Details
+            {t('vendorDetails')}
           </span>
           <div className="font-bold text-slate-950 text-[9.5pt]">
-            {po.supplier_name || 'Designated Supplier'}
+            {po.supplier_name || t('supplier')}
           </div>
           <div className="text-slate-600 mt-0.5 space-y-0.5">
-            <p>Vendor Code: <span className="font-mono font-semibold text-slate-800">VEN-{po.party_id || '001'}</span></p>
-            <p>Payment Terms: <span className="font-medium text-slate-800">Net 30 Days</span></p>
+            <p>{t('supplier')}: <span className="font-mono font-semibold text-slate-800">VEN-{po.party_id || '001'}</span></p>
+            <p>{t('termsConditions')}: <span className="font-medium text-slate-800">Net 30 Days</span></p>
           </div>
         </div>
 
         <div className="border-l border-slate-200 pl-4 space-y-1">
           <span className="text-[7.5pt] font-bold uppercase tracking-wider text-slate-500 block mb-1">
-            Shipping & Destination Warehouse
+            {t('shippingDestination')}
           </span>
           <div className="font-bold text-slate-900">
             {po.warehouse_name || 'Central Silo & Raw Materials Warehouse'}
           </div>
           <p className="text-slate-600 text-[8pt]">
-            Delivery Address: Plot 42, Tejgaon I/A, Dhaka - 1208, Bangladesh
+            {t('destinationAddress')}: Plot 42, Tejgaon I/A, Dhaka - 1208, Bangladesh
           </p>
         </div>
       </div>
@@ -108,12 +110,12 @@ export function PurchaseOrderDocument({ po, businessConfig }: PurchaseOrderDocum
           <thead className="bg-slate-100 border-b border-slate-300 text-[7.5pt] font-bold uppercase text-slate-700 tracking-wider">
             <tr>
               <th className="py-2 px-2 border-r border-slate-300 w-8 text-center">#</th>
-              <th className="py-2 px-2.5 border-r border-slate-300">Material / Item SKU</th>
-              <th className="py-2 px-2 border-r border-slate-300 text-right w-20">Ordered Qty</th>
-              <th className="py-2 px-2 border-r border-slate-300 text-center w-14">Unit</th>
-              <th className="py-2 px-2 border-r border-slate-300 text-right w-24">Unit Rate ({currencySymbol})</th>
-              <th className="py-2 px-2 border-r border-slate-300 text-right w-20">Tax ({currencySymbol})</th>
-              <th className="py-2 px-2.5 text-right w-28">Total Cost ({currencySymbol})</th>
+              <th className="py-2 px-2.5 border-r border-slate-300">{t('item')}</th>
+              <th className="py-2 px-2 border-r border-slate-300 text-right w-20">{t('receivedQty')}</th>
+              <th className="py-2 px-2 border-r border-slate-300 text-center w-14">{t('unit')}</th>
+              <th className="py-2 px-2 border-r border-slate-300 text-right w-24">{t('rate')} ({currencySymbol})</th>
+              <th className="py-2 px-2 border-r border-slate-300 text-right w-20">{t('vatTax')} ({currencySymbol})</th>
+              <th className="py-2 px-2.5 text-right w-28">{t('amount')} ({currencySymbol})</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-200">
@@ -152,7 +154,7 @@ export function PurchaseOrderDocument({ po, businessConfig }: PurchaseOrderDocum
         <div className="col-span-7 space-y-2">
           <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-lg">
             <span className="text-[7pt] font-bold uppercase tracking-wider text-slate-500 block mb-0.5">
-              Order Valuation in Words
+              {t('orderValuationInWords')}
             </span>
             <p className="font-bold text-slate-900 italic text-[8.5pt]">
               {numberToWords(po.grand_total, 'Taka', 'Paisa')}
@@ -160,7 +162,7 @@ export function PurchaseOrderDocument({ po, businessConfig }: PurchaseOrderDocum
           </div>
           {po.notes && (
             <div className="text-[7.5pt] text-slate-600 p-2 bg-slate-50/50 rounded border border-slate-200">
-              <span className="font-bold uppercase text-slate-700 block">Purchase Instructions:</span>
+              <span className="font-bold uppercase text-slate-700 block">{t('termsConditions')}:</span>
               <p>{po.notes}</p>
             </div>
           )}
@@ -170,15 +172,15 @@ export function PurchaseOrderDocument({ po, businessConfig }: PurchaseOrderDocum
         <div className="col-span-5 border border-slate-300 rounded-lg overflow-hidden text-[8.5pt]">
           <div className="divide-y divide-slate-200 px-3 py-1">
             <div className="flex justify-between py-1 text-slate-600">
-              <span>Subtotal:</span>
+              <span>{t('subtotal')}:</span>
               <span className="font-mono">{formatCurrency(po.subtotal_amount)}</span>
             </div>
             <div className="flex justify-between py-1 text-slate-600">
-              <span>Tax / VAT Amount:</span>
+              <span>{t('vatTax')}:</span>
               <span className="font-mono">{formatCurrency(po.tax_amount)}</span>
             </div>
             <div className="flex justify-between py-1.5 font-bold text-slate-950 text-[10pt] border-t-2 border-slate-900 bg-slate-50">
-              <span>Total Purchase Order Value:</span>
+              <span>{t('grandTotal')}:</span>
               <span className="font-mono">{formatCurrency(po.grand_total)}</span>
             </div>
           </div>
@@ -189,17 +191,17 @@ export function PurchaseOrderDocument({ po, businessConfig }: PurchaseOrderDocum
       <div className="grid grid-cols-3 gap-6 pt-6 mt-3 border-t border-slate-200 text-center text-[7.5pt] break-inside-avoid">
         <div>
           <div className="border-t border-slate-400 pt-1 font-semibold text-slate-800">
-            Procurement Officer
+            {t('procurementOfficer')}
           </div>
         </div>
         <div>
           <div className="border-t border-slate-400 pt-1 font-semibold text-slate-800">
-            Head of Factory Operations
+            {t('factoryOperationsHead')}
           </div>
         </div>
         <div>
           <div className="border-t border-slate-400 pt-1 font-semibold text-slate-800">
-            Supplier Acceptance & Seal
+            {t('supplierAcceptanceSeal')}
           </div>
         </div>
       </div>

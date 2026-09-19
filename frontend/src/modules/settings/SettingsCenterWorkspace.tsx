@@ -84,6 +84,7 @@ import { SettingsPreviewDispatcher } from './components/SettingsPreviewDispatche
 import { SETTINGS_SUBGROUPS, type SubgroupDefinition } from './config/settingsSubgroups';
 import { SEGMENTED_OPTIONS } from './config/segmentedOptions';
 import { useWorkspaceTab } from '../../hooks/useWorkspaceTab';
+import { useTranslation } from 'react-i18next';
 import type {
   SettingsSchemaDictionary,
   SettingItem,
@@ -155,37 +156,6 @@ const GROUP_LABELS: Record<string, string> = {
   bin: 'Data Bin & Recovery Vault',
 };
 
-const CATEGORIES = [
-  {
-    name: 'Command Center',
-    groups: ['overview'],
-  },
-  {
-    name: 'Company & Governance',
-    groups: ['general', 'roles', 'audit_logs', 'bin', 'profile'],
-  },
-  {
-    name: 'Architecture & Customization',
-    groups: ['modules', 'workflows', 'terminology', 'production_stages', 'custom_fields', 'documents'],
-  },
-  {
-    name: 'Manufacturing & Stock',
-    groups: ['production', 'inventory', 'qc', 'assets'],
-  },
-  {
-    name: 'Procurement & Commercial',
-    groups: ['purchase', 'sales', 'pos'],
-  },
-  {
-    name: 'E-Commerce & Storefront',
-    groups: ['ecommerce', 'custom_domains', 'seo'],
-  },
-  {
-    name: 'Logistics & External Services',
-    groups: ['delivery', 'integrations', 'finance', 'hr_payroll', 'notifications', 'security', 'reports'],
-  },
-];
-
 type SettingFieldValue = string | number | boolean | string[] | Record<string, unknown>;
 
 function extractErrorMessage(err: unknown, fallback: string): string {
@@ -196,7 +166,51 @@ function extractErrorMessage(err: unknown, fallback: string): string {
 }
 
 export const SettingsCenterWorkspace: React.FC = () => {
+  const { t } = useTranslation();
   const [schema, setSchema] = useState<SettingsSchemaDictionary>({});
+
+  const getGroupLabel = useCallback(
+    (key: string): string => {
+      const i18nKey = `settings.groupLabels.${key}`;
+      return t(i18nKey as any, { defaultValue: GROUP_LABELS[key] || schema[key]?.title || key });
+    },
+    [t, schema]
+  );
+
+  const localizedCategories = useMemo(
+    () => [
+      {
+        name: t('settings.categories.commandCenter'),
+        groups: ['overview'],
+      },
+      {
+        name: t('settings.categories.governance'),
+        groups: ['general', 'roles', 'audit_logs', 'bin', 'profile'],
+      },
+      {
+        name: t('settings.categories.customization'),
+        groups: ['modules', 'workflows', 'terminology', 'production_stages', 'custom_fields', 'documents'],
+      },
+      {
+        name: t('settings.categories.manufacturing'),
+        groups: ['production', 'inventory', 'qc', 'assets'],
+      },
+      {
+        name: t('settings.categories.commercial'),
+        groups: ['purchase', 'sales', 'pos'],
+      },
+      {
+        name: t('settings.categories.storefront'),
+        groups: ['ecommerce', 'custom_domains', 'seo'],
+      },
+      {
+        name: t('settings.categories.services'),
+        groups: ['delivery', 'integrations', 'finance', 'hr_payroll', 'notifications', 'security', 'reports'],
+      },
+    ],
+    [t]
+  );
+
   const [activeGroup, setActiveGroup] = useWorkspaceTab<string>(
     'overview',
     [
@@ -667,7 +681,7 @@ export const SettingsCenterWorkspace: React.FC = () => {
           <div className="space-y-1.5">
             <div className="flex items-center gap-2 flex-wrap">
               <Badge tone="primary-subtle" icon={Sparkles}>
-                Enterprise Governance Center
+                {t('settings.workspaceBadge')}
               </Badge>
               {activeGroup !== 'overview' && (
                 <div className="flex items-center gap-1.5 text-2xs text-muted">
@@ -676,21 +690,21 @@ export const SettingsCenterWorkspace: React.FC = () => {
                     onClick={() => setActiveGroup('overview')}
                     className="hover:text-primary transition-colors cursor-pointer"
                   >
-                    Overview
+                    {t('settings.overviewLink')}
                   </button>
                   <span>/</span>
                   <span className="text-default font-semibold">
-                    {GROUP_LABELS[activeGroup] || activeGroupMeta?.title || activeGroup}
+                    {getGroupLabel(activeGroup)}
                   </span>
                 </div>
               )}
             </div>
             <h1 className="text-xl font-bold tracking-tight text-default flex items-center gap-2.5">
               <Settings className="size-6 text-primary" aria-hidden="true" />
-              Settings & Configuration
+              {t('settings.title')}
             </h1>
             <p className="text-muted text-xs sm:text-sm max-w-2xl leading-relaxed">
-              Unified governance hub for organizational identities, staff RBAC permissions, manufacturing routing, API credentials, and storefront domains.
+              {t('settings.subtitle')}
             </p>
           </div>
 
@@ -702,7 +716,7 @@ export const SettingsCenterWorkspace: React.FC = () => {
             >
               <div className="flex items-center gap-2">
                 <Search className="size-4 text-primary" />
-                <span>Search all 120+ settings...</span>
+                <span>{t('settings.searchPlaceholder')}</span>
               </div>
               <kbd className="hidden sm:inline-flex items-center gap-0.5 px-1.5 py-0.5 text-2xs font-mono text-muted bg-surface border border-default rounded">
                 /
@@ -720,7 +734,7 @@ export const SettingsCenterWorkspace: React.FC = () => {
               className: 'size-4 text-primary shrink-0',
             })}
             <span className="text-xs font-bold text-default truncate">
-              {GROUP_LABELS[activeGroup] || activeGroup}
+              {getGroupLabel(activeGroup)}
             </span>
             {hasChanges && (
               <span className="size-2 rounded-full bg-accent animate-pulse shrink-0" title="Unsaved changes" />
@@ -731,14 +745,14 @@ export const SettingsCenterWorkspace: React.FC = () => {
               type="button"
               onClick={() => {
                 if (hasChanges) {
-                  notify.info('You have unsaved changes. Please save or discard before switching.');
+                  notify.info(t('settings.unsavedChangesWarning'));
                   return;
                 }
                 setActiveGroup('overview');
               }}
               className="px-2 py-1 text-2xs font-semibold rounded-lg bg-surface-sunken hover:bg-surface-raised border border-default text-muted hover:text-default transition-colors shrink-0"
             >
-              Overview Hub
+              {t('settings.overviewHubBtn')}
             </button>
           )}
         </div>
@@ -749,18 +763,18 @@ export const SettingsCenterWorkspace: React.FC = () => {
             onChange={(e) => {
               const next = e.target.value;
               if (hasChanges) {
-                notify.info('You have unsaved changes. Please save or discard before switching.');
+                notify.info(t('settings.unsavedChangesWarning'));
                 return;
               }
               setActiveGroup(next);
             }}
             className="w-full appearance-none rounded-xl border border-default bg-surface-sunken/60 py-2 pl-3 pr-8 text-xs font-semibold text-default focus:border-primary focus:outline-none transition-colors"
           >
-            {CATEGORIES.map((cat) => (
+            {localizedCategories.map((cat) => (
               <optgroup key={cat.name} label={cat.name}>
                 {cat.groups.map((groupKey) => (
                   <option key={groupKey} value={groupKey}>
-                    {GROUP_LABELS[groupKey] || groupKey}
+                    {getGroupLabel(groupKey)}
                   </option>
                 ))}
               </optgroup>
@@ -778,7 +792,7 @@ export const SettingsCenterWorkspace: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
         {/* Left Navigation Rail (Desktop) */}
         <div className="hidden lg:block lg:col-span-1 space-y-5 bg-surface border border-default rounded-(--card-radius) p-3.5 shadow-xs sticky top-20">
-          {CATEGORIES.map((cat) => (
+          {localizedCategories.map((cat) => (
             <div key={cat.name} className="space-y-1">
               <div className="px-2.5 py-1 text-3xs font-bold uppercase tracking-wider text-muted flex items-center justify-between">
                 <span>{cat.name}</span>
@@ -786,19 +800,16 @@ export const SettingsCenterWorkspace: React.FC = () => {
               </div>
               <div className="space-y-0.5">
                 {cat.groups.map((groupKey) => {
-                  const meta = schema[groupKey];
                   const Icon = GROUP_ICONS[groupKey] || Settings;
                   const isActive = activeGroup === groupKey;
-                  const label = GROUP_LABELS[groupKey] || meta?.title || groupKey;
+                  const label = getGroupLabel(groupKey);
 
                   return (
                     <button
                       key={groupKey}
                       onClick={() => {
                         if (hasChanges) {
-                          notify.info(
-                            'You have unsaved changes in this domain. Please save or discard before switching.'
-                          );
+                          notify.info(t('settings.unsavedChangesWarning'));
                           return;
                         }
                         setActiveGroup(groupKey);

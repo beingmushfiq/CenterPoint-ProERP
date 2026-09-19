@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { api } from '../../lib/api/client';
 import type { PlatformAuditLog } from '../../types/api/platform';
 import { SelectDropdown } from '../../components/ui/Dropdown';
@@ -25,6 +26,7 @@ interface AuditResponsePayload {
 }
 
 export const PlatformAuditWorkspace: React.FC = () => {
+  const { t } = useTranslation(['platform', 'common']);
   const [selectedLog, setSelectedLog] = useState<PlatformAuditLog | null>(null);
 
   // Filters & Pagination
@@ -51,7 +53,7 @@ export const PlatformAuditWorkspace: React.FC = () => {
   const columns: ResponsiveColumn<PlatformAuditLog>[] = [
     {
       id: 'action',
-      header: 'Action',
+      header: t('platform.auditLogs.columns.action'),
       isPrimary: true,
       isStatus: true,
       priority: 'high',
@@ -63,7 +65,7 @@ export const PlatformAuditWorkspace: React.FC = () => {
     },
     {
       id: 'entity',
-      header: 'Auditable Entity',
+      header: t('platform.auditLogs.columns.entity'),
       priority: 'high',
       cell: (log) => (
         <span className="text-default font-semibold">
@@ -73,7 +75,7 @@ export const PlatformAuditWorkspace: React.FC = () => {
     },
     {
       id: 'tenant',
-      header: 'Tenant Scope',
+      header: t('platform.auditLogs.columns.tenant'),
       priority: 'medium',
       cell: (log) => (
         <span className="text-muted text-[11px]">
@@ -83,7 +85,7 @@ export const PlatformAuditWorkspace: React.FC = () => {
     },
     {
       id: 'actor',
-      header: 'Super Admin Actor',
+      header: t('platform.auditLogs.columns.actor'),
       priority: 'medium',
       cell: (log) => (
         <span className="text-default font-medium">
@@ -93,7 +95,7 @@ export const PlatformAuditWorkspace: React.FC = () => {
     },
     {
       id: 'timestamp',
-      header: 'Timestamp',
+      header: t('platform.auditLogs.columns.timestamp'),
       priority: 'low',
       cell: (log) => (
         <span className="text-muted text-[11px]">
@@ -103,7 +105,7 @@ export const PlatformAuditWorkspace: React.FC = () => {
     },
     {
       id: 'inspection',
-      header: 'Inspection',
+      header: t('platform.auditLogs.columns.details'),
       isAction: true,
       priority: 'high',
       headerClassName: 'text-right',
@@ -114,7 +116,7 @@ export const PlatformAuditWorkspace: React.FC = () => {
           className="px-2.5 py-1 rounded-lg bg-surface-sunken hover:bg-surface border border-default text-default text-[11px] inline-flex items-center gap-1 transition-colors cursor-pointer"
         >
           <Eye className="w-3 h-3" />
-          <span>Inspect</span>
+          <span>{t('platform.auditLogs.columns.details')}</span>
         </button>
       ),
     },
@@ -131,10 +133,10 @@ export const PlatformAuditWorkspace: React.FC = () => {
             </span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-default">
-            Platform Immutable Audit Trail
+            {t('platform.auditLogs.title')}
           </h1>
           <p className="mt-1 text-xs text-muted max-w-2xl leading-relaxed font-mono">
-            Cryptographically sealed timeline of all administrative mutations, tenant state modifications, and overrides.
+            {t('platform.auditLogs.description')}
           </p>
         </div>
 
@@ -143,7 +145,7 @@ export const PlatformAuditWorkspace: React.FC = () => {
             onClick={() => refetch()}
             disabled={isFetching}
             className="p-2.5 rounded-xl bg-surface-sunken border border-default hover:bg-surface text-default text-xs font-mono flex items-center gap-1.5 transition-all cursor-pointer shadow-xs disabled:opacity-50"
-            title="Refresh Audit Trail"
+            title={t('platform.auditLogs.refresh')}
           >
             <RefreshCw className={`size-4 ${isFetching ? 'animate-spin text-amber-500' : ''}`} />
           </button>
@@ -155,7 +157,7 @@ export const PlatformAuditWorkspace: React.FC = () => {
         <div className="flex flex-wrap items-center gap-4">
           <div className="flex items-center gap-2">
             <Filter className="size-4 text-muted" />
-            <span className="text-default font-bold">Filters:</span>
+            <span className="text-default font-bold">{t('platform.auditLogs.filters.filter')}:</span>
           </div>
           <div className="w-40 max-w-full">
             <SelectDropdown
@@ -165,7 +167,7 @@ export const PlatformAuditWorkspace: React.FC = () => {
                 setPage(1);
               }}
               options={[
-                { value: 'all', label: 'All Entity Types' },
+                { value: 'all', label: t('platform.auditLogs.filters.allEntities') },
                 { value: 'Tenant', label: 'Tenant' },
                 { value: 'Plan', label: 'Plan' },
                 { value: 'User', label: 'User' },
@@ -181,7 +183,7 @@ export const PlatformAuditWorkspace: React.FC = () => {
                 setPage(1);
               }}
               options={[
-                { value: 'all', label: 'All Action Events' },
+                { value: 'all', label: t('platform.auditLogs.filters.allActions') },
                 { value: 'tenant.create', label: 'Tenant Created' },
                 { value: 'tenant.update', label: 'Tenant Updated' },
                 { value: 'tenant.status_change', label: 'Status Changed' },
@@ -202,7 +204,7 @@ export const PlatformAuditWorkspace: React.FC = () => {
           columns={columns}
           keyExtractor={(log) => log.id}
           loading={isLoading}
-          emptyMessage="No audit log records match the current filter"
+          emptyMessage={t('platform.auditLogs.emptyMessage')}
         />
 
         {/* Pagination Bar */}
@@ -240,7 +242,7 @@ export const PlatformAuditWorkspace: React.FC = () => {
             <div className="sm:hidden w-12 h-1.5 rounded-full bg-surface-sunken mx-auto mb-3" aria-hidden="true" />
             <div className="flex items-center justify-between border-b border-default pb-3 mb-4">
               <h2 className="text-base font-bold text-default font-sans">
-                Audit Record #{selectedLog.id} Detail
+                {t('platform.auditLogs.modal.title')} #{selectedLog.id}
               </h2>
               <span className="px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 font-bold uppercase text-[10px]">
                 {selectedLog.action}
@@ -249,26 +251,26 @@ export const PlatformAuditWorkspace: React.FC = () => {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4 text-[11px]">
               <div>
-                <span className="text-muted block">Actor:</span>
+                <span className="text-muted block">{t('platform.auditLogs.modal.actorId')}</span>
                 <span className="text-default font-semibold">{selectedLog.user?.name ?? 'System'} ({selectedLog.user?.email ?? 'N/A'})</span>
               </div>
               <div>
-                <span className="text-muted block">IP Address:</span>
+                <span className="text-muted block">{t('platform.auditLogs.modal.ipAddress')}</span>
                 <span className="text-default">{selectedLog.ip ?? '127.0.0.1'}</span>
               </div>
               <div>
-                <span className="text-muted block">Entity:</span>
+                <span className="text-muted block">{t('platform.auditLogs.modal.entityType')}</span>
                 <span className="text-default">{selectedLog.auditable_type} #{selectedLog.auditable_id}</span>
               </div>
               <div>
-                <span className="text-muted block">Timestamp:</span>
+                <span className="text-muted block">{t('platform.auditLogs.modal.createdAt')}</span>
                 <span className="text-default">{new Date(selectedLog.created_at).toLocaleString()}</span>
               </div>
             </div>
 
             {selectedLog.before && (
               <div className="mb-4">
-                <span className="text-muted block mb-1 font-bold">State Before Mutation:</span>
+                <span className="text-muted block mb-1 font-bold">{t('platform.auditLogs.modal.oldValues')}:</span>
                 <pre className="p-3 rounded-xl bg-surface-sunken border border-default text-[10px] text-rose-600 dark:text-rose-300 overflow-x-auto max-w-full">
                   {JSON.stringify(selectedLog.before, null, 2)}
                 </pre>
@@ -277,7 +279,7 @@ export const PlatformAuditWorkspace: React.FC = () => {
 
             {selectedLog.after && (
               <div className="mb-4">
-                <span className="text-muted block mb-1 font-bold">State After Mutation:</span>
+                <span className="text-muted block mb-1 font-bold">{t('platform.auditLogs.modal.newValues')}:</span>
                 <pre className="p-3 rounded-xl bg-surface-sunken border border-default text-[10px] text-emerald-600 dark:text-emerald-300 overflow-x-auto max-w-full">
                   {JSON.stringify(selectedLog.after, null, 2)}
                 </pre>
@@ -289,7 +291,7 @@ export const PlatformAuditWorkspace: React.FC = () => {
                 onClick={() => setSelectedLog(null)}
                 className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-surface-sunken hover:bg-surface border border-default text-default font-bold cursor-pointer"
               >
-                Close Dossier
+                {t('platform.auditLogs.modal.close')}
               </button>
             </div>
           </div>

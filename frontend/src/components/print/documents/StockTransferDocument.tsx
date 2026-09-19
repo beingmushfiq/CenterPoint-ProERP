@@ -3,6 +3,7 @@ import type { StockTransfer } from '../../../types/api/inventory';
 import type { BusinessConfig } from '../../../lib/document/useBusinessConfig';
 import { formatDocumentDate } from '../../../lib/document/formatters';
 import { generateBarcodeSvg } from '../../../lib/barcode/engine';
+import { useTranslation } from 'react-i18next';
 
 export interface StockTransferDocumentProps {
   transfer: StockTransfer;
@@ -10,6 +11,7 @@ export interface StockTransferDocumentProps {
 }
 
 export function StockTransferDocument({ transfer, businessConfig }: StockTransferDocumentProps) {
+  const { t } = useTranslation('documents');
   const barcodeSvg = useMemo(() => {
     return generateBarcodeSvg({
       bcid: 'code128',
@@ -36,7 +38,7 @@ export function StockTransferDocument({ transfer, businessConfig }: StockTransfe
                 {businessConfig.name}
               </h1>
               <p className="text-[7.5pt] font-semibold text-slate-600 tracking-wide uppercase">
-                Inter-Warehouse Stock Transfer Manifest
+                {t('transferSubtitle')}
               </p>
             </div>
           </div>
@@ -47,13 +49,13 @@ export function StockTransferDocument({ transfer, businessConfig }: StockTransfe
 
         <div className="flex flex-col items-end text-right">
           <h2 className="text-lg font-black text-slate-950 uppercase tracking-tight">
-            Transfer Manifest
+            {t('transferManifest')}
           </h2>
           <div className="font-mono text-xs font-bold text-slate-950 mb-1">
             {transfer.transfer_number}
           </div>
           <div className="text-[8pt] text-slate-600 font-mono">
-            <span>Transfer Date: </span>
+            <span>{t('transferDate')}: </span>
             <span className="font-bold text-slate-900">{formatDocumentDate(transfer.transfer_date)}</span>
           </div>
         </div>
@@ -63,7 +65,7 @@ export function StockTransferDocument({ transfer, businessConfig }: StockTransfe
       <div className="grid grid-cols-2 gap-4 bg-slate-50 border border-slate-200 rounded-lg p-3 mb-4 text-[8.5pt]">
         <div>
           <span className="text-[7.5pt] font-bold uppercase tracking-wider text-slate-500 block mb-1">
-            Source Dispatch Warehouse
+            {t('sourceWarehouse')}
           </span>
           <div className="font-bold text-slate-950 text-[9.5pt]">
             {transfer.from_warehouse_name}
@@ -72,7 +74,7 @@ export function StockTransferDocument({ transfer, businessConfig }: StockTransfe
 
         <div className="border-l border-slate-200 pl-4">
           <span className="text-[7.5pt] font-bold uppercase tracking-wider text-slate-500 block mb-1">
-            Target Destination Warehouse
+            {t('targetWarehouse')}
           </span>
           <div className="font-bold text-slate-950 text-[9.5pt]">
             {transfer.to_warehouse_name}
@@ -86,11 +88,11 @@ export function StockTransferDocument({ transfer, businessConfig }: StockTransfe
           <thead className="bg-slate-100 border-b border-slate-300 text-[7.5pt] font-bold uppercase text-slate-700 tracking-wider">
             <tr>
               <th className="py-2 px-2 border-r border-slate-300 w-8 text-center">#</th>
-              <th className="py-2 px-2.5 border-r border-slate-300">Item Description</th>
-              <th className="py-2 px-2 border-r border-slate-300 text-center w-28">Batch / Lot #</th>
-              <th className="py-2 px-2 border-r border-slate-300 text-right w-24">Sent Qty</th>
-              <th className="py-2 px-2 border-r border-slate-300 text-right w-24">Received Qty</th>
-              <th className="py-2 px-2.5 text-center w-14">Unit</th>
+              <th className="py-2 px-2.5 border-r border-slate-300">{t('item')}</th>
+              <th className="py-2 px-2 border-r border-slate-300 text-center w-28">{t('batchNo')}</th>
+              <th className="py-2 px-2 border-r border-slate-300 text-right w-24">{t('sentQty')}</th>
+              <th className="py-2 px-2 border-r border-slate-300 text-right w-24">{t('receivedQty')}</th>
+              <th className="py-2 px-2.5 text-center w-14">{t('unit')}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-200">
@@ -123,7 +125,7 @@ export function StockTransferDocument({ transfer, businessConfig }: StockTransfe
       {/* Notes & Barcode */}
       <div className="grid grid-cols-2 gap-4 mb-6">
         <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-[8pt]">
-          <span className="font-bold text-slate-700 block mb-1">Transfer Remarks & Route:</span>
+          <span className="font-bold text-slate-700 block mb-1">{t('transferRemarks')}:</span>
           <p className="text-slate-600">{transfer.notes || 'Inter-facility scheduled inventory transfer.'}</p>
         </div>
         <div className="flex justify-end items-center">
@@ -135,17 +137,17 @@ export function StockTransferDocument({ transfer, businessConfig }: StockTransfe
       <div className="grid grid-cols-3 gap-6 pt-6 mt-4 border-t border-slate-200 text-center text-[7.5pt] break-inside-avoid">
         <div>
           <div className="border-t border-slate-400 pt-1 font-semibold text-slate-800">
-            Dispatching Storekeeper
+            {t('dispatchStorekeeper')}
           </div>
         </div>
         <div>
           <div className="border-t border-slate-400 pt-1 font-semibold text-slate-800">
-            Transfer Vehicle Driver
+            {t('vehicleDriver')}
           </div>
         </div>
         <div>
           <div className="border-t border-slate-400 pt-1 font-semibold text-slate-800">
-            Receiving Storekeeper Sign-off
+            {t('storekeeperSignoff')}
           </div>
         </div>
       </div>

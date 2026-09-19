@@ -1,5 +1,6 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import {
   FileText,
   Receipt,
@@ -20,6 +21,7 @@ import {
   Zap,
   Check,
   ArrowLeftRight,
+  Tag,
 } from 'lucide-react';
 import { SalesOrdersSection } from './sections/SalesOrdersSection';
 import { InvoicesSection } from './sections/InvoicesSection';
@@ -34,7 +36,6 @@ import { SalesmanTargetsSection } from './sections/SalesmanTargetsSection';
 import { IncentivesSection } from './sections/IncentivesSection';
 import { SalesmanDashboardSection } from './sections/SalesmanDashboardSection';
 import { PriceListsSection } from './sections/PriceListsSection';
-import { Tag } from 'lucide-react';
 
 import { useWorkspaceTab } from '../../hooks/useWorkspaceTab';
 import { Modal } from '../../components/ui/Modal';
@@ -97,173 +98,8 @@ interface CategoryConfig {
   badge: string;
 }
 
-const CATEGORIES: CategoryConfig[] = [
-  {
-    id: 'operations',
-    label: 'Orders & Invoicing',
-    tagline: 'Sales Orders, Invoices, Dispatch, Payments & Exchanges',
-    icon: Layers,
-    tabs: ['orders', 'invoices', 'deliveries', 'payments', 'returns', 'exchanges'],
-    defaultTab: 'orders',
-    shortcut: '1',
-    badge: '6 Capabilities',
-  },
-  {
-    id: 'crm',
-    label: 'Customer Leads & CRM',
-    tagline: 'Commercial Leads & Customer Accounts',
-    icon: Users,
-    tabs: ['leads', 'customers', 'pricelists'],
-    defaultTab: 'leads',
-    shortcut: '2',
-    badge: '3 Capabilities',
-  },
-  {
-    id: 'performance',
-    label: 'Sales Team & Commissions',
-    tagline: 'Sales Reps, Monthly Targets & Commission Bonuses',
-    icon: TrendingUp,
-    tabs: ['salesmen', 'targets', 'incentives', 'dashboard'],
-    defaultTab: 'salesmen',
-    shortcut: '3',
-    badge: '4 Capabilities',
-  },
-];
-
-const TABS: TabConfig[] = [
-  {
-    id: 'orders',
-    label: 'Sales Orders',
-    shortLabel: 'Orders',
-    category: 'operations',
-    step: 1,
-    icon: ShoppingCart,
-    description: 'Track and approve customer purchase orders from quote to delivery',
-    highlights: ['Multi-channel order capture', 'Order status progression', 'Direct invoice generation'],
-  },
-  {
-    id: 'invoices',
-    label: 'Invoices & Billing',
-    shortLabel: 'Invoices',
-    category: 'operations',
-    step: 2,
-    icon: FileText,
-    description: 'Customer invoices, payment terms, VAT calculation and payment due dates',
-    highlights: ['VAT tax invoices', 'Due dates & payment terms', 'Direct ledger posting'],
-  },
-  {
-    id: 'deliveries',
-    label: 'Deliveries & Dispatch',
-    shortLabel: 'Deliveries',
-    category: 'operations',
-    step: 3,
-    icon: Truck,
-    description: 'Warehouse dispatch, stock deduction, packing slips and delivery receipts',
-    highlights: ['Stock deduction dispatch', 'Gate pass & packing slips', 'Proof of delivery'],
-  },
-  {
-    id: 'payments',
-    label: 'Payments & Receipts',
-    shortLabel: 'Payments',
-    category: 'operations',
-    step: 4,
-    icon: Receipt,
-    description: 'Record customer payments, cash/bank receipts and reconcile open invoices',
-    highlights: ['Multi-tender collection', 'Invoice reconciliation', 'Instant cash/bank receipts'],
-  },
-  {
-    id: 'returns',
-    label: 'Customer Returns & Refunds',
-    shortLabel: 'Returns',
-    category: 'operations',
-    badge: 'Returns',
-    icon: Undo2,
-    description: 'Process returned items, issue credit notes and restock good inventory',
-    highlights: ['Condition inspection', 'Credit note refunds', 'Automatic warehouse restock'],
-  },
-  {
-    id: 'exchanges',
-    label: 'Product Exchanges',
-    shortLabel: 'Exchanges',
-    category: 'operations',
-    badge: 'Exchange',
-    icon: ArrowLeftRight,
-    description: 'Swap returned products for replacements in one atomic transaction with auto-calculated difference',
-    highlights: ['Return + dispatch in one step', 'Auto difference calculation', 'POS & B2B support'],
-  },
-  {
-    id: 'leads',
-    label: 'Customer Leads',
-    shortLabel: 'Leads',
-    category: 'crm',
-    badge: 'Leads',
-    icon: UserCheck,
-    description: 'Track potential buyers, qualify deals and turn leads into active customers',
-    highlights: ['Deal stages pipeline', 'Follow-up scheduling', '1-click customer conversion'],
-  },
-  {
-    id: 'customers',
-    label: 'Customer Directory',
-    shortLabel: 'Customers',
-    category: 'crm',
-    badge: 'Accounts',
-    icon: Users,
-    description: 'Full customer list, contact details, past purchases and unpaid balance statements',
-    highlights: ['Statement of accounts', 'Credit limits & balances', 'Contact profiles'],
-  },
-  {
-    id: 'pricelists',
-    label: 'Customer Price Lists',
-    shortLabel: 'Price Lists',
-    category: 'crm',
-    badge: 'Pricing',
-    icon: Tag,
-    description: 'Tiered customer price schedules, wholesale rates, and quantity break matrix',
-    highlights: ['Multi-tier pricing matrix', 'Quantity break discounts', 'Excel/CSV bulk sync'],
-  },
-  {
-    id: 'salesmen',
-    label: 'Sales Representatives',
-    shortLabel: 'Sales Reps',
-    category: 'performance',
-    badge: 'Profiles',
-    icon: UserCheck,
-    description: 'Sales team member profiles, assigned regions, contact info and performance',
-    highlights: ['Territory assignments', 'Performance index', 'Commission earnings profile'],
-  },
-  {
-    id: 'targets',
-    label: 'Monthly Targets',
-    shortLabel: 'Sales Targets',
-    category: 'performance',
-    badge: 'Goals',
-    icon: Target,
-    description: 'Set monthly sales targets, revenue quotas and track rep achievements',
-    highlights: ['Monthly volume & revenue quotas', 'Deficit variance alerts', 'Historical audit'],
-  },
-  {
-    id: 'incentives',
-    label: 'Commissions & Bonuses',
-    shortLabel: 'Commissions',
-    category: 'performance',
-    badge: 'Bonuses',
-    icon: Award,
-    description: 'Commission calculation rules, bonus payouts and manager approvals',
-    highlights: ['Tiered commission formulas', 'Automated payout calculation', 'Approval workflow gate'],
-  },
-  {
-    id: 'dashboard',
-    label: 'Rep Performance Dashboard',
-    shortLabel: 'Rep Dashboard',
-    category: 'performance',
-    badge: 'Analytics',
-    icon: TrendingUp,
-    description: 'Personal sales dashboard with live target progress, active deals and earned bonuses',
-    highlights: ['Real-time quota gauges', 'Active deal stage tracker', 'Monthly bonus projection'],
-  },
-];
-
 export default function SalesWorkspace() {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useWorkspaceTab<SalesTab>('orders', VALID_TABS);
   const [selectedSalesmanId, setSelectedSalesmanId] = useState<number | null>(null);
   const [quickJumpOpen, setQuickJumpOpen] = useState(false);
@@ -271,11 +107,183 @@ export default function SalesWorkspace() {
   const [searchQuery, setSearchQuery] = useState('');
   const quickJumpRef = useRef<HTMLDivElement>(null);
 
+  const categories: CategoryConfig[] = useMemo(
+    () => [
+      {
+        id: 'operations',
+        label: t('sales.categories.operations.label'),
+        tagline: t('sales.categories.operations.tagline'),
+        icon: Layers,
+        tabs: ['orders', 'invoices', 'deliveries', 'payments', 'returns', 'exchanges'],
+        defaultTab: 'orders',
+        shortcut: '1',
+        badge: t('sales.categories.operations.badge'),
+      },
+      {
+        id: 'crm',
+        label: t('sales.categories.crm.label'),
+        tagline: t('sales.categories.crm.tagline'),
+        icon: Users,
+        tabs: ['leads', 'customers', 'pricelists'],
+        defaultTab: 'leads',
+        shortcut: '2',
+        badge: t('sales.categories.crm.badge'),
+      },
+      {
+        id: 'performance',
+        label: t('sales.categories.performance.label'),
+        tagline: t('sales.categories.performance.tagline'),
+        icon: TrendingUp,
+        tabs: ['salesmen', 'targets', 'incentives', 'dashboard'],
+        defaultTab: 'salesmen',
+        shortcut: '3',
+        badge: t('sales.categories.performance.badge'),
+      },
+    ],
+    [t]
+  );
+
+  const tabs: TabConfig[] = useMemo(
+    () => [
+      {
+        id: 'orders',
+        label: t('sales.tabs.orders.label'),
+        shortLabel: t('sales.tabs.orders.shortLabel'),
+        category: 'operations',
+        step: 1,
+        icon: ShoppingCart,
+        description: t('sales.tabs.orders.description'),
+        highlights: (t('sales.tabs.orders.highlights', { returnObjects: true }) as string[]) || [],
+      },
+      {
+        id: 'invoices',
+        label: t('sales.tabs.invoices.label'),
+        shortLabel: t('sales.tabs.invoices.shortLabel'),
+        category: 'operations',
+        step: 2,
+        icon: FileText,
+        description: t('sales.tabs.invoices.description'),
+        highlights: (t('sales.tabs.invoices.highlights', { returnObjects: true }) as string[]) || [],
+      },
+      {
+        id: 'deliveries',
+        label: t('sales.tabs.deliveries.label'),
+        shortLabel: t('sales.tabs.deliveries.shortLabel'),
+        category: 'operations',
+        step: 3,
+        icon: Truck,
+        description: t('sales.tabs.deliveries.description'),
+        highlights: (t('sales.tabs.deliveries.highlights', { returnObjects: true }) as string[]) || [],
+      },
+      {
+        id: 'payments',
+        label: t('sales.tabs.payments.label'),
+        shortLabel: t('sales.tabs.payments.shortLabel'),
+        category: 'operations',
+        step: 4,
+        icon: Receipt,
+        description: t('sales.tabs.payments.description'),
+        highlights: (t('sales.tabs.payments.highlights', { returnObjects: true }) as string[]) || [],
+      },
+      {
+        id: 'returns',
+        label: t('sales.tabs.returns.label'),
+        shortLabel: t('sales.tabs.returns.shortLabel'),
+        category: 'operations',
+        badge: t('sales.tabs.returns.badge'),
+        icon: Undo2,
+        description: t('sales.tabs.returns.description'),
+        highlights: (t('sales.tabs.returns.highlights', { returnObjects: true }) as string[]) || [],
+      },
+      {
+        id: 'exchanges',
+        label: t('sales.tabs.exchanges.label'),
+        shortLabel: t('sales.tabs.exchanges.shortLabel'),
+        category: 'operations',
+        badge: t('sales.tabs.exchanges.badge'),
+        icon: ArrowLeftRight,
+        description: t('sales.tabs.exchanges.description'),
+        highlights: (t('sales.tabs.exchanges.highlights', { returnObjects: true }) as string[]) || [],
+      },
+      {
+        id: 'leads',
+        label: t('sales.tabs.leads.label'),
+        shortLabel: t('sales.tabs.leads.shortLabel'),
+        category: 'crm',
+        badge: t('sales.tabs.leads.badge'),
+        icon: UserCheck,
+        description: t('sales.tabs.leads.description'),
+        highlights: (t('sales.tabs.leads.highlights', { returnObjects: true }) as string[]) || [],
+      },
+      {
+        id: 'customers',
+        label: t('sales.tabs.customers.label'),
+        shortLabel: t('sales.tabs.customers.shortLabel'),
+        category: 'crm',
+        badge: t('sales.tabs.customers.badge'),
+        icon: Users,
+        description: t('sales.tabs.customers.description'),
+        highlights: (t('sales.tabs.customers.highlights', { returnObjects: true }) as string[]) || [],
+      },
+      {
+        id: 'pricelists',
+        label: t('sales.tabs.pricelists.label'),
+        shortLabel: t('sales.tabs.pricelists.shortLabel'),
+        category: 'crm',
+        badge: t('sales.tabs.pricelists.badge'),
+        icon: Tag,
+        description: t('sales.tabs.pricelists.description'),
+        highlights: (t('sales.tabs.pricelists.highlights', { returnObjects: true }) as string[]) || [],
+      },
+      {
+        id: 'salesmen',
+        label: t('sales.tabs.salesmen.label'),
+        shortLabel: t('sales.tabs.salesmen.shortLabel'),
+        category: 'performance',
+        badge: t('sales.tabs.salesmen.badge'),
+        icon: UserCheck,
+        description: t('sales.tabs.salesmen.description'),
+        highlights: (t('sales.tabs.salesmen.highlights', { returnObjects: true }) as string[]) || [],
+      },
+      {
+        id: 'targets',
+        label: t('sales.tabs.targets.label'),
+        shortLabel: t('sales.tabs.targets.shortLabel'),
+        category: 'performance',
+        badge: t('sales.tabs.targets.badge'),
+        icon: Target,
+        description: t('sales.tabs.targets.description'),
+        highlights: (t('sales.tabs.targets.highlights', { returnObjects: true }) as string[]) || [],
+      },
+      {
+        id: 'incentives',
+        label: t('sales.tabs.incentives.label'),
+        shortLabel: t('sales.tabs.incentives.shortLabel'),
+        category: 'performance',
+        badge: t('sales.tabs.incentives.badge'),
+        icon: Award,
+        description: t('sales.tabs.incentives.description'),
+        highlights: (t('sales.tabs.incentives.highlights', { returnObjects: true }) as string[]) || [],
+      },
+      {
+        id: 'dashboard',
+        label: t('sales.tabs.dashboard.label'),
+        shortLabel: t('sales.tabs.dashboard.shortLabel'),
+        category: 'performance',
+        badge: t('sales.tabs.dashboard.badge'),
+        icon: TrendingUp,
+        description: t('sales.tabs.dashboard.description'),
+        highlights: (t('sales.tabs.dashboard.highlights', { returnObjects: true }) as string[]) || [],
+      },
+    ],
+    [t]
+  );
+
   // Derive active category from current active tab
-  const activeCategory = CATEGORIES.find((cat) => cat.tabs.includes(activeTab))?.id ?? 'operations';
+  const activeCategory = categories.find((cat) => cat.tabs.includes(activeTab))?.id ?? 'operations';
   const activeCategoryConfig: CategoryConfig =
-    CATEGORIES.find((cat) => cat.id === activeCategory) ?? CATEGORIES[0]!;
-  const currentTab: TabConfig = TABS.find((t) => t.id === activeTab) ?? TABS[0]!;
+    categories.find((cat) => cat.id === activeCategory) ?? categories[0]!;
+  const currentTab: TabConfig = tabs.find((t) => t.id === activeTab) ?? tabs[0]!;
   const CategoryIcon = activeCategoryConfig.icon;
 
   // Remember last visited tab per category for seamless back-and-forth switching
@@ -286,11 +294,11 @@ export default function SalesWorkspace() {
   });
 
   useEffect(() => {
-    const cat = CATEGORIES.find((c) => c.tabs.includes(activeTab))?.id;
+    const cat = categories.find((c) => c.tabs.includes(activeTab))?.id;
     if (cat) {
       lastActivePerCategory.current[cat] = activeTab;
     }
-  }, [activeTab]);
+  }, [activeTab, categories]);
 
   // Close Quick Jump popover on click outside
   useEffect(() => {
@@ -305,14 +313,17 @@ export default function SalesWorkspace() {
     }
   }, [quickJumpOpen]);
 
-  const handleSelectCategory = useCallback((categoryId: SalesCategory) => {
-    if (categoryId === activeCategory) return;
-    const targetTab =
-      lastActivePerCategory.current[categoryId] ??
-      CATEGORIES.find((cat) => cat.id === categoryId)?.defaultTab ??
-      'orders';
-    setActiveTab(targetTab);
-  }, [activeCategory, setActiveTab]);
+  const handleSelectCategory = useCallback(
+    (categoryId: SalesCategory) => {
+      if (categoryId === activeCategory) return;
+      const targetTab =
+        lastActivePerCategory.current[categoryId] ??
+        categories.find((cat) => cat.id === categoryId)?.defaultTab ??
+        'orders';
+      setActiveTab(targetTab);
+    },
+    [activeCategory, categories, setActiveTab]
+  );
 
   // Global hotkeys (1, 2, 3) to switch category pillars when outside form inputs
   useEffect(() => {
@@ -342,14 +353,14 @@ export default function SalesWorkspace() {
   }, [handleSelectCategory]);
 
   const filteredTabs = searchQuery.trim()
-    ? TABS.filter(
+    ? tabs.filter(
         (t) =>
           t.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
           t.shortLabel.toLowerCase().includes(searchQuery.toLowerCase()) ||
           t.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
           t.id.toLowerCase().includes(searchQuery.toLowerCase())
       )
-    : TABS;
+    : tabs;
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto py-2">
@@ -358,10 +369,10 @@ export default function SalesWorkspace() {
         <div>
           <div className="flex items-center gap-2 mb-2 flex-wrap">
             <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-primary bg-primary-subtle px-2.5 py-0.5 rounded-full border border-primary/20">
-              Commercial & Sales Hub
+              {t('sales.workspaceTag')}
             </span>
             <span className="text-[10px] text-muted font-medium bg-surface-sunken px-2 py-0.5 rounded-full border border-default">
-              11 Sub-Modules Available
+              {t('sales.modulesCount')}
             </span>
             <span className="text-muted/50 text-xs">/</span>
             <span className="text-[11px] font-medium text-muted flex items-center gap-1">
@@ -393,10 +404,10 @@ export default function SalesWorkspace() {
             type="button"
             onClick={() => setIsGuideOpen(true)}
             className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-xl border border-primary/30 bg-primary-subtle hover:bg-primary/10 text-primary transition-all shadow-2xs cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-            title="Open Sales Capabilities and Commercial Guide"
+            title={t('sales.exploreCapabilitiesTitle')}
           >
             <Compass className="size-3.5 text-primary" />
-            <span>Explore Capabilities</span>
+            <span>{t('sales.exploreCapabilities')}</span>
           </button>
 
           <Link
@@ -404,7 +415,7 @@ export default function SalesWorkspace() {
             className="flex items-center gap-2 px-3.5 py-2 bg-surface hover:bg-surface-sunken text-default text-xs font-semibold rounded-xl border border-default shadow-2xs transition-colors"
           >
             <Store className="size-3.5 text-primary" />
-            <span>Open POS Terminal</span>
+            <span>{t('sales.openPos')}</span>
           </Link>
 
           {/* Quick Jump Dropdown Popover */}
@@ -419,10 +430,10 @@ export default function SalesWorkspace() {
                 'flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold border border-default bg-surface hover:bg-surface-sunken text-default transition-all shadow-2xs cursor-pointer',
                 quickJumpOpen && 'border-primary/40 bg-surface-sunken'
               )}
-              title="Jump directly to any of the 11 sales tabs"
+              title={t('sales.jumpTitle')}
             >
               <SlidersHorizontal className="size-3.5 text-primary" />
-              <span>All 11 Views</span>
+              <span>{t('sales.allViews')}</span>
             </button>
 
             {quickJumpOpen && (
@@ -431,7 +442,7 @@ export default function SalesWorkspace() {
                   <Search className="absolute left-3.5 top-2.5 size-3.5 text-muted" />
                   <input
                     type="text"
-                    placeholder="Jump to sales view..."
+                    placeholder={t('sales.searchPlaceholder')}
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     autoFocus
@@ -440,7 +451,7 @@ export default function SalesWorkspace() {
                 </div>
 
                 <div className="max-h-72 overflow-y-auto space-y-1">
-                  {CATEGORIES.map((cat) => {
+                  {categories.map((cat) => {
                     const catTabs = filteredTabs.filter((t) => t.category === cat.id);
                     if (catTabs.length === 0) return null;
                     return (
@@ -448,15 +459,15 @@ export default function SalesWorkspace() {
                         <div className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-muted font-mono">
                           {cat.label}
                         </div>
-                        {catTabs.map((t) => {
-                          const Icon = t.icon;
-                          const isCurrent = activeTab === t.id;
+                        {catTabs.map((tb) => {
+                          const Icon = tb.icon;
+                          const isCurrent = activeTab === tb.id;
                           return (
                             <button
-                              key={t.id}
+                              key={tb.id}
                               type="button"
                               onClick={() => {
-                                setActiveTab(t.id);
+                                setActiveTab(tb.id);
                                 setQuickJumpOpen(false);
                               }}
                               className={cn(
@@ -468,7 +479,7 @@ export default function SalesWorkspace() {
                             >
                               <div className="flex items-center gap-2 min-w-0">
                                 <Icon className="size-3.5 shrink-0 text-muted" />
-                                <span className="truncate">{t.label}</span>
+                                <span className="truncate">{tb.label}</span>
                               </div>
                               {isCurrent && <Check className="size-3.5 text-primary shrink-0 ml-2" />}
                             </button>
@@ -490,10 +501,10 @@ export default function SalesWorkspace() {
           <div>
             <div className="flex items-center gap-1.5 text-xs font-bold text-default">
               <Zap className="size-3.5 text-amber-500 fill-amber-500" />
-              <span>Quick Actions • Sales & Revenue Flow</span>
+              <span>{t('sales.quickActionsTitle')}</span>
             </div>
             <p className="text-[11px] text-muted">
-              Book customer orders, issue invoices, collect outstanding dues, or dispatch shipments with 1 click.
+              {t('sales.quickActionsSubtitle')}
             </p>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
@@ -503,7 +514,7 @@ export default function SalesWorkspace() {
               className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs transition-all cursor-pointer"
             >
               <ShoppingCart className="size-3.5" />
-              <span>New Customer Order</span>
+              <span>{t('sales.actionNewOrder')}</span>
             </button>
             <button
               type="button"
@@ -511,7 +522,7 @@ export default function SalesWorkspace() {
               className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-xs transition-all cursor-pointer"
             >
               <FileText className="size-3.5" />
-              <span>Invoices & Billing</span>
+              <span>{t('sales.actionInvoices')}</span>
             </button>
             <button
               type="button"
@@ -519,7 +530,7 @@ export default function SalesWorkspace() {
               className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-surface hover:bg-surface-sunken text-default border border-default shadow-2xs transition-all cursor-pointer"
             >
               <Receipt className="size-3.5 text-emerald-600" />
-              <span>Collect Payment</span>
+              <span>{t('sales.actionCollectPayment')}</span>
             </button>
             <button
               type="button"
@@ -527,7 +538,7 @@ export default function SalesWorkspace() {
               className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-surface hover:bg-surface-sunken text-default border border-default shadow-2xs transition-all cursor-pointer"
             >
               <Truck className="size-3.5 text-cyan-600" />
-              <span>Dispatch Delivery</span>
+              <span>{t('sales.actionDispatchDelivery')}</span>
             </button>
           </div>
         </div>
@@ -539,10 +550,10 @@ export default function SalesWorkspace() {
         aria-label="Sales Commercial Subsystems"
         className="grid grid-cols-1 lg:grid-cols-3 gap-3"
       >
-        {CATEGORIES.map((cat) => {
+        {categories.map((cat) => {
           const isCatActive = activeCategory === cat.id;
           const Icon = cat.icon;
-          const childTabs = TABS.filter((t) => t.category === cat.id);
+          const childTabs = tabs.filter((t) => t.category === cat.id);
 
           return (
             <div
@@ -608,7 +619,7 @@ export default function SalesWorkspace() {
                 </div>
               </div>
 
-              {/* Embedded Direct Child Pills (100% Visible at All Times) */}
+              {/* Embedded Direct Child Pills */}
               <div className="mt-3.5 pt-2.5 border-t border-default/60 flex flex-wrap gap-1.5 w-full">
                 {childTabs.map((subTab) => {
                   const isCurrent = activeTab === subTab.id;
@@ -646,15 +657,15 @@ export default function SalesWorkspace() {
         })}
       </div>
 
-      {/* Master Navigation Ribbon (All 11 Sub-Modules Visible Simultaneously) */}
+      {/* Master Navigation Ribbon */}
       <div className="bg-surface-sunken rounded-2xl border border-default p-2 shadow-2xs">
         <div className="flex items-center justify-between px-2 pb-1.5 mb-1 text-[11px] font-semibold text-muted border-b border-default/50">
           <div className="flex items-center gap-2">
             <Zap className="size-3.5 text-primary" />
-            <span>Sales Master Navigation Ribbon</span>
+            <span>{t('sales.ribbonTitle')}</span>
           </div>
           <span className="text-[10px] font-mono text-muted/70">
-            Active: <strong className="text-default">{currentTab?.label}</strong>
+            {t('sales.activeLabel')} <strong className="text-default">{currentTab?.label}</strong>
           </span>
         </div>
 
@@ -666,9 +677,9 @@ export default function SalesWorkspace() {
           {/* Cluster 1: Order to Cash */}
           <div className="flex items-center gap-1.5 bg-surface/60 p-1 rounded-xl border border-default/40">
             <span className="text-[10px] font-mono uppercase font-bold text-muted px-2 py-0.5 select-none">
-              Order to Cash:
+              {t('sales.clusterOrderToCash')}
             </span>
-            {TABS.filter((t) => t.category === 'operations').map((tab) => {
+            {tabs.filter((tb) => tb.category === 'operations').map((tab) => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
               return (
@@ -697,9 +708,9 @@ export default function SalesWorkspace() {
           {/* Cluster 2: CRM & Accounts */}
           <div className="flex items-center gap-1.5 bg-surface/60 p-1 rounded-xl border border-default/40">
             <span className="text-[10px] font-mono uppercase font-bold text-muted px-2 py-0.5 select-none">
-              CRM:
+              {t('sales.clusterCrm')}
             </span>
-            {TABS.filter((t) => t.category === 'crm').map((tab) => {
+            {tabs.filter((tb) => tb.category === 'crm').map((tab) => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
               return (
@@ -728,9 +739,9 @@ export default function SalesWorkspace() {
           {/* Cluster 3: Sales Force & Quotas */}
           <div className="flex items-center gap-1.5 bg-surface/60 p-1 rounded-xl border border-default/40">
             <span className="text-[10px] font-mono uppercase font-bold text-muted px-2 py-0.5 select-none">
-              Sales Force:
+              {t('sales.clusterSalesForce')}
             </span>
-            {TABS.filter((t) => t.category === 'performance').map((tab) => {
+            {tabs.filter((tb) => tb.category === 'performance').map((tab) => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
               return (
@@ -760,16 +771,16 @@ export default function SalesWorkspace() {
       <Modal
         open={isGuideOpen}
         onClose={() => setIsGuideOpen(false)}
-        title="Sales & Commercial Operations Guide"
+        title={t('sales.guide.modalTitle')}
         size="xl"
       >
         <div className="space-y-5 p-1 text-default">
           <p className="text-xs text-muted leading-relaxed">
-            The Commercial & Sales Hub governs the full revenue lifecycle—from top-of-funnel lead qualification to omnichannel order capture, VAT tax invoicing, warehouse dispatch, cash collection, and sales quota commissions.
+            {t('sales.guide.heroDesc')}
           </p>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 max-h-96 overflow-y-auto pr-1">
-            {TABS.map((tab) => {
+            {tabs.map((tab) => {
               const Icon = tab.icon;
               const isCurrent = activeTab === tab.id;
               return (
@@ -792,7 +803,7 @@ export default function SalesWorkspace() {
                       </div>
                       {isCurrent && (
                         <span className="text-[10px] font-mono font-bold text-primary bg-primary-subtle px-2 py-0.5 rounded-full border border-primary/20">
-                          Current Tab
+                          {t('sales.guide.currentTab')}
                         </span>
                       )}
                     </div>
@@ -820,7 +831,7 @@ export default function SalesWorkspace() {
                       setIsGuideOpen(false);
                     }}
                   >
-                    <span>{isCurrent ? 'Viewing Now' : `Open ${tab.label}`}</span>
+                    <span>{isCurrent ? t('sales.guide.viewingNow') : t('sales.guide.open', { label: tab.label })}</span>
                     <ArrowRight className="size-3.5" />
                   </Button>
                 </div>
@@ -831,12 +842,12 @@ export default function SalesWorkspace() {
           <div className="rounded-2xl border border-default bg-surface-sunken p-3.5 space-y-1.5 text-xs">
             <h5 className="font-bold text-default flex items-center gap-1.5">
               <Zap className="size-3.5 text-primary" />
-              Keyboard Shortcuts & Quick Navigation
+              {t('sales.guide.shortcutsTitle')}
             </h5>
             <ul className="text-[11px] text-muted space-y-1 list-disc list-inside">
-              <li>Press <kbd className="px-1.5 py-0.5 rounded bg-surface border border-default font-mono font-bold text-default">1</kbd> to jump to Order to Cash (Orders, Invoices, Deliveries)</li>
-              <li>Press <kbd className="px-1.5 py-0.5 rounded bg-surface border border-default font-mono font-bold text-default">2</kbd> to jump to CRM & Accounts (Leads & Customer CRM)</li>
-              <li>Press <kbd className="px-1.5 py-0.5 rounded bg-surface border border-default font-mono font-bold text-default">3</kbd> to jump to Sales Force & Quotas (Salesmen, Targets, Incentives)</li>
+              <li>{t('sales.guide.shortcut1')}</li>
+              <li>{t('sales.guide.shortcut2')}</li>
+              <li>{t('sales.guide.shortcut3')}</li>
             </ul>
           </div>
         </div>
@@ -874,4 +885,3 @@ export default function SalesWorkspace() {
     </div>
   );
 }
-

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { api } from '../../lib/api/client';
 export type PlatformSettingsMap = Record<string, Record<string, unknown>>;
@@ -39,6 +40,8 @@ const PlatformSettingsForm: React.FC<PlatformSettingsFormProps> = ({
   isSaving,
   isMaintenancePending,
 }) => {
+  const { t } = useTranslation(['platform', 'common']);
+
   // Local Form State initialized directly from loaded server settings
   const [platformName, setPlatformName] = useState<string>(
     typeof initialSettings?.general?.['platform_name'] === 'string'
@@ -163,11 +166,11 @@ const PlatformSettingsForm: React.FC<PlatformSettingsFormProps> = ({
       {activeTab === 'general' && (
         <form onSubmit={handleGeneralSubmit} className="space-y-4">
           <h2 className="text-sm font-bold text-default font-sans uppercase tracking-wider mb-2">
-            Universal Platform Defaults
+            {t('platform.engineSettings.general.title')}
           </h2>
 
           <div>
-            <label className="block text-default mb-1">Platform Brand Name</label>
+            <label className="block text-default mb-1">{t('platform.engineSettings.general.platformName')}</label>
             <input
               type="text"
               value={platformName}
@@ -177,7 +180,7 @@ const PlatformSettingsForm: React.FC<PlatformSettingsFormProps> = ({
           </div>
 
           <div>
-            <label className="block text-default mb-1">Root Support Email</label>
+            <label className="block text-default mb-1">{t('platform.engineSettings.general.supportEmail')}</label>
             <input
               type="email"
               value={supportEmail}
@@ -188,7 +191,7 @@ const PlatformSettingsForm: React.FC<PlatformSettingsFormProps> = ({
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-default mb-1">Default Base Currency</label>
+              <label className="block text-default mb-1">{t('platform.engineSettings.general.defaultCurrency')}</label>
               <select
                 value={defaultCurrency}
                 onChange={(e) => setDefaultCurrency(e.target.value)}
@@ -201,7 +204,7 @@ const PlatformSettingsForm: React.FC<PlatformSettingsFormProps> = ({
             </div>
 
             <div>
-              <label className="block text-default mb-1">Default Free Trial (Days)</label>
+              <label className="block text-default mb-1">{t('platform.engineSettings.general.defaultTrialDays')}</label>
               <input
                 type="number"
                 min="0"
@@ -220,7 +223,7 @@ const PlatformSettingsForm: React.FC<PlatformSettingsFormProps> = ({
               className="font-bold cursor-pointer bg-amber-500 hover:bg-amber-400 text-slate-950 flex items-center gap-1.5"
             >
               <Save className="size-3.5" />
-              <span>{isSaving ? 'Saving...' : 'Save General Config'}</span>
+              <span>{isSaving ? t('platform.engineSettings.saving') : t('platform.engineSettings.general.saveBtn')}</span>
             </Button>
           </div>
         </form>
@@ -230,12 +233,12 @@ const PlatformSettingsForm: React.FC<PlatformSettingsFormProps> = ({
       {activeTab === 'billing' && (
         <form onSubmit={handleBillingSubmit} className="space-y-4">
           <h2 className="text-sm font-bold text-default font-sans uppercase tracking-wider mb-2">
-            SaaS Billing & Subscription Policies
+            {t('platform.engineSettings.billing.title')}
           </h2>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-default mb-1">Default Grace Period (Days)</label>
+              <label className="block text-default mb-1">{t('platform.engineSettings.billing.gracePeriod')}</label>
               <input
                 type="number"
                 min="0"
@@ -245,12 +248,12 @@ const PlatformSettingsForm: React.FC<PlatformSettingsFormProps> = ({
                 className="w-full bg-surface-sunken border border-default rounded-xl p-2.5 text-default focus:outline-hidden focus:border-amber-500"
               />
               <p className="text-[10px] text-muted mt-1">
-                Allowed grace period before tenant enters suspended status.
+                {t('platform.engineSettings.billing.gracePeriodHelp')}
               </p>
             </div>
 
             <div>
-              <label className="block text-default mb-1">Invoice Reference Prefix</label>
+              <label className="block text-default mb-1">{t('platform.engineSettings.billing.invoicePrefix')}</label>
               <input
                 type="text"
                 value={invoicePrefix}
@@ -261,7 +264,7 @@ const PlatformSettingsForm: React.FC<PlatformSettingsFormProps> = ({
           </div>
 
           <div>
-            <label className="block text-default mb-1">Standard SaaS Tax / VAT Rate (%)</label>
+            <label className="block text-default mb-1">{t('platform.engineSettings.billing.taxRate')}</label>
             <input
               type="number"
               min="0"
@@ -280,7 +283,7 @@ const PlatformSettingsForm: React.FC<PlatformSettingsFormProps> = ({
               className="font-bold cursor-pointer bg-amber-500 hover:bg-amber-400 text-slate-950 flex items-center gap-1.5"
             >
               <Save className="size-3.5" />
-              <span>{isSaving ? 'Saving...' : 'Save Billing Config'}</span>
+              <span>{isSaving ? t('platform.engineSettings.saving') : t('platform.engineSettings.billing.saveBtn')}</span>
             </Button>
           </div>
         </form>
@@ -290,12 +293,12 @@ const PlatformSettingsForm: React.FC<PlatformSettingsFormProps> = ({
       {activeTab === 'security' && (
         <form onSubmit={handleSecuritySubmit} className="space-y-4">
           <h2 className="text-sm font-bold text-default font-sans uppercase tracking-wider mb-2">
-            Access Security & Session Throttling
+            {t('platform.engineSettings.security.title')}
           </h2>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-default mb-1">Max Failed Login Attempts</label>
+              <label className="block text-default mb-1">{t('platform.engineSettings.security.maxAttempts')}</label>
               <input
                 type="number"
                 min="1"
@@ -307,7 +310,7 @@ const PlatformSettingsForm: React.FC<PlatformSettingsFormProps> = ({
             </div>
 
             <div>
-              <label className="block text-default mb-1">Account Lockout Duration (Mins)</label>
+              <label className="block text-default mb-1">{t('platform.engineSettings.security.lockoutDuration')}</label>
               <input
                 type="number"
                 min="1"
@@ -320,7 +323,7 @@ const PlatformSettingsForm: React.FC<PlatformSettingsFormProps> = ({
           </div>
 
           <div>
-            <label className="block text-default mb-1">Admin Session Idle Expiry (Mins)</label>
+            <label className="block text-default mb-1">{t('platform.engineSettings.security.sessionExpiry')}</label>
             <input
               type="number"
               min="15"
@@ -340,7 +343,7 @@ const PlatformSettingsForm: React.FC<PlatformSettingsFormProps> = ({
               className="rounded-sm border-default bg-surface text-amber-500 focus:ring-amber-500"
             />
             <label htmlFor="impersonateCheckbox" className="text-default cursor-pointer">
-              Enable platform super-admin impersonation into tenant applications for diagnostics
+              {t('platform.engineSettings.security.allowImpersonation')}
             </label>
           </div>
 
@@ -351,7 +354,7 @@ const PlatformSettingsForm: React.FC<PlatformSettingsFormProps> = ({
               className="font-bold cursor-pointer bg-amber-500 hover:bg-amber-400 text-slate-950 flex items-center gap-1.5"
             >
               <Save className="size-3.5" />
-              <span>{isSaving ? 'Saving...' : 'Save Security Policies'}</span>
+              <span>{isSaving ? t('platform.engineSettings.saving') : t('platform.engineSettings.security.saveBtn')}</span>
             </Button>
           </div>
         </form>
@@ -363,11 +366,11 @@ const PlatformSettingsForm: React.FC<PlatformSettingsFormProps> = ({
           <div className="flex items-center gap-2 text-rose-500 mb-1 font-bold">
             <AlertTriangle className="size-4" />
             <h2 className="text-sm uppercase tracking-wider font-sans">
-              Platform-Wide Maintenance Lockout
+              {t('platform.engineSettings.maintenance.title')}
             </h2>
           </div>
           <p className="text-muted text-[11px] mb-4">
-            When active, non-whitelisted traffic will be intercepted with a 503 Maintenance response.
+            {t('platform.engineSettings.maintenance.help')}
           </p>
 
           <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/30 space-y-3">
@@ -380,12 +383,12 @@ const PlatformSettingsForm: React.FC<PlatformSettingsFormProps> = ({
                 className="rounded-sm border-rose-500 bg-surface text-rose-500 focus:ring-rose-500"
               />
               <label htmlFor="maintenanceToggle" className="text-rose-600 dark:text-rose-300 font-bold cursor-pointer">
-                ENABLE PLATFORM MAINTENANCE MODE
+                {t('platform.engineSettings.maintenance.enableToggle')}
               </label>
             </div>
 
             <div>
-              <label className="block text-default mb-1">Public Display Message</label>
+              <label className="block text-default mb-1">{t('platform.engineSettings.maintenance.publicMessage')}</label>
               <input
                 type="text"
                 value={maintenanceMessage}
@@ -395,7 +398,7 @@ const PlatformSettingsForm: React.FC<PlatformSettingsFormProps> = ({
             </div>
 
             <div>
-              <label className="block text-default mb-1">Whitelisted IP Addresses (comma separated)</label>
+              <label className="block text-default mb-1">{t('platform.engineSettings.maintenance.whitelistedIps')}</label>
               <input
                 type="text"
                 value={whitelistedIps}
@@ -417,7 +420,7 @@ const PlatformSettingsForm: React.FC<PlatformSettingsFormProps> = ({
               }`}
             >
               <Save className="size-3.5" />
-              <span>{isMaintenancePending ? 'Updating...' : 'Apply Maintenance Gateway'}</span>
+              <span>{isMaintenancePending ? t('platform.engineSettings.maintenance.updatingBtn') : t('platform.engineSettings.maintenance.applyBtn')}</span>
             </Button>
           </div>
         </form>
@@ -777,6 +780,7 @@ const JobsTabContent: React.FC = () => {
 };
 
 export const PlatformSettingsWorkspace: React.FC = () => {
+  const { t } = useTranslation(['platform', 'common']);
   const queryClient = useQueryClient();
 
   const [activeTab, setActiveTab] = useState<'general' | 'billing' | 'security' | 'maintenance' | 'domains' | 'jobs'>('general');
@@ -829,9 +833,9 @@ export const PlatformSettingsWorkspace: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-default tracking-tight">Platform Configuration & Controls</h1>
+          <h1 className="text-2xl font-bold text-default tracking-tight">{t('platform.engineSettings.title')}</h1>
           <p className="text-xs text-muted mt-1 font-mono">
-            Universal SaaS platform settings, billing defaults, security lockout policies, and maintenance gateways.
+            {t('platform.engineSettings.description')}
           </p>
         </div>
 
@@ -843,7 +847,7 @@ export const PlatformSettingsWorkspace: React.FC = () => {
           className="flex items-center gap-1.5 font-mono text-xs cursor-pointer border-default bg-surface text-default hover:bg-surface-sunken self-start"
         >
           <RotateCcw className={`size-3.5 ${isFetching ? 'animate-spin' : ''}`} />
-          <span>Reload Config</span>
+          <span>{t('platform.engineSettings.reloadConfig')}</span>
         </Button>
       </div>
 
@@ -859,7 +863,7 @@ export const PlatformSettingsWorkspace: React.FC = () => {
           }`}
         >
           <Globe className="size-3.5" />
-          <span>General</span>
+          <span>{t('platform.engineSettings.tabs.general')}</span>
         </button>
         <button
           type="button"
@@ -871,7 +875,7 @@ export const PlatformSettingsWorkspace: React.FC = () => {
           }`}
         >
           <CreditCard className="size-3.5" />
-          <span>Billing & Tiers</span>
+          <span>{t('platform.engineSettings.tabs.billing')}</span>
         </button>
         <button
           type="button"
@@ -883,7 +887,7 @@ export const PlatformSettingsWorkspace: React.FC = () => {
           }`}
         >
           <Shield className="size-3.5" />
-          <span>Security</span>
+          <span>{t('platform.engineSettings.tabs.security')}</span>
         </button>
         <button
           type="button"
@@ -895,7 +899,7 @@ export const PlatformSettingsWorkspace: React.FC = () => {
           }`}
         >
           <AlertTriangle className="size-3.5" />
-          <span>Maintenance</span>
+          <span>{t('platform.engineSettings.tabs.maintenance')}</span>
         </button>
         <button
           type="button"
@@ -907,7 +911,7 @@ export const PlatformSettingsWorkspace: React.FC = () => {
           }`}
         >
           <Globe className="size-3.5" />
-          <span>Domains</span>
+          <span>{t('platform.engineSettings.tabs.domains')}</span>
         </button>
         <button
           type="button"
@@ -919,7 +923,7 @@ export const PlatformSettingsWorkspace: React.FC = () => {
           }`}
         >
           <Server className="size-3.5" />
-          <span>Queue Jobs</span>
+          <span>{t('platform.engineSettings.tabs.jobs')}</span>
         </button>
       </div>
 

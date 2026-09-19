@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useOutletContext, useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import {
   ArrowLeft,
   CheckCircle2,
@@ -48,6 +49,7 @@ interface TrackedOrderDetails {
 }
 
 export const StorefrontOrderTrackingPage: React.FC = () => {
+  const { t } = useTranslation(['storefront', 'common']);
   const { config, subdomain } = useOutletContext<OutletContextType>();
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -105,16 +107,16 @@ export const StorefrontOrderTrackingPage: React.FC = () => {
         className="inline-flex items-center gap-2 text-xs font-semibold text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white transition-colors"
       >
         <ArrowLeft className="h-4 w-4" />
-        <span>Back to Store Catalog</span>
+        <span>{t('storefront.backToCatalog')}</span>
       </Link>
 
       {/* Header */}
       <div className="text-center space-y-2">
         <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white sm:text-3xl">
-          Track Your Factory Order
+          {t('storefront.trackPageTitle')}
         </h1>
         <p className="text-xs text-slate-500 dark:text-zinc-400 max-w-md mx-auto">
-          Enter your order reference number and phone to view live production and dispatch status.
+          {t('storefront.trackPageSubtitle')}
         </p>
       </div>
 
@@ -126,7 +128,7 @@ export const StorefrontOrderTrackingPage: React.FC = () => {
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
             <label className="text-[11px] font-semibold text-slate-700 dark:text-zinc-400 uppercase tracking-wider block mb-1">
-              Order Reference Number *
+              {t('storefront.orderRefNumber')}
             </label>
             <input
               type="text"
@@ -140,7 +142,7 @@ export const StorefrontOrderTrackingPage: React.FC = () => {
 
           <div>
             <label className="text-[11px] font-semibold text-slate-700 dark:text-zinc-400 uppercase tracking-wider block mb-1">
-              Recipient Phone Number (Optional)
+              {t('storefront.recipientPhone')}
             </label>
             <input
               type="tel"
@@ -162,11 +164,11 @@ export const StorefrontOrderTrackingPage: React.FC = () => {
           className="w-full flex items-center justify-center gap-2 rounded-xl py-3 text-xs font-bold shadow-lg transition-all cursor-pointer disabled:opacity-50 hover:opacity-90"
         >
           {loading ? (
-            <span>Locating Order...</span>
+            <span>{t('storefront.locatingOrder')}</span>
           ) : (
             <>
               <Search className="h-4 w-4" />
-              <span>Track Order Status</span>
+              <span>{t('storefront.trackOrderBtn')}</span>
             </>
           )}
         </button>
@@ -180,7 +182,6 @@ export const StorefrontOrderTrackingPage: React.FC = () => {
         </div>
       )}
 
-      {/* Order Status Display */}
       {order && (
         <div className="space-y-6">
           {/* Timeline Card */}
@@ -193,7 +194,7 @@ export const StorefrontOrderTrackingPage: React.FC = () => {
                 >
                   {order.order_number}
                 </span>
-                <div className="text-xs text-slate-500 dark:text-zinc-400">Recipient: {order.customer_name}</div>
+                <div className="text-xs text-slate-500 dark:text-zinc-400">{t('storefront.recipient')}: {order.customer_name}</div>
               </div>
               <div className="flex items-center gap-2">
                 <span
@@ -253,7 +254,7 @@ export const StorefrontOrderTrackingPage: React.FC = () => {
           {/* Line Items & Summary Card */}
           <div className="rounded-3xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/40 p-6 space-y-4 shadow-xs">
             <h3 className="text-xs font-bold text-slate-800 dark:text-zinc-300 uppercase tracking-wider">
-              Order Items ({order.items.length})
+              {t('storefront.orderItems')} ({order.items.length})
             </h3>
 
             <div className="divide-y divide-slate-100 dark:divide-zinc-800/60">
@@ -271,7 +272,7 @@ export const StorefrontOrderTrackingPage: React.FC = () => {
             </div>
 
             <div className="border-t border-slate-100 dark:border-zinc-800 pt-3 flex justify-between text-sm font-bold text-slate-900 dark:text-zinc-100">
-              <span>Total Amount</span>
+              <span>{t('storefront.totalAmount')}</span>
               <span className="text-emerald-600 dark:text-emerald-400">
                 {currency} {parseFloat(order.total_amount).toFixed(2)}
               </span>

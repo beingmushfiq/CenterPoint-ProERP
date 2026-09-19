@@ -7,6 +7,7 @@ import {
   numberToWords,
 } from '../../../lib/document/formatters';
 import { generateBarcodeSvg } from '../../../lib/barcode/engine';
+import { useTranslation } from 'react-i18next';
 
 export interface CreditNoteDocumentProps {
   salesReturn: SalesReturn;
@@ -14,6 +15,7 @@ export interface CreditNoteDocumentProps {
 }
 
 export function CreditNoteDocument({ salesReturn, businessConfig }: CreditNoteDocumentProps) {
+  const { t } = useTranslation('documents');
   const barcodeSvg = useMemo(() => {
     return generateBarcodeSvg({
       bcid: 'code128',
@@ -41,7 +43,7 @@ export function CreditNoteDocument({ salesReturn, businessConfig }: CreditNoteDo
                 {businessConfig.name}
               </h1>
               <p className="text-[7.5pt] font-semibold text-slate-600 tracking-wide uppercase">
-                Customer Returns & Credit Adjustment Note
+                {t('creditNoteSubtitle')}
               </p>
             </div>
           </div>
@@ -52,13 +54,13 @@ export function CreditNoteDocument({ salesReturn, businessConfig }: CreditNoteDo
 
         <div className="flex flex-col items-end text-right">
           <h2 className="text-lg font-black text-slate-950 uppercase tracking-tight">
-            Credit Note
+            {t('creditNote')}
           </h2>
           <div className="font-mono text-xs font-bold text-slate-950 mb-1">
             {salesReturn.credit_note_number || salesReturn.return_number}
           </div>
           <div className="text-[8pt] text-slate-600 font-mono">
-            <span>Date: </span>
+            <span>{t('date')}: </span>
             <span className="font-bold text-slate-900">{formatDocumentDate(salesReturn.return_date)}</span>
           </div>
         </div>
@@ -67,17 +69,17 @@ export function CreditNoteDocument({ salesReturn, businessConfig }: CreditNoteDo
       {/* Meta Grid */}
       <div className="grid grid-cols-3 gap-3 bg-slate-50 border border-slate-200 rounded-lg p-2.5 mb-4 text-[8pt]">
         <div>
-          <span className="text-slate-500 block uppercase text-[7pt] font-bold">Credited Customer</span>
+          <span className="text-slate-500 block uppercase text-[7pt] font-bold">{t('creditedCustomer')}</span>
           <span className="font-bold text-slate-900 text-[9pt]">{salesReturn.customer_name || 'Retail Client'}</span>
         </div>
         <div>
-          <span className="text-slate-500 block uppercase text-[7pt] font-bold">Original Invoice #</span>
+          <span className="text-slate-500 block uppercase text-[7pt] font-bold">{t('originalInvoice')}</span>
           <span className="font-mono font-bold text-slate-900">
             {salesReturn.invoice_number || (salesReturn.invoice_id ? `#${salesReturn.invoice_id}` : '—')}
           </span>
         </div>
         <div>
-          <span className="text-slate-500 block uppercase text-[7pt] font-bold">Refund Method</span>
+          <span className="text-slate-500 block uppercase text-[7pt] font-bold">{t('refundMethod')}</span>
           <span className="font-bold uppercase text-slate-900">{salesReturn.refund_method || 'Store Credit'}</span>
         </div>
       </div>
@@ -88,11 +90,11 @@ export function CreditNoteDocument({ salesReturn, businessConfig }: CreditNoteDo
           <thead className="bg-slate-100 border-b border-slate-300 text-[7.5pt] font-bold uppercase text-slate-700 tracking-wider">
             <tr>
               <th className="py-2 px-2 border-r border-slate-300 w-8 text-center">#</th>
-              <th className="py-2 px-2.5 border-r border-slate-300">Returned Product</th>
-              <th className="py-2 px-2 border-r border-slate-300 text-center w-20">Condition</th>
-              <th className="py-2 px-2 border-r border-slate-300 text-right w-16">Qty</th>
-              <th className="py-2 px-2 border-r border-slate-300 text-right w-20">Unit Rate ({currencySymbol})</th>
-              <th className="py-2 px-2.5 text-right w-24">Credit Value ({currencySymbol})</th>
+              <th className="py-2 px-2.5 border-r border-slate-300">{t('returnedProduct')}</th>
+              <th className="py-2 px-2 border-r border-slate-300 text-center w-20">{t('condition')}</th>
+              <th className="py-2 px-2 border-r border-slate-300 text-right w-16">{t('qty')}</th>
+              <th className="py-2 px-2 border-r border-slate-300 text-right w-20">{t('unitRate')} ({currencySymbol})</th>
+              <th className="py-2 px-2.5 text-right w-24">{t('creditValue')} ({currencySymbol})</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-200">
@@ -126,7 +128,7 @@ export function CreditNoteDocument({ salesReturn, businessConfig }: CreditNoteDo
       <div className="grid grid-cols-12 gap-4 mb-6">
         <div className="col-span-7 space-y-2">
           <div className="p-2 bg-slate-50 border border-slate-200 rounded text-[8pt]">
-            <span className="font-bold text-slate-700 block">Credited Amount in Words:</span>
+            <span className="font-bold text-slate-700 block">{t('inWords')}:</span>
             <p className="font-bold italic text-slate-950">
               {numberToWords(salesReturn.total_amount, 'Taka', 'Paisa')}
             </p>
@@ -137,15 +139,15 @@ export function CreditNoteDocument({ salesReturn, businessConfig }: CreditNoteDo
         <div className="col-span-5 border border-slate-300 rounded-lg overflow-hidden text-[8.5pt]">
           <div className="divide-y divide-slate-200 px-3 py-1">
             <div className="flex justify-between py-1 text-slate-600">
-              <span>Subtotal:</span>
+              <span>{t('subtotal')}:</span>
               <span className="font-mono">{formatCurrency(salesReturn.subtotal)}</span>
             </div>
             <div className="flex justify-between py-1 text-slate-600">
-              <span>Tax Adjusted:</span>
+              <span>{t('taxAdjusted')}:</span>
               <span className="font-mono">{formatCurrency(salesReturn.tax_amount)}</span>
             </div>
             <div className="flex justify-between py-1.5 font-bold text-slate-950 text-[10pt] border-t-2 border-slate-900 bg-slate-50">
-              <span>Total Credited Amount:</span>
+              <span>{t('totalCreditedAmount')}:</span>
               <span className="font-mono text-emerald-800">{formatCurrency(salesReturn.total_amount)}</span>
             </div>
           </div>
@@ -156,17 +158,17 @@ export function CreditNoteDocument({ salesReturn, businessConfig }: CreditNoteDo
       <div className="grid grid-cols-3 gap-6 pt-6 mt-3 border-t border-slate-200 text-center text-[7.5pt] break-inside-avoid">
         <div>
           <div className="border-t border-slate-400 pt-1 font-semibold text-slate-800">
-            Returns Inspector
+            {t('returnsInspector')}
           </div>
         </div>
         <div>
           <div className="border-t border-slate-400 pt-1 font-semibold text-slate-800">
-            Accounts Supervisor
+            {t('creditApproval')}
           </div>
         </div>
         <div>
           <div className="border-t border-slate-400 pt-1 font-semibold text-slate-800">
-            Customer Acknowledgement
+            {t('receivedBy')}
           </div>
         </div>
       </div>

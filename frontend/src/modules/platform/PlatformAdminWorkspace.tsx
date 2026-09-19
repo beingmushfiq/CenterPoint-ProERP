@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { api } from '../../lib/api/client';
 import type { PlatformAdminUser, PlatformRole } from '../../types/api/platform';
@@ -32,6 +33,7 @@ interface AdminsResponse {
 }
 
 export const PlatformAdminWorkspace: React.FC = () => {
+  const { t } = useTranslation(['platform', 'common']);
   const queryClient = useQueryClient();
 
   const [search, setSearch] = useState('');
@@ -110,7 +112,7 @@ export const PlatformAdminWorkspace: React.FC = () => {
       return res.data;
     },
     onSuccess: () => {
-      toast.success('Platform administrator created successfully');
+      toast.success(t('platform.adminUsers.toast.created'));
       setShowCreateModal(false);
       setName('');
       setEmail('');
@@ -119,7 +121,7 @@ export const PlatformAdminWorkspace: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['platform', 'admins'] });
     },
     onError: (err: unknown) => {
-      const msg = err instanceof Error ? err.message : 'Failed to create platform admin';
+      const msg = err instanceof Error ? err.message : t('platform.adminUsers.toast.failedCreate');
       toast.error(msg);
     },
   });
@@ -131,13 +133,13 @@ export const PlatformAdminWorkspace: React.FC = () => {
       return res.data;
     },
     onSuccess: () => {
-      toast.success('Admin password reset successfully');
+      toast.success(t('platform.adminUsers.toast.passwordReset'));
       setShowResetModal(false);
       setNewPassword('');
       setSelectedAdmin(null);
     },
     onError: (err: unknown) => {
-      const msg = err instanceof Error ? err.message : 'Failed to reset password';
+      const msg = err instanceof Error ? err.message : t('platform.adminUsers.toast.failedReset');
       toast.error(msg);
     },
   });
@@ -149,11 +151,11 @@ export const PlatformAdminWorkspace: React.FC = () => {
       return res.data;
     },
     onSuccess: () => {
-      toast.success('Administrator status updated');
+      toast.success(t('platform.adminUsers.toast.statusUpdated'));
       queryClient.invalidateQueries({ queryKey: ['platform', 'admins'] });
     },
     onError: (err: unknown) => {
-      const msg = err instanceof Error ? err.message : 'Failed to update status';
+      const msg = err instanceof Error ? err.message : t('platform.adminUsers.toast.failedStatus');
       toast.error(msg);
     },
   });
@@ -165,11 +167,11 @@ export const PlatformAdminWorkspace: React.FC = () => {
       return res.data;
     },
     onSuccess: () => {
-      toast.success('Platform administrator profile updated');
+      toast.success(t('platform.adminUsers.toast.statusUpdated'));
       queryClient.invalidateQueries({ queryKey: ['platform', 'admins'] });
     },
     onError: (err: unknown) => {
-      const msg = err instanceof Error ? err.message : 'Failed to update administrator';
+      const msg = err instanceof Error ? err.message : t('platform.adminUsers.toast.failedStatus');
       toast.error(msg);
     },
   });
@@ -181,11 +183,11 @@ export const PlatformAdminWorkspace: React.FC = () => {
       return res.data;
     },
     onSuccess: () => {
-      toast.success('Platform administrator deactivated');
+      toast.success(t('platform.adminUsers.toast.deactivated'));
       queryClient.invalidateQueries({ queryKey: ['platform', 'admins'] });
     },
     onError: (err: unknown) => {
-      const msg = err instanceof Error ? err.message : 'Failed to deactivate administrator';
+      const msg = err instanceof Error ? err.message : t('platform.adminUsers.toast.failedDeactivate');
       toast.error(msg);
     },
   });
@@ -245,7 +247,7 @@ export const PlatformAdminWorkspace: React.FC = () => {
   const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name || !email || !password) {
-      toast.error('Please fill in all required fields');
+      toast.error(t('platform.adminUsers.toast.fillRequired'));
       return;
     }
     const payload: { name: string; email: string; password: string; role_id?: number } = {
@@ -270,9 +272,9 @@ export const PlatformAdminWorkspace: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-default tracking-tight">Platform Administrators</h1>
+          <h1 className="text-2xl font-bold text-default tracking-tight">{t('platform.adminUsers.title')}</h1>
           <p className="text-xs text-muted mt-1 font-mono">
-            DevCenterPoint platform control plane staff, RBAC assignments, and credential management.
+            {t('platform.adminUsers.description')}
           </p>
         </div>
 
@@ -285,7 +287,7 @@ export const PlatformAdminWorkspace: React.FC = () => {
             className="flex items-center gap-1.5 font-mono text-xs cursor-pointer border-default bg-surface text-default hover:bg-surface-sunken"
           >
             <RotateCcw className={`size-3.5 ${isFetching ? 'animate-spin' : ''}`} />
-            <span>Refresh</span>
+            <span>{t('common:action.refresh')}</span>
           </Button>
 
           <Button
@@ -294,7 +296,7 @@ export const PlatformAdminWorkspace: React.FC = () => {
             className="flex items-center gap-1.5 font-mono text-xs font-bold cursor-pointer bg-amber-500 hover:bg-amber-400 text-slate-950"
           >
             <UserPlus className="size-4" />
-            <span>New Platform Admin</span>
+            <span>{t('platform.adminUsers.newAdmin')}</span>
           </Button>
         </div>
       </div>
@@ -310,7 +312,7 @@ export const PlatformAdminWorkspace: React.FC = () => {
               setSearch(e.target.value);
               setPage(1);
             }}
-            placeholder="Search platform admins by name or email..."
+            placeholder={t('platform.adminUsers.searchPlaceholder')}
             className="w-full bg-surface-sunken border border-default rounded-xl pl-9 pr-3 py-1.5 text-xs text-default placeholder:text-muted focus:outline-hidden focus:border-amber-500 font-mono"
           />
         </div>
@@ -320,12 +322,12 @@ export const PlatformAdminWorkspace: React.FC = () => {
       <ResponsiveDataTable<PlatformAdminUser>
         data={admins}
         isLoading={isLoading}
-        emptyMessage="No platform administrators found."
+        emptyMessage={t('platform.adminUsers.emptyMessage')}
         keyExtractor={(admin) => admin.id}
         columns={[
           {
             key: 'name',
-            header: 'Administrator',
+            header: t('platform.adminUsers.columns.name'),
             priority: 'high',
             render: (admin) => (
               <div>
@@ -339,7 +341,7 @@ export const PlatformAdminWorkspace: React.FC = () => {
           },
           {
             key: 'roles',
-            header: 'Assigned Platform Roles',
+            header: t('platform.adminUsers.columns.roles'),
             priority: 'medium',
             render: (admin) => (
               <div className="flex flex-wrap gap-1">
@@ -354,7 +356,7 @@ export const PlatformAdminWorkspace: React.FC = () => {
                   ))
                 ) : (
                   <span className="px-2 py-0.5 rounded-md bg-surface-sunken border border-default text-muted text-[10px]">
-                    Default Platform Admin
+                    {t('platform.adminUsers.defaultAdmin')}
                   </span>
                 )}
               </div>
@@ -362,7 +364,7 @@ export const PlatformAdminWorkspace: React.FC = () => {
           },
           {
             key: 'status',
-            header: 'Status',
+            header: t('platform.adminUsers.columns.status'),
             priority: 'high',
             render: (admin) => (
               <span
@@ -377,33 +379,33 @@ export const PlatformAdminWorkspace: React.FC = () => {
                 ) : (
                   <XCircle className="size-2.5" />
                 )}
-                <span>{admin.status}</span>
+                <span>{admin.status === 'active' ? t('common:status.active') : t('common:status.suspended')}</span>
               </span>
             ),
           },
           {
             key: 'last_login_at',
-            header: 'Last Active',
+            header: t('platform.adminUsers.columns.lastActive'),
             priority: 'low',
             render: (admin) => (
               <span className="text-muted">
                 {admin.last_login_at ? (
                   new Date(admin.last_login_at).toLocaleString()
                 ) : (
-                  <span className="text-muted/60">Never</span>
+                  <span className="text-muted/60">{t('platform.adminUsers.never')}</span>
                 )}
               </span>
             ),
           },
           {
             key: 'created_at',
-            header: 'Created',
+            header: t('platform.adminUsers.columns.created'),
             priority: 'low',
             render: (admin) => <span className="text-muted">{new Date(admin.created_at).toLocaleDateString()}</span>,
           },
           {
             key: 'actions',
-            header: 'Actions',
+            header: t('platform.adminUsers.columns.actions'),
             priority: 'high',
             align: 'right',
             render: (admin) => (
@@ -414,7 +416,7 @@ export const PlatformAdminWorkspace: React.FC = () => {
                     setSelectedAdmin(admin);
                     setShowResetModal(true);
                   }}
-                  title="Reset Password"
+                  title={t('platform.adminUsers.resetPassword')}
                   className="p-1.5 rounded-lg bg-surface-sunken hover:bg-surface border border-default text-amber-600 dark:text-amber-400 cursor-pointer transition-colors"
                 >
                   <Key className="size-3.5" />
@@ -427,7 +429,7 @@ export const PlatformAdminWorkspace: React.FC = () => {
                       status: admin.status === 'active' ? 'suspended' : 'active',
                     })
                   }
-                  title={admin.status === 'active' ? 'Suspend Admin' : 'Activate Admin'}
+                  title={admin.status === 'active' ? t('platform.adminUsers.suspendAdmin') : t('platform.adminUsers.activateAdmin')}
                   className={`p-1.5 rounded-lg cursor-pointer transition-colors ${
                     admin.status === 'active'
                       ? 'bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/20'
@@ -439,12 +441,12 @@ export const PlatformAdminWorkspace: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => {
-                    if (confirm(`Deactivate administrator ${admin.name}?`)) {
+                    if (confirm(t('platform.adminUsers.confirmDeactivate', { name: admin.name }))) {
                       deleteAdminMutation.mutate(admin.id);
                     }
                   }}
                   disabled={deleteAdminMutation.isPending}
-                  title="Deactivate Administrator"
+                  title={t('platform.adminUsers.deactivateAdmin')}
                   className="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/20 cursor-pointer transition-colors"
                 >
                   <Trash2 className="size-3.5" />
@@ -465,17 +467,17 @@ export const PlatformAdminWorkspace: React.FC = () => {
               }`}
             >
               {admin.status === 'active' ? <CheckCircle2 className="size-2.5" /> : <XCircle className="size-2.5" />}
-              <span>{admin.status}</span>
+              <span>{admin.status === 'active' ? t('common:status.active') : t('common:status.suspended')}</span>
             </span>
           ),
           metrics: [
             {
-              label: 'Roles',
-              value: admin.roles && admin.roles.length > 0 ? admin.roles.map((r) => r.name).join(', ') : 'Default Admin',
+              label: t('platform.adminUsers.columns.roles'),
+              value: admin.roles && admin.roles.length > 0 ? admin.roles.map((r) => r.name).join(', ') : t('platform.adminUsers.defaultAdmin'),
             },
             {
-              label: 'Last Active',
-              value: admin.last_login_at ? new Date(admin.last_login_at).toLocaleDateString() : 'Never',
+              label: t('platform.adminUsers.columns.lastActive'),
+              value: admin.last_login_at ? new Date(admin.last_login_at).toLocaleDateString() : t('platform.adminUsers.never'),
             },
           ],
           actions: (
@@ -489,7 +491,7 @@ export const PlatformAdminWorkspace: React.FC = () => {
                 className="py-2 px-3 rounded-xl bg-surface-sunken hover:bg-surface border border-default text-amber-600 dark:text-amber-400 font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer"
               >
                 <Key className="size-3.5" />
-                <span>Reset PW</span>
+                <span>{t('platform.adminUsers.resetPassword')}</span>
               </button>
               <button
                 type="button"
@@ -506,7 +508,7 @@ export const PlatformAdminWorkspace: React.FC = () => {
                 }`}
               >
                 <Lock className="size-3.5" />
-                <span>{admin.status === 'active' ? 'Suspend' : 'Activate'}</span>
+                <span>{admin.status === 'active' ? t('platform.adminUsers.suspendAdmin') : t('platform.adminUsers.activateAdmin')}</span>
               </button>
             </div>
           ),
@@ -517,8 +519,11 @@ export const PlatformAdminWorkspace: React.FC = () => {
       {data && data.meta.pagination.total_pages > 1 && (
         <div className="p-4 rounded-2xl bg-surface border border-default flex flex-col sm:flex-row items-center justify-between gap-3 text-xs font-mono text-muted">
           <div>
-            Showing page <strong className="text-default">{data.meta.pagination.page}</strong> of{' '}
-            <strong className="text-default">{data.meta.pagination.total_pages}</strong> ({data.meta.pagination.total} administrators)
+            {t('platform.adminUsers.showingPage', {
+              page: data.meta.pagination.page,
+              totalPages: data.meta.pagination.total_pages,
+              total: data.meta.pagination.total,
+            })}
           </div>
           <div className="flex items-center gap-1.5">
             <button
@@ -547,26 +552,26 @@ export const PlatformAdminWorkspace: React.FC = () => {
         <div className="fixed inset-0 bg-overlay/80 backdrop-blur-xs z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 pb-safe animate-in fade-in duration-200">
           <div className="bg-surface-raised border border-default rounded-t-3xl sm:rounded-2xl p-5 sm:p-6 max-w-md w-full shadow-2xl font-mono text-xs max-h-[90vh] overflow-y-auto">
             <div className="w-12 h-1 bg-muted/40 rounded-full mx-auto mb-4 sm:hidden" />
-            <h2 className="text-lg font-bold text-default font-sans">New Platform Administrator</h2>
+            <h2 className="text-lg font-bold text-default font-sans">{t('platform.adminUsers.modal.title')}</h2>
             <p className="text-muted mt-1">
-              Grant root or role-delegated access to the DevCenterPoint control plane.
+              {t('platform.adminUsers.modal.subtitle')}
             </p>
 
             <form onSubmit={handleCreate} className="mt-4 space-y-3">
               <div>
-                <label className="block text-default mb-1 font-sans font-semibold">Full Name *</label>
+                <label className="block text-default mb-1 font-sans font-semibold">{t('platform.adminUsers.modal.nameLabel')}</label>
                 <input
                   type="text"
                   required
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="e.g. John Doe"
+                  placeholder={t('platform.adminUsers.modal.namePlaceholder')}
                   className="w-full bg-surface-sunken border border-default rounded-xl p-2.5 text-default focus:outline-hidden focus:border-amber-500"
                 />
               </div>
 
               <div>
-                <label className="block text-default mb-1 font-sans font-semibold">Email Address *</label>
+                <label className="block text-default mb-1 font-sans font-semibold">{t('platform.adminUsers.modal.emailLabel')}</label>
                 <input
                   type="email"
                   required
@@ -578,7 +583,7 @@ export const PlatformAdminWorkspace: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-default mb-1 font-sans font-semibold">Initial Password * (8+ chars)</label>
+                <label className="block text-default mb-1 font-sans font-semibold">{t('platform.adminUsers.modal.passwordLabel')}</label>
                 <input
                   type="password"
                   required
@@ -591,13 +596,13 @@ export const PlatformAdminWorkspace: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-default mb-1 font-sans font-semibold">Initial Platform Role</label>
+                <label className="block text-default mb-1 font-sans font-semibold">{t('platform.adminUsers.modal.roleLabel')}</label>
                 <select
                   value={selectedRoleId}
                   onChange={(e) => setSelectedRoleId(e.target.value ? Number(e.target.value) : '')}
                   className="w-full bg-surface-sunken border border-default rounded-xl p-2.5 text-default focus:outline-hidden focus:border-amber-500"
                 >
-                  <option value="">Default Platform Admin</option>
+                  <option value="">{t('platform.adminUsers.modal.defaultRoleOption')}</option>
                   {roles.map((r) => (
                     <option key={r.id} value={r.id}>
                       {r.name} ({r.slug})
@@ -612,14 +617,14 @@ export const PlatformAdminWorkspace: React.FC = () => {
                   onClick={() => setShowCreateModal(false)}
                   className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-surface-sunken hover:bg-surface border border-default text-muted hover:text-default cursor-pointer font-semibold text-center transition-colors"
                 >
-                  Cancel
+                  {t('common:action.cancel')}
                 </button>
                 <button
                   type="submit"
                   disabled={createMutation.isPending || !name || !email || password.length < 8}
                   className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold cursor-pointer disabled:opacity-50 text-center transition-colors shadow-xs"
                 >
-                  {createMutation.isPending ? 'Creating...' : 'Create Admin'}
+                  {createMutation.isPending ? t('platform.adminUsers.modal.creatingBtn') : t('platform.adminUsers.modal.createBtn')}
                 </button>
               </div>
             </form>
@@ -632,21 +637,21 @@ export const PlatformAdminWorkspace: React.FC = () => {
         <div className="fixed inset-0 bg-overlay/80 backdrop-blur-xs z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 pb-safe animate-in fade-in duration-200">
           <div className="bg-surface-raised border border-default rounded-t-3xl sm:rounded-2xl p-5 sm:p-6 max-w-md w-full shadow-2xl font-mono text-xs max-h-[90vh] overflow-y-auto">
             <div className="w-12 h-1 bg-muted/40 rounded-full mx-auto mb-4 sm:hidden" />
-            <h2 className="text-lg font-bold text-default font-sans">Reset Admin Password</h2>
+            <h2 className="text-lg font-bold text-default font-sans">{t('platform.adminUsers.modal.resetTitle')}</h2>
             <p className="text-muted mt-1">
-              Set a new password for <strong className="text-default">{selectedAdmin.name}</strong> ({selectedAdmin.email}).
+              {t('platform.adminUsers.modal.resetSubtitle', { name: selectedAdmin.name, email: selectedAdmin.email })}
             </p>
 
             <form onSubmit={handleResetPassword} className="mt-4 space-y-3">
               <div>
-                <label className="block text-default mb-1 font-sans font-semibold">New Password (8+ chars) *</label>
+                <label className="block text-default mb-1 font-sans font-semibold">{t('platform.adminUsers.modal.newPasswordLabel')}</label>
                 <input
                   type="password"
                   required
                   minLength={8}
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder="Enter new password"
+                  placeholder={t('platform.adminUsers.modal.newPasswordPlaceholder')}
                   className="w-full bg-surface-sunken border border-default rounded-xl p-2.5 text-default focus:outline-hidden focus:border-amber-500"
                 />
               </div>
@@ -661,14 +666,14 @@ export const PlatformAdminWorkspace: React.FC = () => {
                   }}
                   className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-surface-sunken hover:bg-surface border border-default text-muted hover:text-default cursor-pointer font-semibold text-center transition-colors"
                 >
-                  Cancel
+                  {t('common:action.cancel')}
                 </button>
                 <button
                   type="submit"
                   disabled={resetMutation.isPending || newPassword.length < 8}
                   className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold cursor-pointer disabled:opacity-50 text-center transition-colors shadow-xs"
                 >
-                  {resetMutation.isPending ? 'Resetting...' : 'Reset Password'}
+                  {resetMutation.isPending ? t('platform.adminUsers.modal.resettingBtn') : t('platform.adminUsers.modal.resetBtn')}
                 </button>
               </div>
             </form>

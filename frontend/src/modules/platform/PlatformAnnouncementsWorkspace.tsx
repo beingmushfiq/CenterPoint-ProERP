@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { api } from '../../lib/api/client';
@@ -15,6 +16,7 @@ import {
 } from 'lucide-react';
 
 export const PlatformAnnouncementsWorkspace: React.FC = () => {
+  const { t } = useTranslation(['platform', 'common']);
   const queryClient = useQueryClient();
 
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -164,9 +166,9 @@ export const PlatformAnnouncementsWorkspace: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-default tracking-tight">System Announcements & Alerts</h1>
+          <h1 className="text-2xl font-bold text-default tracking-tight">{t('announcements.title')}</h1>
           <p className="text-xs text-muted mt-1 font-mono">
-            Broadcast platform maintenance banners, feature updates, and urgent alerts across tenants.
+            {t('announcements.description')}
           </p>
         </div>
 
@@ -179,7 +181,7 @@ export const PlatformAnnouncementsWorkspace: React.FC = () => {
             className="flex items-center gap-1.5 font-mono text-xs cursor-pointer border-default bg-surface text-default hover:bg-surface-sunken"
           >
             <RotateCcw className={`size-3.5 ${isFetching ? 'animate-spin' : ''}`} />
-            <span>Refresh</span>
+            <span>{t('announcements.refresh')}</span>
           </Button>
 
           <Button
@@ -188,7 +190,7 @@ export const PlatformAnnouncementsWorkspace: React.FC = () => {
             className="flex items-center gap-1.5 font-mono text-xs font-bold cursor-pointer bg-amber-500 hover:bg-amber-400 text-slate-950"
           >
             <Plus className="size-4" />
-            <span>New Announcement</span>
+            <span>{t('announcements.newAnnouncement')}</span>
           </Button>
         </div>
       </div>
@@ -197,7 +199,7 @@ export const PlatformAnnouncementsWorkspace: React.FC = () => {
       <div className="rounded-2xl bg-surface border border-default shadow-xl overflow-hidden">
         {isLoading ? (
           <div className="p-12 text-center text-muted font-mono text-xs">
-            Loading platform announcements...
+            {t('announcements.loading')}
           </div>
         ) : announcements.length > 0 ? (
           <div className="divide-y divide-default font-mono text-xs">
@@ -223,7 +225,7 @@ export const PlatformAnnouncementsWorkspace: React.FC = () => {
                     <span className="font-bold text-default font-sans text-sm">{ann.title}</span>
 
                     <span className="px-2 py-0.5 rounded-md bg-surface-sunken border border-default text-muted text-[10px] uppercase">
-                      Target: {ann.target_type}
+                      {ann.target_type}
                     </span>
                   </div>
 
@@ -234,12 +236,12 @@ export const PlatformAnnouncementsWorkspace: React.FC = () => {
                   <div className="flex items-center gap-4 text-[11px] text-muted pt-1">
                     <span className="flex items-center gap-1">
                       <Clock className="size-3" />
-                      <span>Starts: {ann.publish_at ? new Date(ann.publish_at).toLocaleString() : new Date(ann.created_at).toLocaleString()}</span>
+                      <span>{t('announcements.starts')}: {ann.publish_at ? new Date(ann.publish_at).toLocaleString() : new Date(ann.created_at).toLocaleString()}</span>
                     </span>
                     {ann.expires_at && (
-                      <span>Expires: {new Date(ann.expires_at).toLocaleString()}</span>
+                      <span>{t('announcements.expires')}: {new Date(ann.expires_at).toLocaleString()}</span>
                     )}
-                    <span>Active: {ann.is_active ? 'Yes' : 'Archived'}</span>
+                    <span>{ann.is_active ? t('announcements.statusActive') : t('announcements.statusArchived')}</span>
                   </div>
                 </div>
 
@@ -247,7 +249,7 @@ export const PlatformAnnouncementsWorkspace: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => updateMutation.mutate({ id: ann.id, is_active: !ann.is_active })}
-                    title={ann.is_active ? 'Archive Announcement' : 'Reactivate Announcement'}
+                    title={ann.is_active ? t('announcements.archiveTooltip') : t('announcements.reactivateTooltip')}
                     className="p-1.5 rounded-lg bg-surface-sunken hover:bg-surface border border-default text-amber-500 cursor-pointer transition-colors"
                   >
                     <Clock className="size-3.5" />
@@ -255,11 +257,11 @@ export const PlatformAnnouncementsWorkspace: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => {
-                      if (confirm('Delete this broadcast announcement?')) {
+                      if (confirm(t('announcements.deleteConfirm'))) {
                         deleteMutation.mutate(ann.id);
                       }
                     }}
-                    title="Delete Announcement"
+                    title={t('announcements.deleteTooltip')}
                     className="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/20 cursor-pointer transition-colors"
                   >
                     <Trash2 className="size-3.5" />
@@ -270,7 +272,7 @@ export const PlatformAnnouncementsWorkspace: React.FC = () => {
           </div>
         ) : (
           <div className="p-12 text-center text-muted font-mono text-xs">
-            No broadcast announcements active on the platform.
+            {t('announcements.emptyTitle')}
           </div>
         )}
       </div>
@@ -279,62 +281,62 @@ export const PlatformAnnouncementsWorkspace: React.FC = () => {
       {showCreateModal && (
         <div className="fixed inset-0 bg-overlay/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-surface-raised border border-default rounded-2xl p-6 max-w-md w-full shadow-2xl font-mono text-xs">
-            <h2 className="text-lg font-bold text-default font-sans">New Platform Announcement</h2>
+            <h2 className="text-lg font-bold text-default font-sans">{t('announcements.modal.title')}</h2>
             <p className="text-muted mt-1">
-              Broadcast a system banner notification to tenants.
+              {t('announcements.modal.subtitle')}
             </p>
 
             <form onSubmit={handleCreate} className="mt-4 space-y-3">
               <div>
-                <label className="block text-default mb-1">Headline / Title *</label>
+                <label className="block text-default mb-1">{t('announcements.modal.titleLabel')}</label>
                 <input
                   type="text"
                   required
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  placeholder="e.g. Scheduled Maintenance Window"
+                  placeholder={t('announcements.modal.titlePlaceholder')}
                   className="w-full bg-surface-sunken border border-default rounded-xl p-2.5 text-default focus:outline-hidden focus:border-amber-500"
                 />
               </div>
 
               <div>
-                <label className="block text-default mb-1">Severity Tier</label>
+                <label className="block text-default mb-1">{t('announcements.modal.severityLabel')}</label>
                 <select
                   value={severity}
                   onChange={(e) => setSeverity(e.target.value as 'info' | 'warning' | 'critical')}
                   className="w-full bg-surface-sunken border border-default rounded-xl p-2.5 text-default focus:outline-hidden focus:border-amber-500"
                 >
-                  <option value="info">Info (Standard Notification)</option>
-                  <option value="warning">Warning (Service Impact / Degradation)</option>
-                  <option value="critical">Critical (Immediate Outage Alert)</option>
+                  <option value="info">{t('announcements.modal.severityInfo')}</option>
+                  <option value="warning">{t('announcements.modal.severityWarning')}</option>
+                  <option value="critical">{t('announcements.modal.severityCritical')}</option>
                 </select>
               </div>
 
               <div>
-                <label className="block text-default mb-1">Target Audience</label>
+                <label className="block text-default mb-1">{t('announcements.modal.targetLabel')}</label>
                 <select
                   value={targetType}
                   onChange={(e) => setTargetType(e.target.value as 'all' | 'specific_tenants' | 'plan')}
                   className="w-full bg-surface-sunken border border-default rounded-xl p-2.5 text-default focus:outline-hidden focus:border-amber-500"
                 >
-                  <option value="all">All Platform Tenants</option>
-                  <option value="specific_tenants">Specific Tenant Only</option>
+                  <option value="all">{t('announcements.modal.targetAll')}</option>
+                  <option value="specific_tenants">{t('announcements.modal.targetSpecific')}</option>
                 </select>
               </div>
 
               {targetType === 'specific_tenants' && (
                 <div>
-                  <label className="block text-default mb-1">Target Tenant *</label>
+                  <label className="block text-default mb-1">{t('announcements.modal.targetTenantLabel')}</label>
                   <select
                     value={targetTenantId}
                     onChange={(e) => setTargetTenantId(e.target.value ? Number(e.target.value) : '')}
                     required
                     className="w-full bg-surface-sunken border border-default rounded-xl p-2.5 text-default focus:outline-hidden focus:border-amber-500"
                   >
-                    <option value="">Select target tenant...</option>
-                    {tenants.map((t) => (
-                      <option key={t.id} value={t.id}>
-                        {t.name} ({t.slug})
+                    <option value="">{t('announcements.modal.selectTenant')}</option>
+                    {tenants.map((tItem) => (
+                      <option key={tItem.id} value={tItem.id}>
+                        {tItem.name} ({tItem.slug})
                       </option>
                     ))}
                   </select>
@@ -342,20 +344,20 @@ export const PlatformAnnouncementsWorkspace: React.FC = () => {
               )}
 
               <div>
-                <label className="block text-default mb-1">Announcement Body *</label>
+                <label className="block text-default mb-1">{t('announcements.modal.bodyLabel')}</label>
                 <textarea
                   required
                   rows={4}
                   value={body}
                   onChange={(e) => setBody(e.target.value)}
-                  placeholder="Details of the announcement or maintenance..."
+                  placeholder={t('announcements.modal.bodyPlaceholder')}
                   className="w-full bg-surface-sunken border border-default rounded-xl p-2.5 text-default focus:outline-hidden focus:border-amber-500 resize-none font-sans"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-default mb-1">Starts At *</label>
+                  <label className="block text-default mb-1">{t('announcements.modal.startsAtLabel')}</label>
                   <input
                     type="datetime-local"
                     required
@@ -365,7 +367,7 @@ export const PlatformAnnouncementsWorkspace: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-default mb-1">Ends At (Optional)</label>
+                  <label className="block text-default mb-1">{t('announcements.modal.endsAtLabel')}</label>
                   <input
                     type="datetime-local"
                     value={endsAt}
@@ -384,7 +386,7 @@ export const PlatformAnnouncementsWorkspace: React.FC = () => {
                   className="rounded-sm border-default bg-surface-sunken text-amber-500 focus:ring-amber-500"
                 />
                 <label htmlFor="isDismissibleCheckbox" className="text-default cursor-pointer">
-                  Allow tenant users to dismiss this banner
+                  {t('announcements.modal.dismissibleLabel')}
                 </label>
               </div>
 
@@ -394,14 +396,14 @@ export const PlatformAnnouncementsWorkspace: React.FC = () => {
                   onClick={() => setShowCreateModal(false)}
                   className="px-4 py-2 rounded-xl bg-surface-sunken hover:bg-surface text-muted hover:text-default border border-default cursor-pointer"
                 >
-                  Cancel
+                  {t('announcements.modal.cancel')}
                 </button>
                 <button
                   type="submit"
                   disabled={createMutation.isPending || !title || !body}
                   className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold cursor-pointer disabled:opacity-50"
                 >
-                  {createMutation.isPending ? 'Publishing...' : 'Broadcast Announcement'}
+                  {createMutation.isPending ? t('announcements.modal.publishingBtn') : t('announcements.modal.publishBtn')}
                 </button>
               </div>
             </form>

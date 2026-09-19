@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   AlertTriangle,
   ArrowRightLeft,
@@ -40,25 +41,6 @@ interface CategoryConfig {
   defaultTab: InventoryTab;
 }
 
-const CATEGORIES: CategoryConfig[] = [
-  {
-    id: 'visibility',
-    label: 'Stock Levels & Low Stock Alerts',
-    tagline: 'Live quantities across warehouses, batch tracking & replenishment alerts',
-    shortcut: '1',
-    icon: Boxes,
-    defaultTab: 'ledger',
-  },
-  {
-    id: 'operations',
-    label: 'Transfers, Adjustments & Counts',
-    tagline: 'Move stock between locations, report damaged items & do physical counts',
-    shortcut: '2',
-    icon: Warehouse,
-    defaultTab: 'transfers',
-  },
-];
-
 interface TabConfig {
   id: InventoryTab;
   step: number;
@@ -71,75 +53,90 @@ interface TabConfig {
   highlights: string[];
 }
 
-const tabs: TabConfig[] = [
-  {
-    id: 'ledger',
-    step: 1,
-    label: 'Live Stock Balances',
-    shortLabel: 'Current Stock',
-    category: 'visibility',
-    badge: 'Live Stock',
-    icon: Boxes,
-    description:
-      'Check current available quantities in every warehouse, view item locations, and trace past movements',
-    highlights: ['Multi-Warehouse Balances', 'Lot & Expiry Tracking', 'Complete Movement History'],
-  },
-  {
-    id: 'thresholds',
-    step: 2,
-    label: 'Low Stock Alerts & Reorders',
-    shortLabel: 'Reorder Alerts',
-    category: 'visibility',
-    badge: 'Safety Stock',
-    icon: AlertTriangle,
-    description:
-      'Set minimum stock warning levels so you get notified before items run out of stock',
-    highlights: ['Minimum Level Alerts', 'Low Stock Warnings', 'Suggested Reorder Amounts'],
-  },
-  {
-    id: 'transfers',
-    step: 3,
-    label: 'Warehouse Transfers',
-    shortLabel: 'Transfers',
-    category: 'operations',
-    badge: 'Transit',
-    icon: ArrowRightLeft,
-    description:
-      'Move items from one warehouse to another with dispatch confirmation and receiving checks',
-    highlights: ['Warehouse-to-Warehouse', 'Track In-Transit Goods', 'Arrival Verification'],
-  },
-  {
-    id: 'adjustments',
-    step: 4,
-    label: 'Damaged & Lost Items',
-    shortLabel: 'Damage / Loss',
-    category: 'operations',
-    badge: 'Adjustments',
-    icon: Scale,
-    description:
-      'Record broken, expired, or lost goods and adjust stock counts with manager approval',
-    highlights: ['Broken / Expired Items', 'Audit Reason Records', 'Manager Approval Gate'],
-  },
-  {
-    id: 'counts',
-    step: 5,
-    label: 'Physical Stock Counts',
-    shortLabel: 'Cycle Counts',
-    category: 'operations',
-    badge: 'Audit & Rec',
-    icon: ClipboardCheck,
-    description:
-      'Periodic cycle and full physical audits with snapshotting, blind counts and automated variance reconciliation',
-    highlights: ['Freeze Snapshot Audits', 'Blind Counting Sheets', 'Automated Variance Reconciliation'],
-  },
-];
-
 export default function InventoryWorkspace() {
+  const { t } = useTranslation(['inventory', 'common']);
   const [activeTab, setActiveTab] = useWorkspaceTab<InventoryTab>('ledger', VALID_TABS);
   const [quickJumpOpen, setQuickJumpOpen] = useState(false);
   const [isGuideOpen, setIsGuideOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const quickJumpRef = useRef<HTMLDivElement>(null);
+
+  const categories: CategoryConfig[] = useMemo(() => [
+    {
+      id: 'visibility',
+      label: t('inventory.catVisibilityLabel'),
+      tagline: t('inventory.catVisibilityTagline'),
+      shortcut: '1',
+      icon: Boxes,
+      defaultTab: 'ledger',
+    },
+    {
+      id: 'operations',
+      label: t('inventory.catOperationsLabel'),
+      tagline: t('inventory.catOperationsTagline'),
+      shortcut: '2',
+      icon: Warehouse,
+      defaultTab: 'transfers',
+    },
+  ], [t]);
+
+  const tabs: TabConfig[] = useMemo(() => [
+    {
+      id: 'ledger',
+      step: 1,
+      label: t('inventory.tabLedgerLabel'),
+      shortLabel: t('inventory.tabLedgerShort'),
+      category: 'visibility',
+      badge: t('inventory.tabLedgerBadge'),
+      icon: Boxes,
+      description: t('inventory.tabLedgerDesc'),
+      highlights: ['Multi-Warehouse Balances', 'Lot & Expiry Tracking', 'Complete Movement History'],
+    },
+    {
+      id: 'thresholds',
+      step: 2,
+      label: t('inventory.tabThresholdsLabel'),
+      shortLabel: t('inventory.tabThresholdsShort'),
+      category: 'visibility',
+      badge: t('inventory.tabThresholdsBadge'),
+      icon: AlertTriangle,
+      description: t('inventory.tabThresholdsDesc'),
+      highlights: ['Minimum Level Alerts', 'Low Stock Warnings', 'Suggested Reorder Amounts'],
+    },
+    {
+      id: 'transfers',
+      step: 3,
+      label: t('inventory.tabTransfersLabel'),
+      shortLabel: t('inventory.tabTransfersShort'),
+      category: 'operations',
+      badge: t('inventory.tabTransfersBadge'),
+      icon: ArrowRightLeft,
+      description: t('inventory.tabTransfersDesc'),
+      highlights: ['Warehouse-to-Warehouse', 'Track In-Transit Goods', 'Arrival Verification'],
+    },
+    {
+      id: 'adjustments',
+      step: 4,
+      label: t('inventory.tabAdjustmentsLabel'),
+      shortLabel: t('inventory.tabAdjustmentsShort'),
+      category: 'operations',
+      badge: t('inventory.tabAdjustmentsBadge'),
+      icon: Scale,
+      description: t('inventory.tabAdjustmentsDesc'),
+      highlights: ['Broken / Expired Items', 'Audit Reason Records', 'Manager Approval Gate'],
+    },
+    {
+      id: 'counts',
+      step: 5,
+      label: t('inventory.tabCountsLabel'),
+      shortLabel: t('inventory.tabCountsShort'),
+      category: 'operations',
+      badge: t('inventory.tabCountsBadge'),
+      icon: ClipboardCheck,
+      description: t('inventory.tabCountsDesc'),
+      highlights: ['Freeze Snapshot Audits', 'Blind Counting Sheets', 'Automated Variance Reconciliation'],
+    },
+  ], [t]);
 
   // Quick Action Modals
   const [showTransferModal, setShowTransferModal] = useState(false);
@@ -209,11 +206,11 @@ export default function InventoryWorkspace() {
         <div>
           <div className="flex items-center gap-2 mb-1.5 flex-wrap">
             <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-primary bg-primary-subtle px-2.5 py-0.5 rounded-full border border-primary/20">
-              Inventory & Warehouse Management
+              {t('inventory.headerBadge')}
             </span>
             <span className="text-muted/50 text-xs">/</span>
             <span className="text-[11px] font-semibold text-default">
-              Stage {currentTab.step} of 5: {currentTab.label}
+              {t('inventory.stageOfFive', { step: currentTab.step, label: currentTab.label })}
             </span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-default flex items-center gap-3">
@@ -238,7 +235,7 @@ export default function InventoryWorkspace() {
             title="Open Inventory Architecture & Operations Guide"
           >
             <Compass className="size-3.5 text-primary" />
-            <span>Explore Capabilities</span>
+            <span>{t('inventory.exploreCapabilities')}</span>
           </button>
 
           {/* Quick Jump Dropdown Popover */}
@@ -256,7 +253,7 @@ export default function InventoryWorkspace() {
               title="Jump directly to any of the 5 inventory views"
             >
               <SlidersHorizontal className="size-3.5 text-primary" />
-              <span>All 5 Views</span>
+              <span>{t('inventory.allViews')}</span>
             </button>
 
             {quickJumpOpen && (
@@ -267,7 +264,7 @@ export default function InventoryWorkspace() {
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Search inventory views..."
+                    placeholder={t('inventory.searchViews')}
                     autoFocus
                     className="w-full pl-8 pr-7 py-1.5 text-xs bg-surface-sunken rounded-lg border border-default focus:border-primary focus:outline-none text-default"
                   />
@@ -282,7 +279,7 @@ export default function InventoryWorkspace() {
                 </div>
 
                 <div className="max-h-72 overflow-y-auto space-y-1 pr-1">
-                  {CATEGORIES.map((cat) => {
+                  {categories.map((cat) => {
                     const catTabs = filteredTabs.filter((t) => t.category === cat.id);
                     if (catTabs.length === 0) return null;
 
@@ -339,7 +336,7 @@ export default function InventoryWorkspace() {
 
                   {filteredTabs.length === 0 && (
                     <div className="py-6 text-center text-xs text-muted">
-                      No inventory views found matching &quot;{searchQuery}&quot;
+                      {t('inventory.noViewsFound', { query: searchQuery })}
                     </div>
                   )}
                 </div>
@@ -361,7 +358,7 @@ export default function InventoryWorkspace() {
           className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold bg-primary hover:bg-primary/90 text-primary-fg shadow-xs transition cursor-pointer"
         >
           <Search className="size-4" />
-          <span>🔍 Quick Stock Check</span>
+          <span>{t('inventory.quickStockCheck')}</span>
         </button>
         <button
           type="button"
@@ -369,7 +366,7 @@ export default function InventoryWorkspace() {
           className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-xs transition cursor-pointer"
         >
           <ArrowRightLeft className="size-4" />
-          <span>🔄 Move Stock (Transfer)</span>
+          <span>{t('inventory.moveStock')}</span>
         </button>
         <button
           type="button"
@@ -377,7 +374,7 @@ export default function InventoryWorkspace() {
           className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white shadow-xs transition cursor-pointer"
         >
           <AlertTriangle className="size-4" />
-          <span>📝 Report Damaged / Lost Items</span>
+          <span>{t('inventory.reportDamaged')}</span>
         </button>
         <button
           type="button"
@@ -385,7 +382,7 @@ export default function InventoryWorkspace() {
           className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold bg-surface-sunken hover:bg-surface border border-default text-default transition cursor-pointer"
         >
           <ClipboardCheck className="size-4 text-emerald-500" />
-          <span>📋 Start Physical Stock Count</span>
+          <span>{t('inventory.startPhysicalCount')}</span>
         </button>
       </div>
 
@@ -395,7 +392,7 @@ export default function InventoryWorkspace() {
         aria-label="Inventory Operational Domains"
         className="grid grid-cols-1 md:grid-cols-2 gap-3"
       >
-        {CATEGORIES.map((cat) => {
+        {categories.map((cat) => {
           const isCatActive = activeCategory === cat.id;
           const Icon = cat.icon;
           const childTabs = tabs.filter((t) => t.category === cat.id);
@@ -457,7 +454,7 @@ export default function InventoryWorkspace() {
                           : 'bg-surface-sunken text-muted border-default'
                       )}
                     >
-                      {childTabs.length} {childTabs.length === 1 ? 'view' : 'views'}
+                      {childTabs.length === 1 ? t('inventory.viewCount') : t('inventory.viewsCount', { count: childTabs.length })}
                     </span>
                   </div>
 
@@ -500,7 +497,7 @@ export default function InventoryWorkspace() {
                             : 'bg-surface text-muted border border-default/60'
                         )}
                       >
-                        Stage {subTab.step}
+                        {t('inventory.stageLabel', { step: subTab.step })}
                       </span>
                     </button>
                   );
@@ -521,10 +518,10 @@ export default function InventoryWorkspace() {
         <div className="flex items-center justify-between px-2 pb-2 mb-2 text-[11px] font-semibold text-muted border-b border-default/50">
           <div className="flex items-center gap-2">
             <Zap className="size-3.5 text-primary" />
-            <span className="uppercase tracking-wider font-bold">Inventory & Warehouse Stages Execution Ribbon</span>
+            <span className="uppercase tracking-wider font-bold">{t('inventory.stagesRibbon')}</span>
           </div>
           <span className="text-[10px] font-mono text-muted/70">
-            5 Stages Available • Instant Access [1-5]
+            {t('inventory.stagesAvailable')}
           </span>
         </div>
 
@@ -593,18 +590,17 @@ export default function InventoryWorkspace() {
       <Modal
         open={isGuideOpen}
         onClose={() => setIsGuideOpen(false)}
-        title="Inventory & Warehouse Operations Architecture Guide"
+        title={t('inventory.guideModalTitle')}
         size="xl"
       >
         <div className="space-y-6">
           <div className="rounded-xl bg-primary-subtle/50 border border-primary/20 p-4">
             <h4 className="text-sm font-bold text-primary flex items-center gap-2 mb-1">
               <Boxes className="size-4" />
-              Unified Multi-Facility Warehouse Management
+              {t('inventory.guideModalHeader')}
             </h4>
             <p className="text-xs text-muted leading-relaxed">
-              The Inventory engine provides double-entry physical stock integrity, append-only lot traceability,
-              two-step inter-warehouse transit logistics, and strict scrap and discrepancy reconciliation.
+              {t('inventory.guideModalIntro')}
             </p>
           </div>
 
@@ -650,7 +646,7 @@ export default function InventoryWorkspace() {
                       setIsGuideOpen(false);
                     }}
                   >
-                    <span>{activeTab === tab.id ? 'Current View' : `Switch to ${tab.shortLabel}`}</span>
+                    <span>{activeTab === tab.id ? t('inventory.currentView') : t('inventory.switchTo', { label: tab.shortLabel })}</span>
                     <ArrowRight className="size-3" />
                   </Button>
                 </div>
@@ -660,7 +656,7 @@ export default function InventoryWorkspace() {
 
           <div className="rounded-xl bg-surface-sunken p-4 border border-default flex items-center justify-between">
             <div className="text-xs text-muted">
-              Keyboard shortcut: Press <kbd className="px-1.5 py-0.5 bg-surface rounded border border-default font-mono text-[10px] font-bold">1</kbd> for Stock Controls, <kbd className="px-1.5 py-0.5 bg-surface rounded border border-default font-mono text-[10px] font-bold">2</kbd> for Movements.
+              {t('inventory.guideShortcut')}
             </div>
           </div>
         </div>

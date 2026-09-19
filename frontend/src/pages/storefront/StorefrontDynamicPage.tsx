@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useOutletContext, useParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { ArrowLeft, FileText } from 'lucide-react';
 import { api } from '../../lib/api/client';
 import { SeoHead } from '../../components/seo/SeoHead';
@@ -27,6 +28,7 @@ interface PublicCmsPageData {
 }
 
 export const StorefrontDynamicPage: React.FC = () => {
+  const { t } = useTranslation(['storefront', 'common']);
   const { config, subdomain } = useOutletContext<OutletContextType>();
   const { slug } = useParams<{ slug: string }>();
 
@@ -856,9 +858,9 @@ We promote user repairability: non-destructive opening of the chassis to lubrica
       >
         <FileText className="h-6 w-6" />
       </div>
-      <h2 className="text-2xl font-bold text-zinc-900 dark:text-white">Storefront Page</h2>
+      <h2 className="text-2xl font-bold text-zinc-900 dark:text-white">{t('storefront.storefrontPage')}</h2>
       <p className="text-xs sm:text-sm text-zinc-600 dark:text-zinc-400 max-w-sm mx-auto leading-relaxed">
-        This custom page is currently being updated in the Storefront Page Builder CMS.
+        {t('storefront.pageUpdatingCMS')}
       </p>
       <Link
         to={getStorefrontUrl(subdomain, '/products')}
@@ -869,7 +871,7 @@ We promote user repairability: non-destructive opening of the chassis to lubrica
         }}
       >
         <ArrowLeft className="h-4 w-4" />
-        <span>Return to Product Catalog</span>
+        <span>{t('storefront.returnToCatalogBtn')}</span>
       </Link>
     </div>
   );

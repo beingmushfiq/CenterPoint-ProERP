@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { api } from '../../lib/api/client';
@@ -42,6 +43,7 @@ interface ErrorListResponse {
 }
 
 export const PlatformErrorMonitoringWorkspace: React.FC = () => {
+  const { t } = useTranslation(['platform', 'common']);
   const queryClient = useQueryClient();
 
   const [search, setSearch] = useState('');
@@ -135,7 +137,7 @@ export const PlatformErrorMonitoringWorkspace: React.FC = () => {
   const columns: ResponsiveColumn<PlatformErrorLogItem>[] = [
     {
       id: 'signature',
-      header: 'Error Type & Signature',
+      header: t('errorMonitoring.columns.error'),
       isPrimary: true,
       priority: 'high',
       cell: (err) => (
@@ -156,7 +158,7 @@ export const PlatformErrorMonitoringWorkspace: React.FC = () => {
     },
     {
       id: 'severity_status',
-      header: 'Severity & Status',
+      header: t('errorMonitoring.columns.severity'),
       isStatus: true,
       priority: 'high',
       cell: (err) => (
@@ -188,7 +190,7 @@ export const PlatformErrorMonitoringWorkspace: React.FC = () => {
     },
     {
       id: 'tenant',
-      header: 'Tenant Scope',
+      header: t('errorMonitoring.columns.tenant'),
       priority: 'medium',
       cell: (err) => (
         <div className="text-muted">
@@ -198,14 +200,14 @@ export const PlatformErrorMonitoringWorkspace: React.FC = () => {
               <span className="text-default font-medium truncate">{err.tenant.name}</span>
             </div>
           ) : (
-            <span className="text-muted font-mono text-[11px]">Global Platform</span>
+            <span className="text-muted font-mono text-[11px]">{t('errorMonitoring.globalPlatform')}</span>
           )}
         </div>
       ),
     },
     {
       id: 'occurrences',
-      header: 'Occurrences',
+      header: t('errorMonitoring.columns.occurrences'),
       priority: 'high',
       cell: (err) => (
         <span className="px-2 py-0.5 rounded-full bg-surface-sunken border border-default text-[11px] font-bold text-default font-mono">
@@ -215,7 +217,7 @@ export const PlatformErrorMonitoringWorkspace: React.FC = () => {
     },
     {
       id: 'last_seen',
-      header: 'Last Seen',
+      header: t('errorMonitoring.columns.lastSeen'),
       priority: 'low',
       cell: (err) => (
         <div className="text-muted text-[11px] font-mono">
@@ -226,7 +228,7 @@ export const PlatformErrorMonitoringWorkspace: React.FC = () => {
     },
     {
       id: 'actions',
-      header: 'Actions',
+      header: t('errorMonitoring.columns.actions'),
       isAction: true,
       priority: 'high',
       headerClassName: 'text-right',
@@ -237,7 +239,7 @@ export const PlatformErrorMonitoringWorkspace: React.FC = () => {
           className="px-3 py-1.5 rounded-xl bg-surface-sunken hover:bg-surface border border-default text-xs font-medium text-default inline-flex items-center gap-1.5 transition-colors cursor-pointer"
         >
           <Eye className="size-3.5" />
-          <span>Inspect</span>
+          <span>{t('errorMonitoring.inspect')}</span>
         </button>
       ),
     },
@@ -250,14 +252,14 @@ export const PlatformErrorMonitoringWorkspace: React.FC = () => {
         <div>
           <div className="flex items-center gap-2 mb-1">
             <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-rose-600 dark:text-rose-400 bg-rose-500/10 px-2.5 py-0.5 rounded-full border border-rose-500/20">
-              Observability & Reliability Engine
+              {t('errorMonitoring.badge')}
             </span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-default">
-            Error & Exception Telemetry
+            {t('errorMonitoring.title')}
           </h1>
           <p className="mt-1 text-xs text-muted max-w-2xl leading-relaxed font-mono">
-            Live crash reporting, unhandled promise rejections, automated circuit-breaker metrics, and diagnostic stack traces.
+            {t('errorMonitoring.description')}
           </p>
         </div>
 
@@ -268,19 +270,19 @@ export const PlatformErrorMonitoringWorkspace: React.FC = () => {
             onClick={() => ingestTestErrorMutation.mutate()}
             disabled={ingestTestErrorMutation.isPending}
             className="flex items-center gap-1.5 font-mono cursor-pointer border-default bg-surface text-default hover:bg-surface-sunken"
-            title="Dispatch Test Telemetry Ingestion"
+            title={t('errorMonitoring.simulateIngest')}
           >
-            <span>Simulate Ingest</span>
+            <span>{t('errorMonitoring.simulateIngest')}</span>
           </Button>
           <Button
             variant="secondary"
             size="sm"
             onClick={() => refetch()}
             className="flex items-center gap-1.5 font-mono cursor-pointer"
-            title="Reload Error Stream"
+            title={t('errorMonitoring.syncStream')}
           >
             <RotateCcw className={`size-3.5 ${isFetching ? 'animate-spin' : ''}`} />
-            <span className="hidden sm:inline">Sync Stream</span>
+            <span className="hidden sm:inline">{t('errorMonitoring.syncStream')}</span>
           </Button>
         </div>
       </div>
@@ -293,7 +295,7 @@ export const PlatformErrorMonitoringWorkspace: React.FC = () => {
           </div>
           <div>
             <div className="text-xl font-extrabold text-default">{stats?.critical ?? 0}</div>
-            <div className="text-[11px] text-muted">Critical Traces</div>
+            <div className="text-[11px] text-muted">{t('errorMonitoring.stats.criticalTraces')}</div>
           </div>
         </div>
 
@@ -303,7 +305,7 @@ export const PlatformErrorMonitoringWorkspace: React.FC = () => {
           </div>
           <div>
             <div className="text-xl font-extrabold text-default">{stats?.open ?? 0}</div>
-            <div className="text-[11px] text-muted">Open Triage</div>
+            <div className="text-[11px] text-muted">{t('errorMonitoring.stats.openTriage')}</div>
           </div>
         </div>
 
@@ -313,7 +315,7 @@ export const PlatformErrorMonitoringWorkspace: React.FC = () => {
           </div>
           <div>
             <div className="text-xl font-extrabold text-default">{stats?.investigating ?? 0}</div>
-            <div className="text-[11px] text-muted">Investigating</div>
+            <div className="text-[11px] text-muted">{t('errorMonitoring.stats.investigating')}</div>
           </div>
         </div>
 
@@ -323,7 +325,7 @@ export const PlatformErrorMonitoringWorkspace: React.FC = () => {
           </div>
           <div>
             <div className="text-xl font-extrabold text-emerald-600 dark:text-emerald-400">{stats?.resolved ?? 0}</div>
-            <div className="text-[11px] text-muted">Resolved</div>
+            <div className="text-[11px] text-muted">{t('errorMonitoring.stats.resolved')}</div>
           </div>
         </div>
       </div>
@@ -339,7 +341,7 @@ export const PlatformErrorMonitoringWorkspace: React.FC = () => {
               setSearch(e.target.value);
               setPage(1);
             }}
-            placeholder="Search error signatures, messages, routes..."
+            placeholder={t('errorMonitoring.searchPlaceholder')}
             className="w-full pl-9 pr-3 py-2 bg-surface-sunken border border-default rounded-xl text-default placeholder:text-muted focus:outline-hidden focus:border-amber-500 transition-all text-xs"
           />
         </div>
@@ -348,11 +350,11 @@ export const PlatformErrorMonitoringWorkspace: React.FC = () => {
           <SelectDropdown
             icon={Filter}
             options={[
-              { value: 'all', label: 'All Statuses' },
-              { value: 'open', label: 'Open', colorDot: 'bg-rose-500' },
-              { value: 'investigating', label: 'Investigating', colorDot: 'bg-amber-500' },
-              { value: 'resolved', label: 'Resolved', colorDot: 'bg-emerald-500' },
-              { value: 'ignored', label: 'Ignored', colorDot: 'bg-slate-500' },
+              { value: 'all', label: t('errorMonitoring.status.all') },
+              { value: 'open', label: t('errorMonitoring.status.open'), colorDot: 'bg-rose-500' },
+              { value: 'investigating', label: t('errorMonitoring.status.investigating'), colorDot: 'bg-amber-500' },
+              { value: 'resolved', label: t('errorMonitoring.status.resolved'), colorDot: 'bg-emerald-500' },
+              { value: 'ignored', label: t('errorMonitoring.status.ignored'), colorDot: 'bg-slate-500' },
             ]}
             value={statusFilter}
             onChange={(val) => {
@@ -364,11 +366,11 @@ export const PlatformErrorMonitoringWorkspace: React.FC = () => {
 
           <SelectDropdown
             options={[
-              { value: 'all', label: 'All Severities' },
-              { value: 'critical', label: 'Critical' },
-              { value: 'error', label: 'Error' },
-              { value: 'warning', label: 'Warning' },
-              { value: 'info', label: 'Info' },
+              { value: 'all', label: t('errorMonitoring.severity.all') },
+              { value: 'critical', label: t('errorMonitoring.severity.critical') },
+              { value: 'error', label: t('errorMonitoring.severity.error') },
+              { value: 'warning', label: t('errorMonitoring.severity.warning') },
+              { value: 'info', label: t('errorMonitoring.severity.info') },
             ]}
             value={severityFilter}
             onChange={(val) => {
@@ -387,7 +389,7 @@ export const PlatformErrorMonitoringWorkspace: React.FC = () => {
           columns={columns}
           keyExtractor={(err) => err.id}
           loading={isLoading}
-          emptyMessage="No diagnostic errors matching current filter"
+          emptyMessage={t('errorMonitoring.emptyMessage')}
           emptyIcon={CheckCircle2}
         />
 
@@ -395,8 +397,7 @@ export const PlatformErrorMonitoringWorkspace: React.FC = () => {
         {pagination && pagination.total_pages > 1 && (
           <div className="p-4 rounded-2xl bg-surface border border-default shadow-xs flex flex-col sm:flex-row items-center justify-between gap-3 text-xs font-mono text-muted">
             <div>
-              Showing page <span className="font-bold text-default">{pagination.page}</span> of{' '}
-              <span className="font-bold text-default">{pagination.total_pages}</span> ({pagination.total} total traces)
+              {pagination.page} / {pagination.total_pages} ({pagination.total})
             </div>
             <div className="flex items-center gap-2">
               <button
@@ -405,14 +406,14 @@ export const PlatformErrorMonitoringWorkspace: React.FC = () => {
                 className="px-3 py-1.5 rounded-lg bg-surface-sunken hover:bg-surface disabled:opacity-40 disabled:cursor-not-allowed border border-default text-default flex items-center gap-1 transition-colors cursor-pointer"
               >
                 <ChevronLeft className="size-3.5" />
-                <span>Prev</span>
+                <span>{t('common.prev', 'Prev')}</span>
               </button>
               <button
                 onClick={() => setPage((p) => Math.min(pagination.total_pages, p + 1))}
                 disabled={pagination.page >= pagination.total_pages || isFetching}
                 className="px-3 py-1.5 rounded-lg bg-surface-sunken hover:bg-surface disabled:opacity-40 disabled:cursor-not-allowed border border-default text-default flex items-center gap-1 transition-colors cursor-pointer"
               >
-                <span>Next</span>
+                <span>{t('common.next', 'Next')}</span>
                 <ChevronRight className="size-3.5" />
               </button>
             </div>
@@ -441,7 +442,7 @@ export const PlatformErrorMonitoringWorkspace: React.FC = () => {
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-xs text-muted font-mono">
-                  {selectedError.occurrence_count} occurrences
+                  {selectedError.occurrence_count} {t('errorMonitoring.columns.occurrences')}
                 </span>
               </div>
             </div>
@@ -449,7 +450,7 @@ export const PlatformErrorMonitoringWorkspace: React.FC = () => {
             {/* Error Message */}
             <div className="p-4 rounded-xl bg-surface-sunken border border-default">
               <span className="text-[11px] font-bold text-muted block mb-1 uppercase font-mono">
-                Error Message
+                {t('errorMonitoring.modal.errorMessage')}
               </span>
               <p className="text-xs text-rose-600 dark:text-rose-400 font-mono select-all">
                 {selectedError.message}
@@ -459,7 +460,7 @@ export const PlatformErrorMonitoringWorkspace: React.FC = () => {
             {/* Meta Grid */}
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
               <div className="p-3 rounded-xl bg-surface-sunken border border-default">
-                <span className="text-muted block text-[10px] font-mono uppercase">Fingerprint</span>
+                <span className="text-muted block text-[10px] font-mono uppercase">{t('errorMonitoring.modal.fingerprint')}</span>
                 <div className="flex items-center justify-between mt-1">
                   <span className="font-mono text-[11px] text-default truncate max-w-35">
                     {selectedError.fingerprint}
@@ -474,35 +475,35 @@ export const PlatformErrorMonitoringWorkspace: React.FC = () => {
               </div>
 
               <div className="p-3 rounded-xl bg-surface-sunken border border-default">
-                <span className="text-muted block text-[10px] font-mono uppercase">Tenant Scope</span>
+                <span className="text-muted block text-[10px] font-mono uppercase">{t('errorMonitoring.modal.tenantScope')}</span>
                 <span className="font-semibold text-default block mt-1">
-                  {selectedError.tenant ? selectedError.tenant.name : 'Platform Engine'}
+                  {selectedError.tenant ? selectedError.tenant.name : t('errorMonitoring.globalPlatform')}
                 </span>
               </div>
 
               <div className="p-3 rounded-xl bg-surface-sunken border border-default">
-                <span className="text-muted block text-[10px] font-mono uppercase">Route / Module</span>
+                <span className="text-muted block text-[10px] font-mono uppercase">{t('errorMonitoring.modal.routeModule')}</span>
                 <span className="font-mono text-[11px] text-default block mt-1 truncate">
                   {selectedError.route || selectedError.module || 'System Backend'}
                 </span>
               </div>
 
               <div className="p-3 rounded-xl bg-surface-sunken border border-default">
-                <span className="text-muted block text-[10px] font-mono uppercase">First Seen</span>
+                <span className="text-muted block text-[10px] font-mono uppercase">{t('errorMonitoring.modal.firstSeen')}</span>
                 <span className="font-mono text-[11px] text-default block mt-1">
                   {new Date(selectedError.first_seen_at).toLocaleString()}
                 </span>
               </div>
 
               <div className="p-3 rounded-xl bg-surface-sunken border border-default">
-                <span className="text-muted block text-[10px] font-mono uppercase">Last Seen</span>
+                <span className="text-muted block text-[10px] font-mono uppercase">{t('errorMonitoring.modal.lastSeen')}</span>
                 <span className="font-mono text-[11px] text-default block mt-1">
                   {new Date(selectedError.last_seen_at).toLocaleString()}
                 </span>
               </div>
 
               <div className="p-3 rounded-xl bg-surface-sunken border border-default">
-                <span className="text-muted block text-[10px] font-mono uppercase">Environment / IP</span>
+                <span className="text-muted block text-[10px] font-mono uppercase">{t('errorMonitoring.modal.environmentIp')}</span>
                 <span className="font-mono text-[11px] text-default block mt-1">
                   {selectedError.environment} ({selectedError.ip || 'Local'})
                 </span>
@@ -514,14 +515,14 @@ export const PlatformErrorMonitoringWorkspace: React.FC = () => {
               <div>
                 <div className="flex items-center justify-between mb-1.5">
                   <span className="text-xs font-bold text-default font-mono">
-                    Stack Trace
+                    {t('errorMonitoring.modal.stackTrace')}
                   </span>
                   <button
                     onClick={() => handleCopy('st', selectedError.stack_trace || '')}
                     className="text-xs text-muted hover:text-default flex items-center gap-1 font-mono"
                   >
                     {copiedKey === 'st' ? <Check className="size-3 text-emerald-500" /> : <Copy className="size-3" />}
-                    <span>Copy Trace</span>
+                    <span>{t('errorMonitoring.modal.copyTrace')}</span>
                   </button>
                 </div>
                 <pre className="p-4 rounded-xl bg-surface-sunken text-default font-mono text-[11px] leading-relaxed max-h-60 overflow-y-auto border border-default select-all">
@@ -533,11 +534,11 @@ export const PlatformErrorMonitoringWorkspace: React.FC = () => {
             {/* Triage & Status Management */}
             <div className="p-4 rounded-xl bg-surface-sunken border border-default space-y-3">
               <span className="text-xs font-bold text-default font-mono uppercase">
-                Triage Action & Resolution Notes
+                {t('errorMonitoring.modal.triageAction')}
               </span>
               <textarea
                 rows={2}
-                placeholder="Add resolution details, PR reference, or triage notes..."
+                placeholder={t('errorMonitoring.modal.resolutionPlaceholder')}
                 value={resolutionNote}
                 onChange={(e) => setResolutionNote(e.target.value)}
                 className="w-full p-2.5 rounded-lg bg-surface border border-default text-xs text-default placeholder:text-muted focus:outline-hidden focus:border-primary"
@@ -549,7 +550,7 @@ export const PlatformErrorMonitoringWorkspace: React.FC = () => {
                   onClick={() => updateStatusMutation.mutate({ id: selectedError.id, status: 'investigating', note: resolutionNote })}
                   disabled={updateStatusMutation.isPending}
                 >
-                  Mark as Investigating
+                  {t('errorMonitoring.modal.markInvestigating')}
                 </Button>
                 <Button
                   variant="primary"
@@ -557,7 +558,7 @@ export const PlatformErrorMonitoringWorkspace: React.FC = () => {
                   onClick={() => updateStatusMutation.mutate({ id: selectedError.id, status: 'resolved', note: resolutionNote })}
                   disabled={updateStatusMutation.isPending}
                 >
-                  Mark as Resolved
+                  {t('errorMonitoring.modal.markResolved')}
                 </Button>
                 <Button
                   variant="danger"
@@ -565,14 +566,14 @@ export const PlatformErrorMonitoringWorkspace: React.FC = () => {
                   onClick={() => updateStatusMutation.mutate({ id: selectedError.id, status: 'ignored', note: resolutionNote })}
                   disabled={updateStatusMutation.isPending}
                 >
-                  Ignore Error
+                  {t('errorMonitoring.modal.markIgnored')}
                 </Button>
               </div>
             </div>
 
             <div className="flex justify-end pt-2 border-t border-default">
               <Button variant="secondary" size="sm" onClick={() => setSelectedError(null)}>
-                Close Diagnostic
+                {t('errorMonitoring.modal.closeDiagnostic')}
               </Button>
             </div>
           </div>

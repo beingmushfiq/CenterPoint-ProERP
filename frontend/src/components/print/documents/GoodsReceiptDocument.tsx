@@ -3,6 +3,7 @@ import type { GoodsReceipt } from '../../../types/api/purchasing';
 import type { BusinessConfig } from '../../../lib/document/useBusinessConfig';
 import { formatDocumentDate } from '../../../lib/document/formatters';
 import { generateBarcodeSvg } from '../../../lib/barcode/engine';
+import { useTranslation } from 'react-i18next';
 
 export interface GoodsReceiptDocumentProps {
   grn: GoodsReceipt;
@@ -10,6 +11,7 @@ export interface GoodsReceiptDocumentProps {
 }
 
 export function GoodsReceiptDocument({ grn, businessConfig }: GoodsReceiptDocumentProps) {
+  const { t } = useTranslation('documents');
   const barcodeSvg = useMemo(() => {
     return generateBarcodeSvg({
       bcid: 'code128',
@@ -36,7 +38,7 @@ export function GoodsReceiptDocument({ grn, businessConfig }: GoodsReceiptDocume
                 {businessConfig.name}
               </h1>
               <p className="text-[7.5pt] font-semibold text-slate-600 tracking-wide uppercase">
-                Goods Receipt & Quality Inspection Voucher
+                {t('grnSubtitle')}
               </p>
             </div>
           </div>
@@ -47,13 +49,13 @@ export function GoodsReceiptDocument({ grn, businessConfig }: GoodsReceiptDocume
 
         <div className="flex flex-col items-end text-right">
           <h2 className="text-lg font-black text-slate-950 uppercase tracking-tight">
-            Goods Receipt Note
+            {t('goodsReceipt')}
           </h2>
           <div className="font-mono text-xs font-bold text-slate-950 mb-1">
             {grn.grn_number}
           </div>
           <div className="text-[8pt] text-slate-600 font-mono">
-            <span>Received Date: </span>
+            <span>{t('receivedDate')}: </span>
             <span className="font-bold text-slate-900">{formatDocumentDate(grn.receipt_date, true)}</span>
           </div>
         </div>
@@ -62,15 +64,15 @@ export function GoodsReceiptDocument({ grn, businessConfig }: GoodsReceiptDocume
       {/* Meta Grid */}
       <div className="grid grid-cols-3 gap-3 bg-slate-50 border border-slate-200 rounded-lg p-2.5 mb-4 text-[8pt]">
         <div>
-          <span className="text-slate-500 block uppercase text-[7pt] font-bold">Supplier</span>
+          <span className="text-slate-500 block uppercase text-[7pt] font-bold">{t('supplier')}</span>
           <span className="font-bold text-slate-900 text-[9pt]">{grn.supplier_name || 'Designated Supplier'}</span>
         </div>
         <div>
-          <span className="text-slate-500 block uppercase text-[7pt] font-bold">PO Reference #</span>
+          <span className="text-slate-500 block uppercase text-[7pt] font-bold">{t('poReference')}</span>
           <span className="font-mono font-bold text-slate-900">{grn.po_number || 'DIRECT-RECEIPT'}</span>
         </div>
         <div>
-          <span className="text-slate-500 block uppercase text-[7pt] font-bold">Supplier Challan / Inv</span>
+          <span className="text-slate-500 block uppercase text-[7pt] font-bold">{t('supplierChallan')}</span>
           <span className="font-mono font-bold text-slate-900">{grn.supplier_document_number || 'CH-2026-99'}</span>
         </div>
       </div>
@@ -81,12 +83,12 @@ export function GoodsReceiptDocument({ grn, businessConfig }: GoodsReceiptDocume
           <thead className="bg-slate-100 border-b border-slate-300 text-[7.5pt] font-bold uppercase text-slate-700 tracking-wider">
             <tr>
               <th className="py-2 px-2 border-r border-slate-300 w-8 text-center">#</th>
-              <th className="py-2 px-2.5 border-r border-slate-300">Item Description</th>
-              <th className="py-2 px-2 border-r border-slate-300 text-center w-24">Batch #</th>
-              <th className="py-2 px-2 border-r border-slate-300 text-right w-20">Received Qty</th>
-              <th className="py-2 px-2 border-r border-slate-300 text-right w-20">Accepted Qty</th>
-              <th className="py-2 px-2 border-r border-slate-300 text-right w-20 text-rose-600">Rejected Qty</th>
-              <th className="py-2 px-2.5 text-center w-14">Unit</th>
+              <th className="py-2 px-2.5 border-r border-slate-300">{t('item')}</th>
+              <th className="py-2 px-2 border-r border-slate-300 text-center w-24">{t('batchNo')}</th>
+              <th className="py-2 px-2 border-r border-slate-300 text-right w-20">{t('receivedQty')}</th>
+              <th className="py-2 px-2 border-r border-slate-300 text-right w-20">{t('acceptedQty')}</th>
+              <th className="py-2 px-2 border-r border-slate-300 text-right w-20 text-rose-600">{t('rejectedQty')}</th>
+              <th className="py-2 px-2.5 text-center w-14">{t('unit')}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-200">
@@ -122,7 +124,7 @@ export function GoodsReceiptDocument({ grn, businessConfig }: GoodsReceiptDocume
       {/* Notes & Barcode */}
       <div className="grid grid-cols-2 gap-4 mb-6">
         <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-[8pt]">
-          <span className="font-bold text-slate-700 block mb-1">QA Inspection & Warehouse Location Notes:</span>
+          <span className="font-bold text-slate-700 block mb-1">{t('qaNotes')}:</span>
           <p className="text-slate-600">{grn.notes || 'All accepted items passed sensory and quality control screening. Routed to designated Silo Bin.'}</p>
         </div>
         <div className="flex justify-end items-center">
@@ -134,17 +136,17 @@ export function GoodsReceiptDocument({ grn, businessConfig }: GoodsReceiptDocume
       <div className="grid grid-cols-3 gap-6 pt-6 mt-3 border-t border-slate-200 text-center text-[7.5pt] break-inside-avoid">
         <div>
           <div className="border-t border-slate-400 pt-1 font-semibold text-slate-800">
-            Unloading Supervisor / Driver
+            {t('unloadingSupervisor')}
           </div>
         </div>
         <div>
           <div className="border-t border-slate-400 pt-1 font-semibold text-slate-800">
-            Quality Assurance Inspector
+            {t('qaInspector')}
           </div>
         </div>
         <div>
           <div className="border-t border-slate-400 pt-1 font-semibold text-slate-800">
-            Warehouse Storekeeper Sign-off
+            {t('storekeeperSignoff')}
           </div>
         </div>
       </div>

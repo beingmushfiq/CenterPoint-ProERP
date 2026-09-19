@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { api, setAccessToken } from '../../lib/api/client';
 import type { PlatformTenant, PlatformPlan, PlatformPayment } from '../../types/api/platform';
@@ -79,6 +80,7 @@ const AVAILABLE_MODULES = [
 ];
 
 export const TenantDetailWorkspace: React.FC = () => {
+  const { t } = useTranslation(['platform', 'common']);
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -529,11 +531,11 @@ export const TenantDetailWorkspace: React.FC = () => {
 
   type DetailTabKey = 'overview' | 'billing' | 'users' | 'usage' | 'authority';
   const tabs: Array<{ key: DetailTabKey; label: string; icon: React.ComponentType<{ className?: string }> }> = [
-    { key: 'overview', label: 'Overview', icon: Building2 },
-    { key: 'authority', label: 'Master Authority Overrides', icon: ShieldAlert },
-    { key: 'billing', label: 'Billing & Subscriptions', icon: CreditCard },
-    { key: 'users', label: 'Scoped Users', icon: Users },
-    { key: 'usage', label: 'Usage & Quotas', icon: Sliders },
+    { key: 'overview', label: t('platform.tenantDetail.tabs.overview'), icon: Building2 },
+    { key: 'authority', label: t('platform.tenantDetail.tabs.authority'), icon: ShieldAlert },
+    { key: 'billing', label: t('platform.tenantDetail.tabs.billing'), icon: CreditCard },
+    { key: 'users', label: t('platform.tenantDetail.tabs.users'), icon: Users },
+    { key: 'usage', label: t('platform.tenantDetail.tabs.usage'), icon: Sliders },
   ];
 
   return (
@@ -544,7 +546,7 @@ export const TenantDetailWorkspace: React.FC = () => {
         className="inline-flex items-center gap-1.5 text-xs text-muted hover:text-default transition-colors font-mono"
       >
         <ArrowLeft className="size-4" />
-        <span>Back to Tenant Directory</span>
+        <span>{t('platform.tenantDetail.backToDirectory')}</span>
       </Link>
 
       {/* Header Profile Banner */}
@@ -598,7 +600,7 @@ export const TenantDetailWorkspace: React.FC = () => {
             className="px-3 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold flex items-center gap-1.5 transition-all shadow-md shadow-amber-500/20 cursor-pointer disabled:opacity-50"
           >
             <Zap className="size-4" />
-            <span>Impersonate Tenant</span>
+            <span>{t('platform.tenantDetail.actions.impersonate')}</span>
           </button>
 
           <button
@@ -612,7 +614,7 @@ export const TenantDetailWorkspace: React.FC = () => {
             }}
             className="px-3 py-2 rounded-xl bg-surface-sunken hover:bg-surface text-default border border-default transition-all cursor-pointer"
           >
-            Edit Details
+            {t('platform.tenantDetail.actions.editDetails')}
           </button>
 
           <button
@@ -622,7 +624,7 @@ export const TenantDetailWorkspace: React.FC = () => {
             }}
             className="px-3 py-2 rounded-xl bg-surface-sunken hover:bg-surface text-default border border-default transition-all cursor-pointer"
           >
-            Change Plan Tier
+            {t('platform.tenantDetail.actions.changePlan')}
           </button>
 
           <button

@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
@@ -25,6 +26,8 @@ import {
 } from 'lucide-react';
 
 export const TenantDirectoryWorkspace: React.FC = () => {
+  const { t, i18n } = useTranslation(['platform', 'common']);
+  const isBn = i18n.language === 'bn';
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -180,21 +183,21 @@ export const TenantDirectoryWorkspace: React.FC = () => {
           <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 text-[10px] font-mono font-bold uppercase flex items-center gap-1.5 w-fit">
             <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
             <CheckCircle className="size-3" />
-            <span>Active</span>
+            <span>{t('common:status.active', 'Active')}</span>
           </span>
         );
       case 'trial':
         return (
           <span className="px-2.5 py-0.5 rounded-full bg-cyan-500/15 text-cyan-700 dark:text-cyan-300 border border-cyan-500/30 text-[10px] font-mono font-bold uppercase flex items-center gap-1.5 w-fit">
             <Clock className="size-3" />
-            <span>Trial</span>
+            <span>{isBn ? 'ট্রায়াল' : 'Trial'}</span>
           </span>
         );
       case 'suspended':
         return (
           <span className="px-2.5 py-0.5 rounded-full bg-rose-500/15 text-rose-700 dark:text-rose-300 border border-rose-500/30 text-[10px] font-mono font-bold uppercase flex items-center gap-1.5 w-fit">
             <XCircle className="size-3" />
-            <span>Suspended</span>
+            <span>{isBn ? 'স্থগিত' : 'Suspended'}</span>
           </span>
         );
       default:
@@ -210,7 +213,7 @@ export const TenantDirectoryWorkspace: React.FC = () => {
     () => [
       {
         id: 'tenant',
-        header: 'Tenant Organization',
+        header: isBn ? 'টেন্যান্ট প্রতিষ্ঠান' : 'Tenant Organization',
         isPrimary: true,
         priority: 'high',
         cell: (t) => (
@@ -245,29 +248,29 @@ export const TenantDirectoryWorkspace: React.FC = () => {
       },
       {
         id: 'plan',
-        header: 'Plan Tier',
+        header: isBn ? 'প্ল্যান টায়ার' : 'Plan Tier',
         priority: 'medium',
         cell: (t) => (
           <div className="space-y-0.5">
             <span className="font-bold text-default">
-              {t.plan?.name ?? 'Standard SaaS'}
+              {t.plan?.name ?? (isBn ? 'স্ট্যান্ডার্ড সাশ' : 'Standard SaaS')}
             </span>
             <div className="text-[10px] text-muted font-mono">
-              BDT {t.plan?.price ?? (t.subscription?.amount || 0)}/{t.plan?.billing_period ?? 'mo'}
+              ৳ {t.plan?.price ?? (t.subscription?.amount || 0)}/{t.plan?.billing_period ?? (isBn ? 'মাস' : 'mo')}
             </div>
           </div>
         ),
       },
       {
         id: 'state',
-        header: 'State',
+        header: isBn ? 'অবস্থা' : 'State',
         isStatus: true,
         priority: 'high',
         cell: (t) => getStatusBadge(t.status),
       },
       {
         id: 'region',
-        header: 'Region & Currency',
+        header: isBn ? 'অঞ্চল ও মুদ্রা' : 'Region & Currency',
         priority: 'low',
         cell: (t) => (
           <div className="text-[11px] font-mono">
@@ -278,18 +281,18 @@ export const TenantDirectoryWorkspace: React.FC = () => {
       },
       {
         id: 'provisioned',
-        header: 'Provisioned',
+        header: isBn ? 'তৈরির তারিখ' : 'Provisioned',
         priority: 'medium',
         cell: (t) => (
           <div className="text-[11px] font-mono">
             <div>{new Date(t.created_at).toLocaleDateString()}</div>
-            <div className="text-[10px] text-muted">{t.users_count || 0} user(s)</div>
+            <div className="text-[10px] text-muted">{t.users_count || 0} {isBn ? 'ব্যবহারকারী' : 'user(s)'}</div>
           </div>
         ),
       },
       {
         id: 'actions',
-        header: 'Master Actions',
+        header: isBn ? 'কার্যক্রম' : 'Master Actions',
         isAction: true,
         priority: 'high',
         headerClassName: 'text-right',
@@ -299,10 +302,10 @@ export const TenantDirectoryWorkspace: React.FC = () => {
             <button
               onClick={() => handleImpersonate(t)}
               className="px-2.5 py-1.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-300 border border-amber-500/30 text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer"
-              title="Impersonate Tenant"
+              title={isBn ? 'টেন্যান্ট হিসেবে প্রবেশ করুন' : 'Impersonate Tenant'}
             >
               <LogIn className="size-3" />
-              <span className="hidden sm:inline">Impersonate</span>
+              <span className="hidden sm:inline">{isBn ? 'লগইন' : 'Impersonate'}</span>
             </button>
 
             <Link
@@ -310,7 +313,7 @@ export const TenantDirectoryWorkspace: React.FC = () => {
               className="px-2.5 py-1.5 rounded-lg bg-surface-sunken hover:bg-surface text-default border border-default text-xs font-semibold transition-all flex items-center gap-1"
             >
               <Eye className="size-3" />
-              <span className="hidden sm:inline">Dossier</span>
+              <span className="hidden sm:inline">{isBn ? 'বিস্তারিত' : 'Dossier'}</span>
             </Link>
 
             {t.status === 'active' ? (
@@ -320,9 +323,9 @@ export const TenantDirectoryWorkspace: React.FC = () => {
                   setModalType('status');
                 }}
                 className="px-2 py-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-300 border border-rose-500/30 text-xs font-semibold transition-all cursor-pointer"
-                title="Suspend Access"
+                title={isBn ? 'অ্যাক্সেস স্থগিত করুন' : 'Suspend Access'}
               >
-                Suspend
+                {isBn ? 'স্থগিত' : 'Suspend'}
               </button>
             ) : (
               <button
@@ -331,9 +334,9 @@ export const TenantDirectoryWorkspace: React.FC = () => {
                   setModalType('status');
                 }}
                 className="px-2 py-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-300 border border-emerald-500/30 text-xs font-semibold transition-all cursor-pointer"
-                title="Reactivate Access"
+                title={isBn ? 'পুনরায় সক্রিয় করুন' : 'Reactivate Access'}
               >
-                Activate
+                {isBn ? 'সক্রিয়' : 'Activate'}
               </button>
             )}
 
@@ -345,7 +348,7 @@ export const TenantDirectoryWorkspace: React.FC = () => {
                 setActionError(null);
               }}
               className="p-1.5 rounded-lg text-muted hover:text-rose-500 hover:bg-rose-500/10 transition-all cursor-pointer"
-              title="Delete Tenant"
+              title={isBn ? 'টেন্যান্ট মুছুন' : 'Delete Tenant'}
             >
               <Trash2 className="size-3.5" />
             </button>
@@ -353,7 +356,7 @@ export const TenantDirectoryWorkspace: React.FC = () => {
         ),
       },
     ],
-    []
+    [isBn]
   );
 
   return (
@@ -363,14 +366,16 @@ export const TenantDirectoryWorkspace: React.FC = () => {
         <div>
           <div className="flex items-center gap-2 mb-1">
             <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2.5 py-0.5 rounded-full border border-amber-500/20">
-              Platform Master Authority
+              {isBn ? 'প্ল্যাটফর্ম মাস্টার অথরিটি' : 'Platform Master Authority'}
             </span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-default">
-            Tenant Fleet Directory
+            {isBn ? 'টেন্যান্ট ফ্লিট ডিরেক্টরি' : 'Tenant Fleet Directory'}
           </h1>
           <p className="mt-1 text-xs text-muted max-w-2xl leading-relaxed font-mono">
-            Provision, monitor, override module capabilities, enforce quotas, and control multi-tenant isolation states.
+            {isBn
+              ? 'টেন্যান্ট প্রভিশনিং, পর্যবেক্ষণ, মডিউল পারমিশন ও মাল্টি-টেন্যান্ট পরিচালনা।'
+              : 'Provision, monitor, override module capabilities, enforce quotas, and control multi-tenant isolation states.'}
           </p>
         </div>
 
@@ -379,7 +384,7 @@ export const TenantDirectoryWorkspace: React.FC = () => {
             onClick={() => refetch()}
             disabled={isFetching}
             className="p-2.5 rounded-xl bg-surface-sunken border border-default hover:bg-surface text-default text-xs font-mono flex items-center gap-1.5 transition-all cursor-pointer shadow-xs disabled:opacity-50"
-            title="Refresh Directory"
+            title={t('common:action.refresh', 'Refresh Directory')}
           >
             <RefreshCw className={`size-4 ${isFetching ? 'animate-spin text-amber-500' : ''}`} />
           </button>
@@ -388,7 +393,7 @@ export const TenantDirectoryWorkspace: React.FC = () => {
             className="px-4 py-2.5 rounded-xl bg-linear-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold text-xs flex items-center gap-2 shadow-lg shadow-amber-500/20 transition-all font-mono"
           >
             <UserPlus className="size-4" />
-            <span>Provision Tenant</span>
+            <span>{isBn ? 'নতুন টেন্যান্ট তৈরি' : 'Provision Tenant'}</span>
           </Link>
         </div>
       </div>
@@ -402,11 +407,11 @@ export const TenantDirectoryWorkspace: React.FC = () => {
           className="p-4 rounded-2xl bg-surface border border-default shadow-md relative overflow-hidden"
         >
           <div className="flex items-center justify-between text-muted">
-            <span className="text-[10px] font-mono uppercase tracking-wider">Total Tenants</span>
+            <span className="text-[10px] font-mono uppercase tracking-wider">{isBn ? 'মোট টেন্যান্ট' : 'Total Tenants'}</span>
             <Building2 className="size-4 text-amber-500" />
           </div>
           <div className="text-2xl font-bold font-mono text-default mt-1">{stats.total}</div>
-          <div className="text-[10px] font-mono text-muted mt-1">{stats.totalUsers} Scoped Users</div>
+          <div className="text-[10px] font-mono text-muted mt-1">{stats.totalUsers} {isBn ? 'ব্যবহারকারী' : 'Scoped Users'}</div>
         </motion.div>
 
         <motion.div
@@ -416,11 +421,11 @@ export const TenantDirectoryWorkspace: React.FC = () => {
           className="p-4 rounded-2xl bg-surface border border-default shadow-md"
         >
           <div className="flex items-center justify-between text-emerald-600 dark:text-emerald-400">
-            <span className="text-[10px] font-mono uppercase tracking-wider">Active Status</span>
+            <span className="text-[10px] font-mono uppercase tracking-wider">{isBn ? 'সক্রিয় অবস্থা' : 'Active Status'}</span>
             <CheckCircle className="size-4" />
           </div>
           <div className="text-2xl font-bold font-mono text-emerald-600 dark:text-emerald-400 mt-1">{stats.active}</div>
-          <div className="text-[10px] font-mono text-muted mt-1">Operational</div>
+          <div className="text-[10px] font-mono text-muted mt-1">{isBn ? 'চলমান' : 'Operational'}</div>
         </motion.div>
 
         <motion.div
@@ -430,11 +435,11 @@ export const TenantDirectoryWorkspace: React.FC = () => {
           className="p-4 rounded-2xl bg-surface border border-default shadow-md"
         >
           <div className="flex items-center justify-between text-cyan-600 dark:text-cyan-400">
-            <span className="text-[10px] font-mono uppercase tracking-wider">In Trial</span>
+            <span className="text-[10px] font-mono uppercase tracking-wider">{isBn ? 'ট্রায়ালে রয়েছে' : 'In Trial'}</span>
             <Clock className="size-4" />
           </div>
           <div className="text-2xl font-bold font-mono text-cyan-600 dark:text-cyan-400 mt-1">{stats.trial}</div>
-          <div className="text-[10px] font-mono text-muted mt-1">Evaluating SaaS</div>
+          <div className="text-[10px] font-mono text-muted mt-1">{isBn ? 'মূল্যায়ন চলছে' : 'Evaluating SaaS'}</div>
         </motion.div>
 
         <motion.div
@@ -444,11 +449,11 @@ export const TenantDirectoryWorkspace: React.FC = () => {
           className="p-4 rounded-2xl bg-surface border border-default shadow-md"
         >
           <div className="flex items-center justify-between text-rose-600 dark:text-rose-400">
-            <span className="text-[10px] font-mono uppercase tracking-wider">Suspended</span>
+            <span className="text-[10px] font-mono uppercase tracking-wider">{isBn ? 'স্থগিত' : 'Suspended'}</span>
             <XCircle className="size-4" />
           </div>
           <div className="text-2xl font-bold font-mono text-rose-600 dark:text-rose-400 mt-1">{stats.suspended}</div>
-          <div className="text-[10px] font-mono text-muted mt-1">Access Blocked</div>
+          <div className="text-[10px] font-mono text-muted mt-1">{isBn ? 'প্রবেশ বন্ধ' : 'Access Blocked'}</div>
         </motion.div>
 
         <motion.div
@@ -458,11 +463,11 @@ export const TenantDirectoryWorkspace: React.FC = () => {
           className="p-4 rounded-2xl bg-surface border border-default shadow-md col-span-2 sm:col-span-1"
         >
           <div className="flex items-center justify-between text-amber-500">
-            <span className="text-[10px] font-mono uppercase tracking-wider">Estimated MRR</span>
+            <span className="text-[10px] font-mono uppercase tracking-wider">{isBn ? 'মাসিক আয় (MRR)' : 'Estimated MRR'}</span>
             <TrendingUp className="size-4" />
           </div>
-          <div className="text-2xl font-bold font-mono text-default mt-1">BDT {stats.estimatedMrr.toLocaleString()}</div>
-          <div className="text-[10px] font-mono text-muted mt-1">Active Subscriptions</div>
+          <div className="text-2xl font-bold font-mono text-default mt-1">৳ {stats.estimatedMrr.toLocaleString()}</div>
+          <div className="text-[10px] font-mono text-muted mt-1">{isBn ? 'সক্রিয় সাবস্ক্রিপশন' : 'Active Subscriptions'}</div>
         </motion.div>
       </div>
 
@@ -474,7 +479,7 @@ export const TenantDirectoryWorkspace: React.FC = () => {
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search by tenant name, subdomain, or slug..."
+            placeholder={isBn ? 'টেন্যান্ট নাম, সাবডোমেইন বা স্ল্যাগ দিয়ে অনুসন্ধান করুন...' : 'Search by tenant name, subdomain, or slug...'}
             className="w-full pl-9 pr-3 py-2 bg-surface-sunken border border-default rounded-xl text-default placeholder:text-muted focus:outline-hidden focus:border-amber-500 transition-all text-xs"
           />
         </form>
@@ -483,28 +488,28 @@ export const TenantDirectoryWorkspace: React.FC = () => {
           <SelectDropdown
             icon={Filter}
             options={[
-              { value: 'all', label: 'All Statuses' },
-              { value: 'active', label: 'Active Only', colorDot: 'bg-emerald-500' },
-              { value: 'trial', label: 'Trial Only', colorDot: 'bg-blue-500' },
-              { value: 'suspended', label: 'Suspended Only', colorDot: 'bg-rose-500' },
+              { value: 'all', label: isBn ? 'সকল অবস্থা' : 'All Statuses' },
+              { value: 'active', label: isBn ? 'শুধুমাত্র সক্রিয়' : 'Active Only', colorDot: 'bg-emerald-500' },
+              { value: 'trial', label: isBn ? 'শুধুমাত্র ট্রায়াল' : 'Trial Only', colorDot: 'bg-blue-500' },
+              { value: 'suspended', label: isBn ? 'শুধুমাত্র স্থগিত' : 'Suspended Only', colorDot: 'bg-rose-500' },
             ]}
             value={statusFilter}
             onChange={(val: string) => setStatusFilter(val)}
             size="sm"
-            aria-label="Filter tenants by status"
+            aria-label={isBn ? 'টেন্যান্ট অবস্থা ফিল্টার' : 'Filter tenants by status'}
           />
 
           <SelectDropdown
             options={[
-              { value: 'all', label: 'All Plans' },
-              { value: 'starter', label: 'Starter', colorDot: 'bg-slate-400' },
-              { value: 'professional', label: 'Professional', colorDot: 'bg-indigo-500' },
-              { value: 'enterprise', label: 'Enterprise', colorDot: 'bg-amber-500' },
+              { value: 'all', label: isBn ? 'সকল প্ল্যান' : 'All Plans' },
+              { value: 'starter', label: isBn ? 'স্টার্টার' : 'Starter', colorDot: 'bg-slate-400' },
+              { value: 'professional', label: isBn ? 'প্রফেশনাল' : 'Professional', colorDot: 'bg-indigo-500' },
+              { value: 'enterprise', label: isBn ? 'এন্টারপ্রাইজ' : 'Enterprise', colorDot: 'bg-amber-500' },
             ]}
             value={planFilter}
             onChange={(val: string) => setPlanFilter(val)}
             size="sm"
-            aria-label="Filter tenants by plan"
+            aria-label={isBn ? 'প্ল্যান ফিল্টার' : 'Filter tenants by plan'}
           />
         </div>
       </div>
@@ -513,8 +518,8 @@ export const TenantDirectoryWorkspace: React.FC = () => {
       {isLoading ? (
         <div className="rounded-2xl border border-default bg-surface shadow-xl p-16">
           <PlatformPulseLoader
-            label="Syncing Tenant Isolation Mesh..."
-            sublabel="Fetching real-time multi-tenant telemetry and billing quotas"
+            label={isBn ? 'টেন্যান্ট আইসোলেশন মেশ সিঙ্ক হচ্ছে...' : 'Syncing Tenant Isolation Mesh...'}
+            sublabel={isBn ? 'রিয়েল-টাইম মাল্টি-টেন্যান্ট টেলিমেট্রি ও বিলিং কোটা লোড হচ্ছে' : 'Fetching real-time multi-tenant telemetry and billing quotas'}
           />
         </div>
       ) : (
@@ -522,7 +527,7 @@ export const TenantDirectoryWorkspace: React.FC = () => {
           data={tenants}
           columns={columns}
           keyExtractor={(t) => t.id}
-          emptyMessage="No tenants found matching your filter criteria"
+          emptyMessage={isBn ? 'আপনার ফিল্টারের সাথে মিলে এমন কোনো টেন্যান্ট পাওয়া যায়নি' : 'No tenants found matching your filter criteria'}
           emptyIcon={Building2}
         />
       )}
@@ -533,10 +538,12 @@ export const TenantDirectoryWorkspace: React.FC = () => {
           <div className="bg-surface-raised border border-default rounded-t-3xl sm:rounded-2xl p-5 sm:p-6 max-h-[90vh] overflow-y-auto max-w-md w-full shadow-2xl font-mono text-xs">
             <div className="sm:hidden w-12 h-1.5 rounded-full bg-surface-sunken mx-auto mb-3" aria-hidden="true" />
             <h2 className="text-base font-bold text-default font-sans">
-              {selectedTenant.status === 'active' ? 'Suspend Tenant Access' : 'Reactivate Tenant'}
+              {selectedTenant.status === 'active'
+                ? (isBn ? 'টেন্যান্ট অ্যাক্সেস স্থগিত করুন' : 'Suspend Tenant Access')
+                : (isBn ? 'টেন্যান্ট পুনরায় সক্রিয় করুন' : 'Reactivate Tenant')}
             </h2>
             <p className="text-muted mt-1">
-              Target Tenant: <strong className="text-default">{selectedTenant.name}</strong> ({selectedTenant.slug})
+              {isBn ? 'লক্ষ্য টেন্যান্ট:' : 'Target Tenant:'} <strong className="text-default">{selectedTenant.name}</strong> ({selectedTenant.slug})
             </p>
 
             {actionError && (
@@ -547,12 +554,12 @@ export const TenantDirectoryWorkspace: React.FC = () => {
 
             <div className="mt-4">
               <label className="block text-default mb-1">
-                Reason for state change (Logged in Platform Audit Trail)
+                {isBn ? 'অবস্থা পরিবর্তনের কারণ (প্ল্যাটফর্ম অডিটে সংরক্ষিত হবে)' : 'Reason for state change (Logged in Platform Audit Trail)'}
               </label>
               <textarea
                 value={actionReason}
                 onChange={(e) => setActionReason(e.target.value)}
-                placeholder="e.g. Terms violation, billing default, or administrative reactivation."
+                placeholder={isBn ? 'যেমন: শর্ত লঙ্ঘন, বিলিং সমস্যা বা পুনরায় সক্রিয়করণ।' : 'e.g. Terms violation, billing default, or administrative reactivation.'}
                 className="w-full bg-surface-sunken border border-default rounded-xl p-3 text-default focus:outline-hidden focus:border-amber-500"
                 rows={3}
               />
@@ -566,7 +573,7 @@ export const TenantDirectoryWorkspace: React.FC = () => {
                 }}
                 className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-surface-sunken hover:bg-surface text-muted hover:text-default border border-default transition-colors cursor-pointer"
               >
-                Cancel
+                {t('common:action.cancel', 'Cancel')}
               </button>
               <button
                 onClick={() => handleUpdateStatus(selectedTenant.status === 'active' ? 'suspended' : 'active')}
@@ -577,7 +584,11 @@ export const TenantDirectoryWorkspace: React.FC = () => {
                     : 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-600/20'
                 }`}
               >
-                {actionLoading ? 'Updating...' : selectedTenant.status === 'active' ? 'Confirm Suspension' : 'Approve Activation'}
+                {actionLoading
+                  ? (isBn ? 'হালনাগাদ হচ্ছে...' : 'Updating...')
+                  : selectedTenant.status === 'active'
+                  ? (isBn ? 'স্থগিতকরণ নিশ্চিত করুন' : 'Confirm Suspension')
+                  : (isBn ? 'সক্রিয়করণ অনুমোদন করুন' : 'Approve Activation')}
               </button>
             </div>
           </div>
@@ -591,14 +602,16 @@ export const TenantDirectoryWorkspace: React.FC = () => {
             <div className="sm:hidden w-12 h-1.5 rounded-full bg-surface-sunken mx-auto mb-3" aria-hidden="true" />
             <div className="flex items-center gap-2 text-rose-500 font-bold text-base font-sans">
               <Trash2 className="size-5" />
-              <span>Delete Tenant</span>
+              <span>{isBn ? 'টেন্যান্ট মুছুন' : 'Delete Tenant'}</span>
             </div>
             <p className="text-muted mt-2 leading-relaxed">
-              This action will soft-delete <strong className="text-default">{selectedTenant.name}</strong> and revoke all tenant user access.
+              {isBn
+                ? `এই পদক্ষেপটি "${selectedTenant.name}" কে সফট-ডিলিট করবে এবং সমস্ত টেন্যান্ট ব্যবহারকারীর অ্যাক্সেস বাতিল করবে।`
+                : `This action will soft-delete ${selectedTenant.name} and revoke all tenant user access.`}
             </p>
 
             <div className="my-4 p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-300">
-              Please type <strong className="text-default font-bold select-all">{selectedTenant.slug}</strong> to confirm deletion.
+              {isBn ? 'মুছে ফেলা নিশ্চিত করতে অনুগ্রহ করে টাইপ করুন:' : 'Please type'} <strong className="text-default font-bold select-all">{selectedTenant.slug}</strong>
             </div>
 
             {actionError && (
@@ -624,14 +637,16 @@ export const TenantDirectoryWorkspace: React.FC = () => {
                 }}
                 className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-surface-sunken hover:bg-surface text-muted hover:text-default border border-default transition-colors cursor-pointer"
               >
-                Cancel
+                {t('common:action.cancel', 'Cancel')}
               </button>
               <button
                 onClick={handleDeleteTenant}
                 disabled={actionLoading || deleteConfirmationInput !== selectedTenant.slug}
                 className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold transition-all shadow-md shadow-rose-600/20 disabled:opacity-40 cursor-pointer"
               >
-                {actionLoading ? 'Purging...' : 'Confirm Deletion'}
+                {actionLoading
+                  ? (isBn ? 'মুছে ফেলা হচ্ছে...' : 'Purging...')
+                  : (isBn ? 'মুছে ফেলা নিশ্চিত করুন' : 'Confirm Deletion')}
               </button>
             </div>
           </div>

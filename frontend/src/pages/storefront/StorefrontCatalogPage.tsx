@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useOutletContext, useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import {
   Search,
@@ -30,6 +31,7 @@ interface CategoryItem {
 }
 
 export const StorefrontCatalogPage: React.FC = () => {
+  const { t } = useTranslation(['storefront', 'common']);
   const navigate = useNavigate();
   const { config, subdomain } = useOutletContext<OutletContextType>();
   const { categorySlug } = useParams<{ categorySlug?: string }>();
@@ -137,11 +139,11 @@ export const StorefrontCatalogPage: React.FC = () => {
     ? `Buy ${activeCategoryObj.name} Online`
     : searchQuery
     ? `Search: "${searchQuery}"`
-    : 'All Products & Collections';
+    : t('storefront.allProducts');
 
   const breadcrumbs = [
-    { name: 'Home', url: getStorefrontUrl(subdomain) },
-    { name: 'All Products', url: getStorefrontUrl(subdomain, '/products') },
+    { name: t('storefront.home'), url: getStorefrontUrl(subdomain) },
+    { name: t('storefront.products'), url: getStorefrontUrl(subdomain, '/products') },
     ...(activeCategoryObj ? [{ name: activeCategoryObj.name, url: getStorefrontUrl(subdomain, `/collections/${activeCategoryObj.code || activeCategoryObj.name.toLowerCase()}`) }] : []),
   ];
 
@@ -177,15 +179,15 @@ export const StorefrontCatalogPage: React.FC = () => {
         <div className="relative z-10 space-y-3 max-w-2xl">
           <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
             <Sparkles className="size-3.5" />
-            <span>Official Store • Direct Fulfillment & Warranty</span>
+            <span>{t('storefront.officialBadge')}</span>
           </div>
           <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight text-default">
-            {activeCategoryObj ? activeCategoryObj.name : searchQuery ? `Search: "${searchQuery}"` : 'All Products & Collections'}
+            {activeCategoryObj ? activeCategoryObj.name : searchQuery ? `Search: "${searchQuery}"` : t('storefront.allProducts')}
           </h1>
           <p className="text-xs sm:text-sm text-muted leading-relaxed">
             {activeCategoryObj
               ? `Browse authentic items in ${activeCategoryObj.name}, sourced and inspected directly to strict commercial specifications.`
-              : 'Browse our complete catalog of commercial-grade goods and consumer products, fulfilled directly with guaranteed authenticity.'}
+              : t('storefront.allProductsSubtitle')}
           </p>
         </div>
       </div>
@@ -204,7 +206,7 @@ export const StorefrontCatalogPage: React.FC = () => {
             }`}
           >
             <Tag className="size-3.5" />
-            <span>All Categories ({products.length})</span>
+            <span>{t('storefront.allCategories')} ({products.length})</span>
           </button>
           {categories.map((cat) => {
             const isSelected = selectedCategory === cat.id;
@@ -232,7 +234,7 @@ export const StorefrontCatalogPage: React.FC = () => {
             <Search className="absolute left-3 top-2.5 size-4 text-muted" />
             <input
               type="text"
-              placeholder="Search products, SKU or specs..."
+              placeholder={t('storefront.searchCatalogPlaceholder')}
               value={searchQuery}
               onChange={(e) => {
                 const val = e.target.value;
@@ -261,13 +263,13 @@ export const StorefrontCatalogPage: React.FC = () => {
           {/* Right: Sort & View Toggle */}
           <div className="flex items-center gap-2.5 w-full sm:w-auto justify-between sm:justify-end">
             <div className="flex items-center gap-2 text-xs">
-              <span className="text-muted hidden md:inline font-medium">Sort:</span>
+              <span className="text-muted hidden md:inline font-medium">{t('storefront.sortByLabel')}</span>
               <SelectDropdown
                 options={[
-                  { value: 'featured', label: 'Featured / Standard' },
-                  { value: 'price-asc', label: 'Price: Low to High' },
-                  { value: 'price-desc', label: 'Price: High to Low' },
-                  { value: 'name', label: 'Product Name (A-Z)' },
+                  { value: 'featured', label: t('storefront.sortFeatured') },
+                  { value: 'price-asc', label: t('storefront.sortPriceAsc') },
+                  { value: 'price-desc', label: t('storefront.sortPriceDesc') },
+                  { value: 'name', label: t('storefront.sortName') },
                 ]}
                 value={sortBy}
                 onChange={(val) => {
@@ -290,7 +292,7 @@ export const StorefrontCatalogPage: React.FC = () => {
                     ? 'bg-surface text-primary shadow-xs border border-default'
                     : 'text-muted hover:text-default'
                 }`}
-                title="Grid view"
+                title={t('storefront.gridView')}
               >
                 <Grid3X3 className="size-4" />
               </button>
@@ -302,7 +304,7 @@ export const StorefrontCatalogPage: React.FC = () => {
                     ? 'bg-surface text-primary shadow-xs border border-default'
                     : 'text-muted hover:text-default'
                 }`}
-                title="List view"
+                title={t('storefront.listView')}
               >
                 <LayoutList className="size-4" />
               </button>
@@ -319,9 +321,9 @@ export const StorefrontCatalogPage: React.FC = () => {
       ) : sortedProducts.length === 0 ? (
         <div className="rounded-3xl border border-default bg-surface p-12 text-center space-y-4 shadow-xs">
           <Package className="mx-auto size-12 text-muted" />
-          <h3 className="text-base font-bold text-default">No products found</h3>
+          <h3 className="text-base font-bold text-default">{t('storefront.noProducts')}</h3>
           <p className="text-xs text-muted max-w-sm mx-auto">
-            We couldn't find any products matching your active filters. Try searching for another term or reset categories.
+            {t('storefront.noProductsDesc')}
           </p>
           <button
             type="button"
@@ -332,7 +334,7 @@ export const StorefrontCatalogPage: React.FC = () => {
             }}
             className="rounded-xl bg-surface-sunken px-4 py-2 text-xs font-semibold text-default hover:bg-surface border border-default cursor-pointer"
           >
-            Clear All Filters
+            {t('storefront.clearFilters')}
           </button>
         </div>
       ) : viewMode === 'grid' ? (

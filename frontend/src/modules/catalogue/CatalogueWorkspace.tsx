@@ -1,4 +1,5 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Boxes,
   FileCode,
@@ -71,111 +72,107 @@ interface CategoryConfig {
   shortcut: string;
 }
 
-const CATEGORIES: CategoryConfig[] = [
-  {
-    id: 'products',
-    label: 'Products & Inventory Items',
-    subtitle: 'Items, Categories, Brands & Measurement Units',
-    defaultTab: 'products',
-    badge: '4 Capabilities',
-    icon: Package,
-    shortcut: '1',
-  },
-  {
-    id: 'engineering',
-    label: 'Recipes & Formulas',
-    subtitle: 'Production Recipes & Raw Material Lists',
-    defaultTab: 'bom',
-    badge: '1 Capability',
-    icon: FileCode,
-    shortcut: '2',
-  },
-  {
-    id: 'directories',
-    label: 'Locations & Contacts',
-    subtitle: 'Warehouses, Customers & Suppliers',
-    defaultTab: 'warehouses',
-    badge: '2 Capabilities',
-    icon: Warehouse,
-    shortcut: '3',
-  },
-];
-
-const TABS: TabConfig[] = [
-  // Products & Taxonomy
-  {
-    id: 'products',
-    label: 'Products & Items',
-    category: 'products',
-    icon: Package,
-    description: 'Finished goods, raw materials, parts and catalog items ready for sale or production',
-    highlights: ['Multi-type catalog items', 'Barcode label printing', 'Storefront visibility & pricing'],
-  },
-  {
-    id: 'categories',
-    label: 'Categories',
-    category: 'products',
-    icon: Tag,
-    description: 'Group your products into neat departments and collections',
-    highlights: ['Multi-level subcategories', 'Category codes', 'Online storefront navigation'],
-  },
-  {
-    id: 'brands',
-    label: 'Brands',
-    category: 'products',
-    icon: Boxes,
-    description: 'Manage manufacturer brands, partner trademarks and logos',
-    highlights: ['Brand portfolio registry', 'Manufacturer logos', 'Trademark management'],
-  },
-  {
-    id: 'units',
-    label: 'Measurement Units',
-    category: 'products',
-    icon: Ruler,
-    description: 'Counting units (pcs, kg, liters, boxes) and how they convert',
-    highlights: ['Piece, weight, volume', 'Box-to-piece conversions', 'Decimal precision'],
-  },
-
-  // Engineering / Recipes
-  {
-    id: 'bom',
-    label: 'Product Recipes (BOM)',
-    category: 'engineering',
-    icon: FileCode,
-    badge: 'Recipes',
-    description: 'List of raw ingredients and packaging needed to make each finished item',
-    highlights: ['Ingredient quantities', 'Expected wastage allowance', 'Production step sequence'],
-  },
-
-  // Facilities & Directories
-  {
-    id: 'warehouses',
-    label: 'Warehouses & Locations',
-    category: 'directories',
-    icon: Warehouse,
-    description: 'Storage facilities, distribution hubs, storage rooms and racks',
-    highlights: ['Multiple storage buildings', 'Room & shelf zones', 'Stock transfer hubs'],
-  },
-  {
-    id: 'parties',
-    label: 'Customers & Suppliers',
-    category: 'directories',
-    icon: Users,
-    badge: 'Directory',
-    description: 'All your business contacts: buyers, vendors, dealers and delivery partners',
-    highlights: ['Suppliers & buyers', 'Tax IDs & payment terms', 'Billing & shipping addresses'],
-  },
-];
-
 export default function CatalogueWorkspace() {
+  const { t } = useTranslation(['catalogue', 'common']);
   const [activeTab, setActiveTab] = useWorkspaceTab<CatalogueTab>('products', VALID_TABS);
   const [isQuickJumpOpen, setIsQuickJumpOpen] = useState(false);
   const [isGuideOpen, setIsGuideOpen] = useState(false);
   const [searchFilter, setSearchFilter] = useState('');
   const dropdownRef = useRef<HTMLDivElement>(null);
 
+  const categories: CategoryConfig[] = useMemo(() => [
+    {
+      id: 'products',
+      label: t('catalogue.catProductsLabel'),
+      subtitle: t('catalogue.catProductsSub'),
+      defaultTab: 'products',
+      badge: '4 Capabilities',
+      icon: Package,
+      shortcut: '1',
+    },
+    {
+      id: 'engineering',
+      label: t('catalogue.catEngineeringLabel'),
+      subtitle: t('catalogue.catEngineeringSub'),
+      defaultTab: 'bom',
+      badge: '1 Capability',
+      icon: FileCode,
+      shortcut: '2',
+    },
+    {
+      id: 'directories',
+      label: t('catalogue.catDirectoriesLabel'),
+      subtitle: t('catalogue.catDirectoriesSub'),
+      defaultTab: 'warehouses',
+      badge: '2 Capabilities',
+      icon: Warehouse,
+      shortcut: '3',
+    },
+  ], [t]);
+
+  const tabs: TabConfig[] = useMemo(() => [
+    {
+      id: 'products',
+      label: t('catalogue.tabProductsLabel'),
+      category: 'products',
+      icon: Package,
+      description: t('catalogue.tabProductsDesc'),
+      highlights: ['Multi-type catalog items', 'Barcode label printing', 'Storefront visibility & pricing'],
+    },
+    {
+      id: 'categories',
+      label: t('catalogue.tabCategoriesLabel'),
+      category: 'products',
+      icon: Tag,
+      description: t('catalogue.tabCategoriesDesc'),
+      highlights: ['Multi-level subcategories', 'Category codes', 'Online storefront navigation'],
+    },
+    {
+      id: 'brands',
+      label: t('catalogue.tabBrandsLabel'),
+      category: 'products',
+      icon: Boxes,
+      description: t('catalogue.tabBrandsDesc'),
+      highlights: ['Brand portfolio registry', 'Manufacturer logos', 'Trademark management'],
+    },
+    {
+      id: 'units',
+      label: t('catalogue.tabUnitsLabel'),
+      category: 'products',
+      icon: Ruler,
+      description: t('catalogue.tabUnitsDesc'),
+      highlights: ['Piece, weight, volume', 'Box-to-piece conversions', 'Decimal precision'],
+    },
+    {
+      id: 'bom',
+      label: t('catalogue.tabBomLabel'),
+      category: 'engineering',
+      icon: FileCode,
+      badge: 'Recipes',
+      description: t('catalogue.tabBomDesc'),
+      highlights: ['Ingredient quantities', 'Expected wastage allowance', 'Production step sequence'],
+    },
+    {
+      id: 'warehouses',
+      label: t('catalogue.tabWarehousesLabel'),
+      category: 'directories',
+      icon: Warehouse,
+      description: t('catalogue.tabWarehousesDesc'),
+      highlights: ['Multiple storage buildings', 'Room & shelf zones', 'Stock transfer hubs'],
+    },
+    {
+      id: 'parties',
+      label: t('catalogue.tabPartiesLabel'),
+      category: 'directories',
+      icon: Users,
+      badge: 'Directory',
+      description: t('catalogue.tabPartiesDesc'),
+      highlights: ['Suppliers & buyers', 'Tax IDs & payment terms', 'Billing & shipping addresses'],
+    },
+  ], [t]);
+
   // Derive active category from current active tab
-  const currentTabConfig = TABS.find((t) => t.id === activeTab) ?? TABS[0]!;
+  const currentTabConfig = tabs.find((t) => t.id === activeTab) ?? tabs[0]!;
   const activeCategory = currentTabConfig.category;
 
   // Close dropdown when clicking outside
@@ -192,25 +189,25 @@ export default function CatalogueWorkspace() {
   }, [isQuickJumpOpen]);
 
   const handleCategorySelect = useCallback((catId: CatalogueCategory) => {
-    const targetCat = CATEGORIES.find((c) => c.id === catId);
+    const targetCat = categories.find((c) => c.id === catId);
     if (targetCat) {
-      const existingInCat = TABS.find((t) => t.category === catId);
+      const existingInCat = tabs.find((t) => t.category === catId);
       if (existingInCat) {
         setActiveTab(existingInCat.id);
       }
     }
-  }, [setActiveTab]);
+  }, [categories, tabs, setActiveTab]);
 
   const filteredTabs = useMemo(() => {
-    if (!searchFilter.trim()) return TABS;
+    if (!searchFilter.trim()) return tabs;
     const q = searchFilter.toLowerCase();
-    return TABS.filter(
+    return tabs.filter(
       (t) =>
         t.label.toLowerCase().includes(q) ||
         t.description.toLowerCase().includes(q) ||
         t.id.toLowerCase().includes(q)
     );
-  }, [searchFilter]);
+  }, [tabs, searchFilter]);
 
   // Global hotkeys (1, 2, 3) to switch category pillars when not typing in an input
   useEffect(() => {
@@ -247,10 +244,10 @@ export default function CatalogueWorkspace() {
           <div className="flex items-center gap-2 mb-1.5">
             <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-primary bg-primary-subtle px-2.5 py-0.5 rounded-full border border-primary/20 flex items-center gap-1">
               <Layers className="size-3 text-primary" />
-              Master Data & Catalog Registry
+              {t('catalogue.masterDataBadge')}
             </span>
             <span className="text-[10px] text-muted font-medium bg-surface-sunken px-2 py-0.5 rounded-full border border-default">
-              7 Sub-Modules Available
+              {t('catalogue.submodulesAvailable')}
             </span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-default flex items-center gap-2.5">
@@ -271,8 +268,8 @@ export default function CatalogueWorkspace() {
             title="Open Catalog Capabilities and System Guide"
           >
             <Compass className="size-3.5 text-primary" />
-            <span className="hidden sm:inline">Explore Capabilities</span>
-            <span className="sm:hidden">Guide</span>
+            <span className="hidden sm:inline">{t('catalogue.exploreCapabilities')}</span>
+            <span className="sm:hidden">{t('catalogue.guideShort')}</span>
           </button>
 
           {/* All Views Quick Jump Dropdown */}
@@ -288,7 +285,7 @@ export default function CatalogueWorkspace() {
               aria-expanded={isQuickJumpOpen}
             >
               <Sparkles className="size-3.5 text-primary" />
-              <span>All 7 Views</span>
+              <span>{t('catalogue.allViews')}</span>
               <ChevronDown className={cn('size-3.5 text-muted transition-transform', isQuickJumpOpen && 'rotate-180')} />
             </button>
 
@@ -298,7 +295,7 @@ export default function CatalogueWorkspace() {
                   <Search className="absolute left-3.5 top-2.5 size-3.5 text-muted" />
                   <input
                     type="text"
-                    placeholder="Jump to catalog view..."
+                    placeholder={t('catalogue.jumpPlaceholder')}
                     value={searchFilter}
                     onChange={(e) => setSearchFilter(e.target.value)}
                     autoFocus
@@ -307,7 +304,7 @@ export default function CatalogueWorkspace() {
                 </div>
 
                 <div className="max-h-72 overflow-y-auto space-y-1">
-                  {CATEGORIES.map((cat) => {
+                  {categories.map((cat) => {
                     const catTabs = filteredTabs.filter((t) => t.category === cat.id);
                     if (catTabs.length === 0) return null;
                     return (
@@ -359,10 +356,10 @@ export default function CatalogueWorkspace() {
           </div>
           <div>
             <div className="text-xs font-bold text-default flex items-center gap-1.5">
-              <span>Recommended Setup Order</span>
-              <span className="text-[10px] text-muted font-normal">(Follow these 4 steps to set up your catalog)</span>
+              <span>{t('catalogue.recommendedSetup')}</span>
+              <span className="text-[10px] text-muted font-normal">{t('catalogue.setupStepHint')}</span>
             </div>
-            <p className="text-[11px] text-muted">Click any step below to jump straight to that setup screen:</p>
+            <p className="text-[11px] text-muted">{t('catalogue.clickStepHint')}</p>
           </div>
         </div>
 
@@ -376,7 +373,7 @@ export default function CatalogueWorkspace() {
             )}
           >
             <span className="size-4 rounded-full bg-black/20 flex items-center justify-center text-[10px]">1</span>
-            <span>Units</span>
+            <span>{t('catalogue.tabUnitsLabel')}</span>
           </button>
           <ArrowRight className="size-3 text-muted/50 hidden sm:inline" />
           <button
@@ -388,7 +385,7 @@ export default function CatalogueWorkspace() {
             )}
           >
             <span className="size-4 rounded-full bg-black/20 flex items-center justify-center text-[10px]">2</span>
-            <span>Categories</span>
+            <span>{t('catalogue.tabCategoriesLabel')}</span>
           </button>
           <ArrowRight className="size-3 text-muted/50 hidden sm:inline" />
           <button
@@ -400,7 +397,7 @@ export default function CatalogueWorkspace() {
             )}
           >
             <span className="size-4 rounded-full bg-black/20 flex items-center justify-center text-[10px]">3</span>
-            <span>Products</span>
+            <span>{t('catalogue.tabProductsLabel')}</span>
           </button>
           <ArrowRight className="size-3 text-muted/50 hidden sm:inline" />
           <button
@@ -412,7 +409,7 @@ export default function CatalogueWorkspace() {
             )}
           >
             <span className="size-4 rounded-full bg-black/20 flex items-center justify-center text-[10px]">4</span>
-            <span>Recipes (BOM)</span>
+            <span>{t('catalogue.tabBomLabel')}</span>
           </button>
         </div>
       </div>
@@ -423,10 +420,10 @@ export default function CatalogueWorkspace() {
           <div>
             <div className="flex items-center gap-1.5 text-xs font-bold text-default">
               <Zap className="size-3.5 text-amber-500 fill-amber-500" />
-              <span>Quick Actions • Product Catalog & Recipe Formulations</span>
+              <span>{t('catalogue.quickActionsTitle')}</span>
             </div>
             <p className="text-[11px] text-muted">
-              Add products, configure production recipes (BOM), organize categories, or register warehouse locations with 1 click.
+              {t('catalogue.quickActionsDesc')}
             </p>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
@@ -436,7 +433,7 @@ export default function CatalogueWorkspace() {
               className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs transition-all cursor-pointer"
             >
               <Plus className="size-3.5" />
-              <span>Add Product Item</span>
+              <span>{t('catalogue.addProductItem')}</span>
             </button>
             <button
               type="button"
@@ -444,7 +441,7 @@ export default function CatalogueWorkspace() {
               className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-surface hover:bg-surface-sunken text-default border border-default shadow-2xs transition-all cursor-pointer"
             >
               <FileCode className="size-3.5 text-primary" />
-              <span>Create Recipe (BOM)</span>
+              <span>{t('catalogue.createRecipeBom')}</span>
             </button>
             <button
               type="button"
@@ -452,7 +449,7 @@ export default function CatalogueWorkspace() {
               className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-surface hover:bg-surface-sunken text-default border border-default shadow-2xs transition-all cursor-pointer"
             >
               <Tag className="size-3.5 text-blue-500" />
-              <span>Categories & Brands</span>
+              <span>{t('catalogue.categoriesBrands')}</span>
             </button>
             <button
               type="button"
@@ -460,7 +457,7 @@ export default function CatalogueWorkspace() {
               className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-surface hover:bg-surface-sunken text-default border border-default shadow-2xs transition-all cursor-pointer"
             >
               <Warehouse className="size-3.5 text-cyan-600" />
-              <span>Warehouses & Bins</span>
+              <span>{t('catalogue.warehousesBins')}</span>
             </button>
           </div>
         </div>
@@ -472,10 +469,10 @@ export default function CatalogueWorkspace() {
         aria-label="Catalogue Subsystems"
         className="grid grid-cols-1 lg:grid-cols-3 gap-3"
       >
-        {CATEGORIES.map((cat) => {
+        {categories.map((cat) => {
           const isCategorySelected = activeCategory === cat.id;
           const Icon = cat.icon;
-          const childTabs = TABS.filter((t) => t.category === cat.id);
+          const childTabs = tabs.filter((t) => t.category === cat.id);
 
           return (
             <div
@@ -584,10 +581,10 @@ export default function CatalogueWorkspace() {
         <div className="flex items-center justify-between px-2 pb-1.5 mb-1 text-[11px] font-semibold text-muted border-b border-default/50">
           <div className="flex items-center gap-2">
             <Zap className="size-3.5 text-primary" />
-            <span>Master Navigation Ribbon</span>
+            <span>{t('catalogue.masterNavRibbon')}</span>
           </div>
           <span className="text-[10px] font-mono text-muted/70">
-            Active: <strong className="text-default">{currentTabConfig.label}</strong>
+            {t('catalogue.activeRibbonLabel')} <strong className="text-default">{currentTabConfig.label}</strong>
           </span>
         </div>
 
@@ -599,9 +596,9 @@ export default function CatalogueWorkspace() {
           {/* Group 1: Catalog */}
           <div className="flex items-center gap-1.5 bg-surface/60 p-1 rounded-xl border border-default/40">
             <span className="text-[10px] font-mono uppercase font-bold text-muted px-2 py-0.5 select-none">
-              Catalog:
+              {t('catalogue.groupCatalog')}
             </span>
-            {TABS.filter((t) => t.category === 'products').map((tab) => {
+            {tabs.filter((t) => t.category === 'products').map((tab) => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
               return (
@@ -630,9 +627,9 @@ export default function CatalogueWorkspace() {
           {/* Group 2: Manufacturing */}
           <div className="flex items-center gap-1.5 bg-surface/60 p-1 rounded-xl border border-default/40">
             <span className="text-[10px] font-mono uppercase font-bold text-muted px-2 py-0.5 select-none">
-              Manufacturing:
+              {t('catalogue.groupManufacturing')}
             </span>
-            {TABS.filter((t) => t.category === 'engineering').map((tab) => {
+            {tabs.filter((t) => t.category === 'engineering').map((tab) => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
               return (
@@ -671,9 +668,9 @@ export default function CatalogueWorkspace() {
           {/* Group 3: Directory & Facilities */}
           <div className="flex items-center gap-1.5 bg-surface/60 p-1 rounded-xl border border-default/40">
             <span className="text-[10px] font-mono uppercase font-bold text-muted px-2 py-0.5 select-none">
-              Directory:
+              {t('catalogue.groupDirectory')}
             </span>
-            {TABS.filter((t) => t.category === 'directories').map((tab) => {
+            {tabs.filter((t) => t.category === 'directories').map((tab) => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
               return (
@@ -724,16 +721,16 @@ export default function CatalogueWorkspace() {
       <Modal
         open={isGuideOpen}
         onClose={() => setIsGuideOpen(false)}
-        title="Catalogue Workspace Capabilities & Guide"
+        title={t('catalogue.guideModalTitle')}
         size="xl"
       >
         <div className="space-y-5 p-1 text-default">
           <p className="text-xs text-muted leading-relaxed">
-            The Catalogue & Master Data workspace manages core definitions for the entire platform. Every subsystem—including Sales Orders, Production Runs, Warehousing, and Accounting—relies on these foundational records.
+            {t('catalogue.guideModalIntro')}
           </p>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-            {TABS.map((tab) => {
+            {tabs.map((tab) => {
               const Icon = tab.icon;
               const isCurrent = activeTab === tab.id;
               return (
@@ -756,7 +753,7 @@ export default function CatalogueWorkspace() {
                       </div>
                       {isCurrent && (
                         <span className="text-[10px] font-mono font-bold text-primary bg-primary-subtle px-2 py-0.5 rounded-full border border-primary/20">
-                          Current Tab
+                          {t('catalogue.currentTabBadge')}
                         </span>
                       )}
                     </div>
@@ -784,7 +781,7 @@ export default function CatalogueWorkspace() {
                       setIsGuideOpen(false);
                     }}
                   >
-                    <span>{isCurrent ? 'Viewing Now' : `Open ${tab.label}`}</span>
+                    <span>{isCurrent ? t('catalogue.viewingNow') : t('catalogue.openTab', { label: tab.label })}</span>
                     <ArrowRight className="size-3.5" />
                   </Button>
                 </div>
@@ -795,13 +792,13 @@ export default function CatalogueWorkspace() {
           <div className="rounded-2xl border border-default bg-surface-sunken p-3.5 space-y-1.5 text-xs">
             <h5 className="font-bold text-default flex items-center gap-1.5">
               <Zap className="size-3.5 text-primary" />
-              Keyboard Shortcuts & Productivity
+              {t('catalogue.shortcutsTitle')}
             </h5>
             <ul className="text-[11px] text-muted space-y-1 list-disc list-inside">
-              <li>Press <kbd className="px-1.5 py-0.5 rounded bg-surface border border-default font-mono font-bold text-default">1</kbd> to jump to Product & SKU Catalog</li>
-              <li>Press <kbd className="px-1.5 py-0.5 rounded bg-surface border border-default font-mono font-bold text-default">2</kbd> to jump to Engineering & BOM Recipes</li>
-              <li>Press <kbd className="px-1.5 py-0.5 rounded bg-surface border border-default font-mono font-bold text-default">3</kbd> to jump to Facilities & Stakeholder Directory</li>
-              <li>Press <kbd className="px-1.5 py-0.5 rounded bg-surface border border-default font-mono font-bold text-default">Esc</kbd> when products are selected to clear selection immediately</li>
+              <li>{t('catalogue.shortcut1')}</li>
+              <li>{t('catalogue.shortcut2')}</li>
+              <li>{t('catalogue.shortcut3')}</li>
+              <li>{t('catalogue.shortcutEsc')}</li>
             </ul>
           </div>
         </div>

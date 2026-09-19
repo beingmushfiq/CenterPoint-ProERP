@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { DeliveryOrder } from '../../../types/api/sales';
 import type { BusinessConfig } from '../../../lib/document/useBusinessConfig';
 import { formatDocumentDate, formatCurrency } from '../../../lib/document/formatters';
@@ -10,6 +11,7 @@ export interface DeliveryChallanDocumentProps {
 }
 
 export function DeliveryChallanDocument({ delivery, businessConfig }: DeliveryChallanDocumentProps) {
+  const { t } = useTranslation('documents');
   const barcodeSvg = useMemo(() => {
     return generateBarcodeSvg({
       bcid: 'code128',
@@ -36,7 +38,7 @@ export function DeliveryChallanDocument({ delivery, businessConfig }: DeliveryCh
                 {businessConfig.name}
               </h1>
               <p className="text-[7.5pt] font-semibold text-slate-600 tracking-wide uppercase">
-                Dispatch, Fleet & 3PL Logistics Division
+                {t('deliveryChallanSubtitle')}
               </p>
             </div>
           </div>
@@ -48,13 +50,13 @@ export function DeliveryChallanDocument({ delivery, businessConfig }: DeliveryCh
 
         <div className="flex flex-col items-end text-right">
           <h2 className="text-lg font-black text-slate-950 uppercase tracking-tight">
-            Delivery Challan
+            {t('deliveryChallan')}
           </h2>
           <div className="font-mono text-xs font-bold text-slate-950 mb-1">
             {delivery.delivery_number}
           </div>
           <div className="text-[8pt] text-slate-600 font-mono">
-            <span>Dispatch Date: </span>
+            <span>{t('dispatchDate')}: </span>
             <span className="font-bold text-slate-900">{formatDocumentDate(delivery.created_at, true)}</span>
           </div>
         </div>
@@ -64,38 +66,38 @@ export function DeliveryChallanDocument({ delivery, businessConfig }: DeliveryCh
       <div className="grid grid-cols-2 gap-4 bg-slate-50 border border-slate-200 rounded-lg p-3 mb-4 text-[8.5pt]">
         <div>
           <span className="text-[7.5pt] font-bold uppercase tracking-wider text-slate-500 block mb-1">
-            Ship To (Consignee)
+            {t('consignee')}
           </span>
           <div className="font-bold text-slate-950 text-[9.5pt]">
             {delivery.recipient_name}
           </div>
           <div className="text-slate-600 mt-0.5 space-y-0.5">
-            <p>Contact Phone: <span className="font-mono font-semibold text-slate-900">{delivery.recipient_phone}</span></p>
-            <p>Destination: <span className="text-slate-800">{delivery.warehouse_name || 'Customer Address'}</span></p>
+            <p>{t('customerContact')}: <span className="font-mono font-semibold text-slate-900">{delivery.recipient_phone}</span></p>
+            <p>{t('destinationAddress')}: <span className="text-slate-800">{delivery.warehouse_name || 'Customer Address'}</span></p>
           </div>
         </div>
 
         <div className="border-l border-slate-200 pl-4 space-y-1 text-[8pt]">
           <span className="text-[7.5pt] font-bold uppercase tracking-wider text-slate-500 block mb-1">
-            Waybill & Transport Manifest
+            {t('waybillManifest')}
           </span>
           <div className="grid grid-cols-2 gap-x-2 gap-y-0.5 text-slate-600">
             <div>
-              <span className="text-slate-500">Sales Order:</span>{' '}
+              <span className="text-slate-500">{t('salesOrder')}:</span>{' '}
               <span className="font-mono font-bold text-slate-900">{delivery.sales_order_number || 'SO-DIRECT'}</span>
             </div>
             <div>
-              <span className="text-slate-500">Courier / Fleet:</span>{' '}
+              <span className="text-slate-500">{t('courierFleet')}:</span>{' '}
               <span className="font-semibold text-slate-900 capitalize">{delivery.delivery_type}</span>
             </div>
             <div>
-              <span className="text-slate-500">COD Amount:</span>{' '}
+              <span className="text-slate-500">{t('codAmount')}:</span>{' '}
               <span className="font-mono font-bold text-emerald-700">
                 {formatCurrency(delivery.cod_amount || '0.00', businessConfig.currencySymbol || '৳')}
               </span>
             </div>
             <div>
-              <span className="text-slate-500">Packages:</span>{' '}
+              <span className="text-slate-500">{t('packages')}:</span>{' '}
               <span className="font-bold text-slate-900">{delivery.package_count || 1} Box(es)</span>
             </div>
           </div>
@@ -108,10 +110,10 @@ export function DeliveryChallanDocument({ delivery, businessConfig }: DeliveryCh
           <thead className="bg-slate-100 border-b border-slate-300 text-[7.5pt] font-bold uppercase text-slate-700 tracking-wider">
             <tr>
               <th className="py-2 px-2 border-r border-slate-300 w-8 text-center">#</th>
-              <th className="py-2 px-2.5 border-r border-slate-300">Product Name & Specifications</th>
-              <th className="py-2 px-2 border-r border-slate-300 text-center w-28">Batch #</th>
-              <th className="py-2 px-2 border-r border-slate-300 text-right w-24">Dispatched Qty</th>
-              <th className="py-2 px-2.5 text-right w-28">Received Qty Check</th>
+              <th className="py-2 px-2.5 border-r border-slate-300">{t('item')}</th>
+              <th className="py-2 px-2 border-r border-slate-300 text-center w-28">{t('batchNo')}</th>
+              <th className="py-2 px-2 border-r border-slate-300 text-right w-24">{t('dispatchedQty')}</th>
+              <th className="py-2 px-2.5 text-right w-28">{t('receivedQtyCheck')}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-200">
@@ -141,7 +143,7 @@ export function DeliveryChallanDocument({ delivery, businessConfig }: DeliveryCh
       {/* Special Instructions & Barcode */}
       <div className="grid grid-cols-2 gap-4 mb-6">
         <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-[8pt]">
-          <span className="font-bold text-slate-700 block mb-1">Driver & Unloading Instructions:</span>
+          <span className="font-bold text-slate-700 block mb-1">{t('driverInstructions')}:</span>
           <p className="text-slate-600">
             {delivery.special_instructions ||
               'Handle electronic appliances and ceramic glass panels with care. Protect from impact and moisture. Verify package seals before handover.'}
@@ -156,17 +158,17 @@ export function DeliveryChallanDocument({ delivery, businessConfig }: DeliveryCh
       <div className="grid grid-cols-3 gap-6 pt-6 mt-4 border-t border-slate-200 text-center text-[7.5pt] break-inside-avoid">
         <div>
           <div className="border-t border-slate-400 pt-1 font-semibold text-slate-800">
-            Dispatch Supervisor
+            {t('dispatchSupervisor')}
           </div>
         </div>
         <div>
           <div className="border-t border-slate-400 pt-1 font-semibold text-slate-800">
-            Delivery Rider / Driver
+            {t('vehicleDriver')}
           </div>
         </div>
         <div>
           <div className="border-t border-slate-400 pt-1 font-semibold text-slate-800">
-            Consignee / Customer Received Sign & Seal
+            {t('receivedBy')}
           </div>
         </div>
       </div>

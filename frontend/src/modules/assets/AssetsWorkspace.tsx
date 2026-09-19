@@ -44,6 +44,7 @@ import { cn } from '../../lib/utils';
 import { UniversalImportModal } from '../../components/import/UniversalImportModal';
 import { fixedAssetImportSchema } from '../finance/schemas/fixedAssetImportSchema';
 import { ActionMenuPortal } from '../../components/ui/ActionMenuPortal';
+import { useTranslation } from 'react-i18next';
 
 type AssetTab = 'machinery' | 'maintenance' | 'assets' | 'depreciation' | 'categories';
 type PerspectiveMode = 'all' | 'operations' | 'finance';
@@ -57,6 +58,7 @@ interface PlantMachineMeta {
 }
 
 export const AssetsWorkspace: React.FC = () => {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useWorkspaceTab<AssetTab>(
     'machinery',
     ['machinery', 'maintenance', 'assets', 'depreciation', 'categories'] as const,
@@ -901,58 +903,61 @@ export const AssetsWorkspace: React.FC = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [setActiveTab]);
 
-  const stages = [
-    {
-      id: 'machinery' as const,
-      step: 1,
-      label: 'Plant Machinery & Workstations',
-      shortLabel: 'Machinery',
-      icon: Cpu,
-      count: plantMachines.length,
-      group: 'operations' as const,
-      description: 'Line interlocks & runtime monitoring',
-    },
-    {
-      id: 'maintenance' as const,
-      step: 2,
-      label: 'Maintenance & Work Orders',
-      shortLabel: 'Maintenance',
-      icon: Wrench,
-      count: maintenanceOrders.length,
-      group: 'operations' as const,
-      description: 'PM routines & corrective work orders',
-    },
-    {
-      id: 'assets' as const,
-      step: 3,
-      label: 'Fixed Asset Register',
-      shortLabel: 'Asset Register',
-      icon: Building2,
-      count: assets.length,
-      group: 'finance' as const,
-      description: 'Capital asset costs & book values',
-    },
-    {
-      id: 'depreciation' as const,
-      step: 4,
-      label: 'Monthly Depreciation Logs',
-      shortLabel: 'Depreciation',
-      icon: TrendingDown,
-      count: depreciationEntries.length,
-      group: 'finance' as const,
-      description: 'Straight-line amortization & GL entries',
-    },
-    {
-      id: 'categories' as const,
-      step: 5,
-      label: 'Asset Categories & Policies',
-      shortLabel: 'Categories',
-      icon: Tag,
-      count: categories.length,
-      group: 'finance' as const,
-      description: 'Useful life & salvage value setup',
-    },
-  ];
+  const stages = useMemo(
+    () => [
+      {
+        id: 'machinery' as const,
+        step: 1,
+        label: t('assets.stages.machinery.label'),
+        shortLabel: t('assets.stages.machinery.shortLabel'),
+        icon: Cpu,
+        count: plantMachines.length,
+        group: 'operations' as const,
+        description: t('assets.stages.machinery.description'),
+      },
+      {
+        id: 'maintenance' as const,
+        step: 2,
+        label: t('assets.stages.maintenance.label'),
+        shortLabel: t('assets.stages.maintenance.shortLabel'),
+        icon: Wrench,
+        count: maintenanceOrders.length,
+        group: 'operations' as const,
+        description: t('assets.stages.maintenance.description'),
+      },
+      {
+        id: 'assets' as const,
+        step: 3,
+        label: t('assets.stages.assets.label'),
+        shortLabel: t('assets.stages.assets.shortLabel'),
+        icon: Building2,
+        count: assets.length,
+        group: 'finance' as const,
+        description: t('assets.stages.assets.description'),
+      },
+      {
+        id: 'depreciation' as const,
+        step: 4,
+        label: t('assets.stages.depreciation.label'),
+        shortLabel: t('assets.stages.depreciation.shortLabel'),
+        icon: TrendingDown,
+        count: depreciationEntries.length,
+        group: 'finance' as const,
+        description: t('assets.stages.depreciation.description'),
+      },
+      {
+        id: 'categories' as const,
+        step: 5,
+        label: t('assets.stages.categories.label'),
+        shortLabel: t('assets.stages.categories.shortLabel'),
+        icon: Tag,
+        count: categories.length,
+        group: 'finance' as const,
+        description: t('assets.stages.categories.description'),
+      },
+    ],
+    [t, plantMachines.length, maintenanceOrders.length, assets.length, depreciationEntries.length, categories.length]
+  );
 
   const currentStage = (stages.find((s) => s.id === activeTab) || stages[0])!;
 
@@ -966,18 +971,18 @@ export const AssetsWorkspace: React.FC = () => {
           <div className="flex items-center gap-2 mb-1.5 flex-wrap">
             <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-primary bg-primary-subtle px-2.5 py-0.5 rounded-full border border-primary/20 flex items-center gap-1">
               <Layers className="size-3 text-primary" />
-              Enterprise Asset & Machinery Lifecycle
+              {t('assets.workspaceTag')}
             </span>
             <span className="text-muted text-xs">•</span>
             <span className="text-xs font-semibold text-primary">
-              Stage {currentStage.step} of 5: {currentStage.label}
+              {t('assets.stageCounter', { step: currentStage.step, label: currentStage.label })}
             </span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-default">
-            Asset Management
+            {t('assets.title')}
           </h1>
           <p className="mt-1 text-xs text-muted max-w-2xl leading-relaxed">
-            Unified asset lifecycle: plant machinery health, preventive maintenance work orders, capitalisation register, and straight-line depreciation schedules.
+            {t('assets.subtitle')}
           </p>
         </div>
 
@@ -995,7 +1000,7 @@ export const AssetsWorkspace: React.FC = () => {
                   : 'text-muted hover:text-default'
               )}
             >
-              All Lenses
+              {t('assets.perspectives.all')}
             </button>
             <button
               type="button"
@@ -1011,7 +1016,7 @@ export const AssetsWorkspace: React.FC = () => {
               )}
             >
               <Wrench className="size-3" />
-              Plant & CMMS
+              {t('assets.perspectives.operations')}
             </button>
             <button
               type="button"
@@ -1027,7 +1032,7 @@ export const AssetsWorkspace: React.FC = () => {
               )}
             >
               <Building2 className="size-3" />
-              Finance & Depr
+              {t('assets.perspectives.finance')}
             </button>
           </div>
 
@@ -1041,7 +1046,7 @@ export const AssetsWorkspace: React.FC = () => {
                   className="px-3.5 py-2 bg-primary hover:bg-primary/90 text-primary-fg font-semibold rounded-xl shadow-xs transition flex items-center gap-1.5 text-xs cursor-pointer"
                 >
                   <Plus className="size-3.5" />
-                  <span>Add Category</span>
+                  <span>{t('assets.addCategory')}</span>
                 </button>
                 <button
                   type="button"
@@ -1049,7 +1054,7 @@ export const AssetsWorkspace: React.FC = () => {
                   className="px-3.5 py-2 bg-surface hover:bg-surface-sunken border border-default text-default font-semibold rounded-xl shadow-2xs transition flex items-center gap-1.5 text-xs cursor-pointer"
                 >
                   <Plus className="size-3.5 text-primary" />
-                  <span>Register Asset</span>
+                  <span>{t('assets.registerAsset')}</span>
                 </button>
               </>
             ) : activeTab === 'depreciation' ? (
@@ -1060,7 +1065,7 @@ export const AssetsWorkspace: React.FC = () => {
                   className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl shadow-xs transition flex items-center gap-1.5 text-xs cursor-pointer"
                 >
                   <TrendingDown className="size-3.5" />
-                  <span>Run Depreciation</span>
+                  <span>{t('assets.runDepreciation')}</span>
                 </button>
                 <button
                   type="button"
@@ -1068,7 +1073,7 @@ export const AssetsWorkspace: React.FC = () => {
                   className="px-3.5 py-2 bg-surface hover:bg-surface-sunken border border-default text-default font-semibold rounded-xl shadow-2xs transition flex items-center gap-1.5 text-xs cursor-pointer"
                 >
                   <Download className="size-3.5 text-muted" />
-                  <span>Export Schedule</span>
+                  <span>{t('assets.exportSchedule')}</span>
                 </button>
               </>
             ) : (
@@ -1079,7 +1084,7 @@ export const AssetsWorkspace: React.FC = () => {
                   className="px-3.5 py-2 bg-surface hover:bg-surface-sunken border border-default text-default font-semibold rounded-xl shadow-2xs transition flex items-center gap-1.5 text-xs cursor-pointer"
                 >
                   <Wrench className="size-3.5 text-primary" />
-                  <span>New Work Order</span>
+                  <span>{t('assets.newWorkOrder')}</span>
                 </button>
 
                 <button
@@ -1088,7 +1093,7 @@ export const AssetsWorkspace: React.FC = () => {
                   className="px-3.5 py-2 bg-surface hover:bg-surface-sunken border border-default text-default font-semibold rounded-xl shadow-xs transition flex items-center gap-1.5 text-xs cursor-pointer"
                 >
                   <Upload className="size-3.5 text-primary" />
-                  <span>Import Assets</span>
+                  <span>{t('assets.importAssets')}</span>
                 </button>
 
                 <button
@@ -1097,7 +1102,7 @@ export const AssetsWorkspace: React.FC = () => {
                   className="px-3.5 py-2 bg-surface hover:bg-surface-sunken border border-default text-default font-semibold rounded-xl shadow-xs transition flex items-center gap-1.5 text-xs cursor-pointer"
                 >
                   <FileSpreadsheet className="size-3.5 text-primary" />
-                  <span>Export CSV</span>
+                  <span>{t('assets.exportCsv')}</span>
                 </button>
 
                 <button
@@ -1106,7 +1111,7 @@ export const AssetsWorkspace: React.FC = () => {
                   className="px-3.5 py-2 bg-primary hover:bg-primary/90 text-primary-fg font-semibold rounded-xl shadow-xs transition flex items-center gap-1.5 text-xs cursor-pointer"
                 >
                   <Plus className="size-3.5" />
-                  <span>Register Asset</span>
+                  <span>{t('assets.registerAsset')}</span>
                 </button>
               </>
             )}
@@ -1123,37 +1128,37 @@ export const AssetsWorkspace: React.FC = () => {
           <div className="bg-surface rounded-2xl p-4 shadow-2xs border border-default">
             <div className="flex items-center justify-between">
               <div className="text-xs font-semibold uppercase tracking-wider text-muted">
-                Plant Machinery Uptime
+                {t('assets.kpi.uptimeTitle')}
               </div>
               <Activity className="size-4 text-emerald-500" />
             </div>
             <div className="text-2xl font-extrabold text-emerald-600 dark:text-emerald-400 mt-2">
-              100% Operational
+              {t('assets.kpi.uptimeValue')}
             </div>
             <div className="text-xs text-muted mt-1">
-              {plantMachines.length} Workstations Assigned to Lines
+              {t('assets.kpi.uptimeSubtitle', { count: plantMachines.length })}
             </div>
           </div>
 
           <div className="bg-surface rounded-2xl p-4 shadow-2xs border border-default">
             <div className="flex items-center justify-between">
               <div className="text-xs font-semibold uppercase tracking-wider text-muted">
-                Active Work Orders
+                {t('assets.kpi.workOrdersTitle')}
               </div>
               <Wrench className="size-4 text-indigo-500" />
             </div>
             <div className="text-2xl font-extrabold text-indigo-600 dark:text-indigo-400 mt-2">
-              {activeMaintenanceOrders.length} In Progress
+              {t('assets.kpi.workOrdersValue', { count: activeMaintenanceOrders.length })}
             </div>
             <div className="text-xs text-muted mt-1">
-              Preventive Servicing & Calibration
+              {t('assets.kpi.workOrdersSubtitle')}
             </div>
           </div>
 
           <div className="bg-surface rounded-2xl p-4 shadow-2xs border border-default">
             <div className="flex items-center justify-between">
               <div className="text-xs font-semibold uppercase tracking-wider text-muted">
-                Next Scheduled Routine
+                {t('assets.kpi.nextRoutineTitle')}
               </div>
               <Clock className="size-4 text-amber-500" />
             </div>
@@ -1161,21 +1166,21 @@ export const AssetsWorkspace: React.FC = () => {
               Sep 25, 2026
             </div>
             <div className="text-xs text-muted mt-1">
-              Fabric Laser Cutter Optic Check
+              {t('assets.kpi.nextRoutineSubtitle')}
             </div>
           </div>
 
           <div className="bg-surface rounded-2xl p-4 shadow-2xs border border-default">
             <div className="flex items-center justify-between">
               <div className="text-xs font-semibold uppercase tracking-wider text-muted">
-                Maintenance OpEx YTD
+                {t('assets.kpi.maintenanceCostTitle')}
               </div>
               <TrendingDown className="size-4 text-rose-500" />
             </div>
             <div className="text-2xl font-extrabold text-default mt-2">
               {formatCurrency(totalMaintenanceCost)}
             </div>
-            <div className="text-xs text-muted mt-1">Parts & External Technicians</div>
+            <div className="text-xs text-muted mt-1">{t('assets.kpi.maintenanceCostSubtitle')}</div>
           </div>
         </div>
       ) : (
@@ -1183,44 +1188,44 @@ export const AssetsWorkspace: React.FC = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           <div className="bg-surface rounded-2xl p-4 shadow-2xs border border-default">
             <div className="text-xs font-semibold uppercase tracking-wider text-muted">
-              Total Gross Asset Value
+              {t('assets.kpi.grossValueTitle')}
             </div>
             <div className="text-2xl font-extrabold text-default mt-2">
               {formatCurrency(totalAssetCost)}
             </div>
             <div className="text-xs text-muted mt-1">
-              Acquisition Cost Across {assets.length} Assets
+              {t('assets.kpi.grossValueSubtitle', { count: assets.length })}
             </div>
           </div>
 
           <div className="bg-surface rounded-2xl p-4 shadow-2xs border border-default">
             <div className="text-xs font-semibold uppercase tracking-wider text-muted">
-              Accumulated Depreciation
+              {t('assets.kpi.accumDeprTitle')}
             </div>
             <div className="text-2xl font-extrabold text-amber-600 dark:text-amber-400 mt-2">
               {formatCurrency(totalAccumulatedDepr)}
             </div>
-            <div className="text-xs text-muted mt-1">Expensed to GL General Ledger</div>
+            <div className="text-xs text-muted mt-1">{t('assets.kpi.accumDeprSubtitle')}</div>
           </div>
 
           <div className="bg-surface rounded-2xl p-4 shadow-2xs border border-default">
             <div className="text-xs font-semibold uppercase tracking-wider text-muted">
-              Net Carrying Book Value
+              {t('assets.kpi.netBookValueTitle')}
             </div>
             <div className="text-2xl font-extrabold text-emerald-600 dark:text-emerald-400 mt-2">
               {formatCurrency(totalNetBookValue)}
             </div>
-            <div className="text-xs text-muted mt-1">Balance Sheet Asset Value</div>
+            <div className="text-xs text-muted mt-1">{t('assets.kpi.netBookValueSubtitle')}</div>
           </div>
 
           <div className="bg-surface rounded-2xl p-4 shadow-2xs border border-default">
             <div className="text-xs font-semibold uppercase tracking-wider text-muted">
-              Monthly Depreciation Run
+              {t('assets.kpi.monthlyDeprTitle')}
             </div>
             <div className="text-2xl font-extrabold text-indigo-600 dark:text-indigo-400 mt-2">
               {formatCurrency(63800)}
             </div>
-            <div className="text-xs text-muted mt-1">Current Month Amortization</div>
+            <div className="text-xs text-muted mt-1">{t('assets.kpi.monthlyDeprSubtitle')}</div>
           </div>
         </div>
       )}
@@ -1233,10 +1238,10 @@ export const AssetsWorkspace: React.FC = () => {
           <div>
             <div className="flex items-center gap-1.5 text-xs font-bold text-default">
               <Zap className="size-3.5 text-amber-500 fill-amber-500" />
-              <span>Quick Actions • Equipment Health & Financial Assets</span>
+              <span>{t('assets.quickActionTitle')}</span>
             </div>
             <p className="text-[11px] text-muted">
-              Report equipment repairs, add capital assets, or execute monthly depreciation ledger write-downs with 1 click.
+              {t('assets.quickActionSubtitle')}
             </p>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
@@ -1246,7 +1251,7 @@ export const AssetsWorkspace: React.FC = () => {
               className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-amber-600 hover:bg-amber-700 text-white shadow-xs transition-all cursor-pointer"
             >
               <Wrench className="size-3.5" />
-              <span>Log Repair Ticket</span>
+              <span>{t('assets.logRepairTicket')}</span>
             </button>
             <button
               type="button"
@@ -1254,7 +1259,7 @@ export const AssetsWorkspace: React.FC = () => {
               className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-primary hover:bg-primary/90 text-primary-fg shadow-xs transition-all cursor-pointer"
             >
               <Plus className="size-3.5" />
-              <span>Register Asset</span>
+              <span>{t('assets.registerAsset')}</span>
             </button>
             <button
               type="button"
@@ -1262,7 +1267,7 @@ export const AssetsWorkspace: React.FC = () => {
               className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-surface hover:bg-surface-sunken text-default border border-default shadow-2xs transition-all cursor-pointer"
             >
               <TrendingDown className="size-3.5 text-indigo-500" />
-              <span>Run Monthly Depreciation</span>
+              <span>{t('assets.runMonthlyDepreciation')}</span>
             </button>
             <button
               type="button"
@@ -1273,7 +1278,7 @@ export const AssetsWorkspace: React.FC = () => {
               className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-surface hover:bg-surface-sunken text-default border border-default shadow-2xs transition-all cursor-pointer"
             >
               <Tag className="size-3.5 text-emerald-600" />
-              <span>Add Category</span>
+              <span>{t('assets.addCategory')}</span>
             </button>
           </div>
         </div>

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useOutletContext, useParams, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Minus, Package, Plus, ShoppingBag, ShieldCheck, ChevronLeft, ChevronRight, Share2, Check, Heart, Zap } from 'lucide-react';
 import { api } from '../../lib/api/client';
 import { useStorefrontCartStore } from '../../lib/storefront/storefrontCartStore';
@@ -20,6 +21,7 @@ interface OutletContextType {
 }
 
 export const StorefrontProductDetailPage: React.FC = () => {
+  const { t } = useTranslation(['storefront', 'common']);
   const { idOrSku } = useParams<{ idOrSku: string }>();
   const { config, subdomain } = useOutletContext<OutletContextType>();
   const { formatCurrency } = useCurrency();
@@ -110,14 +112,14 @@ export const StorefrontProductDetailPage: React.FC = () => {
   if (!product) {
     return (
       <div className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-12 text-center">
-        <h2 className="text-base font-bold text-zinc-200">Product Not Found</h2>
-        <p className="text-xs text-zinc-500 mt-1">The requested product could not be located.</p>
+        <h2 className="text-base font-bold text-zinc-200">{t('storefront.productNotFound')}</h2>
+        <p className="text-xs text-zinc-500 mt-1">{t('storefront.productNotFoundDesc')}</p>
         <Link
           to={getStorefrontUrl(subdomain, '/products')}
           className="mt-4 inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-400 hover:underline"
         >
           <ArrowLeft className="h-3.5 w-3.5" />
-          <span>Back to Catalog</span>
+          <span>{t('storefront.backToCatalog')}</span>
         </Link>
       </div>
     );
@@ -129,8 +131,8 @@ export const StorefrontProductDetailPage: React.FC = () => {
     : parseFloat(product.default_sale_price || '0').toFixed(2);
 
   const breadcrumbs = product.breadcrumb_items || [
-    { name: 'Home', url: getStorefrontUrl(subdomain) },
-    { name: 'All Products', url: getStorefrontUrl(subdomain, '/products') },
+    { name: t('storefront.home'), url: getStorefrontUrl(subdomain) },
+    { name: t('storefront.products'), url: getStorefrontUrl(subdomain, '/products') },
     ...(product.category ? [{ name: product.category.name, url: getStorefrontUrl(subdomain, `/collections/${product.category.slug || product.category.name.toLowerCase()}`) }] : []),
     { name: product.name, url: getStorefrontUrl(subdomain, `/products/${product.online_slug || product.sku}`) },
   ];
@@ -216,7 +218,7 @@ export const StorefrontProductDetailPage: React.FC = () => {
               }}
               className="absolute top-4 right-4 rounded-full px-3 py-1 text-[11px] font-semibold border backdrop-blur-xs"
             >
-              In Stock
+              {t('storefront.inStock')}
             </div>
 
             {/* Gallery Navigation Arrows (if multiple photos) */}
@@ -298,7 +300,7 @@ export const StorefrontProductDetailPage: React.FC = () => {
               className="flex-1 inline-flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl border text-xs font-semibold transition-all cursor-pointer hover:opacity-90"
             >
               <Share2 className="size-3.5" />
-              <span>Share on WhatsApp</span>
+              <span>{t('storefront.shareWhatsApp')}</span>
             </button>
             <button
               type="button"
@@ -315,11 +317,11 @@ export const StorefrontProductDetailPage: React.FC = () => {
                     style={{ color: 'var(--store-primary, #10b981)' }}
                     className="font-semibold"
                   >
-                    Copied
+                    {t('storefront.copied')}
                   </span>
                 </>
               ) : (
-                <span>Copy Link</span>
+                <span>{t('storefront.copyLink')}</span>
               )}
             </button>
           </div>
@@ -370,7 +372,7 @@ export const StorefrontProductDetailPage: React.FC = () => {
               >
                 {currency} {price}
               </span>
-              <span className="text-xs text-slate-500 dark:text-zinc-400 font-mono">/ unit inclusive of taxes</span>
+              <span className="text-xs text-slate-500 dark:text-zinc-400 font-mono">{t('storefront.unitInclusiveTaxes')}</span>
             </div>
           </div>
 
@@ -384,7 +386,7 @@ export const StorefrontProductDetailPage: React.FC = () => {
           {product.variants && product.variants.length > 0 && (
             <div className="space-y-2 pt-2 border-t border-slate-200 dark:border-zinc-800/80">
               <label className="text-xs font-bold text-slate-700 dark:text-zinc-300 uppercase tracking-wider block font-mono">
-                Select Option / Package Size
+                {t('storefront.selectOptionSize')}
               </label>
               <div className="flex flex-wrap gap-2">
                 {product.variants.map((v: StorefrontProductVariant) => (
@@ -430,10 +432,10 @@ export const StorefrontProductDetailPage: React.FC = () => {
                 style={{ backgroundColor: 'var(--store-primary, #10b981)' }}
                 className="flex size-2 rounded-full animate-pulse"
               />
-              <span>Authenticity & Quality Guarantee</span>
+              <span>{t('authenticityGuarantee')}</span>
             </div>
             <p className="text-[11px] text-muted leading-relaxed">
-              Every item is verified authentic, inspected to strict commercial standards, and packaged securely with full customer support and warranty protection.
+              {t('authenticityGuaranteeDesc')}
             </p>
           </div>
 
@@ -471,7 +473,7 @@ export const StorefrontProductDetailPage: React.FC = () => {
                 className="flex-1 min-h-12 flex items-center justify-center gap-2 rounded-xl py-3.5 px-4 text-xs sm:text-sm font-extrabold shadow-lg transition-all cursor-pointer active:scale-98 hover:opacity-90 touch-target"
               >
                 <Zap className="size-4 fill-current" />
-                <span>Order Now ({currency} {(parseFloat(price) * quantity).toFixed(2)})</span>
+                <span>{t('orderNow')} ({currency} {(parseFloat(price) * quantity).toFixed(2)})</span>
               </button>
 
               {/* Add to Cart */}
@@ -482,7 +484,7 @@ export const StorefrontProductDetailPage: React.FC = () => {
                 title="Add to Shopping Cart"
               >
                 <ShoppingBag className="size-4 stroke-[2.5]" />
-                <span className="hidden xs:inline sm:inline">Add to Cart</span>
+                <span className="hidden xs:inline sm:inline">{t('storefront.addToCart')}</span>
               </button>
             </div>
 
@@ -527,7 +529,7 @@ export const StorefrontProductDetailPage: React.FC = () => {
               }}
               className="w-full flex items-center justify-center gap-2 rounded-xl border py-3 text-xs font-bold transition-all shadow-xs cursor-pointer hover:opacity-90"
             >
-              <span>💬 Instant Order via WhatsApp</span>
+              <span>{t('storefront.instantOrderWhatsApp')}</span>
             </button>
           </div>
         </div>
@@ -561,7 +563,7 @@ export const StorefrontProductDetailPage: React.FC = () => {
             className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-extrabold shadow-md active:scale-95 cursor-pointer hover:opacity-90"
           >
             <ShoppingBag className="size-3.5 stroke-[2.5]" />
-            <span>Add</span>
+            <span>{t('common.add', 'Add')}</span>
           </button>
           <button
             type="button"
@@ -583,51 +585,51 @@ export const StorefrontProductDetailPage: React.FC = () => {
         <div className="flex items-center gap-2">
           <ShieldCheck className="size-5 text-emerald-600 dark:text-emerald-400" />
           <h2 id="product-specifications-heading" className="text-sm font-bold uppercase tracking-wider text-slate-900 dark:text-white">
-            Technical Specifications & Certified Quality Data
+            {t('techSpecs')}
           </h2>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="rounded-2xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/40 p-5 space-y-3 shadow-xs">
-            <h3 className="text-xs font-bold text-slate-900 dark:text-zinc-300 uppercase tracking-wider">Manufacturing Details</h3>
+            <h3 className="text-xs font-bold text-slate-900 dark:text-zinc-300 uppercase tracking-wider">{t('manufacturingDetails')}</h3>
             <dl className="space-y-2 text-xs">
               <div className="flex justify-between py-1 border-b border-slate-100 dark:border-zinc-800/60">
-                <dt className="text-slate-500 dark:text-zinc-500">Universal SKU</dt>
+                <dt className="text-slate-500 dark:text-zinc-500">{t('universalSku')}</dt>
                 <dd className="font-mono font-bold text-slate-800 dark:text-zinc-200">{product.sku}</dd>
               </div>
               <div className="flex justify-between py-1 border-b border-slate-100 dark:border-zinc-800/60">
-                <dt className="text-slate-500 dark:text-zinc-500">Brand Entity</dt>
+                <dt className="text-slate-500 dark:text-zinc-500">{t('brandEntity')}</dt>
                 <dd className="font-medium text-slate-800 dark:text-zinc-200">{product.brand?.name || config.name}</dd>
               </div>
               <div className="flex justify-between py-1 border-b border-slate-100 dark:border-zinc-800/60">
-                <dt className="text-slate-500 dark:text-zinc-500">Category</dt>
+                <dt className="text-slate-500 dark:text-zinc-500">{t('common.category', 'Category')}</dt>
                 <dd className="font-medium text-slate-800 dark:text-zinc-200">{product.category?.name || 'General Wholesale'}</dd>
               </div>
               <div className="flex justify-between py-1">
-                <dt className="text-slate-500 dark:text-zinc-500">Standard Unit</dt>
+                <dt className="text-slate-500 dark:text-zinc-500">{t('standardUnit')}</dt>
                 <dd className="font-medium text-slate-800 dark:text-zinc-200">{product.base_unit?.name || 'Piece'}</dd>
               </div>
             </dl>
           </div>
 
           <div className="rounded-2xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/40 p-5 space-y-3 shadow-xs">
-            <h3 className="text-xs font-bold text-slate-900 dark:text-zinc-300 uppercase tracking-wider">Assurance & Logistics</h3>
+            <h3 className="text-xs font-bold text-slate-900 dark:text-zinc-300 uppercase tracking-wider">{t('assuranceLogistics')}</h3>
             <dl className="space-y-2 text-xs">
               <div className="flex justify-between py-1 border-b border-slate-100 dark:border-zinc-800/60">
-                <dt className="text-muted">Fulfillment Origin</dt>
-                <dd className="font-medium text-emerald-600 dark:text-emerald-400">Verified Direct Sourcing</dd>
+                <dt className="text-muted">{t('fulfillmentOrigin')}</dt>
+                <dd className="font-medium text-emerald-600 dark:text-emerald-400">{t('verifiedDirectSourcing')}</dd>
               </div>
               <div className="flex justify-between py-1 border-b border-default">
-                <dt className="text-muted">Quality Assurance</dt>
-                <dd className="font-medium text-default">Multi-Point QA Inspection Passed</dd>
+                <dt className="text-muted">{t('qualityAssurance')}</dt>
+                <dd className="font-medium text-default">{t('qaInspectionPassed')}</dd>
               </div>
               <div className="flex justify-between py-1 border-b border-default">
-                <dt className="text-muted">Packaging Standard</dt>
-                <dd className="font-medium text-default">Reinforced Protective Dispatch</dd>
+                <dt className="text-muted">{t('packagingStandard')}</dt>
+                <dd className="font-medium text-default">{t('reinforcedPackaging')}</dd>
               </div>
               <div className="flex justify-between py-1">
-                <dt className="text-muted">Dispatch Standard</dt>
-                <dd className="font-medium text-default">Direct Express Fulfillment</dd>
+                <dt className="text-muted">{t('dispatchStandard')}</dt>
+                <dd className="font-medium text-default">{t('directExpress')}</dd>
               </div>
             </dl>
           </div>

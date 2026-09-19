@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { Link, useOutletContext } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import {
   User as UserIcon,
   ShoppingBag,
@@ -47,6 +48,7 @@ interface CustomerOrder {
 }
 
 export const StorefrontAccountPage: React.FC = () => {
+  const { t } = useTranslation(['storefront', 'common']);
   const { subdomain } = useOutletContext<OutletContextType>();
   const { formatCurrency } = useCurrency();
   const { token, customer, setAuth, logout } = useStorefrontCustomerStore();
@@ -145,10 +147,10 @@ export const StorefrontAccountPage: React.FC = () => {
             }) ?? null);
       if (authData) {
         setAuth(authData.token, authData.customer);
-        setSuccessMessage('Welcome back!');
+        setSuccessMessage(t('storefront.welcomeBackMsg'));
       }
     } catch (err: unknown) {
-      setErrorMessage(err instanceof Error ? err.message : 'Invalid credentials. Please verify phone and password.');
+      setErrorMessage(err instanceof Error ? err.message : t('storefront.invalidCredentials'));
     } finally {
       setAuthLoading(false);
     }
@@ -192,10 +194,10 @@ export const StorefrontAccountPage: React.FC = () => {
             }) ?? null);
       if (authData) {
         setAuth(authData.token, authData.customer);
-        setSuccessMessage('Account created successfully!');
+        setSuccessMessage(t('storefront.accountCreatedMsg'));
       }
     } catch (err: unknown) {
-      setErrorMessage(err instanceof Error ? err.message : 'Failed to register account.');
+      setErrorMessage(err instanceof Error ? err.message : t('storefront.registrationFailed'));
     } finally {
       setAuthLoading(false);
     }
@@ -215,7 +217,7 @@ export const StorefrontAccountPage: React.FC = () => {
               <div className="flex items-center gap-2">
                 <h1 className="text-xl font-bold text-slate-900 dark:text-white">{customer.name}</h1>
                 <span className="rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                  Verified Shopper
+                  {t('storefront.verifiedShopper')}
                 </span>
               </div>
               <div className="flex flex-wrap items-center gap-3 mt-1 text-xs text-slate-500 dark:text-zinc-400">
@@ -239,7 +241,7 @@ export const StorefrontAccountPage: React.FC = () => {
             className="inline-flex items-center gap-2 rounded-xl border border-rose-500/20 bg-rose-500/10 px-4 py-2 text-xs font-semibold text-rose-600 dark:text-rose-300 hover:bg-rose-500/20 transition-all shadow-xs cursor-pointer"
           >
             <LogOut className="h-4 w-4" />
-            <span>Sign Out</span>
+            <span>{t('storefront.signOut')}</span>
           </button>
         </div>
 
@@ -248,13 +250,13 @@ export const StorefrontAccountPage: React.FC = () => {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <ShoppingBag className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
-              <h2 className="text-base font-bold text-slate-900 dark:text-zinc-100">Your Order History</h2>
+              <h2 className="text-base font-bold text-slate-900 dark:text-zinc-100">{t('storefront.orderHistoryTitle')}</h2>
             </div>
             <Link
               to={getStorefrontUrl(subdomain, '/track')}
               className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 transition-colors"
             >
-              Track by Reference Number &rarr;
+              {t('storefront.trackByRef')}
             </Link>
           </div>
 
@@ -267,15 +269,15 @@ export const StorefrontAccountPage: React.FC = () => {
               <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-100 dark:bg-zinc-800 text-slate-400 dark:text-zinc-400">
                 <Package className="h-6 w-6" />
               </div>
-              <h3 className="text-sm font-bold text-slate-900 dark:text-white">No Orders Placed Yet</h3>
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white">{t('storefront.noOrdersTitle')}</h3>
               <p className="text-xs text-slate-500 dark:text-zinc-400 max-w-sm mx-auto">
-                Explore our newest energy-efficient infrared cookers and precision gas stoves straight from the factory assembly line.
+                {t('storefront.noOrdersDesc')}
               </p>
               <Link
                 to={getStorefrontUrl(subdomain)}
                 className="inline-flex items-center gap-2 rounded-xl bg-emerald-500 px-5 py-2.5 text-xs font-bold text-zinc-950 hover:bg-emerald-400 transition-all shadow-lg shadow-emerald-500/20"
               >
-                <span>Browse Products</span>
+                <span>{t('storefront.browseProducts')}</span>
                 <ArrowRight className="h-4 w-4" />
               </Link>
             </div>
@@ -306,13 +308,13 @@ export const StorefrontAccountPage: React.FC = () => {
                       </div>
                       <div className="flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-zinc-400">
                         <Calendar className="h-3 w-3" />
-                        <span>Placed on {new Date(order.order_date).toLocaleDateString()}</span>
+                        <span>{t('storefront.placedOnDate', { date: new Date(order.order_date).toLocaleDateString() })}</span>
                       </div>
                     </div>
 
                     <div className="flex items-center gap-4">
                       <div className="text-right">
-                        <span className="text-[11px] text-slate-500 dark:text-zinc-500 block">Total Amount</span>
+                        <span className="text-[11px] text-slate-500 dark:text-zinc-500 block">{t('storefront.totalAmount')}</span>
                         <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400 font-mono">
                           {formatCurrency(order.total_amount)}
                         </span>
@@ -321,7 +323,7 @@ export const StorefrontAccountPage: React.FC = () => {
                         to={getStorefrontUrl(subdomain, `/track?order=${encodeURIComponent(order.order_number)}`)}
                         className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 dark:border-zinc-700 bg-slate-50 dark:bg-zinc-800 px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-zinc-200 hover:text-slate-900 dark:hover:text-white hover:border-emerald-500 transition-all shadow-2xs"
                       >
-                        <span>Track</span>
+                        <span>{t('storefront.trackAction')}</span>
                         <ChevronRight className="h-3.5 w-3.5" />
                       </Link>
                     </div>
@@ -359,9 +361,9 @@ export const StorefrontAccountPage: React.FC = () => {
         <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
           <UserIcon className="h-6 w-6" />
         </div>
-        <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Customer Portal</h1>
+        <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">{t('storefront.customerPortal')}</h1>
         <p className="text-xs text-slate-500 dark:text-zinc-400">
-          Sign in or register to view previous orders, save addresses, and track shipments.
+          {t('storefront.customerPortalDesc')}
         </p>
       </div>
 
@@ -379,7 +381,7 @@ export const StorefrontAccountPage: React.FC = () => {
               : 'text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white'
           }`}
         >
-          Sign In
+          {t('storefront.signInTab')}
         </button>
         <button
           type="button"
@@ -393,7 +395,7 @@ export const StorefrontAccountPage: React.FC = () => {
               : 'text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white'
           }`}
         >
-          Create Account
+          {t('storefront.createAccountTab')}
         </button>
       </div>
 
@@ -416,7 +418,7 @@ export const StorefrontAccountPage: React.FC = () => {
         {activeTab === 'login' ? (
           <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-700 dark:text-zinc-300">Mobile Phone Number</label>
+              <label className="text-xs font-semibold text-slate-700 dark:text-zinc-300">{t('storefront.mobilePhoneLabel')}</label>
               <div className="relative">
                 <Phone className="absolute left-3.5 top-3 h-4 w-4 text-slate-400 dark:text-zinc-500" />
                 <input
@@ -431,7 +433,7 @@ export const StorefrontAccountPage: React.FC = () => {
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-700 dark:text-zinc-300">Password</label>
+              <label className="text-xs font-semibold text-slate-700 dark:text-zinc-300">{t('storefront.passwordFieldLabel')}</label>
               <div className="relative">
                 <Lock className="absolute left-3.5 top-3 h-4 w-4 text-slate-400 dark:text-zinc-500" />
                 <input
@@ -454,7 +456,7 @@ export const StorefrontAccountPage: React.FC = () => {
                 <div className="h-4 w-4 animate-spin rounded-full border-2 border-zinc-950 border-t-transparent" />
               ) : (
                 <>
-                  <span>Sign In to Account</span>
+                  <span>{t('storefront.signInToAccount')}</span>
                   <ArrowRight className="h-4 w-4" />
                 </>
               )}
@@ -463,7 +465,7 @@ export const StorefrontAccountPage: React.FC = () => {
         ) : (
           <form onSubmit={handleRegister} className="space-y-4">
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-700 dark:text-zinc-300">Full Name</label>
+              <label className="text-xs font-semibold text-slate-700 dark:text-zinc-300">{t('storefront.fullName')}</label>
               <div className="relative">
                 <UserIcon className="absolute left-3.5 top-3 h-4 w-4 text-slate-400 dark:text-zinc-500" />
                 <input
@@ -478,7 +480,7 @@ export const StorefrontAccountPage: React.FC = () => {
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-700 dark:text-zinc-300">Mobile Phone Number</label>
+              <label className="text-xs font-semibold text-slate-700 dark:text-zinc-300">{t('storefront.mobilePhoneLabel')}</label>
               <div className="relative">
                 <Phone className="absolute left-3.5 top-3 h-4 w-4 text-slate-400 dark:text-zinc-500" />
                 <input
@@ -493,7 +495,7 @@ export const StorefrontAccountPage: React.FC = () => {
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-700 dark:text-zinc-300">Email Address (Optional)</label>
+              <label className="text-xs font-semibold text-slate-700 dark:text-zinc-300">{t('storefront.emailOptional')}</label>
               <div className="relative">
                 <Mail className="absolute left-3.5 top-3 h-4 w-4 text-slate-400 dark:text-zinc-500" />
                 <input
@@ -507,14 +509,14 @@ export const StorefrontAccountPage: React.FC = () => {
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-700 dark:text-zinc-300">Create Password</label>
+              <label className="text-xs font-semibold text-slate-700 dark:text-zinc-300">{t('storefront.createPasswordLabel')}</label>
               <div className="relative">
                 <Lock className="absolute left-3.5 top-3 h-4 w-4 text-slate-400 dark:text-zinc-500" />
                 <input
                   type="password"
                   required
                   minLength={6}
-                  placeholder="At least 6 characters"
+                  placeholder={t('storefront.passwordMinLength')}
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                   className="w-full rounded-xl border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-950/80 pl-10 pr-3.5 py-2.5 text-xs text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-zinc-500 focus:border-emerald-500 focus:outline-none"
@@ -531,7 +533,7 @@ export const StorefrontAccountPage: React.FC = () => {
                 <div className="h-4 w-4 animate-spin rounded-full border-2 border-zinc-950 border-t-transparent" />
               ) : (
                 <>
-                  <span>Create My Account</span>
+                  <span>{t('storefront.createMyAccount')}</span>
                   <ArrowRight className="h-4 w-4" />
                 </>
               )}

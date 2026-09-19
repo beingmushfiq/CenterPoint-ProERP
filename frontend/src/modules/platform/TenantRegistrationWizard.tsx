@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { api } from '../../lib/api/client';
 import type { PlatformPlan } from '../../types/api/platform';
 import {
@@ -15,6 +16,7 @@ import { SelectDropdown } from '../../components/ui/Dropdown';
 import { getStorefrontExternalUrl } from '../../lib/storefront/storefrontUrl';
 
 export const TenantRegistrationWizard: React.FC = () => {
+  const { t } = useTranslation(['platform', 'common']);
   const navigate = useNavigate();
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
   const [plans, setPlans] = useState<PlatformPlan[]>([]);
@@ -102,7 +104,7 @@ export const TenantRegistrationWizard: React.FC = () => {
       setProvisionedData(unwrapped);
       setStep(4);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Provisioning failed. Check slug uniqueness and form data.');
+      setError(err instanceof Error ? err.message : t('platform.tenantWizard.errorFallback'));
     } finally {
       setSubmitting(false);
     }
@@ -114,20 +116,20 @@ export const TenantRegistrationWizard: React.FC = () => {
       <div>
         <h1 className="text-2xl font-bold text-default tracking-tight flex items-center gap-2">
           <Sparkles className="w-6 h-6 text-amber-500" />
-          <span>Tenant Provisioning Wizard</span>
+          <span>{t('platform.tenantWizard.title')}</span>
         </h1>
         <p className="text-xs text-muted mt-1 font-mono">
-          Atomically bootstrap isolated tenant infrastructure, root company, main branch, admin role, and initial subscription.
+          {t('platform.tenantWizard.description')}
         </p>
       </div>
 
       {/* Stepper Bar */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 font-mono text-xs">
         {[
-          { num: 1, label: 'Organization Profile', icon: Building2 },
-          { num: 2, label: 'Subscription Tier', icon: CreditCard },
-          { num: 3, label: 'Tenant Administrator', icon: UserCheck },
-          { num: 4, label: 'Provisioning Done', icon: CheckCircle2 },
+          { num: 1, label: t('platform.tenantWizard.steps.step1'), icon: Building2 },
+          { num: 2, label: t('platform.tenantWizard.steps.step2'), icon: CreditCard },
+          { num: 3, label: t('platform.tenantWizard.steps.step3'), icon: UserCheck },
+          { num: 4, label: t('platform.tenantWizard.steps.step4'), icon: CheckCircle2 },
         ].map((s) => {
           const Icon = s.icon;
           const isActive = step === s.num;
@@ -165,7 +167,7 @@ export const TenantRegistrationWizard: React.FC = () => {
       {/* Error Alert */}
       {error && (
         <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-500 text-xs">
-          <strong>Provisioning Error:</strong> {error}
+          <strong>{t('platform.tenantWizard.errorPrefix')}</strong> {error}
         </div>
       )}
 
@@ -173,16 +175,16 @@ export const TenantRegistrationWizard: React.FC = () => {
       <div className="bg-surface border border-default rounded-2xl p-6 sm:p-8 shadow-2xl">
         {step === 1 && (
           <div className="space-y-6">
-            <h2 className="text-lg font-bold text-default">1. Organization Details & Routing</h2>
+            <h2 className="text-lg font-bold text-default">{t('platform.tenantWizard.step1.title')}</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 font-mono text-xs">
               <div className="sm:col-span-2">
                 <label className="block text-default font-semibold mb-1">
-                  Business / Organization Name *
+                  {t('platform.tenantWizard.step1.nameLabel')}
                 </label>
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Apex Industrial Solutions Ltd."
+                  placeholder={t('platform.tenantWizard.step1.namePlaceholder')}
                   value={formData.name}
                   onChange={(e) => handleNameChange(e.target.value)}
                   className="w-full bg-surface-sunken border border-default rounded-xl px-4 py-2.5 text-default focus:outline-hidden focus:border-amber-500"
@@ -191,13 +193,13 @@ export const TenantRegistrationWizard: React.FC = () => {
 
               <div>
                 <label className="block text-default font-semibold mb-1">
-                  Subdomain Identifier (Slug) *
+                  {t('platform.tenantWizard.step1.slugLabel')}
                 </label>
                 <div className="flex items-center">
                   <input
                     type="text"
                     required
-                    placeholder="apex-solutions"
+                    placeholder={t('platform.tenantWizard.step1.slugPlaceholder')}
                     value={formData.slug}
                     onChange={(e) =>
                       setFormData({
@@ -212,17 +214,17 @@ export const TenantRegistrationWizard: React.FC = () => {
                   </span>
                 </div>
                 <p className="text-[10px] text-muted mt-1">
-                  Must be unique and lower-kebab-case.
+                  {t('platform.tenantWizard.step1.slugHelp')}
                 </p>
               </div>
 
               <div>
                 <label className="block text-default font-semibold mb-1">
-                  Custom Domain (Optional)
+                  {t('platform.tenantWizard.step1.customDomainLabel')}
                 </label>
                 <input
                   type="text"
-                  placeholder="portal.apexsolutions.com"
+                  placeholder={t('platform.tenantWizard.step1.customDomainPlaceholder')}
                   value={formData.domain}
                   onChange={(e) => setFormData({ ...formData, domain: e.target.value })}
                   className="w-full bg-surface-sunken border border-default rounded-xl px-4 py-2.5 text-default focus:outline-hidden focus:border-amber-500"
@@ -230,7 +232,7 @@ export const TenantRegistrationWizard: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-default font-semibold mb-1">Default Currency Code</label>
+                <label className="block text-default font-semibold mb-1">{t('platform.tenantWizard.step1.currencyLabel')}</label>
                 <SelectDropdown
                   options={[
                     { value: 'BDT', label: 'BDT (৳ - Bangladeshi Taka)' },
@@ -242,12 +244,12 @@ export const TenantRegistrationWizard: React.FC = () => {
                   onChange={(val) => setFormData({ ...formData, currency_code: val })}
                   size="md"
                   buttonClassName="w-full bg-surface-sunken border-default text-default"
-                  aria-label="Default currency code"
+                  aria-label={t('platform.tenantWizard.step1.currencyLabel')}
                 />
               </div>
 
               <div>
-                <label className="block text-default font-semibold mb-1">Default Timezone</label>
+                <label className="block text-default font-semibold mb-1">{t('platform.tenantWizard.step1.timezoneLabel')}</label>
                 <SelectDropdown
                   options={[
                     { value: 'Asia/Dhaka', label: 'Asia/Dhaka (GMT+6)' },
@@ -259,7 +261,7 @@ export const TenantRegistrationWizard: React.FC = () => {
                   onChange={(val) => setFormData({ ...formData, timezone: val })}
                   size="md"
                   buttonClassName="w-full bg-surface-sunken border-default text-default"
-                  aria-label="Default timezone"
+                  aria-label={t('platform.tenantWizard.step1.timezoneLabel')}
                 />
               </div>
             </div>
@@ -271,7 +273,7 @@ export const TenantRegistrationWizard: React.FC = () => {
                 onClick={() => setStep(2)}
                 className="px-6 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs flex items-center gap-2 transition-all disabled:opacity-50 font-mono cursor-pointer"
               >
-                <span>Continue to Subscription</span>
+                <span>{t('platform.tenantWizard.step1.nextBtn')}</span>
                 <ArrowRight className="w-4 h-4" />
               </button>
             </div>
@@ -280,11 +282,11 @@ export const TenantRegistrationWizard: React.FC = () => {
 
         {step === 2 && (
           <div className="space-y-6">
-            <h2 className="text-lg font-bold text-default">2. Select Subscription Tier & Trial Period</h2>
+            <h2 className="text-lg font-bold text-default">{t('platform.tenantWizard.step2.title')}</h2>
 
             {loadingPlans ? (
               <div className="py-8 text-center text-muted text-xs font-mono">
-                Loading available plan tiers...
+                {t('platform.tenantWizard.step2.loading')}
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -304,14 +306,14 @@ export const TenantRegistrationWizard: React.FC = () => {
                       <div className="flex items-center justify-between mb-2">
                         <span className="font-bold text-default text-base">{p.name}</span>
                         <span className="text-xs font-mono px-2 py-0.5 rounded bg-surface-raised text-amber-500 font-bold border border-default">
-                          BDT {p.price}/{p.billing_period}
+                          {t('platform.tenantWizard.step2.bdt')} {p.price}{t('platform.tenantWizard.step2.perPeriod', { period: p.billing_period })}
                         </span>
                       </div>
                       <p className="text-xs text-muted mb-4">{p.description || 'Full SaaS industrial feature set'}</p>
                       <div className="text-[11px] font-mono space-y-1 text-default">
-                        <div>• Max Users: {p.limits?.max_users ?? 'Unlimited'}</div>
-                        <div>• Max Factories: {p.limits?.max_factories ?? 'Unlimited'}</div>
-                        <div>• Max Warehouses: {p.limits?.max_warehouses ?? 'Unlimited'}</div>
+                        <div>{t('platform.tenantWizard.step2.maxUsers', { count: p.limits?.max_users ?? t('platform.tenantWizard.step2.unlimited') })}</div>
+                        <div>{t('platform.tenantWizard.step2.maxFactories', { count: p.limits?.max_factories ?? t('platform.tenantWizard.step2.unlimited') })}</div>
+                        <div>{t('platform.tenantWizard.step2.maxWarehouses', { count: p.limits?.max_warehouses ?? t('platform.tenantWizard.step2.unlimited') })}</div>
                       </div>
                     </button>
                   );
@@ -321,8 +323,8 @@ export const TenantRegistrationWizard: React.FC = () => {
 
             <div className="p-4 rounded-xl bg-surface-sunken/60 border border-default flex items-center justify-between font-mono text-xs">
               <div>
-                <span className="font-bold text-default block">Start as Free Trial</span>
-                <span className="text-muted text-[11px]">Give this tenant 14 days full access before payment</span>
+                <span className="font-bold text-default block">{t('platform.tenantWizard.step2.freeTrialTitle')}</span>
+                <span className="text-muted text-[11px]">{t('platform.tenantWizard.step2.freeTrialSubtitle')}</span>
               </div>
               <input
                 type="checkbox"
@@ -339,14 +341,14 @@ export const TenantRegistrationWizard: React.FC = () => {
                 className="px-4 py-2.5 rounded-xl bg-surface-raised hover:bg-surface text-default border border-default flex items-center gap-1.5 transition-colors cursor-pointer"
               >
                 <ArrowLeft className="w-4 h-4" />
-                <span>Back</span>
+                <span>{t('platform.tenantWizard.step2.backBtn')}</span>
               </button>
               <button
                 type="button"
                 onClick={() => setStep(3)}
                 className="px-6 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold flex items-center gap-2 transition-all cursor-pointer"
               >
-                <span>Continue to Administrator</span>
+                <span>{t('platform.tenantWizard.step2.nextBtn')}</span>
                 <ArrowRight className="w-4 h-4" />
               </button>
             </div>
@@ -355,18 +357,18 @@ export const TenantRegistrationWizard: React.FC = () => {
 
         {step === 3 && (
           <div className="space-y-6">
-            <h2 className="text-lg font-bold text-default">3. Primary Tenant Owner Account</h2>
+            <h2 className="text-lg font-bold text-default">{t('platform.tenantWizard.step3.title')}</h2>
             <p className="text-xs text-muted font-mono">
-              This account will be created inside the tenant scope with the primary Administrator role and full permissions.
+              {t('platform.tenantWizard.step3.subtitle')}
             </p>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 font-mono text-xs">
               <div>
-                <label className="block text-default font-semibold mb-1">Owner Full Name *</label>
+                <label className="block text-default font-semibold mb-1">{t('platform.tenantWizard.step3.nameLabel')}</label>
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Syed Manzur Elahi"
+                  placeholder={t('platform.tenantWizard.step3.namePlaceholder')}
                   value={formData.owner_name}
                   onChange={(e) => setFormData({ ...formData, owner_name: e.target.value })}
                   className="w-full bg-surface-sunken border border-default rounded-xl px-4 py-2.5 text-default focus:outline-hidden focus:border-amber-500"
@@ -374,11 +376,11 @@ export const TenantRegistrationWizard: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-default font-semibold mb-1">Owner Work Email *</label>
+                <label className="block text-default font-semibold mb-1">{t('platform.tenantWizard.step3.emailLabel')}</label>
                 <input
                   type="email"
                   required
-                  placeholder="manzur@apexfootwear.com"
+                  placeholder={t('platform.tenantWizard.step3.emailPlaceholder')}
                   value={formData.owner_email}
                   onChange={(e) => setFormData({ ...formData, owner_email: e.target.value })}
                   className="w-full bg-surface-sunken border border-default rounded-xl px-4 py-2.5 text-default focus:outline-hidden focus:border-amber-500"
@@ -386,7 +388,7 @@ export const TenantRegistrationWizard: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-default font-semibold mb-1">Temporary Initial Password *</label>
+                <label className="block text-default font-semibold mb-1">{t('platform.tenantWizard.step3.passwordLabel')}</label>
                 <input
                   type="password"
                   required
@@ -398,10 +400,10 @@ export const TenantRegistrationWizard: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-default font-semibold mb-1">Contact Phone (Optional)</label>
+                <label className="block text-default font-semibold mb-1">{t('platform.tenantWizard.step3.phoneLabel')}</label>
                 <input
                   type="tel"
-                  placeholder="+880 1711 000000"
+                  placeholder={t('platform.tenantWizard.step3.phonePlaceholder')}
                   value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                   className="w-full bg-surface-sunken border border-default rounded-xl px-4 py-2.5 text-default focus:outline-hidden focus:border-amber-500"
@@ -416,7 +418,7 @@ export const TenantRegistrationWizard: React.FC = () => {
                 className="px-4 py-2.5 rounded-xl bg-surface-raised hover:bg-surface text-default border border-default flex items-center gap-1.5 transition-colors cursor-pointer"
               >
                 <ArrowLeft className="w-4 h-4" />
-                <span>Back</span>
+                <span>{t('platform.tenantWizard.step3.backBtn')}</span>
               </button>
               <button
                 type="button"
@@ -429,7 +431,7 @@ export const TenantRegistrationWizard: React.FC = () => {
                 ) : (
                   <>
                     <Sparkles className="w-4 h-4" />
-                    <span>Provision Tenant Workspace</span>
+                    <span>{t('platform.tenantWizard.step3.provisionBtn')}</span>
                   </>
                 )}
               </button>
@@ -444,23 +446,23 @@ export const TenantRegistrationWizard: React.FC = () => {
             </div>
 
             <h2 className="text-2xl font-bold text-default">
-              Tenant Successfully Provisioned!
+              {t('platform.tenantWizard.step4.title')}
             </h2>
             <p className="text-xs font-mono text-muted max-w-md mx-auto">
-              Isolated workspace created with all transactional defaults, sequences, reason codes, and tenant owner role.
+              {t('platform.tenantWizard.step4.subtitle')}
             </p>
 
             <div className="p-6 rounded-2xl bg-surface-sunken border border-default text-left font-mono text-xs space-y-3 max-w-lg mx-auto">
               <div className="flex justify-between border-b border-default pb-2">
-                <span className="text-muted">Tenant Name:</span>
+                <span className="text-muted">{t('platform.tenantWizard.step4.tenantName')}</span>
                 <span className="text-default font-bold">{provisionedData?.tenant?.name || 'Provisioned Tenant'}</span>
               </div>
               <div className="flex justify-between border-b border-default pb-2">
-                <span className="text-muted">Subdomain:</span>
+                <span className="text-muted">{t('platform.tenantWizard.step4.subdomain')}</span>
                 <span className="text-amber-500">{provisionedData?.tenant?.slug || 'workspace'}.devcenterpoint.com</span>
               </div>
               <div className="flex justify-between border-b border-default pb-2">
-                <span className="text-muted">Storefront URL:</span>
+                <span className="text-muted">{t('platform.tenantWizard.step4.storefrontUrl')}</span>
                 <a
                   href={getStorefrontExternalUrl(provisionedData?.tenant?.slug || '')}
                   target="_blank"
@@ -471,15 +473,15 @@ export const TenantRegistrationWizard: React.FC = () => {
                 </a>
               </div>
               <div className="flex justify-between border-b border-default pb-2">
-                <span className="text-muted">Storefront Pages:</span>
-                <span className="text-emerald-500 font-medium">9 CMS Pages Provisioned (Live)</span>
+                <span className="text-muted">{t('platform.tenantWizard.step4.storefrontPages')}</span>
+                <span className="text-emerald-500 font-medium">{t('platform.tenantWizard.step4.storefrontPagesCount')}</span>
               </div>
               <div className="flex justify-between border-b border-default pb-2">
-                <span className="text-muted">Warehouses:</span>
-                <span className="text-default">Central (WH-MAIN), FG (WH-FG), QC (WH-QC)</span>
+                <span className="text-muted">{t('platform.tenantWizard.step4.warehouses')}</span>
+                <span className="text-default">{t('platform.tenantWizard.step4.warehousesList')}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted">Tenant ID:</span>
+                <span className="text-muted">{t('platform.tenantWizard.step4.tenantId')}</span>
                 <span className="text-default">#{provisionedData?.tenant?.id ?? '—'}</span>
               </div>
             </div>
@@ -491,13 +493,13 @@ export const TenantRegistrationWizard: React.FC = () => {
                 rel="noreferrer"
                 className="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold transition-colors shadow-lg shadow-emerald-600/20"
               >
-                Visit Storefront
+                {t('platform.tenantWizard.step4.visitStorefront')}
               </a>
               <button
                 onClick={() => navigate('/platform/tenants')}
                 className="px-6 py-2.5 rounded-xl bg-surface-raised hover:bg-surface text-default border border-default transition-colors cursor-pointer"
               >
-                Go to Tenant Directory
+                {t('platform.tenantWizard.step4.tenantDirectory')}
               </button>
               <button
                 onClick={() => {
@@ -520,7 +522,7 @@ export const TenantRegistrationWizard: React.FC = () => {
                 }}
                 className="px-6 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold transition-all cursor-pointer"
               >
-                Provision Another Tenant
+                {t('platform.tenantWizard.step4.provisionAnother')}
               </button>
             </div>
           </div>

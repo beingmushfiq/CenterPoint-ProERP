@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   FileSpreadsheet,
   PackageCheck,
@@ -53,88 +54,8 @@ interface CategoryConfig {
   defaultTab: PurchasingTab;
 }
 
-const CATEGORIES: CategoryConfig[] = [
-  {
-    id: 'sourcing',
-    label: 'Requests & Purchase Orders',
-    shortcut: '1',
-    icon: ShoppingCart,
-    description: 'Internal supply requests, vendor quotes and official purchase order commitments',
-    defaultTab: 'orders',
-  },
-  {
-    id: 'fulfillment',
-    label: 'Receiving & Supplier Bills',
-    shortcut: '2',
-    icon: PackageCheck,
-    description: 'Warehouse delivery receipts, quality intake checks and supplier invoices',
-    defaultTab: 'receipts',
-  },
-  {
-    id: 'returns',
-    label: 'Returns & Supplier Credits',
-    shortcut: '3',
-    icon: Undo2,
-    description: 'Defective material returns, debit note records and vendor credit refunds',
-    defaultTab: 'returns',
-  },
-];
-
-const tabs: TabConfig[] = [
-  {
-    id: 'requisitions',
-    category: 'sourcing',
-    label: 'Purchase Requests',
-    shortLabel: 'Requests',
-    step: 1,
-    icon: FileSpreadsheet,
-    description: 'Internal department supply requests with management approval workflows',
-    highlights: ['Department Requests', 'Budget Check', 'Approval Sign-off'],
-  },
-  {
-    id: 'orders',
-    category: 'sourcing',
-    label: 'Purchase Orders',
-    shortLabel: 'Orders',
-    step: 2,
-    icon: ShoppingCart,
-    description: 'Official supplier purchase contracts, agreed prices and expected delivery dates',
-    highlights: ['Supplier Contracts', 'Agreed Pricing', 'Printable PO Slips'],
-  },
-  {
-    id: 'receipts',
-    category: 'fulfillment',
-    label: 'Received Goods & Receipts (GRN)',
-    shortLabel: 'Received Goods',
-    step: 3,
-    icon: PackageCheck,
-    description: 'Warehouse gate receiving, item count checks, batch tags and stock addition',
-    highlights: ['Gate Inwarding', 'Quantity Verification', 'Instant Stock Addition'],
-  },
-  {
-    id: 'bills',
-    category: 'fulfillment',
-    label: 'Supplier Bills & Invoices',
-    shortLabel: 'Supplier Bills',
-    step: 4,
-    icon: Receipt,
-    description: 'Supplier invoices, due date tracking, tax validation and payment records',
-    highlights: ['Due Date Tracking', 'Tax Validation', 'Payment Settlement'],
-  },
-  {
-    id: 'returns',
-    category: 'returns',
-    label: 'Damaged Returns to Supplier',
-    shortLabel: 'Returns',
-    step: 5,
-    badge: 'Debit Notes',
-    icon: Undo2,
-    description: 'Return damaged or non-conforming items to supplier with debit note generation',
-    highlights: ['Supplier Debit Notes', 'Damaged Item Return', 'Stock Balance Update'],
-  },
-];
-
 export default function PurchasingWorkspace() {
+  const { t } = useTranslation(['purchasing', 'common']);
   const [activeTab, setActiveTab] = useWorkspaceTab<PurchasingTab>('requisitions', VALID_TABS);
   const [isGuideOpen, setIsGuideOpen] = useState(false);
   const [quickJumpOpen, setQuickJumpOpen] = useState(false);
@@ -146,6 +67,87 @@ export default function PurchasingWorkspace() {
   const [showFastGrnModal, setShowFastGrnModal] = useState(false);
   const [showFastBillModal, setShowFastBillModal] = useState(false);
   const [selectedPoForAction, setSelectedPoForAction] = useState<PurchaseOrder | null>(null);
+
+  const categories: CategoryConfig[] = useMemo(() => [
+    {
+      id: 'sourcing',
+      label: t('purchasing.catSourcingLabel'),
+      shortcut: '1',
+      icon: ShoppingCart,
+      description: t('purchasing.catSourcingDesc'),
+      defaultTab: 'orders',
+    },
+    {
+      id: 'fulfillment',
+      label: t('purchasing.catFulfillmentLabel'),
+      shortcut: '2',
+      icon: PackageCheck,
+      description: t('purchasing.catFulfillmentDesc'),
+      defaultTab: 'receipts',
+    },
+    {
+      id: 'returns',
+      label: t('purchasing.catReturnsLabel'),
+      shortcut: '3',
+      icon: Undo2,
+      description: t('purchasing.catReturnsDesc'),
+      defaultTab: 'returns',
+    },
+  ], [t]);
+
+  const tabs: TabConfig[] = useMemo(() => [
+    {
+      id: 'requisitions',
+      category: 'sourcing',
+      label: t('purchasing.tabRequisitionsLabel'),
+      shortLabel: t('purchasing.tabRequisitionsShort'),
+      step: 1,
+      icon: FileSpreadsheet,
+      description: t('purchasing.tabRequisitionsDesc'),
+      highlights: ['Department Requests', 'Budget Check', 'Approval Sign-off'],
+    },
+    {
+      id: 'orders',
+      category: 'sourcing',
+      label: t('purchasing.tabOrdersLabel'),
+      shortLabel: t('purchasing.tabOrdersShort'),
+      step: 2,
+      icon: ShoppingCart,
+      description: t('purchasing.tabOrdersDesc'),
+      highlights: ['Supplier Contracts', 'Agreed Pricing', 'Printable PO Slips'],
+    },
+    {
+      id: 'receipts',
+      category: 'fulfillment',
+      label: t('purchasing.tabReceiptsLabel'),
+      shortLabel: t('purchasing.tabReceiptsShort'),
+      step: 3,
+      icon: PackageCheck,
+      description: t('purchasing.tabReceiptsDesc'),
+      highlights: ['Gate Inwarding', 'Quantity Verification', 'Instant Stock Addition'],
+    },
+    {
+      id: 'bills',
+      category: 'fulfillment',
+      label: t('purchasing.tabBillsLabel'),
+      shortLabel: t('purchasing.tabBillsShort'),
+      step: 4,
+      icon: Receipt,
+      description: t('purchasing.tabBillsDesc'),
+      highlights: ['Due Date Tracking', 'Tax Validation', 'Payment Settlement'],
+    },
+    {
+      id: 'returns',
+      category: 'returns',
+      label: t('purchasing.tabReturnsLabel'),
+      shortLabel: t('purchasing.tabReturnsShort'),
+      step: 5,
+      badge: t('purchasing.tabReturnsBadge'),
+      icon: Undo2,
+      description: t('purchasing.tabReturnsDesc'),
+      highlights: ['Supplier Debit Notes', 'Damaged Item Return', 'Stock Balance Update'],
+    },
+  ], [t]);
 
   const handleReceivePo = (order: PurchaseOrder) => {
     setSelectedPoForAction(order);
@@ -222,11 +224,11 @@ export default function PurchasingWorkspace() {
         <div>
           <div className="flex items-center gap-2 mb-1.5 flex-wrap">
             <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-primary bg-primary-subtle px-2.5 py-0.5 rounded-full border border-primary/20">
-              Procurement & Vendor Operations
+              {t('purchasing.headerBadge')}
             </span>
             <span className="text-muted/50 text-xs">/</span>
             <span className="text-[11px] font-semibold text-default">
-              Stage {currentTab.step} of 5: {currentTab.label}
+              {t('purchasing.stageOfFive', { step: currentTab.step, label: currentTab.label })}
             </span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-default flex items-center gap-3">
@@ -251,7 +253,7 @@ export default function PurchasingWorkspace() {
             title="Open Procurement Capabilities and P2P Workflow Guide"
           >
             <Compass className="size-3.5 text-primary" />
-            <span>Explore Capabilities</span>
+            <span>{t('purchasing.exploreCapabilities')}</span>
           </button>
 
           {/* Quick Jump Dropdown */}
@@ -269,7 +271,7 @@ export default function PurchasingWorkspace() {
               title="Jump directly to any of the 5 purchasing views"
             >
               <SlidersHorizontal className="size-3.5 text-primary" />
-              <span>All 5 Views</span>
+              <span>{t('purchasing.allViews')}</span>
             </button>
 
             {quickJumpOpen && (
@@ -280,7 +282,7 @@ export default function PurchasingWorkspace() {
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Search purchasing views..."
+                    placeholder={t('purchasing.searchViews')}
                     autoFocus
                     className="w-full pl-8 pr-7 py-1.5 text-xs bg-surface-sunken rounded-lg border border-default focus:border-primary focus:outline-none text-default"
                   />
@@ -328,7 +330,7 @@ export default function PurchasingWorkspace() {
                                 : 'bg-surface-sunken text-muted'
                             }`}
                           >
-                            Step {tab.step}
+                            {t('purchasing.stepLabel', { step: tab.step })}
                           </span>
                         )}
                         {tab.badge && (
@@ -348,7 +350,7 @@ export default function PurchasingWorkspace() {
 
                   {filteredTabs.length === 0 && (
                     <div className="py-6 text-center text-xs text-muted">
-                      No purchasing views found matching &quot;{searchQuery}&quot;
+                      {t('purchasing.noViewsFound', { query: searchQuery })}
                     </div>
                   )}
                 </div>
@@ -366,7 +368,7 @@ export default function PurchasingWorkspace() {
           className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold bg-primary hover:bg-primary/90 text-primary-fg shadow-xs transition cursor-pointer"
         >
           <ShoppingCart className="size-4" />
-          <span>🛒 Order Materials</span>
+          <span>{t('purchasing.orderMaterials')}</span>
         </button>
         <button
           type="button"
@@ -377,7 +379,7 @@ export default function PurchasingWorkspace() {
           className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs transition cursor-pointer"
         >
           <PackageCheck className="size-4" />
-          <span>📦 Inward Delivery (GRN)</span>
+          <span>{t('purchasing.inwardDelivery')}</span>
         </button>
         <button
           type="button"
@@ -388,7 +390,7 @@ export default function PurchasingWorkspace() {
           className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs transition cursor-pointer"
         >
           <Receipt className="size-4" />
-          <span>🧾 Enter Supplier Bill</span>
+          <span>{t('purchasing.enterSupplierBill')}</span>
         </button>
         <button
           type="button"
@@ -396,7 +398,7 @@ export default function PurchasingWorkspace() {
           className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold bg-surface-sunken hover:bg-surface border border-default text-default transition cursor-pointer"
         >
           <Undo2 className="size-4 text-amber-500" />
-          <span>↩️ Return Defective Items</span>
+          <span>{t('purchasing.returnDefective')}</span>
         </button>
       </div>
 
@@ -408,14 +410,14 @@ export default function PurchasingWorkspace() {
               5
             </div>
             <div>
-              <span className="text-xs font-bold text-default">Procure-to-Pay Pipeline</span>
+              <span className="text-xs font-bold text-default">{t('purchasing.p2pPipelineTitle')}</span>
               <span className="text-[11px] text-muted ml-2 hidden sm:inline">
-                Sequential operational cycle from internal requisition to vendor debit note
+                {t('purchasing.p2pPipelineDesc')}
               </span>
             </div>
           </div>
           <span className="text-[11px] font-mono font-medium text-muted">
-            Stage {currentTab.step} of 5 • Press 1-5 to switch
+            {t('purchasing.pipelineStageSwitch', { step: currentTab.step })}
           </span>
         </div>
 
@@ -463,7 +465,7 @@ export default function PurchasingWorkspace() {
         aria-label="Procurement Operational Domains"
         className="grid grid-cols-1 lg:grid-cols-3 gap-3"
       >
-        {CATEGORIES.map((cat) => {
+        {categories.map((cat) => {
           const isCatActive = activeCategory === cat.id;
           const Icon = cat.icon;
           const childTabs = tabs.filter((t) => t.category === cat.id);
@@ -525,7 +527,7 @@ export default function PurchasingWorkspace() {
                           : 'bg-surface-sunken text-muted border-default'
                       )}
                     >
-                      {childTabs.length} {childTabs.length === 1 ? 'view' : 'views'}
+                      {childTabs.length === 1 ? t('purchasing.viewCount') : t('purchasing.viewsCount', { count: childTabs.length })}
                     </span>
                   </div>
 
@@ -558,7 +560,7 @@ export default function PurchasingWorkspace() {
                     >
                       {subTab.step && (
                         <span className={cn('text-[9px] font-mono font-bold', isCurrent ? 'text-primary-fg' : 'text-primary')}>
-                          Stage {subTab.step}
+                          {t('purchasing.stageLabel', { step: subTab.step })}
                         </span>
                       )}
                       <SubIcon className={cn('size-3', isCurrent ? 'text-primary-fg' : 'text-muted')} />
@@ -583,10 +585,10 @@ export default function PurchasingWorkspace() {
         <div className="flex items-center justify-between px-2 pb-1.5 mb-1 text-[11px] font-semibold text-muted border-b border-default/50">
           <div className="flex items-center gap-2">
             <Zap className="size-3.5 text-primary" />
-            <span>Procure-to-Pay (P2P) Sequential Ribbon</span>
+            <span>{t('purchasing.p2pSequentialRibbon')}</span>
           </div>
           <span className="text-[10px] font-mono text-muted/70">
-            Active: <strong className="text-default">{currentTab?.label}</strong>
+            {t('purchasing.activeRibbonLabel')} <strong className="text-default">{currentTab?.label}</strong>
           </span>
         </div>
 
@@ -598,7 +600,7 @@ export default function PurchasingWorkspace() {
           {/* Cluster 1: Upstream Sourcing */}
           <div className="flex items-center gap-1.5 bg-surface/60 p-1 rounded-xl border border-default/40">
             <span className="text-[10px] font-mono uppercase font-bold text-muted px-2 py-0.5 select-none">
-              Sourcing:
+              {t('purchasing.clusterSourcing')}
             </span>
             {tabs.filter((t) => t.category === 'sourcing').map((tab) => {
               const Icon = tab.icon;
@@ -634,7 +636,7 @@ export default function PurchasingWorkspace() {
           {/* Cluster 2: Inbound Gate & AP Settlement */}
           <div className="flex items-center gap-1.5 bg-surface/60 p-1 rounded-xl border border-default/40">
             <span className="text-[10px] font-mono uppercase font-bold text-muted px-2 py-0.5 select-none">
-              Settlement:
+              {t('purchasing.clusterSettlement')}
             </span>
             {tabs.filter((t) => t.category === 'fulfillment').map((tab) => {
               const Icon = tab.icon;
@@ -670,7 +672,7 @@ export default function PurchasingWorkspace() {
           {/* Cluster 3: Reversals & Debit Notes */}
           <div className="flex items-center gap-1.5 bg-surface/60 p-1 rounded-xl border border-default/40">
             <span className="text-[10px] font-mono uppercase font-bold text-muted px-2 py-0.5 select-none">
-              Claims:
+              {t('purchasing.clusterClaims')}
             </span>
             {tabs.filter((t) => t.category === 'returns').map((tab) => {
               const Icon = tab.icon;
@@ -707,12 +709,12 @@ export default function PurchasingWorkspace() {
       <Modal
         open={isGuideOpen}
         onClose={() => setIsGuideOpen(false)}
-        title="Procure-to-Pay (P2P) Lifecycle Guide"
+        title={t('purchasing.guideModalTitle')}
         size="xl"
       >
         <div className="space-y-5 p-1 text-default">
           <p className="text-xs text-muted leading-relaxed">
-            The Procurement Hub manages the entire vendor commitment and inventory replenishment pipeline: from departmental requisition requests to purchase order contracts, warehouse gate inspections (GRN), 3-way accounts payable matching, and vendor return debit notes.
+            {t('purchasing.guideModalIntro')}
           </p>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 max-h-96 overflow-y-auto pr-1">
@@ -736,12 +738,12 @@ export default function PurchasingWorkspace() {
                           <Icon className="size-4" />
                         </div>
                         <h4 className="text-xs font-bold text-default">
-                          {tab.step ? `Step ${tab.step}: ${tab.label}` : tab.label}
+                          {tab.step ? `${t('purchasing.stepLabel', { step: tab.step })}: ${tab.label}` : tab.label}
                         </h4>
                       </div>
                       {isCurrent && (
                         <span className="text-[10px] font-mono font-bold text-primary bg-primary-subtle px-2 py-0.5 rounded-full border border-primary/20">
-                          Current Tab
+                          {t('purchasing.currentTabBadge')}
                         </span>
                       )}
                     </div>
@@ -769,7 +771,7 @@ export default function PurchasingWorkspace() {
                       setIsGuideOpen(false);
                     }}
                   >
-                    <span>{isCurrent ? 'Viewing Now' : `Open ${tab.label}`}</span>
+                    <span>{isCurrent ? t('purchasing.viewingNow') : t('purchasing.openTab', { label: tab.label })}</span>
                     <ArrowRight className="size-3.5" />
                   </Button>
                 </div>
@@ -780,12 +782,12 @@ export default function PurchasingWorkspace() {
           <div className="rounded-2xl border border-default bg-surface-sunken p-3.5 space-y-1.5 text-xs">
             <h5 className="font-bold text-default flex items-center gap-1.5">
               <Zap className="size-3.5 text-primary" />
-              Keyboard Shortcuts & Sequential Flow
+              {t('purchasing.guideShortcutsTitle')}
             </h5>
             <ul className="text-[11px] text-muted space-y-1 list-disc list-inside">
-              <li>Press <kbd className="px-1.5 py-0.5 rounded bg-surface border border-default font-mono font-bold text-default">1</kbd> to jump to Upstream Sourcing (Requisitions & Purchase Orders)</li>
-              <li>Press <kbd className="px-1.5 py-0.5 rounded bg-surface border border-default font-mono font-bold text-default">2</kbd> to jump to Inbound Gate & Settlement (Goods Receipts & Bills)</li>
-              <li>Press <kbd className="px-1.5 py-0.5 rounded bg-surface border border-default font-mono font-bold text-default">3</kbd> to jump to Quality Reversals (Purchase Returns & Debit Notes)</li>
+              <li>{t('purchasing.shortcut1')}</li>
+              <li>{t('purchasing.shortcut2')}</li>
+              <li>{t('purchasing.shortcut3')}</li>
             </ul>
           </div>
         </div>

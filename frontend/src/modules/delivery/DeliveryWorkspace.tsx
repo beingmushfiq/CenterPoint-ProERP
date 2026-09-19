@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import type {
   CourierProvider,
   CourierShipment,
@@ -19,6 +20,7 @@ import { extractList } from '../../lib/api/apiData';
 type DeliveryTab = 'shipments' | 'run_sheets' | 'providers' | 'cod_reconciliation';
 
 export const DeliveryWorkspace: React.FC = () => {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useWorkspaceTab<DeliveryTab>(
     'shipments',
     ['shipments', 'run_sheets', 'providers', 'cod_reconciliation'] as const
@@ -508,44 +510,47 @@ export const DeliveryWorkspace: React.FC = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [setActiveTab]);
 
-  const stages = [
-    {
-      id: 'shipments' as const,
-      step: 1,
-      label: '3PL Shipments & Tracking',
-      shortLabel: 'Shipments',
-      icon: Truck,
-      count: shipments.length,
-      description: 'Book consignments, sync statuses & print labels',
-    },
-    {
-      id: 'run_sheets' as const,
-      step: 2,
-      label: 'Rider Run Sheets',
-      shortLabel: 'Run Sheets',
-      icon: Bike,
-      count: runSheets.length,
-      description: 'Fleet assignments, stops & challans',
-    },
-    {
-      id: 'providers' as const,
-      step: 3,
-      label: 'Courier Partners',
-      shortLabel: 'Couriers',
-      icon: Building2,
-      count: providers.length,
-      description: 'Configure Pathao, Steadfast, REDX APIs',
-    },
-    {
-      id: 'cod_reconciliation' as const,
-      step: 4,
-      label: 'COD Reconciliation',
-      shortLabel: 'COD Rec',
-      icon: Banknote,
-      count: reconciliations.length,
-      description: 'Audit cash collected vs expected amounts',
-    },
-  ];
+  const stages = useMemo(
+    () => [
+      {
+        id: 'shipments' as const,
+        step: 1,
+        label: t('logistics.stages.shipments.label'),
+        shortLabel: t('logistics.stages.shipments.shortLabel'),
+        icon: Truck,
+        count: shipments.length,
+        description: t('logistics.stages.shipments.description'),
+      },
+      {
+        id: 'run_sheets' as const,
+        step: 2,
+        label: t('logistics.stages.run_sheets.label'),
+        shortLabel: t('logistics.stages.run_sheets.shortLabel'),
+        icon: Bike,
+        count: runSheets.length,
+        description: t('logistics.stages.run_sheets.description'),
+      },
+      {
+        id: 'providers' as const,
+        step: 3,
+        label: t('logistics.stages.providers.label'),
+        shortLabel: t('logistics.stages.providers.shortLabel'),
+        icon: Building2,
+        count: providers.length,
+        description: t('logistics.stages.providers.description'),
+      },
+      {
+        id: 'cod_reconciliation' as const,
+        step: 4,
+        label: t('logistics.stages.cod_reconciliation.label'),
+        shortLabel: t('logistics.stages.cod_reconciliation.shortLabel'),
+        icon: Banknote,
+        count: reconciliations.length,
+        description: t('logistics.stages.cod_reconciliation.description'),
+      },
+    ],
+    [t, shipments.length, runSheets.length, providers.length, reconciliations.length]
+  );
 
   const currentStage = (stages.find((s) => s.id === activeTab) || stages[0])!;
 
@@ -557,33 +562,33 @@ export const DeliveryWorkspace: React.FC = () => {
           <div className="flex items-center gap-2 mb-1.5 flex-wrap">
             <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-primary bg-primary-subtle px-2.5 py-0.5 rounded-full border border-primary/20 flex items-center gap-1">
               <Truck className="size-3 text-primary" />
-              Logistics & Fleet Dispatch
+              {t('logistics.fleetTag')}
             </span>
             <span className="text-muted text-xs">•</span>
             <span className="text-xs font-semibold text-primary">
-              Stage {currentStage.step} of 4: {currentStage.label}
+              {t('logistics.stageCounter', { step: currentStage.step, total: 4, label: currentStage.label })}
             </span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-default">
-            Delivery, Couriers & Fleet Dispatch
+            {t('logistics.title')}
           </h1>
           <p className="mt-1 text-xs text-muted max-w-2xl leading-relaxed">
-            3PL courier API integrations, rider run sheets, and cash-on-delivery reconciliation.
+            {t('logistics.subtitle')}
           </p>
         </div>
 
         <div className="flex items-center gap-3">
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
             <span className="size-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400 animate-pulse" />
-            Steadfast · Pathao · REDX
+            {t('logistics.courierList')}
           </span>
           <button
             type="button"
-            onClick={() => alert('Synchronizing shipment statuses with Pathao & Steadfast APIs... All tracking records updated.')}
+            onClick={() => alert(t('logistics.bulkSyncSuccess'))}
             className="px-3.5 py-2 rounded-xl bg-primary hover:bg-primary/90 text-primary-fg text-xs font-semibold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
           >
             <RefreshCw className="size-3.5" />
-            Bulk Courier Sync
+            {t('logistics.bulkSync')}
           </button>
         </div>
       </div>
