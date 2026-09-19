@@ -15,7 +15,12 @@ const path = require('path');
 
 const ROOT_DIR = path.resolve(__dirname, '..');
 const DIST_DIR = path.join(ROOT_DIR, 'frontend', 'dist');
-const TARGET_DIR = path.join(ROOT_DIR, 'public_html');
+
+// Determine target directory (allows override for direct server targets like /home.devcente/projects/proerp/public)
+const targetArg = process.argv.find(arg => arg.startsWith('--target='))?.split('=')[1];
+const TARGET_DIR = targetArg 
+  ? path.resolve(targetArg)
+  : (process.env.PUBLIC_TARGET || process.env.PUBLIC_HTML_DIR ? path.resolve(process.env.PUBLIC_TARGET || process.env.PUBLIC_HTML_DIR) : path.join(ROOT_DIR, 'public_html'));
 
 // Server files that must NEVER be overwritten or deleted from public_html
 const PRESERVED_FILES = new Set([

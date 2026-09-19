@@ -45,11 +45,17 @@ for arg in "$@"; do
         --seed)
             FORCE_SEED=true
             ;;
+        --backend-target=*)
+            BACKEND_TARGET="${arg#*=}"
+            ;;
+        --public-target=*)
+            PUBLIC_TARGET="${arg#*=}"
+            ;;
         --branch=*)
             GIT_BRANCH="${arg#*=}"
             ;;
         --help|-h)
-            echo "Usage: $0 [--skip-git] [--skip-build] [--seed] [--branch=main]"
+            echo "Usage: $0 [--skip-git] [--skip-build] [--seed] [--branch=main] [--backend-target=DIR] [--public-target=DIR]"
             exit 0
             ;;
         *)
@@ -62,7 +68,15 @@ done
 # 1. Environment & Path Resolution
 # ------------------------------------------------------------------------------
 CPANEL_USER="${CPANEL_USER:-$(whoami)}"
-HOME_DIR="${HOME:-/home/${CPANEL_USER}}"
+
+if [ -d "/home.devcente" ]; then
+    DETECTED_HOME="/home.devcente"
+elif [ -d "/home/devcente" ]; then
+    DETECTED_HOME="/home/devcente"
+else
+    DETECTED_HOME="${HOME:-/home/${CPANEL_USER}}"
+fi
+HOME_DIR="${HOME_DIR:-${DETECTED_HOME}}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Resolve repository directory (either parent of scripts/ or current working dir)
@@ -74,12 +88,12 @@ else
     REPO_DIR="$(pwd)"
 fi
 
-PROERP_ROOT="${HOME_DIR}/projects/proerp"
-BACKEND_TARGET="${PROERP_ROOT}/backend"
-PUBLIC_TARGET="${PROERP_ROOT}/public"
-SCRIPTS_TARGET="${HOME_DIR}/scripts"
-PORTFOLIO_DIR="${HOME_DIR}/public_html"
-LOG_DIR="${HOME_DIR}/logs"
+PROERP_ROOT="${PROERP_ROOT:-${HOME_DIR}/projects/proerp}"
+BACKEND_TARGET="${BACKEND_TARGET:-${PROERP_ROOT}/backend}"
+PUBLIC_TARGET="${PUBLIC_TARGET:-${PROERP_ROOT}/public}"
+SCRIPTS_TARGET="${SCRIPTS_TARGET:-${HOME_DIR}/scripts}"
+PORTFOLIO_DIR="${PORTFOLIO_DIR:-${HOME_DIR}/public_html}"
+LOG_DIR="${LOG_DIR:-${HOME_DIR}/logs}"
 
 mkdir -p "${LOG_DIR}"
 LOG_FILE="${LOG_DIR}/deploy-$(date '+%Y-%m-%d').log"
