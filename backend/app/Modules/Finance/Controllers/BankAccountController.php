@@ -271,6 +271,8 @@ class BankAccountController extends Controller
                 'errors' => $errors,
             ],
         ]);
+    }
+
     public function show(int $id): JsonResponse
     {
         $account = BankAccount::query()->with('chartOfAccount')->findOrFail($id);
