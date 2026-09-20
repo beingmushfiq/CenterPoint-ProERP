@@ -11,7 +11,7 @@ import {
 import { useAuthStore } from '../../lib/auth/authStore';
 import { useTenantCapabilityStore } from '../../lib/capabilities/tenantCapabilityStore';
 import { buildDynamicNavSections } from '../../lib/capabilities/navRegistry';
-import { useTenantBranding } from '../../lib/theme/useTenantBranding';
+import { useTenantBranding, isStaleEngineName } from '../../lib/theme/useTenantBranding';
 import { getAppVersion } from '../../lib/config/appVersion';
 import { usePwaInstall } from '../../hooks/usePwaInstall';
 import { useTranslation } from 'react-i18next';
@@ -34,7 +34,7 @@ export function Sidebar({ isOpen, onClose, isCollapsed = false, onToggleCollapse
   const navOrder = useTenantCapabilityStore((state) => state.manifest?.nav_order);
   const [searchQuery, setSearchQuery] = useState('');
   const location = useLocation();
-  const { isInstallable, isInstalled, promptInstall, appName } = usePwaInstall();
+  const { isInstallable, isInstalled, promptInstall } = usePwaInstall();
 
   // Collapsed sections accordion memory (persisted in localStorage)
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>(() => {
@@ -157,13 +157,23 @@ export function Sidebar({ isOpen, onClose, isCollapsed = false, onToggleCollapse
   );
 
   const { companyName } = useTenantBranding();
-  const tenantName = tenant?.name;
-  const tenantDisplayName =
-    (companyName && companyName !== 'CenterPoint ProERP' && companyName !== 'Enterprise Cloud ERP')
-      ? companyName
-      : (tenantName && tenantName !== 'CenterPoint ProERP' && tenantName !== 'Enterprise Cloud'
-        ? tenantName
-        : 'SliceMart Industries');
+  const brandingRecord = tenant?.branding as Record<string, unknown> | undefined;
+  const brandingName = typeof brandingRecord?.['name'] === 'string' ? brandingRecord['name'] : undefined;
+  const tenantName = brandingName || tenant?.name;
+  const tenantDisplayName: string = useMemo(() => {
+    if (companyName && !isStaleEngineName(companyName)) {
+      return companyName;
+    }
+    if (tenantName && !isStaleEngineName(tenantName)) {
+      return tenantName;
+    }
+    return 'SliceMart Industries';
+  }, [companyName, tenantName]);
+
+  const erpInstallTitle = useMemo((): string => {
+    const base = tenantDisplayName.replace(/\s+ERP$/i, '').trim();
+    return `${base} ERP`;
+  }, [tenantDisplayName]);
   // Close on Escape key when mobile sidebar is open
   useEffect(() => {
     if (!isOpen) return;
@@ -444,12 +454,12 @@ export function Sidebar({ isOpen, onClose, isCollapsed = false, onToggleCollapse
                 'w-full flex items-center justify-center gap-2 px-2.5 py-1.5 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 border border-primary/25 text-xs font-medium transition cursor-pointer',
                 isCollapsed && 'px-1.5'
               )}
-              title={i18n.language === 'bn' ? `${appName || 'ইআরপি'} অ্যাপ ইনস্টল করুন` : `Install ${appName || 'ERP App'}`}
+              title={i18n.language === 'bn' ? `${erpInstallTitle} অ্যাপ ইনস্টল করুন` : `Install ${erpInstallTitle}`}
             >
               <Download className="size-3.5 shrink-0" />
               {!isCollapsed && (
                 <span className="truncate">
-                  {i18n.language === 'bn' ? `${appName || 'ইআরপি'} ইনস্টল` : `Install ${appName || 'ERP'}`}
+                  {i18n.language === 'bn' ? `${erpInstallTitle} ইনস্টল` : `Install ${erpInstallTitle}`}
                 </span>
               )}
             </button>

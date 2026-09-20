@@ -39,7 +39,7 @@ import { Button } from '../../components/ui/Button';
 import { toast } from 'sonner';
 import { promptPWAInstall, isPWAInstallable } from '../../registerSW';
 import { useAuthStore } from '../../lib/auth/authStore';
-import { useTenantBranding } from '../../lib/theme/useTenantBranding';
+import { useTenantBranding, sanitizeTenantBusinessName } from '../../lib/theme/useTenantBranding';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../lib/api/client';
 import { cn } from '../../lib/utils';
@@ -147,6 +147,14 @@ export const TenantRoleDashboard: React.FC = () => {
   const hasPermission = useAuthStore((state) => state.hasPermission);
   const { companyName, logoUrl } = useTenantBranding();
   const queryClient = useQueryClient();
+
+  const erpInstallName = useMemo(() => {
+    const brandingRecord = tenant?.branding as Record<string, unknown> | undefined;
+    const brandingName = typeof brandingRecord?.['name'] === 'string' ? brandingRecord['name'] : undefined;
+    const raw = companyName || brandingName || tenant?.name || 'SliceMart Industries';
+    const cleanBase = sanitizeTenantBusinessName(raw, 'SliceMart Industries').replace(/\s+ERP$/i, '').trim();
+    return `${cleanBase} ERP`;
+  }, [companyName, tenant]);
   const { t } = useTranslation(['dashboard', 'common', 'navigation']);
 
   const storeSlug = tenant?.subdomain || tenant?.slug || 'store';
@@ -864,7 +872,7 @@ export const TenantRoleDashboard: React.FC = () => {
               </div>
               <div className="min-w-0">
                 <h4 className="font-bold text-xs text-default truncate">
-                  {t('pwa.installTitle', { name: companyName || 'Enterprise Cloud', defaultValue: `Install ${companyName || 'Enterprise Cloud'} ERP` })}
+                  {t('pwa.installTitle', { name: erpInstallName, defaultValue: `Install ${erpInstallName}` })}
                 </h4>
                 <span className="text-[10px] text-muted">{t('pwa.platformPwa', { defaultValue: 'Business Operations Platform PWA' })}</span>
               </div>

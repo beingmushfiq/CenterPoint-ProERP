@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { usePwaInstallStore } from '../store/pwaInstallStore';
 import { useAuthStore } from '../lib/auth/authStore';
+import { sanitizeTenantBusinessName } from '../lib/theme/useTenantBranding';
 
 const ERP_PATHS = [
   '/dashboard',
@@ -146,8 +147,16 @@ function safeGetLocalStorage(key: string): string | null {
   return null;
 }
 
-    // Resolve tenant names & logos
-    const storedCompanyName = safeGetLocalStorage('company_name') || authTenantName || 'Enterprise Operations';
+    // Resolve tenant names & logos cleanly
+    const rawStored = safeGetLocalStorage('company_name');
+    const authTenant = useAuthStore.getState().tenant;
+    const authBranding = authTenant?.branding as Record<string, unknown> | undefined;
+    const authBrandingName = (authBranding?.company_name || authBranding?.company_legal_name) as string | undefined;
+    const rawAuth = authBrandingName || authTenant?.name || authTenantName;
+    const storedCompanyName = sanitizeTenantBusinessName(
+      rawStored,
+      sanitizeTenantBusinessName(rawAuth, 'Enterprise Operations')
+    );
     const cleanCompanyBase = storedCompanyName.replace(/\s+ERP$/i, '').trim();
     const storedLogo = safeGetLocalStorage('brand_logo_url') || '/favicon.svg';
 

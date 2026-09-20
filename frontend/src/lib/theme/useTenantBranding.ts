@@ -9,10 +9,34 @@ export interface TenantBranding {
   loading: boolean;
 }
 
+export const isStaleEngineName = (name: string | null | undefined): boolean => {
+  if (!name) return true;
+  const lower = name.trim().toLowerCase();
+  return (
+    lower === 'centerpoint proerp' ||
+    lower === 'centerpoint pro erp' ||
+    lower === 'centerpoint proerp erp' ||
+    lower === 'devcenterpoint proerp' ||
+    lower === 'devcenterpoint pro erp' ||
+    lower === 'enterprise cloud erp' ||
+    lower === 'enterprise cloud' ||
+    lower === 'operations erp'
+  );
+};
+
+export const sanitizeTenantBusinessName = (name: string | null | undefined, fallback = 'SliceMart Industries'): string => {
+  if (!name) return fallback;
+  const trimmed = name.trim();
+  if (isStaleEngineName(trimmed)) {
+    return fallback;
+  }
+  return trimmed;
+};
+
 const sanitizeName = (name: string | null | undefined): string | null => {
   if (!name) return null;
   const trimmed = name.trim();
-  if (!trimmed || trimmed === 'CenterPoint ProERP' || trimmed === 'Enterprise Cloud ERP') {
+  if (isStaleEngineName(trimmed)) {
     return null;
   }
   return trimmed;
@@ -26,7 +50,12 @@ export function useTenantBranding(): TenantBranding {
 
   const [customCompanyName, setCustomCompanyName] = useState<string | null>(() => {
     try {
-      return sanitizeName(localStorage.getItem('company_name'));
+      const stored = localStorage.getItem('company_name');
+      if (stored && isStaleEngineName(stored)) {
+        localStorage.removeItem('company_name');
+        return null;
+      }
+      return sanitizeName(stored);
     } catch {
       return null;
     }
