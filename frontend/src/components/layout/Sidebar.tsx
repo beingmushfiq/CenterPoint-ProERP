@@ -34,7 +34,7 @@ export function Sidebar({ isOpen, onClose, isCollapsed = false, onToggleCollapse
   const navOrder = useTenantCapabilityStore((state) => state.manifest?.nav_order);
   const [searchQuery, setSearchQuery] = useState('');
   const location = useLocation();
-  const { isInstallable, isInstalled, promptInstall } = usePwaInstall();
+  const { isInstallable, isInstalled, promptInstall, appName } = usePwaInstall();
 
   // Collapsed sections accordion memory (persisted in localStorage)
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>(() => {
@@ -439,10 +439,14 @@ export function Sidebar({ isOpen, onClose, isCollapsed = false, onToggleCollapse
                 'w-full flex items-center justify-center gap-2 px-2.5 py-1.5 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 border border-primary/25 text-xs font-medium transition cursor-pointer',
                 isCollapsed && 'px-1.5'
               )}
-              title={i18n.language === 'bn' ? 'অপারেশনস ইআরপি ডেস্কটপ অ্যাপ ইনস্টল করুন' : 'Install Operations ERP Desktop App'}
+              title={i18n.language === 'bn' ? `${appName || 'ইআরপি'} অ্যাপ ইনস্টল করুন` : `Install ${appName || 'ERP App'}`}
             >
               <Download className="size-3.5 shrink-0" />
-              {!isCollapsed && <span className="truncate">{i18n.language === 'bn' ? 'ইআরপি অ্যাপ ইনস্টল করুন' : 'Install ERP App'}</span>}
+              {!isCollapsed && (
+                <span className="truncate">
+                  {i18n.language === 'bn' ? `${appName || 'ইআরপি'} ইনস্টল` : `Install ${appName || 'ERP'}`}
+                </span>
+              )}
             </button>
           </div>
         )}

@@ -13,13 +13,21 @@ vi.mock('../../lib/api/client', () => ({
   setAccessToken: vi.fn(),
   clearAccessToken: vi.fn(),
   getAccessToken: vi.fn(() => null),
+  onSessionExpired: vi.fn(),
 }));
+
+import { usePwaInstallStore } from '../../store/pwaInstallStore';
 
 describe('LoginPage', () => {
   const storage = new Map<string, string>();
 
   beforeEach(() => {
     storage.clear();
+    usePwaInstallStore.setState({
+      isInstallable: false,
+      isInstalled: false,
+      appName: 'Operations ERP',
+    });
     vi.stubGlobal('localStorage', {
       getItem: (key: string) => storage.get(key) ?? null,
       setItem: (key: string, value: string) => storage.set(key, String(value)),
@@ -39,6 +47,7 @@ describe('LoginPage', () => {
 
   it('renders login form with SliceMart ERP and Business Operations Platform branding', async () => {
     storage.set('company_name', 'SliceMart ERP');
+
     await act(async () => {
       render(
         <MemoryRouter>
@@ -53,7 +62,7 @@ describe('LoginPage', () => {
     expect(screen.getByText(/SliceMart ERP • Business Operations Platform/i)).toBeInTheDocument();
 
     // Inputs are clean and empty by default
-    const emailInput = screen.getByLabelText('Email Address') as HTMLInputElement;
+    const emailInput = screen.getByLabelText(/Email/i) as HTMLInputElement;
     const passwordInput = screen.getByLabelText('Password') as HTMLInputElement;
     expect(emailInput.value).toBe('');
     expect(passwordInput.value).toBe('');
@@ -63,7 +72,13 @@ describe('LoginPage', () => {
     expect(screen.queryByText(/saas/i)).not.toBeInTheDocument();
   });
 
-  it('renders quick role login buttons and auto-fills credentials on click', async () => {
+  it('renders PWA install button when app is installable', async () => {
+    usePwaInstallStore.setState({
+      isInstallable: true,
+      isInstalled: false,
+      appName: 'SliceMart ERP',
+    });
+
     await act(async () => {
       render(
         <MemoryRouter>
@@ -72,54 +87,8 @@ describe('LoginPage', () => {
       );
     });
 
-    const emailInput = screen.getByLabelText('Email Address') as HTMLInputElement;
-    const passwordInput = screen.getByLabelText('Password') as HTMLInputElement;
-
-    // Check all roles are rendered
-    expect(screen.getByText('Quick Role Login')).toBeInTheDocument();
-    const adminBtn = screen.getByRole('button', { name: /admin/i });
-    const prodBtn = screen.getByRole('button', { name: /production/i });
-    const qcBtn = screen.getByRole('button', { name: /qc inspector/i });
-    const storeBtn = screen.getByRole('button', { name: /storekeeper/i });
-    const salesBtn = screen.getByRole('button', { name: /sales officer/i });
-
-    expect(adminBtn).toBeInTheDocument();
-    expect(prodBtn).toBeInTheDocument();
-    expect(qcBtn).toBeInTheDocument();
-    expect(storeBtn).toBeInTheDocument();
-    expect(salesBtn).toBeInTheDocument();
-
-    // Click Admin
-    await act(async () => {
-      fireEvent.click(adminBtn);
-    });
-    expect(emailInput.value).toBe('admin@slicemart.test');
-    expect(passwordInput.value).toBe('Password123!');
-
-    // Click Production
-    await act(async () => {
-      fireEvent.click(prodBtn);
-    });
-    expect(emailInput.value).toBe('production@slicemart.test');
-    expect(passwordInput.value).toBe('Password123!');
-
-    // Click QC Inspector
-    await act(async () => {
-      fireEvent.click(qcBtn);
-    });
-    expect(emailInput.value).toBe('qc@slicemart.test');
-
-    // Click Storekeeper
-    await act(async () => {
-      fireEvent.click(storeBtn);
-    });
-    expect(emailInput.value).toBe('store@slicemart.test');
-
-    // Click Sales Officer
-    await act(async () => {
-      fireEvent.click(salesBtn);
-    });
-    expect(emailInput.value).toBe('sales@slicemart.test');
+    const installBtn = screen.getByRole('button', { name: /install slicemart erp/i });
+    expect(installBtn).toBeInTheDocument();
   });
 
   it('renders configured brand logo when set in settings/localStorage', async () => {

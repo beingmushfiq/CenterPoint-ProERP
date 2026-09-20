@@ -8,8 +8,17 @@ Route::get('/', function () {
     return view('welcome');
 });
 
+Route::get('/manifest-erp.json', [\App\Modules\Platform\Controllers\ErpManifestController::class, 'manifest']);
+Route::get('/manifest-store.json', [\App\Modules\Ecommerce\Controllers\StorefrontManifestController::class, 'manifest']);
+Route::get('/manifest.json', function (\Illuminate\Http\Request $request) {
+    $storefront = \App\Core\Tenancy\TenantResolver::resolveStorefrontFromRequest($request);
+    if ($storefront || $request->has('subdomain') || str_contains($request->path(), 'store/')) {
+        return app(\App\Modules\Ecommerce\Controllers\StorefrontManifestController::class)->manifest($request);
+    }
+    return app(\App\Modules\Platform\Controllers\ErpManifestController::class)->manifest($request);
+});
+
 Route::middleware([\App\Core\Http\Middleware\ResolveStorefrontTenant::class])->group(function (): void {
-    Route::get('/manifest.json', [\App\Modules\Ecommerce\Controllers\StorefrontManifestController::class, 'manifest']);
     Route::get('/sitemap.xml', [\App\Modules\Ecommerce\Controllers\StorefrontSitemapController::class, 'index']);
     Route::get('/sitemap-products.xml', [\App\Modules\Ecommerce\Controllers\StorefrontSitemapController::class, 'products']);
     Route::get('/sitemap-categories.xml', [\App\Modules\Ecommerce\Controllers\StorefrontSitemapController::class, 'categories']);

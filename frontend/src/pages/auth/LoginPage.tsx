@@ -3,13 +3,14 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { AlertCircle, CheckCircle, Eye, EyeOff, Lock, Mail, Moon, Package, Sun, X } from 'lucide-react';
+import { AlertCircle, CheckCircle, Download, Eye, EyeOff, Lock, Mail, Moon, Package, Sun, X } from 'lucide-react';
 import { useAuthStore } from '../../lib/auth/authStore';
 import { isApiError } from '../../lib/api/errors';
 import { api } from '../../lib/api/client';
 import { toggleThemeWithTransition } from '../../lib/theme/themeTransition';
 import { useTenantBranding } from '../../lib/theme/useTenantBranding';
 import { LanguageSwitcher } from '../../components/ui/LanguageSwitcher';
+import { usePwaInstall } from '../../hooks/usePwaInstall';
 
 const loginSchema = z.object({
   email: z.string().min(1, 'Please enter your email, name, or designation'),
@@ -24,6 +25,7 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [failedLogoUrl, setFailedLogoUrl] = useState<string | null>(null);
   const logoRef = useRef<HTMLImageElement>(null);
+  const { isInstallable, isInstalled, promptInstall, appName } = usePwaInstall();
 
   // Dynamic branding from Settings
   const { companyName, logoUrl } = useTenantBranding();
@@ -378,7 +380,19 @@ export default function LoginPage() {
         </form>
 
         {/* Footer */}
-        <div className="border-t border-default pt-4 text-center space-y-1">
+        <div className="border-t border-default pt-4 text-center space-y-2">
+          {isInstallable && !isInstalled && (
+            <div className="flex justify-center pb-1">
+              <button
+                type="button"
+                onClick={() => promptInstall()}
+                className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary/10 text-primary border border-primary/20 text-xs font-medium hover:bg-primary/20 transition cursor-pointer"
+              >
+                <Download className="h-3.5 w-3.5" />
+                <span>Install {appName || `${companyName || 'Enterprise'} ERP`} App</span>
+              </button>
+            </div>
+          )}
           <p className="text-[11px] text-muted">
             {displayName} &bull; Business Operations Platform
           </p>

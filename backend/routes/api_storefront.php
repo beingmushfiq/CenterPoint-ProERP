@@ -20,6 +20,7 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('v1/storefront')->group(function (): void {
     // Catalog & Branding
     Route::get('/manifest.json', [\App\Modules\Ecommerce\Controllers\StorefrontManifestController::class, 'manifest']);
+    Route::get('/storefront-manifest.json', [\App\Modules\Ecommerce\Controllers\StorefrontManifestController::class, 'manifest']);
     Route::get('/config', [StorefrontCatalogController::class, 'config']);
     Route::get('/categories', [StorefrontCatalogController::class, 'categories']);
     Route::get('/products', [StorefrontCatalogController::class, 'products']);

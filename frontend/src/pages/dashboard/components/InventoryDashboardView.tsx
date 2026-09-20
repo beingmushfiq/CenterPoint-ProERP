@@ -94,7 +94,7 @@ export const InventoryDashboardView: React.FC<InventoryDashboardViewProps> = ({
     queryKey: ['inventory', 'movements', 'dashboard'],
     queryFn: async () => {
       try {
-        const res = await api.get<any>('/inventory/movements', {
+        const res = await api.get<StockMovementItem[] | { data: StockMovementItem[] }>('/inventory/movements', {
           params: { per_page: 8 },
         });
         return Array.isArray(res.data) ? res.data : (res.data?.data ?? []);
@@ -109,7 +109,7 @@ export const InventoryDashboardView: React.FC<InventoryDashboardViewProps> = ({
     queryKey: ['inventory', 'counts', 'dashboard'],
     queryFn: async () => {
       try {
-        const res = await api.get<any>('/inventory/counts', {
+        const res = await api.get<StockCountSummary[] | { data: StockCountSummary[] }>('/inventory/counts', {
           params: { per_page: 5 },
         });
         return Array.isArray(res.data) ? res.data : (res.data?.data ?? []);
@@ -124,7 +124,7 @@ export const InventoryDashboardView: React.FC<InventoryDashboardViewProps> = ({
     queryKey: ['inventory', 'adjustments', 'dashboard'],
     queryFn: async () => {
       try {
-        const res = await api.get<any>('/inventory/adjustments', {
+        const res = await api.get<StockAdjustmentSummary[] | { data: StockAdjustmentSummary[] }>('/inventory/adjustments', {
           params: { per_page: 5 },
         });
         return Array.isArray(res.data) ? res.data : (res.data?.data ?? []);

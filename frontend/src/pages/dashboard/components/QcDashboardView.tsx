@@ -31,31 +31,41 @@ interface QcDashboardViewProps {
 }
 
 interface ParameterItem {
-  id?: number | string;
+  id?: number | string | undefined;
   name: string;
   spec: string;
-  category?: string;
+  category?: string | undefined;
   passRate: number;
   samples: number;
+}
+
+interface RawParameterItem {
+  id?: number | string | undefined;
+  name?: string | undefined;
+  standard_specification?: string | undefined;
+  spec?: string | undefined;
+  category?: string | undefined;
+  target_pass_rate?: number | undefined;
+  sample_count?: number | undefined;
 }
 
 interface ReworkOrderSummary {
   id: number | string;
   rework_number: string;
-  product?: { name: string; sku?: string };
+  product?: { name: string; sku?: string | undefined } | undefined;
   quantity: number;
   status: string;
-  created_at?: string;
+  created_at?: string | undefined;
 }
 
 interface WastageRecordSummary {
   id: number | string;
   wastage_number: string;
-  product?: { name: string; sku?: string };
+  product?: { name: string; sku?: string | undefined } | undefined;
   quantity: number;
-  estimated_cost?: number;
-  stage?: string;
-  created_at?: string;
+  estimated_cost?: number | undefined;
+  stage?: string | undefined;
+  created_at?: string | undefined;
 }
 
 export const QcDashboardView: React.FC<QcDashboardViewProps> = ({ qcList, onOpenQC }) => {
@@ -86,16 +96,16 @@ export const QcDashboardView: React.FC<QcDashboardViewProps> = ({ qcList, onOpen
   // Fetch live parameters
   const { data: liveParameters = [] } = useQuery<ParameterItem[]>({
     queryKey: ['qc', 'parameters', 'summary'],
-    queryFn: async () => {
+    queryFn: async (): Promise<ParameterItem[]> => {
       try {
-        const res = await api.get<any>('/qc/parameters');
+        const res = await api.get<RawParameterItem[] | { data: RawParameterItem[] }>('/qc/parameters');
         const items = Array.isArray(res.data) ? res.data : (res.data?.data ?? []);
         if (items.length > 0) {
-          return items.slice(0, 5).map((p: any) => ({
-            id: p.id,
+          return items.slice(0, 5).map((p: RawParameterItem): ParameterItem => ({
+            ...(p.id !== undefined ? { id: p.id } : {}),
             name: p.name || 'QC Test Parameter',
             spec: p.standard_specification || p.spec || 'Standard Tolerance',
-            category: p.category,
+            ...(p.category !== undefined ? { category: p.category } : {}),
             passRate: p.target_pass_rate ?? 98,
             samples: p.sample_count ?? 12,
           }));
@@ -141,9 +151,9 @@ export const QcDashboardView: React.FC<QcDashboardViewProps> = ({ qcList, onOpen
   // Fetch live rework orders
   const { data: reworkOrders = [] } = useQuery<ReworkOrderSummary[]>({
     queryKey: ['qc', 'rework-orders', 'dashboard'],
-    queryFn: async () => {
+    queryFn: async (): Promise<ReworkOrderSummary[]> => {
       try {
-        const res = await api.get<any>('/qc/rework-orders');
+        const res = await api.get<ReworkOrderSummary[] | { data: ReworkOrderSummary[] }>('/qc/rework-orders');
         const items = Array.isArray(res.data) ? res.data : (res.data?.data ?? []);
         return items.slice(0, 5);
       } catch {
@@ -155,9 +165,9 @@ export const QcDashboardView: React.FC<QcDashboardViewProps> = ({ qcList, onOpen
   // Fetch live wastage records
   const { data: wastageRecords = [] } = useQuery<WastageRecordSummary[]>({
     queryKey: ['qc', 'wastage-records', 'dashboard'],
-    queryFn: async () => {
+    queryFn: async (): Promise<WastageRecordSummary[]> => {
       try {
-        const res = await api.get<any>('/qc/wastage-records');
+        const res = await api.get<WastageRecordSummary[] | { data: WastageRecordSummary[] }>('/qc/wastage-records');
         const items = Array.isArray(res.data) ? res.data : (res.data?.data ?? []);
         return items.slice(0, 5);
       } catch {

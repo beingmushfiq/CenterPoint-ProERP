@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MoneyOutModal } from './modals/MoneyOutModal';
 import { MoneyInModal } from './modals/MoneyInModal';
 import { TransferMoneyModal } from './modals/TransferMoneyModal';
@@ -68,7 +68,7 @@ const mockBankAccounts: BankAccount[] = [
 
 describe('Finance Action Modals', () => {
   describe('MoneyOutModal', () => {
-    it('renders and records operational expense with balanced ledger output', () => {
+    it('renders and records operational expense with balanced ledger output', async () => {
       const onSuccess = vi.fn();
       const onClose = vi.fn();
 
@@ -96,7 +96,9 @@ describe('Finance Action Modals', () => {
       const submitBtn = screen.getByRole('button', { name: /Record Money Out/i });
       fireEvent.click(submitBtn);
 
-      expect(onSuccess).toHaveBeenCalledTimes(1);
+      await waitFor(() => {
+        expect(onSuccess).toHaveBeenCalledTimes(1);
+      });
       const payload = onSuccess.mock.calls[0]![0];
       expect(payload.expense).toBeDefined();
       expect(payload.expense.amount).toBe('1500.0000');

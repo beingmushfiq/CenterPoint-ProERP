@@ -131,7 +131,7 @@ export const ExecutiveDashboardView: React.FC<ExecutiveDashboardViewProps> = ({
         <div>
           <div className="flex items-center gap-2">
             <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-default font-sans">
-              {t('controls.operationsOverview')}
+              {t('controls.operationsOverview', { defaultValue: 'Executive Operations Overview' })}
             </h2>
             <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
@@ -169,7 +169,7 @@ export const ExecutiveDashboardView: React.FC<ExecutiveDashboardViewProps> = ({
         <div className="rounded-2xl border border-default bg-surface p-4 shadow-xs flex flex-col justify-between hover:border-primary/40 transition-all">
           <div className="flex items-center justify-between">
             <span className="text-[10px] font-bold text-muted uppercase tracking-wider">
-              {t('kpi.todayRevenue')}
+              {t('kpi.todayRevenue', { defaultValue: "TODAY'S REVENUE" })}
             </span>
             <div className="flex size-7 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
               <TrendingUp className="size-3.5" />

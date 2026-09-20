@@ -162,15 +162,25 @@ export const StorefrontHeader: React.FC<StorefrontHeaderProps> = ({ config, subd
               to={getStorefrontUrl(subdomain)}
               className="group flex items-center gap-1.5 sm:gap-2.5 transition-transform active:scale-98 cursor-pointer min-w-0"
             >
-              <div
-                style={{
-                  backgroundColor: 'var(--store-primary, #10b981)',
-                  color: 'var(--store-primary-fg, #ffffff)',
-                }}
-                className="flex size-8.5 sm:size-10 items-center justify-center rounded-xl shadow-md ring-1 ring-black/5 dark:ring-white/20 transition-all shrink-0 group-hover:scale-105"
-              >
-                <Store className="size-4.5 sm:size-5.5 stroke-[2.2]" />
-              </div>
+              {(theme?.logo_url || localStorage.getItem('brand_logo_url')) ? (
+                <div className="flex size-8.5 sm:size-10 items-center justify-center rounded-xl overflow-hidden bg-white/10 dark:bg-black/20 p-1 ring-1 ring-black/5 dark:ring-white/20 transition-all shrink-0 group-hover:scale-105">
+                  <img
+                    src={theme?.logo_url || localStorage.getItem('brand_logo_url') || ''}
+                    alt={storeName}
+                    className="h-full w-full object-contain"
+                  />
+                </div>
+              ) : (
+                <div
+                  style={{
+                    backgroundColor: 'var(--store-primary, #10b981)',
+                    color: 'var(--store-primary-fg, #ffffff)',
+                  }}
+                  className="flex size-8.5 sm:size-10 items-center justify-center rounded-xl shadow-md ring-1 ring-black/5 dark:ring-white/20 transition-all shrink-0 group-hover:scale-105"
+                >
+                  <Store className="size-4.5 sm:size-5.5 stroke-[2.2]" />
+                </div>
+              )}
               <div className="flex flex-col min-w-0">
                 <div className="flex items-center gap-1.5 min-w-0">
                   <span

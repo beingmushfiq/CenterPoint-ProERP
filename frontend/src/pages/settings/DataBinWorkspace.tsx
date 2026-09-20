@@ -146,6 +146,13 @@ const TYPE_COLORS: Record<string, { bg: string; text: string; border: string }> 
   paper_sizes: { bg: 'bg-stone-500/10 dark:bg-stone-500/20', text: 'text-stone-700 dark:text-stone-300', border: 'border-stone-300 dark:border-stone-700/60' },
 };
 
+export interface StatsPayload {
+  total?: number;
+  counts?: Record<string, number>;
+  domains?: Record<string, number>;
+  types?: BinTypeStat[];
+}
+
 export const DataBinWorkspace: React.FC = () => {
   const [items, setItems] = useState<DataBinItem[]>([]);
   const [types, setTypes] = useState<BinTypeStat[]>([]);
@@ -166,7 +173,7 @@ export const DataBinWorkspace: React.FC = () => {
   const loadBinData = useCallback(async () => {
     try {
       const [statsRes, listRes] = await Promise.all([
-        api.get<{ total: number; types: BinTypeStat[]; domains?: Record<string, number> }>('/bin/stats'),
+        api.get<StatsPayload | { data: StatsPayload }>('/bin/stats'),
         api.get<DataBinItem[]>('/bin', {
           params: {
             domain: selectedDomain !== 'all' ? selectedDomain : undefined,
@@ -177,9 +184,13 @@ export const DataBinWorkspace: React.FC = () => {
         }),
       ]);
 
-      const statsPayload = (statsRes?.data && typeof statsRes.data === 'object' && 'data' in statsRes.data)
-        ? (statsRes.data as any).data
-        : statsRes?.data;
+      const rawStats = statsRes?.data;
+      const statsPayload: StatsPayload | null =
+        rawStats && typeof rawStats === 'object' && 'data' in rawStats && rawStats.data && typeof rawStats.data === 'object'
+          ? (rawStats.data as StatsPayload)
+          : rawStats && typeof rawStats === 'object'
+          ? (rawStats as StatsPayload)
+          : null;
 
       if (statsPayload) {
         setTotalTrashed(statsPayload.total ?? 0);
@@ -203,7 +214,7 @@ export const DataBinWorkspace: React.FC = () => {
     let ignore = false;
 
     Promise.all([
-      api.get<{ total: number; types: BinTypeStat[]; domains?: Record<string, number> }>('/bin/stats'),
+      api.get<StatsPayload | { data: StatsPayload }>('/bin/stats'),
       api.get<DataBinItem[]>('/bin', {
         params: {
           domain: selectedDomain !== 'all' ? selectedDomain : undefined,
@@ -215,9 +226,13 @@ export const DataBinWorkspace: React.FC = () => {
     ])
       .then(([statsRes, listRes]) => {
         if (ignore) return;
-        const statsPayload = (statsRes?.data && typeof statsRes.data === 'object' && 'data' in statsRes.data)
-          ? (statsRes.data as any).data
-          : statsRes?.data;
+        const rawStats = statsRes?.data;
+        const statsPayload: StatsPayload | null =
+          rawStats && typeof rawStats === 'object' && 'data' in rawStats && rawStats.data && typeof rawStats.data === 'object'
+            ? (rawStats.data as StatsPayload)
+            : rawStats && typeof rawStats === 'object'
+            ? (rawStats as StatsPayload)
+            : null;
 
         if (statsPayload) {
           setTotalTrashed(statsPayload.total ?? 0);

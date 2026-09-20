@@ -26,6 +26,9 @@ import {
   Mail,
   CreditCard,
   MessageCircle,
+  Upload,
+  Image as ImageIcon,
+  Sparkles,
 } from 'lucide-react';
 import { api } from '../../lib/api/client';
 import type { StorefrontConfig } from '../../types/api/storefront';
@@ -88,6 +91,8 @@ export const StorefrontSettingsWorkspace: React.FC = () => {
     currency: currencyCode,
     theme_preset: 'editorial' as ThemePresetId,
     card_style: 'editorial' as ProductCardStyle,
+    logo_mode: 'inherit' as 'inherit' | 'custom',
+    logo_url: '',
     primary_color: '#10b981',
     accent_color: '#14b8a6',
     hero_title: '',
@@ -150,6 +155,45 @@ export const StorefrontSettingsWorkspace: React.FC = () => {
     status: 'live' as 'draft' | 'live' | 'maintenance' | 'suspended',
   });
 
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const erpBrandLogo = typeof window !== 'undefined' ? localStorage.getItem('brand_logo_url') : null;
+
+  const handleLogoUpload = async (file: File) => {
+    setUploadingLogo(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('type', 'logo');
+
+      const res = await api.post<{ url: string; path: string }>('settings/upload-asset', formData);
+      if (res?.data?.url) {
+        setForm((prev) => ({
+          ...prev,
+          logo_mode: 'custom',
+          logo_url: res.data.url,
+        }));
+        notify.success('Storefront logo uploaded successfully!');
+      }
+    } catch {
+      // Fallback to FileReader data URL
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const dataUri = e.target?.result as string;
+        if (dataUri) {
+          setForm((prev) => ({
+            ...prev,
+            logo_mode: 'custom',
+            logo_url: dataUri,
+          }));
+        }
+      };
+      reader.readAsDataURL(file);
+      notify.info('Logo loaded locally. Click Save Settings to persist.');
+    } finally {
+      setUploadingLogo(false);
+    }
+  };
+
   const [newPaymentMethod, setNewPaymentMethod] = useState('');
 
   const addPaymentMethod = (method: string) => {
@@ -189,6 +233,8 @@ export const StorefrontSettingsWorkspace: React.FC = () => {
               currency: conf.currency ?? currencyCode,
               theme_preset: ((conf.theme as Record<string, unknown>)?.theme_preset as ThemePresetId) || 'editorial',
               card_style: ((conf.theme as Record<string, unknown>)?.card_style as ProductCardStyle) || 'editorial',
+              logo_mode: ((conf.theme as Record<string, unknown>)?.logo_mode as 'inherit' | 'custom') || 'inherit',
+              logo_url: ((conf.theme as Record<string, unknown>)?.logo_url as string) || '',
               primary_color: conf.theme?.primary_color ?? '#10b981',
               accent_color: conf.theme?.accent_color ?? '#14b8a6',
               hero_title: conf.theme?.hero_title ?? 'Designed for Excellence, Crafted for Longevity',
@@ -300,6 +346,8 @@ export const StorefrontSettingsWorkspace: React.FC = () => {
     broadcastThemeDraft(form.subdomain, {
       primary_color: form.primary_color,
       accent_color: form.accent_color,
+      logo_mode: form.logo_mode,
+      logo_url: form.logo_url,
       hero_title: form.hero_title,
       hero_subtitle: form.hero_subtitle,
       navbar_bg: form.navbar_bg,
@@ -328,6 +376,8 @@ export const StorefrontSettingsWorkspace: React.FC = () => {
     form.subdomain,
     form.primary_color,
     form.accent_color,
+    form.logo_mode,
+    form.logo_url,
     form.hero_title,
     form.hero_subtitle,
     form.navbar_bg,
@@ -361,6 +411,8 @@ export const StorefrontSettingsWorkspace: React.FC = () => {
       const themePayload = {
         theme_preset: form.theme_preset,
         card_style: form.card_style,
+        logo_mode: form.logo_mode,
+        logo_url: form.logo_url,
         primary_color: form.primary_color,
         accent_color: form.accent_color,
         hero_title: form.hero_title,
@@ -405,6 +457,16 @@ export const StorefrontSettingsWorkspace: React.FC = () => {
         min_order_amount: form.min_order_amount ? parseFloat(form.min_order_amount) : null,
         status: form.status,
       });
+
+      // Sync local storage for instantaneous PWA Manifest & Header updates
+      if (form.logo_mode === 'custom' && form.logo_url) {
+        localStorage.setItem('storefront_logo_url', form.logo_url);
+      } else {
+        localStorage.removeItem('storefront_logo_url');
+      }
+      if (form.name) {
+        localStorage.setItem('storefront_name', form.name);
+      }
 
       // Broadcast saved state to all open windows/tabs
       broadcastThemeDraft(form.subdomain, themePayload, 'SAVED');
@@ -915,6 +977,134 @@ export const StorefrontSettingsWorkspace: React.FC = () => {
                   />
                 </div>
 
+                {/* Storefront Logo & PWA App Icon */}
+                <div className="rounded-xl border border-default bg-surface-sunken p-3.5 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <label className="text-[11px] font-bold text-default uppercase tracking-wider block">
+                        Storefront Brand Logo & PWA App Icon
+                      </label>
+                      <p className="text-[11px] text-muted mt-0.5">
+                        Used in the Storefront header and as the install icon for{' '}
+                        <span className="font-semibold text-emerald-600 dark:text-emerald-400">"{form.name || 'Tenant'} Store"</span> PWA.
+                      </p>
+                    </div>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-semibold border border-emerald-500/20">
+                      Dual PWA
+                    </span>
+                  </div>
+
+                  {/* Mode Selector */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setForm((prev) => ({ ...prev, logo_mode: 'inherit' }))}
+                      className={`flex items-start gap-2.5 p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
+                        form.logo_mode === 'inherit'
+                          ? 'border-emerald-500 bg-emerald-500/10 text-default ring-1 ring-emerald-500/30'
+                          : 'border-default bg-surface text-muted hover:text-default hover:bg-surface-sunken'
+                      }`}
+                    >
+                      <Sparkles className="size-4 text-emerald-500 shrink-0 mt-0.5" />
+                      <div>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs font-bold text-default">Inherit ERP Brand Logo</span>
+                          <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-600 font-semibold">
+                            Default
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-muted mt-0.5">
+                          Inherits company logo from ERP Settings &gt; General automatically.
+                        </p>
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setForm((prev) => ({ ...prev, logo_mode: 'custom' }))}
+                      className={`flex items-start gap-2.5 p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
+                        form.logo_mode === 'custom'
+                          ? 'border-emerald-500 bg-emerald-500/10 text-default ring-1 ring-emerald-500/30'
+                          : 'border-default bg-surface text-muted hover:text-default hover:bg-surface-sunken'
+                      }`}
+                    >
+                      <ImageIcon className="size-4 text-emerald-500 shrink-0 mt-0.5" />
+                      <div>
+                        <span className="text-xs font-bold text-default">Custom Storefront Logo</span>
+                        <p className="text-[10px] text-muted mt-0.5">
+                          Upload a dedicated retail logo for consumer-facing storefront & PWA.
+                        </p>
+                      </div>
+                    </button>
+                  </div>
+
+                  {/* Logo Preview and File Input */}
+                  {form.logo_mode === 'inherit' ? (
+                    <div className="flex items-center gap-3 p-2.5 rounded-lg border border-default/60 bg-surface text-xs text-muted">
+                      <div className="size-10 rounded-lg border border-default bg-surface-sunken flex items-center justify-center shrink-0 overflow-hidden p-1">
+                        {erpBrandLogo ? (
+                          <img src={erpBrandLogo} alt="ERP Brand Logo" className="h-full w-full object-contain" />
+                        ) : (
+                          <Store className="size-5 text-muted" />
+                        )}
+                      </div>
+                      <div className="text-[11px] leading-tight flex-1">
+                        <span className="font-semibold text-default">Current Organization Logo:</span>{' '}
+                        {erpBrandLogo ? 'Inherited from ERP General Settings' : 'No ERP logo set (using default store icon)'}
+                        <div className="text-[10px] text-muted/80 mt-0.5">
+                          Updating your logo in ERP Settings &gt; General automatically rebrands both ERP and Storefront PWAs.
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-2 pt-1">
+                      <div className="flex items-center gap-3">
+                        <div className="size-12 rounded-xl border border-default bg-surface flex items-center justify-center shrink-0 overflow-hidden p-1 shadow-2xs">
+                          {form.logo_url ? (
+                            <img src={form.logo_url} alt="Storefront Logo" className="h-full w-full object-contain" />
+                          ) : (
+                            <Store className="size-6 text-muted" />
+                          )}
+                        </div>
+                        <div className="flex-1 space-y-1.5">
+                          <input
+                            type="text"
+                            value={form.logo_url}
+                            onChange={(e) => setForm((prev) => ({ ...prev, logo_url: e.target.value }))}
+                            placeholder="https://.../storefront-logo.png"
+                            className="w-full rounded-lg border border-default bg-surface px-3 py-1.5 text-xs text-default placeholder:text-muted focus:border-primary focus:outline-none"
+                          />
+                          <div className="flex items-center gap-2">
+                            <label className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-default bg-surface text-[11px] font-medium text-default hover:bg-surface-sunken cursor-pointer transition">
+                              <Upload className="size-3 text-muted" />
+                              <span>{uploadingLogo ? 'Uploading...' : 'Upload Logo File'}</span>
+                              <input
+                                type="file"
+                                accept="image/png,image/jpeg,image/svg+xml,image/webp"
+                                className="hidden"
+                                disabled={uploadingLogo}
+                                onChange={(e) => {
+                                  const file = e.target.files?.[0];
+                                  if (file) void handleLogoUpload(file);
+                                }}
+                              />
+                            </label>
+                            {form.logo_url && (
+                              <button
+                                type="button"
+                                onClick={() => setForm((prev) => ({ ...prev, logo_url: '' }))}
+                                className="text-[10px] text-danger hover:underline cursor-pointer"
+                              >
+                                Clear Logo
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="text-[11px] font-semibold text-muted uppercase tracking-wider block mb-1">
@@ -984,10 +1174,18 @@ export const StorefrontSettingsWorkspace: React.FC = () => {
               <div className="flex items-center justify-between border-b border-default pb-3">
                 <div className="flex items-center gap-2">
                   <div
-                    className="flex h-7 w-7 items-center justify-center rounded-lg text-white font-bold text-xs"
+                    className="flex h-7 w-7 items-center justify-center rounded-lg text-white font-bold text-xs overflow-hidden"
                     style={{ backgroundColor: form.primary_color }}
                   >
-                    <Store className="h-4 w-4" />
+                    {((form.logo_mode === 'custom' && form.logo_url) || erpBrandLogo) ? (
+                      <img
+                        src={(form.logo_mode === 'custom' && form.logo_url) ? form.logo_url : (erpBrandLogo || '')}
+                        alt="Logo"
+                        className="h-full w-full object-contain p-0.5"
+                      />
+                    ) : (
+                      <Store className="h-4 w-4" />
+                    )}
                   </div>
                   <span className="text-sm font-bold text-default">{form.name || 'Storefront'}</span>
                 </div>

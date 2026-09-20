@@ -69,6 +69,8 @@ final class StorefrontCustomizerController extends Controller
             'currency' => 'sometimes|required|string|size:3',
             'locale' => 'sometimes|required|string|max:10',
             'theme' => 'nullable|array',
+            'theme.logo_url' => 'nullable|string|max:1024',
+            'theme.logo_mode' => 'nullable|string|in:inherit,custom',
             'theme.primary_color' => 'nullable|string|max:32',
             'theme.accent_color' => 'nullable|string|max:32',
             'theme.hero_title' => 'nullable|string|max:255',

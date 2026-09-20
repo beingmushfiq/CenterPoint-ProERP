@@ -9,6 +9,8 @@ describe('usePwaManifest hook', () => {
     // Clear existing tags from document.head
     document.querySelectorAll('link[rel="manifest"]').forEach((el) => el.remove());
     document.querySelectorAll('meta[name="application-name"]').forEach((el) => el.remove());
+    document.querySelectorAll('meta[name="apple-mobile-web-app-title"]').forEach((el) => el.remove());
+    document.querySelectorAll('link[rel="apple-touch-icon"]').forEach((el) => el.remove());
   });
 
   it('sets ERP manifest and metadata when on an ERP route', () => {
@@ -24,9 +26,9 @@ describe('usePwaManifest hook', () => {
     const appNameMeta = document.querySelector('meta[name="application-name"]');
 
     expect(manifestLink).not.toBeNull();
-    expect(manifestLink?.getAttribute('href')).toBe('/manifest.json');
+    expect(manifestLink?.getAttribute('href')).toBe('/api/v1/pwa/erp-manifest.json');
     expect(appNameMeta).not.toBeNull();
-    expect(appNameMeta?.getAttribute('content')).toBe('Operations Console ERP');
+    expect(appNameMeta?.getAttribute('content')).toBe('Enterprise Operations ERP');
   });
 
   it('swaps to tenant storefront manifest when on a /store/:subdomain route', () => {
@@ -42,8 +44,8 @@ describe('usePwaManifest hook', () => {
     const appNameMeta = document.querySelector('meta[name="application-name"]');
 
     expect(manifestLink).not.toBeNull();
-    expect(manifestLink?.getAttribute('href')).toBe('/store/slicemart/manifest.json');
+    expect(manifestLink?.getAttribute('href')).toBe('/api/v1/pwa/storefront-manifest.json?subdomain=slicemart');
     expect(appNameMeta).not.toBeNull();
-    expect(appNameMeta?.getAttribute('content')).toBe('SLICEMART Store');
+    expect(appNameMeta?.getAttribute('content')).toBe('Enterprise Operations Store');
   });
 });

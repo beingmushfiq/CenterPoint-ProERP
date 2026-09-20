@@ -484,7 +484,7 @@ final class DataBinController extends Controller
         $requestedType = $request->query('type', 'all');
         $requestedDomain = $request->query('domain', 'all');
         $search = trim((string) $request->query('search', ''));
-        $perPage = max(5, min(100, $request->integer('per_page', 20)));
+        $perPage = max(1, min(100, $request->integer('per_page', 20)));
 
         $typesToQuery = self::TYPE_CONFIG;
 
@@ -696,26 +696,31 @@ final class DataBinController extends Controller
 
         $purgedCount = 0;
 
-        DB::transaction(function () use ($typesToPurge, $tenantId, &$purgedCount): void {
-            foreach ($typesToPurge as $key => $config) {
-                $modelClass = $config['model'];
-                if (!class_exists($modelClass)) {
-                    continue;
-                }
-
-                try {
-                    $query = $this->scopedTrashedQuery($modelClass, $tenantId);
-                    $records = $query->get();
-                    foreach ($records as $record) {
-                        $this->cascadeForceDeleteChildren($record);
-                        $record->forceDelete();
-                        $purgedCount++;
-                    }
-                } catch (\Throwable) {
-                    continue;
-                }
+        foreach ($typesToPurge as $key => $config) {
+            $modelClass = $config['model'];
+            if (!class_exists($modelClass)) {
+                continue;
             }
-        });
+
+            try {
+                $query = $this->scopedTrashedQuery($modelClass, $tenantId);
+                $records = $query->get();
+                foreach ($records as $record) {
+                    try {
+                        DB::transaction(function () use ($record): void {
+                            $this->cascadeForceDeleteChildren($record);
+                            $record->forceDelete();
+                        });
+                        $purgedCount++;
+                    } catch (\Throwable) {
+                        // If one record is protected by active foreign keys, safely continue with remaining
+                        continue;
+                    }
+                }
+            } catch (\Throwable) {
+                continue;
+            }
+        }
 
         return response()->json([
             'success' => true,
@@ -744,7 +749,7 @@ final class DataBinController extends Controller
     }
 
     /**
-     * Helper to find trashed record by either numeric ID or UUID.
+     * Helper to find trashed record by either numeric ID or UUID safely.
      */
     private function findTrashedRecord(string $modelClass, int $tenantId, string $id)
     {
@@ -752,9 +757,12 @@ final class DataBinController extends Controller
         $table = (new $modelClass)->getTable();
 
         return $query->where(function ($q) use ($table, $id) {
-            $q->where("{$table}.id", $id);
-            if (Schema::hasColumn($table, 'uuid')) {
-                $q->orWhere("{$table}.uuid", $id);
+            if (is_numeric($id)) {
+                $q->where("{$table}.id", (int) $id);
+            } elseif (Schema::hasColumn($table, 'uuid')) {
+                $q->where("{$table}.uuid", $id);
+            } else {
+                $q->where("{$table}.id", $id);
             }
         })->first();
     }

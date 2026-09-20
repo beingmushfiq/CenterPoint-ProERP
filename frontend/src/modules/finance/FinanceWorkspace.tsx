@@ -173,8 +173,13 @@ export const FinanceWorkspace: React.FC = () => {
     [t]
   );
 
-  const financeTabConfigs: FinanceTabConfig[] = useMemo(
-    () => [
+  const financeTabConfigs: FinanceTabConfig[] = useMemo(() => {
+    const getHighlights = (key: string): string[] => {
+      const val = (t as (k: string, opts?: { returnObjects: boolean }) => unknown)(key, { returnObjects: true });
+      return Array.isArray(val) ? (val as string[]) : [];
+    };
+
+    return [
       {
         id: 'banking',
         step: 1,
@@ -183,7 +188,7 @@ export const FinanceWorkspace: React.FC = () => {
         category: 'operations',
         icon: Landmark,
         description: t('finance.tabs.banking.description'),
-        highlights: (t('finance.tabs.banking.highlights', { returnObjects: true }) as string[]) || [],
+        highlights: getHighlights('finance.tabs.banking.highlights'),
       },
       {
         id: 'expenses',
@@ -193,7 +198,7 @@ export const FinanceWorkspace: React.FC = () => {
         category: 'operations',
         icon: ReceiptText,
         description: t('finance.tabs.expenses.description'),
-        highlights: (t('finance.tabs.expenses.highlights', { returnObjects: true }) as string[]) || [],
+        highlights: getHighlights('finance.tabs.expenses.highlights'),
       },
       {
         id: 'due-collection',
@@ -203,7 +208,7 @@ export const FinanceWorkspace: React.FC = () => {
         category: 'operations',
         icon: Coins,
         description: t('finance.tabs.dueCollection.description'),
-        highlights: (t('finance.tabs.dueCollection.highlights', { returnObjects: true }) as string[]) || [],
+        highlights: getHighlights('finance.tabs.dueCollection.highlights'),
       },
       {
         id: 'statements',
@@ -213,7 +218,7 @@ export const FinanceWorkspace: React.FC = () => {
         category: 'reports',
         icon: TrendingUp,
         description: t('finance.tabs.statements.description'),
-        highlights: (t('finance.tabs.statements.highlights', { returnObjects: true }) as string[]) || [],
+        highlights: getHighlights('finance.tabs.statements.highlights'),
       },
       {
         id: 'journal',
@@ -223,7 +228,7 @@ export const FinanceWorkspace: React.FC = () => {
         category: 'reports',
         icon: BookOpen,
         description: t('finance.tabs.journal.description'),
-        highlights: (t('finance.tabs.journal.highlights', { returnObjects: true }) as string[]) || [],
+        highlights: getHighlights('finance.tabs.journal.highlights'),
       },
       {
         id: 'coa',
@@ -233,7 +238,7 @@ export const FinanceWorkspace: React.FC = () => {
         category: 'reports',
         icon: Scale,
         description: t('finance.tabs.coa.description'),
-        highlights: (t('finance.tabs.coa.highlights', { returnObjects: true }) as string[]) || [],
+        highlights: getHighlights('finance.tabs.coa.highlights'),
       },
       {
         id: 'costing',
@@ -243,11 +248,10 @@ export const FinanceWorkspace: React.FC = () => {
         category: 'costing',
         icon: Calculator,
         description: t('finance.tabs.costing.description'),
-        highlights: (t('finance.tabs.costing.highlights', { returnObjects: true }) as string[]) || [],
+        highlights: getHighlights('finance.tabs.costing.highlights'),
       },
-    ],
-    [t]
-  );
+    ];
+  }, [t]);
 
   const [quickJumpOpen, setQuickJumpOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -3602,7 +3606,7 @@ export const FinanceWorkspace: React.FC = () => {
                     </div>
                     <p className="text-xs text-muted leading-relaxed mb-3">{tab.description}</p>
                     <div className="space-y-1 mb-4">
-                      {tab.highlights.map((h: string, idx: number) => (
+                      {(Array.isArray(tab.highlights) ? tab.highlights : []).map((h: string, idx: number) => (
                         <div key={idx} className="flex items-center gap-1.5 text-[11px] text-default/80">
                           <CheckCircle2 className="size-3 text-emerald-500 shrink-0" />
                           <span>{h}</span>

@@ -266,5 +266,170 @@ final class DataBinTest extends TestCase
         $this->assertNull(\App\Models\QcParameter::withTrashed()->find($param->id));
         $this->assertNull(\App\Models\QcInspectionResult::withTrashed()->find($result->id));
     }
+
+    public function test_all_configured_models_exist_and_use_soft_deletes(): void
+    {
+        $reflection = new \ReflectionClass(\App\Modules\Platform\Controllers\DataBinController::class);
+        $config = $reflection->getConstant('TYPE_CONFIG');
+        $this->assertIsArray($config);
+
+        $missingClasses = [];
+        $nonSoftDeleteClasses = [];
+
+        foreach ($config as $key => $cfg) {
+            $modelClass = $cfg['model'];
+            if (!class_exists($modelClass)) {
+                $missingClasses[] = "{$key} => {$modelClass}";
+                continue;
+            }
+
+            $traits = class_uses_recursive($modelClass);
+            if (!in_array(\Illuminate\Database\Eloquent\SoftDeletes::class, $traits, true)) {
+                $nonSoftDeleteClasses[] = "{$key} => {$modelClass}";
+            }
+        }
+
+        $this->assertEmpty($missingClasses, 'Configured models that do not exist: ' . implode(', ', $missingClasses));
+        $this->assertEmpty($nonSoftDeleteClasses, 'Configured models that do not use SoftDeletes: ' . implode(', ', $nonSoftDeleteClasses));
+
+        $missingDeletedAtColumns = [];
+        foreach ($config as $key => $cfg) {
+            $modelClass = $cfg['model'];
+            $table = (new $modelClass)->getTable();
+            if (!\Illuminate\Support\Facades\Schema::hasColumn($table, 'deleted_at')) {
+                $missingDeletedAtColumns[] = "{$key} => {$table}";
+            }
+        }
+        $this->assertEmpty($missingDeletedAtColumns, 'Tables missing deleted_at column: ' . implode(', ', $missingDeletedAtColumns));
+    }
+
+    public function test_purchase_order_lifecycle_in_bin_and_uuid_restore(): void
+    {
+        $supplier = \App\Models\Party::create([
+            'uuid'      => (string) Str::uuid(),
+            'tenant_id' => 1,
+            'code'      => 'SUP-999',
+            'type'      => 'supplier',
+            'name'      => 'Test Flour Mill',
+        ]);
+
+        $po = \App\Modules\Purchasing\Models\PurchaseOrder::create([
+            'uuid'         => (string) Str::uuid(),
+            'tenant_id'    => 1,
+            'party_id'     => $supplier->id,
+            'po_number'    => 'PO-TEST-9999',
+            'order_date'   => now()->toDateString(),
+            'total_amount' => '15000.0000',
+            'status'       => 'draft',
+        ]);
+
+        $unit = Unit::create([
+            'uuid'      => (string) Str::uuid(),
+            'tenant_id' => 1,
+            'code'      => 'BAG',
+            'name'      => 'Bags',
+            'type'      => 'unit',
+        ]);
+
+        $product = Product::create([
+            'uuid'         => (string) Str::uuid(),
+            'tenant_id'    => 1,
+            'sku'          => 'RAW-FLOUR-BAG',
+            'name'         => 'Premium Flour Bag 50kg',
+            'type'         => 'raw',
+            'base_unit_id' => $unit->id,
+        ]);
+
+        $item = \App\Modules\Purchasing\Models\PurchaseOrderItem::create([
+            'uuid'              => (string) Str::uuid(),
+            'tenant_id'         => 1,
+            'purchase_order_id' => $po->id,
+            'product_id'        => $product->id,
+            'unit_id'           => $unit->id,
+            'quantity'          => '50',
+            'unit_price'        => '300.0000',
+            'line_total'        => '15000.0000',
+        ]);
+
+        // Soft delete PO and item
+        $item->delete();
+        $po->delete();
+        $this->assertTrue($po->fresh()->trashed());
+        $this->assertTrue($item->fresh()->trashed());
+
+        // 1. Appears in bin under 'supply' domain
+        $binRes = $this->getJson('/api/v1/bin?domain=supply', $this->headers());
+        $binRes->assertStatus(200);
+        $found = collect($binRes->json('data'))->firstWhere('identifier', 'PO-TEST-9999');
+        $this->assertNotNull($found);
+        $this->assertSame('supply', $found['domain']);
+        $this->assertSame('purchase_orders', $found['type']);
+        $this->assertEquals(15000, $found['details']['amount']);
+
+        // 2. Stats reflect the trashed PO
+        $statsRes = $this->getJson('/api/v1/bin/stats', $this->headers());
+        $statsRes->assertStatus(200);
+        $this->assertGreaterThanOrEqual(1, $statsRes->json('data.domains.supply'));
+        $this->assertGreaterThanOrEqual(1, $statsRes->json('data.counts.purchase_orders'));
+
+        // 3. Restore using UUID string
+        $restoreRes = $this->postJson("/api/v1/bin/purchase_orders/{$po->uuid}/restore", [], $this->headers());
+        $restoreRes->assertStatus(200);
+        $restoreRes->assertJsonPath('success', true);
+        $this->assertFalse($po->fresh()->trashed());
+
+        // 4. Force delete via integer ID
+        $po->delete();
+        $this->assertTrue($po->fresh()->trashed());
+
+        $forceRes = $this->deleteJson("/api/v1/bin/purchase_orders/{$po->id}/force-delete", [], $this->headers());
+        $forceRes->assertStatus(200);
+        $this->assertNull(\App\Modules\Purchasing\Models\PurchaseOrder::withTrashed()->find($po->id));
+        $this->assertNull(\App\Modules\Purchasing\Models\PurchaseOrderItem::withTrashed()->find($item->id));
+    }
+
+    public function test_bin_search_and_pagination(): void
+    {
+        $unit = Unit::create([
+            'uuid'      => (string) Str::uuid(),
+            'tenant_id' => 1,
+            'code'      => 'KG-SRCH',
+            'name'      => 'Kilograms',
+            'type'      => 'unit',
+        ]);
+
+        // Create and soft delete 5 products with distinct names
+        for ($i = 1; $i <= 5; $i++) {
+            $p = Product::create([
+                'uuid'         => (string) Str::uuid(),
+                'tenant_id'    => 1,
+                'sku'          => "SKU-SEARCH-{$i}",
+                'name'         => "UniqueVanillaProduct {$i}",
+                'type'         => 'finished',
+                'base_unit_id' => $unit->id,
+            ]);
+            $p->delete();
+        }
+
+        // Search for 'UniqueVanillaProduct'
+        $searchRes = $this->getJson('/api/v1/bin?search=UniqueVanillaProduct&per_page=2&page=1', $this->headers());
+        $searchRes->assertStatus(200);
+        $this->assertCount(2, $searchRes->json('data'));
+        $this->assertSame(1, $searchRes->json('meta.current_page'));
+        $this->assertSame(2, $searchRes->json('meta.per_page'));
+        $this->assertSame(5, $searchRes->json('meta.total'));
+        $this->assertSame(3, $searchRes->json('meta.last_page'));
+
+        // Page 3 should have 1 item
+        $page3Res = $this->getJson('/api/v1/bin?search=UniqueVanillaProduct&per_page=2&page=3', $this->headers());
+        $page3Res->assertStatus(200);
+        $this->assertCount(1, $page3Res->json('data'));
+
+        // Search with no results
+        $noRes = $this->getJson('/api/v1/bin?search=NonExistentRecordXYZ', $this->headers());
+        $noRes->assertStatus(200);
+        $this->assertEmpty($noRes->json('data'));
+    }
 }
+
 

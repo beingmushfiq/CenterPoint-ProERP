@@ -128,6 +128,7 @@ final class PurchaseRequisitionController extends Controller
     {
         $tenantId = TenantContext::current()->tenantId();
 
+        /** @var PurchaseRequisition $requisition */
         $requisition = PurchaseRequisition::where('tenant_id', $tenantId)
             ->where('id', $id)
             ->firstOrFail();
@@ -159,6 +160,7 @@ final class PurchaseRequisitionController extends Controller
     {
         $tenantId = TenantContext::current()->tenantId();
 
+        /** @var PurchaseRequisition $requisition */
         $requisition = PurchaseRequisition::where('tenant_id', $tenantId)
             ->where('id', $id)
             ->firstOrFail();
@@ -179,6 +181,7 @@ final class PurchaseRequisitionController extends Controller
     {
         $tenantId = TenantContext::current()->tenantId();
 
+        /** @var PurchaseRequisition $requisition */
         $requisition = PurchaseRequisition::where('tenant_id', $tenantId)
             ->where('id', $id)
             ->firstOrFail();

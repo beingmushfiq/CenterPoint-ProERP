@@ -278,31 +278,31 @@ export const TenantRoleDashboard: React.FC = () => {
       icon: React.ComponentType<{ className?: string }>;
     }> = [];
     if (canAccessExecutive) {
-      views.push({ id: 'executive', label: t('perspectives.executive'), icon: LayoutDashboard });
+      views.push({ id: 'executive', label: t('perspectives.executive', { defaultValue: 'Executive Overview' }), icon: LayoutDashboard });
     }
     if (canAccessProduction) {
-      views.push({ id: 'production', label: t('perspectives.production'), icon: Factory });
+      views.push({ id: 'production', label: t('perspectives.production', { defaultValue: 'Factory Production' }), icon: Factory });
     }
     if (canAccessInventory) {
-      views.push({ id: 'inventory', label: t('perspectives.inventory'), icon: Warehouse });
+      views.push({ id: 'inventory', label: t('perspectives.inventory', { defaultValue: 'Stock & Warehouse' }), icon: Warehouse });
     }
     if (canAccessQC) {
-      views.push({ id: 'qc', label: t('perspectives.qc'), icon: Microscope });
+      views.push({ id: 'qc', label: t('perspectives.qc', { defaultValue: 'Quality Control' }), icon: Microscope });
     }
     if (canAccessSales) {
-      views.push({ id: 'sales', label: t('perspectives.sales'), icon: ShoppingBag });
+      views.push({ id: 'sales', label: t('perspectives.sales', { defaultValue: 'Sales & POS' }), icon: ShoppingBag });
     }
     if (canAccessFinance) {
-      views.push({ id: 'finance', label: t('perspectives.finance'), icon: Coins });
+      views.push({ id: 'finance', label: t('perspectives.finance', { defaultValue: 'Finance & Accounts' }), icon: Coins });
     }
     if (canAccessWorkforce) {
-      views.push({ id: 'workforce', label: t('perspectives.workforce'), icon: Users });
+      views.push({ id: 'workforce', label: t('perspectives.workforce', { defaultValue: 'Floor Workforce' }), icon: Users });
     }
     if (canAccessPurchasing) {
-      views.push({ id: 'purchasing', label: t('perspectives.purchasing'), icon: ShoppingCart });
+      views.push({ id: 'purchasing', label: t('perspectives.purchasing', { defaultValue: 'Supply Purchasing' }), icon: ShoppingCart });
     }
     if (canAccessLogistics) {
-      views.push({ id: 'logistics', label: t('perspectives.logistics'), icon: Truck });
+      views.push({ id: 'logistics', label: t('perspectives.logistics', { defaultValue: 'Delivery Logistics' }), icon: Truck });
     }
     return views;
   }, [
@@ -362,8 +362,8 @@ export const TenantRoleDashboard: React.FC = () => {
       localStorage.getItem('pwa_dismissed') === 'true' ||
       localStorage.getItem('slicemart_pwa_dismissed') === 'true';
     const isStandalone =
-      window.matchMedia('(display-mode: standalone)').matches ||
-      (window.navigator as unknown as { standalone?: boolean }).standalone === true;
+      (typeof window.matchMedia === 'function' && Boolean(window.matchMedia('(display-mode: standalone)')?.matches)) ||
+      (window.navigator as unknown as { standalone?: boolean })?.standalone === true;
 
     return !isInstalled && !isDismissed && !isStandalone;
   };
@@ -864,9 +864,9 @@ export const TenantRoleDashboard: React.FC = () => {
               </div>
               <div className="min-w-0">
                 <h4 className="font-bold text-xs text-default truncate">
-                  {t('pwa.installTitle', { name: companyName || 'Enterprise Cloud' })}
+                  {t('pwa.installTitle', { name: companyName || 'Enterprise Cloud', defaultValue: `Install ${companyName || 'Enterprise Cloud'} ERP` })}
                 </h4>
-                <span className="text-[10px] text-muted">{t('pwa.platformPwa')}</span>
+                <span className="text-[10px] text-muted">{t('pwa.platformPwa', { defaultValue: 'Business Operations Platform PWA' })}</span>
               </div>
             </div>
             <button
@@ -879,7 +879,7 @@ export const TenantRoleDashboard: React.FC = () => {
             </button>
           </div>
           <p className="mt-2 text-xs text-muted leading-relaxed">
-            {t('pwa.description')}
+            {t('pwa.description', { defaultValue: 'Install the operational dashboard on your desktop or mobile device for direct offline caching and faster business operations.' })}
           </p>
           <div className="mt-3.5 flex items-center gap-2">
             <Button
@@ -888,7 +888,7 @@ export const TenantRoleDashboard: React.FC = () => {
               onClick={handleInstallPwa}
               leftIcon={<Download className="size-3.5" />}
             >
-              {t('pwa.installApp')}
+              {t('pwa.installApp', { defaultValue: 'Install App' })}
             </Button>
             <Button
               variant="ghost"
@@ -896,7 +896,7 @@ export const TenantRoleDashboard: React.FC = () => {
               onClick={handleDismissPwa}
               className="text-muted hover:text-default"
             >
-              {t('pwa.maybeLater')}
+              {t('pwa.maybeLater', { defaultValue: 'Maybe Later' })}
             </Button>
           </div>
         </aside>

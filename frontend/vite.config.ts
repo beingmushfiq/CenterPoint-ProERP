@@ -101,6 +101,10 @@ export default defineConfig({
         target: 'http://127.0.0.1:8000',
         changeOrigin: true,
       },
+      '^/manifest.*\\.json': {
+        target: 'http://127.0.0.1:8000',
+        changeOrigin: true,
+      },
       '^/store/[^/]+/manifest\\.json': {
         target: 'http://127.0.0.1:8000',
         changeOrigin: true,

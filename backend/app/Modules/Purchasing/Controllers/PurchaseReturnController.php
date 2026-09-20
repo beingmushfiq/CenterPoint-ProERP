@@ -108,6 +108,7 @@ final class PurchaseReturnController extends Controller
     {
         $tenantId = TenantContext::current()->tenantId();
 
+        /** @var PurchaseReturn $return */
         $return = PurchaseReturn::where('tenant_id', $tenantId)
             ->where('id', $id)
             ->firstOrFail();
@@ -138,6 +139,7 @@ final class PurchaseReturnController extends Controller
     {
         $tenantId = TenantContext::current()->tenantId();
 
+        /** @var PurchaseReturn $return */
         $return = PurchaseReturn::where('tenant_id', $tenantId)
             ->where('id', $id)
             ->firstOrFail();

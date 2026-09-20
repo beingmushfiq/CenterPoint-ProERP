@@ -126,6 +126,7 @@ final class PurchaseOrderController extends Controller
     {
         $tenantId = TenantContext::current()->tenantId();
 
+        /** @var PurchaseOrder $order */
         $order = PurchaseOrder::where('tenant_id', $tenantId)
             ->where('id', $id)
             ->firstOrFail();
@@ -156,6 +157,7 @@ final class PurchaseOrderController extends Controller
     {
         $tenantId = TenantContext::current()->tenantId();
 
+        /** @var PurchaseOrder $order */
         $order = PurchaseOrder::where('tenant_id', $tenantId)
             ->where('id', $id)
             ->firstOrFail();

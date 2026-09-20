@@ -45,6 +45,12 @@ Route::prefix('v1')
             Route::get('branding', [App\Modules\Auth\Controllers\AuthController::class, 'branding'])->name('branding');
         });
 
+        Route::prefix('pwa')->name('pwa.')->group(static function (): void {
+            Route::get('erp-manifest.json', [\App\Modules\Platform\Controllers\ErpManifestController::class, 'manifest'])->name('erp-manifest');
+            Route::get('storefront-manifest.json', [\App\Modules\Ecommerce\Controllers\StorefrontManifestController::class, 'manifest'])->name('storefront-manifest');
+            Route::get('icon/{scope}', [\App\Modules\Platform\Controllers\PwaIconController::class, 'icon'])->name('icon');
+        });
+
         Route::prefix('webhooks')->middleware('throttle:webhooks')->name('webhooks.')->group(static function (): void {
             Route::post('couriers/{providerCode}', [App\Modules\Delivery\Controllers\CourierWebhookController::class, 'handle'])->name('couriers.handle');
         });

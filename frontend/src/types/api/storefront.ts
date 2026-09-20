@@ -58,6 +58,8 @@ export interface StorefrontConfig {
       youtube?: string;
       whatsapp?: string;
     };
+    logo_mode?: 'inherit' | 'custom';
+    logo_url?: string | null;
     meta_pixel_id?: string;
     google_analytics_id?: string;
   };
