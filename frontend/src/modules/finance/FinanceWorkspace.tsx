@@ -915,6 +915,60 @@ export const FinanceWorkspace: React.FC = () => {
     });
   };
 
+  // Deletion State for Bank Accounts and Cash/GL Accounts
+  const [deletingBankAccount, setDeletingBankAccount] = useState<BankAccount | null>(null);
+  const [deletingAccount, setDeletingAccount] = useState<ChartOfAccount | null>(null);
+  const [isDeletingItem, setIsDeletingItem] = useState(false);
+
+  const confirmDeleteBankAccount = async () => {
+    if (!deletingBankAccount) return;
+    setIsDeletingItem(true);
+    try {
+      await api.delete(`/finance/bank-accounts/${deletingBankAccount.id}`);
+      setBankAccounts((prev) => prev.filter((b) => b.id !== deletingBankAccount.id));
+      notify.success('Bank Account Deleted', {
+        description: `${deletingBankAccount.bank_name} has been removed.`,
+      });
+    } catch {
+      // Offline / fallback deletion
+      setBankAccounts((prev) => prev.filter((b) => b.id !== deletingBankAccount.id));
+      notify.info('Bank Account Removed (Local)', {
+        description: `${deletingBankAccount.bank_name} removed from view.`,
+      });
+    } finally {
+      setIsDeletingItem(false);
+      setDeletingBankAccount(null);
+    }
+  };
+
+  const confirmDeleteAccount = async () => {
+    if (!deletingAccount) return;
+    if (deletingAccount.is_system) {
+      notify.warning('System Account Protected', {
+        description: `${deletingAccount.name} is a required system account and cannot be deleted.`,
+      });
+      setDeletingAccount(null);
+      return;
+    }
+    setIsDeletingItem(true);
+    try {
+      await api.delete(`/finance/accounts/${deletingAccount.id}`);
+      setAccounts((prev) => prev.filter((a) => a.id !== deletingAccount.id));
+      notify.success('Account Deleted', {
+        description: `${deletingAccount.name} has been removed.`,
+      });
+    } catch {
+      // Offline / fallback deletion
+      setAccounts((prev) => prev.filter((a) => a.id !== deletingAccount.id));
+      notify.info('Account Removed (Local)', {
+        description: `${deletingAccount.name} removed from view.`,
+      });
+    } finally {
+      setIsDeletingItem(false);
+      setDeletingAccount(null);
+    }
+  };
+
   // Expense Category Creation State
   const [showNewExpenseCatModal, setShowNewExpenseCatModal] = useState(false);
   const [newCatCode, setNewCatCode] = useState('');
@@ -2123,6 +2177,14 @@ export const FinanceWorkspace: React.FC = () => {
                       </div>
                       <p className="text-xs text-muted">GL Code: {cashAcc.account_code} — On-Premises Petty Cash</p>
                     </div>
+                    <button
+                      type="button"
+                      onClick={() => setDeletingAccount(cashAcc)}
+                      className="p-1.5 text-muted hover:text-rose-600 hover:bg-rose-500/10 rounded-lg transition-colors cursor-pointer"
+                      title={`Delete ${cashAcc.name}`}
+                    >
+                      <Trash2 className="size-4" />
+                    </button>
                   </div>
 
                   <div className="p-3.5 bg-surface-sunken rounded-xl space-y-1.5 border border-default">
@@ -2193,6 +2255,14 @@ export const FinanceWorkspace: React.FC = () => {
                         {ba.account_name} ({ba.branch_name})
                       </p>
                     </div>
+                    <button
+                      type="button"
+                      onClick={() => setDeletingBankAccount(ba)}
+                      className="p-1.5 text-muted hover:text-rose-600 hover:bg-rose-500/10 rounded-lg transition-colors cursor-pointer"
+                      title={`Delete ${ba.bank_name}`}
+                    >
+                      <Trash2 className="size-4" />
+                    </button>
                   </div>
 
                   <div className="p-3.5 bg-surface-sunken rounded-xl space-y-1.5 border border-default">
@@ -2245,6 +2315,49 @@ export const FinanceWorkspace: React.FC = () => {
                 </div>
               );
             })}
+
+            {/* Quick Add Bank Account Card */}
+            <button
+              type="button"
+              onClick={() => setShowNewBankModal(true)}
+              className="rounded-2xl border-2 border-dashed border-default hover:border-primary/50 bg-surface/50 hover:bg-primary/5 p-6 flex flex-col items-center justify-center text-center gap-2 group transition-all cursor-pointer min-h-50"
+            >
+              <div className="size-11 rounded-2xl bg-primary/10 text-primary flex items-center justify-center group-hover:scale-110 group-hover:bg-primary group-hover:text-white transition-all shadow-xs">
+                <Plus className="size-5" />
+              </div>
+              <div>
+                <h5 className="font-bold text-sm text-default group-hover:text-primary transition-colors">
+                  + Add Bank Account
+                </h5>
+                <p className="text-xs text-muted mt-1 max-w-xs leading-relaxed">
+                  Register a corporate checking, savings, or payroll bank account
+                </p>
+              </div>
+            </button>
+
+            {/* Quick Add Cash Drawer Card */}
+            <button
+              type="button"
+              onClick={() => {
+                resetAccountForm();
+                setNewAccountName('');
+                setNewAccountSubtype('cash');
+                setShowNewAccountModal(true);
+              }}
+              className="rounded-2xl border-2 border-dashed border-default hover:border-emerald-500/50 bg-surface/50 hover:bg-emerald-500/5 p-6 flex flex-col items-center justify-center text-center gap-2 group transition-all cursor-pointer min-h-50"
+            >
+              <div className="size-11 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center group-hover:scale-110 group-hover:bg-emerald-600 group-hover:text-white transition-all shadow-xs">
+                <Plus className="size-5" />
+              </div>
+              <div>
+                <h5 className="font-bold text-sm text-default group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
+                  + Add Cash Drawer
+                </h5>
+                <p className="text-xs text-muted mt-1 max-w-xs leading-relaxed">
+                  Create a physical cash register, counter petty cash, or factory vault drawer
+                </p>
+              </div>
+            </button>
           </div>
         </div>
       )}
@@ -3584,6 +3697,96 @@ export const FinanceWorkspace: React.FC = () => {
         schema={bankStatementImportSchema}
         onImportSuccess={() => fetchBanksFromApi()}
       />
+
+      {/* Modal: Confirm Delete Bank Account */}
+      <Modal
+        open={Boolean(deletingBankAccount)}
+        onClose={() => !isDeletingItem && setDeletingBankAccount(null)}
+        title="Delete Bank Account"
+        size="sm"
+      >
+        <div className="space-y-4">
+          <div className="flex items-start gap-3 p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400">
+            <Trash2 className="size-5 shrink-0 mt-0.5" />
+            <div className="text-xs leading-relaxed">
+              Are you sure you want to delete <span className="font-bold text-default">{deletingBankAccount?.bank_name}</span> ({deletingBankAccount?.account_number})? This action will remove the bank profile from your active treasury views.
+            </div>
+          </div>
+
+          <div className="text-xs text-muted">
+            Associated historical journal entries and ledger records will remain intact for audit compliance.
+          </div>
+
+          <div className="flex justify-end gap-2.5 pt-3 border-t border-default">
+            <button
+              type="button"
+              disabled={isDeletingItem}
+              onClick={() => setDeletingBankAccount(null)}
+              className="px-4 py-2 text-xs font-medium border border-default rounded-xl text-muted hover:text-default hover:bg-surface-sunken transition cursor-pointer disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              disabled={isDeletingItem}
+              onClick={confirmDeleteBankAccount}
+              className="px-5 py-2 text-xs bg-rose-600 hover:bg-rose-700 text-white font-semibold rounded-xl shadow-xs transition cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
+            >
+              <Trash2 className="size-3.5" />
+              <span>{isDeletingItem ? 'Deleting...' : 'Delete Bank Account'}</span>
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Modal: Confirm Delete Cash / Chart of Account */}
+      <Modal
+        open={Boolean(deletingAccount)}
+        onClose={() => !isDeletingItem && setDeletingAccount(null)}
+        title="Delete Cash Drawer / Ledger Head"
+        size="sm"
+      >
+        <div className="space-y-4">
+          <div className="flex items-start gap-3 p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400">
+            <Trash2 className="size-5 shrink-0 mt-0.5" />
+            <div className="text-xs leading-relaxed">
+              Are you sure you want to delete <span className="font-bold text-default">{deletingAccount?.name}</span> (Code: {deletingAccount?.account_code})?
+            </div>
+          </div>
+
+          {deletingAccount?.is_system ? (
+            <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-300 text-xs">
+              ⚠️ This is designated as a protected system account and cannot be deleted.
+            </div>
+          ) : (
+            <div className="text-xs text-muted">
+              Any future transactions linked to this account code will be prevented.
+            </div>
+          )}
+
+          <div className="flex justify-end gap-2.5 pt-3 border-t border-default">
+            <button
+              type="button"
+              disabled={isDeletingItem}
+              onClick={() => setDeletingAccount(null)}
+              className="px-4 py-2 text-xs font-medium border border-default rounded-xl text-muted hover:text-default hover:bg-surface-sunken transition cursor-pointer disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            {!deletingAccount?.is_system && (
+              <button
+                type="button"
+                disabled={isDeletingItem}
+                onClick={confirmDeleteAccount}
+                className="px-5 py-2 text-xs bg-rose-600 hover:bg-rose-700 text-white font-semibold rounded-xl shadow-xs transition cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
+              >
+                <Trash2 className="size-3.5" />
+                <span>{isDeletingItem ? 'Deleting...' : 'Delete Account'}</span>
+              </button>
+            )}
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };

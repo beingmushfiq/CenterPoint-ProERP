@@ -67,6 +67,47 @@ class ChartOfAccountController extends Controller
         ]);
     }
 
+    public function update(Request $request, int $id): JsonResponse
+    {
+        $account = ChartOfAccount::findOrFail($id);
+
+        $validated = $request->validate([
+            'name' => 'sometimes|string|max:255',
+            'account_code' => 'sometimes|string|max:64',
+            'account_subtype' => 'sometimes|string|max:64',
+            'is_active' => 'nullable|boolean',
+        ]);
+
+        $account->update([
+            ...$validated,
+            'updated_by' => $request->user()?->id,
+        ]);
+
+        return response()->json([
+            'data' => $account,
+            'message' => 'Account head updated successfully.',
+        ]);
+    }
+
+    public function destroy(int $id): JsonResponse
+    {
+        $account = ChartOfAccount::findOrFail($id);
+
+        if ($account->is_system) {
+            return response()->json([
+                'success' => false,
+                'message' => 'System protected accounts cannot be deleted.',
+            ], 422);
+        }
+
+        $account->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Account head deleted successfully.',
+        ]);
+    }
+
     public function bulkImport(Request $request): JsonResponse
     {
         $tenantId = \App\Core\Tenancy\TenantContext::current()->tenantId();

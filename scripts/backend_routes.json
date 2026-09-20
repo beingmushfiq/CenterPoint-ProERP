@@ -32,6 +32,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:assets",
       "permission:assets.asset.view"
     ],
     "path": null
@@ -47,6 +48,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:assets",
       "permission:assets.asset.create"
     ],
     "path": null
@@ -62,6 +64,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:assets",
       "permission:assets.asset.create"
     ],
     "path": null
@@ -77,6 +80,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:assets",
       "permission:assets.asset.view"
     ],
     "path": null
@@ -92,6 +96,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:assets",
       "permission:assets.asset.create"
     ],
     "path": null
@@ -107,6 +112,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:assets",
       "permission:assets.asset.view"
     ],
     "path": null
@@ -122,6 +128,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:assets",
       "permission:assets.asset.depreciate"
     ],
     "path": null
@@ -137,6 +144,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:assets",
       "permission:assets.maintenance.view"
     ],
     "path": null
@@ -152,6 +160,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:assets",
       "permission:assets.maintenance.create"
     ],
     "path": null
@@ -167,6 +176,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:assets",
       "permission:assets.maintenance.view"
     ],
     "path": null
@@ -182,6 +192,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:assets",
       "permission:assets.asset.view"
     ],
     "path": null
@@ -938,6 +949,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:delivery",
       "permission:logistics.shipment.view"
     ],
     "path": null
@@ -953,6 +965,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:delivery",
       "permission:logistics.shipment.view"
     ],
     "path": null
@@ -1312,6 +1325,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:finance",
       "permission:finance.account.view"
     ],
     "path": null
@@ -1327,6 +1341,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:finance",
       "permission:finance.account.create"
     ],
     "path": null
@@ -1342,6 +1357,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:finance",
       "permission:finance.account.create"
     ],
     "path": null
@@ -1357,6 +1373,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:finance",
       "permission:finance.account.view"
     ],
     "path": null
@@ -1372,6 +1389,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:finance",
       "permission:finance.bank.view"
     ],
     "path": null
@@ -1387,6 +1405,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:finance",
       "permission:finance.bank.create"
     ],
     "path": null
@@ -1402,6 +1421,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:finance",
       "permission:finance.bank.create"
     ],
     "path": null
@@ -1417,6 +1437,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:finance",
       "permission:finance.bank.create"
     ],
     "path": null
@@ -1432,6 +1453,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:finance",
       "permission:finance.costing.view"
     ],
     "path": null
@@ -1447,6 +1469,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:finance",
       "permission:finance.costing.create"
     ],
     "path": null
@@ -1462,6 +1485,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:finance",
       "permission:finance.expense.view"
     ],
     "path": null
@@ -1477,6 +1501,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:finance",
       "permission:finance.expense.create"
     ],
     "path": null
@@ -1492,6 +1517,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:finance",
       "permission:finance.expense.view"
     ],
     "path": null
@@ -1507,6 +1533,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:finance",
       "permission:finance.expense.create"
     ],
     "path": null
@@ -1522,6 +1549,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:finance",
       "permission:finance.expense.view"
     ],
     "path": null
@@ -1537,6 +1565,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:finance",
       "permission:assets.asset.create"
     ],
     "path": null
@@ -1552,6 +1581,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:finance",
       "permission:finance.journal.view"
     ],
     "path": null
@@ -1567,6 +1597,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:finance",
       "permission:finance.journal.create"
     ],
     "path": null
@@ -1582,6 +1613,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:finance",
       "permission:finance.journal.create"
     ],
     "path": null
@@ -1597,6 +1629,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:finance",
       "permission:finance.journal.view"
     ],
     "path": null
@@ -1612,6 +1645,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:finance",
       "permission:finance.journal.create"
     ],
     "path": null
@@ -1627,6 +1661,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:finance",
       "permission:finance.bank.create"
     ],
     "path": null
@@ -1653,7 +1688,8 @@
       "api",
       "auth.jwt",
       "tenant.resolve",
-      "tenant.active"
+      "tenant.active",
+      "module.active:hr"
     ],
     "path": null
   },
@@ -1667,7 +1703,8 @@
       "api",
       "auth.jwt",
       "tenant.resolve",
-      "tenant.active"
+      "tenant.active",
+      "module.active:hr"
     ],
     "path": null
   },
@@ -1681,7 +1718,8 @@
       "api",
       "auth.jwt",
       "tenant.resolve",
-      "tenant.active"
+      "tenant.active",
+      "module.active:hr"
     ],
     "path": null
   },
@@ -1695,7 +1733,8 @@
       "api",
       "auth.jwt",
       "tenant.resolve",
-      "tenant.active"
+      "tenant.active",
+      "module.active:hr"
     ],
     "path": null
   },
@@ -1709,7 +1748,8 @@
       "api",
       "auth.jwt",
       "tenant.resolve",
-      "tenant.active"
+      "tenant.active",
+      "module.active:hr"
     ],
     "path": null
   },
@@ -1723,7 +1763,8 @@
       "api",
       "auth.jwt",
       "tenant.resolve",
-      "tenant.active"
+      "tenant.active",
+      "module.active:hr"
     ],
     "path": null
   },
@@ -1737,7 +1778,8 @@
       "api",
       "auth.jwt",
       "tenant.resolve",
-      "tenant.active"
+      "tenant.active",
+      "module.active:hr"
     ],
     "path": null
   },
@@ -1751,7 +1793,8 @@
       "api",
       "auth.jwt",
       "tenant.resolve",
-      "tenant.active"
+      "tenant.active",
+      "module.active:hr"
     ],
     "path": null
   },
@@ -1765,7 +1808,8 @@
       "api",
       "auth.jwt",
       "tenant.resolve",
-      "tenant.active"
+      "tenant.active",
+      "module.active:hr"
     ],
     "path": null
   },
@@ -1779,7 +1823,8 @@
       "api",
       "auth.jwt",
       "tenant.resolve",
-      "tenant.active"
+      "tenant.active",
+      "module.active:hr"
     ],
     "path": null
   },
@@ -1793,7 +1838,8 @@
       "api",
       "auth.jwt",
       "tenant.resolve",
-      "tenant.active"
+      "tenant.active",
+      "module.active:hr"
     ],
     "path": null
   },
@@ -1807,7 +1853,8 @@
       "api",
       "auth.jwt",
       "tenant.resolve",
-      "tenant.active"
+      "tenant.active",
+      "module.active:hr"
     ],
     "path": null
   },
@@ -1815,13 +1862,14 @@
     "domain": null,
     "method": "GET|HEAD",
     "uri": "api/v1/hr/departments",
-    "name": "tenant.hr.departments.index",
+    "name": "tenant.hr.departments",
     "action": "App\\Modules\\HR\\Controllers\\EmployeeController@departments",
     "middleware": [
       "api",
       "auth.jwt",
       "tenant.resolve",
-      "tenant.active"
+      "tenant.active",
+      "module.active:hr"
     ],
     "path": null
   },
@@ -1835,7 +1883,8 @@
       "api",
       "auth.jwt",
       "tenant.resolve",
-      "tenant.active"
+      "tenant.active",
+      "module.active:hr"
     ],
     "path": null
   },
@@ -1849,7 +1898,8 @@
       "api",
       "auth.jwt",
       "tenant.resolve",
-      "tenant.active"
+      "tenant.active",
+      "module.active:hr"
     ],
     "path": null
   },
@@ -1863,7 +1913,8 @@
       "api",
       "auth.jwt",
       "tenant.resolve",
-      "tenant.active"
+      "tenant.active",
+      "module.active:hr"
     ],
     "path": null
   },
@@ -1877,7 +1928,8 @@
       "api",
       "auth.jwt",
       "tenant.resolve",
-      "tenant.active"
+      "tenant.active",
+      "module.active:hr"
     ],
     "path": null
   },
@@ -1891,7 +1943,8 @@
       "api",
       "auth.jwt",
       "tenant.resolve",
-      "tenant.active"
+      "tenant.active",
+      "module.active:hr"
     ],
     "path": null
   },
@@ -1899,13 +1952,14 @@
     "domain": null,
     "method": "GET|HEAD",
     "uri": "api/v1/hr/designations",
-    "name": "tenant.hr.designations.index",
+    "name": "tenant.hr.designations",
     "action": "App\\Modules\\HR\\Controllers\\EmployeeController@designations",
     "middleware": [
       "api",
       "auth.jwt",
       "tenant.resolve",
-      "tenant.active"
+      "tenant.active",
+      "module.active:hr"
     ],
     "path": null
   },
@@ -1919,7 +1973,8 @@
       "api",
       "auth.jwt",
       "tenant.resolve",
-      "tenant.active"
+      "tenant.active",
+      "module.active:hr"
     ],
     "path": null
   },
@@ -1933,7 +1988,8 @@
       "api",
       "auth.jwt",
       "tenant.resolve",
-      "tenant.active"
+      "tenant.active",
+      "module.active:hr"
     ],
     "path": null
   },
@@ -1947,7 +2003,8 @@
       "api",
       "auth.jwt",
       "tenant.resolve",
-      "tenant.active"
+      "tenant.active",
+      "module.active:hr"
     ],
     "path": null
   },
@@ -1961,7 +2018,8 @@
       "api",
       "auth.jwt",
       "tenant.resolve",
-      "tenant.active"
+      "tenant.active",
+      "module.active:hr"
     ],
     "path": null
   },
@@ -1975,7 +2033,8 @@
       "api",
       "auth.jwt",
       "tenant.resolve",
-      "tenant.active"
+      "tenant.active",
+      "module.active:hr"
     ],
     "path": null
   },
@@ -1989,7 +2048,8 @@
       "api",
       "auth.jwt",
       "tenant.resolve",
-      "tenant.active"
+      "tenant.active",
+      "module.active:hr"
     ],
     "path": null
   },
@@ -2003,7 +2063,8 @@
       "api",
       "auth.jwt",
       "tenant.resolve",
-      "tenant.active"
+      "tenant.active",
+      "module.active:hr"
     ],
     "path": null
   },
@@ -2017,7 +2078,8 @@
       "api",
       "auth.jwt",
       "tenant.resolve",
-      "tenant.active"
+      "tenant.active",
+      "module.active:hr"
     ],
     "path": null
   },
@@ -2031,7 +2093,8 @@
       "api",
       "auth.jwt",
       "tenant.resolve",
-      "tenant.active"
+      "tenant.active",
+      "module.active:hr"
     ],
     "path": null
   },
@@ -2045,7 +2108,8 @@
       "api",
       "auth.jwt",
       "tenant.resolve",
-      "tenant.active"
+      "tenant.active",
+      "module.active:hr"
     ],
     "path": null
   },
@@ -2059,7 +2123,8 @@
       "api",
       "auth.jwt",
       "tenant.resolve",
-      "tenant.active"
+      "tenant.active",
+      "module.active:hr"
     ],
     "path": null
   },
@@ -2073,7 +2138,8 @@
       "api",
       "auth.jwt",
       "tenant.resolve",
-      "tenant.active"
+      "tenant.active",
+      "module.active:hr"
     ],
     "path": null
   },
@@ -2087,7 +2153,8 @@
       "api",
       "auth.jwt",
       "tenant.resolve",
-      "tenant.active"
+      "tenant.active",
+      "module.active:hr"
     ],
     "path": null
   },
@@ -2101,7 +2168,8 @@
       "api",
       "auth.jwt",
       "tenant.resolve",
-      "tenant.active"
+      "tenant.active",
+      "module.active:hr"
     ],
     "path": null
   },
@@ -2115,7 +2183,8 @@
       "api",
       "auth.jwt",
       "tenant.resolve",
-      "tenant.active"
+      "tenant.active",
+      "module.active:hr"
     ],
     "path": null
   },
@@ -2129,7 +2198,8 @@
       "api",
       "auth.jwt",
       "tenant.resolve",
-      "tenant.active"
+      "tenant.active",
+      "module.active:hr"
     ],
     "path": null
   },
@@ -2143,7 +2213,8 @@
       "api",
       "auth.jwt",
       "tenant.resolve",
-      "tenant.active"
+      "tenant.active",
+      "module.active:hr"
     ],
     "path": null
   },
@@ -2157,7 +2228,8 @@
       "api",
       "auth.jwt",
       "tenant.resolve",
-      "tenant.active"
+      "tenant.active",
+      "module.active:hr"
     ],
     "path": null
   },
@@ -2171,7 +2243,8 @@
       "api",
       "auth.jwt",
       "tenant.resolve",
-      "tenant.active"
+      "tenant.active",
+      "module.active:hr"
     ],
     "path": null
   },
@@ -2185,7 +2258,8 @@
       "api",
       "auth.jwt",
       "tenant.resolve",
-      "tenant.active"
+      "tenant.active",
+      "module.active:hr"
     ],
     "path": null
   },
@@ -2199,7 +2273,8 @@
       "api",
       "auth.jwt",
       "tenant.resolve",
-      "tenant.active"
+      "tenant.active",
+      "module.active:hr"
     ],
     "path": null
   },
@@ -2213,7 +2288,8 @@
       "api",
       "auth.jwt",
       "tenant.resolve",
-      "tenant.active"
+      "tenant.active",
+      "module.active:hr"
     ],
     "path": null
   },
@@ -2227,7 +2303,8 @@
       "api",
       "auth.jwt",
       "tenant.resolve",
-      "tenant.active"
+      "tenant.active",
+      "module.active:hr"
     ],
     "path": null
   },
@@ -2241,7 +2318,8 @@
       "api",
       "auth.jwt",
       "tenant.resolve",
-      "tenant.active"
+      "tenant.active",
+      "module.active:hr"
     ],
     "path": null
   },
@@ -2255,7 +2333,8 @@
       "api",
       "auth.jwt",
       "tenant.resolve",
-      "tenant.active"
+      "tenant.active",
+      "module.active:hr"
     ],
     "path": null
   },
@@ -2269,7 +2348,8 @@
       "api",
       "auth.jwt",
       "tenant.resolve",
-      "tenant.active"
+      "tenant.active",
+      "module.active:hr"
     ],
     "path": null
   },
@@ -2283,7 +2363,8 @@
       "api",
       "auth.jwt",
       "tenant.resolve",
-      "tenant.active"
+      "tenant.active",
+      "module.active:hr"
     ],
     "path": null
   },
@@ -2297,7 +2378,8 @@
       "api",
       "auth.jwt",
       "tenant.resolve",
-      "tenant.active"
+      "tenant.active",
+      "module.active:hr"
     ],
     "path": null
   },
@@ -2311,7 +2393,8 @@
       "api",
       "auth.jwt",
       "tenant.resolve",
-      "tenant.active"
+      "tenant.active",
+      "module.active:hr"
     ],
     "path": null
   },
@@ -2325,7 +2408,8 @@
       "api",
       "auth.jwt",
       "tenant.resolve",
-      "tenant.active"
+      "tenant.active",
+      "module.active:hr"
     ],
     "path": null
   },
@@ -2339,7 +2423,8 @@
       "api",
       "auth.jwt",
       "tenant.resolve",
-      "tenant.active"
+      "tenant.active",
+      "module.active:hr"
     ],
     "path": null
   },
@@ -2353,7 +2438,8 @@
       "api",
       "auth.jwt",
       "tenant.resolve",
-      "tenant.active"
+      "tenant.active",
+      "module.active:hr"
     ],
     "path": null
   },
@@ -2367,7 +2453,8 @@
       "api",
       "auth.jwt",
       "tenant.resolve",
-      "tenant.active"
+      "tenant.active",
+      "module.active:hr"
     ],
     "path": null
   },
@@ -2381,7 +2468,8 @@
       "api",
       "auth.jwt",
       "tenant.resolve",
-      "tenant.active"
+      "tenant.active",
+      "module.active:hr"
     ],
     "path": null
   },
@@ -2395,7 +2483,8 @@
       "api",
       "auth.jwt",
       "tenant.resolve",
-      "tenant.active"
+      "tenant.active",
+      "module.active:hr"
     ],
     "path": null
   },
@@ -2409,7 +2498,8 @@
       "api",
       "auth.jwt",
       "tenant.resolve",
-      "tenant.active"
+      "tenant.active",
+      "module.active:hr"
     ],
     "path": null
   },
@@ -2423,7 +2513,8 @@
       "api",
       "auth.jwt",
       "tenant.resolve",
-      "tenant.active"
+      "tenant.active",
+      "module.active:hr"
     ],
     "path": null
   },
@@ -2437,7 +2528,8 @@
       "api",
       "auth.jwt",
       "tenant.resolve",
-      "tenant.active"
+      "tenant.active",
+      "module.active:hr"
     ],
     "path": null
   },
@@ -2451,7 +2543,8 @@
       "api",
       "auth.jwt",
       "tenant.resolve",
-      "tenant.active"
+      "tenant.active",
+      "module.active:hr"
     ],
     "path": null
   },
@@ -2465,7 +2558,8 @@
       "api",
       "auth.jwt",
       "tenant.resolve",
-      "tenant.active"
+      "tenant.active",
+      "module.active:hr"
     ],
     "path": null
   },
@@ -2479,7 +2573,8 @@
       "api",
       "auth.jwt",
       "tenant.resolve",
-      "tenant.active"
+      "tenant.active",
+      "module.active:hr"
     ],
     "path": null
   },
@@ -2493,7 +2588,8 @@
       "api",
       "auth.jwt",
       "tenant.resolve",
-      "tenant.active"
+      "tenant.active",
+      "module.active:hr"
     ],
     "path": null
   },
@@ -2507,7 +2603,8 @@
       "api",
       "auth.jwt",
       "tenant.resolve",
-      "tenant.active"
+      "tenant.active",
+      "module.active:hr"
     ],
     "path": null
   },
@@ -2521,7 +2618,8 @@
       "api",
       "auth.jwt",
       "tenant.resolve",
-      "tenant.active"
+      "tenant.active",
+      "module.active:hr"
     ],
     "path": null
   },
@@ -2535,7 +2633,8 @@
       "api",
       "auth.jwt",
       "tenant.resolve",
-      "tenant.active"
+      "tenant.active",
+      "module.active:hr"
     ],
     "path": null
   },
@@ -2549,7 +2648,8 @@
       "api",
       "auth.jwt",
       "tenant.resolve",
-      "tenant.active"
+      "tenant.active",
+      "module.active:hr"
     ],
     "path": null
   },
@@ -2563,7 +2663,8 @@
       "api",
       "auth.jwt",
       "tenant.resolve",
-      "tenant.active"
+      "tenant.active",
+      "module.active:hr"
     ],
     "path": null
   },
@@ -2577,7 +2678,8 @@
       "api",
       "auth.jwt",
       "tenant.resolve",
-      "tenant.active"
+      "tenant.active",
+      "module.active:hr"
     ],
     "path": null
   },
@@ -2591,7 +2693,8 @@
       "api",
       "auth.jwt",
       "tenant.resolve",
-      "tenant.active"
+      "tenant.active",
+      "module.active:hr"
     ],
     "path": null
   },
@@ -2605,7 +2708,8 @@
       "api",
       "auth.jwt",
       "tenant.resolve",
-      "tenant.active"
+      "tenant.active",
+      "module.active:hr"
     ],
     "path": null
   },
@@ -2619,7 +2723,8 @@
       "api",
       "auth.jwt",
       "tenant.resolve",
-      "tenant.active"
+      "tenant.active",
+      "module.active:hr"
     ],
     "path": null
   },
@@ -2633,7 +2738,8 @@
       "api",
       "auth.jwt",
       "tenant.resolve",
-      "tenant.active"
+      "tenant.active",
+      "module.active:hr"
     ],
     "path": null
   },
@@ -2647,7 +2753,8 @@
       "api",
       "auth.jwt",
       "tenant.resolve",
-      "tenant.active"
+      "tenant.active",
+      "module.active:hr"
     ],
     "path": null
   },
@@ -2661,7 +2768,8 @@
       "api",
       "auth.jwt",
       "tenant.resolve",
-      "tenant.active"
+      "tenant.active",
+      "module.active:hr"
     ],
     "path": null
   },
@@ -2675,7 +2783,8 @@
       "api",
       "auth.jwt",
       "tenant.resolve",
-      "tenant.active"
+      "tenant.active",
+      "module.active:hr"
     ],
     "path": null
   },
@@ -2689,7 +2798,8 @@
       "api",
       "auth.jwt",
       "tenant.resolve",
-      "tenant.active"
+      "tenant.active",
+      "module.active:hr"
     ],
     "path": null
   },
@@ -2703,7 +2813,8 @@
       "api",
       "auth.jwt",
       "tenant.resolve",
-      "tenant.active"
+      "tenant.active",
+      "module.active:hr"
     ],
     "path": null
   },
@@ -2717,7 +2828,8 @@
       "api",
       "auth.jwt",
       "tenant.resolve",
-      "tenant.active"
+      "tenant.active",
+      "module.active:hr"
     ],
     "path": null
   },
@@ -2731,7 +2843,8 @@
       "api",
       "auth.jwt",
       "tenant.resolve",
-      "tenant.active"
+      "tenant.active",
+      "module.active:hr"
     ],
     "path": null
   },
@@ -2739,13 +2852,14 @@
     "domain": null,
     "method": "GET|HEAD",
     "uri": "api/v1/hr/shifts",
-    "name": "tenant.hr.shifts.index",
+    "name": "tenant.hr.shifts",
     "action": "App\\Modules\\HR\\Controllers\\EmployeeController@shifts",
     "middleware": [
       "api",
       "auth.jwt",
       "tenant.resolve",
-      "tenant.active"
+      "tenant.active",
+      "module.active:hr"
     ],
     "path": null
   },
@@ -2759,7 +2873,8 @@
       "api",
       "auth.jwt",
       "tenant.resolve",
-      "tenant.active"
+      "tenant.active",
+      "module.active:hr"
     ],
     "path": null
   },
@@ -2773,7 +2888,8 @@
       "api",
       "auth.jwt",
       "tenant.resolve",
-      "tenant.active"
+      "tenant.active",
+      "module.active:hr"
     ],
     "path": null
   },
@@ -2787,7 +2903,8 @@
       "api",
       "auth.jwt",
       "tenant.resolve",
-      "tenant.active"
+      "tenant.active",
+      "module.active:hr"
     ],
     "path": null
   },
@@ -2801,7 +2918,8 @@
       "api",
       "auth.jwt",
       "tenant.resolve",
-      "tenant.active"
+      "tenant.active",
+      "module.active:hr"
     ],
     "path": null
   },
@@ -2815,7 +2933,8 @@
       "api",
       "auth.jwt",
       "tenant.resolve",
-      "tenant.active"
+      "tenant.active",
+      "module.active:hr"
     ],
     "path": null
   },
@@ -2829,7 +2948,8 @@
       "api",
       "auth.jwt",
       "tenant.resolve",
-      "tenant.active"
+      "tenant.active",
+      "module.active:hr"
     ],
     "path": null
   },
@@ -2860,6 +2980,96 @@
   {
     "domain": null,
     "method": "GET|HEAD",
+    "uri": "api/v1/integrations/webhooks",
+    "name": "tenant.integrations.webhooks.index",
+    "action": "App\\Modules\\Platform\\Controllers\\TenantWebhookController@index",
+    "middleware": [
+      "api",
+      "auth.jwt",
+      "tenant.resolve",
+      "tenant.active",
+      "permission:integrations.webhook.view"
+    ],
+    "path": null
+  },
+  {
+    "domain": null,
+    "method": "POST",
+    "uri": "api/v1/integrations/webhooks",
+    "name": "tenant.integrations.webhooks.store",
+    "action": "App\\Modules\\Platform\\Controllers\\TenantWebhookController@store",
+    "middleware": [
+      "api",
+      "auth.jwt",
+      "tenant.resolve",
+      "tenant.active",
+      "permission:integrations.webhook.create"
+    ],
+    "path": null
+  },
+  {
+    "domain": null,
+    "method": "GET|HEAD",
+    "uri": "api/v1/integrations/webhooks/{id}",
+    "name": "tenant.integrations.webhooks.show",
+    "action": "App\\Modules\\Platform\\Controllers\\TenantWebhookController@show",
+    "middleware": [
+      "api",
+      "auth.jwt",
+      "tenant.resolve",
+      "tenant.active",
+      "permission:integrations.webhook.view"
+    ],
+    "path": null
+  },
+  {
+    "domain": null,
+    "method": "PATCH|PUT",
+    "uri": "api/v1/integrations/webhooks/{id}",
+    "name": "tenant.integrations.webhooks.update",
+    "action": "App\\Modules\\Platform\\Controllers\\TenantWebhookController@update",
+    "middleware": [
+      "api",
+      "auth.jwt",
+      "tenant.resolve",
+      "tenant.active",
+      "permission:integrations.webhook.update"
+    ],
+    "path": null
+  },
+  {
+    "domain": null,
+    "method": "DELETE",
+    "uri": "api/v1/integrations/webhooks/{id}",
+    "name": "tenant.integrations.webhooks.destroy",
+    "action": "App\\Modules\\Platform\\Controllers\\TenantWebhookController@destroy",
+    "middleware": [
+      "api",
+      "auth.jwt",
+      "tenant.resolve",
+      "tenant.active",
+      "permission:integrations.webhook.delete"
+    ],
+    "path": null
+  },
+  {
+    "domain": null,
+    "method": "POST",
+    "uri": "api/v1/integrations/webhooks/{id}/ping",
+    "name": "tenant.integrations.webhooks.ping",
+    "action": "App\\Modules\\Platform\\Controllers\\TenantWebhookController@ping",
+    "middleware": [
+      "api",
+      "auth.jwt",
+      "tenant.resolve",
+      "tenant.active",
+      "permission:integrations.webhook.manage"
+    ],
+    "path": null
+  },
+  {
+    "domain": null,
+    "method": "GET|HEAD",
     "uri": "api/v1/inventory/adjustments",
     "name": "tenant.inventory.adjustments.index",
     "action": "App\\Modules\\Inventory\\Controllers\\StockAdjustmentController@index",
@@ -2868,6 +3078,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:inventory",
       "permission:inventory.adjustment.view"
     ],
     "path": null
@@ -2883,6 +3094,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:inventory",
       "permission:inventory.adjustment.create"
     ],
     "path": null
@@ -2898,6 +3110,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:inventory",
       "permission:inventory.adjustment.view"
     ],
     "path": null
@@ -2913,6 +3126,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:inventory",
       "permission:inventory.adjustment.update"
     ],
     "path": null
@@ -2928,6 +3142,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:inventory",
       "permission:inventory.adjustment.delete"
     ],
     "path": null
@@ -2943,6 +3158,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:inventory",
       "permission:inventory.adjustment.approve"
     ],
     "path": null
@@ -2958,6 +3174,23 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:inventory",
+      "permission:inventory.stock.view"
+    ],
+    "path": null
+  },
+  {
+    "domain": null,
+    "method": "POST",
+    "uri": "api/v1/inventory/balances/bulk-delete",
+    "name": "tenant.inventory.balances.bulk-delete",
+    "action": "App\\Modules\\Inventory\\Controllers\\StockMovementController@bulkDestroyBalances",
+    "middleware": [
+      "api",
+      "auth.jwt",
+      "tenant.resolve",
+      "tenant.active",
+      "module.active:inventory",
       "permission:inventory.stock.view"
     ],
     "path": null
@@ -2973,6 +3206,23 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:inventory",
+      "permission:inventory.stock.view"
+    ],
+    "path": null
+  },
+  {
+    "domain": null,
+    "method": "DELETE",
+    "uri": "api/v1/inventory/balances/{id}",
+    "name": "tenant.inventory.balances.destroy",
+    "action": "App\\Modules\\Inventory\\Controllers\\StockMovementController@destroyBalance",
+    "middleware": [
+      "api",
+      "auth.jwt",
+      "tenant.resolve",
+      "tenant.active",
+      "module.active:inventory",
       "permission:inventory.stock.view"
     ],
     "path": null
@@ -2988,6 +3238,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:inventory",
       "permission:inventory.count.view"
     ],
     "path": null
@@ -3003,6 +3254,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:inventory",
       "permission:inventory.count.create"
     ],
     "path": null
@@ -3018,6 +3270,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:inventory",
       "permission:inventory.count.view"
     ],
     "path": null
@@ -3033,6 +3286,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:inventory",
       "permission:inventory.count.update"
     ],
     "path": null
@@ -3048,6 +3302,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:inventory",
       "permission:inventory.count.delete"
     ],
     "path": null
@@ -3063,6 +3318,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:inventory",
       "permission:inventory.count.approve"
     ],
     "path": null
@@ -3078,6 +3334,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:inventory",
       "permission:inventory.movement.view"
     ],
     "path": null
@@ -3093,6 +3350,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:inventory",
       "permission:inventory.movement.view"
     ],
     "path": null
@@ -3108,6 +3366,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:inventory",
       "permission:inventory.stock.view"
     ],
     "path": null
@@ -3123,6 +3382,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:inventory",
       "permission:inventory.stock.view"
     ],
     "path": null
@@ -3137,7 +3397,8 @@
       "api",
       "auth.jwt",
       "tenant.resolve",
-      "tenant.active"
+      "tenant.active",
+      "module.active:inventory"
     ],
     "path": null
   },
@@ -3151,7 +3412,8 @@
       "api",
       "auth.jwt",
       "tenant.resolve",
-      "tenant.active"
+      "tenant.active",
+      "module.active:inventory"
     ],
     "path": null
   },
@@ -3165,7 +3427,8 @@
       "api",
       "auth.jwt",
       "tenant.resolve",
-      "tenant.active"
+      "tenant.active",
+      "module.active:inventory"
     ],
     "path": null
   },
@@ -3180,6 +3443,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:inventory",
       "permission:inventory.transfer.view"
     ],
     "path": null
@@ -3195,6 +3459,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:inventory",
       "permission:inventory.transfer.create"
     ],
     "path": null
@@ -3210,6 +3475,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:inventory",
       "permission:inventory.transfer.view"
     ],
     "path": null
@@ -3225,6 +3491,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:inventory",
       "permission:inventory.transfer.update"
     ],
     "path": null
@@ -3240,6 +3507,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:inventory",
       "permission:inventory.transfer.delete"
     ],
     "path": null
@@ -3255,6 +3523,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:inventory",
       "permission:inventory.transfer.approve"
     ],
     "path": null
@@ -3270,6 +3539,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:inventory",
       "permission:inventory.transfer.approve"
     ],
     "path": null
@@ -4708,6 +4978,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:pos",
       "permission:pos.checkout"
     ],
     "path": null
@@ -4722,7 +4993,8 @@
       "api",
       "auth.jwt",
       "tenant.resolve",
-      "tenant.active"
+      "tenant.active",
+      "module.active:pos"
     ],
     "path": null
   },
@@ -4736,7 +5008,8 @@
       "api",
       "auth.jwt",
       "tenant.resolve",
-      "tenant.active"
+      "tenant.active",
+      "module.active:pos"
     ],
     "path": null
   },
@@ -4750,7 +5023,8 @@
       "api",
       "auth.jwt",
       "tenant.resolve",
-      "tenant.active"
+      "tenant.active",
+      "module.active:pos"
     ],
     "path": null
   },
@@ -4764,7 +5038,8 @@
       "api",
       "auth.jwt",
       "tenant.resolve",
-      "tenant.active"
+      "tenant.active",
+      "module.active:pos"
     ],
     "path": null
   },
@@ -4779,6 +5054,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:pos",
       "permission:pos.session.view"
     ],
     "path": null
@@ -4794,6 +5070,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:pos",
       "permission:pos.session.open"
     ],
     "path": null
@@ -4809,6 +5086,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:pos",
       "permission:pos.session.view"
     ],
     "path": null
@@ -4824,6 +5102,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:pos",
       "permission:pos.session.close"
     ],
     "path": null
@@ -4839,6 +5118,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:pos",
       "permission:pos.terminal.view"
     ],
     "path": null
@@ -4854,6 +5134,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:pos",
       "permission:pos.terminal.create"
     ],
     "path": null
@@ -4869,6 +5150,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:pos",
       "permission:pos.terminal.view"
     ],
     "path": null
@@ -4884,6 +5166,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:pos",
       "permission:pos.terminal.update"
     ],
     "path": null
@@ -4899,6 +5182,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:pos",
       "permission:pos.terminal.delete"
     ],
     "path": null
@@ -4914,6 +5198,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:pos",
       "permission:pos.terminal.update"
     ],
     "path": null
@@ -5214,6 +5499,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:production",
       "permission:production.batch.view"
     ],
     "path": null
@@ -5229,6 +5515,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:production",
       "permission:production.batch.create"
     ],
     "path": null
@@ -5244,6 +5531,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:production",
       "permission:production.batch.view"
     ],
     "path": null
@@ -5259,6 +5547,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:production",
       "permission:production.batch.update"
     ],
     "path": null
@@ -5274,6 +5563,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:production",
       "permission:production.batch.delete"
     ],
     "path": null
@@ -5289,6 +5579,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:production",
       "permission:production.batch.view"
     ],
     "path": null
@@ -5304,6 +5595,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:production",
       "permission:production.batch.approve"
     ],
     "path": null
@@ -5319,6 +5611,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:production",
       "permission:production.batch.approve"
     ],
     "path": null
@@ -5334,6 +5627,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:production",
       "permission:production.batch.create"
     ],
     "path": null
@@ -5349,6 +5643,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:production",
       "permission:production.batch.create"
     ],
     "path": null
@@ -5364,6 +5659,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:production",
       "permission:production.batch.update"
     ],
     "path": null
@@ -5379,6 +5675,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:production",
       "permission:production.worker_entry.create"
     ],
     "path": null
@@ -5394,6 +5691,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:production",
       "permission:production.plan.view"
     ],
     "path": null
@@ -5409,6 +5707,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:production",
       "permission:production.plan.create"
     ],
     "path": null
@@ -5424,6 +5723,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:production",
       "permission:production.plan.create"
     ],
     "path": null
@@ -5439,6 +5739,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:production",
       "permission:production.plan.view"
     ],
     "path": null
@@ -5454,6 +5755,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:production",
       "permission:production.plan.update"
     ],
     "path": null
@@ -5469,6 +5771,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:production",
       "permission:production.plan.delete"
     ],
     "path": null
@@ -5484,7 +5787,56 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:production",
       "permission:production.plan.approve"
+    ],
+    "path": null
+  },
+  {
+    "domain": null,
+    "method": "GET|HEAD",
+    "uri": "api/v1/production/reconciliation",
+    "name": "tenant.production.reconciliation.index",
+    "action": "App\\Modules\\Production\\Controllers\\BatchReconciliationController@index",
+    "middleware": [
+      "api",
+      "auth.jwt",
+      "tenant.resolve",
+      "tenant.active",
+      "module.active:production",
+      "permission:production.batch.view"
+    ],
+    "path": null
+  },
+  {
+    "domain": null,
+    "method": "GET|HEAD",
+    "uri": "api/v1/production/reconciliation/{uuid}",
+    "name": "tenant.production.reconciliation.show",
+    "action": "App\\Modules\\Production\\Controllers\\BatchReconciliationController@show",
+    "middleware": [
+      "api",
+      "auth.jwt",
+      "tenant.resolve",
+      "tenant.active",
+      "module.active:production",
+      "permission:production.batch.view"
+    ],
+    "path": null
+  },
+  {
+    "domain": null,
+    "method": "POST",
+    "uri": "api/v1/production/reconciliation/{uuid}/sign-off",
+    "name": "tenant.production.reconciliation.sign-off",
+    "action": "App\\Modules\\Production\\Controllers\\BatchReconciliationController@signOff",
+    "middleware": [
+      "api",
+      "auth.jwt",
+      "tenant.resolve",
+      "tenant.active",
+      "module.active:production",
+      "permission:production.batch.approve"
     ],
     "path": null
   },
@@ -5498,7 +5850,8 @@
       "api",
       "auth.jwt",
       "tenant.resolve",
-      "tenant.active"
+      "tenant.active",
+      "module.active:production"
     ],
     "path": null
   },
@@ -5513,6 +5866,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:production",
       "permission:production.worker_entry.view"
     ],
     "path": null
@@ -5528,6 +5882,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:production",
       "permission:production.worker_entry.create"
     ],
     "path": null
@@ -5543,6 +5898,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:production",
       "permission:production.worker_entry.delete"
     ],
     "path": null
@@ -5558,6 +5914,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:production",
       "permission:production.worker_entry.create"
     ],
     "path": null
@@ -5573,6 +5930,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:production",
       "permission:production.worker_entry.approve"
     ],
     "path": null
@@ -5588,6 +5946,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:production",
       "permission:production.worker_entry.view"
     ],
     "path": null
@@ -5603,6 +5962,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:production",
       "permission:production.worker_entry.view"
     ],
     "path": null
@@ -5618,6 +5978,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:production",
       "permission:production.worker_entry.update"
     ],
     "path": null
@@ -5633,6 +5994,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:production",
       "permission:production.worker_entry.delete"
     ],
     "path": null
@@ -5648,6 +6010,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:production",
       "permission:production.worker_entry.approve"
     ],
     "path": null
@@ -5844,6 +6207,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:purchasing",
       "permission:purchasing.bill.view"
     ],
     "path": null
@@ -5859,6 +6223,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:purchasing",
       "permission:purchasing.bill.create"
     ],
     "path": null
@@ -5874,6 +6239,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:purchasing",
       "permission:purchasing.bill.view"
     ],
     "path": null
@@ -5889,6 +6255,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:purchasing",
       "permission:purchasing.bill.create"
     ],
     "path": null
@@ -5904,6 +6271,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:purchasing",
       "permission:purchasing.bill.delete"
     ],
     "path": null
@@ -5919,6 +6287,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:purchasing",
       "permission:purchasing.bill.approve"
     ],
     "path": null
@@ -5934,6 +6303,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:purchasing",
       "permission:purchasing.bill.create"
     ],
     "path": null
@@ -5949,6 +6319,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:purchasing",
       "permission:purchasing.receipt.view"
     ],
     "path": null
@@ -5964,6 +6335,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:purchasing",
       "permission:purchasing.receipt.create"
     ],
     "path": null
@@ -5979,6 +6351,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:purchasing",
       "permission:purchasing.receipt.view"
     ],
     "path": null
@@ -5994,6 +6367,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:purchasing",
       "permission:purchasing.receipt.create"
     ],
     "path": null
@@ -6009,6 +6383,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:purchasing",
       "permission:purchasing.receipt.delete"
     ],
     "path": null
@@ -6024,6 +6399,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:purchasing",
       "permission:purchasing.receipt.create"
     ],
     "path": null
@@ -6039,6 +6415,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:purchasing",
       "permission:purchasing.order.view"
     ],
     "path": null
@@ -6054,6 +6431,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:purchasing",
       "permission:purchasing.order.create"
     ],
     "path": null
@@ -6069,6 +6447,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:purchasing",
       "permission:purchasing.order.view"
     ],
     "path": null
@@ -6084,6 +6463,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:purchasing",
       "permission:purchasing.order.create"
     ],
     "path": null
@@ -6099,6 +6479,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:purchasing",
       "permission:purchasing.order.delete"
     ],
     "path": null
@@ -6114,6 +6495,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:purchasing",
       "permission:purchasing.order.approve"
     ],
     "path": null
@@ -6129,6 +6511,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:purchasing",
       "permission:purchasing.order.create"
     ],
     "path": null
@@ -6144,6 +6527,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:purchasing",
       "permission:purchasing.receipt.view"
     ],
     "path": null
@@ -6159,6 +6543,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:purchasing",
       "permission:purchasing.receipt.create"
     ],
     "path": null
@@ -6174,6 +6559,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:purchasing",
       "permission:purchasing.receipt.view"
     ],
     "path": null
@@ -6189,6 +6575,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:purchasing",
       "permission:purchasing.requisition.view"
     ],
     "path": null
@@ -6204,6 +6591,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:purchasing",
       "permission:purchasing.requisition.create"
     ],
     "path": null
@@ -6219,6 +6607,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:purchasing",
       "permission:purchasing.requisition.view"
     ],
     "path": null
@@ -6234,6 +6623,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:purchasing",
       "permission:purchasing.requisition.create"
     ],
     "path": null
@@ -6249,6 +6639,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:purchasing",
       "permission:purchasing.requisition.delete"
     ],
     "path": null
@@ -6264,6 +6655,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:purchasing",
       "permission:purchasing.requisition.approve"
     ],
     "path": null
@@ -6279,6 +6671,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:purchasing",
       "permission:purchasing.requisition.approve"
     ],
     "path": null
@@ -6294,6 +6687,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:purchasing",
       "permission:purchasing.requisition.approve"
     ],
     "path": null
@@ -6309,6 +6703,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:purchasing",
       "permission:purchasing.return.view"
     ],
     "path": null
@@ -6324,6 +6719,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:purchasing",
       "permission:purchasing.return.create"
     ],
     "path": null
@@ -6339,6 +6735,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:purchasing",
       "permission:purchasing.return.view"
     ],
     "path": null
@@ -6354,6 +6751,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:purchasing",
       "permission:purchasing.return.create"
     ],
     "path": null
@@ -6369,6 +6767,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:purchasing",
       "permission:purchasing.return.delete"
     ],
     "path": null
@@ -6384,6 +6783,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:purchasing",
       "permission:purchasing.return.create"
     ],
     "path": null
@@ -6399,6 +6799,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:qc",
       "permission:qc.inspection.view"
     ],
     "path": null
@@ -6414,6 +6815,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:qc",
       "permission:qc.inspection.create"
     ],
     "path": null
@@ -6429,6 +6831,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:qc",
       "permission:qc.inspection.view"
     ],
     "path": null
@@ -6444,6 +6847,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:qc",
       "permission:qc.inspection.update"
     ],
     "path": null
@@ -6459,6 +6863,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:qc",
       "permission:qc.inspection.delete"
     ],
     "path": null
@@ -6474,6 +6879,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:qc",
       "permission:qc.inspection.approve"
     ],
     "path": null
@@ -6489,6 +6895,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:qc",
       "permission:qc.parameter.view"
     ],
     "path": null
@@ -6504,6 +6911,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:qc",
       "permission:qc.parameter.create"
     ],
     "path": null
@@ -6519,6 +6927,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:qc",
       "permission:qc.parameter.create"
     ],
     "path": null
@@ -6534,6 +6943,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:qc",
       "permission:qc.parameter.view"
     ],
     "path": null
@@ -6549,6 +6959,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:qc",
       "permission:qc.parameter.update"
     ],
     "path": null
@@ -6564,6 +6975,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:qc",
       "permission:qc.parameter.delete"
     ],
     "path": null
@@ -6579,6 +6991,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:qc",
       "permission:qc.inspection.view"
     ],
     "path": null
@@ -6594,6 +7007,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:qc",
       "permission:qc.inspection.create"
     ],
     "path": null
@@ -6609,6 +7023,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:qc",
       "permission:qc.inspection.view"
     ],
     "path": null
@@ -6624,6 +7039,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:qc",
       "permission:qc.inspection.update"
     ],
     "path": null
@@ -6639,6 +7055,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:qc",
       "permission:qc.inspection.delete"
     ],
     "path": null
@@ -6654,6 +7071,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:qc",
       "permission:qc.inspection.approve"
     ],
     "path": null
@@ -6669,6 +7087,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:qc",
       "permission:qc.inspection.update"
     ],
     "path": null
@@ -6684,6 +7103,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:qc",
       "permission:qc.wastage.view"
     ],
     "path": null
@@ -6699,6 +7119,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:qc",
       "permission:qc.wastage.create"
     ],
     "path": null
@@ -6714,6 +7135,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:qc",
       "permission:qc.wastage.view"
     ],
     "path": null
@@ -6729,6 +7151,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:qc",
       "permission:qc.wastage.update"
     ],
     "path": null
@@ -6744,6 +7167,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:qc",
       "permission:qc.wastage.delete"
     ],
     "path": null
@@ -6788,7 +7212,8 @@
       "api",
       "auth.jwt",
       "tenant.resolve",
-      "tenant.active"
+      "tenant.active",
+      "module.active:reports"
     ],
     "path": null
   },
@@ -6802,7 +7227,8 @@
       "api",
       "auth.jwt",
       "tenant.resolve",
-      "tenant.active"
+      "tenant.active",
+      "module.active:reports"
     ],
     "path": null
   },
@@ -6816,7 +7242,8 @@
       "api",
       "auth.jwt",
       "tenant.resolve",
-      "tenant.active"
+      "tenant.active",
+      "module.active:reports"
     ],
     "path": null
   },
@@ -6830,7 +7257,8 @@
       "api",
       "auth.jwt",
       "tenant.resolve",
-      "tenant.active"
+      "tenant.active",
+      "module.active:reports"
     ],
     "path": null
   },
@@ -6844,7 +7272,8 @@
       "api",
       "auth.jwt",
       "tenant.resolve",
-      "tenant.active"
+      "tenant.active",
+      "module.active:reports"
     ],
     "path": null
   },
@@ -6858,7 +7287,8 @@
       "api",
       "auth.jwt",
       "tenant.resolve",
-      "tenant.active"
+      "tenant.active",
+      "module.active:reports"
     ],
     "path": null
   },
@@ -6872,7 +7302,8 @@
       "api",
       "auth.jwt",
       "tenant.resolve",
-      "tenant.active"
+      "tenant.active",
+      "module.active:reports"
     ],
     "path": null
   },
@@ -6886,7 +7317,8 @@
       "api",
       "auth.jwt",
       "tenant.resolve",
-      "tenant.active"
+      "tenant.active",
+      "module.active:reports"
     ],
     "path": null
   },
@@ -6900,7 +7332,8 @@
       "api",
       "auth.jwt",
       "tenant.resolve",
-      "tenant.active"
+      "tenant.active",
+      "module.active:reports"
     ],
     "path": null
   },
@@ -7517,6 +7950,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:crm",
       "permission:sales.lead.view"
     ],
     "path": null
@@ -7532,6 +7966,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:crm",
       "permission:sales.lead.create"
     ],
     "path": null
@@ -7547,6 +7982,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:crm",
       "permission:sales.lead.create"
     ],
     "path": null
@@ -7562,6 +7998,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:crm",
       "permission:sales.lead.view"
     ],
     "path": null
@@ -7577,6 +8014,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:crm",
       "permission:sales.lead.update"
     ],
     "path": null
@@ -7592,6 +8030,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:crm",
       "permission:sales.lead.update"
     ],
     "path": null
@@ -7607,6 +8046,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:crm",
       "permission:sales.lead.update,sales.order.approve"
     ],
     "path": null
@@ -7622,6 +8062,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:crm",
       "permission:sales.lead.update"
     ],
     "path": null
@@ -7637,6 +8078,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:crm",
       "permission:sales.lead.update"
     ],
     "path": null
@@ -7652,6 +8094,7 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
+      "module.active:crm",
       "permission:sales.lead.update,sales.order.approve"
     ],
     "path": null
@@ -7728,6 +8171,21 @@
       "tenant.resolve",
       "tenant.active",
       "permission:sales.order.approve"
+    ],
+    "path": null
+  },
+  {
+    "domain": null,
+    "method": "POST",
+    "uri": "api/v1/sales/orders/{id}/cancel",
+    "name": "tenant.sales.orders.cancel",
+    "action": "App\\Modules\\Sales\\Controllers\\SalesOrderController@cancel",
+    "middleware": [
+      "api",
+      "auth.jwt",
+      "tenant.resolve",
+      "tenant.active",
+      "permission:sales.order.approve,sales.order.create"
     ],
     "path": null
   },
@@ -9072,6 +9530,34 @@
   },
   {
     "domain": null,
+    "method": "POST",
+    "uri": "api/v1/tenant/export",
+    "name": "tenant.tenant.config.export",
+    "action": "App\\Modules\\Platform\\Controllers\\TenantDataExportController@export",
+    "middleware": [
+      "api",
+      "auth.jwt",
+      "tenant.resolve",
+      "tenant.active"
+    ],
+    "path": null
+  },
+  {
+    "domain": null,
+    "method": "GET|HEAD",
+    "uri": "api/v1/tenant/export/{exportUuid}/download",
+    "name": "tenant.tenant.config.export.download",
+    "action": "App\\Modules\\Platform\\Controllers\\TenantDataExportController@download",
+    "middleware": [
+      "api",
+      "auth.jwt",
+      "tenant.resolve",
+      "tenant.active"
+    ],
+    "path": null
+  },
+  {
+    "domain": null,
     "method": "GET|HEAD",
     "uri": "api/v1/tenant/manifest",
     "name": "tenant.tenant.config.manifest",
@@ -9100,21 +9586,7 @@
   },
   {
     "domain": null,
-    "method": "POST",
-    "uri": "api/v1/tenant/modules/batch",
-    "name": "tenant.tenant.modules.batch",
-    "action": "App\\Modules\\Platform\\Controllers\\TenantModuleController@batchUpdate",
-    "middleware": [
-      "api",
-      "auth.jwt",
-      "tenant.resolve",
-      "tenant.active"
-    ],
-    "path": null
-  },
-  {
-    "domain": null,
-    "method": "PUT",
+    "method": "PUT|POST",
     "uri": "api/v1/tenant/modules/batch",
     "name": "tenant.tenant.config.modules.batch",
     "action": "App\\Modules\\Platform\\Controllers\\TenantModuleController@batchUpdate",
@@ -9425,7 +9897,8 @@
       "auth.jwt",
       "tenant.resolve",
       "tenant.active",
-      "permission:core.user.create"
+      "permission:core.user.create",
+      "tenant.quota:users"
     ],
     "path": null
   },
@@ -10002,5 +10475,16 @@
     "action": "Closure",
     "middleware": [],
     "path": "vendor/laravel/framework/src/Illuminate/Foundation/Configuration/ApplicationBuilder.php:224"
+  },
+  {
+    "domain": null,
+    "method": "GET|HEAD",
+    "uri": "{fallbackPlaceholder}",
+    "name": null,
+    "action": "Closure",
+    "middleware": [
+      "web"
+    ],
+    "path": "routes/web.php:61"
   }
 ]

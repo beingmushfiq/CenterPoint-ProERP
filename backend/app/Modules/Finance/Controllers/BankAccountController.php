@@ -271,6 +271,50 @@ class BankAccountController extends Controller
                 'errors' => $errors,
             ],
         ]);
+    public function show(int $id): JsonResponse
+    {
+        $account = BankAccount::query()->with('chartOfAccount')->findOrFail($id);
+
+        return response()->json([
+            'data' => $account,
+        ]);
+    }
+
+    public function update(Request $request, int $id): JsonResponse
+    {
+        $account = BankAccount::findOrFail($id);
+
+        $validated = $request->validate([
+            'account_name' => 'sometimes|string|max:255',
+            'account_number' => 'sometimes|string|max:128',
+            'bank_name' => 'sometimes|string|max:255',
+            'branch_name' => 'nullable|string|max:255',
+            'routing_number' => 'nullable|string|max:64',
+            'swift_code' => 'nullable|string|max:64',
+            'currency_code' => 'nullable|string|size:3',
+            'is_active' => 'nullable|boolean',
+        ]);
+
+        $account->update([
+            ...$validated,
+            'updated_by' => $request->user()?->id,
+        ]);
+
+        return response()->json([
+            'data' => $account,
+            'message' => 'Bank account updated successfully.',
+        ]);
+    }
+
+    public function destroy(int $id): JsonResponse
+    {
+        $account = BankAccount::findOrFail($id);
+        $account->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Bank account deleted successfully.',
+        ]);
     }
 }
 

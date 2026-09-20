@@ -1,1 +1,128 @@
-[]
+[
+  {
+    "method": "POST",
+    "uri": "api/v1/bill-of-materials",
+    "name": "tenant.bill-of-materials.store",
+    "action": "App\\Modules\\Catalogue\\Controllers\\BillOfMaterialController@store"
+  },
+  {
+    "method": "GET|HEAD",
+    "uri": "api/v1/bill-of-materials/{billOfMaterial:uuid}",
+    "name": "tenant.bill-of-materials.show",
+    "action": "App\\Modules\\Catalogue\\Controllers\\BillOfMaterialController@show"
+  },
+  {
+    "method": "PATCH",
+    "uri": "api/v1/bill-of-materials/{billOfMaterial:uuid}",
+    "name": "tenant.bill-of-materials.update",
+    "action": "App\\Modules\\Catalogue\\Controllers\\BillOfMaterialController@update"
+  },
+  {
+    "method": "DELETE",
+    "uri": "api/v1/bill-of-materials/{billOfMaterial:uuid}",
+    "name": "tenant.bill-of-materials.destroy",
+    "action": "App\\Modules\\Catalogue\\Controllers\\BillOfMaterialController@destroy"
+  },
+  {
+    "method": "GET|HEAD",
+    "uri": "api/v1/platform/support-tickets",
+    "name": "platform.support-tickets.index",
+    "action": "App\\Modules\\Platform\\Controllers\\PlatformSupportController@index"
+  },
+  {
+    "method": "POST",
+    "uri": "api/v1/platform/support-tickets",
+    "name": "platform.support-tickets.store",
+    "action": "App\\Modules\\Platform\\Controllers\\PlatformSupportController@store"
+  },
+  {
+    "method": "GET|HEAD",
+    "uri": "api/v1/platform/support-tickets/{id}",
+    "name": "platform.support-tickets.show",
+    "action": "App\\Modules\\Platform\\Controllers\\PlatformSupportController@show"
+  },
+  {
+    "method": "PATCH",
+    "uri": "api/v1/platform/support-tickets/{id}",
+    "name": "platform.support-tickets.update",
+    "action": "App\\Modules\\Platform\\Controllers\\PlatformSupportController@update"
+  },
+  {
+    "method": "POST",
+    "uri": "api/v1/platform/support-tickets/{id}/notes",
+    "name": "platform.support-tickets.notes.store",
+    "action": "App\\Modules\\Platform\\Controllers\\PlatformSupportController@addNote"
+  },
+  {
+    "method": "GET|HEAD",
+    "uri": "api/v1/purchasing/receipts",
+    "name": "tenant.purchasing.receipts.index",
+    "action": "App\\Modules\\Purchasing\\Controllers\\GoodsReceiptController@index"
+  },
+  {
+    "method": "POST",
+    "uri": "api/v1/purchasing/receipts",
+    "name": "tenant.purchasing.receipts.store",
+    "action": "App\\Modules\\Purchasing\\Controllers\\GoodsReceiptController@store"
+  },
+  {
+    "method": "GET|HEAD",
+    "uri": "api/v1/purchasing/receipts/{id}",
+    "name": "tenant.purchasing.receipts.show",
+    "action": "App\\Modules\\Purchasing\\Controllers\\GoodsReceiptController@show"
+  },
+  {
+    "method": "GET|HEAD",
+    "uri": "api/v1/reports",
+    "name": "tenant.reports.index",
+    "action": "App\\Modules\\Reports\\Controllers\\ReportRegistryController@index"
+  },
+  {
+    "method": "GET|HEAD",
+    "uri": "api/v1/storefront/coupons",
+    "name": "tenant.storefront.coupons.index",
+    "action": "App\\Modules\\Ecommerce\\Controllers\\TenantCouponController@index"
+  },
+  {
+    "method": "POST",
+    "uri": "api/v1/storefront/coupons",
+    "name": "tenant.storefront.coupons.store",
+    "action": "App\\Modules\\Ecommerce\\Controllers\\TenantCouponController@store"
+  },
+  {
+    "method": "POST",
+    "uri": "api/v1/storefront/coupons/generate-batch",
+    "name": "tenant.storefront.coupons.generate-batch",
+    "action": "App\\Modules\\Ecommerce\\Controllers\\TenantCouponController@generateBatch"
+  },
+  {
+    "method": "GET|HEAD",
+    "uri": "api/v1/storefront/coupons/{id}",
+    "name": "tenant.storefront.coupons.show",
+    "action": "App\\Modules\\Ecommerce\\Controllers\\TenantCouponController@show"
+  },
+  {
+    "method": "PUT",
+    "uri": "api/v1/storefront/coupons/{id}",
+    "name": "tenant.storefront.coupons.update",
+    "action": "App\\Modules\\Ecommerce\\Controllers\\TenantCouponController@update"
+  },
+  {
+    "method": "DELETE",
+    "uri": "api/v1/storefront/coupons/{id}",
+    "name": "tenant.storefront.coupons.destroy",
+    "action": "App\\Modules\\Ecommerce\\Controllers\\TenantCouponController@destroy"
+  },
+  {
+    "method": "POST",
+    "uri": "api/v1/storefront/coupons/{id}/toggle-status",
+    "name": "tenant.storefront.coupons.toggle-status",
+    "action": "App\\Modules\\Ecommerce\\Controllers\\TenantCouponController@toggleStatus"
+  },
+  {
+    "method": "POST",
+    "uri": "api/v1/tenant/modules/batch",
+    "name": "tenant.tenant.modules.batch",
+    "action": "App\\Modules\\Platform\\Controllers\\TenantModuleController@batchUpdate"
+  }
+]

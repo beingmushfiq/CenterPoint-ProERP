@@ -11,6 +11,7 @@ export interface ChartOfAccount {
   normal_balance: NormalBalance;
   parent_id?: number | undefined;
   is_active: boolean;
+  is_system?: boolean | undefined;
   current_balance?: string | undefined;
   created_at?: string | undefined;
 }

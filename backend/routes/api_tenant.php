@@ -866,6 +866,10 @@ Route::middleware(['auth.jwt', 'tenant.resolve', 'tenant.active'])
                     ->middleware('permission:finance.account.create')->name('store');
                 Route::get('{id}', [App\Modules\Finance\Controllers\ChartOfAccountController::class, 'show'])
                     ->middleware('permission:finance.account.view')->name('show');
+                Route::match(['put', 'patch'], '{id}', [App\Modules\Finance\Controllers\ChartOfAccountController::class, 'update'])
+                    ->middleware('permission:finance.account.create')->name('update');
+                Route::delete('{id}', [App\Modules\Finance\Controllers\ChartOfAccountController::class, 'destroy'])
+                    ->middleware('permission:finance.account.create')->name('destroy');
             });
 
             Route::prefix('journal-entries')->name('journal-entries.')->group(static function (): void {
@@ -882,6 +886,12 @@ Route::middleware(['auth.jwt', 'tenant.resolve', 'tenant.active'])
                     ->middleware('permission:finance.bank.view')->name('index');
                 Route::post('/', [App\Modules\Finance\Controllers\BankAccountController::class, 'store'])
                     ->middleware('permission:finance.bank.create')->name('store');
+                Route::get('{id}', [App\Modules\Finance\Controllers\BankAccountController::class, 'show'])
+                    ->middleware('permission:finance.bank.view')->name('show');
+                Route::match(['put', 'patch'], '{id}', [App\Modules\Finance\Controllers\BankAccountController::class, 'update'])
+                    ->middleware('permission:finance.bank.create')->name('update');
+                Route::delete('{id}', [App\Modules\Finance\Controllers\BankAccountController::class, 'destroy'])
+                    ->middleware('permission:finance.bank.create')->name('destroy');
             });
 
             Route::prefix('expenses')->name('expenses.')->group(static function (): void {
