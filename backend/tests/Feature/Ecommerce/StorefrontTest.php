@@ -47,6 +47,27 @@ class StorefrontTest extends TestCase
             ->assertJsonPath('data.subdomain', $this->storefront->subdomain)
             ->assertJsonPath('data.currency', 'BDT')
             ->assertJsonPath('data.status', 'live');
+
+        $this->assertNotEmpty($response->json('data.legal_name'));
+    }
+
+    public function test_storefront_config_syncs_with_tenant_legal_name(): void
+    {
+        $settingService = app(\App\Core\Settings\SettingService::class);
+        $settingService->batchUpdate('general', [
+            'company_legal_name' => 'Apex Global Manufacturing Ltd.',
+            'company_name' => 'Apex Brands',
+        ]);
+
+        $response = $this->withHeaders([
+            'X-Storefront-Subdomain' => $this->storefront->subdomain,
+        ])->getJson('/api/v1/storefront/config');
+
+        $response->assertStatus(200)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.legal_name', 'Apex Global Manufacturing Ltd.')
+            ->assertJsonPath('data.company_name', 'Apex Brands')
+            ->assertJsonPath('data.name', 'Apex Brands Online Store');
     }
 
     public function test_can_fetch_storefront_catalog_products(): void

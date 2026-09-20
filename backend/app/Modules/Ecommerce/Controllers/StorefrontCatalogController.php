@@ -33,6 +33,70 @@ class StorefrontCatalogController extends Controller
         $tenantId = $storefront?->tenant_id ?? (TenantContext::isBound() ? TenantContext::current()->tenantId() : null);
         $tenant = $tenantId ? Tenant::find($tenantId) : Tenant::first();
 
+        // Dynamically resolve statutory legal entity name and operating brand name
+        $resolvedLegalName = null;
+        $resolvedCompanyName = null;
+        if ($tenant) {
+            $legalSetting = \App\Models\Setting::withoutTenantScope()
+                ->where('tenant_id', $tenant->id)
+                ->where('group', 'general')
+                ->where('key', 'company_legal_name')
+                ->first();
+            $brandSetting = \App\Models\Setting::withoutTenantScope()
+                ->where('tenant_id', $tenant->id)
+                ->where('group', 'general')
+                ->where('key', 'company_name')
+                ->first();
+
+            $resolvedLegalName = $legalSetting?->getTypedValue();
+            if (empty($resolvedLegalName) && is_array($tenant->branding)) {
+                $resolvedLegalName = $tenant->branding['company_legal_name'] ?? null;
+            }
+            if (empty($resolvedLegalName)) {
+                $company = \App\Models\Company::withoutTenantScope()
+                    ->where('tenant_id', $tenant->id)
+                    ->where('is_default', true)
+                    ->first()
+                    ?? \App\Models\Company::withoutTenantScope()->where('tenant_id', $tenant->id)->first();
+                $resolvedLegalName = $company?->legal_name ?? $company?->name ?? $tenant->name;
+            }
+
+            $resolvedCompanyName = $brandSetting?->getTypedValue();
+            if (empty($resolvedCompanyName) && is_array($tenant->branding)) {
+                $resolvedCompanyName = $tenant->branding['company_name'] ?? null;
+            }
+            if (empty($resolvedCompanyName)) {
+                $resolvedCompanyName = $tenant->name;
+            }
+        }
+
+        // Keep storefront name synchronized with the brand or legal identity
+        $storefrontName = $storefront->name;
+        if (empty($storefrontName) || preg_match('/\b(Online Store|Direct Storefront)\b/i', $storefrontName)) {
+            $effectiveBrand = $resolvedCompanyName ?: ($resolvedLegalName ?: 'Official Store');
+            $syncedName = $effectiveBrand . ' Online Store';
+            if ($storefrontName !== $syncedName) {
+                $storefrontName = $syncedName;
+                if ($storefront->name !== $syncedName) {
+                    $storefront->name = $syncedName;
+                    $storefront->save();
+                }
+            }
+        }
+
+        $theme = $storefront->theme ?? [
+            'primary_color' => '#10b981',
+            'accent_color' => '#065f46',
+            'hero_title' => 'Direct from the Factory',
+            'hero_subtitle' => 'Premium products manufactured to perfection',
+        ];
+        if ($resolvedLegalName) {
+            $theme['legal_name'] = $resolvedLegalName;
+        }
+        if ($resolvedCompanyName) {
+            $theme['brand_name'] = $resolvedCompanyName;
+        }
+
         $seoSettings = $tenant ? $this->seoMetadataService->getTenantSeoSettings($tenant->id) : null;
         $orgSchema = $tenant ? $this->structuredDataBuilder->buildOrganizationSchema($tenant, $storefront) : null;
         $websiteSchema = $tenant ? $this->structuredDataBuilder->buildWebSiteSchema($tenant, $storefront) : null;
@@ -42,19 +106,16 @@ class StorefrontCatalogController extends Controller
             'data' => [
                 'id' => $storefront->id,
                 'uuid' => $storefront->uuid,
-                'name' => $storefront->name,
+                'name' => $storefrontName,
+                'legal_name' => $resolvedLegalName,
+                'company_name' => $resolvedCompanyName,
                 'code' => $storefront->code,
                 'domain' => $storefront->domain,
                 'subdomain' => $storefront->subdomain,
                 'currency' => $storefront->currency,
                 'locale' => $storefront->locale,
-                'theme' => $storefront->theme ?? [
-                    'primary_color' => '#10b981',
-                    'accent_color' => '#065f46',
-                    'hero_title' => 'Direct from the Factory',
-                    'hero_subtitle' => 'Premium products manufactured to perfection',
-                ],
-                'meta_title' => $storefront->meta_title ?? $storefront->name,
+                'theme' => $theme,
+                'meta_title' => $storefront->meta_title ?? $storefrontName,
                 'meta_description' => $storefront->meta_description,
                 'guest_checkout_enabled' => $storefront->guest_checkout_enabled,
                 'cod_enabled' => $storefront->cod_enabled,

@@ -48,9 +48,42 @@ final class StorefrontCustomizerController extends Controller
             ]);
         }
 
+        $tenant = \App\Models\Tenant::find($tenantId);
+        $legalSetting = \App\Models\Setting::withoutTenantScope()
+            ->where('tenant_id', $tenantId)
+            ->where('group', 'general')
+            ->where('key', 'company_legal_name')
+            ->first();
+        $brandSetting = \App\Models\Setting::withoutTenantScope()
+            ->where('tenant_id', $tenantId)
+            ->where('group', 'general')
+            ->where('key', 'company_name')
+            ->first();
+
+        $resolvedLegalName = $legalSetting?->getTypedValue();
+        if (empty($resolvedLegalName) && is_array($tenant?->branding)) {
+            $resolvedLegalName = $tenant->branding['company_legal_name'] ?? null;
+        }
+        if (empty($resolvedLegalName)) {
+            $company = \App\Models\Company::withoutTenantScope()->where('tenant_id', $tenantId)->first();
+            $resolvedLegalName = $company?->legal_name ?? $company?->name ?? $tenant?->name;
+        }
+
+        $resolvedBrandName = $brandSetting?->getTypedValue();
+        if (empty($resolvedBrandName) && is_array($tenant?->branding)) {
+            $resolvedBrandName = $tenant->branding['company_name'] ?? null;
+        }
+        if (empty($resolvedBrandName)) {
+            $resolvedBrandName = $tenant?->name;
+        }
+
+        $payload = $storefront->toArray();
+        $payload['legal_name'] = $resolvedLegalName;
+        $payload['company_name'] = $resolvedBrandName;
+
         return response()->json([
             'success' => true,
-            'data' => $storefront,
+            'data' => $payload,
         ]);
     }
 

@@ -93,7 +93,8 @@ export const StorefrontHeader: React.FC<StorefrontHeaderProps> = ({ config, subd
     return current === targetUrl || current.startsWith(`${targetUrl}/`);
   };
 
-  const storeName = config?.name ?? 'Official Store';
+  const storeName = config?.name ?? config?.company_name ?? config?.legal_name ?? 'Official Store';
+  const legalName = config?.legal_name ?? config?.theme?.legal_name;
   const hasStoreInName = /store|storefront/i.test(storeName);
 
   return (
@@ -207,7 +208,11 @@ export const StorefrontHeader: React.FC<StorefrontHeaderProps> = ({ config, subd
                   }`}
                 >
                   <Sparkles className="size-3 text-amber-400 shrink-0 inline" />
-                  <span className="hidden sm:inline truncate">Direct Sourcing & Fulfillment</span>
+                  <span className="hidden sm:inline truncate" title={legalName ? `Operated by ${legalName}` : undefined}>
+                    {legalName && legalName.trim().toLowerCase() !== storeName.trim().toLowerCase()
+                      ? legalName
+                      : 'Direct Sourcing & Fulfillment'}
+                  </span>
                 </div>
               </div>
             </Link>

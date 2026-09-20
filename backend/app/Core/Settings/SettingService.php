@@ -28,7 +28,7 @@ class SettingService
                 'description' => 'Legal organization details, localization formats, financial calendar, and document numbering prefixes.',
                 'settings' => [
                     'company_name' => ['label' => 'Operating Brand / Trade Name', 'type' => 'string', 'default' => '', 'sensitive' => false],
-                    'company_legal_name' => ['label' => 'Legal Entity Name', 'type' => 'string', 'default' => '', 'sensitive' => false],
+                    'company_legal_name' => ['label' => 'Legal Entity Name', 'type' => 'string', 'default' => 'SliceMart Industries Ltd.', 'sensitive' => false],
                     'trade_license_no' => ['label' => 'Trade License Number', 'type' => 'string', 'default' => 'TRAD/DNCC/019283/2024', 'sensitive' => false],
                     'tax_identification_number' => ['label' => 'TIN / BIN Registration', 'type' => 'string', 'default' => 'BIN-99210029381', 'sensitive' => false],
                     'rjsc_registration_no' => ['label' => 'RJSC Incorporation No.', 'type' => 'string', 'default' => 'C-184920/2023', 'sensitive' => false],
@@ -554,6 +554,65 @@ class SettingService
                     }
                 }
 
+                // Synchronize storefronts with company legal & operating identity
+                $storefronts = \App\Models\Storefront::withoutTenantScope()
+                    ->where('tenant_id', $tenantId)
+                    ->get();
+
+                $syncedLegal = $values['company_legal_name'] ?? null;
+                $syncedBrand = $values['company_name'] ?? null;
+
+                foreach ($storefronts as $sf) {
+                    $sfTheme = is_array($sf->theme) ? $sf->theme : [];
+                    $modified = false;
+
+                    if ($syncedLegal) {
+                        $sfTheme['legal_name'] = $syncedLegal;
+                        $modified = true;
+                    }
+                    if ($syncedBrand) {
+                        $sfTheme['brand_name'] = $syncedBrand;
+                        $modified = true;
+                    }
+                    if (isset($values['brand_logo_url']) && ! empty($values['brand_logo_url'])) {
+                        if (empty($sfTheme['logo_mode']) || $sfTheme['logo_mode'] === 'inherit') {
+                            $sfTheme['logo_url'] = $values['brand_logo_url'];
+                            $modified = true;
+                        }
+                    }
+
+                    // Auto-sync storefront name if it was the generated default or matches previous brand
+                    $targetBrand = $syncedBrand ?: ($syncedLegal ?: $resolvedName);
+                    if ($targetBrand) {
+                        if (empty($sf->name) || preg_match('/\b(Online Store|Direct Storefront|Store)\b/i', $sf->name) || $sf->name === $tenant->getOriginal('name')) {
+                            $sf->name = $targetBrand . ' Online Store';
+                            $modified = true;
+                        }
+                    }
+
+                    if ($modified) {
+                        $sf->theme = $sfTheme;
+                        $sf->save();
+                    }
+                }
+
+                // Synchronize TenantSeoSetting
+                $seoSetting = \App\Models\TenantSeoSetting::withoutTenantScope()
+                    ->where('tenant_id', $tenantId)
+                    ->first();
+                if ($seoSetting) {
+                    $seoUpdates = [];
+                    if ($syncedLegal) {
+                        $seoUpdates['legal_name'] = $syncedLegal;
+                    }
+                    if ($syncedBrand) {
+                        $seoUpdates['brand_name'] = $syncedBrand;
+                    }
+                    if (! empty($seoUpdates)) {
+                        $seoSetting->update($seoUpdates);
+                    }
+                }
+
                 \App\Core\Capabilities\TenantCapabilityManifest::invalidate($tenantId);
             }
         }
@@ -745,15 +804,15 @@ class SettingService
                 unset($branding['company_name'], $branding['company_legal_name']);
                 $tenant->branding = $branding;
 
-                // Resolve the canonical tenant name from the Company record instead of a hardcoded
-                // schema default — this ensures each tenant keeps their own identity after reset.
                 $company = \App\Models\Company::withoutTenantScope()
                     ->where('tenant_id', $tenantId)
                     ->where('is_default', true)
                     ->first()
                     ?? \App\Models\Company::withoutTenantScope()->where('tenant_id', $tenantId)->first();
 
-                $resolvedName = $company?->legal_name ?? $company?->name ?? $tenant->name;
+                $schema = $this->getSchemaDictionary();
+                $defaultLegalName = (string) ($schema['general']['settings']['company_legal_name']['default'] ?? '');
+                $resolvedName = $defaultLegalName !== '' ? $defaultLegalName : ($company?->name ?? $tenant->name);
 
                 if ($resolvedName) {
                     $tenant->name = $resolvedName;
@@ -766,6 +825,32 @@ class SettingService
                         'name' => $resolvedName,
                         'legal_name' => $resolvedName,
                     ]);
+                }
+
+                if ($resolvedName) {
+                    $storefronts = \App\Models\Storefront::withoutTenantScope()
+                        ->where('tenant_id', $tenantId)
+                        ->get();
+                    foreach ($storefronts as $sf) {
+                        $sfTheme = is_array($sf->theme) ? $sf->theme : [];
+                        $sfTheme['brand_name'] = $resolvedName;
+                        $sfTheme['legal_name'] = $resolvedName;
+                        $sf->theme = $sfTheme;
+                        if (empty($sf->name) || preg_match('/\b(Online Store|Direct Storefront|Store)\b/i', $sf->name)) {
+                            $sf->name = $resolvedName . ' Online Store';
+                        }
+                        $sf->save();
+                    }
+
+                    $seoSetting = \App\Models\TenantSeoSetting::withoutTenantScope()
+                        ->where('tenant_id', $tenantId)
+                        ->first();
+                    if ($seoSetting) {
+                        $seoSetting->update([
+                            'brand_name' => $resolvedName,
+                            'legal_name' => $resolvedName,
+                        ]);
+                    }
                 }
             }
         }

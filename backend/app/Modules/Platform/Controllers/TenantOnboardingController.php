@@ -482,5 +482,53 @@ final class TenantOnboardingController extends Controller
                 $company->update($companyUpdates);
             }
         }
+
+        // Synchronize storefronts and SEO settings with company legal & operating identity
+        $syncedLegal = !empty($data['company_legal_name']) ? (string) $data['company_legal_name'] : null;
+        $syncedBrand = !empty($data['company_name']) ? (string) $data['company_name'] : null;
+        $storefronts = \App\Models\Storefront::withoutTenantScope()
+            ->where('tenant_id', $tenantId)
+            ->get();
+
+        foreach ($storefronts as $sf) {
+            $sfTheme = is_array($sf->theme) ? $sf->theme : [];
+            $modified = false;
+
+            if ($syncedLegal) {
+                $sfTheme['legal_name'] = $syncedLegal;
+                $modified = true;
+            }
+            if ($syncedBrand) {
+                $sfTheme['brand_name'] = $syncedBrand;
+                $modified = true;
+            }
+
+            $targetBrand = $syncedBrand ?: ($syncedLegal ?: $businessName);
+            if ($targetBrand && (empty($sf->name) || preg_match('/\b(Online Store|Direct Storefront|Store)\b/i', $sf->name))) {
+                $sf->name = $targetBrand . ' Online Store';
+                $modified = true;
+            }
+
+            if ($modified) {
+                $sf->theme = $sfTheme;
+                $sf->save();
+            }
+        }
+
+        $seoSetting = \App\Models\TenantSeoSetting::withoutTenantScope()
+            ->where('tenant_id', $tenantId)
+            ->first();
+        if ($seoSetting) {
+            $seoUpdates = [];
+            if ($syncedLegal) {
+                $seoUpdates['legal_name'] = $syncedLegal;
+            }
+            if ($syncedBrand) {
+                $seoUpdates['brand_name'] = $syncedBrand;
+            }
+            if (!empty($seoUpdates)) {
+                $seoSetting->update($seoUpdates);
+            }
+        }
     }
 }

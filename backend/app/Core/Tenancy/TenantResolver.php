@@ -79,34 +79,20 @@ final class TenantResolver
      */
     public static function resolveStorefrontFromRequest(Request $request): ?Storefront
     {
-        $tenant = self::resolveFromRequest($request);
-
-        if ($tenant) {
-            return Storefront::withoutTenantScope()
-                ->where('tenant_id', $tenant->id)
-                ->where('status', '!=', 'suspended')
-                ->first();
-        }
-
-        // Fallback for path-based storefront lookup e.g. /store/{subdomain}
-        $pathSubdomain = self::extractSubdomainFromPath($request->path());
-        if ($pathSubdomain && self::isValidSubdomain($pathSubdomain)) {
-            $tenant = Tenant::where('slug', $pathSubdomain)
-                ->where('status', '!=', 'suspended')
-                ->first();
-
-            if ($tenant) {
-                return Storefront::withoutTenantScope()
-                    ->where('tenant_id', $tenant->id)
-                    ->where('status', '!=', 'suspended')
-                    ->first();
-            }
-        }
-
-        // Header fallback for SPA requests sending X-Storefront-Subdomain or X-Storefront-Domain
+        // 1. Explicit Storefront Subdomain header
         $subHeader = $request->header('X-Storefront-Subdomain');
         if ($subHeader && self::isValidSubdomain((string) $subHeader) && ! self::isReservedSubdomain((string) $subHeader)) {
-            $tenant = Tenant::where('slug', strtolower((string) $subHeader))
+            $normalizedSub = strtolower((string) $subHeader);
+            $storefront = Storefront::withoutTenantScope()
+                ->where('subdomain', $normalizedSub)
+                ->where('status', '!=', 'suspended')
+                ->first();
+
+            if ($storefront) {
+                return $storefront;
+            }
+
+            $tenant = Tenant::where('slug', $normalizedSub)
                 ->where('status', '!=', 'suspended')
                 ->first();
 
@@ -118,8 +104,18 @@ final class TenantResolver
             }
         }
 
+        // 2. Explicit Storefront Domain header
         $domainHeader = $request->header('X-Storefront-Domain');
         if ($domainHeader) {
+            $storefront = Storefront::withoutTenantScope()
+                ->where('domain', strtolower((string) $domainHeader))
+                ->where('status', '!=', 'suspended')
+                ->first();
+
+            if ($storefront) {
+                return $storefront;
+            }
+
             $tenantDomain = TenantDomain::withoutTenantScope()
                 ->where('domain', strtolower((string) $domainHeader))
                 ->where('verification_status', 'verified')
@@ -133,7 +129,41 @@ final class TenantResolver
             }
         }
 
-        // In local/testing ONLY: allow default storefront if no explicit subdomain/domain was requested
+        // 3. Fallback for path-based storefront lookup e.g. /store/{subdomain}
+        $pathSubdomain = self::extractSubdomainFromPath($request->path());
+        if ($pathSubdomain && self::isValidSubdomain($pathSubdomain)) {
+            $storefront = Storefront::withoutTenantScope()
+                ->where('subdomain', $pathSubdomain)
+                ->where('status', '!=', 'suspended')
+                ->first();
+
+            if ($storefront) {
+                return $storefront;
+            }
+
+            $tenant = Tenant::where('slug', $pathSubdomain)
+                ->where('status', '!=', 'suspended')
+                ->first();
+
+            if ($tenant) {
+                return Storefront::withoutTenantScope()
+                    ->where('tenant_id', $tenant->id)
+                    ->where('status', '!=', 'suspended')
+                    ->first();
+            }
+        }
+
+        // 4. Resolve from host / tenant context
+        $tenant = self::resolveFromRequest($request);
+
+        if ($tenant) {
+            return Storefront::withoutTenantScope()
+                ->where('tenant_id', $tenant->id)
+                ->where('status', '!=', 'suspended')
+                ->first();
+        }
+
+        // 5. In local/testing ONLY: allow default storefront if no explicit subdomain/domain was requested
         $hasExplicitRequest = $request->hasHeader('X-Tenant-Subdomain')
             || $request->hasHeader('X-Storefront-Subdomain')
             || $request->has('subdomain')

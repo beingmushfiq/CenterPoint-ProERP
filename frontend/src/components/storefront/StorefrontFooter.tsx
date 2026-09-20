@@ -45,10 +45,11 @@ export const StorefrontFooter: React.FC<StorefrontFooterProps> = ({ config }) =>
       : defaultPaymentMethods;
 
   const currentYear = new Date().getFullYear();
-  const defaultCopyright = `© ${currentYear} ${config?.name ?? 'Official Store'}. Powered by DevCenterPoint Factory Platform.`;
+  const legalName = config?.legal_name ?? config?.theme?.legal_name;
+  const storeName = config?.name ?? config?.company_name ?? legalName ?? 'Official Store';
+  const defaultCopyright = `© ${currentYear} ${legalName || storeName}. Powered by DevCenterPoint.`;
   const copyright = theme?.footer_copyright || defaultCopyright;
 
-  const storeName = config?.name ?? 'Official Store';
   const hasStoreInName = /store|storefront/i.test(storeName);
 
   const defaultColumns = [
@@ -182,23 +183,31 @@ export const StorefrontFooter: React.FC<StorefrontFooterProps> = ({ config }) =>
                 <Store className="size-5 stroke-[2.5]" />
               </div>
               <div>
-                <span
-                  style={{ color: footerTextColor || undefined }}
-                  className={`font-extrabold text-base ${!footerTextColor ? 'text-slate-900 dark:text-white' : ''}`}
-                >
-                  {storeName}
-                </span>
-                {!hasStoreInName && (
+                <div className="flex items-center flex-wrap gap-2">
                   <span
-                    style={{
-                      backgroundColor: 'var(--store-primary-subtle, rgba(16,185,129,0.15))',
-                      borderColor: 'var(--store-primary-border, rgba(16,185,129,0.3))',
-                      color: 'var(--store-primary, #10b981)',
-                    }}
-                    className="ml-2 rounded-full border px-2 py-0.5 text-[9px] font-mono font-bold uppercase tracking-wider"
+                    style={{ color: footerTextColor || undefined }}
+                    className={`font-extrabold text-base ${!footerTextColor ? 'text-slate-900 dark:text-white' : ''}`}
                   >
-                    Official Store
+                    {storeName}
                   </span>
+                  {!hasStoreInName && (
+                    <span
+                      style={{
+                        backgroundColor: 'var(--store-primary-subtle, rgba(16,185,129,0.15))',
+                        borderColor: 'var(--store-primary-border, rgba(16,185,129,0.3))',
+                        color: 'var(--store-primary, #10b981)',
+                      }}
+                      className="rounded-full border px-2 py-0.5 text-[9px] font-mono font-bold uppercase tracking-wider"
+                    >
+                      Official Store
+                    </span>
+                  )}
+                </div>
+                {legalName && (
+                  <div className="text-[11px] opacity-75 font-medium flex items-center gap-1 mt-0.5">
+                    <ShieldCheck className="size-3 text-emerald-500 shrink-0" />
+                    <span>Legal Entity: {legalName}</span>
+                  </div>
                 )}
               </div>
             </div>

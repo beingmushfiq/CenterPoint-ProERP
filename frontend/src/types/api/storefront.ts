@@ -2,6 +2,8 @@ export interface StorefrontConfig {
   id: number;
   uuid: string;
   name: string;
+  legal_name?: string | null;
+  company_name?: string | null;
   code: string;
   domain: string | null;
   subdomain: string;
@@ -13,6 +15,8 @@ export interface StorefrontConfig {
     hero_title: string;
     hero_subtitle: string;
     hero_image?: string | null;
+    brand_name?: string;
+    legal_name?: string;
     preset_id?: 'editorial' | 'modern_retail' | 'industrial' | 'luxury' | 'minimal' | 'bold_commerce' | 'lifestyle' | 'corporate';
     font_family_heading?: string;
     font_family_body?: string;

@@ -69,6 +69,7 @@ export const StorefrontSettingsWorkspace: React.FC = () => {
   const [products, setProducts] = useState<PublishedProductItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [serverLegalName, setServerLegalName] = useState<string>('');
   const [seoMenuOpen, setSeoMenuOpen] = useState(false);
   const seoMenuRef = useRef<HTMLDivElement>(null);
 
@@ -226,6 +227,12 @@ export const StorefrontSettingsWorkspace: React.FC = () => {
           if (settingsRes.status === 'fulfilled') {
             const settingsPayload = settingsRes.value.data as unknown as Record<string, unknown>;
             const conf = (settingsPayload.data ?? settingsPayload) as StorefrontConfig;
+
+            const resolvedLegal =
+              conf.legal_name ||
+              (conf.theme as Record<string, unknown>)?.legal_name as string ||
+              '';
+            setServerLegalName(resolvedLegal);
 
             setForm({
               name: conf.name ?? '',
@@ -966,15 +973,44 @@ export const StorefrontSettingsWorkspace: React.FC = () => {
 
               <div className="space-y-3">
                 <div>
-                  <label className="text-[11px] font-semibold text-muted uppercase tracking-wider block mb-1">
-                    Storefront Public Name
-                  </label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-[11px] font-semibold text-muted uppercase tracking-wider block">
+                      Storefront Public Name
+                    </label>
+                    {serverLegalName && (
+                      <div className="flex items-center gap-1.5 text-[11px]">
+                        <span className="text-muted">Legal Entity:</span>
+                        <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+                          {serverLegalName}
+                        </span>
+                        {form.name !== serverLegalName && (
+                          <button
+                            type="button"
+                            onClick={() => setForm((prev) => ({ ...prev, name: serverLegalName }))}
+                            className="ml-1 inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/20 transition-colors cursor-pointer"
+                            title="Set public name to match verified legal entity name"
+                          >
+                            <RefreshCw className="size-2.5" />
+                            Sync with Legal Name
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
                   <input
                     type="text"
                     value={form.name}
                     onChange={(e) => setForm({ ...form, name: e.target.value })}
                     className="w-full rounded-xl border border-default bg-surface-sunken px-3.5 py-2 text-xs text-default focus:border-primary focus:outline-none"
+                    placeholder={serverLegalName || 'Storefront Name'}
                   />
+                  {serverLegalName && (
+                    <p className="text-[11px] text-muted mt-1 flex items-center gap-1">
+                      <ShieldCheck className="size-3 text-emerald-500 inline shrink-0" />
+                      Storefront header and footer automatically display and verify{' '}
+                      <span className="font-semibold text-default">{serverLegalName}</span>.
+                    </p>
+                  )}
                 </div>
 
                 {/* Storefront Logo & PWA App Icon */}
