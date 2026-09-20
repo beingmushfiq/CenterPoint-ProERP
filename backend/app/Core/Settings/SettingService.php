@@ -27,7 +27,7 @@ class SettingService
                 'title' => 'General & Business Profile',
                 'description' => 'Legal organization details, localization formats, financial calendar, and document numbering prefixes.',
                 'settings' => [
-                    'company_legal_name' => ['label' => 'Legal Entity Name', 'type' => 'string', 'default' => 'Acme Industries Ltd.', 'sensitive' => false],
+                    'company_legal_name' => ['label' => 'Legal Entity Name', 'type' => 'string', 'default' => 'SliceMart Industries Ltd.', 'sensitive' => false],
                     'trade_license_no' => ['label' => 'Trade License Number', 'type' => 'string', 'default' => 'TRAD/DNCC/019283/2024', 'sensitive' => false],
                     'tax_identification_number' => ['label' => 'TIN / BIN Registration', 'type' => 'string', 'default' => 'BIN-99210029381', 'sensitive' => false],
                     'rjsc_registration_no' => ['label' => 'RJSC Incorporation No.', 'type' => 'string', 'default' => 'C-184920/2023', 'sensitive' => false],

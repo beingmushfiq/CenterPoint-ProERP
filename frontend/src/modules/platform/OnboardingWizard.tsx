@@ -269,6 +269,13 @@ export const OnboardingWizard: React.FC = () => {
           invoice_terms: invoiceTerms,
         },
       });
+      const chosenName = (companyName || companyLegalName || '').trim();
+      if (chosenName) {
+        try {
+          localStorage.setItem('company_name', chosenName);
+          window.dispatchEvent(new CustomEvent('tenant_branding_updated', { detail: { name: chosenName } }));
+        } catch {}
+      }
     } catch {
       // Non-blocking
     }
@@ -311,6 +318,14 @@ export const OnboardingWizard: React.FC = () => {
         logo_url: logoUrl,
         invoice_terms: invoiceTerms,
       });
+
+      const chosenName = (companyName || companyLegalName || '').trim();
+      if (chosenName) {
+        try {
+          localStorage.setItem('company_name', chosenName);
+          window.dispatchEvent(new CustomEvent('tenant_branding_updated', { detail: { name: chosenName } }));
+        } catch {}
+      }
 
       await invalidateManifest();
       await bootstrapManifest(true);

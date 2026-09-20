@@ -3413,7 +3413,7 @@ export const FinanceWorkspace: React.FC = () => {
               required
               value={newBankAccountName}
               onChange={(e) => setNewBankAccountName(e.target.value)}
-              placeholder="e.g., CenterPoint ProERP Operating Account"
+              placeholder="e.g., Primary Commercial Operating Account"
               className="w-full px-3 py-2 border border-default rounded-xl bg-surface-sunken text-default text-xs sm:text-sm focus:border-primary focus:outline-none"
             />
           </div>

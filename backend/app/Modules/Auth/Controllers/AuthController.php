@@ -376,10 +376,37 @@ class AuthController extends Controller
 
     public function branding(Request $request): JsonResponse
     {
-        $tenant = \App\Models\Tenant::where('status', 'active')->first();
+        $tenant = null;
+
+        // 1. Resolve from authenticated user if token present
+        if ($user = auth('api')->user() ?? $request->user()) {
+            $tenant = $user->tenant_id ? \App\Models\Tenant::find($user->tenant_id) : null;
+        }
+
+        // 2. Resolve from headers or domain if not found
+        if (! $tenant && $request->header('X-Tenant-Id')) {
+            $tenant = \App\Models\Tenant::find($request->header('X-Tenant-Id'));
+        }
+
+        if (! $tenant && $request->header('X-Tenant-Slug')) {
+            $tenant = \App\Models\Tenant::where('slug', $request->header('X-Tenant-Slug'))->first();
+        }
+
+        if (! $tenant && $host = $request->getHost()) {
+            $tenantId = \App\Models\TenantDomain::where('domain', $host)->value('tenant_id');
+            if ($tenantId) {
+                $tenant = \App\Models\Tenant::find($tenantId);
+            }
+        }
+
+        // 3. Fallback to first active tenant
+        if (! $tenant) {
+            $tenant = \App\Models\Tenant::where('status', 'active')->first();
+        }
+
         $logoUrl = null;
         $faviconUrl = null;
-        $companyName = 'Enterprise Cloud ERP';
+        $companyName = 'SliceMart Industries';
 
         if ($tenant) {
             $logoSetting = \App\Models\Setting::withoutTenantScope()
@@ -397,14 +424,35 @@ class AuthController extends Controller
                 ->where('group', 'general')
                 ->where('key', 'company_legal_name')
                 ->first();
+            $businessNameSetting = \App\Models\Setting::withoutTenantScope()
+                ->where('tenant_id', $tenant->id)
+                ->where('group', 'general')
+                ->where('key', 'company_name')
+                ->first();
 
             $logoUrl = $logoSetting?->getTypedValue() ?: null;
             $faviconUrl = $faviconSetting?->getTypedValue() ?: null;
-            $configuredName = $nameSetting?->getTypedValue();
-            if ($configuredName) {
-                $companyName = (string) $configuredName;
-            } elseif ($tenant->name) {
-                $companyName = $tenant->name;
+
+            $customBusinessName = $businessNameSetting?->getTypedValue();
+            $customLegalName = $nameSetting?->getTypedValue();
+            $brandingName = is_array($tenant->branding)
+                ? ($tenant->branding['company_name'] ?? $tenant->branding['company_legal_name'] ?? null)
+                : null;
+
+            $company = \App\Models\Company::withoutTenantScope()
+                ->where('tenant_id', $tenant->id)
+                ->first();
+
+            if ($customBusinessName && trim((string) $customBusinessName) !== '') {
+                $companyName = (string) $customBusinessName;
+            } elseif ($customLegalName && trim((string) $customLegalName) !== '' && (string) $customLegalName !== 'Acme Industries Ltd.') {
+                $companyName = (string) $customLegalName;
+            } elseif ($brandingName && trim((string) $brandingName) !== '') {
+                $companyName = (string) $brandingName;
+            } elseif ($company?->name && trim((string) $company->name) !== '') {
+                $companyName = (string) $company->name;
+            } elseif ($tenant->name && trim((string) $tenant->name) !== '') {
+                $companyName = (string) $tenant->name;
             }
         }
 

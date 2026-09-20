@@ -31,6 +31,7 @@ export interface TenantInfo {
   currency_symbol?: string;
   timezone: string;
   logo_url?: string;
+  branding?: Record<string, unknown> | null;
 }
 
 export interface BranchInfo {

@@ -17,15 +17,15 @@ final class PlansAndTenantsSeeder extends Seeder
         $this->call(PlansSeeder::class);
         $enterprisePlanId = DB::table('plans')->where('code', 'ENTERPRISE')->value('id');
 
-        // 2. Seed Flagship Client (CenterPoint ProERP - slug: demoerp)
-        $tenant = Tenant::find(1) ?? Tenant::where('slug', 'demoerp')->orWhere('slug', 'slicemart')->first();
+        // 2. Seed Flagship Client (SliceMart Industries - slug: slicemart)
+        $tenant = Tenant::find(1) ?? Tenant::where('slug', 'slicemart')->orWhere('slug', 'demoerp')->first();
         if (! $tenant) {
             $tenant = Tenant::create([
                 'id' => 1,
                 'uuid' => (string) Str::uuid(),
                 'plan_id' => $enterprisePlanId,
-                'name' => 'CenterPoint ProERP',
-                'slug' => 'demoerp',
+                'name' => 'SliceMart Industries',
+                'slug' => 'slicemart',
                 'status' => 'active',
                 'currency_code' => 'BDT',
                 'timezone' => 'Asia/Dhaka',
@@ -35,9 +35,29 @@ final class PlansAndTenantsSeeder extends Seeder
             ]);
         } else {
             $tenant->update([
-                'name' => 'CenterPoint ProERP',
+                'name' => 'SliceMart Industries',
+                'slug' => 'slicemart',
+                'status' => 'active',
+            ]);
+        }
+
+        // Ensure demoerp tenant also exists for backward compatibility with demo tests
+        $demoTenant = Tenant::where('slug', 'demoerp')->first();
+        if (! $demoTenant) {
+            DB::table('tenants')->insert([
+                'id' => 2,
+                'uuid' => (string) Str::uuid(),
+                'plan_id' => $enterprisePlanId,
+                'name' => 'Demo Enterprise Operations',
                 'slug' => 'demoerp',
                 'status' => 'active',
+                'currency_code' => 'BDT',
+                'timezone' => 'Asia/Dhaka',
+                'locale' => 'en',
+                'date_format' => 'Y-m-d',
+                'number_format' => 'standard',
+                'created_at' => now(),
+                'updated_at' => now(),
             ]);
         }
 
@@ -62,12 +82,12 @@ final class PlansAndTenantsSeeder extends Seeder
             $companyId = DB::table('companies')->insertGetId([
                 'uuid' => (string) Str::uuid(),
                 'tenant_id' => $tenant->id,
-                'name' => 'CenterPoint ProERP Ltd.',
-                'legal_name' => 'CenterPoint ProERP Ltd.',
+                'name' => 'SliceMart Industries Ltd.',
+                'legal_name' => 'SliceMart Industries Ltd.',
                 'tax_identifier' => 'BIN-9876543210',
                 'registration_number' => 'REG-12345678',
                 'address' => 'Plot 45, Tejgaon Industrial Area, Dhaka',
-                'email' => 'info@devcenterpoint.com',
+                'email' => 'info@slicemart.com',
                 'phone' => '+88029876543',
                 'is_default' => true,
                 'is_active' => true,
@@ -77,9 +97,9 @@ final class PlansAndTenantsSeeder extends Seeder
         } else {
             $companyId = $company->id;
             DB::table('companies')->where('id', $companyId)->update([
-                'name' => 'CenterPoint ProERP Ltd.',
-                'legal_name' => 'CenterPoint ProERP Ltd.',
-                'email' => 'info@devcenterpoint.com',
+                'name' => 'SliceMart Industries Ltd.',
+                'legal_name' => 'SliceMart Industries Ltd.',
+                'email' => 'info@slicemart.com',
             ]);
         }
 
@@ -156,16 +176,30 @@ final class PlansAndTenantsSeeder extends Seeder
             ]);
         }
 
-        // 6. Bind Verified Domain for demoerp (purge any legacy slicemart domain)
-        DB::table('tenant_domains')->where('domain', 'slicemart.devcenterpoint.com')->delete();
-
+        // 6. Bind Verified Domains for slicemart and demoerp
         DB::table('tenant_domains')->updateOrInsert(
-            ['domain' => 'demoerp.devcenterpoint.com'],
+            ['domain' => 'slicemart.devcenterpoint.com'],
             [
                 'tenant_id' => $tenant->id,
                 'uuid' => (string) Str::uuid(),
                 'type' => 'platform_subdomain',
                 'is_primary' => true,
+                'verification_status' => 'verified',
+                'ssl_status' => 'active',
+                'verified_at' => now(),
+                'activated_at' => now(),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]
+        );
+
+        DB::table('tenant_domains')->updateOrInsert(
+            ['domain' => 'demoerp.devcenterpoint.com'],
+            [
+                'tenant_id' => isset($demoTenant) ? $demoTenant->id : $tenant->id,
+                'uuid' => (string) Str::uuid(),
+                'type' => 'platform_subdomain',
+                'is_primary' => false,
                 'verification_status' => 'verified',
                 'ssl_status' => 'active',
                 'verified_at' => now(),

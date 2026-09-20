@@ -20,7 +20,7 @@
       tenant #1, not the product (PROJECT_CONTEXT.md §1). Tenant name and logo
       are injected at runtime from tenant settings; nothing here may name one.
     -->
-    <title>Manufacturing Operations Platform</title>
+    <title>SliceMart Industries — ERP Operations Platform</title>
     <meta
       name="description"
       content="Multi-tenant manufacturing, inventory, sales, workforce and delivery operations platform."
@@ -133,6 +133,12 @@
           motion === 'true' ||
           (motion === 'system' && media('(prefers-reduced-motion: reduce)'));
         if (reduce) el.setAttribute('data-reduced-motion', 'true');
+
+        /* ── Dynamic Organization Title Sync ─────────────────────────────── */
+        var storedCompany = read('company_name');
+        if (storedCompany && storedCompany !== 'CenterPoint ProERP' && storedCompany !== 'Enterprise Cloud ERP') {
+          document.title = storedCompany + ' — ERP Operations';
+        }
 
         /* Marks the boot loader's first real milestone (§7.5 tier 1). The rail
            advances on milestones, never on a timer. */

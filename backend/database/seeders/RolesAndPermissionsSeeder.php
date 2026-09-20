@@ -245,7 +245,7 @@ final class RolesAndPermissionsSeeder extends Seeder
             }
             $user->tenant_id = $tenantId;
             $user->name = $demoData['name'];
-            $user->password = $defaultPassword;
+            $user->password = ($demoData['email'] === 'admin@slicemart.test') ? Hash::make('Password123!') : $defaultPassword;
             $user->phone = $demoData['phone'];
             $user->status = 'active';
             $user->locale = 'en';

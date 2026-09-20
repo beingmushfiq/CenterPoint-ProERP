@@ -1,5 +1,5 @@
-import { useState, Suspense } from 'react';
-import { Outlet } from 'react-router-dom';
+import { useState, Suspense, useMemo } from 'react';
+import { Outlet, useLocation } from 'react-router-dom';
 import { RouteLoadingFallback } from '../routing/RouteLoadingFallback';
 import { AppHeader } from './AppHeader';
 import { Sidebar } from './Sidebar';
@@ -11,11 +11,42 @@ import { useTenantBranding } from '../../lib/theme/useTenantBranding';
 import { useAuthStore } from '../../lib/auth/authStore';
 import { InteractiveTutorialModal } from '../../modules/tutorial/InteractiveTutorialModal';
 
+function getRouteTitle(pathname: string): string {
+  if (pathname === '/dashboard' || pathname === '/') return 'Executive Operations';
+  if (pathname.startsWith('/production')) return 'Factory Production';
+  if (pathname.startsWith('/inventory') || pathname.startsWith('/warehouse') || pathname.startsWith('/stock')) return 'Warehouse & Stock';
+  if (pathname.startsWith('/qc') || pathname.startsWith('/quality')) return 'Quality Control';
+  if (pathname.startsWith('/pos')) return 'Point of Sale (POS)';
+  if (pathname.startsWith('/sales') || pathname.startsWith('/invoices')) return 'Sales & Invoices';
+  if (pathname.startsWith('/crm') || pathname.startsWith('/leads')) return 'Customer Leads & CRM';
+  if (pathname.startsWith('/finance') || pathname.startsWith('/accounting')) return 'Finance & Accounts';
+  if (pathname.startsWith('/hr') || pathname.startsWith('/workforce') || pathname.startsWith('/employees')) return 'Workforce & HR';
+  if (pathname.startsWith('/procurement') || pathname.startsWith('/purchasing')) return 'Purchasing & Sourcing';
+  if (pathname.startsWith('/logistics') || pathname.startsWith('/delivery')) return 'Delivery & Couriers';
+  if (pathname.startsWith('/storefront')) return 'Online Store CMS';
+  if (pathname.startsWith('/databin')) return 'Data Bin & Recovery Vault';
+  if (pathname.startsWith('/settings')) return 'Settings & Governance';
+  if (pathname.startsWith('/profile')) return 'User Profile';
+  if (pathname.startsWith('/users')) return 'Users & Access';
+  return '';
+}
+
 export function AppShell() {
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const location = useLocation();
   const { companyName } = useTenantBranding();
   const tenantName = useAuthStore((s) => s.tenant?.name);
-  const brandName = companyName || tenantName || 'Enterprise ERP';
+  const brandName =
+    (companyName && companyName !== 'CenterPoint ProERP' && companyName !== 'Enterprise Cloud ERP')
+      ? companyName
+      : (tenantName && tenantName !== 'CenterPoint ProERP' && tenantName !== 'Enterprise Cloud'
+        ? tenantName
+        : 'SliceMart Industries');
+
+  const pageTitle = useMemo(() => {
+    const routeTitle = getRouteTitle(location.pathname);
+    return routeTitle ? `${routeTitle} | ${brandName}` : `${brandName} — ERP Operations`;
+  }, [location.pathname, brandName]);
 
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
     try {
@@ -40,7 +71,7 @@ export function AppShell() {
   return (
     <div className="flex min-h-dvh bg-base text-default font-sans antialiased flex-col w-full max-w-full overflow-x-hidden">
       <SeoHead
-        title={brandName}
+        title={pageTitle}
         description="Private Tenant Enterprise Management Portal"
         noIndex={true}
         brandName={brandName}

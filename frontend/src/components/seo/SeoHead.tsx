@@ -37,12 +37,23 @@ export const SeoHead: React.FC<SeoMetaProps> = ({
 }) => {
   useEffect(() => {
     // 1. Format document title
-    const activeBrand = brandName || 'Enterprise';
-    const finalTitle = title
-      ? titleTemplate
-        ? titleTemplate.replace('{title}', title).replace('{brand}', activeBrand)
-        : `${title} | ${activeBrand}`
-      : activeBrand;
+    const activeBrand = (brandName || 'SliceMart Industries').trim();
+    let finalTitle = activeBrand;
+
+    if (title && title.trim()) {
+      const cleanTitle = title.trim();
+      if (cleanTitle === activeBrand || cleanTitle.toLowerCase() === activeBrand.toLowerCase()) {
+        finalTitle = `${activeBrand} — ERP Operations`;
+      } else if (titleTemplate) {
+        finalTitle = titleTemplate.replace('{title}', cleanTitle).replace('{brand}', activeBrand);
+      } else if (cleanTitle.includes(activeBrand)) {
+        finalTitle = cleanTitle;
+      } else {
+        finalTitle = `${cleanTitle} | ${activeBrand}`;
+      }
+    } else {
+      finalTitle = `${activeBrand} — ERP Operations`;
+    }
     document.title = finalTitle;
 
     // Helper to set or create meta tag

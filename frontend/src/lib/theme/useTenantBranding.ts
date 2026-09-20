@@ -9,17 +9,31 @@ export interface TenantBranding {
   loading: boolean;
 }
 
+const sanitizeName = (name: string | null | undefined): string | null => {
+  if (!name) return null;
+  const trimmed = name.trim();
+  if (!trimmed || trimmed === 'CenterPoint ProERP' || trimmed === 'Enterprise Cloud ERP') {
+    return null;
+  }
+  return trimmed;
+};
+
 export function useTenantBranding(): TenantBranding {
-  const authTenantName = useAuthStore((s) => s.tenant?.name);
+  const authTenant = useAuthStore((s) => s.tenant);
+  const authTenantName = authTenant?.name;
+  const authBranding = authTenant?.branding as Record<string, unknown> | undefined;
+  const authBrandingName = (authBranding?.company_name || authBranding?.company_legal_name) as string | undefined;
+
   const [customCompanyName, setCustomCompanyName] = useState<string | null>(() => {
     try {
-      return localStorage.getItem('company_name') || null;
+      return sanitizeName(localStorage.getItem('company_name'));
     } catch {
       return null;
     }
   });
 
-  const companyName = customCompanyName || authTenantName || 'Enterprise Cloud ERP';
+  const resolvedAuthName = sanitizeName(authBrandingName) || sanitizeName(authTenantName);
+  const companyName = customCompanyName || resolvedAuthName || 'SliceMart Industries';
 
   const [logoUrl, setLogoUrl] = useState<string | null>(() => {
     try {
@@ -52,6 +66,33 @@ export function useTenantBranding(): TenantBranding {
     }
   }, [faviconUrl]);
 
+  // Listen for real-time branding updates across windows and components
+  useEffect(() => {
+    const handleBrandingSync = (e?: Event) => {
+      try {
+        const customEvent = e as CustomEvent<{ name?: string; logo_url?: string; favicon_url?: string }> | undefined;
+        if (customEvent?.detail?.name) {
+          const sanitized = sanitizeName(customEvent.detail.name);
+          if (sanitized) setCustomCompanyName(sanitized);
+        } else {
+          const stored = sanitizeName(localStorage.getItem('company_name'));
+          if (stored) setCustomCompanyName(stored);
+        }
+        const storedLogo = localStorage.getItem('brand_logo_url');
+        if (storedLogo) setLogoUrl(storedLogo);
+        const storedFavicon = localStorage.getItem('brand_favicon_url');
+        if (storedFavicon) setFaviconUrl(storedFavicon);
+      } catch {}
+    };
+
+    window.addEventListener('storage', handleBrandingSync);
+    window.addEventListener('tenant_branding_updated', handleBrandingSync);
+    return () => {
+      window.removeEventListener('storage', handleBrandingSync);
+      window.removeEventListener('tenant_branding_updated', handleBrandingSync);
+    };
+  }, []);
+
   // Fetch latest branding from public branding endpoint
   useEffect(() => {
     let ignore = false;
@@ -63,11 +104,12 @@ export function useTenantBranding(): TenantBranding {
         const data = res.data;
         if (data) {
           if (data.name) {
-            setCustomCompanyName(data.name);
-            try {
-              localStorage.setItem('company_name', data.name);
-            } catch {
-              // Ignore localStorage write failures
+            const sanitized = sanitizeName(data.name);
+            if (sanitized) {
+              setCustomCompanyName(sanitized);
+              try {
+                localStorage.setItem('company_name', sanitized);
+              } catch {}
             }
           }
           if (data.logo_url) {

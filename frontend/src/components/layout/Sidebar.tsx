@@ -158,7 +158,12 @@ export function Sidebar({ isOpen, onClose, isCollapsed = false, onToggleCollapse
 
   const { companyName } = useTenantBranding();
   const tenantName = tenant?.name;
-  const tenantDisplayName = companyName || tenantName || 'Enterprise Cloud';
+  const tenantDisplayName =
+    (companyName && companyName !== 'CenterPoint ProERP' && companyName !== 'Enterprise Cloud ERP')
+      ? companyName
+      : (tenantName && tenantName !== 'CenterPoint ProERP' && tenantName !== 'Enterprise Cloud'
+        ? tenantName
+        : 'SliceMart Industries');
   // Close on Escape key when mobile sidebar is open
   useEffect(() => {
     if (!isOpen) return;

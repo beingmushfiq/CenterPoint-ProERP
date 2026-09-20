@@ -439,8 +439,13 @@ export const SettingsCenterWorkspace: React.FC = () => {
           if (payload['brand_favicon_url'] !== undefined) {
             localStorage.setItem('brand_favicon_url', String(payload['brand_favicon_url'] || ''));
           }
-          if (payload['company_legal_name'] !== undefined) {
-            localStorage.setItem('company_name', String(payload['company_legal_name'] || ''));
+          const savedOrgName = payload['company_name'] !== undefined ? payload['company_name'] : payload['company_legal_name'];
+          if (savedOrgName !== undefined) {
+            const orgStr = String(savedOrgName || '').trim();
+            if (orgStr) {
+              localStorage.setItem('company_name', orgStr);
+              window.dispatchEvent(new CustomEvent('tenant_branding_updated', { detail: { name: orgStr } }));
+            }
           }
         } catch (err) {
           void err;
