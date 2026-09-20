@@ -384,7 +384,34 @@ class SliceMartBrainService
     {
         $totalStaff = DB::table('employees')->where('tenant_id', $tenantId)->whereNull('deleted_at')->count();
         $activeStaff = DB::table('employees')->where('tenant_id', $tenantId)->whereNull('deleted_at')->where('employment_status', 'active')->count();
-        $totalPayroll = DB::table('employees')->where('tenant_id', $tenantId)->whereNull('deleted_at')->sum('salary_amount') ?: 0;
+        $latestPeriod = DB::table('payroll_periods')
+            ->where('tenant_id', $tenantId)
+            ->whereNull('deleted_at')
+            ->orderByDesc('period_start')
+            ->first();
+
+        if ($latestPeriod && (float) $latestPeriod->total_net > 0) {
+            $totalPayroll = (float) $latestPeriod->total_net;
+        } else {
+            $totalPayroll = (float) (DB::table('payslips')
+                ->where('tenant_id', $tenantId)
+                ->whereNull('deleted_at')
+                ->sum('net_amount') ?: 0);
+
+            if ($totalPayroll == 0) {
+                $totalPayroll = (float) (DB::table('employees as e')
+                    ->join('salary_structure_components as ssc', function ($join) {
+                        $join->on('ssc.salary_structure_id', '=', 'e.salary_structure_id')
+                             ->on('ssc.tenant_id', '=', 'e.tenant_id');
+                    })
+                    ->where('e.tenant_id', $tenantId)
+                    ->where('e.employment_status', 'active')
+                    ->whereNull('e.deleted_at')
+                    ->whereNull('ssc.deleted_at')
+                    ->where('ssc.calculation_type', 'fixed')
+                    ->sum('ssc.value') ?: 0);
+            }
+        }
         $departments = DB::table('departments')->where('tenant_id', $tenantId)->whereNull('deleted_at')->count();
 
         $recentEmployees = DB::table('employees')
@@ -394,9 +421,24 @@ class SliceMartBrainService
             ->limit(3)
             ->get();
 
+        $empIds = $recentEmployees->pluck('id')->toArray();
+        $latestPayslips = !empty($empIds)
+            ? DB::table('payslips')
+                ->where('tenant_id', $tenantId)
+                ->whereIn('employee_id', $empIds)
+                ->whereNull('deleted_at')
+                ->orderByDesc('id')
+                ->get()
+                ->keyBy('employee_id')
+            : collect();
+
         $staffLines = [];
         foreach ($recentEmployees as $e) {
-            $staffLines[] = "• **{$e->first_name} {$e->last_name}**: Status: `{$e->employment_status}` | Base: ৳" . number_format((float) ($e->salary_amount ?? 0), 0);
+            $netSalary = isset($latestPayslips[$e->id]) ? (float) $latestPayslips[$e->id]->net_amount : 0.0;
+            $salaryDisplay = $netSalary > 0
+                ? 'Base: ৳' . number_format($netSalary, 0)
+                : 'Role: ' . ucfirst(str_replace('_', ' ', $e->employment_type ?? 'Permanent'));
+            $staffLines[] = "• **{$e->first_name} {$e->last_name}**: Status: `{$e->employment_status}` | {$salaryDisplay}";
         }
 
         return [
