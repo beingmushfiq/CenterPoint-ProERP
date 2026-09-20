@@ -1,8 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ClipboardList, Plus, Search, Trash2, Rocket, Copy, FileUp, ChevronDown, CheckCircle2 } from 'lucide-react';
+import { ClipboardList, Plus, Search, Trash2, Rocket, Copy, FileUp, ChevronDown, CheckCircle2, X } from 'lucide-react';
 import { api } from '../../../lib/api/client';
-import { Modal } from '../../../components/ui/Modal';
+import { useAuthStore } from '../../../lib/auth/authStore';
+import { Modal, ConfirmDialog } from '../../../components/ui/Modal';
+import { notify } from '../../../components/ui/Toast';
 import { Button } from '../../../components/ui/Button';
 import { SelectDropdown } from '../../../components/ui/Dropdown';
 import { StatusBadge } from '../../../components/ui/Badge';
@@ -11,6 +13,7 @@ import { isApiError } from '../../../lib/api/errors';
 import { UniversalImportModal } from '../../../components/import/UniversalImportModal';
 import { ActionMenuPortal } from '../../../components/ui/ActionMenuPortal';
 import { productionPlanImportSchema } from '../schemas/productionPlanImportSchema';
+import { cn } from '../../../lib/utils';
 import type { ProductionPlan } from '../../../types/api/production';
 import type { Product } from '../../../types/api/catalog';
 import type { BillOfMaterial } from '../../../types/api/bom';
@@ -43,6 +46,9 @@ interface LaunchBatchDraft {
 }
 
 export function ProductionPlansSection() {
+  const { hasPermission } = useAuthStore();
+  const canDelete = hasPermission('production.plan.delete');
+
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -53,6 +59,11 @@ export function ProductionPlansSection() {
   const [launchErrorMsg, setLaunchErrorMsg] = useState<string | null>(null);
   const [openActionMenuId, setOpenActionMenuId] = useState<string | null>(null);
   const [actionMenuAnchor, setActionMenuAnchor] = useState<HTMLElement | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+  const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
+  const headerCheckboxRef = useRef<HTMLInputElement>(null);
+
   const [deleteConfirm, setDeleteConfirm] = useState<{ open: boolean; id: string; name: string }>({
     open: false,
     id: '',
@@ -182,9 +193,11 @@ export function ProductionPlansSection() {
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['production', 'plans'] });
       setSelectedPlan(null);
+      notify.success('Production plan moved to Data Bin successfully.');
     },
     onError: (err) => {
-      if (isApiError(err)) setErrorMsg(err.message ?? 'Failed to delete plan.');
+      if (isApiError(err)) setErrorMsg(err.message ?? 'Failed to move plan to Data Bin.');
+      else notify.error('Failed to move production plan to Data Bin.');
     },
   });
 
@@ -220,6 +233,70 @@ export function ProductionPlansSection() {
   const plans = plansQuery.data?.data ?? [];
   const products = productsQuery.data?.data ?? [];
   const boms = bomsQuery.data?.data ?? [];
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === plans.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(plans.map((p) => p.id)));
+    }
+  };
+
+  const toggleSelect = (id: string) => {
+    const next = new Set(selectedIds);
+    if (next.has(id)) {
+      next.delete(id);
+    } else {
+      next.add(id);
+    }
+    setSelectedIds(next);
+  };
+
+  useEffect(() => {
+    if (headerCheckboxRef.current) {
+      headerCheckboxRef.current.indeterminate =
+        selectedIds.size > 0 && selectedIds.size < plans.length;
+    }
+  }, [selectedIds, plans.length]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && selectedIds.size > 0) {
+        setSelectedIds(new Set());
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedIds.size]);
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.size === 0) return;
+    setIsBulkDeleting(true);
+    let successCount = 0;
+    let failCount = 0;
+
+    for (const id of selectedIds) {
+      try {
+        await api.delete(`/production/plans/${id}`);
+        successCount++;
+      } catch {
+        failCount++;
+      }
+    }
+
+    setIsBulkDeleting(false);
+    setShowBulkDeleteModal(false);
+    setSelectedIds(new Set());
+    await queryClient.invalidateQueries({ queryKey: ['production', 'plans'] });
+
+    if (failCount === 0) {
+      notify.success(`${successCount} production plan(s) moved to Data Bin successfully.`);
+    } else if (successCount > 0) {
+      notify.warning(`Moved ${successCount} plan(s) to Data Bin, but ${failCount} failed.`);
+    } else {
+      notify.error('Failed to move selected production plans to Data Bin.');
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -295,6 +372,37 @@ export function ProductionPlansSection() {
         </div>
       </div>
 
+      {/* Bulk Action Bar */}
+      {selectedIds.size > 0 && (
+        <div className="flex items-center justify-between p-3 bg-rose-500/10 border border-rose-500/20 rounded-2xl animate-in fade-in">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold text-rose-600 dark:text-rose-400">
+              {selectedIds.size} production plan(s) selected
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            {canDelete && (
+              <button
+                type="button"
+                onClick={() => setShowBulkDeleteModal(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-rose-600 text-white hover:bg-rose-700 rounded-xl transition cursor-pointer"
+              >
+                <Trash2 className="size-3.5" />
+                <span>Move to Bin ({selectedIds.size})</span>
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => setSelectedIds(new Set())}
+              className="flex items-center gap-1 px-2.5 py-1.5 text-xs text-muted hover:text-default bg-surface rounded-xl border border-default transition cursor-pointer"
+            >
+              <X className="size-3.5" />
+              <span>Clear</span>
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Data Table */}
       <QueryBoundary
         status={plansQuery.status}
@@ -307,6 +415,16 @@ export function ProductionPlansSection() {
             <table className="w-full text-left text-xs text-default border-collapse">
               <thead className="border-b border-default bg-surface-sunken text-[11px] font-semibold uppercase tracking-wider text-muted">
                 <tr>
+                  <th className="w-10 px-4 py-3.5">
+                    <input
+                      ref={headerCheckboxRef}
+                      type="checkbox"
+                      aria-label="Select all plans"
+                      checked={plans.length > 0 && selectedIds.size === plans.length}
+                      onChange={toggleSelectAll}
+                      className="rounded border-default text-primary focus:ring-primary h-4 w-4 cursor-pointer"
+                    />
+                  </th>
                   <th className="px-4 py-3.5 whitespace-nowrap">Plan No</th>
                   <th className="px-4 py-3.5">Title</th>
                   <th className="px-4 py-3.5 whitespace-nowrap">Date Range</th>
@@ -318,7 +436,7 @@ export function ProductionPlansSection() {
               <tbody className="divide-y divide-default">
                 {plans.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="py-12 text-center text-muted">
+                    <td colSpan={7} className="py-12 text-center text-muted">
                       <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-xl bg-surface-sunken border border-default mb-2">
                         <ClipboardList className="h-5 w-5 text-muted" />
                       </div>
@@ -334,7 +452,22 @@ export function ProductionPlansSection() {
                   </tr>
                 ) : (
                   plans.map((plan) => (
-                    <tr key={plan.id} className="hover:bg-surface-sunken/60 transition-colors">
+                    <tr
+                      key={plan.id}
+                      className={cn(
+                        'hover:bg-surface-sunken/60 transition-colors',
+                        selectedIds.has(plan.id) && 'bg-primary/5'
+                      )}
+                    >
+                      <td className="px-4 py-3.5" onClick={(e) => e.stopPropagation()}>
+                        <input
+                          type="checkbox"
+                          aria-label={`Select plan ${plan.plan_number}`}
+                          checked={selectedIds.has(plan.id)}
+                          onChange={() => toggleSelect(plan.id)}
+                          className="rounded border-default text-primary focus:ring-primary h-4 w-4 cursor-pointer"
+                        />
+                      </td>
                       <td className="px-4 py-3.5 font-mono font-bold text-primary whitespace-nowrap">
                         {plan.plan_number}
                       </td>
@@ -392,11 +525,11 @@ export function ProductionPlansSection() {
                               onClick={(e) => {
                                 e.stopPropagation();
                                 if (openActionMenuId === plan.id) {
-                                  setOpenActionMenuId(null);
-                                  setActionMenuAnchor(null);
+                                   setOpenActionMenuId(null);
+                                   setActionMenuAnchor(null);
                                 } else {
-                                  setOpenActionMenuId(plan.id);
-                                  setActionMenuAnchor(e.currentTarget);
+                                   setOpenActionMenuId(plan.id);
+                                   setActionMenuAnchor(e.currentTarget);
                                 }
                               }}
                               className={`px-2.5 py-1 text-xs rounded-lg border font-medium transition cursor-pointer flex items-center gap-1 shadow-2xs ${
@@ -512,7 +645,7 @@ export function ProductionPlansSection() {
                                 </div>
                               )}
 
-                              {(plan.status === 'draft' || plan.status === 'cancelled') && (
+                              {canDelete && (plan.status === 'draft' || plan.status === 'cancelled') && (
                                 <>
                                   <div className="my-1 border-t border-default/50" />
                                   <button
@@ -529,7 +662,7 @@ export function ProductionPlansSection() {
                                     className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer"
                                   >
                                     <Trash2 className="size-3.5 text-rose-600 shrink-0" />
-                                    <span>Delete Plan</span>
+                                    <span>Move to Bin</span>
                                   </button>
                                 </>
                               )}
@@ -1008,42 +1141,30 @@ export function ProductionPlansSection() {
         </Modal>
       )}
 
-      {/* Delete Plan Confirmation Modal */}
-      <Modal
+      {/* Single Move to Bin Dialog */}
+      <ConfirmDialog
         open={deleteConfirm.open}
         onClose={() => setDeleteConfirm({ open: false, id: '', name: '' })}
-        title="Confirm Plan Deletion"
-      >
-        <div className="space-y-4">
-          <p className="text-sm text-default">
-            Are you sure you want to delete production plan{' '}
-            <span className="font-mono font-bold text-rose-600 dark:text-rose-400">
-              {deleteConfirm.name}
-            </span>
-            ? This action cannot be undone.
-          </p>
+        onConfirm={() => {
+          deletePlanMutation.mutate(deleteConfirm.id);
+          setDeleteConfirm({ open: false, id: '', name: '' });
+        }}
+        title="Move Production Plan to Data Bin"
+        message={`Are you sure you want to move production plan "${deleteConfirm.name}" to the Data Bin? You can restore it anytime from Settings > Data Bin.`}
+        confirmLabel={deletePlanMutation.isPending ? 'Moving...' : 'Move to Bin'}
+        variant="danger"
+      />
 
-          <div className="flex justify-end gap-2 pt-3 border-t border-default">
-            <Button
-              variant="ghost"
-              onClick={() => setDeleteConfirm({ open: false, id: '', name: '' })}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="primary"
-              onClick={() => {
-                deletePlanMutation.mutate(deleteConfirm.id);
-                setDeleteConfirm({ open: false, id: '', name: '' });
-              }}
-              disabled={deletePlanMutation.isPending}
-              className="bg-rose-600 hover:bg-rose-700 text-white font-medium"
-            >
-              {deletePlanMutation.isPending ? 'Deleting...' : 'Confirm Delete'}
-            </Button>
-          </div>
-        </div>
-      </Modal>
+      {/* Bulk Move to Bin Dialog */}
+      <ConfirmDialog
+        open={showBulkDeleteModal}
+        onClose={() => setShowBulkDeleteModal(false)}
+        onConfirm={handleBulkDelete}
+        title="Move Selected Production Plans to Data Bin"
+        message={`Are you sure you want to move ${selectedIds.size} production plan(s) to the Data Bin? You can restore them anytime from Settings > Data Bin.`}
+        confirmLabel={isBulkDeleting ? 'Moving...' : `Move ${selectedIds.size} Plan(s) to Bin`}
+        variant="danger"
+      />
 
       <UniversalImportModal
         isOpen={isImportOpen}

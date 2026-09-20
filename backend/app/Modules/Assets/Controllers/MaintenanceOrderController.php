@@ -65,4 +65,15 @@ class MaintenanceOrderController extends Controller
             'data' => $order,
         ]);
     }
+
+    public function destroy(int $id): JsonResponse
+    {
+        $order = MaintenanceOrder::findOrFail($id);
+        $order->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Maintenance order moved to Data Bin successfully',
+        ]);
+    }
 }

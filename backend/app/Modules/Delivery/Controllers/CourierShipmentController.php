@@ -100,4 +100,14 @@ class CourierShipmentController extends Controller
             ],
         ]);
     }
+
+    public function destroy(CourierShipment $shipment): JsonResponse
+    {
+        $shipment->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Shipment moved to Data Bin successfully',
+        ]);
+    }
 }

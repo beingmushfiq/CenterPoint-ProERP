@@ -58,7 +58,7 @@ interface DiscountRuleData {
   name: string;
   scope: 'product' | 'category' | 'party' | 'order';
   scope_id?: string | null;
-  condition?: Record<string, any> | null;
+  condition?: Record<string, unknown> | null;
   discount_type: 'percentage' | 'fixed';
   value: string | number;
   valid_from?: string | null;
@@ -124,10 +124,10 @@ export function PriceListsSection() {
   });
 
   // Fetch Options for Price Lists
-  const { data: _priceListOptions } = useQuery({
+  useQuery({
     queryKey: ['pricing', 'price-lists', 'options'],
     queryFn: async () => {
-      const res = await api.get<any>('/pricing/price-lists/options');
+      const res = await api.get<Record<string, unknown>>('/pricing/price-lists/options');
       return (res.data && typeof res.data === 'object' && 'data' in res.data) ? res.data.data : res.data;
     },
   });
@@ -209,7 +209,7 @@ export function PriceListsSection() {
   const { data: rawDiscountRules, isLoading: isLoadingDiscounts, isFetching: isFetchingDiscounts, refetch: refetchDiscounts } = useQuery({
     queryKey: ['pricing', 'discount-rules'],
     queryFn: async () => {
-      const res = await api.get<any>('/pricing/discount-rules?per_page=100');
+      const res = await api.get<Record<string, unknown>>('/pricing/discount-rules?per_page=100');
       return (res.data && typeof res.data === 'object' && 'data' in res.data) ? res.data.data : res.data;
     },
     enabled: activeTab === 'discounts',
@@ -266,9 +266,9 @@ export function PriceListsSection() {
 
   const handleViewDiscount = async (id: string) => {
     try {
-      const res = await api.get<any>(`/pricing/discount-rules/${id}`);
+      const res = await api.get<Record<string, unknown>>(`/pricing/discount-rules/${id}`);
       const rule = (res.data && typeof res.data === 'object' && 'data' in res.data) ? res.data.data : res.data;
-      setSelectedDiscountForView(rule);
+      setSelectedDiscountForView(rule as DiscountRuleData);
     } catch {
       toast.error('Failed to load discount rule details');
     }
@@ -278,16 +278,16 @@ export function PriceListsSection() {
   const { data: rawTaxProfiles, isLoading: isLoadingTaxes, isFetching: isFetchingTaxes, refetch: refetchTaxes } = useQuery({
     queryKey: ['pricing', 'tax-profiles'],
     queryFn: async () => {
-      const res = await api.get<any>('/pricing/tax-profiles?per_page=100');
+      const res = await api.get<Record<string, unknown>>('/pricing/tax-profiles?per_page=100');
       return (res.data && typeof res.data === 'object' && 'data' in res.data) ? res.data.data : res.data;
     },
     enabled: activeTab === 'taxes',
   });
 
-  const { data: _taxProfileOptions } = useQuery({
+  useQuery({
     queryKey: ['pricing', 'tax-profiles', 'options'],
     queryFn: async () => {
-      const res = await api.get<any>('/pricing/tax-profiles/options');
+      const res = await api.get<Record<string, unknown>>('/pricing/tax-profiles/options');
       return (res.data && typeof res.data === 'object' && 'data' in res.data) ? res.data.data : res.data;
     },
   });
@@ -347,9 +347,9 @@ export function PriceListsSection() {
 
   const handleViewTax = async (id: string) => {
     try {
-      const res = await api.get<any>(`/pricing/tax-profiles/${id}`);
+      const res = await api.get<Record<string, unknown>>(`/pricing/tax-profiles/${id}`);
       const tax = (res.data && typeof res.data === 'object' && 'data' in res.data) ? res.data.data : res.data;
-      setSelectedTaxForView(tax);
+      setSelectedTaxForView(tax as TaxProfileData);
     } catch {
       toast.error('Failed to load tax profile details');
     }
@@ -1293,7 +1293,7 @@ export function PriceListsSection() {
                 <label className="block text-muted font-medium mb-1">Scope</label>
                 <select
                   value={discountScope}
-                  onChange={(e) => setDiscountScope(e.target.value as any)}
+                  onChange={(e) => setDiscountScope(e.target.value as 'product' | 'category' | 'party' | 'order')}
                   className="w-full rounded-xl border border-default bg-surface p-2.5 text-xs text-default focus:border-primary focus:outline-none"
                 >
                   <option value="order">Entire Order</option>
@@ -1307,7 +1307,7 @@ export function PriceListsSection() {
                 <label className="block text-muted font-medium mb-1">Discount Type</label>
                 <select
                   value={discountType}
-                  onChange={(e) => setDiscountType(e.target.value as any)}
+                  onChange={(e) => setDiscountType(e.target.value as 'percentage' | 'fixed')}
                   className="w-full rounded-xl border border-default bg-surface p-2.5 text-xs text-default focus:border-primary focus:outline-none"
                 >
                   <option value="percentage">Percentage (%)</option>
@@ -1414,7 +1414,7 @@ export function PriceListsSection() {
                 <label className="block text-muted font-medium mb-1">Calculation Type</label>
                 <select
                   value={taxType}
-                  onChange={(e) => setTaxType(e.target.value as any)}
+                  onChange={(e) => setTaxType(e.target.value as 'exclusive' | 'inclusive')}
                   className="w-full rounded-xl border border-default bg-surface p-2.5 text-xs text-default focus:border-primary focus:outline-none"
                 >
                   <option value="exclusive">Exclusive (Added to Subtotal)</option>

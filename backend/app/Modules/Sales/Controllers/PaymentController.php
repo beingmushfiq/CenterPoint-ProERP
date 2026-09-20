@@ -45,7 +45,7 @@ final class PaymentController extends Controller
 
         $payments = $query->orderByDesc('payment_date')
             ->orderByDesc('id')
-            ->paginate((int) $request->query('per_page', 25));
+            ->paginate((int) $request->input('per_page', 25));
 
         return PaymentResource::collection($payments);
     }
@@ -78,5 +78,22 @@ final class PaymentController extends Controller
             ->firstOrFail();
 
         return new PaymentResource($payment);
+    }
+
+    public function destroy(int $id): JsonResponse
+    {
+        $tenantId = TenantContext::current()->tenantId();
+
+        /** @var Payment $payment */
+        $payment = Payment::where('tenant_id', $tenantId)
+            ->where('id', $id)
+            ->firstOrFail();
+
+        $payment->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Payment moved to Data Bin.',
+        ]);
     }
 }

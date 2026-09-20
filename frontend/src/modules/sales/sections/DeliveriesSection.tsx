@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import {
@@ -17,6 +17,7 @@ import {
   Printer,
   DollarSign,
   Send,
+  X,
 } from 'lucide-react';
 import type { DeliveryOrder } from '../../../types/api/sales';
 import { api } from '../../../lib/api/client';
@@ -26,6 +27,7 @@ import { DeliveryChallanDocument } from '../../../components/print/documents/Del
 import { useBusinessConfig } from '../../../lib/document/useBusinessConfig';
 import { SelectDropdown } from '../../../components/ui/Dropdown';
 import { useCurrency } from '../../../hooks/useCurrency';
+import { useAuthStore } from '../../../lib/auth/authStore';
 
 interface DeliveryFormItem {
   product_name: string;
@@ -150,11 +152,20 @@ const SAMPLE_DELIVERIES: DeliveryOrder[] = [
 ];
 
 export function DeliveriesSection() {
+  const { hasPermission } = useAuthStore();
+  const canDelete = hasPermission('sales.delivery.delete');
+
   const { formatCurrency, currencySymbol } = useCurrency();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [actionLoading, setActionLoading] = useState<number | null>(null);
+
+  // Bulk Selection State
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+  const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
+  const headerCheckboxRef = useRef<HTMLInputElement>(null);
 
   // Modals
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -320,14 +331,20 @@ export function DeliveriesSection() {
     setShowEditModal(false);
   };
 
-  const handleDeleteDelivery = () => {
+  const handleDeleteDelivery = async () => {
     if (!activeDelivery) return;
-    queryClient.setQueryData<DeliveryOrder[]>(['sales', 'deliveries'], (prev = []) =>
-      prev.filter((d) => d.id !== activeDelivery.id)
-    );
-    api.delete(`/sales/deliveries/${activeDelivery.id}`).catch(() => {});
-    toast.success('Dispatch challan deleted.');
-    setShowDeleteModal(false);
+    try {
+      await api.delete(`/sales/deliveries/${activeDelivery.id}`);
+      queryClient.setQueryData<DeliveryOrder[]>(['sales', 'deliveries'], (prev = []) =>
+        prev.filter((d) => d.id !== activeDelivery.id)
+      );
+      queryClient.invalidateQueries({ queryKey: ['sales', 'deliveries'] });
+      toast.success('Dispatch challan moved to Data Bin.');
+      setShowDeleteModal(false);
+      setActiveDelivery(null);
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Failed to delete delivery order');
+    }
   };
 
   const addItemToForm = () => {
@@ -367,6 +384,63 @@ export function DeliveriesSection() {
     const matchesStatus = statusFilter === 'all' || d.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
+
+  const isAllSelected = filteredDeliveries.length > 0 && selectedIds.size === filteredDeliveries.length;
+  const isSomeSelected = selectedIds.size > 0 && !isAllSelected;
+
+  useEffect(() => {
+    if (headerCheckboxRef.current) {
+      headerCheckboxRef.current.indeterminate = isSomeSelected;
+    }
+  }, [isSomeSelected]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && selectedIds.size > 0) {
+        setSelectedIds(new Set());
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedIds.size]);
+
+  const toggleSelectAll = () => {
+    if (isAllSelected) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filteredDeliveries.map((d) => d.id)));
+    }
+  };
+
+  const toggleSelect = (id: number) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const handleBulkDelete = async () => {
+    setIsBulkDeleting(true);
+    let count = 0;
+    try {
+      for (const id of Array.from(selectedIds)) {
+        try {
+          await api.delete(`/sales/deliveries/${id}`);
+          count++;
+        } catch {
+          // Continue bulk loop on single record deletion error
+        }
+      }
+      toast.success(`${count} dispatch order(s) moved to Data Bin.`);
+      queryClient.invalidateQueries({ queryKey: ['sales', 'deliveries'] });
+      setSelectedIds(new Set());
+      setShowBulkDeleteModal(false);
+    } finally {
+      setIsBulkDeleting(false);
+    }
+  };
 
   const totalCodPending = deliveries
     .filter((d) => d.status !== 'delivered' && parseFloat(d.cod_amount || '0') > 0)
@@ -523,12 +597,53 @@ export function DeliveriesSection() {
         </div>
       </div>
 
+      {/* Bulk Action Toolbar */}
+      {selectedIds.size > 0 && (
+        <div className="flex items-center justify-between p-3 bg-rose-500/10 border border-rose-500/20 rounded-2xl animate-in fade-in">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold text-rose-600 dark:text-rose-400">
+              {selectedIds.size} delivery order(s) selected
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            {canDelete && (
+              <button
+                type="button"
+                onClick={() => setShowBulkDeleteModal(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-rose-600 text-white hover:bg-rose-700 rounded-xl transition cursor-pointer"
+              >
+                <Trash2 className="size-3.5" />
+                <span>Move to Bin ({selectedIds.size})</span>
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => setSelectedIds(new Set())}
+              className="flex items-center gap-1 px-2.5 py-1.5 text-xs text-muted hover:text-default bg-surface rounded-xl border border-default transition cursor-pointer"
+            >
+              <X className="size-3.5" />
+              <span>Clear</span>
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Deliveries Table */}
       <div className="rounded-2xl border border-default bg-surface shadow-2xs overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs text-default">
             <thead className="bg-surface-sunken text-[11px] font-semibold text-muted uppercase tracking-wider border-b border-default">
               <tr>
+                <th className="w-10 px-4 py-3.5 text-center">
+                  <input
+                    ref={headerCheckboxRef}
+                    type="checkbox"
+                    checked={isAllSelected}
+                    onChange={toggleSelectAll}
+                    aria-label="Select all deliveries"
+                    className="size-4 rounded border-default text-primary focus:ring-primary/20 cursor-pointer"
+                  />
+                </th>
                 <th className="px-4 py-3.5">Challan # / Date</th>
                 <th className="px-4 py-3.5">Recipient & Contact</th>
                 <th className="px-4 py-3.5">Ref Sales Order</th>
@@ -541,13 +656,22 @@ export function DeliveriesSection() {
             <tbody className="divide-y divide-default">
               {filteredDeliveries.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-4 py-12 text-center text-muted">
+                  <td colSpan={8} className="px-4 py-12 text-center text-muted">
                     {isLoading ? 'Loading deliveries...' : 'No delivery dispatches found matching your criteria.'}
                   </td>
                 </tr>
               ) : (
                 filteredDeliveries.map((d) => (
-                  <tr key={d.id} className="hover:bg-surface-sunken/60 transition-colors">
+                  <tr key={d.id} className={`hover:bg-surface-sunken/60 transition-colors ${selectedIds.has(d.id) ? 'bg-primary/5' : ''}`}>
+                    <td className="w-10 px-4 py-3.5 text-center" onClick={(e) => e.stopPropagation()}>
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.has(d.id)}
+                        onChange={() => toggleSelect(d.id)}
+                        aria-label={`Select delivery ${d.delivery_number}`}
+                        className="size-4 rounded border-default text-primary focus:ring-primary/20 cursor-pointer"
+                      />
+                    </td>
                     <td className="px-4 py-3.5 font-mono font-medium text-default">
                       <div className="flex items-center gap-1.5">
                         <Truck className="size-3.5 text-primary" />
@@ -629,16 +753,18 @@ export function DeliveriesSection() {
                           <Edit2 className="size-3.5" />
                         </button>
 
-                        <button
-                          onClick={() => {
-                            setActiveDelivery(d);
-                            setShowDeleteModal(true);
-                          }}
-                          className="p-1.5 text-rose-500 hover:bg-rose-500/10 rounded-lg transition-colors cursor-pointer"
-                          title="Cancel Delivery"
-                        >
-                          <Trash2 className="size-3.5" />
-                        </button>
+                        {canDelete && (
+                          <button
+                            onClick={() => {
+                              setActiveDelivery(d);
+                              setShowDeleteModal(true);
+                            }}
+                            className="p-1.5 text-rose-500 hover:bg-rose-500/10 rounded-lg transition-colors cursor-pointer"
+                            title="Move to Bin"
+                          >
+                            <Trash2 className="size-3.5" />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -973,7 +1099,7 @@ export function DeliveriesSection() {
         </div>
       )}
 
-      {/* CANCEL DELIVERY CONFIRMATION MODAL */}
+      {/* MOVE DELIVERY TO BIN CONFIRMATION MODAL */}
       {showDeleteModal && activeDelivery && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs">
           <div className="w-full max-w-sm rounded-2xl border border-default bg-surface p-6 shadow-xl text-center space-y-4">
@@ -981,9 +1107,9 @@ export function DeliveriesSection() {
               <Trash2 className="size-6" />
             </div>
             <div>
-              <h3 className="text-base font-bold text-default">Cancel Delivery Challan?</h3>
+              <h3 className="text-base font-bold text-default">Move Delivery Order to Bin?</h3>
               <p className="text-xs text-muted mt-1">
-                Are you sure you want to cancel dispatch <span className="font-mono font-semibold text-default">{activeDelivery.delivery_number}</span>?
+                Dispatch <span className="font-mono font-semibold text-default">{activeDelivery.delivery_number}</span> will be moved to the Data Bin. You can restore it anytime from Settings &gt; Data Bin.
               </p>
             </div>
             <div className="flex items-center justify-center gap-2 pt-2">
@@ -999,7 +1125,43 @@ export function DeliveriesSection() {
                 onClick={handleDeleteDelivery}
                 className="px-4 py-2 rounded-xl bg-rose-600 text-white font-semibold hover:bg-rose-700 cursor-pointer"
               >
-                Confirm Cancel
+                Move to Bin
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* BULK DELETE CONFIRMATION MODAL */}
+      {showBulkDeleteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs">
+          <div className="w-full max-w-sm rounded-2xl border border-default bg-surface p-6 shadow-xl text-center space-y-4">
+            <div className="size-12 rounded-full bg-rose-500/10 text-rose-500 flex items-center justify-center mx-auto">
+              <Trash2 className="size-6" />
+            </div>
+            <div>
+              <h3 className="text-base font-bold text-default">Move Selected to Bin?</h3>
+              <p className="text-xs text-muted mt-1">
+                Are you sure you want to move <span className="font-semibold text-default">{selectedIds.size}</span> delivery order(s) to the Data Bin? You can restore them anytime from Settings &gt; Data Bin.
+              </p>
+            </div>
+            <div className="flex items-center justify-center gap-2 pt-2">
+              <button
+                type="button"
+                disabled={isBulkDeleting}
+                onClick={() => setShowBulkDeleteModal(false)}
+                className="px-4 py-2 rounded-xl border border-default text-muted hover:text-default cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={isBulkDeleting}
+                onClick={handleBulkDelete}
+                className="px-4 py-2 rounded-xl bg-rose-600 text-white font-semibold hover:bg-rose-700 disabled:opacity-50 cursor-pointer flex items-center gap-1.5"
+              >
+                {isBulkDeleting && <RefreshCw className="size-3.5 animate-spin" />}
+                <span>Move to Bin</span>
               </button>
             </div>
           </div>

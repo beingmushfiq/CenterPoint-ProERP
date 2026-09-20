@@ -113,6 +113,7 @@ export const ModuleManagerSection: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'order' | 'activation'>('order');
   const [savingKey, setSavingKey] = useState<string | null>(null);
   const [savingOrder, setSavingOrder] = useState(false);
+  const [savingBatch, setSavingBatch] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterMode, setFilterMode] = useState<'all' | 'enabled' | 'disabled'>('all');
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
@@ -133,18 +134,23 @@ export const ModuleManagerSection: React.FC = () => {
     queryKey: ['tenant', 'modules', 'nav-order'],
     queryFn: async () => {
       try {
-        const res = await api.get<any>('tenant/modules/nav-order');
-        const payload = (res.data && typeof res.data === 'object' && 'data' in res.data)
-          ? res.data.data
-          : res.data;
-        return payload;
+        const res = await api.get<NavOrderConfig | { data: NavOrderConfig }>('tenant/modules/nav-order');
+        if (!res.data) return null;
+        if ('sections' in res.data && Array.isArray(res.data.sections)) {
+          return res.data;
+        }
+        if ('data' in res.data && res.data.data && typeof res.data.data === 'object' && 'sections' in res.data.data) {
+          return res.data.data as NavOrderConfig;
+        }
+        return null;
       } catch {
         return null;
       }
     },
   });
 
-  const localNavOrder = customNavOrder ?? (serverNavOrder?.sections ? serverNavOrder : null) ?? manifestNavOrder ?? defaultOrder;
+  // Combined navigation order
+  const localNavOrder: NavOrderConfig = customNavOrder || serverNavOrder || manifestNavOrder || defaultOrder;
 
   // Fetch module activations
   const { data: modules = DEFAULT_MODULES, isLoading, isFetching, refetch } = useQuery<ModuleItem[]>({
@@ -166,12 +172,13 @@ export const ModuleManagerSection: React.FC = () => {
   });
 
   const handleBatchSyncModules = async () => {
+    setSavingBatch(true);
     try {
       const payload = {
         modules: modules.map((m) => ({
-          module_key: m.module_key,
-          enabled: m.enabled,
-          config: m.config || {},
+          module_key: String(m.module_key),
+          enabled: Boolean(m.enabled),
+          config: typeof m.config === 'object' && m.config !== null ? m.config : {},
         })),
       };
       await api.put('/tenant/modules/batch', payload);
@@ -179,6 +186,8 @@ export const ModuleManagerSection: React.FC = () => {
       toast.success('All tenant module configurations synchronized successfully.');
     } catch {
       toast.error('Failed to synchronize modules in batch.');
+    } finally {
+      setSavingBatch(false);
     }
   };
 
@@ -549,11 +558,16 @@ export const ModuleManagerSection: React.FC = () => {
                 variant="secondary"
                 size="sm"
                 onClick={handleBatchSyncModules}
+                disabled={savingBatch || isLoading}
                 className="text-xs flex items-center gap-1.5"
                 title="Synchronize all module states to tenant cloud"
               >
-                <Save className="size-3.5 text-primary" />
-                <span>Save All Module States</span>
+                {savingBatch ? (
+                  <RefreshCw className="size-3.5 animate-spin text-primary" />
+                ) : (
+                  <Save className="size-3.5 text-primary" />
+                )}
+                <span>{savingBatch ? 'Saving...' : 'Save All Module States'}</span>
               </Button>
             </div>
           )}

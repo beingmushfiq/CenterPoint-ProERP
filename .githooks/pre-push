@@ -1,0 +1,79 @@
+#!/usr/bin/env bash
+# ==============================================================================
+# DevCenterPoint ProERP — Git Pre-Push Hook
+# Prevents pushing frontend changes without first rebuilding + syncing public_html
+# ==============================================================================
+# Install once: node scripts/install-git-hooks.cjs
+# ==============================================================================
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+
+FRONTEND_SRC="${REPO_ROOT}/frontend/src"
+INDEX_HTML="${REPO_ROOT}/public_html/index.html"
+
+# Only check if a frontend/src directory exists
+if [ ! -d "${FRONTEND_SRC}" ]; then
+  exit 0
+fi
+
+# If public_html/index.html doesn't exist, the build was never run
+if [ ! -f "${INDEX_HTML}" ]; then
+  echo ""
+  echo "╔══════════════════════════════════════════════════════════════╗"
+  echo "║  PUSH BLOCKED — Frontend build is MISSING                   ║"
+  echo "║                                                              ║"
+  echo "║  public_html/index.html does not exist.                     ║"
+  echo "║                                                              ║"
+  echo "║  Fix this before pushing:                                    ║"
+  echo "║    PowerShell: .\\scripts\\deploy-local.ps1                   ║"
+  echo "║    Or manually:                                              ║"
+  echo "║      cd frontend && npm run build && cd ..                   ║"
+  echo "║      node scripts/sync_public_html.cjs                      ║"
+  echo "║      git add public_html/                                    ║"
+  echo "║      git commit -m 'build: sync frontend dist'              ║"
+  echo "║      git push                                                ║"
+  echo "╚══════════════════════════════════════════════════════════════╝"
+  echo ""
+  exit 1
+fi
+
+# Find the newest modification time in frontend/src (compare to index.html)
+INDEX_MTIME=$(stat -c %Y "${INDEX_HTML}" 2>/dev/null || stat -f %m "${INDEX_HTML}" 2>/dev/null || echo 0)
+
+# Find newest .ts/.tsx/.css file in frontend/src
+NEWEST_SRC_MTIME=0
+NEWEST_FILE=""
+while IFS= read -r -d '' file; do
+  FILE_MTIME=$(stat -c %Y "${file}" 2>/dev/null || stat -f %m "${file}" 2>/dev/null || echo 0)
+  if [ "${FILE_MTIME}" -gt "${NEWEST_SRC_MTIME}" ]; then
+    NEWEST_SRC_MTIME="${FILE_MTIME}"
+    NEWEST_FILE="${file}"
+  fi
+done < <(find "${FRONTEND_SRC}" -type f \( -name "*.ts" -o -name "*.tsx" -o -name "*.css" \) -print0 2>/dev/null)
+
+if [ "${NEWEST_SRC_MTIME:-0}" -gt "${INDEX_MTIME}" ]; then
+  DISPLAY_FILE="${NEWEST_FILE##${REPO_ROOT}/}"
+  echo ""
+  echo "╔══════════════════════════════════════════════════════════════╗"
+  echo "║  PUSH BLOCKED — Frontend build is STALE                     ║"
+  echo "║                                                              ║"
+  echo "║  frontend/src changes detected after the last build.        ║"
+  echo "║  Changed: ${DISPLAY_FILE:0:50}"
+  echo "║                                                              ║"
+  echo "║  Fix this before pushing:                                    ║"
+  echo "║    PowerShell: .\\scripts\\deploy-local.ps1                   ║"
+  echo "║    Or manually:                                              ║"
+  echo "║      cd frontend && npm run build && cd ..                   ║"
+  echo "║      node scripts/sync_public_html.cjs                      ║"
+  echo "║      git add public_html/                                    ║"
+  echo "║      git commit -m 'build: sync frontend dist'              ║"
+  echo "║      git push                                                ║"
+  echo "╚══════════════════════════════════════════════════════════════╝"
+  echo ""
+  exit 1
+fi
+
+exit 0

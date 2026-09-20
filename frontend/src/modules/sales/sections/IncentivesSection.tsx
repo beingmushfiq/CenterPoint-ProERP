@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import {
@@ -10,8 +10,12 @@ import {
   Percent,
   RefreshCw,
   Sliders,
+  Trash2,
+  X,
 } from 'lucide-react';
 import { api } from '../../../lib/api/client';
+import { useAuthStore } from '../../../lib/auth/authStore';
+import { ConfirmDialog } from '../../../components/ui/Modal';
 import { useCurrency } from '../../../hooks/useCurrency';
 import { KPICard } from '../../../components/ui/KPICard';
 import type {
@@ -21,6 +25,8 @@ import type {
 } from '../../../types/api/sales';
 
 export function IncentivesSection() {
+  const { hasPermission } = useAuthStore();
+  const canDelete = hasPermission('sales.incentive.delete');
   const { formatCurrency, currencySymbol } = useCurrency();
   const queryClient = useQueryClient();
   const [subTab, setSubTab] = useState<'calculations' | 'policies'>('calculations');
@@ -28,6 +34,16 @@ export function IncentivesSection() {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
   });
+
+  // Bulk Selection States
+  const [selectedCalcIds, setSelectedCalcIds] = useState<Set<number>>(new Set());
+  const [deleteConfirm, setDeleteConfirm] = useState<{
+    id?: number;
+    isBulk?: boolean;
+    type: 'calculation' | 'policy';
+    title: string;
+  } | null>(null);
+  const headerCheckboxRef = useRef<HTMLInputElement>(null);
 
   // Modal states
   const [createPolicyModalOpen, setCreatePolicyModalOpen] = useState(false);
@@ -93,6 +109,74 @@ export function IncentivesSection() {
     if (rawCalculations && 'data' in rawCalculations && Array.isArray(rawCalculations.data)) return rawCalculations.data;
     return [];
   }, [rawCalculations]);
+
+  const isAllSelected = calculations.length > 0 && selectedCalcIds.size === calculations.length;
+  const isSomeSelected = selectedCalcIds.size > 0 && !isAllSelected;
+
+  useEffect(() => {
+    if (headerCheckboxRef.current) {
+      headerCheckboxRef.current.indeterminate = isSomeSelected;
+    }
+  }, [isSomeSelected]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && selectedCalcIds.size > 0) {
+        setSelectedCalcIds(new Set());
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedCalcIds.size]);
+
+  const toggleSelectAll = () => {
+    if (isAllSelected) {
+      setSelectedCalcIds(new Set());
+    } else {
+      setSelectedCalcIds(new Set(calculations.map((c) => c.id)));
+    }
+  };
+
+  const toggleSelect = (id: number) => {
+    setSelectedCalcIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const deleteMutation = useMutation({
+    mutationFn: async ({ id, ids, type }: { id?: number | undefined; ids?: number[] | undefined; type: 'calculation' | 'policy' }) => {
+      if (type === 'calculation') {
+        if (ids && ids.length > 0) {
+          let count = 0;
+          for (const calcId of ids) {
+            await api.delete(`/sales/incentives/calculations/${calcId}`);
+            count++;
+          }
+          return count;
+        } else if (id) {
+          await api.delete(`/sales/incentives/calculations/${id}`);
+          return 1;
+        }
+      } else if (type === 'policy' && id) {
+        await api.delete(`/sales/incentives/policies/${id}`);
+        return 1;
+      }
+      return 0;
+    },
+    onSuccess: (count) => {
+      const isPolicy = deleteConfirm?.type === 'policy';
+      toast.success(isPolicy ? 'Incentive policy moved to Data Bin' : `Moved ${count} incentive calculation(s) to Data Bin`);
+      setSelectedCalcIds(new Set());
+      setDeleteConfirm(null);
+      queryClient.invalidateQueries({ queryKey: ['sales', 'incentives'] });
+    },
+    onError: (err: unknown) => {
+      toast.error(err instanceof Error ? err.message : 'Failed to delete');
+    },
+  });
 
   // Trigger Calculation Mutation
   const runCalculateMutation = useMutation({
@@ -292,12 +376,57 @@ export function IncentivesSection() {
             />
           </div>
 
+          {/* Bulk Action Ribbon */}
+          {canDelete && selectedCalcIds.size > 0 && (
+            <div className="flex items-center justify-between p-3 bg-rose-500/10 border border-rose-500/20 rounded-2xl animate-in fade-in">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-semibold text-rose-600 dark:text-rose-400">
+                  {selectedCalcIds.size} calculation(s) selected
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setDeleteConfirm({
+                      isBulk: true,
+                      type: 'calculation',
+                      title: `${selectedCalcIds.size} selected calculation(s)`,
+                    })
+                  }
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-rose-600 text-white hover:bg-rose-700 rounded-xl transition cursor-pointer"
+                >
+                  <Trash2 className="size-3.5" />
+                  <span>Move to Bin ({selectedCalcIds.size})</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedCalcIds(new Set())}
+                  className="flex items-center gap-1 px-2.5 py-1.5 text-xs text-muted hover:text-default bg-surface rounded-xl border border-default transition cursor-pointer"
+                >
+                  <X className="size-3.5" />
+                  <span>Clear</span>
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Calculations Table */}
           <div className="overflow-hidden rounded-2xl border border-default bg-surface shadow-2xs">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs text-default">
                 <thead className="border-b border-default bg-surface-sunken text-[11px] font-semibold uppercase tracking-wider text-muted">
                   <tr>
+                    <th className="w-10 px-4 py-3.5 text-center">
+                      <input
+                        ref={headerCheckboxRef}
+                        type="checkbox"
+                        checked={isAllSelected}
+                        onChange={toggleSelectAll}
+                        aria-label="Select all calculations"
+                        className="size-4 rounded border-default text-primary focus:ring-primary/20 cursor-pointer"
+                      />
+                    </th>
                     <th className="px-4 py-3.5">Sales Representative</th>
                     <th className="px-4 py-3.5">Target ({currencySymbol})</th>
                     <th className="px-4 py-3.5">Achieved ({currencySymbol})</th>
@@ -311,13 +440,13 @@ export function IncentivesSection() {
                 <tbody className="divide-y divide-default">
                   {calculationsLoading ? (
                     <tr>
-                      <td colSpan={8} className="px-4 py-8 text-center text-muted">
+                      <td colSpan={9} className="px-4 py-8 text-center text-muted">
                         Loading incentive calculations...
                       </td>
                     </tr>
                   ) : calculations.length === 0 ? (
                     <tr>
-                      <td colSpan={8} className="px-4 py-8 text-center text-muted">
+                      <td colSpan={9} className="px-4 py-8 text-center text-muted">
                         No calculations found for {selectedMonth}. Click "Run Month Calculation" to evaluate eligible salesmen.
                       </td>
                     </tr>
@@ -325,9 +454,19 @@ export function IncentivesSection() {
                     calculations.map((c) => {
                       const pct = parseFloat(String(c.achievement_pct || '0'));
                       const isApproved = c.status === 'approved';
+                      const isSelected = selectedCalcIds.has(c.id);
 
                       return (
-                        <tr key={c.id} className="hover:bg-surface-sunken/60 transition-colors">
+                        <tr key={c.id} className={`hover:bg-surface-sunken/60 transition-colors ${isSelected ? 'bg-primary/5' : ''}`}>
+                          <td className="w-10 px-4 py-3.5 text-center" onClick={(e) => e.stopPropagation()}>
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={() => toggleSelect(c.id)}
+                              aria-label={`Select calculation for ${c.employee_name}`}
+                              className="size-4 rounded border-default text-primary focus:ring-primary/20 cursor-pointer"
+                            />
+                          </td>
                           <td className="px-4 py-3.5">
                             <div className="font-bold text-default">{c.employee_name || 'Sales Rep'}</div>
                             <div className="text-[11px] font-mono text-muted">{c.employee_code}</div>
@@ -376,20 +515,38 @@ export function IncentivesSection() {
                           </td>
 
                           <td className="px-4 py-3.5 text-right">
-                            {isApproved ? (
-                              <span className="text-[11px] text-muted flex items-center justify-end gap-1 font-mono">
-                                <CheckCircle2 className="size-3.5 text-success" />
-                                <span>Approved</span>
-                              </span>
-                            ) : (
-                              <button
-                                type="button"
-                                onClick={() => handleOpenApproveModal(c)}
-                                className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-primary/10 text-primary hover:bg-primary/20 border border-primary/20 transition-colors cursor-pointer"
-                              >
-                                Review & Approve
-                              </button>
-                            )}
+                            <div className="flex items-center justify-end gap-1.5">
+                              {isApproved ? (
+                                <span className="text-[11px] text-muted flex items-center justify-end gap-1 font-mono">
+                                  <CheckCircle2 className="size-3.5 text-success" />
+                                  <span>Approved</span>
+                                </span>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenApproveModal(c)}
+                                  className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-primary/10 text-primary hover:bg-primary/20 border border-primary/20 transition-colors cursor-pointer"
+                                >
+                                  Review & Approve
+                                </button>
+                              )}
+                              {canDelete && (
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setDeleteConfirm({
+                                      id: c.id,
+                                      type: 'calculation',
+                                      title: `calculation for ${c.employee_name}`,
+                                    })
+                                  }
+                                  className="p-1 rounded-lg text-muted hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer"
+                                  title="Move calculation to Data Bin"
+                                >
+                                  <Trash2 className="size-3.5" />
+                                </button>
+                              )}
+                            </div>
                           </td>
                         </tr>
                       );
@@ -439,9 +596,27 @@ export function IncentivesSection() {
                       <p className="text-xs text-muted mt-1 leading-relaxed">{p.description}</p>
                     </div>
 
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-success-subtle text-success border border-success">
-                      ACTIVE
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-success-subtle text-success border border-success">
+                        ACTIVE
+                      </span>
+                      {canDelete && (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setDeleteConfirm({
+                              id: p.id,
+                              type: 'policy',
+                              title: `policy "${p.name}"`,
+                            })
+                          }
+                          className="p-1 rounded-lg text-muted hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer"
+                          title="Move policy to Data Bin"
+                        >
+                          <Trash2 className="size-3.5" />
+                        </button>
+                      )}
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-3 p-3 rounded-xl bg-surface-sunken border border-default/50 text-xs">
@@ -765,6 +940,28 @@ export function IncentivesSection() {
           </div>
         </div>
       )}
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        open={!!deleteConfirm}
+        onClose={() => setDeleteConfirm(null)}
+        onConfirm={() => {
+          if (deleteConfirm?.isBulk) {
+            deleteMutation.mutate({
+              ids: Array.from(selectedCalcIds),
+              type: deleteConfirm.type,
+            });
+          } else if (deleteConfirm) {
+            deleteMutation.mutate({
+              id: deleteConfirm.id,
+              type: deleteConfirm.type,
+            });
+          }
+        }}
+        title="Move to Data Bin"
+        message={`Are you sure you want to move ${deleteConfirm?.title} to the Data Bin? You can restore it anytime from Settings > Data Bin.`}
+        confirmLabel="Move to Bin"
+        variant="danger"
+      />
     </div>
   );
 }

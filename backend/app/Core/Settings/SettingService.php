@@ -28,7 +28,7 @@ class SettingService
                 'description' => 'Legal organization details, localization formats, financial calendar, and document numbering prefixes.',
                 'settings' => [
                     'company_name' => ['label' => 'Operating Brand / Trade Name', 'type' => 'string', 'default' => '', 'sensitive' => false],
-                    'company_legal_name' => ['label' => 'Legal Entity Name', 'type' => 'string', 'default' => 'SliceMart Industries Ltd.', 'sensitive' => false],
+                    'company_legal_name' => ['label' => 'Legal Entity Name', 'type' => 'string', 'default' => '', 'sensitive' => false],
                     'trade_license_no' => ['label' => 'Trade License Number', 'type' => 'string', 'default' => 'TRAD/DNCC/019283/2024', 'sensitive' => false],
                     'tax_identification_number' => ['label' => 'TIN / BIN Registration', 'type' => 'string', 'default' => 'BIN-99210029381', 'sensitive' => false],
                     'rjsc_registration_no' => ['label' => 'RJSC Incorporation No.', 'type' => 'string', 'default' => 'C-184920/2023', 'sensitive' => false],
@@ -745,20 +745,26 @@ class SettingService
                 unset($branding['company_name'], $branding['company_legal_name']);
                 $tenant->branding = $branding;
 
-                $schema = $this->getSchemaDictionary();
-                $defaultLegalName = (string) ($schema['general']['settings']['company_legal_name']['default'] ?? '');
-                if ($defaultLegalName !== '') {
-                    $tenant->name = $defaultLegalName;
+                // Resolve the canonical tenant name from the Company record instead of a hardcoded
+                // schema default — this ensures each tenant keeps their own identity after reset.
+                $company = \App\Models\Company::withoutTenantScope()
+                    ->where('tenant_id', $tenantId)
+                    ->where('is_default', true)
+                    ->first()
+                    ?? \App\Models\Company::withoutTenantScope()->where('tenant_id', $tenantId)->first();
+
+                $resolvedName = $company?->legal_name ?? $company?->name ?? $tenant->name;
+
+                if ($resolvedName) {
+                    $tenant->name = $resolvedName;
                 }
                 $tenant->save();
 
-                $company = \App\Models\Company::withoutTenantScope()
-                    ->where('tenant_id', $tenantId)
-                    ->first();
-                if ($company && $defaultLegalName !== '') {
+                // Sync the canonical name back to the Company record so it stays consistent.
+                if ($company && $resolvedName) {
                     $company->update([
-                        'name' => $defaultLegalName,
-                        'legal_name' => $defaultLegalName,
+                        'name' => $resolvedName,
+                        'legal_name' => $resolvedName,
                     ]);
                 }
             }

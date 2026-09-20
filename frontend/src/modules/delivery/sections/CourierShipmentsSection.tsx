@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import type { CourierShipment, CourierProvider } from '../../../types/api/delivery';
 import type { DeliveryOrder } from '../../../types/api/sales';
 import { useCurrency } from '../../../hooks/useCurrency';
+import { useAuthStore } from '../../../lib/auth/authStore';
 import { SelectDropdown } from '../../../components/ui/Dropdown';
-import { ChevronDown, RefreshCw, Printer, XCircle, Plus, Search, Truck, X } from 'lucide-react';
+import { ChevronDown, RefreshCw, Printer, XCircle, Plus, Search, Truck, X, Trash2 } from 'lucide-react';
 import { ActionMenuPortal } from '../../../components/ui/ActionMenuPortal';
+import { ConfirmDialog } from '../../../components/ui/Modal';
 import { cn } from '../../../lib/utils';
 
 interface CourierShipmentsSectionProps {
@@ -15,6 +17,8 @@ interface CourierShipmentsSectionProps {
   onTrackShipment: (shipmentId: number) => Promise<void>;
   onCancelShipment: (shipmentId: number, reason: string) => Promise<void>;
   onOpenLabel: (shipment: CourierShipment) => void;
+  onDeleteShipment?: (shipmentId: number) => Promise<void>;
+  onBulkDeleteShipments?: (shipmentIds: number[]) => Promise<void>;
 }
 
 export const CourierShipmentsSection: React.FC<CourierShipmentsSectionProps> = ({
@@ -25,8 +29,13 @@ export const CourierShipmentsSection: React.FC<CourierShipmentsSectionProps> = (
   onTrackShipment,
   onCancelShipment,
   onOpenLabel,
+  onDeleteShipment,
+  onBulkDeleteShipments,
 }) => {
   const { formatCurrency } = useCurrency();
+  const { hasPermission } = useAuthStore();
+  const canDelete = hasPermission('logistics.shipment.delete');
+
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
   const [selectedProvider, setSelectedProvider] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -38,6 +47,16 @@ export const CourierShipmentsSection: React.FC<CourierShipmentsSectionProps> = (
   const [openActionMenuId, setOpenActionMenuId] = useState<number | null>(null);
   const [actionMenuAnchor, setActionMenuAnchor] = useState<HTMLElement | null>(null);
 
+  // Selection & Delete Confirmation State
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [deleteConfirm, setDeleteConfirm] = useState<{
+    open: boolean;
+    isBulk: boolean;
+    id?: number;
+    title?: string;
+  }>({ open: false, isBulk: false });
+  const headerCheckboxRef = useRef<HTMLInputElement>(null);
+
   const filteredShipments = shipments.filter((s) => {
     const matchesStatus = selectedStatus === 'all' || s.status === selectedStatus;
     const matchesProvider =
@@ -48,6 +67,42 @@ export const CourierShipmentsSection: React.FC<CourierShipmentsSectionProps> = (
       (s.delivery_number?.toLowerCase() || '').includes(searchQuery.toLowerCase());
     return matchesStatus && matchesProvider && matchesSearch;
   });
+
+  const isAllSelected = filteredShipments.length > 0 && selectedIds.size === filteredShipments.length;
+  const isSomeSelected = selectedIds.size > 0 && !isAllSelected;
+
+  useEffect(() => {
+    if (headerCheckboxRef.current) {
+      headerCheckboxRef.current.indeterminate = isSomeSelected;
+    }
+  }, [isSomeSelected]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && selectedIds.size > 0) {
+        setSelectedIds(new Set());
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedIds.size]);
+
+  const toggleSelectAll = () => {
+    if (isAllSelected) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filteredShipments.map((s) => s.id)));
+    }
+  };
+
+  const toggleSelectOne = (id: number) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
 
   const getStatusBadge = (status: string) => {
     const map: Record<string, string> = {
@@ -114,7 +169,7 @@ export const CourierShipmentsSection: React.FC<CourierShipmentsSectionProps> = (
 
       {/* Filter Bar */}
       <div className="flex flex-wrap items-center gap-3 bg-surface p-3.5 rounded-2xl border border-default shadow-xs">
-        <div className="relative flex-1 min-w-[200px]">
+        <div className="relative flex-1 min-w-50">
           <Search className="size-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
           <input
             type="text"
@@ -153,11 +208,59 @@ export const CourierShipmentsSection: React.FC<CourierShipmentsSectionProps> = (
         />
       </div>
 
+      {/* Bulk Actions Toolbar */}
+      {canDelete && selectedIds.size > 0 && (
+        <div className="flex items-center justify-between gap-3 bg-rose-500/10 border border-rose-500/20 px-4 py-2.5 rounded-2xl animate-in fade-in duration-150">
+          <div className="flex items-center gap-2">
+            <span className="flex size-5 items-center justify-center rounded-full bg-rose-600 text-[10px] font-bold text-white">
+              {selectedIds.size}
+            </span>
+            <span className="text-xs font-semibold text-rose-700 dark:text-rose-400">
+              {selectedIds.size} Shipment{selectedIds.size > 1 ? 's' : ''} Selected
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() =>
+                setDeleteConfirm({
+                  open: true,
+                  isBulk: true,
+                  title: `${selectedIds.size} selected shipments`,
+                })
+              }
+              className="flex items-center gap-1.5 rounded-xl bg-rose-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-rose-700 transition cursor-pointer shadow-xs"
+            >
+              <Trash2 className="size-3.5" />
+              <span>Move to Bin ({selectedIds.size})</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelectedIds(new Set())}
+              className="p-1 rounded-lg text-rose-700 hover:bg-rose-500/20 transition cursor-pointer text-xs font-medium"
+              title="Clear selection (Esc)"
+            >
+              <X className="size-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Shipments Table */}
       <div className="overflow-x-auto min-h-75 bg-surface rounded-2xl border border-default shadow-2xs">
-        <table className="w-full text-left text-xs min-w-[650px]">
+        <table className="w-full text-left text-xs min-w-162.5">
           <thead className="bg-surface-sunken text-[10px] uppercase font-bold text-muted border-b border-default">
             <tr>
+              <th className="w-10 px-4 py-3 text-center">
+                <input
+                  ref={headerCheckboxRef}
+                  type="checkbox"
+                  checked={isAllSelected}
+                  onChange={toggleSelectAll}
+                  className="rounded border-default text-primary focus:ring-primary/20 cursor-pointer"
+                  aria-label="Select all shipments"
+                />
+              </th>
               <th className="px-4 py-3">CONSIGNMENT / AWB</th>
               <th className="px-4 py-3">COURIER PARTNER</th>
               <th className="px-4 py-3">DELIVERY ORDER</th>
@@ -170,13 +273,28 @@ export const CourierShipmentsSection: React.FC<CourierShipmentsSectionProps> = (
           <tbody className="divide-y divide-default text-default">
             {filteredShipments.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-4 py-8 text-center text-muted text-xs font-sans">
+                <td colSpan={8} className="px-4 py-8 text-center text-muted text-xs font-sans">
                   No courier shipments found matching the active filters.
                 </td>
               </tr>
             ) : (
               filteredShipments.map((s) => (
-                <tr key={s.id} className="hover:bg-surface-sunken/40 transition-colors">
+                <tr
+                  key={s.id}
+                  className={cn(
+                    'hover:bg-surface-sunken/40 transition-colors',
+                    selectedIds.has(s.id) && 'bg-primary/5'
+                  )}
+                >
+                  <td className="w-10 px-4 py-3 text-center" onClick={(e) => e.stopPropagation()}>
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.has(s.id)}
+                      onChange={() => toggleSelectOne(s.id)}
+                      className="rounded border-default text-primary focus:ring-primary/20 cursor-pointer"
+                      aria-label={`Select shipment ${s.consignment_id || s.id}`}
+                    />
+                  </td>
                   <td className="px-4 py-3">
                     <div className="font-mono font-bold text-primary">
                       {s.consignment_id || 'Generating...'}
@@ -292,10 +410,29 @@ export const CourierShipmentsSection: React.FC<CourierShipmentsSectionProps> = (
                         setOpenActionMenuId(null);
                         setActionMenuAnchor(null);
                       }}
-                      className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer"
+                      className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium text-amber-600 hover:bg-amber-500/10 transition-colors cursor-pointer"
                     >
                       <XCircle className="size-3.5" />
                       <span>Cancel Consignment</span>
+                    </button>
+                  )}
+                  {canDelete && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDeleteConfirm({
+                          open: true,
+                          isBulk: false,
+                          id: item.id,
+                          title: `Shipment ${item.consignment_id || '#' + item.id}`,
+                        });
+                        setOpenActionMenuId(null);
+                        setActionMenuAnchor(null);
+                      }}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer"
+                    >
+                      <Trash2 className="size-3.5" />
+                      <span>Move to Bin</span>
                     </button>
                   )}
                 </div>
@@ -304,6 +441,30 @@ export const CourierShipmentsSection: React.FC<CourierShipmentsSectionProps> = (
           </ActionMenuPortal>
         )}
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        open={deleteConfirm.open}
+        onClose={() => setDeleteConfirm({ open: false, isBulk: false })}
+        onConfirm={async () => {
+          if (deleteConfirm.isBulk) {
+            await onBulkDeleteShipments?.(Array.from(selectedIds));
+            setSelectedIds(new Set());
+          } else if (deleteConfirm.id) {
+            await onDeleteShipment?.(deleteConfirm.id);
+            setSelectedIds((prev) => {
+              const next = new Set(prev);
+              next.delete(deleteConfirm.id!);
+              return next;
+            });
+          }
+          setDeleteConfirm({ open: false, isBulk: false });
+        }}
+        title="Move to Data Bin"
+        message={`Are you sure you want to move ${deleteConfirm.title || 'this shipment'} to the Data Bin? You can restore it anytime from Settings > Data Bin.`}
+        confirmLabel="Move to Bin"
+        variant="danger"
+      />
 
       {/* Book Shipment Modal */}
       {isBookModalOpen && (

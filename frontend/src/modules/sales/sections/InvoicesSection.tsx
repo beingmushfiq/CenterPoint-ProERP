@@ -1,10 +1,12 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Ban, CheckCircle2, Clock, Printer, RefreshCw, Search, Sliders, FileText, DollarSign, BookOpen, ArrowLeftRight, Upload, Download } from 'lucide-react';
+import { Ban, CheckCircle2, Clock, Printer, RefreshCw, Search, Sliders, FileText, DollarSign, BookOpen, ArrowLeftRight, Upload, Download, Trash2, X } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Invoice } from '../../../types/api/sales';
 import { api } from '../../../lib/api/client';
+import { useAuthStore } from '../../../lib/auth/authStore';
+import { ConfirmDialog } from '../../../components/ui/Modal';
 import { InvoiceTemplateBuilder } from '../components/InvoiceTemplateBuilder';
 import { useCurrency } from '../../../hooks/useCurrency';
 import { SelectDropdown } from '../../../components/ui/Dropdown';
@@ -16,6 +18,8 @@ interface InvoicesSectionProps {
 }
 
 export function InvoicesSection({ onNavigateToTab }: InvoicesSectionProps = {}) {
+  const { hasPermission } = useAuthStore();
+  const canDelete = hasPermission('sales.invoice.delete');
   const { formatCurrency } = useCurrency();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
@@ -25,6 +29,11 @@ export function InvoicesSection({ onNavigateToTab }: InvoicesSectionProps = {}) 
   const [previewInvoice, setPreviewInvoice] = useState<Invoice | null>(null);
   const [showDesigner, setShowDesigner] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
+
+  // Bulk Selection States
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [deleteConfirm, setDeleteConfirm] = useState<{ id?: number; isBulk?: boolean; title: string } | null>(null);
+  const headerCheckboxRef = useRef<HTMLInputElement>(null);
 
   const handleExportCsv = () => {
     if (invoices.length === 0) {
@@ -145,6 +154,68 @@ export function InvoicesSection({ onNavigateToTab }: InvoicesSectionProps = {}) 
     const matchesStatus = statusFilter === 'all' || inv.status === statusFilter;
 
     return matchesSearch && matchesStatus;
+  });
+
+  const isAllSelected = filteredInvoices.length > 0 && selectedIds.size === filteredInvoices.length;
+  const isSomeSelected = selectedIds.size > 0 && !isAllSelected;
+
+  useEffect(() => {
+    if (headerCheckboxRef.current) {
+      headerCheckboxRef.current.indeterminate = isSomeSelected;
+    }
+  }, [isSomeSelected]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && selectedIds.size > 0) {
+        setSelectedIds(new Set());
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedIds.size]);
+
+  const toggleSelectAll = () => {
+    if (isAllSelected) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filteredInvoices.map((i) => i.id)));
+    }
+  };
+
+  const toggleSelect = (id: number) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const deleteInvoiceMutation = useMutation({
+    mutationFn: async ({ id, ids }: { id?: number; ids?: number[] }) => {
+      if (ids && ids.length > 0) {
+        let count = 0;
+        for (const invoiceId of ids) {
+          await api.delete(`/sales/invoices/${invoiceId}`);
+          count++;
+        }
+        return count;
+      } else if (id) {
+        await api.delete(`/sales/invoices/${id}`);
+        return 1;
+      }
+      return 0;
+    },
+    onSuccess: (count) => {
+      toast.success(`Moved ${count} invoice(s) to Data Bin`);
+      setSelectedIds(new Set());
+      setDeleteConfirm(null);
+      queryClient.invalidateQueries({ queryKey: ['sales', 'invoices'] });
+    },
+    onError: (err: unknown) => {
+      toast.error(err instanceof Error ? err.message : 'Failed to delete invoice');
+    },
   });
 
   const getStatusBadge = (status: Invoice['status']) => {
@@ -270,12 +341,56 @@ export function InvoicesSection({ onNavigateToTab }: InvoicesSectionProps = {}) 
         </div>
       </div>
 
+      {/* Bulk Action Ribbon */}
+      {canDelete && selectedIds.size > 0 && (
+        <div className="flex items-center justify-between p-3 bg-rose-500/10 border border-rose-500/20 rounded-2xl animate-in fade-in">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold text-rose-600 dark:text-rose-400">
+              {selectedIds.size} invoice(s) selected
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() =>
+                setDeleteConfirm({
+                  isBulk: true,
+                  title: `${selectedIds.size} selected invoice(s)`,
+                })
+              }
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-rose-600 text-white hover:bg-rose-700 rounded-xl transition cursor-pointer"
+            >
+              <Trash2 className="size-3.5" />
+              <span>Move to Bin ({selectedIds.size})</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelectedIds(new Set())}
+              className="flex items-center gap-1 px-2.5 py-1.5 text-xs text-muted hover:text-default bg-surface rounded-xl border border-default transition cursor-pointer"
+            >
+              <X className="size-3.5" />
+              <span>Clear</span>
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Invoices Table */}
       <div className="overflow-hidden rounded-2xl border border-default bg-surface shadow-2xs">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs text-default">
             <thead className="border-b border-default bg-surface-sunken text-[11px] font-semibold uppercase tracking-wider text-muted">
               <tr>
+                <th className="w-10 px-4 py-3.5 text-center">
+                  <input
+                    ref={headerCheckboxRef}
+                    type="checkbox"
+                    checked={isAllSelected}
+                    onChange={toggleSelectAll}
+                    aria-label="Select all invoices"
+                    className="size-4 rounded border-default text-primary focus:ring-primary/20 cursor-pointer"
+                  />
+                </th>
                 <th className="px-4 py-3.5">Invoice Number</th>
                 <th className="px-4 py-3.5">Date</th>
                 <th className="px-4 py-3.5">Customer</th>
@@ -289,7 +404,7 @@ export function InvoicesSection({ onNavigateToTab }: InvoicesSectionProps = {}) 
             <tbody className="divide-y divide-default">
               {isLoading ? (
                 <tr>
-                  <td colSpan={8} className="px-4 py-12 text-center text-muted">
+                  <td colSpan={9} className="px-4 py-12 text-center text-muted">
                     <div className="flex flex-col items-center justify-center gap-2">
                       <RefreshCw className="size-5 animate-spin text-primary" />
                       <span>Loading invoices...</span>
@@ -298,7 +413,7 @@ export function InvoicesSection({ onNavigateToTab }: InvoicesSectionProps = {}) 
                 </tr>
               ) : filteredInvoices.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-4 py-12 text-center text-muted">
+                  <td colSpan={9} className="px-4 py-12 text-center text-muted">
                     <div className="flex flex-col items-center justify-center gap-2">
                       <FileText className="size-8 text-muted/50" />
                       <span className="font-medium">No sales invoices found.</span>
@@ -311,8 +426,18 @@ export function InvoicesSection({ onNavigateToTab }: InvoicesSectionProps = {}) 
                   const estCogs = subtotalNum * 0.62; // 62% historical average COGS
                   const grossProfit = Math.max(0, subtotalNum - estCogs);
                   const marginPct = subtotalNum > 0 ? (grossProfit / subtotalNum) * 100 : 0;
+                  const isSelected = selectedIds.has(inv.id);
                   return (
-                    <tr key={inv.id} className="hover:bg-surface-sunken/60 transition-colors">
+                    <tr key={inv.id} className={`hover:bg-surface-sunken/60 transition-colors ${isSelected ? 'bg-primary/5' : ''}`}>
+                      <td className="w-10 px-4 py-3.5 text-center" onClick={(e) => e.stopPropagation()}>
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => toggleSelect(inv.id)}
+                          aria-label={`Select invoice ${inv.invoice_number}`}
+                          className="size-4 rounded border-default text-primary focus:ring-primary/20 cursor-pointer"
+                        />
+                      </td>
                       <td className="px-4 py-3.5 font-mono font-medium text-emerald-600 dark:text-emerald-400">
                         <div className="flex items-center gap-1.5 flex-wrap">
                           <span>{inv.invoice_number}</span>
@@ -395,6 +520,22 @@ export function InvoicesSection({ onNavigateToTab }: InvoicesSectionProps = {}) 
                             Void
                           </button>
                         )}
+                        {canDelete && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setDeleteConfirm({
+                                id: inv.id,
+                                title: `invoice ${inv.invoice_number}`,
+                              })
+                            }
+                            className="rounded-xl bg-rose-500/10 border border-rose-500/20 px-2.5 py-1 text-[11px] font-medium text-rose-600 dark:text-rose-400 hover:bg-rose-500/20 transition-colors cursor-pointer inline-flex items-center gap-1"
+                            title="Move invoice to Data Bin"
+                          >
+                            <Trash2 className="size-3" />
+                            <span>Move to Bin</span>
+                          </button>
+                        )}
                       </td>
                     </tr>
                   );
@@ -473,6 +614,23 @@ export function InvoicesSection({ onNavigateToTab }: InvoicesSectionProps = {}) 
         onImportSuccess={() => {
           queryClient.invalidateQueries({ queryKey: ['sales', 'invoices'] });
         }}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        open={!!deleteConfirm}
+        onClose={() => setDeleteConfirm(null)}
+        onConfirm={() => {
+          if (deleteConfirm?.isBulk) {
+            deleteInvoiceMutation.mutate({ ids: Array.from(selectedIds) });
+          } else if (deleteConfirm?.id) {
+            deleteInvoiceMutation.mutate({ id: deleteConfirm.id });
+          }
+        }}
+        title="Move to Data Bin"
+        message={`Are you sure you want to move ${deleteConfirm?.title} to the Data Bin? You can restore it anytime from Settings > Data Bin.`}
+        confirmLabel="Move to Bin"
+        variant="danger"
       />
     </div>
   );

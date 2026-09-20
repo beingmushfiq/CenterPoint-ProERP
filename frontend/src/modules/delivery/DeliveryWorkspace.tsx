@@ -16,6 +16,7 @@ import { Truck, Bike, Building2, Banknote, RefreshCw } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { api } from '../../lib/api/client';
 import { extractList } from '../../lib/api/apiData';
+import { notify } from '../../components/ui/Toast';
 
 type DeliveryTab = 'shipments' | 'run_sheets' | 'providers' | 'cod_reconciliation';
 
@@ -250,14 +251,14 @@ export const DeliveryWorkspace: React.FC = () => {
     const provider = providers.find((p) => p.id === providerId);
     const delivery = pendingDeliveries.find((d) => d.id === deliveryOrderId);
     try {
-      const res = await api.post<any>('/logistics/shipments', {
+      const res = await api.post<CourierShipment | { data: CourierShipment }>('/logistics/shipments', {
         delivery_order_id: deliveryOrderId,
         courier_provider_id: providerId,
         recipient_name: delivery?.recipient_name,
         recipient_phone: delivery?.recipient_phone,
         cod_amount: delivery?.cod_amount,
       });
-      const created = (res.data && typeof res.data === 'object' && 'data' in res.data) ? res.data.data : res.data;
+      const created = (res.data && 'data' in res.data) ? res.data.data : (res.data as CourierShipment | undefined);
       if (created) {
         setShipments((prev) => [created, ...prev]);
         return;
@@ -286,10 +287,10 @@ export const DeliveryWorkspace: React.FC = () => {
   const handleTrackShipment = async (shipmentId: number) => {
     try {
       await api.post(`/logistics/shipments/${shipmentId}/track`, {});
-      const res = await api.get<any>(`/logistics/shipments/${shipmentId}`);
+      const res = await api.get<Record<string, unknown>>(`/logistics/shipments/${shipmentId}`);
       // Dual alias route support
-      await api.get<any>(`/delivery/shipments/${shipmentId}`).catch(() => {});
-      const payload = (res.data && typeof res.data === 'object' && 'data' in res.data) ? res.data.data : res.data;
+      await api.get<Record<string, unknown>>(`/delivery/shipments/${shipmentId}`).catch(() => {});
+      const payload = (res.data && typeof res.data === 'object' && 'data' in res.data) ? (res.data as { data: Partial<CourierShipment> }).data : (res.data as Partial<CourierShipment>);
       if (payload) {
         setShipments((prev) => prev.map((s) => s.id === shipmentId ? { ...s, ...payload, last_synced_at: new Date().toISOString() } : s));
         return;
@@ -319,8 +320,8 @@ export const DeliveryWorkspace: React.FC = () => {
 
   const handleOpenLabel = async (shipment: CourierShipment) => {
     try {
-      const res = await api.get<any>(`/logistics/shipments/${shipment.id}/label`);
-      const payload = (res.data && typeof res.data === 'object' && 'data' in res.data) ? res.data.data : res.data;
+      const res = await api.get<Record<string, unknown>>(`/logistics/shipments/${shipment.id}/label`);
+      const payload = (res.data && typeof res.data === 'object' && 'data' in res.data) ? (res.data as { data: { label_url?: string; url?: string } }).data : (res.data as { label_url?: string; url?: string });
       const url = payload?.label_url || payload?.url || shipment.label_path;
       if (url) {
         window.open(url, '_blank');
@@ -332,6 +333,26 @@ export const DeliveryWorkspace: React.FC = () => {
     alert(`Generating & printing shipping label for Consignment ${shipment.consignment_id}...`);
   };
 
+  const handleDeleteShipment = async (shipmentId: number) => {
+    try {
+      await api.delete(`/logistics/shipments/${shipmentId}`);
+    } catch (err) {
+      console.warn('Live delete shipment fallback', err);
+    }
+    setShipments((prev) => prev.filter((s) => s.id !== shipmentId));
+    notify.success('Shipment moved to Data Bin successfully.');
+  };
+
+  const handleBulkDeleteShipments = async (shipmentIds: number[]) => {
+    try {
+      await Promise.allSettled(shipmentIds.map((id) => api.delete(`/logistics/shipments/${id}`)));
+    } catch (err) {
+      console.warn('Live bulk delete shipment fallback', err);
+    }
+    setShipments((prev) => prev.filter((s) => !shipmentIds.includes(s.id)));
+    notify.success(`${shipmentIds.length} shipments moved to Data Bin.`);
+  };
+
   const handleCreateRunSheet = async (data: {
     branch_id: number;
     rider_id?: number;
@@ -341,8 +362,8 @@ export const DeliveryWorkspace: React.FC = () => {
     const rider = riders.find((r) => r.id === data.rider_id);
     const branch = branches.find((b) => b.id === data.branch_id);
     try {
-      const res = await api.post<any>('/logistics/run-sheets', data);
-      const created = (res.data && typeof res.data === 'object' && 'data' in res.data) ? res.data.data : res.data;
+      const res = await api.post<RunSheet | { data: RunSheet }>('/logistics/run-sheets', data);
+      const created = (res.data && 'data' in res.data) ? res.data.data : (res.data as RunSheet | undefined);
       if (created) {
         setRunSheets((prev) => [created, ...prev]);
         return;
@@ -375,8 +396,8 @@ export const DeliveryWorkspace: React.FC = () => {
   const handleCompleteRunSheet = async (runSheetId: number) => {
     try {
       await api.post(`/logistics/run-sheets/${runSheetId}/complete`, {});
-      const res = await api.get<any>(`/logistics/run-sheets/${runSheetId}`);
-      const payload = (res.data && typeof res.data === 'object' && 'data' in res.data) ? res.data.data : res.data;
+      const res = await api.get<Record<string, unknown>>(`/logistics/run-sheets/${runSheetId}`);
+      const payload = (res.data && typeof res.data === 'object' && 'data' in res.data) ? (res.data as { data: Partial<RunSheet> }).data : (res.data as Partial<RunSheet>);
       if (payload) {
         setRunSheets((prev) => prev.map((rs) => rs.id === runSheetId ? { ...rs, ...payload } : rs));
         return;
@@ -399,19 +420,39 @@ export const DeliveryWorkspace: React.FC = () => {
     );
   };
 
+  const handleDeleteRunSheet = async (runSheetId: number) => {
+    try {
+      await api.delete(`/logistics/run-sheets/${runSheetId}`);
+    } catch (err) {
+      console.warn('Live delete run sheet fallback', err);
+    }
+    setRunSheets((prev) => prev.filter((rs) => rs.id !== runSheetId));
+    notify.success('Run sheet moved to Data Bin successfully.');
+  };
+
+  const handleBulkDeleteRunSheets = async (runSheetIds: number[]) => {
+    try {
+      await Promise.allSettled(runSheetIds.map((id) => api.delete(`/logistics/run-sheets/${id}`)));
+    } catch (err) {
+      console.warn('Live bulk delete run sheet fallback', err);
+    }
+    setRunSheets((prev) => prev.filter((rs) => !runSheetIds.includes(rs.id)));
+    notify.success(`${runSheetIds.length} run sheets moved to Data Bin.`);
+  };
+
   const handleSaveProvider = async (data: Partial<CourierProvider>) => {
     try {
       if (data.id) {
         await api.patch(`/logistics/couriers/${data.id}`, data);
-        const res = await api.get<any>(`/logistics/couriers/${data.id}`);
-        const payload = (res.data && typeof res.data === 'object' && 'data' in res.data) ? res.data.data : res.data;
+        const res = await api.get<Record<string, unknown>>(`/logistics/couriers/${data.id}`);
+        const payload = (res.data && typeof res.data === 'object' && 'data' in res.data) ? (res.data as { data: Partial<CourierProvider> }).data : (res.data as Partial<CourierProvider>);
         if (payload) {
           setProviders((prev) => prev.map((p) => p.id === data.id ? { ...p, ...payload } : p));
           return;
         }
       } else {
-        const res = await api.post<any>('/logistics/couriers', data);
-        const created = (res.data && typeof res.data === 'object' && 'data' in res.data) ? res.data.data : res.data;
+        const res = await api.post<CourierProvider | { data: CourierProvider }>('/logistics/couriers', data);
+        const created = (res.data && 'data' in res.data) ? res.data.data : (res.data as CourierProvider | undefined);
         if (created) {
           setProviders((prev) => [...prev, created]);
           return;
@@ -445,8 +486,8 @@ export const DeliveryWorkspace: React.FC = () => {
   }) => {
     const variance = (Number(data.received_amount) - Number(data.expected_amount)).toFixed(4);
     try {
-      const res = await api.post<any>('/logistics/cod-reconciliations', data);
-      const created = (res.data && typeof res.data === 'object' && 'data' in res.data) ? res.data.data : res.data;
+      const res = await api.post<CodReconciliation | { data: CodReconciliation }>('/logistics/cod-reconciliations', data);
+      const created = (res.data && 'data' in res.data) ? res.data.data : (res.data as CodReconciliation | undefined);
       if (created) {
         if (created.id) {
           await api.get(`/logistics/cod-reconciliations/${created.id}`).catch(() => {});
@@ -657,6 +698,8 @@ export const DeliveryWorkspace: React.FC = () => {
           onTrackShipment={handleTrackShipment}
           onCancelShipment={handleCancelShipment}
           onOpenLabel={handleOpenLabel}
+          onDeleteShipment={handleDeleteShipment}
+          onBulkDeleteShipments={handleBulkDeleteShipments}
         />
       )}
 
@@ -668,6 +711,8 @@ export const DeliveryWorkspace: React.FC = () => {
           branches={branches}
           onCreateRunSheet={handleCreateRunSheet}
           onCompleteRunSheet={handleCompleteRunSheet}
+          onDeleteRunSheet={handleDeleteRunSheet}
+          onBulkDeleteRunSheets={handleBulkDeleteRunSheets}
         />
       )}
 

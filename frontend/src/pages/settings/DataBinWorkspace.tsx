@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import {
   Trash2,
   RotateCcw,
@@ -15,6 +15,7 @@ import {
   Users,
   Landmark,
   ShieldCheck,
+  X,
 } from 'lucide-react';
 import { api } from '../../lib/api/client';
 import { extractList } from '../../lib/api/apiData';
@@ -164,6 +165,14 @@ export const DataBinWorkspace: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [actionLoadingId, setActionLoadingId] = useState<string | number | null>(null);
 
+  // Multi-selection state
+  const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
+  const [isBulkRestoring, setIsBulkRestoring] = useState<boolean>(false);
+  const [isBulkPurging, setIsBulkPurging] = useState<boolean>(false);
+  const [bulkRestoreConfirmOpen, setBulkRestoreConfirmOpen] = useState<boolean>(false);
+  const [bulkPurgeConfirmOpen, setBulkPurgeConfirmOpen] = useState<boolean>(false);
+  const headerCheckboxRef = useRef<HTMLInputElement>(null);
+
   // Dialogs
   const [restoreConfirmItem, setRestoreConfirmItem] = useState<DataBinItem | null>(null);
   const [purgeConfirmItem, setPurgeConfirmItem] = useState<DataBinItem | null>(null);
@@ -268,6 +277,17 @@ export const DataBinWorkspace: React.FC = () => {
   const handleDomainSelect = (domain: DomainKey) => {
     setSelectedDomain(domain);
     setSelectedType('all');
+    setSelectedKeys(new Set());
+  };
+
+  const handleTypeSelect = (typeKey: string) => {
+    setSelectedType(typeKey);
+    setSelectedKeys(new Set());
+  };
+
+  const handleSearchChange = (query: string) => {
+    setSearchQuery(query);
+    setSelectedKeys(new Set());
   };
 
   // Domain Counts computation
@@ -370,6 +390,95 @@ export const DataBinWorkspace: React.FC = () => {
         (item.details?.category && String(item.details.category).toLowerCase().includes(q))
     );
   }, [items, searchQuery]);
+
+  // Derived multi-selection properties
+  const isAllSelected =
+    displayedItems.length > 0 &&
+    displayedItems.every((item) => selectedKeys.has(`${item.type}:${item.id}`));
+  const isSomeSelected = selectedKeys.size > 0 && !isAllSelected;
+
+  useEffect(() => {
+    if (headerCheckboxRef.current) {
+      headerCheckboxRef.current.indeterminate = isSomeSelected;
+    }
+  }, [isSomeSelected]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && selectedKeys.size > 0) {
+        setSelectedKeys(new Set());
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedKeys.size]);
+
+  const toggleSelectAll = () => {
+    if (isAllSelected) {
+      setSelectedKeys(new Set());
+    } else {
+      setSelectedKeys(new Set(displayedItems.map((item) => `${item.type}:${item.id}`)));
+    }
+  };
+
+  const toggleSelect = (key: string) => {
+    setSelectedKeys((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
+
+  const handleBulkRestore = async () => {
+    if (selectedKeys.size === 0) return;
+    setIsBulkRestoring(true);
+    try {
+      const itemsPayload = Array.from(selectedKeys).map((k) => {
+        const [type, ...rest] = k.split(':');
+        return { type, id: rest.join(':') };
+      });
+      const res = await api.post<{ message?: string; data?: { restored_count?: number } }>('/bin/bulk-restore', {
+        items: itemsPayload,
+      });
+      const count = res?.data?.data?.restored_count ?? itemsPayload.length;
+      notify.success(res?.data?.message ?? `${count} record(s) restored successfully.`);
+      setSelectedKeys(new Set());
+      setBulkRestoreConfirmOpen(false);
+      await loadBinData();
+    } catch (err: unknown) {
+      const msg =
+        err instanceof Error ? err.message : (err as { message?: string })?.message ?? 'Failed to bulk restore items.';
+      notify.error(msg);
+    } finally {
+      setIsBulkRestoring(false);
+    }
+  };
+
+  const handleBulkForceDelete = async () => {
+    if (selectedKeys.size === 0) return;
+    setIsBulkPurging(true);
+    try {
+      const itemsPayload = Array.from(selectedKeys).map((k) => {
+        const [type, ...rest] = k.split(':');
+        return { type, id: rest.join(':') };
+      });
+      const res = await api.post<{ message?: string; data?: { purged_count?: number } }>('/bin/bulk-force-delete', {
+        items: itemsPayload,
+      });
+      const count = res?.data?.data?.purged_count ?? itemsPayload.length;
+      notify.success(res?.data?.message ?? `${count} record(s) permanently purged.`);
+      setSelectedKeys(new Set());
+      setBulkPurgeConfirmOpen(false);
+      await loadBinData();
+    } catch (err: unknown) {
+      const msg =
+        err instanceof Error ? err.message : (err as { message?: string })?.message ?? 'Failed to bulk purge items.';
+      notify.error(msg);
+    } finally {
+      setIsBulkPurging(false);
+    }
+  };
 
   const formatDeletedDate = (isoString?: string) => {
     if (!isoString) return 'Recently';
@@ -542,7 +651,7 @@ export const DataBinWorkspace: React.FC = () => {
               type="text"
               placeholder="Search by name, code, order #, department, status..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => handleSearchChange(e.target.value)}
               className="w-full pl-9 pr-4 py-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-hidden focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
             />
           </div>
@@ -557,7 +666,7 @@ export const DataBinWorkspace: React.FC = () => {
         <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-thin">
           <button
             type="button"
-            onClick={() => setSelectedType('all')}
+            onClick={() => handleTypeSelect('all')}
             className={cn(
               'px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all flex items-center gap-1.5 cursor-pointer',
               selectedType === 'all'
@@ -584,7 +693,7 @@ export const DataBinWorkspace: React.FC = () => {
               <button
                 key={t.key}
                 type="button"
-                onClick={() => setSelectedType(t.key)}
+                onClick={() => handleTypeSelect(t.key)}
                 className={cn(
                   'px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all flex items-center gap-1.5 cursor-pointer',
                   isSelected
@@ -610,6 +719,49 @@ export const DataBinWorkspace: React.FC = () => {
           })}
         </div>
       </div>
+
+      {/* Bulk Selection Ribbon */}
+      {selectedKeys.size > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-4 px-4 py-3 rounded-xl bg-indigo-50/90 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 shadow-sm animate-in fade-in slide-in-from-top-2 duration-200">
+          <div className="flex items-center gap-2.5">
+            <span className="inline-flex items-center justify-center px-2.5 py-1 rounded-full text-xs font-bold bg-indigo-600 text-white">
+              {selectedKeys.size}
+            </span>
+            <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">
+              record{selectedKeys.size === 1 ? '' : 's'} selected in vault
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="secondary"
+              size="sm"
+              disabled={isBulkRestoring || isBulkPurging}
+              onClick={() => setBulkRestoreConfirmOpen(true)}
+              leftIcon={<RotateCcw className="size-3.5 text-emerald-600 dark:text-emerald-400" />}
+            >
+              Restore Selected ({selectedKeys.size})
+            </Button>
+            <Button
+              variant="danger"
+              size="sm"
+              disabled={isBulkRestoring || isBulkPurging}
+              onClick={() => setBulkPurgeConfirmOpen(true)}
+              leftIcon={<Trash2 className="size-3.5" />}
+            >
+              Purge Selected ({selectedKeys.size})
+            </Button>
+            <button
+              type="button"
+              onClick={() => setSelectedKeys(new Set())}
+              className="p-1.5 rounded-lg text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-200/60 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              title="Clear selection (Esc)"
+              aria-label="Clear selection"
+            >
+              <X className="size-4" />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Main Table / Empty State */}
       <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-xs">
@@ -641,6 +793,16 @@ export const DataBinWorkspace: React.FC = () => {
             <table className="w-full text-left text-sm border-collapse">
               <thead>
                 <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50/75 dark:bg-slate-950/50 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                  <th className="py-3 px-4 w-10 text-center">
+                    <input
+                      type="checkbox"
+                      ref={headerCheckboxRef}
+                      checked={isAllSelected}
+                      onChange={toggleSelectAll}
+                      className="rounded border-slate-300 dark:border-slate-700 text-indigo-600 focus:ring-indigo-500 size-4 cursor-pointer"
+                      aria-label="Select all"
+                    />
+                  </th>
                   <th className="py-3 px-4">Entity Type</th>
                   <th className="py-3 px-4">Item Identifier</th>
                   <th className="py-3 px-4">Context / Metadata</th>
@@ -650,6 +812,8 @@ export const DataBinWorkspace: React.FC = () => {
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
                 {displayedItems.map((item) => {
+                  const itemKey = `${item.type}:${item.id}`;
+                  const isSelected = selectedKeys.has(itemKey);
                   const style = TYPE_COLORS[item.type] || {
                     bg: 'bg-slate-100 dark:bg-slate-800',
                     text: 'text-slate-700 dark:text-slate-300',
@@ -660,9 +824,22 @@ export const DataBinWorkspace: React.FC = () => {
 
                   return (
                     <tr
-                      key={`${item.type}-${item.id}`}
-                      className="hover:bg-slate-50/50 dark:hover:bg-slate-800/40 transition-colors group"
+                      key={itemKey}
+                      className={cn(
+                        'hover:bg-slate-50/50 dark:hover:bg-slate-800/40 transition-colors group',
+                        isSelected && 'bg-indigo-50/40 dark:bg-indigo-950/30'
+                      )}
                     >
+                      {/* Selection Checkbox */}
+                      <td className="py-3.5 px-4 text-center">
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => toggleSelect(itemKey)}
+                          className="rounded border-slate-300 dark:border-slate-700 text-indigo-600 focus:ring-indigo-500 size-4 cursor-pointer"
+                          aria-label={`Select ${item.identifier}`}
+                        />
+                      </td>
                       {/* Entity Type Badge */}
                       <td className="py-3.5 px-4 whitespace-nowrap">
                         <span
@@ -821,6 +998,34 @@ export const DataBinWorkspace: React.FC = () => {
               : `CAUTION: You are about to permanently purge ALL ${totalTrashed} deleted records across all ERP modules. This cannot be undone.`
           }
           confirmLabel="Yes, Empty Bin"
+          cancelLabel="Cancel"
+          variant="danger"
+        />
+      )}
+
+      {/* Bulk Restore Confirmation Dialog */}
+      {bulkRestoreConfirmOpen && (
+        <ConfirmDialog
+          open={bulkRestoreConfirmOpen}
+          onClose={() => setBulkRestoreConfirmOpen(false)}
+          onConfirm={() => void handleBulkRestore()}
+          title={`Restore ${selectedKeys.size} Selected Record(s)`}
+          message={`Are you sure you want to restore ${selectedKeys.size} selected records back into active enterprise records? They will immediately reappear in their respective workspaces along with all linked sub-items.`}
+          confirmLabel={isBulkRestoring ? 'Restoring...' : `Restore Records (${selectedKeys.size})`}
+          cancelLabel="Cancel"
+          variant="primary"
+        />
+      )}
+
+      {/* Bulk Purge Confirmation Dialog */}
+      {bulkPurgeConfirmOpen && (
+        <ConfirmDialog
+          open={bulkPurgeConfirmOpen}
+          onClose={() => setBulkPurgeConfirmOpen(false)}
+          onConfirm={() => void handleBulkForceDelete()}
+          title={`Permanently Purge ${selectedKeys.size} Selected Record(s)?`}
+          message={`WARNING: This action is permanent and irreversible. All ${selectedKeys.size} selected records and their relational sub-items will be completely erased from the database.`}
+          confirmLabel={isBulkPurging ? 'Purging...' : `Permanently Purge (${selectedKeys.size})`}
           cancelLabel="Cancel"
           variant="danger"
         />

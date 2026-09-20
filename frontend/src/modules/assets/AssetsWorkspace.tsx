@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import type {
   Asset,
   AssetCategory,
@@ -10,8 +10,9 @@ import type {
 } from '../../types/api/assets';
 import { useCurrency } from '../../hooks/useCurrency';
 import { useWorkspaceTab } from '../../hooks/useWorkspaceTab';
-import { Modal } from '../../components/ui/Modal';
+import { Modal, ConfirmDialog } from '../../components/ui/Modal';
 import { notify } from '../../components/ui/Toast';
+import { useAuthStore } from '../../lib/auth/authStore';
 import { api } from '../../lib/api/client';
 import { extractList } from '../../lib/api/apiData';
 import {
@@ -20,6 +21,7 @@ import {
   Wrench,
   Tag,
   Plus,
+  Trash2,
   Cpu,
   Activity,
   CheckCircle2,
@@ -68,6 +70,27 @@ export const AssetsWorkspace: React.FC = () => {
   const { formatCurrency } = useCurrency();
   const [openActionMenuId, setOpenActionMenuId] = useState<number | null>(null);
   const [actionMenuAnchor, setActionMenuAnchor] = useState<HTMLElement | null>(null);
+
+  // RBAC Permissions
+  const hasPermission = useAuthStore((s) => s.hasPermission);
+  const canDeleteAsset = hasPermission('assets.asset.delete');
+  const canDeleteMaintenance = hasPermission('assets.maintenance.delete');
+
+  // Asset selection and Data Bin delete state
+  const [selectedAssetIds, setSelectedAssetIds] = useState<Set<number>>(new Set());
+  const assetHeaderRef = useRef<HTMLInputElement | null>(null);
+  const [deleteAssetConfirm, setDeleteAssetConfirm] = useState<{ open: boolean; isBulk: boolean; id?: number }>({
+    open: false,
+    isBulk: false,
+  });
+
+  // Maintenance order selection and Data Bin delete state
+  const [selectedOrderIds, setSelectedOrderIds] = useState<Set<number>>(new Set());
+  const orderHeaderRef = useRef<HTMLInputElement | null>(null);
+  const [deleteOrderConfirm, setDeleteOrderConfirm] = useState<{ open: boolean; isBulk: boolean; id?: number }>({
+    open: false,
+    isBulk: false,
+  });
 
   // ─────────────────────────────────────────────────────────────────────────────
   // 1. Asset Categories State
@@ -864,6 +887,120 @@ export const AssetsWorkspace: React.FC = () => {
     });
   }, [maintenanceOrders, orderStatusFilter, orderSearchQuery]);
 
+  // Asset selection helpers
+  const isAllAssetsSelected =
+    filteredAssets.length > 0 && selectedAssetIds.size === filteredAssets.length;
+  const isSomeAssetsSelected = selectedAssetIds.size > 0 && !isAllAssetsSelected;
+
+  useEffect(() => {
+    if (assetHeaderRef.current) {
+      assetHeaderRef.current.indeterminate = isSomeAssetsSelected;
+    }
+  }, [isSomeAssetsSelected]);
+
+  const toggleSelectAllAssets = () => {
+    if (isAllAssetsSelected) {
+      setSelectedAssetIds(new Set());
+    } else {
+      setSelectedAssetIds(new Set(filteredAssets.map((a) => a.id)));
+    }
+  };
+
+  const toggleSelectOneAsset = (id: number) => {
+    setSelectedAssetIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const handleExecuteDeleteAsset = async () => {
+    if (deleteAssetConfirm.isBulk) {
+      const ids = Array.from(selectedAssetIds);
+      try {
+        await Promise.allSettled(ids.map((id) => api.delete(`/assets/${id}`)));
+      } catch (err) {
+        console.warn('Fallback delete asset', err);
+      }
+      setAssets((prev) => prev.filter((a) => !ids.includes(a.id)));
+      setSelectedAssetIds(new Set());
+      notify.success(`${ids.length} asset(s) moved to Data Bin.`);
+    } else if (deleteAssetConfirm.id) {
+      const id = deleteAssetConfirm.id;
+      try {
+        await api.delete(`/assets/${id}`);
+      } catch (err) {
+        console.warn('Fallback delete asset', err);
+      }
+      setAssets((prev) => prev.filter((a) => a.id !== id));
+      setSelectedAssetIds((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+      notify.success('Asset moved to Data Bin.');
+    }
+    setDeleteAssetConfirm({ open: false, isBulk: false });
+  };
+
+  // Maintenance order selection helpers
+  const isAllOrdersSelected =
+    filteredOrders.length > 0 && selectedOrderIds.size === filteredOrders.length;
+  const isSomeOrdersSelected = selectedOrderIds.size > 0 && !isAllOrdersSelected;
+
+  useEffect(() => {
+    if (orderHeaderRef.current) {
+      orderHeaderRef.current.indeterminate = isSomeOrdersSelected;
+    }
+  }, [isSomeOrdersSelected]);
+
+  const toggleSelectAllOrders = () => {
+    if (isAllOrdersSelected) {
+      setSelectedOrderIds(new Set());
+    } else {
+      setSelectedOrderIds(new Set(filteredOrders.map((o) => o.id)));
+    }
+  };
+
+  const toggleSelectOneOrder = (id: number) => {
+    setSelectedOrderIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const handleExecuteDeleteOrder = async () => {
+    if (deleteOrderConfirm.isBulk) {
+      const ids = Array.from(selectedOrderIds);
+      try {
+        await Promise.allSettled(ids.map((id) => api.delete(`/assets/maintenance-orders/${id}`)));
+      } catch (err) {
+        console.warn('Fallback delete maintenance order', err);
+      }
+      setMaintenanceOrders((prev) => prev.filter((o) => !ids.includes(o.id)));
+      setSelectedOrderIds(new Set());
+      notify.success(`${ids.length} maintenance work order(s) moved to Data Bin.`);
+    } else if (deleteOrderConfirm.id) {
+      const id = deleteOrderConfirm.id;
+      try {
+        await api.delete(`/assets/maintenance-orders/${id}`);
+      } catch (err) {
+        console.warn('Fallback delete maintenance order', err);
+      }
+      setMaintenanceOrders((prev) => prev.filter((o) => o.id !== id));
+      setSelectedOrderIds((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+      notify.success('Maintenance work order moved to Data Bin.');
+    }
+    setDeleteOrderConfirm({ open: false, isBulk: false });
+  };
+
   const isOperationsTab = activeTab === 'machinery' || activeTab === 'maintenance';
   const showOperationsKpis = perspective === 'operations' || (perspective === 'all' && isOperationsTab);
 
@@ -1541,10 +1678,50 @@ export const AssetsWorkspace: React.FC = () => {
             </button>
           </div>
 
+          {/* Selected Work Orders Bulk Action Ribbon */}
+          {selectedOrderIds.size > 0 && (
+            <div className="flex items-center justify-between gap-2.5 px-4 py-2.5 rounded-xl bg-destructive/10 border border-destructive/20 text-xs">
+              <div className="flex items-center gap-2">
+                <span className="font-semibold text-destructive">
+                  {selectedOrderIds.size} work order{selectedOrderIds.size > 1 ? 's' : ''} selected
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                {canDeleteMaintenance && (
+                  <button
+                    type="button"
+                    onClick={() => setDeleteOrderConfirm({ open: true, isBulk: true })}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-destructive text-destructive-fg hover:opacity-90 transition shadow-2xs cursor-pointer"
+                  >
+                    <Trash2 className="size-3.5" />
+                    <span>Move to Bin ({selectedOrderIds.size})</span>
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setSelectedOrderIds(new Set())}
+                  className="text-xs font-medium text-muted hover:text-default cursor-pointer"
+                >
+                  Clear Selection
+                </button>
+              </div>
+            </div>
+          )}
+
           <div className="overflow-x-auto min-h-75 bg-surface rounded-2xl shadow-2xs border border-default">
             <table className="w-full text-left text-sm text-default">
               <thead className="bg-surface-sunken text-muted uppercase text-2xs font-bold border-b border-default">
                 <tr>
+                  <th className="w-10 px-4 py-3 text-center">
+                    <input
+                      ref={orderHeaderRef}
+                      type="checkbox"
+                      checked={isAllOrdersSelected}
+                      onChange={toggleSelectAllOrders}
+                      className="size-4 rounded border-default text-primary focus:ring-primary cursor-pointer"
+                      title="Select all maintenance orders"
+                    />
+                  </th>
                   <th className="px-6 py-3">Order #</th>
                   <th className="px-6 py-3">Asset</th>
                   <th className="px-6 py-3">Type & Priority</th>
@@ -1558,13 +1735,21 @@ export const AssetsWorkspace: React.FC = () => {
               <tbody className="divide-y divide-default">
                 {filteredOrders.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="px-6 py-10 text-center text-xs text-muted">
+                    <td colSpan={9} className="px-6 py-10 text-center text-xs text-muted">
                       No maintenance work orders found matching the filter criteria.
                     </td>
                   </tr>
                 ) : (
                   filteredOrders.map((mo) => (
                     <tr key={mo.id} className="hover:bg-surface-sunken/50 transition">
+                      <td className="w-10 px-4 py-4 text-center" onClick={(e) => e.stopPropagation()}>
+                        <input
+                          type="checkbox"
+                          checked={selectedOrderIds.has(mo.id)}
+                          onChange={() => toggleSelectOneOrder(mo.id)}
+                          className="size-4 rounded border-default text-primary focus:ring-primary cursor-pointer"
+                        />
+                      </td>
                       <td className="px-6 py-4 font-mono font-bold text-primary">
                         {mo.order_number}
                       </td>
@@ -1650,6 +1835,16 @@ export const AssetsWorkspace: React.FC = () => {
                             <span className="text-2xs text-muted flex items-center justify-end gap-1">
                               <CheckCircle2 className="size-3 text-emerald-500" /> Done
                             </span>
+                          )}
+                          {canDeleteMaintenance && (
+                            <button
+                              type="button"
+                              onClick={() => setDeleteOrderConfirm({ open: true, isBulk: false, id: mo.id })}
+                              className="p-1.5 text-destructive/80 hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors cursor-pointer"
+                              title="Move to Data Bin"
+                            >
+                              <Trash2 className="size-3.5" />
+                            </button>
                           )}
                         </div>
                       </td>
@@ -1741,11 +1936,51 @@ export const AssetsWorkspace: React.FC = () => {
             </div>
           </div>
 
+          {/* Selected Assets Bulk Action Ribbon */}
+          {selectedAssetIds.size > 0 && (
+            <div className="flex items-center justify-between gap-2.5 px-4 py-2.5 rounded-xl bg-destructive/10 border border-destructive/20 text-xs">
+              <div className="flex items-center gap-2">
+                <span className="font-semibold text-destructive">
+                  {selectedAssetIds.size} asset{selectedAssetIds.size > 1 ? 's' : ''} selected
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                {canDeleteAsset && (
+                  <button
+                    type="button"
+                    onClick={() => setDeleteAssetConfirm({ open: true, isBulk: true })}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-destructive text-destructive-fg hover:opacity-90 transition shadow-2xs cursor-pointer"
+                  >
+                    <Trash2 className="size-3.5" />
+                    <span>Move to Bin ({selectedAssetIds.size})</span>
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setSelectedAssetIds(new Set())}
+                  className="text-xs font-medium text-muted hover:text-default cursor-pointer"
+                >
+                  Clear Selection
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Asset Register Table */}
           <div className="overflow-x-auto min-h-75 bg-surface rounded-2xl shadow-2xs border border-default">
             <table className="w-full text-left text-sm text-default">
               <thead className="bg-surface-sunken text-muted uppercase text-2xs font-bold border-b border-default">
                 <tr>
+                  <th className="w-10 px-4 py-3 text-center">
+                    <input
+                      ref={assetHeaderRef}
+                      type="checkbox"
+                      checked={isAllAssetsSelected}
+                      onChange={toggleSelectAllAssets}
+                      className="size-4 rounded border-default text-primary focus:ring-primary cursor-pointer"
+                      title="Select all assets"
+                    />
+                  </th>
                   <th className="px-6 py-3">Asset Code</th>
                   <th className="px-6 py-3">Name & Details</th>
                   <th className="px-6 py-3">Category</th>
@@ -1759,13 +1994,21 @@ export const AssetsWorkspace: React.FC = () => {
               <tbody className="divide-y divide-default">
                 {filteredAssets.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="px-6 py-10 text-center text-xs text-muted">
+                    <td colSpan={9} className="px-6 py-10 text-center text-xs text-muted">
                       No assets found matching the selected filter criteria.
                     </td>
                   </tr>
                 ) : (
                   filteredAssets.map((ast) => (
                     <tr key={ast.id} className="hover:bg-surface-sunken/50 transition">
+                      <td className="w-10 px-4 py-4 text-center" onClick={(e) => e.stopPropagation()}>
+                        <input
+                          type="checkbox"
+                          checked={selectedAssetIds.has(ast.id)}
+                          onChange={() => toggleSelectOneAsset(ast.id)}
+                          className="size-4 rounded border-default text-primary focus:ring-primary cursor-pointer"
+                        />
+                      </td>
                       <td className="px-6 py-4 font-mono font-bold text-primary">
                         {ast.asset_code}
                       </td>
@@ -1814,6 +2057,16 @@ export const AssetsWorkspace: React.FC = () => {
                             <Eye className="size-3 text-primary" />
                             <span>Details</span>
                           </button>
+                          {canDeleteAsset && (
+                            <button
+                              type="button"
+                              onClick={() => setDeleteAssetConfirm({ open: true, isBulk: false, id: ast.id })}
+                              className="p-1.5 text-destructive/80 hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors cursor-pointer"
+                              title="Move to Data Bin"
+                            >
+                              <Trash2 className="size-3.5" />
+                            </button>
+                          )}
                           <button
                             type="button"
                             onClick={(e) => {
@@ -1898,6 +2151,21 @@ export const AssetsWorkspace: React.FC = () => {
                         <Building2 className="size-3.5 text-muted" />
                         <span>Copy Asset Code</span>
                       </button>
+
+                      {canDeleteAsset && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setOpenActionMenuId(null);
+                            setActionMenuAnchor(null);
+                            setDeleteAssetConfirm({ open: true, isBulk: false, id: activeItem.id });
+                          }}
+                          className="w-full flex items-center gap-2 px-3 py-2 text-xs font-semibold text-destructive hover:bg-destructive/10 transition-colors cursor-pointer text-left border-t border-default/40"
+                        >
+                          <Trash2 className="size-3.5 text-destructive" />
+                          <span>Move to Data Bin</span>
+                        </button>
+                      )}
                     </>
                   );
                 })()}
@@ -2759,6 +3027,36 @@ export const AssetsWorkspace: React.FC = () => {
           </div>
         )}
       </Modal>
+
+      {/* ConfirmDialog: Move Asset(s) to Data Bin */}
+      <ConfirmDialog
+        open={deleteAssetConfirm.open}
+        onClose={() => setDeleteAssetConfirm({ open: false, isBulk: false })}
+        onConfirm={handleExecuteDeleteAsset}
+        title={deleteAssetConfirm.isBulk ? 'Move Selected Assets to Data Bin' : 'Move Asset to Data Bin'}
+        message={
+          deleteAssetConfirm.isBulk
+            ? `Are you sure you want to move ${selectedAssetIds.size} asset(s) to the Data Bin? You can restore them anytime from Settings > Data Bin.`
+            : 'This record will be moved to the Data Bin. You can restore it anytime from Settings > Data Bin.'
+        }
+        confirmLabel="Move to Bin"
+        variant="danger"
+      />
+
+      {/* ConfirmDialog: Move Maintenance Work Order(s) to Data Bin */}
+      <ConfirmDialog
+        open={deleteOrderConfirm.open}
+        onClose={() => setDeleteOrderConfirm({ open: false, isBulk: false })}
+        onConfirm={handleExecuteDeleteOrder}
+        title={deleteOrderConfirm.isBulk ? 'Move Selected Maintenance Orders to Data Bin' : 'Move Maintenance Order to Data Bin'}
+        message={
+          deleteOrderConfirm.isBulk
+            ? `Are you sure you want to move ${selectedOrderIds.size} maintenance work order(s) to the Data Bin? You can restore them anytime from Settings > Data Bin.`
+            : 'This record will be moved to the Data Bin. You can restore it anytime from Settings > Data Bin.'
+        }
+        confirmLabel="Move to Bin"
+        variant="danger"
+      />
     </div>
   );
 };

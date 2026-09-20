@@ -101,4 +101,15 @@ class ExpenseController extends Controller
             'data' => $expense,
         ]);
     }
+
+    public function destroy(int $id): JsonResponse
+    {
+        $expense = Expense::findOrFail($id);
+        $expense->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Expense moved to Data Bin successfully',
+        ]);
+    }
 }

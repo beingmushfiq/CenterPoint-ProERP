@@ -86,4 +86,61 @@ class TenantModuleNavOrderTest extends TestCase
         $manifestRes->assertOk();
         $this->assertEquals($customSections, $manifestRes->json('data.nav_order.sections'));
     }
+
+    public function test_can_batch_update_modules(): void
+    {
+        $response = $this->withHeader('Authorization', 'Bearer ' . $this->token)
+            ->putJson('/api/v1/tenant/modules/batch', [
+                'modules' => [
+                    ['module_key' => 'production', 'enabled' => false, 'config' => []],
+                    ['module_key' => 'sales', 'enabled' => true, 'config' => []],
+                ],
+            ]);
+
+        if ($response->status() !== 200) {
+            $this->fail('Batch update failed with: ' . json_encode($response->json()));
+        }
+
+        $response->assertOk();
+        $response->assertJsonPath('success', true);
+
+        // Verify module state in database
+        $this->assertDatabaseHas('tenant_modules', [
+            'tenant_id' => $this->tenant->id,
+            'module_key' => 'production',
+            'enabled' => false,
+        ]);
+    }
+
+    public function test_can_batch_update_modules_with_empty_array(): void
+    {
+        $response = $this->withHeader('Authorization', 'Bearer ' . $this->token)
+            ->putJson('/api/v1/tenant/modules/batch', [
+                'modules' => [],
+            ]);
+
+        $response->assertOk();
+        $response->assertJsonPath('success', true);
+    }
+
+    public function test_can_update_single_module(): void
+    {
+        $response = $this->withHeader('Authorization', 'Bearer ' . $this->token)
+            ->putJson('/api/v1/tenant/modules/delivery', [
+                'enabled' => false,
+                'config' => ['courier' => 'pathao'],
+            ]);
+
+        $response->assertOk();
+        $response->assertJsonPath('success', true);
+        $response->assertJsonPath('data.module_key', 'delivery');
+        $response->assertJsonPath('data.enabled', false);
+
+        $this->assertDatabaseHas('tenant_modules', [
+            'tenant_id' => $this->tenant->id,
+            'module_key' => 'delivery',
+            'enabled' => false,
+        ]);
+    }
 }
+

@@ -73,4 +73,14 @@ class RunSheetController extends Controller
 
         return new RunSheetResource($updated);
     }
+
+    public function destroy(RunSheet $runSheet): JsonResponse
+    {
+        $runSheet->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Run sheet moved to Data Bin successfully',
+        ]);
+    }
 }

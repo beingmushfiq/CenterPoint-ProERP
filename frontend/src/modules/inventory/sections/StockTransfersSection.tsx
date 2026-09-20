@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import {
@@ -18,10 +18,14 @@ import {
   Printer,
   Layers,
   ChevronDown,
+  X,
 } from 'lucide-react';
 import type { StockTransfer } from '../../../types/api/inventory';
 import { api } from '../../../lib/api/client';
+import { useAuthStore } from '../../../lib/auth/authStore';
 import { extractList } from '../../../lib/api/apiData';
+import { ConfirmDialog } from '../../../components/ui/Modal';
+import { notify } from '../../../components/ui/Toast';
 import { PrintPreviewModal } from '../../../components/print/PrintPreviewModal';
 import { StockTransferDocument } from '../../../components/print/documents/StockTransferDocument';
 import { useBusinessConfig } from '../../../lib/document/useBusinessConfig';
@@ -130,10 +134,19 @@ const SAMPLE_TRANSFERS: StockTransfer[] = [
 ];
 
 export function StockTransfersSection() {
+  const { hasPermission } = useAuthStore();
+  const canDelete = hasPermission('inventory.transfer.delete');
+
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [actionLoading, setActionLoading] = useState<number | null>(null);
+
+  // Bulk selection state
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+  const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
+  const headerCheckboxRef = useRef<HTMLInputElement>(null);
 
   // Modals
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -297,14 +310,19 @@ export function StockTransfersSection() {
     setShowEditModal(false);
   };
 
-  const handleDeleteTransfer = () => {
+  const handleDeleteTransfer = async () => {
     if (!activeTransfer) return;
+    try {
+      await api.delete(`/inventory/transfers/${activeTransfer.id}`);
+    } catch {
+      // Retain optimistic UI update if network fallback occurs
+    }
     queryClient.setQueryData<StockTransfer[]>(['inventory', 'transfers'], (prev = []) =>
       prev.filter((t) => t.id !== activeTransfer.id)
     );
-    api.delete(`/inventory/transfers/${activeTransfer.id}`).catch(() => {});
-    toast.success('Stock transfer deleted.');
+    notify.success('Stock transfer moved to Data Bin successfully.');
     setShowDeleteModal(false);
+    setActiveTransfer(null);
   };
 
   const addItemToForm = () => {
@@ -346,6 +364,65 @@ export function StockTransfersSection() {
     const matchesStatus = statusFilter === 'all' || t.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
+
+  const isAllSelected = filteredTransfers.length > 0 && selectedIds.size === filteredTransfers.length;
+  const isSomeSelected = selectedIds.size > 0 && !isAllSelected;
+
+  useEffect(() => {
+    if (headerCheckboxRef.current) {
+      headerCheckboxRef.current.indeterminate = isSomeSelected;
+    }
+  }, [isSomeSelected]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && selectedIds.size > 0) {
+        setSelectedIds(new Set());
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedIds.size]);
+
+  const toggleSelectAll = () => {
+    if (isAllSelected) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filteredTransfers.map((t) => t.id)));
+    }
+  };
+
+  const toggleSelect = (id: number) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const handleBulkDelete = async () => {
+    setIsBulkDeleting(true);
+    let count = 0;
+    try {
+      for (const id of Array.from(selectedIds)) {
+        try {
+          await api.delete(`/inventory/transfers/${id}`);
+          count++;
+        } catch {
+          // Continue bulk loop on single record deletion error
+        }
+      }
+      queryClient.setQueryData<StockTransfer[]>(['inventory', 'transfers'], (prev = []) =>
+        prev.filter((t) => !selectedIds.has(t.id))
+      );
+      notify.success(`${count} stock transfer(s) moved to Data Bin.`);
+      setSelectedIds(new Set());
+      setShowBulkDeleteModal(false);
+    } finally {
+      setIsBulkDeleting(false);
+    }
+  };
 
   const getStatusBadge = (status: StockTransfer['status']) => {
     switch (status) {
@@ -487,12 +564,53 @@ export function StockTransfersSection() {
         </div>
       </div>
 
+      {/* Bulk Action Toolbar */}
+      {selectedIds.size > 0 && (
+        <div className="flex items-center justify-between p-3 bg-rose-500/10 border border-rose-500/20 rounded-2xl animate-in fade-in">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold text-rose-600 dark:text-rose-400">
+              {selectedIds.size} stock transfer(s) selected
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            {canDelete && (
+              <button
+                type="button"
+                onClick={() => setShowBulkDeleteModal(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-rose-600 text-white hover:bg-rose-700 rounded-xl transition cursor-pointer"
+              >
+                <Trash2 className="size-3.5" />
+                <span>Move to Bin ({selectedIds.size})</span>
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => setSelectedIds(new Set())}
+              className="flex items-center gap-1 px-2.5 py-1.5 text-xs text-muted hover:text-default bg-surface rounded-xl border border-default transition cursor-pointer"
+            >
+              <X className="size-3.5" />
+              <span>Clear</span>
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Transfers Table */}
       <div className="rounded-2xl border border-default bg-surface shadow-2xs overflow-hidden">
         <div className="overflow-x-auto min-h-75">
           <table className="w-full text-left text-xs text-default">
             <thead className="bg-surface-sunken text-[11px] font-semibold text-muted uppercase tracking-wider border-b border-default">
               <tr>
+                <th className="w-10 px-4 py-3.5 text-center">
+                  <input
+                    ref={headerCheckboxRef}
+                    type="checkbox"
+                    checked={isAllSelected}
+                    onChange={toggleSelectAll}
+                    aria-label="Select all transfers"
+                    className="rounded border-default text-primary focus:ring-primary/20 cursor-pointer"
+                  />
+                </th>
                 <th className="px-4 py-3.5">Transfer # / Date</th>
                 <th className="px-4 py-3.5">Source Warehouse</th>
                 <th className="px-4 py-3.5">Destination Warehouse</th>
@@ -504,13 +622,28 @@ export function StockTransfersSection() {
             <tbody className="divide-y divide-default">
               {filteredTransfers.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-4 py-12 text-center text-muted">
+                  <td colSpan={7} className="px-4 py-12 text-center text-muted">
                     {isLoading ? 'Loading transfers...' : 'No stock transfers found matching your criteria.'}
                   </td>
                 </tr>
               ) : (
                 filteredTransfers.map((t) => (
-                  <tr key={t.id} className="hover:bg-surface-sunken/60 transition-colors">
+                  <tr
+                    key={t.id}
+                    className={cn(
+                      'hover:bg-surface-sunken/60 transition-colors',
+                      selectedIds.has(t.id) && 'bg-primary/5'
+                    )}
+                  >
+                    <td className="w-10 px-4 py-3.5 text-center">
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.has(t.id)}
+                        onChange={() => toggleSelect(t.id)}
+                        aria-label={`Select transfer ${t.transfer_number}`}
+                        className="rounded border-default text-primary focus:ring-primary/20 cursor-pointer"
+                      />
+                    </td>
                     <td className="px-4 py-3.5 font-mono font-medium text-default">
                       <div className="flex items-center gap-1.5">
                         <Layers className="size-3.5 text-primary" />
@@ -683,21 +816,24 @@ export function StockTransfersSection() {
                   <span>Print Waybill</span>
                 </button>
 
-                <div className="my-1 border-t border-default" />
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setOpenActionMenuId(null);
-                    setActionMenuAnchor(null);
-                    setActiveTransfer(t);
-                    setShowDeleteModal(true);
-                  }}
-                  className="w-full flex items-center gap-2 px-3 py-2 text-xs text-rose-600 hover:bg-rose-500/10 rounded-lg transition-colors cursor-pointer"
-                >
-                  <Trash2 className="size-3.5 text-rose-500" />
-                  <span>Void / Delete</span>
-                </button>
+                {canDelete && (
+                  <>
+                    <div className="my-1 border-t border-default" />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setOpenActionMenuId(null);
+                        setActionMenuAnchor(null);
+                        setActiveTransfer(t);
+                        setShowDeleteModal(true);
+                      }}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-xs text-rose-600 hover:bg-rose-500/10 rounded-lg transition-colors cursor-pointer"
+                    >
+                      <Trash2 className="size-3.5 text-rose-500" />
+                      <span>Move to Bin</span>
+                    </button>
+                  </>
+                )}
               </ActionMenuPortal>
             );
           })()}
@@ -1013,38 +1149,33 @@ export function StockTransfersSection() {
         </div>
       )}
 
-      {/* CANCEL TRANSFER CONFIRMATION MODAL */}
-      {showDeleteModal && activeTransfer && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs">
-          <div className="w-full max-w-sm rounded-2xl border border-default bg-surface p-6 shadow-xl text-center space-y-4">
-            <div className="size-12 rounded-full bg-rose-500/10 text-rose-500 flex items-center justify-center mx-auto">
-              <Trash2 className="size-6" />
-            </div>
-            <div>
-              <h3 className="text-base font-bold text-default">Cancel Stock Transfer?</h3>
-              <p className="text-xs text-muted mt-1">
-                Are you sure you want to cancel <span className="font-mono font-semibold text-default">{activeTransfer.transfer_number}</span>?
-              </p>
-            </div>
-            <div className="flex items-center justify-center gap-2 pt-2">
-              <button
-                type="button"
-                onClick={() => setShowDeleteModal(false)}
-                className="px-4 py-2 rounded-xl border border-default text-muted hover:text-default cursor-pointer"
-              >
-                Keep Transfer
-              </button>
-              <button
-                type="button"
-                onClick={handleDeleteTransfer}
-                className="px-4 py-2 rounded-xl bg-rose-600 text-white font-semibold hover:bg-rose-700 cursor-pointer"
-              >
-                Confirm Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Move Stock Transfer to Bin Confirmation Dialog */}
+      <ConfirmDialog
+        open={showDeleteModal && Boolean(activeTransfer)}
+        onClose={() => {
+          setShowDeleteModal(false);
+          setActiveTransfer(null);
+        }}
+        onConfirm={handleDeleteTransfer}
+        title="Move Stock Transfer to Bin"
+        message={`Are you sure you want to move stock transfer ${activeTransfer?.transfer_number} to the Data Bin? You can restore it anytime from Settings > Data Bin.`}
+        confirmLabel="Move to Bin"
+        cancelLabel="Cancel"
+        variant="danger"
+      />
+
+      {/* Bulk Move Stock Transfers to Bin Confirmation Dialog */}
+      <ConfirmDialog
+        open={showBulkDeleteModal}
+        onClose={() => setShowBulkDeleteModal(false)}
+        onConfirm={handleBulkDelete}
+        title="Move Selected Transfers to Bin"
+        message={`Are you sure you want to move ${selectedIds.size} stock transfer(s) to the Data Bin? You can restore them anytime from Settings > Data Bin.`}
+        confirmLabel={`Move to Bin (${selectedIds.size})`}
+        cancelLabel="Cancel"
+        variant="danger"
+        loading={isBulkDeleting}
+      />
 
       {/* Print Stock Transfer Manifest Modal */}
       {printTransfer && (

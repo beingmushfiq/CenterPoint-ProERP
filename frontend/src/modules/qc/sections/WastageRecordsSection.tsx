@@ -2,7 +2,6 @@ import { useState, useRef, useEffect } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   AlertOctagon,
-  AlertTriangle,
   DollarSign,
   Download,
   Edit2,
@@ -12,7 +11,9 @@ import {
   ChevronDown,
 } from 'lucide-react';
 import { api } from '../../../lib/api/client';
-import { Modal } from '../../../components/ui/Modal';
+import { useAuthStore } from '../../../lib/auth/authStore';
+import { Modal, ConfirmDialog } from '../../../components/ui/Modal';
+import { notify } from '../../../components/ui/Toast';
 import { Button } from '../../../components/ui/Button';
 import { SelectDropdown } from '../../../components/ui/Dropdown';
 import { Badge } from '../../../components/ui/Badge';
@@ -58,6 +59,9 @@ interface EditWastageDraft {
 }
 
 export function WastageRecordsSection() {
+  const { hasPermission } = useAuthStore();
+  const canDelete = hasPermission('qc.wastage.delete');
+
   const [search, setSearch] = useState('');
   const [stageFilter, setStageFilter] = useState<string>('all');
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -162,10 +166,11 @@ export function WastageRecordsSection() {
       await queryClient.invalidateQueries({ queryKey: ['qc', 'wastage-records'] });
       setDeletingRecord(null);
       setErrorMsg(null);
+      notify.success('Wastage record moved to Data Bin successfully.');
     },
     onError: (err) => {
-      if (isApiError(err)) setErrorMsg(err.message ?? 'Failed to delete wastage record.');
-      else setErrorMsg('Error deleting wastage record.');
+      if (isApiError(err)) setErrorMsg(err.message ?? 'Failed to move wastage record to Data Bin.');
+      else notify.error('Failed to move wastage record to Data Bin.');
     },
   });
 
@@ -239,14 +244,30 @@ export function WastageRecordsSection() {
   const clearSelection = () => setSelectedRecordIds(new Set());
 
   const handleBulkDelete = async () => {
+    if (selectedRecordIds.size === 0) return;
     setIsBulkDeleting(true);
+    let successCount = 0;
+    let failCount = 0;
     try {
-      await Promise.allSettled(
-        Array.from(selectedRecordIds).map((id) => api.delete(`/qc/wastage-records/${id}`))
-      );
+      for (const id of selectedRecordIds) {
+        try {
+          await api.delete(`/qc/wastage-records/${id}`);
+          successCount++;
+        } catch {
+          failCount++;
+        }
+      }
       await queryClient.invalidateQueries({ queryKey: ['qc', 'wastage-records'] });
       setSelectedRecordIds(new Set());
       setShowBulkDeleteModal(false);
+
+      if (failCount === 0) {
+        notify.success(`${successCount} wastage record(s) moved to Data Bin successfully.`);
+      } else if (successCount > 0) {
+        notify.warning(`Moved ${successCount} wastage record(s) to Data Bin, but ${failCount} failed.`);
+      } else {
+        notify.error('Failed to move selected wastage records to Data Bin.');
+      }
     } finally {
       setIsBulkDeleting(false);
     }
@@ -359,15 +380,16 @@ export function WastageRecordsSection() {
               <Download className="size-3.5" />
               <span>Export CSV</span>
             </Button>
-            <Button
-              variant="danger"
-              size="sm"
-              onClick={() => setShowBulkDeleteModal(true)}
-              className="flex items-center gap-1.5 text-xs font-semibold"
-            >
-              <Trash2 className="size-3.5" />
-              <span>Bulk Delete ({selectedRecordIds.size})</span>
-            </Button>
+            {canDelete && (
+              <button
+                type="button"
+                onClick={() => setShowBulkDeleteModal(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-rose-600 text-white hover:bg-rose-700 rounded-xl transition cursor-pointer"
+              >
+                <Trash2 className="size-3.5" />
+                <span>Move to Bin ({selectedRecordIds.size})</span>
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -542,19 +564,23 @@ export function WastageRecordsSection() {
                                 <span>Edit Quantities & Reason</span>
                               </button>
 
-                              <div className="my-1 border-t border-default/50" />
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setOpenActionMenuId(null);
-                                  setActionMenuAnchor(null);
-                                  setDeletingRecord(rec);
-                                }}
-                                className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer"
-                              >
-                                <Trash2 className="size-3.5 text-rose-600 shrink-0" />
-                                <span>Delete Scrap Record</span>
-                              </button>
+                              {canDelete && (
+                                <>
+                                  <div className="my-1 border-t border-default/50" />
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setOpenActionMenuId(null);
+                                      setActionMenuAnchor(null);
+                                      setDeletingRecord(rec);
+                                    }}
+                                    className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer"
+                                  >
+                                    <Trash2 className="size-3.5 text-rose-600 shrink-0" />
+                                    <span>Move to Bin</span>
+                                  </button>
+                                </>
+                              )}
                             </ActionMenuPortal>
                           </div>
                         </div>
@@ -962,85 +988,31 @@ export function WastageRecordsSection() {
         </Modal>
       )}
 
-      {/* Delete Confirmation Modal */}
-      {deletingRecord && (
-        <Modal
-          open={Boolean(deletingRecord)}
-          onClose={() => setDeletingRecord(null)}
-          title="Delete Wastage Record"
-        >
-          <div className="space-y-4">
-            <div className="flex items-start gap-3 rounded-xl border border-rose-500/20 bg-rose-500/10 p-3 text-xs text-rose-600 dark:text-rose-400">
-              <AlertTriangle className="h-5 w-5 shrink-0 mt-0.5" />
-              <div>
-                <p className="font-semibold">Confirm Wastage Record Deletion</p>
-                <p className="mt-1 text-muted">
-                  Are you sure you want to delete wastage record{' '}
-                  <strong className="text-default font-mono">
-                    {deletingRecord.record_number ?? deletingRecord.wastage_number}
-                  </strong>
-                  ? This will remove the scrap log and financial impact.
-                </p>
-              </div>
-            </div>
+      {/* Single Move to Bin Dialog */}
+      <ConfirmDialog
+        open={Boolean(deletingRecord)}
+        onClose={() => setDeletingRecord(null)}
+        onConfirm={() => {
+          if (deletingRecord) {
+            deleteMutation.mutate(deletingRecord.id);
+          }
+        }}
+        title="Move Wastage Record to Data Bin"
+        message={`Are you sure you want to move wastage record "${deletingRecord?.record_number ?? deletingRecord?.wastage_number ?? ''}" to the Data Bin? You can restore it anytime from Settings > Data Bin.`}
+        confirmLabel={deleteMutation.isPending ? 'Moving...' : 'Move to Bin'}
+        variant="danger"
+      />
 
-            <div className="flex justify-end gap-2 pt-2 border-t border-default">
-              <Button variant="ghost" onClick={() => setDeletingRecord(null)}>
-                Cancel
-              </Button>
-              <Button
-                variant="danger"
-                onClick={() => deleteMutation.mutate(deletingRecord.id)}
-                disabled={deleteMutation.isPending}
-              >
-                {deleteMutation.isPending ? 'Deleting...' : 'Delete Record'}
-              </Button>
-            </div>
-          </div>
-        </Modal>
-      )}
-
-      {/* Bulk Delete Confirmation Modal */}
-      {showBulkDeleteModal && (
-        <Modal
-          open={showBulkDeleteModal}
-          onClose={() => !isBulkDeleting && setShowBulkDeleteModal(false)}
-          title="Confirm Bulk Deletion"
-        >
-          <div className="space-y-4">
-            <div className="flex items-start gap-3 rounded-xl border border-rose-500/20 bg-rose-500/10 p-3 text-xs text-rose-600 dark:text-rose-400">
-              <AlertTriangle className="h-5 w-5 shrink-0 mt-0.5" />
-              <div>
-                <p className="font-semibold">Confirm Bulk Wastage Records Deletion</p>
-                <p className="mt-1 text-muted">
-                  Are you sure you want to permanently delete{' '}
-                  <strong className="text-default font-mono">
-                    {selectedRecordIds.size}
-                  </strong>{' '}
-                  selected wastage records? This action cannot be undone.
-                </p>
-              </div>
-            </div>
-
-            <div className="flex justify-end gap-2 pt-2 border-t border-default">
-              <Button
-                variant="ghost"
-                onClick={() => setShowBulkDeleteModal(false)}
-                disabled={isBulkDeleting}
-              >
-                Cancel
-              </Button>
-              <Button
-                variant="danger"
-                onClick={handleBulkDelete}
-                disabled={isBulkDeleting}
-              >
-                {isBulkDeleting ? 'Deleting...' : `Delete ${selectedRecordIds.size} Records`}
-              </Button>
-            </div>
-          </div>
-        </Modal>
-      )}
+      {/* Bulk Move to Bin Dialog */}
+      <ConfirmDialog
+        open={showBulkDeleteModal}
+        onClose={() => setShowBulkDeleteModal(false)}
+        onConfirm={handleBulkDelete}
+        title="Move Selected Wastage Records to Data Bin"
+        message={`Are you sure you want to move ${selectedRecordIds.size} wastage record(s) to the Data Bin? You can restore them anytime from Settings > Data Bin.`}
+        confirmLabel={isBulkDeleting ? 'Moving...' : `Move ${selectedRecordIds.size} Record(s) to Bin`}
+        variant="danger"
+      />
     </div>
   );
 }

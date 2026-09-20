@@ -14,9 +14,13 @@ import {
   RefreshCw,
   ChevronDown,
   Check,
+  Trash2,
+  X,
 } from 'lucide-react';
 import type { CustomerCrm } from '../../../types/api/sales';
 import { api } from '../../../lib/api/client';
+import { useAuthStore } from '../../../lib/auth/authStore';
+import { ConfirmDialog } from '../../../components/ui/Modal';
 import { useCurrency } from '../../../hooks/useCurrency';
 import { SelectDropdown } from '../../../components/ui/Dropdown';
 
@@ -223,6 +227,8 @@ function StatusBadgeSelector({ status, onUpdateStatus, disabled }: StatusBadgeSe
 }
 
 export function CustomersSection() {
+  const { hasPermission } = useAuthStore();
+  const canDelete = hasPermission('catalog.party.delete');
   const queryClient = useQueryClient();
   const { formatCurrency } = useCurrency();
   const [search, setSearch] = useState('');
@@ -232,6 +238,11 @@ export function CustomersSection() {
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerCrm | null>(null);
   const [showLedgerModal, setShowLedgerModal] = useState(false);
   const [localStatuses, setLocalStatuses] = useState<Record<number, 'active' | 'inactive' | 'blocked'>>({});
+
+  // Bulk Selection States
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [deleteConfirm, setDeleteConfirm] = useState<{ id?: number; uuid?: string; isBulk?: boolean; title: string } | null>(null);
+  const headerCheckboxRef = useRef<HTMLInputElement>(null);
 
   // Status mutation for making Active/Inactive/Blocked editable
   const updateStatusMutation = useMutation({
@@ -365,6 +376,68 @@ export function CustomersSection() {
     return matchesSearch && matchesType && matchesStatus;
   });
 
+  const isAllSelected = filteredCustomers.length > 0 && selectedIds.size === filteredCustomers.length;
+  const isSomeSelected = selectedIds.size > 0 && !isAllSelected;
+
+  useEffect(() => {
+    if (headerCheckboxRef.current) {
+      headerCheckboxRef.current.indeterminate = isSomeSelected;
+    }
+  }, [isSomeSelected]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && selectedIds.size > 0) {
+        setSelectedIds(new Set());
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedIds.size]);
+
+  const toggleSelectAll = () => {
+    if (isAllSelected) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filteredCustomers.map((c) => c.id)));
+    }
+  };
+
+  const toggleSelect = (id: number) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const deleteCustomerMutation = useMutation({
+    mutationFn: async ({ id, uuid, items }: { id?: number | undefined; uuid?: string | undefined; items?: Array<{ id: number; uuid?: string }> }) => {
+      if (items && items.length > 0) {
+        let count = 0;
+        for (const item of items) {
+          await api.delete(`/parties/${item.uuid || item.id}`);
+          count++;
+        }
+        return count;
+      } else if (uuid || id) {
+        await api.delete(`/parties/${uuid || id}`);
+        return 1;
+      }
+      return 0;
+    },
+    onSuccess: (count) => {
+      toast.success(`Moved ${count} customer(s) to Data Bin`);
+      setSelectedIds(new Set());
+      setDeleteConfirm(null);
+      queryClient.invalidateQueries({ queryKey: ['sales', 'customers'] });
+    },
+    onError: (err: unknown) => {
+      toast.error(err instanceof Error ? err.message : 'Failed to delete customer');
+    },
+  });
+
   const totalReceivables = customers.reduce(
     (sum, c) => sum + parseFloat(c.current_balance || '0'),
     0
@@ -492,12 +565,56 @@ export function CustomersSection() {
         </button>
       </div>
 
+      {/* Bulk Action Ribbon */}
+      {canDelete && selectedIds.size > 0 && (
+        <div className="flex items-center justify-between p-3 bg-rose-500/10 border border-rose-500/20 rounded-2xl animate-in fade-in">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold text-rose-600 dark:text-rose-400">
+              {selectedIds.size} customer(s) selected
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setDeleteConfirm({
+                  isBulk: true,
+                  title: `${selectedIds.size} selected customer(s)`,
+                });
+              }}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-rose-600 text-white hover:bg-rose-700 rounded-xl transition cursor-pointer"
+            >
+              <Trash2 className="size-3.5" />
+              <span>Move to Bin ({selectedIds.size})</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelectedIds(new Set())}
+              className="flex items-center gap-1 px-2.5 py-1.5 text-xs text-muted hover:text-default bg-surface rounded-xl border border-default transition cursor-pointer"
+            >
+              <X className="size-3.5" />
+              <span>Clear</span>
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Customers Table */}
       <div className="overflow-hidden rounded-2xl border border-default bg-surface shadow-2xs">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs text-default">
             <thead className="border-b border-default bg-surface-sunken text-[11px] font-semibold uppercase tracking-wider text-muted">
               <tr>
+                <th className="w-10 px-4 py-3.5 text-center">
+                  <input
+                    ref={headerCheckboxRef}
+                    type="checkbox"
+                    checked={isAllSelected}
+                    onChange={toggleSelectAll}
+                    aria-label="Select all customers"
+                    className="size-4 rounded border-default text-primary focus:ring-primary/20 cursor-pointer"
+                  />
+                </th>
                 <th className="px-4 py-3.5">Customer Name & Contact</th>
                 <th className="px-4 py-3.5">Account Tier</th>
                 <th className="px-4 py-3.5">Location</th>
@@ -510,13 +627,24 @@ export function CustomersSection() {
             <tbody className="divide-y divide-default">
               {filteredCustomers.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-4 py-8 text-center text-muted">
+                  <td colSpan={8} className="px-4 py-8 text-center text-muted">
                     No customer accounts found.
                   </td>
                 </tr>
               ) : (
-                filteredCustomers.map((c) => (
-                  <tr key={c.id} className="hover:bg-surface-sunken/60 transition-colors">
+                filteredCustomers.map((c) => {
+                  const isSelected = selectedIds.has(c.id);
+                  return (
+                  <tr key={c.id} className={`hover:bg-surface-sunken/60 transition-colors ${isSelected ? 'bg-primary/5' : ''}`}>
+                    <td className="w-10 px-4 py-3.5 text-center" onClick={(e) => e.stopPropagation()}>
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => toggleSelect(c.id)}
+                        aria-label={`Select customer ${c.name}`}
+                        className="size-4 rounded border-default text-primary focus:ring-primary/20 cursor-pointer"
+                      />
+                    </td>
                     <td className="px-4 py-3.5">
                       <div className="font-bold text-default">{c.name}</div>
                       <div className="text-[11px] text-muted flex items-center gap-2 mt-0.5">
@@ -567,7 +695,7 @@ export function CustomersSection() {
                         }
                       />
                     </td>
-                    <td className="px-4 py-3.5 text-right">
+                    <td className="px-4 py-3.5 text-right space-x-1.5">
                       <button
                         onClick={() => {
                           setSelectedCustomer(c);
@@ -578,9 +706,27 @@ export function CustomersSection() {
                         <FileText className="h-3 w-3 text-primary" />
                         <span>Ledger</span>
                       </button>
+                      {canDelete && (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setDeleteConfirm({
+                              id: c.id,
+                              uuid: c.uuid,
+                              title: `customer "${c.name}"`,
+                            })
+                          }
+                          className="inline-flex items-center gap-1 rounded-lg bg-rose-500/10 border border-rose-500/20 px-2.5 py-1 text-[11px] font-medium text-rose-600 dark:text-rose-400 hover:bg-rose-500/20 transition-colors cursor-pointer"
+                          title="Move customer to Data Bin"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                          <span>Move to Bin</span>
+                        </button>
+                      )}
                     </td>
                   </tr>
-                ))
+                );
+              })
               )}
             </tbody>
           </table>
@@ -826,6 +972,25 @@ export function CustomersSection() {
           </div>
         </div>
       )}
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        open={!!deleteConfirm}
+        onClose={() => setDeleteConfirm(null)}
+        onConfirm={() => {
+          if (deleteConfirm?.isBulk) {
+            const items = filteredCustomers
+              .filter((c) => selectedIds.has(c.id))
+              .map((c) => ({ id: c.id, uuid: c.uuid }));
+            deleteCustomerMutation.mutate({ items });
+          } else if (deleteConfirm) {
+            deleteCustomerMutation.mutate({ id: deleteConfirm.id, uuid: deleteConfirm.uuid });
+          }
+        }}
+        title="Move to Data Bin"
+        message={`Are you sure you want to move ${deleteConfirm?.title} to the Data Bin? You can restore it anytime from Settings > Data Bin.`}
+        confirmLabel="Move to Bin"
+        variant="danger"
+      />
     </div>
   );
 }

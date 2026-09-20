@@ -7,13 +7,13 @@ import {
   Trash2,
   RefreshCw,
   X,
-  AlertTriangle,
   Upload,
   Download,
   ChevronDown,
 } from 'lucide-react';
 import type { Department, Designation, Shift } from '../../../types/api/hr';
-import { Modal } from '../../../components/ui/Modal';
+import { useAuthStore } from '../../../lib/auth/authStore';
+import { Modal, ConfirmDialog } from '../../../components/ui/Modal';
 import { notify } from '../../../components/ui/Toast';
 import { hrApi } from '../services/hrApi';
 import { UniversalImportModal } from '../../../components/import/UniversalImportModal';
@@ -41,6 +41,9 @@ export function DepartmentsSetupSection({
   onAddShift,
   onRefresh,
 }: Props) {
+  const { hasPermission } = useAuthStore();
+  const canDelete = hasPermission('hr.employee.delete') || hasPermission('org.branch.delete');
+
   const [activeSubTab, setActiveSubTab] = useState<'departments' | 'designations' | 'shifts'>('departments');
 
   const [deptList, setDeptList] = useState<Department[]>(initialDepartments);
@@ -394,11 +397,11 @@ export function DepartmentsSetupSection({
           await hrApi.bulkDeleteDepartments(ids);
           setDeptList((prev) => prev.filter((d) => !selectedDeptIds.has(d.id)));
           setSelectedDeptIds(new Set());
-          notify.success(`Deleted ${ids.length} departments`);
+          notify.success(`Moved ${ids.length} department(s) to Data Bin`);
         } else if (id) {
           await hrApi.deleteDepartment(id);
           setDeptList((prev) => prev.filter((d) => d.id !== id));
-          notify.success(`Department removed`);
+          notify.success(`Department moved to Data Bin`);
         }
       } else if (type === 'designations') {
         if (isBulk) {
@@ -406,11 +409,11 @@ export function DepartmentsSetupSection({
           await hrApi.bulkDeleteDesignations(ids);
           setDesList((prev) => prev.filter((d) => !selectedDesIds.has(d.id)));
           setSelectedDesIds(new Set());
-          notify.success(`Deleted ${ids.length} designations`);
+          notify.success(`Moved ${ids.length} designation(s) to Data Bin`);
         } else if (id) {
           await hrApi.deleteDesignation(id);
           setDesList((prev) => prev.filter((d) => d.id !== id));
-          notify.success(`Designation removed`);
+          notify.success(`Designation moved to Data Bin`);
         }
       } else if (type === 'shifts') {
         if (isBulk) {
@@ -418,11 +421,11 @@ export function DepartmentsSetupSection({
           await hrApi.bulkDeleteShifts(ids);
           setShiftList((prev) => prev.filter((s) => !selectedShiftIds.has(s.id)));
           setSelectedShiftIds(new Set());
-          notify.success(`Deleted ${ids.length} shift schedules`);
+          notify.success(`Moved ${ids.length} shift schedule(s) to Data Bin`);
         } else if (id) {
           await hrApi.deleteShift(id);
           setShiftList((prev) => prev.filter((s) => s.id !== id));
-          notify.success(`Shift removed`);
+          notify.success(`Shift schedule moved to Data Bin`);
         }
       }
     } catch (err: unknown) {
@@ -576,20 +579,22 @@ export function DepartmentsSetupSection({
           </div>
 
           <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() =>
-                setDeleteConfirm({
-                  type: activeSubTab,
-                  isBulk: true,
-                  name: `${activeSelectedCount} selected ${activeSubTab}`,
-                })
-              }
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-danger bg-danger/10 hover:bg-danger/20 border border-danger/30 rounded-xl transition cursor-pointer"
-            >
-              <Trash2 className="size-3.5" />
-              <span>Bulk Delete</span>
-            </button>
+            {canDelete && (
+              <button
+                type="button"
+                onClick={() =>
+                  setDeleteConfirm({
+                    type: activeSubTab,
+                    isBulk: true,
+                    name: `${activeSelectedCount} selected ${activeSubTab}`,
+                  })
+                }
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-rose-600 hover:bg-rose-700 rounded-xl transition cursor-pointer"
+              >
+                <Trash2 className="size-3.5" />
+                <span>Move to Bin ({activeSelectedCount})</span>
+              </button>
+            )}
             <button
               type="button"
               onClick={() => {
@@ -719,23 +724,27 @@ export function DepartmentsSetupSection({
                   <Briefcase className="size-3.5 text-primary shrink-0" />
                   <span>{dep.is_active ? 'Deactivate Department' : 'Activate Department'}</span>
                 </button>
-                <div className="my-1 border-t border-default/50" />
-                <button
-                  type="button"
-                  onClick={() => {
-                    setOpenActionMenuId(null);
-                    setActionMenuAnchor(null);
-                    setDeleteConfirm({
-                      type: 'departments',
-                      id: dep.id,
-                      name: dep.name,
-                    });
-                  }}
-                  className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer"
-                >
-                  <Trash2 className="size-3.5 text-rose-600 shrink-0" />
-                  <span>Delete Department</span>
-                </button>
+                {canDelete && (
+                  <>
+                    <div className="my-1 border-t border-default/50" />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setOpenActionMenuId(null);
+                        setActionMenuAnchor(null);
+                        setDeleteConfirm({
+                          type: 'departments',
+                          id: dep.id,
+                          name: dep.name,
+                        });
+                      }}
+                      className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer"
+                    >
+                      <Trash2 className="size-3.5 text-rose-600 shrink-0" />
+                      <span>Move to Bin</span>
+                    </button>
+                  </>
+                )}
               </ActionMenuPortal>
             );
           })()}
@@ -855,23 +864,27 @@ export function DepartmentsSetupSection({
                   <Briefcase className="size-3.5 text-primary shrink-0" />
                   <span>{des.is_active ? 'Deactivate Title' : 'Activate Title'}</span>
                 </button>
-                <div className="my-1 border-t border-default/50" />
-                <button
-                  type="button"
-                  onClick={() => {
-                    setOpenActionMenuId(null);
-                    setActionMenuAnchor(null);
-                    setDeleteConfirm({
-                      type: 'designations',
-                      id: des.id,
-                      name: des.name,
-                    });
-                  }}
-                  className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer"
-                >
-                  <Trash2 className="size-3.5 text-rose-600 shrink-0" />
-                  <span>Delete Designation</span>
-                </button>
+                {canDelete && (
+                  <>
+                    <div className="my-1 border-t border-default/50" />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setOpenActionMenuId(null);
+                        setActionMenuAnchor(null);
+                        setDeleteConfirm({
+                          type: 'designations',
+                          id: des.id,
+                          name: des.name,
+                        });
+                      }}
+                      className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer"
+                    >
+                      <Trash2 className="size-3.5 text-rose-600 shrink-0" />
+                      <span>Move to Bin</span>
+                    </button>
+                  </>
+                )}
               </ActionMenuPortal>
             );
           })()}
@@ -998,64 +1011,43 @@ export function DepartmentsSetupSection({
                   <Clock className="size-3.5 text-primary shrink-0" />
                   <span>{sh.is_active ? 'Deactivate Shift' : 'Activate Shift'}</span>
                 </button>
-                <div className="my-1 border-t border-default/50" />
-                <button
-                  type="button"
-                  onClick={() => {
-                    setOpenActionMenuId(null);
-                    setActionMenuAnchor(null);
-                    setDeleteConfirm({
-                      type: 'shifts',
-                      id: sh.id,
-                      name: sh.name,
-                    });
-                  }}
-                  className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer"
-                >
-                  <Trash2 className="size-3.5 text-rose-600 shrink-0" />
-                  <span>Delete Shift</span>
-                </button>
+                {canDelete && (
+                  <>
+                    <div className="my-1 border-t border-default/50" />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setOpenActionMenuId(null);
+                        setActionMenuAnchor(null);
+                        setDeleteConfirm({
+                          type: 'shifts',
+                          id: sh.id,
+                          name: sh.name,
+                        });
+                      }}
+                      className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer"
+                    >
+                      <Trash2 className="size-3.5 text-rose-600 shrink-0" />
+                      <span>Move to Bin</span>
+                    </button>
+                  </>
+                )}
               </ActionMenuPortal>
             );
           })()}
         </div>
       )}
 
-      {/* Delete Confirmation Modal */}
-      <Modal
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
         open={!!deleteConfirm}
         onClose={() => setDeleteConfirm(null)}
-        title="Confirm Deletion"
-        subtitle="This action is permanent and cannot be undone."
-        size="sm"
-      >
-        <div className="space-y-4 pt-2">
-          <div className="flex items-center gap-3 p-3 bg-danger/10 rounded-xl border border-danger/20">
-            <AlertTriangle className="size-5 text-danger shrink-0" />
-            <p className="text-xs text-default font-medium">
-              Are you sure you want to delete <span className="font-bold text-danger">{deleteConfirm?.name}</span>?
-            </p>
-          </div>
-
-          <div className="flex justify-end gap-2.5 pt-3 border-t border-default">
-            <button
-              type="button"
-              onClick={() => setDeleteConfirm(null)}
-              className="px-4 py-2 text-xs font-semibold border border-default rounded-xl text-muted hover:text-default cursor-pointer"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              onClick={executeDelete}
-              className="px-4 py-2 text-xs bg-danger hover:bg-danger/90 text-white font-semibold rounded-xl shadow-xs cursor-pointer flex items-center gap-1.5"
-            >
-              <Trash2 className="size-3.5" />
-              <span>Confirm Delete</span>
-            </button>
-          </div>
-        </div>
-      </Modal>
+        onConfirm={executeDelete}
+        title="Move to Data Bin"
+        message={`Are you sure you want to move "${deleteConfirm?.name}" to the Data Bin? You can restore it anytime from Settings > Data Bin.`}
+        confirmLabel="Move to Bin"
+        variant="danger"
+      />
 
       {/* Modal: Add Department */}
       <Modal

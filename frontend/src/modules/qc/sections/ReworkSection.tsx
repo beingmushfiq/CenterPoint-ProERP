@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import {
@@ -14,12 +14,16 @@ import {
   Edit2,
   Trash2,
   ChevronDown,
+  X,
 } from 'lucide-react';
 import { api } from '../../../lib/api/client';
+import { useAuthStore } from '../../../lib/auth/authStore';
 import { SelectDropdown } from '../../../components/ui/Dropdown';
-import { Modal } from '../../../components/ui/Modal';
+import { Modal, ConfirmDialog } from '../../../components/ui/Modal';
+import { notify } from '../../../components/ui/Toast';
 import { Button } from '../../../components/ui/Button';
 import { ActionMenuPortal } from '../../../components/ui/ActionMenuPortal';
+import { cn } from '../../../lib/utils';
 import type { ProductionBatch } from '../../../types/api/production';
 import type { Product } from '../../../types/api/catalog';
 
@@ -102,31 +106,53 @@ const SAMPLE_REWORK_ORDERS: ReworkOrder[] = [
     rework_cost: '1200.00',
     salvage_qty: 0,
     scrap_qty: 0,
-    created_at: '2026-08-30',
+    created_at: '2026-08-25',
   },
   {
     id: 4,
     uuid: 'rwk-004',
     rework_number: 'RWK-2026-004',
-    batch_number: 'BAT-202608-008',
-    product_name: 'Heavy Duty Strapping Band 19mm',
-    defect_category: 'Tensile Strength Failure',
-    defect_notes: 'Extrusion temperature drop caused brittle crystallization. Non-recoverable.',
+    batch_number: 'BAT-202608-023',
+    product_name: 'Rigid Setup Box (Embossed Lid)',
+    defect_category: 'Corner Tear & Warping',
+    defect_notes: 'Moisture absorption during storage prior to wrap application.',
     qty_defective: 120,
-    unit: 'Rolls',
-    assigned_station: 'Material Recovery Shredder',
-    assigned_operator: 'Kazi Momin',
+    unit: 'PCS',
+    assigned_station: 'Secondary Gluing & Press Station 1',
+    assigned_operator: 'Kamal Pasha',
     status: 'scrapped',
-    rework_cost: '800.00',
+    rework_cost: '1850.00',
     salvage_qty: 0,
     scrap_qty: 120,
-    started_at: '2026-08-20 08:30',
-    completed_at: '2026-08-20 12:00',
+    started_at: '2026-08-22 10:00',
+    completed_at: '2026-08-22 16:30',
+    created_at: '2026-08-21',
+  },
+  {
+    id: 5,
+    uuid: 'rwk-005',
+    rework_number: 'RWK-2026-005',
+    batch_number: 'BAT-202608-008',
+    product_name: 'Heavy Duty Corner Protectors',
+    defect_category: 'Insufficient Compression Density',
+    defect_notes: 'Re-press and cure under hydraulic clamping jig.',
+    qty_defective: 500,
+    unit: 'PCS',
+    assigned_station: 'Manual Finishing & Rework Cell',
+    assigned_operator: 'Md. Farooq Hossain',
+    status: 'in_rework',
+    rework_cost: '2100.00',
+    salvage_qty: 480,
+    scrap_qty: 20,
+    started_at: '2026-08-20 11:00',
     created_at: '2026-08-19',
   },
 ];
 
 export function ReworkSection() {
+  const { hasPermission } = useAuthStore();
+  const canDelete = hasPermission('qc.inspection.delete') || hasPermission('qc.defect.delete');
+
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -138,6 +164,10 @@ export function ReworkSection() {
   const [showCompleteModal, setShowCompleteModal] = useState(false);
   const [openActionMenuId, setOpenActionMenuId] = useState<number | null>(null);
   const [actionMenuAnchor, setActionMenuAnchor] = useState<HTMLElement | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+  const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
+  const headerCheckboxRef = useRef<HTMLInputElement>(null);
 
   // Form State for Add
   const [formData, setFormData] = useState({
@@ -371,7 +401,8 @@ export function ReworkSection() {
     queryClient.setQueryData<ReworkOrder[]>(['qc', 'rework-orders'], (prev = []) =>
       prev.filter((o) => o.id !== deletingOrder.id)
     );
-    toast.success(`Rework order ${deletingOrder.rework_number} removed.`);
+    await queryClient.invalidateQueries({ queryKey: ['qc', 'rework-orders'] });
+    notify.success('Rework order moved to Data Bin successfully.');
     setDeletingOrder(null);
   };
 
@@ -407,6 +438,73 @@ export function ReworkSection() {
     const matchesStatus = statusFilter === 'all' || o.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === filteredOrders.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filteredOrders.map((o) => o.id)));
+    }
+  };
+
+  const toggleSelect = (id: number) => {
+    const next = new Set(selectedIds);
+    if (next.has(id)) {
+      next.delete(id);
+    } else {
+      next.add(id);
+    }
+    setSelectedIds(next);
+  };
+
+  useEffect(() => {
+    if (headerCheckboxRef.current) {
+      headerCheckboxRef.current.indeterminate =
+        selectedIds.size > 0 && selectedIds.size < filteredOrders.length;
+    }
+  }, [selectedIds, filteredOrders.length]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && selectedIds.size > 0) {
+        setSelectedIds(new Set());
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedIds.size]);
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.size === 0) return;
+    setIsBulkDeleting(true);
+    let successCount = 0;
+    let failCount = 0;
+
+    for (const id of selectedIds) {
+      try {
+        await api.delete(`/qc/rework-orders/${id}`);
+        successCount++;
+      } catch {
+        failCount++;
+      }
+    }
+
+    setIsBulkDeleting(false);
+    setShowBulkDeleteModal(false);
+    queryClient.setQueryData<ReworkOrder[]>(['qc', 'rework-orders'], (prev = []) =>
+      prev.filter((o) => !selectedIds.has(o.id))
+    );
+    setSelectedIds(new Set());
+    await queryClient.invalidateQueries({ queryKey: ['qc', 'rework-orders'] });
+
+    if (failCount === 0) {
+      notify.success(`${successCount} rework order(s) moved to Data Bin successfully.`);
+    } else if (successCount > 0) {
+      notify.warning(`Moved ${successCount} rework order(s) to Data Bin, but ${failCount} failed.`);
+    } else {
+      notify.error('Failed to move selected rework orders to Data Bin.');
+    }
+  };
 
   const totalDefectiveUnits = reworkOrders.reduce((sum, o) => sum + o.qty_defective, 0);
   const totalSalvagedUnits = reworkOrders.reduce((sum, o) => sum + o.salvage_qty, 0);
@@ -533,12 +631,53 @@ export function ReworkSection() {
         </button>
       </div>
 
+      {/* Bulk Action Bar */}
+      {selectedIds.size > 0 && (
+        <div className="flex items-center justify-between p-3 bg-rose-500/10 border border-rose-500/20 rounded-2xl animate-in fade-in">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold text-rose-600 dark:text-rose-400">
+              {selectedIds.size} rework order(s) selected
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            {canDelete && (
+              <button
+                type="button"
+                onClick={() => setShowBulkDeleteModal(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-rose-600 text-white hover:bg-rose-700 rounded-xl transition cursor-pointer"
+              >
+                <Trash2 className="size-3.5" />
+                <span>Move to Bin ({selectedIds.size})</span>
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => setSelectedIds(new Set())}
+              className="flex items-center gap-1 px-2.5 py-1.5 text-xs text-muted hover:text-default bg-surface rounded-xl border border-default transition cursor-pointer"
+            >
+              <X className="size-3.5" />
+              <span>Clear</span>
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Rework Orders Table */}
       <div className="overflow-hidden rounded-2xl border border-default bg-surface shadow-2xs">
         <div className="overflow-x-auto min-h-75">
           <table className="w-full text-left text-xs text-default">
             <thead className="border-b border-default bg-surface-sunken text-[11px] font-semibold uppercase tracking-wider text-muted">
               <tr>
+                <th className="w-10 px-4 py-3.5">
+                  <input
+                    ref={headerCheckboxRef}
+                    type="checkbox"
+                    aria-label="Select all rework orders"
+                    checked={filteredOrders.length > 0 && selectedIds.size === filteredOrders.length}
+                    onChange={toggleSelectAll}
+                    className="rounded border-default text-primary focus:ring-primary h-4 w-4 cursor-pointer"
+                  />
+                </th>
                 <th className="px-4 py-3.5">Rework Job #</th>
                 <th className="px-4 py-3.5">Source Batch & Product</th>
                 <th className="px-4 py-3.5">Defect Diagnostic</th>
@@ -553,13 +692,28 @@ export function ReworkSection() {
             <tbody className="divide-y divide-default">
               {filteredOrders.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="px-4 py-8 text-center text-muted">
+                  <td colSpan={10} className="px-4 py-8 text-center text-muted">
                     {isLoading ? 'Loading rework orders...' : 'No rework orders found matching criteria.'}
                   </td>
                 </tr>
               ) : (
                 filteredOrders.map((order) => (
-                  <tr key={order.id} className="hover:bg-surface-sunken/60 transition-colors">
+                  <tr
+                    key={order.id}
+                    className={cn(
+                      'hover:bg-surface-sunken/60 transition-colors',
+                      selectedIds.has(order.id) && 'bg-primary/5'
+                    )}
+                  >
+                    <td className="px-4 py-3.5" onClick={(e) => e.stopPropagation()}>
+                      <input
+                        type="checkbox"
+                        aria-label={`Select rework order ${order.rework_number}`}
+                        checked={selectedIds.has(order.id)}
+                        onChange={() => toggleSelect(order.id)}
+                        className="rounded border-default text-primary focus:ring-primary h-4 w-4 cursor-pointer"
+                      />
+                    </td>
                     <td className="px-4 py-3.5 font-mono font-bold text-amber-600 dark:text-amber-400">
                       {order.rework_number}
                     </td>
@@ -730,19 +884,23 @@ export function ReworkSection() {
                               </button>
                             )}
 
-                            <div className="my-1 border-t border-default/50" />
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setOpenActionMenuId(null);
-                                setActionMenuAnchor(null);
-                                setDeletingOrder(order);
-                              }}
-                              className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer"
-                            >
-                              <Trash2 className="size-3.5 text-rose-600 shrink-0" />
-                              <span>Delete Rework Order</span>
-                            </button>
+                            {canDelete && (
+                              <>
+                                <div className="my-1 border-t border-default/50" />
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setOpenActionMenuId(null);
+                                    setActionMenuAnchor(null);
+                                    setDeletingOrder(order);
+                                  }}
+                                  className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer"
+                                >
+                                  <Trash2 className="size-3.5 text-rose-600 shrink-0" />
+                                  <span>Move to Bin</span>
+                                </button>
+                              </>
+                            )}
                           </ActionMenuPortal>
                         </div>
                       </div>
@@ -1349,6 +1507,28 @@ export function ReworkSection() {
           </div>
         </div>
       )}
+
+      {/* Single Move to Bin Dialog */}
+      <ConfirmDialog
+        open={Boolean(deletingOrder)}
+        onClose={() => setDeletingOrder(null)}
+        onConfirm={handleDeleteOrder}
+        title="Move Rework Order to Data Bin"
+        message={`Are you sure you want to move rework order "${deletingOrder?.rework_number ?? ''}" to the Data Bin? You can restore it anytime from Settings > Data Bin.`}
+        confirmLabel="Move to Bin"
+        variant="danger"
+      />
+
+      {/* Bulk Move to Bin Dialog */}
+      <ConfirmDialog
+        open={showBulkDeleteModal}
+        onClose={() => setShowBulkDeleteModal(false)}
+        onConfirm={handleBulkDelete}
+        title="Move Selected Rework Orders to Data Bin"
+        message={`Are you sure you want to move ${selectedIds.size} rework order(s) to the Data Bin? You can restore them anytime from Settings > Data Bin.`}
+        confirmLabel={isBulkDeleting ? 'Moving...' : `Move ${selectedIds.size} Order(s) to Bin`}
+        variant="danger"
+      />
     </div>
   );
 }

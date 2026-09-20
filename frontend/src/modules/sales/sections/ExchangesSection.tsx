@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import {
@@ -24,10 +24,12 @@ import {
   FileText,
   Zap,
   Link2,
+  X,
 } from 'lucide-react';
 import { api } from '../../../lib/api/client';
 import { useCurrency } from '../../../hooks/useCurrency';
 import { SelectDropdown } from '../../../components/ui/Dropdown';
+import { useAuthStore } from '../../../lib/auth/authStore';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -355,6 +357,9 @@ function createLocalExchangeNumber(): string {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function ExchangesSection() {
+  const { hasPermission } = useAuthStore();
+  const canDelete = hasPermission('sales.exchange.delete');
+
   const { currencySymbol } = useCurrency();
   const queryClient = useQueryClient();
 
@@ -364,6 +369,10 @@ export function ExchangesSection() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showViewModal, setShowViewModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const headerCheckboxRef = useRef<HTMLInputElement>(null);
   const [activeExchange, setActiveExchange] = useState<Exchange | null>(null);
   const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
 
@@ -638,6 +647,22 @@ export function ExchangesSection() {
     return matchStatus && matchSearch;
   });
 
+  const handleDeleteExchange = async () => {
+    if (!activeExchange) return;
+    try {
+      await api.delete(`/sales/exchanges/${activeExchange.id}`);
+      queryClient.setQueryData<Exchange[]>(['sales', 'exchanges'], (prev = []) =>
+        prev.filter((e) => e.id !== activeExchange.id)
+      );
+      queryClient.invalidateQueries({ queryKey: ['sales', 'exchanges'] });
+      toast.success('Exchange moved to Data Bin.');
+      setShowDeleteModal(false);
+      setActiveExchange(null);
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Failed to delete exchange');
+    }
+  };
+
   const toggleRow = (id: number) => {
     setExpandedRows((prev) => {
       const next = new Set(prev);
@@ -648,6 +673,63 @@ export function ExchangesSection() {
       }
       return next;
     });
+  };
+
+  const isAllSelected = filtered.length > 0 && selectedIds.size === filtered.length;
+  const isSomeSelected = selectedIds.size > 0 && !isAllSelected;
+
+  useEffect(() => {
+    if (headerCheckboxRef.current) {
+      headerCheckboxRef.current.indeterminate = isSomeSelected;
+    }
+  }, [isSomeSelected]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && selectedIds.size > 0) {
+        setSelectedIds(new Set());
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedIds.size]);
+
+  const toggleSelectAll = () => {
+    if (isAllSelected) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filtered.map((e) => e.id)));
+    }
+  };
+
+  const toggleSelect = (id: number) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const handleBulkDelete = async () => {
+    setIsBulkDeleting(true);
+    let count = 0;
+    try {
+      for (const id of Array.from(selectedIds)) {
+        try {
+          await api.delete(`/sales/exchanges/${id}`);
+          count++;
+        } catch {
+          // Continue bulk loop on single record deletion error
+        }
+      }
+      toast.success(`${count} exchange(s) moved to Data Bin.`);
+      queryClient.invalidateQueries({ queryKey: ['sales', 'exchanges'] });
+      setSelectedIds(new Set());
+      setShowBulkDeleteModal(false);
+    } finally {
+      setIsBulkDeleting(false);
+    }
   };
 
   // ── Render ────────────────────────────────────────────────────────────────
@@ -729,6 +811,37 @@ export function ExchangesSection() {
         />
       </div>
 
+      {/* Bulk Action Toolbar */}
+      {selectedIds.size > 0 && (
+        <div className="flex items-center justify-between p-3 bg-rose-500/10 border border-rose-500/20 rounded-2xl animate-in fade-in">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold text-rose-600 dark:text-rose-400">
+              {selectedIds.size} exchange(s) selected
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            {canDelete && (
+              <button
+                type="button"
+                onClick={() => setShowBulkDeleteModal(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-rose-600 text-white hover:bg-rose-700 rounded-xl transition cursor-pointer"
+              >
+                <Trash2 className="size-3.5" />
+                <span>Move to Bin ({selectedIds.size})</span>
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => setSelectedIds(new Set())}
+              className="flex items-center gap-1 px-2.5 py-1.5 text-xs text-muted hover:text-default bg-surface rounded-xl border border-default transition cursor-pointer"
+            >
+              <X className="size-3.5" />
+              <span>Clear</span>
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Table */}
       <div className="bg-surface border border-default rounded-xl overflow-hidden">
         {isLoading ? (
@@ -748,6 +861,16 @@ export function ExchangesSection() {
             <table className="w-full text-xs">
               <thead>
                 <tr className="border-b border-default bg-surface-sunken">
+                  <th className="w-10 px-4 py-2.5 text-center">
+                    <input
+                      ref={headerCheckboxRef}
+                      type="checkbox"
+                      checked={isAllSelected}
+                      onChange={toggleSelectAll}
+                      aria-label="Select all exchanges"
+                      className="size-4 rounded border-default text-primary focus:ring-primary/20 cursor-pointer"
+                    />
+                  </th>
                   <th className="text-left px-4 py-2.5 text-muted font-semibold uppercase tracking-wide text-[10px]">Exchange #</th>
                   <th className="text-left px-4 py-2.5 text-muted font-semibold uppercase tracking-wide text-[10px]">Customer</th>
                   <th className="text-left px-4 py-2.5 text-muted font-semibold uppercase tracking-wide text-[10px]">Date</th>
@@ -765,7 +888,16 @@ export function ExchangesSection() {
                   const diff = parseFloat(ex.difference_amount);
                   return (
                     <>
-                      <tr key={ex.id} className="hover:bg-surface-sunken/50 transition-colors">
+                      <tr key={ex.id} className={`hover:bg-surface-sunken/50 transition-colors ${selectedIds.has(ex.id) ? 'bg-primary/5' : ''}`}>
+                        <td className="w-10 px-4 py-3 text-center" onClick={(e) => e.stopPropagation()}>
+                          <input
+                            type="checkbox"
+                            checked={selectedIds.has(ex.id)}
+                            onChange={() => toggleSelect(ex.id)}
+                            aria-label={`Select exchange ${ex.exchange_number}`}
+                            className="size-4 rounded border-default text-primary focus:ring-primary/20 cursor-pointer"
+                          />
+                        </td>
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2">
                             <button
@@ -828,12 +960,12 @@ export function ExchangesSection() {
                                 </button>
                               </>
                             )}
-                            {ex.status === 'draft' && (
+                            {canDelete && ex.status === 'draft' && (
                               <button
                                 type="button"
                                 onClick={() => { setActiveExchange(ex); setShowDeleteModal(true); }}
-                                className="size-7 rounded flex items-center justify-center text-muted hover:text-red-500 hover:bg-red-500/10 transition-all"
-                                title="Delete"
+                                className="size-7 rounded flex items-center justify-center text-muted hover:text-red-500 hover:bg-red-500/10 transition-all cursor-pointer"
+                                title="Move to Bin"
                               >
                                 <Trash2 className="size-3.5" />
                               </button>
@@ -843,7 +975,7 @@ export function ExchangesSection() {
                       </tr>
                       {isExpanded && (
                         <tr key={`${ex.id}-expanded`} className="bg-surface-sunken/40">
-                          <td colSpan={9} className="px-6 py-4">
+                          <td colSpan={10} className="px-6 py-4">
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                               {/* Return items */}
                               <div>
@@ -1745,6 +1877,75 @@ export function ExchangesSection() {
                   </button>
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* DELETE / MOVE TO BIN CONFIRMATION MODAL */}
+      {showDeleteModal && activeExchange && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs">
+          <div className="w-full max-w-sm rounded-2xl border border-default bg-surface p-6 shadow-xl text-center space-y-4">
+            <div className="size-12 rounded-full bg-rose-500/10 text-rose-500 flex items-center justify-center mx-auto">
+              <Trash2 className="size-6" />
+            </div>
+            <div>
+              <h3 className="text-base font-bold text-default">Move Exchange to Bin?</h3>
+              <p className="text-xs text-muted mt-1">
+                Exchange <span className="font-mono font-semibold text-default">{activeExchange.exchange_number}</span> will be moved to the Data Bin. You can restore it anytime from Settings &gt; Data Bin.
+              </p>
+            </div>
+            <div className="flex items-center justify-center gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowDeleteModal(false)}
+                className="px-4 py-2 rounded-xl border border-default text-muted hover:text-default cursor-pointer"
+              >
+                Keep Exchange
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteExchange}
+                className="px-4 py-2 rounded-xl bg-rose-600 text-white font-semibold hover:bg-rose-700 cursor-pointer"
+              >
+                Move to Bin
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* BULK DELETE CONFIRMATION MODAL */}
+      {showBulkDeleteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs">
+          <div className="w-full max-w-sm rounded-2xl border border-default bg-surface p-6 shadow-xl text-center space-y-4">
+            <div className="size-12 rounded-full bg-rose-500/10 text-rose-500 flex items-center justify-center mx-auto">
+              <Trash2 className="size-6" />
+            </div>
+            <div>
+              <h3 className="text-base font-bold text-default">Move Selected to Bin?</h3>
+              <p className="text-xs text-muted mt-1">
+                Are you sure you want to move <span className="font-semibold text-default">{selectedIds.size}</span> exchange(s) to the Data Bin? You can restore them anytime from Settings &gt; Data Bin.
+              </p>
+            </div>
+            <div className="flex items-center justify-center gap-2 pt-2">
+              <button
+                type="button"
+                disabled={isBulkDeleting}
+                onClick={() => setShowBulkDeleteModal(false)}
+                className="px-4 py-2 rounded-xl border border-default text-muted hover:text-default cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={isBulkDeleting}
+                onClick={handleBulkDelete}
+                className="px-4 py-2 rounded-xl bg-rose-600 text-white font-semibold hover:bg-rose-700 disabled:opacity-50 cursor-pointer flex items-center gap-1.5"
+              >
+                {isBulkDeleting && <RefreshCw className="size-3.5 animate-spin" />}
+                <span>Move to Bin</span>
+              </button>
             </div>
           </div>
         </div>

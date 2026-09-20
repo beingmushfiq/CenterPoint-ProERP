@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   CheckCircle,
@@ -8,12 +8,14 @@ import {
   XCircle,
   Edit2,
   Trash2,
-  AlertTriangle,
   FileUp,
   ChevronDown,
+  X,
 } from 'lucide-react';
 import { api } from '../../../lib/api/client';
-import { Modal } from '../../../components/ui/Modal';
+import { useAuthStore } from '../../../lib/auth/authStore';
+import { Modal, ConfirmDialog } from '../../../components/ui/Modal';
+import { notify } from '../../../components/ui/Toast';
 import { Button } from '../../../components/ui/Button';
 import { Badge } from '../../../components/ui/Badge';
 import { QueryBoundary } from '../../../components/patterns/QueryBoundary';
@@ -21,6 +23,7 @@ import { ActionMenuPortal } from '../../../components/ui/ActionMenuPortal';
 import { isApiError } from '../../../lib/api/errors';
 import { UniversalImportModal } from '../../../components/import/UniversalImportModal';
 import { qcParameterImportSchema } from '../schemas/qcParameterImportSchema';
+import { cn } from '../../../lib/utils';
 import type { QcParameter } from '../../../types/api/qc';
 
 interface ParameterFormData {
@@ -36,6 +39,9 @@ interface ParameterFormData {
 }
 
 export function QcParametersSection() {
+  const { hasPermission } = useAuthStore();
+  const canDelete = hasPermission('qc.parameter.delete');
+
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -55,6 +61,10 @@ export function QcParametersSection() {
   const [deletingParameter, setDeletingParameter] = useState<QcParameter | null>(null);
   const [openActionMenuId, setOpenActionMenuId] = useState<string | null>(null);
   const [actionMenuAnchor, setActionMenuAnchor] = useState<HTMLElement | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+  const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
+  const headerCheckboxRef = useRef<HTMLInputElement>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const [draft, setDraft] = useState<ParameterFormData>({
@@ -149,10 +159,11 @@ export function QcParametersSection() {
       await queryClient.invalidateQueries({ queryKey: ['qc', 'parameters'] });
       setDeletingParameter(null);
       setErrorMsg(null);
+      notify.success('QC parameter moved to Data Bin successfully.');
     },
     onError: (err) => {
-      if (isApiError(err)) setErrorMsg(err.message ?? 'Failed to delete parameter.');
-      else setErrorMsg('Error deleting QC parameter.');
+      if (isApiError(err)) setErrorMsg(err.message ?? 'Failed to move parameter to Data Bin.');
+      else notify.error('Failed to move QC parameter to Data Bin.');
     },
   });
 
@@ -186,6 +197,70 @@ export function QcParametersSection() {
   };
 
   const parameters = paramsQuery.data?.data ?? [];
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === parameters.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(parameters.map((p) => p.id)));
+    }
+  };
+
+  const toggleSelect = (id: string) => {
+    const next = new Set(selectedIds);
+    if (next.has(id)) {
+      next.delete(id);
+    } else {
+      next.add(id);
+    }
+    setSelectedIds(next);
+  };
+
+  useEffect(() => {
+    if (headerCheckboxRef.current) {
+      headerCheckboxRef.current.indeterminate =
+        selectedIds.size > 0 && selectedIds.size < parameters.length;
+    }
+  }, [selectedIds, parameters.length]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && selectedIds.size > 0) {
+        setSelectedIds(new Set());
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedIds.size]);
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.size === 0) return;
+    setIsBulkDeleting(true);
+    let successCount = 0;
+    let failCount = 0;
+
+    for (const id of selectedIds) {
+      try {
+        await api.delete(`/qc/parameters/${id}`);
+        successCount++;
+      } catch {
+        failCount++;
+      }
+    }
+
+    setIsBulkDeleting(false);
+    setShowBulkDeleteModal(false);
+    setSelectedIds(new Set());
+    await queryClient.invalidateQueries({ queryKey: ['qc', 'parameters'] });
+
+    if (failCount === 0) {
+      notify.success(`${successCount} QC parameter(s) moved to Data Bin successfully.`);
+    } else if (successCount > 0) {
+      notify.warning(`Moved ${successCount} parameter(s) to Data Bin, but ${failCount} failed.`);
+    } else {
+      notify.error('Failed to move selected QC parameters to Data Bin.');
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -252,6 +327,37 @@ export function QcParametersSection() {
         </div>
       </div>
 
+      {/* Bulk Action Bar */}
+      {selectedIds.size > 0 && (
+        <div className="flex items-center justify-between p-3 bg-rose-500/10 border border-rose-500/20 rounded-2xl animate-in fade-in">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold text-rose-600 dark:text-rose-400">
+              {selectedIds.size} QC parameter(s) selected
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            {canDelete && (
+              <button
+                type="button"
+                onClick={() => setShowBulkDeleteModal(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-rose-600 text-white hover:bg-rose-700 rounded-xl transition cursor-pointer"
+              >
+                <Trash2 className="size-3.5" />
+                <span>Move to Bin ({selectedIds.size})</span>
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => setSelectedIds(new Set())}
+              className="flex items-center gap-1 px-2.5 py-1.5 text-xs text-muted hover:text-default bg-surface rounded-xl border border-default transition cursor-pointer"
+            >
+              <X className="size-3.5" />
+              <span>Clear</span>
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Table */}
       <QueryBoundary
         status={paramsQuery.status}
@@ -264,6 +370,16 @@ export function QcParametersSection() {
             <table className="w-full text-left text-xs text-default">
               <thead className="border-b border-default bg-surface-sunken text-[11px] font-semibold uppercase tracking-wider text-muted">
                 <tr>
+                  <th className="w-10 py-3.5 pl-4 pr-3">
+                    <input
+                      ref={headerCheckboxRef}
+                      type="checkbox"
+                      aria-label="Select all parameters"
+                      checked={parameters.length > 0 && selectedIds.size === parameters.length}
+                      onChange={toggleSelectAll}
+                      className="rounded border-default text-primary focus:ring-primary h-4 w-4 cursor-pointer"
+                    />
+                  </th>
                   <th className="py-3.5 pl-4 pr-3">Parameter Code</th>
                   <th className="py-3.5 px-3">Name & Category</th>
                   <th className="py-3.5 px-3">Type & Unit</th>
@@ -276,7 +392,7 @@ export function QcParametersSection() {
               <tbody className="divide-y divide-default">
                 {parameters.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="py-12 text-center text-muted">
+                    <td colSpan={8} className="py-12 text-center text-muted">
                       <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-xl bg-surface-sunken border border-default mb-2">
                         <Sliders className="h-5 w-5 text-muted" />
                       </div>
@@ -290,7 +406,22 @@ export function QcParametersSection() {
                   </tr>
                 ) : (
                   parameters.map((param) => (
-                    <tr key={param.id} className="hover:bg-surface-sunken/60 transition-colors">
+                    <tr
+                      key={param.id}
+                      className={cn(
+                        'hover:bg-surface-sunken/60 transition-colors',
+                        selectedIds.has(param.id) && 'bg-primary/5'
+                      )}
+                    >
+                      <td className="py-3 pl-4 pr-3" onClick={(e) => e.stopPropagation()}>
+                        <input
+                          type="checkbox"
+                          aria-label={`Select parameter ${param.name}`}
+                          checked={selectedIds.has(param.id)}
+                          onChange={() => toggleSelect(param.id)}
+                          className="rounded border-default text-primary focus:ring-primary h-4 w-4 cursor-pointer"
+                        />
+                      </td>
                       <td className="py-3 pl-4 pr-3 font-mono font-medium text-emerald-600 dark:text-emerald-400">
                         {param.code ?? `QC-${param.id.slice(0, 4).toUpperCase()}`}
                       </td>
@@ -422,19 +553,23 @@ export function QcParametersSection() {
                                 <span>{param.is_mandatory ? 'Mark as Optional' : 'Mark as Mandatory'}</span>
                               </button>
 
-                              <div className="my-1 border-t border-default/50" />
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setOpenActionMenuId(null);
-                                  setActionMenuAnchor(null);
-                                  setDeletingParameter(param);
-                                }}
-                                className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer"
-                              >
-                                <Trash2 className="size-3.5 text-rose-600 shrink-0" />
-                                <span>Delete Parameter</span>
-                              </button>
+                              {canDelete && (
+                                <>
+                                  <div className="my-1 border-t border-default/50" />
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setOpenActionMenuId(null);
+                                      setActionMenuAnchor(null);
+                                      setDeletingParameter(param);
+                                    }}
+                                    className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer"
+                                  >
+                                    <Trash2 className="size-3.5 text-rose-600 shrink-0" />
+                                    <span>Move to Bin</span>
+                                  </button>
+                                </>
+                              )}
                             </ActionMenuPortal>
                           </div>
                         </div>
@@ -758,43 +893,31 @@ export function QcParametersSection() {
         </Modal>
       )}
 
-      {/* Delete Confirmation Modal */}
-      {deletingParameter && (
-        <Modal
-          open={Boolean(deletingParameter)}
-          onClose={() => setDeletingParameter(null)}
-          title="Delete QC Parameter"
-        >
-          <div className="space-y-4">
-            <div className="flex items-start gap-3 rounded-xl border border-rose-500/20 bg-rose-500/10 p-3 text-xs text-rose-600 dark:text-rose-400">
-              <AlertTriangle className="h-5 w-5 shrink-0 mt-0.5" />
-              <div>
-                <p className="font-semibold">Confirm Parameter Deletion</p>
-                <p className="mt-1 text-muted">
-                  Are you sure you want to delete parameter{' '}
-                  <strong className="text-default font-mono">
-                    {deletingParameter.code ?? deletingParameter.name}
-                  </strong>{' '}
-                  ({deletingParameter.name})? This cannot be undone.
-                </p>
-              </div>
-            </div>
+      {/* Single Move to Bin Dialog */}
+      <ConfirmDialog
+        open={Boolean(deletingParameter)}
+        onClose={() => setDeletingParameter(null)}
+        onConfirm={() => {
+          if (deletingParameter) {
+            deleteMutation.mutate(deletingParameter.id);
+          }
+        }}
+        title="Move QC Parameter to Data Bin"
+        message={`Are you sure you want to move QC parameter "${deletingParameter?.code ?? deletingParameter?.name ?? ''}" to the Data Bin? You can restore it anytime from Settings > Data Bin.`}
+        confirmLabel={deleteMutation.isPending ? 'Moving...' : 'Move to Bin'}
+        variant="danger"
+      />
 
-            <div className="flex justify-end gap-2 pt-2 border-t border-default">
-              <Button variant="ghost" onClick={() => setDeletingParameter(null)}>
-                Cancel
-              </Button>
-              <Button
-                variant="danger"
-                onClick={() => deleteMutation.mutate(deletingParameter.id)}
-                disabled={deleteMutation.isPending}
-              >
-                {deleteMutation.isPending ? 'Deleting...' : 'Delete Parameter'}
-              </Button>
-            </div>
-          </div>
-        </Modal>
-      )}
+      {/* Bulk Move to Bin Dialog */}
+      <ConfirmDialog
+        open={showBulkDeleteModal}
+        onClose={() => setShowBulkDeleteModal(false)}
+        onConfirm={handleBulkDelete}
+        title="Move Selected QC Parameters to Data Bin"
+        message={`Are you sure you want to move ${selectedIds.size} QC parameter(s) to the Data Bin? You can restore them anytime from Settings > Data Bin.`}
+        confirmLabel={isBulkDeleting ? 'Moving...' : `Move ${selectedIds.size} Parameter(s) to Bin`}
+        variant="danger"
+      />
 
       <UniversalImportModal
         isOpen={isImportOpen}

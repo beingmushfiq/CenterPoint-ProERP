@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { ConfirmDialog } from '../../../components/ui/Modal';
@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { api } from '../../../lib/api/client';
 import { useCurrency } from '../../../hooks/useCurrency';
+import { useAuthStore } from '../../../lib/auth/authStore';
 import { KPICard } from '../../../components/ui/KPICard';
 import { Badge } from '../../../components/ui/Badge';
 import { cn } from '../../../lib/utils';
@@ -32,6 +33,9 @@ import type { SalesmanTarget } from '../../../types/api/sales';
 import type { Employee } from '../../../types/api/hr';
 
 export function SalesmanTargetsSection() {
+  const { hasPermission } = useAuthStore();
+  const canDelete = hasPermission('sales.target.delete');
+
   const { formatCurrency, currencySymbol } = useCurrency();
   const queryClient = useQueryClient();
   const [selectedMonth, setSelectedMonth] = useState<string>(() => {
@@ -45,6 +49,12 @@ export function SalesmanTargetsSection() {
   const [targetName, setTargetName] = useState<string>('');
   const [targetNotes, setTargetNotes] = useState<string>('');
   const [isImportOpen, setIsImportOpen] = useState(false);
+
+  // Bulk selection state
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+  const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
+  const headerCheckboxRef = useRef<HTMLInputElement>(null);
 
   const handleExportCsv = () => {
     if (targets.length === 0) {
@@ -119,11 +129,69 @@ export function SalesmanTargetsSection() {
     },
   });
 
-  const targets: SalesmanTarget[] = useMemo(() => {
-    if (Array.isArray(rawTargets)) return rawTargets;
-    if (rawTargets && 'data' in rawTargets && Array.isArray(rawTargets.data)) return rawTargets.data;
-    return [];
-  }, [rawTargets]);
+  const targets: SalesmanTarget[] = Array.isArray(rawTargets)
+    ? rawTargets
+    : (rawTargets && 'data' in rawTargets && Array.isArray(rawTargets.data))
+      ? rawTargets.data
+      : [];
+
+  const isAllSelected = targets.length > 0 && selectedIds.size === targets.length;
+  const isSomeSelected = selectedIds.size > 0 && !isAllSelected;
+
+  useEffect(() => {
+    if (headerCheckboxRef.current) {
+      headerCheckboxRef.current.indeterminate = isSomeSelected;
+    }
+  }, [isSomeSelected]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && selectedIds.size > 0) {
+        setSelectedIds(new Set());
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedIds.size]);
+
+  const toggleSelectAll = () => {
+    if (isAllSelected) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(targets.map((t) => t.id)));
+    }
+  };
+
+  const toggleSelect = (id: number) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const handleBulkDelete = async () => {
+    setIsBulkDeleting(true);
+    let count = 0;
+    try {
+      for (const id of Array.from(selectedIds)) {
+        try {
+          await api.delete(`/sales/targets/${id}`);
+          count++;
+        } catch {
+          // Ignore individual deletion errors during bulk processing
+        }
+      }
+      notify.success(`${count} sales target(s) moved to Data Bin.`);
+      queryClient.invalidateQueries({ queryKey: ['sales', 'targets'] });
+      queryClient.invalidateQueries({ queryKey: ['sales', 'salesmen'] });
+      setSelectedIds(new Set());
+      setShowBulkDeleteModal(false);
+    } finally {
+      setIsBulkDeleting(false);
+    }
+  };
 
   // Fetch employees list for target assignment dropdown
   const { data: employees = [] } = useQuery<Employee[]>({
@@ -206,7 +274,7 @@ export function SalesmanTargetsSection() {
       return api.delete(`/sales/targets/${id}`);
     },
     onSuccess: () => {
-      notify.success('Sales target removed successfully');
+      notify.success('Sales target moved to Data Bin successfully');
       setTargetToDelete(null);
       queryClient.invalidateQueries({ queryKey: ['sales', 'targets'] });
       queryClient.invalidateQueries({ queryKey: ['sales', 'salesmen'] });
@@ -400,12 +468,53 @@ export function SalesmanTargetsSection() {
         />
       </div>
 
+      {/* Bulk Action Toolbar */}
+      {selectedIds.size > 0 && (
+        <div className="flex items-center justify-between p-3 bg-rose-500/10 border border-rose-500/20 rounded-2xl animate-in fade-in">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold text-rose-600 dark:text-rose-400">
+              {selectedIds.size} target(s) selected
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            {canDelete && (
+              <button
+                type="button"
+                onClick={() => setShowBulkDeleteModal(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-rose-600 text-white hover:bg-rose-700 rounded-xl transition cursor-pointer"
+              >
+                <Trash2 className="size-3.5" />
+                <span>Move to Bin ({selectedIds.size})</span>
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => setSelectedIds(new Set())}
+              className="flex items-center gap-1 px-2.5 py-1.5 text-xs text-muted hover:text-default bg-surface rounded-xl border border-default transition cursor-pointer"
+            >
+              <X className="size-3.5" />
+              <span>Clear</span>
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Targets Table */}
       <div className="overflow-hidden rounded-2xl border border-default bg-surface shadow-2xs">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs text-default">
             <thead className="border-b border-default bg-surface-sunken text-[11px] font-semibold uppercase tracking-wider text-muted">
               <tr>
+                <th className="w-10 px-4 py-3.5 text-center">
+                  <input
+                    ref={headerCheckboxRef}
+                    type="checkbox"
+                    checked={isAllSelected}
+                    onChange={toggleSelectAll}
+                    aria-label="Select all targets"
+                    className="rounded border-default text-primary focus:ring-primary/20 cursor-pointer"
+                  />
+                </th>
                 <th className="px-4 py-3.5">Salesman</th>
                 <th className="px-4 py-3.5">Period Month</th>
                 <th className="px-4 py-3.5">Target ({currencySymbol})</th>
@@ -420,13 +529,13 @@ export function SalesmanTargetsSection() {
             <tbody className="divide-y divide-default">
               {isLoading ? (
                 <tr>
-                  <td colSpan={9} className="px-4 py-8 text-center text-muted">
+                  <td colSpan={10} className="px-4 py-8 text-center text-muted">
                     Loading sales targets...
                   </td>
                 </tr>
               ) : targets.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="px-4 py-8 text-center text-muted">
+                  <td colSpan={10} className="px-4 py-8 text-center text-muted">
                     No targets assigned for {selectedMonth}. Click "Assign Target" to create one.
                   </td>
                 </tr>
@@ -437,7 +546,22 @@ export function SalesmanTargetsSection() {
                   const isModerate = pct >= 80;
 
                   return (
-                    <tr key={t.id} className="hover:bg-surface-sunken/60 transition-colors">
+                    <tr
+                      key={t.id}
+                      className={cn(
+                        'hover:bg-surface-sunken/60 transition-colors',
+                        selectedIds.has(t.id) && 'bg-primary/5'
+                      )}
+                    >
+                      <td className="w-10 px-4 py-3.5 text-center">
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.has(t.id)}
+                          onChange={() => toggleSelect(t.id)}
+                          aria-label={`Select target for ${t.employee_name || t.id}`}
+                          className="rounded border-default text-primary focus:ring-primary/20 cursor-pointer"
+                        />
+                      </td>
                       <td className="px-4 py-3.5">
                         <div className="font-bold text-default">{t.employee_name || 'Sales Representative'}</div>
                         <div className="text-[11px] font-mono text-muted mt-0.5">{t.employee_code}</div>
@@ -625,16 +749,19 @@ export function SalesmanTargetsSection() {
                                   </button>
                                 )}
 
-                                <div className="my-1 border-t border-default/50" />
-
-                                <button
-                                  type="button"
-                                  onClick={() => handleDeleteTarget(t)}
-                                  className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-medium text-danger hover:bg-danger-subtle transition-colors cursor-pointer"
-                                >
-                                  <Trash2 className="size-3.5" />
-                                  <span>Remove Target</span>
-                                </button>
+                                {canDelete && (
+                                  <>
+                                    <div className="my-1 border-t border-default/50" />
+                                    <button
+                                      type="button"
+                                      onClick={() => handleDeleteTarget(t)}
+                                      className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-medium text-danger hover:bg-danger-subtle transition-colors cursor-pointer"
+                                    >
+                                      <Trash2 className="size-3.5" />
+                                      <span>Move to Bin</span>
+                                    </button>
+                                  </>
+                                )}
                               </div>
                             )}
                           </div>
@@ -1053,12 +1180,25 @@ export function SalesmanTargetsSection() {
             deleteTargetMutation.mutate(targetToDelete.id);
           }
         }}
-        title="Remove Sales Target"
-        message={`Are you sure you want to remove the sales target for ${targetToDelete?.employee_name || 'this representative'}? This action cannot be undone.`}
-        confirmLabel="Remove Target"
+        title="Move Sales Target to Bin"
+        message={`Are you sure you want to move the sales target for ${targetToDelete?.employee_name || 'this representative'} to the Data Bin? You can restore it anytime from Settings > Data Bin.`}
+        confirmLabel="Move to Bin"
         cancelLabel="Cancel"
         variant="danger"
         loading={deleteTargetMutation.isPending}
+      />
+
+      {/* Bulk Delete Sales Targets Confirmation Dialog */}
+      <ConfirmDialog
+        open={showBulkDeleteModal}
+        onClose={() => setShowBulkDeleteModal(false)}
+        onConfirm={handleBulkDelete}
+        title="Move Selected Targets to Bin"
+        message={`Are you sure you want to move ${selectedIds.size} sales target(s) to the Data Bin? You can restore them anytime from Settings > Data Bin.`}
+        confirmLabel={`Move to Bin (${selectedIds.size})`}
+        cancelLabel="Cancel"
+        variant="danger"
+        loading={isBulkDeleting}
       />
 
       {/* Universal Bulk Import Modal */}

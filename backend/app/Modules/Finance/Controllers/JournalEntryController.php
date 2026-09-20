@@ -324,5 +324,16 @@ class JournalEntryController extends Controller
             ],
         ]);
     }
+
+    public function destroy(int $id): JsonResponse
+    {
+        $entry = JournalEntry::findOrFail($id);
+        $entry->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Journal entry moved to Data Bin successfully',
+        ]);
+    }
 }
 

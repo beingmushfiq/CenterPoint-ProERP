@@ -199,4 +199,30 @@ final class IncentivePolicyController extends Controller
 
         return (new IncentiveCalculationResource($calc->load(['employee', 'policy', 'approver'])))->response();
     }
+
+    public function destroyCalculation(int $id): JsonResponse
+    {
+        $tenantId = TenantContext::current()->tenantId();
+
+        $calc = IncentiveCalculation::where('tenant_id', $tenantId)->findOrFail($id);
+        $calc->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Incentive calculation removed.',
+        ]);
+    }
+
+    public function destroyPolicy(int $id): JsonResponse
+    {
+        $tenantId = TenantContext::current()->tenantId();
+
+        $policy = IncentivePolicy::where('tenant_id', $tenantId)->findOrFail($id);
+        $policy->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Incentive policy moved to Data Bin.',
+        ]);
+    }
 }

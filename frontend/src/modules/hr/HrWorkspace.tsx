@@ -40,6 +40,7 @@ import { useCurrency } from '../../hooks/useCurrency';
 import { Modal } from '../../components/ui/Modal';
 import { Button } from '../../components/ui/Button';
 import { notify } from '../../components/ui/Toast';
+import { useAuthStore } from '../../lib/auth/authStore';
 import { UniversalImportModal } from '../../components/import';
 import { employeeImportSchema } from './schemas/employeeImportSchema';
 import { attendanceImportSchema } from './schemas/attendanceImportSchema';
@@ -700,6 +701,12 @@ export const HrWorkspace: React.FC = () => {
   const [, setIsSyncingAll] = useState(false);
   const [openActionMenuId, setOpenActionMenuId] = useState<number | string | null>(null);
   const [actionMenuAnchor, setActionMenuAnchor] = useState<HTMLElement | null>(null);
+
+  const hasPermission = useAuthStore((s) => s.hasPermission);
+  const canDeleteEmployee = hasPermission('hr.employee.delete');
+  const canDeleteAttendance = hasPermission('hr.attendance.delete');
+  const canDeleteLeave = hasPermission('hr.leave.delete');
+  const canDeletePayslip = hasPermission('hr.payslip.delete');
 
   useEffect(() => {
     if (openActionMenuId === null) return;
@@ -1646,49 +1653,49 @@ export const HrWorkspace: React.FC = () => {
         if (isBulk) {
           await hrApi.bulkDeleteEmployees(selectedEmpIds);
           setEmployees((prev) => prev.filter((e) => !selectedEmpIds.includes(e.id)));
-          notify.success(`Deleted ${selectedEmpIds.length} employees.`);
+          notify.success(`${selectedEmpIds.length} employee(s) moved to Data Bin.`);
           setSelectedEmpIds([]);
         } else if (id) {
           await hrApi.deleteEmployee(id);
           setEmployees((prev) => prev.filter((e) => e.id !== id));
           setSelectedEmpIds((prev) => prev.filter((i) => i !== id));
-          notify.success('Employee deleted successfully.');
+          notify.success('Employee moved to Data Bin.');
         }
       } else if (type === 'attendance') {
         if (isBulk) {
           await hrApi.bulkDeleteAttendances(selectedAttIds);
           setAttendances((prev) => prev.filter((a) => !selectedAttIds.includes(a.id)));
-          notify.success(`Deleted ${selectedAttIds.length} attendance records.`);
+          notify.success(`${selectedAttIds.length} attendance record(s) moved to Data Bin.`);
           setSelectedAttIds([]);
         } else if (id) {
           await hrApi.deleteAttendance(id);
           setAttendances((prev) => prev.filter((a) => a.id !== id));
           setSelectedAttIds((prev) => prev.filter((i) => i !== id));
-          notify.success('Attendance record deleted.');
+          notify.success('Attendance record moved to Data Bin.');
         }
       } else if (type === 'leave') {
         if (isBulk) {
           await hrApi.bulkDeleteLeaves(selectedLeaveIds);
           setLeaveRequests((prev) => prev.filter((l) => !selectedLeaveIds.includes(l.id)));
-          notify.success(`Deleted ${selectedLeaveIds.length} leave requests.`);
+          notify.success(`${selectedLeaveIds.length} leave request(s) moved to Data Bin.`);
           setSelectedLeaveIds([]);
         } else if (id) {
           await hrApi.deleteLeave(id);
           setLeaveRequests((prev) => prev.filter((l) => l.id !== id));
           setSelectedLeaveIds((prev) => prev.filter((i) => i !== id));
-          notify.success('Leave request deleted.');
+          notify.success('Leave request moved to Data Bin.');
         }
       } else if (type === 'payslip') {
         if (isBulk) {
           await hrApi.bulkDeletePayslips(selectedPayslipIds);
           setPayslips((prev) => prev.filter((p) => !selectedPayslipIds.includes(p.id)));
-          notify.success(`Deleted ${selectedPayslipIds.length} payslips.`);
+          notify.success(`${selectedPayslipIds.length} payslip(s) moved to Data Bin.`);
           setSelectedPayslipIds([]);
         } else if (id) {
           await hrApi.deletePayslip(id);
           setPayslips((prev) => prev.filter((p) => p.id !== id));
           setSelectedPayslipIds((prev) => prev.filter((i) => i !== id));
-          notify.success('Payslip record deleted.');
+          notify.success('Payslip record moved to Data Bin.');
         }
       }
     } catch {
@@ -2464,15 +2471,17 @@ export const HrWorkspace: React.FC = () => {
                   <CheckCircle2 className="w-3.5 h-3.5" />
                   Mark Disbursed & Paid
                 </button>
-                <button
-                  type="button"
-                  disabled={isBulkProcessing}
-                  onClick={() => setDeleteConfirm({ open: true, type: 'payslip', isBulk: true })}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-rose-600 hover:bg-rose-700 text-white shadow-xs transition-colors disabled:opacity-50 cursor-pointer"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                  Delete Selected ({selectedPayslipIds.length})
-                </button>
+                {canDeletePayslip && (
+                  <button
+                    type="button"
+                    disabled={isBulkProcessing}
+                    onClick={() => setDeleteConfirm({ open: true, type: 'payslip', isBulk: true })}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-rose-600 hover:bg-rose-700 text-white shadow-xs transition-colors disabled:opacity-50 cursor-pointer"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    Move to Bin ({selectedPayslipIds.length})
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={() => setSelectedPayslipIds([])}
@@ -2750,23 +2759,25 @@ export const HrWorkspace: React.FC = () => {
 
                     <div className="my-1 border-t border-default/50" />
 
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setOpenActionMenuId(null);
-                        setActionMenuAnchor(null);
-                        setDeleteConfirm({
-                          open: true,
-                          type: 'payslip',
-                          id: ps.id,
-                          name: ps.payslip_number,
-                        });
-                      }}
-                      className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer"
-                    >
-                      <Trash2 className="size-3.5 text-rose-600 shrink-0" />
-                      <span>Delete Payslip</span>
-                    </button>
+                    {canDeletePayslip && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setOpenActionMenuId(null);
+                          setActionMenuAnchor(null);
+                          setDeleteConfirm({
+                            open: true,
+                            type: 'payslip',
+                            id: ps.id,
+                            name: ps.payslip_number,
+                          });
+                        }}
+                        className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer"
+                      >
+                        <Trash2 className="size-3.5 text-rose-600 shrink-0" />
+                        <span>Move to Bin</span>
+                      </button>
+                    )}
                   </ActionMenuPortal>
                 );
               })()}
@@ -2940,15 +2951,17 @@ export const HrWorkspace: React.FC = () => {
                   <Printer className="w-3.5 h-3.5" />
                   Print Badges ({selectedEmpIds.length})
                 </button>
-                <button
-                  type="button"
-                  disabled={isBulkProcessing}
-                  onClick={() => setDeleteConfirm({ open: true, type: 'employee', isBulk: true })}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-rose-600 hover:bg-rose-700 text-white shadow-xs transition-colors disabled:opacity-50 cursor-pointer"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                  Delete Selected ({selectedEmpIds.length})
-                </button>
+                {canDeleteEmployee && (
+                  <button
+                    type="button"
+                    disabled={isBulkProcessing}
+                    onClick={() => setDeleteConfirm({ open: true, type: 'employee', isBulk: true })}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-rose-600 hover:bg-rose-700 text-white shadow-xs transition-colors disabled:opacity-50 cursor-pointer"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    Move to Bin ({selectedEmpIds.length})
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={() => setSelectedEmpIds([])}
@@ -3227,23 +3240,25 @@ export const HrWorkspace: React.FC = () => {
 
                     <div className="my-1 border-t border-default/50" />
 
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setOpenActionMenuId(null);
-                        setActionMenuAnchor(null);
-                        setDeleteConfirm({
-                          open: true,
-                          type: 'employee',
-                          id: emp.id,
-                          name: emp.display_name,
-                        });
-                      }}
-                      className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer"
-                    >
-                      <Trash2 className="size-3.5 text-rose-600 shrink-0" />
-                      <span>Delete Employee</span>
-                    </button>
+                    {canDeleteEmployee && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setOpenActionMenuId(null);
+                          setActionMenuAnchor(null);
+                          setDeleteConfirm({
+                            open: true,
+                            type: 'employee',
+                            id: emp.id,
+                            name: emp.display_name,
+                          });
+                        }}
+                        className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer"
+                      >
+                        <Trash2 className="size-3.5 text-rose-600 shrink-0" />
+                        <span>Move to Bin</span>
+                      </button>
+                    )}
                   </ActionMenuPortal>
                 );
               })()}
@@ -3347,15 +3362,17 @@ export const HrWorkspace: React.FC = () => {
                   <Clock className="w-3.5 h-3.5" />
                   Mark Absent
                 </button>
-                <button
-                  type="button"
-                  disabled={isBulkProcessing}
-                  onClick={() => setDeleteConfirm({ open: true, type: 'attendance', isBulk: true })}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-rose-600 hover:bg-rose-700 text-white shadow-xs transition-colors disabled:opacity-50 cursor-pointer"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                  Delete Selected ({selectedAttIds.length})
-                </button>
+                {canDeleteAttendance && (
+                  <button
+                    type="button"
+                    disabled={isBulkProcessing}
+                    onClick={() => setDeleteConfirm({ open: true, type: 'attendance', isBulk: true })}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-rose-600 hover:bg-rose-700 text-white shadow-xs transition-colors disabled:opacity-50 cursor-pointer"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    Move to Bin ({selectedAttIds.length})
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={() => setSelectedAttIds([])}
@@ -3551,23 +3568,25 @@ export const HrWorkspace: React.FC = () => {
 
                     <div className="my-1 border-t border-default/50" />
 
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setOpenActionMenuId(null);
-                        setActionMenuAnchor(null);
-                        setDeleteConfirm({
-                          open: true,
-                          type: 'attendance',
-                          id: att.id,
-                          name: `${att.attendance_date} - ${att.employee?.display_name || 'Worker'}`,
-                        });
-                      }}
-                      className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer"
-                    >
-                      <Trash2 className="size-3.5 text-rose-600 shrink-0" />
-                      <span>Delete Record</span>
-                    </button>
+                    {canDeleteAttendance && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setOpenActionMenuId(null);
+                          setActionMenuAnchor(null);
+                          setDeleteConfirm({
+                            open: true,
+                            type: 'attendance',
+                            id: att.id,
+                            name: `${att.attendance_date} - ${att.employee?.display_name || 'Worker'}`,
+                          });
+                        }}
+                        className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer"
+                      >
+                        <Trash2 className="size-3.5 text-rose-600 shrink-0" />
+                        <span>Move to Bin</span>
+                      </button>
+                    )}
                   </ActionMenuPortal>
                 );
               })()}
@@ -3651,15 +3670,17 @@ export const HrWorkspace: React.FC = () => {
                   <X className="w-3.5 h-3.5" />
                   Reject Selected
                 </button>
-                <button
-                  type="button"
-                  disabled={isBulkProcessing}
-                  onClick={() => setDeleteConfirm({ open: true, type: 'leave', isBulk: true })}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-rose-600 hover:bg-rose-700 text-white shadow-xs transition-colors disabled:opacity-50 cursor-pointer"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                  Delete Selected ({selectedLeaveIds.length})
-                </button>
+                {canDeleteLeave && (
+                  <button
+                    type="button"
+                    disabled={isBulkProcessing}
+                    onClick={() => setDeleteConfirm({ open: true, type: 'leave', isBulk: true })}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-rose-600 hover:bg-rose-700 text-white shadow-xs transition-colors disabled:opacity-50 cursor-pointer"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    Move to Bin ({selectedLeaveIds.length})
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={() => setSelectedLeaveIds([])}
@@ -3886,23 +3907,25 @@ export const HrWorkspace: React.FC = () => {
 
                     <div className="my-1 border-t border-default/50" />
 
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setOpenActionMenuId(null);
-                        setActionMenuAnchor(null);
-                        setDeleteConfirm({
-                          open: true,
-                          type: 'leave',
-                          id: lr.id,
-                          name: `${lr.employee?.display_name || 'Employee'} (${lr.leave_type?.name || 'Leave'})`,
-                        });
-                      }}
-                      className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer"
-                    >
-                      <Trash2 className="size-3.5 text-rose-600 shrink-0" />
-                      <span>Delete Leave Request</span>
-                    </button>
+                    {canDeleteLeave && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setOpenActionMenuId(null);
+                          setActionMenuAnchor(null);
+                          setDeleteConfirm({
+                            open: true,
+                            type: 'leave',
+                            id: lr.id,
+                            name: `${lr.employee?.display_name || 'Employee'} (${lr.leave_type?.name || 'Leave'})`,
+                          });
+                        }}
+                        className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer"
+                      >
+                        <Trash2 className="size-3.5 text-rose-600 shrink-0" />
+                        <span>Move to Bin</span>
+                      </button>
+                    )}
                   </ActionMenuPortal>
                 );
               })()}
@@ -5065,24 +5088,24 @@ export const HrWorkspace: React.FC = () => {
         onClose={() => setDeleteConfirm({ open: false, type: 'employee' })}
         title={
           deleteConfirm.isBulk
-            ? `Confirm Bulk Deletion (${deleteConfirm.type})`
-            : `Delete ${deleteConfirm.type.charAt(0).toUpperCase() + deleteConfirm.type.slice(1)}`
+            ? `Move Selected to Data Bin (${deleteConfirm.type})`
+            : `Move ${deleteConfirm.type.charAt(0).toUpperCase() + deleteConfirm.type.slice(1)} to Bin`
         }
       >
         <div className="space-y-4">
-          <div className="flex items-start gap-3 p-3.5 rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900 text-rose-800 dark:text-rose-300">
-            <AlertTriangle className="size-5 shrink-0 mt-0.5 text-rose-600" />
+          <div className="flex items-start gap-3 p-3.5 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900 text-amber-800 dark:text-amber-300">
+            <AlertTriangle className="size-5 shrink-0 mt-0.5 text-amber-600" />
             <div className="text-xs space-y-1">
               <p className="font-bold">
                 {deleteConfirm.isBulk
-                  ? `Are you sure you want to permanently delete selected ${deleteConfirm.type} records?`
-                  : `Are you sure you want to delete this ${deleteConfirm.type}?`}
+                  ? `Are you sure you want to move selected ${deleteConfirm.type} records to the Data Bin?`
+                  : `Are you sure you want to move this ${deleteConfirm.type} to the Data Bin?`}
               </p>
               {deleteConfirm.name && (
                 <p className="font-mono text-[11px] opacity-90">Target: {deleteConfirm.name}</p>
               )}
               <p className="text-[11px] opacity-80">
-                This action is permanent and cannot be reversed. Associated ledger or reporting entries will be updated.
+                This record will be moved to the Data Bin. You can restore it anytime from Settings &gt; Data Bin.
               </p>
             </div>
           </div>
@@ -5101,9 +5124,10 @@ export const HrWorkspace: React.FC = () => {
               variant="primary"
               onClick={() => void handleExecuteDelete()}
               loading={isBulkProcessing}
-              className="bg-rose-600 hover:bg-rose-700 text-white border-transparent"
+              className="bg-rose-600 hover:bg-rose-700 text-white border-transparent inline-flex items-center gap-1.5"
             >
-              {deleteConfirm.isBulk ? 'Delete Selected' : 'Confirm Delete'}
+              <Trash2 className="size-3.5" />
+              <span>{deleteConfirm.isBulk ? 'Move to Data Bin' : 'Move to Bin'}</span>
             </Button>
           </div>
         </div>

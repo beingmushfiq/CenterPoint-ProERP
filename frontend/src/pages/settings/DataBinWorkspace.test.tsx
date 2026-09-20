@@ -196,4 +196,97 @@ describe('DataBinWorkspace - Enterprise Recovery Vault', () => {
       expect(screen.getByText('Recovery Vault is Pristine')).toBeInTheDocument();
     });
   });
+
+  it('supports selecting all items and bulk restoring them', async () => {
+    vi.mocked(api.post).mockResolvedValueOnce({
+      data: { success: true, message: '2 record(s) restored.', data: { restored_count: 2 } },
+    } as unknown as Awaited<ReturnType<typeof api.post>>);
+
+    render(
+      <MemoryRouter>
+        <DataBinWorkspace />
+      </MemoryRouter>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('PO-TEST-101')).toBeInTheDocument();
+      expect(screen.getByText('Vanilla Sponge Cake')).toBeInTheDocument();
+    });
+
+    // Check header checkbox to select all
+    const selectAllCheckbox = screen.getByLabelText('Select all');
+    fireEvent.click(selectAllCheckbox);
+
+    // Bulk ribbon appears
+    await waitFor(() => {
+      expect(screen.getByText(/records selected in vault/i)).toBeInTheDocument();
+    });
+
+    // Click "Restore Selected"
+    const bulkRestoreButton = screen.getByRole('button', { name: /Restore Selected/i });
+    fireEvent.click(bulkRestoreButton);
+
+    // Confirm dialog opens
+    await waitFor(() => {
+      expect(screen.getAllByText(/Restore 2 Selected Record\(s\)/i).length).toBeGreaterThanOrEqual(1);
+    });
+
+    // Confirm bulk restore
+    const confirmButton = screen.getByRole('button', { name: /Restore Records/i });
+    fireEvent.click(confirmButton);
+
+    await waitFor(() => {
+      expect(api.post).toHaveBeenCalledWith('/bin/bulk-restore', {
+        items: [
+          { type: 'purchase_orders', id: '101' },
+          { type: 'products', id: '202' },
+        ],
+      });
+    });
+  });
+
+  it('supports selecting individual items and bulk purging them', async () => {
+    vi.mocked(api.post).mockResolvedValueOnce({
+      data: { success: true, message: '1 record(s) purged.', data: { purged_count: 1 } },
+    } as unknown as Awaited<ReturnType<typeof api.post>>);
+
+    render(
+      <MemoryRouter>
+        <DataBinWorkspace />
+      </MemoryRouter>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('PO-TEST-101')).toBeInTheDocument();
+    });
+
+    // Select first item
+    const itemCheckbox = screen.getByLabelText('Select PO-TEST-101');
+    fireEvent.click(itemCheckbox);
+
+    // Ribbon displays 1 selected
+    await waitFor(() => {
+      expect(screen.getByText(/record selected in vault/i)).toBeInTheDocument();
+    });
+
+    // Click "Purge Selected"
+    const bulkPurgeButton = screen.getByRole('button', { name: /Purge Selected/i });
+    fireEvent.click(bulkPurgeButton);
+
+    // Confirm dialog opens
+    await waitFor(() => {
+      expect(screen.getAllByText(/Permanently Purge 1 Selected Record\(s\)\?/i).length).toBeGreaterThanOrEqual(1);
+    });
+
+    // Confirm bulk purge
+    const confirmButton = screen.getByRole('button', { name: /Permanently Purge/i });
+    fireEvent.click(confirmButton);
+
+    await waitFor(() => {
+      expect(api.post).toHaveBeenCalledWith('/bin/bulk-force-delete', {
+        items: [{ type: 'purchase_orders', id: '101' }],
+      });
+    });
+  });
 });
+

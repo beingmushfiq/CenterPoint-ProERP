@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import {
@@ -16,6 +16,7 @@ import {
   Printer,
   PackageCheck,
   Receipt,
+  X,
 } from 'lucide-react';
 import type { SalesReturn, Invoice, InvoiceItem } from '../../../types/api/sales';
 import { api } from '../../../lib/api/client';
@@ -24,6 +25,7 @@ import { CreditNoteDocument } from '../../../components/print/documents/CreditNo
 import { useBusinessConfig } from '../../../lib/document/useBusinessConfig';
 import { useCurrency } from '../../../hooks/useCurrency';
 import { SelectDropdown } from '../../../components/ui/Dropdown';
+import { useAuthStore } from '../../../lib/auth/authStore';
 
 interface SalesReturnFormItem {
   product_id?: number | undefined;
@@ -111,11 +113,20 @@ const SAMPLE_RETURNS: SalesReturn[] = [
 ];
 
 export function SalesReturnsSection() {
+  const { hasPermission } = useAuthStore();
+  const canDelete = hasPermission('sales.return.delete');
+
   const { formatCurrency, currencySymbol } = useCurrency();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [actionLoading, setActionLoading] = useState<number | null>(null);
+
+  // Bulk Selection State
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+  const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
+  const headerCheckboxRef = useRef<HTMLInputElement>(null);
 
   // Modals
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -407,14 +418,20 @@ export function SalesReturnsSection() {
     setShowEditModal(false);
   };
 
-  const handleDeleteReturn = () => {
+  const handleDeleteReturn = async () => {
     if (!activeReturn) return;
-    queryClient.setQueryData<SalesReturn[]>(['sales', 'returns'], (prev = []) =>
-      prev.filter((r) => r.id !== activeReturn.id)
-    );
-    api.delete(`/sales/returns/${activeReturn.id}`).catch(() => {});
-    toast.success('Sales return deleted.');
-    setShowDeleteModal(false);
+    try {
+      await api.delete(`/sales/returns/${activeReturn.id}`);
+      queryClient.setQueryData<SalesReturn[]>(['sales', 'returns'], (prev = []) =>
+        prev.filter((r) => r.id !== activeReturn.id)
+      );
+      queryClient.invalidateQueries({ queryKey: ['sales', 'returns'] });
+      toast.success('Sales return moved to Data Bin.');
+      setShowDeleteModal(false);
+      setActiveReturn(null);
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Failed to delete sales return');
+    }
   };
 
   const addItemToForm = () => {
@@ -458,6 +475,63 @@ export function SalesReturnsSection() {
     const matchesStatus = statusFilter === 'all' || r.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
+
+  const isAllSelected = filteredReturns.length > 0 && selectedIds.size === filteredReturns.length;
+  const isSomeSelected = selectedIds.size > 0 && !isAllSelected;
+
+  useEffect(() => {
+    if (headerCheckboxRef.current) {
+      headerCheckboxRef.current.indeterminate = isSomeSelected;
+    }
+  }, [isSomeSelected]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && selectedIds.size > 0) {
+        setSelectedIds(new Set());
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedIds.size]);
+
+  const toggleSelectAll = () => {
+    if (isAllSelected) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filteredReturns.map((r) => r.id)));
+    }
+  };
+
+  const toggleSelect = (id: number) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const handleBulkDelete = async () => {
+    setIsBulkDeleting(true);
+    let count = 0;
+    try {
+      for (const id of Array.from(selectedIds)) {
+        try {
+          await api.delete(`/sales/returns/${id}`);
+          count++;
+        } catch {
+          // ignore failures on single items
+        }
+      }
+      toast.success(`${count} sales return(s) moved to Data Bin.`);
+      queryClient.invalidateQueries({ queryKey: ['sales', 'returns'] });
+      setSelectedIds(new Set());
+      setShowBulkDeleteModal(false);
+    } finally {
+      setIsBulkDeleting(false);
+    }
+  };
 
   const totalCreditIssued = returns.reduce(
     (sum, r) => sum + parseFloat(r.total_amount || '0'),
@@ -608,12 +682,53 @@ export function SalesReturnsSection() {
         </div>
       </div>
 
+      {/* Bulk Action Toolbar */}
+      {selectedIds.size > 0 && (
+        <div className="flex items-center justify-between p-3 bg-rose-500/10 border border-rose-500/20 rounded-2xl animate-in fade-in">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold text-rose-600 dark:text-rose-400">
+              {selectedIds.size} return(s) selected
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            {canDelete && (
+              <button
+                type="button"
+                onClick={() => setShowBulkDeleteModal(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-rose-600 text-white hover:bg-rose-700 rounded-xl transition cursor-pointer"
+              >
+                <Trash2 className="size-3.5" />
+                <span>Move to Bin ({selectedIds.size})</span>
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => setSelectedIds(new Set())}
+              className="flex items-center gap-1 px-2.5 py-1.5 text-xs text-muted hover:text-default bg-surface rounded-xl border border-default transition cursor-pointer"
+            >
+              <X className="size-3.5" />
+              <span>Clear</span>
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Returns Table */}
       <div className="rounded-2xl border border-default bg-surface shadow-2xs overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs text-default">
             <thead className="bg-surface-sunken text-[11px] font-semibold text-muted uppercase tracking-wider border-b border-default">
               <tr>
+                <th className="w-10 px-4 py-3.5 text-center">
+                  <input
+                    ref={headerCheckboxRef}
+                    type="checkbox"
+                    checked={isAllSelected}
+                    onChange={toggleSelectAll}
+                    aria-label="Select all returns"
+                    className="size-4 rounded border-default text-primary focus:ring-primary/20 cursor-pointer"
+                  />
+                </th>
                 <th className="px-4 py-3.5">Return # / Date</th>
                 <th className="px-4 py-3.5">Customer & Credit Note</th>
                 <th className="px-4 py-3.5">Return Reason</th>
@@ -626,13 +741,22 @@ export function SalesReturnsSection() {
             <tbody className="divide-y divide-default">
               {filteredReturns.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-4 py-12 text-center text-muted">
+                  <td colSpan={8} className="px-4 py-12 text-center text-muted">
                     {isLoading ? 'Loading sales returns...' : 'No sales returns found matching your criteria.'}
                   </td>
                 </tr>
               ) : (
                 filteredReturns.map((r) => (
-                  <tr key={r.id} className="hover:bg-surface-sunken/60 transition-colors">
+                  <tr key={r.id} className={`hover:bg-surface-sunken/60 transition-colors ${selectedIds.has(r.id) ? 'bg-primary/5' : ''}`}>
+                    <td className="w-10 px-4 py-3.5 text-center" onClick={(e) => e.stopPropagation()}>
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.has(r.id)}
+                        onChange={() => toggleSelect(r.id)}
+                        aria-label={`Select return ${r.return_number}`}
+                        className="size-4 rounded border-default text-primary focus:ring-primary/20 cursor-pointer"
+                      />
+                    </td>
                     <td className="px-4 py-3.5 font-mono font-medium text-default">
                       <div className="flex items-center gap-1.5">
                         <Receipt className="size-3.5 text-rose-500" />
@@ -722,16 +846,18 @@ export function SalesReturnsSection() {
                               {actionLoading === r.id ? 'Approving...' : 'Issue Credit'}
                             </button>
 
-                            <button
-                              onClick={() => {
-                                setActiveReturn(r);
-                                setShowDeleteModal(true);
-                              }}
-                              className="p-1.5 text-rose-500 hover:bg-rose-500/10 rounded-lg transition-colors cursor-pointer"
-                              title="Void Return"
-                            >
-                              <Trash2 className="size-3.5" />
-                            </button>
+                            {canDelete && (
+                              <button
+                                onClick={() => {
+                                  setActiveReturn(r);
+                                  setShowDeleteModal(true);
+                                }}
+                                className="p-1.5 text-rose-500 hover:bg-rose-500/10 rounded-lg transition-colors cursor-pointer"
+                                title="Move to Bin"
+                              >
+                                <Trash2 className="size-3.5" />
+                              </button>
+                            )}
                           </>
                         )}
                       </div>
@@ -1147,7 +1273,7 @@ export function SalesReturnsSection() {
         </div>
       )}
 
-      {/* DELETE / VOID RETURN CONFIRMATION MODAL */}
+      {/* DELETE / MOVE TO BIN RETURN CONFIRMATION MODAL */}
       {showDeleteModal && activeReturn && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs">
           <div className="w-full max-w-sm rounded-2xl border border-default bg-surface p-6 shadow-xl text-center space-y-4">
@@ -1155,9 +1281,9 @@ export function SalesReturnsSection() {
               <Trash2 className="size-6" />
             </div>
             <div>
-              <h3 className="text-base font-bold text-default">Void Sales Return?</h3>
+              <h3 className="text-base font-bold text-default">Move Sales Return to Bin?</h3>
               <p className="text-xs text-muted mt-1">
-                Are you sure you want to void credit note <span className="font-mono font-semibold text-default">{activeReturn.return_number}</span>?
+                Credit note <span className="font-mono font-semibold text-default">{activeReturn.return_number}</span> will be moved to the Data Bin. You can restore it anytime from Settings &gt; Data Bin.
               </p>
             </div>
             <div className="flex items-center justify-center gap-2 pt-2">
@@ -1173,7 +1299,43 @@ export function SalesReturnsSection() {
                 onClick={handleDeleteReturn}
                 className="px-4 py-2 rounded-xl bg-rose-600 text-white font-semibold hover:bg-rose-700 cursor-pointer"
               >
-                Confirm Void
+                Move to Bin
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* BULK DELETE CONFIRMATION MODAL */}
+      {showBulkDeleteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs">
+          <div className="w-full max-w-sm rounded-2xl border border-default bg-surface p-6 shadow-xl text-center space-y-4">
+            <div className="size-12 rounded-full bg-rose-500/10 text-rose-500 flex items-center justify-center mx-auto">
+              <Trash2 className="size-6" />
+            </div>
+            <div>
+              <h3 className="text-base font-bold text-default">Move Selected to Bin?</h3>
+              <p className="text-xs text-muted mt-1">
+                Are you sure you want to move <span className="font-semibold text-default">{selectedIds.size}</span> sales return(s) to the Data Bin? You can restore them anytime from Settings &gt; Data Bin.
+              </p>
+            </div>
+            <div className="flex items-center justify-center gap-2 pt-2">
+              <button
+                type="button"
+                disabled={isBulkDeleting}
+                onClick={() => setShowBulkDeleteModal(false)}
+                className="px-4 py-2 rounded-xl border border-default text-muted hover:text-default cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={isBulkDeleting}
+                onClick={handleBulkDelete}
+                className="px-4 py-2 rounded-xl bg-rose-600 text-white font-semibold hover:bg-rose-700 disabled:opacity-50 cursor-pointer flex items-center gap-1.5"
+              >
+                {isBulkDeleting && <RefreshCw className="size-3.5 animate-spin" />}
+                <span>Move to Bin</span>
               </button>
             </div>
           </div>

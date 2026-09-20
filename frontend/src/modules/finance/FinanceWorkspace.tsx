@@ -29,7 +29,8 @@ import {
 } from 'lucide-react';
 import { useWorkspaceTab } from '../../hooks/useWorkspaceTab';
 import { useCurrency } from '../../hooks/useCurrency';
-import { Modal } from '../../components/ui/Modal';
+import { useAuthStore } from '../../lib/auth/authStore';
+import { Modal, ConfirmDialog } from '../../components/ui/Modal';
 import { Button } from '../../components/ui/Button';
 import { cn } from '../../lib/utils';
 import type {
@@ -273,8 +274,29 @@ export const FinanceWorkspace: React.FC = () => {
   }, [activeTab, categories]);
 
   const [isGuideOpen, setIsGuideOpen] = useState(false);
+  const { hasPermission } = useAuthStore();
+  const canDeleteJournal = hasPermission('finance.journal.delete');
+  const canDeleteExpense = hasPermission('finance.expense.delete');
+  const canDeleteBank = hasPermission('finance.bank.delete');
+  const canDeleteAccount = hasPermission('finance.account.delete');
+
   const [selectedJournalIds, setSelectedJournalIds] = useState<Set<number>>(new Set());
   const journalHeaderRef = useRef<HTMLInputElement>(null);
+  const [deleteJournalConfirm, setDeleteJournalConfirm] = useState<{
+    open: boolean;
+    isBulk: boolean;
+    id?: number;
+    title?: string;
+  }>({ open: false, isBulk: false });
+
+  const [selectedExpenseIds, setSelectedExpenseIds] = useState<Set<number>>(new Set());
+  const expenseHeaderRef = useRef<HTMLInputElement>(null);
+  const [deleteExpenseConfirm, setDeleteExpenseConfirm] = useState<{
+    open: boolean;
+    isBulk: boolean;
+    id?: number;
+    title?: string;
+  }>({ open: false, isBulk: false });
 
   // Global Keyboard Shortcuts (1..7 across all financial stages)
   useEffect(() => {
@@ -531,6 +553,35 @@ export const FinanceWorkspace: React.FC = () => {
   };
 
   const clearJournalSelection = () => setSelectedJournalIds(new Set());
+
+  const handleExecuteDeleteJournal = async () => {
+    if (deleteJournalConfirm.isBulk) {
+      const ids = Array.from(selectedJournalIds);
+      try {
+        await Promise.allSettled(ids.map((id) => api.delete(`/finance/journal-entries/${id}`)));
+      } catch (err) {
+        console.warn('Fallback delete journal', err);
+      }
+      setJournalEntries((prev) => prev.filter((j) => !ids.includes(j.id)));
+      setSelectedJournalIds(new Set());
+      notify.success(`${ids.length} journal voucher(s) moved to Data Bin.`);
+    } else if (deleteJournalConfirm.id) {
+      const id = deleteJournalConfirm.id;
+      try {
+        await api.delete(`/finance/journal-entries/${id}`);
+      } catch (err) {
+        console.warn('Fallback delete journal', err);
+      }
+      setJournalEntries((prev) => prev.filter((j) => j.id !== id));
+      setSelectedJournalIds((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+      notify.success('Journal entry moved to Data Bin.');
+    }
+    setDeleteJournalConfirm({ open: false, isBulk: false });
+  };
 
   const exportJournalsCsv = (journalsToExport: JournalEntry[]) => {
     if (journalsToExport.length === 0) {
@@ -1096,6 +1147,65 @@ export const FinanceWorkspace: React.FC = () => {
     toId?: number;
   }>({});
   const [expenseCategoryFilter, setExpenseCategoryFilter] = useState<string>('all');
+
+  const filteredExpensesList = expenses.filter(
+    (e) => expenseCategoryFilter === 'all' || e.category?.code === expenseCategoryFilter
+  );
+  const isAllExpensesSelected =
+    filteredExpensesList.length > 0 && selectedExpenseIds.size === filteredExpensesList.length;
+  const isSomeExpensesSelected = selectedExpenseIds.size > 0 && !isAllExpensesSelected;
+
+  useEffect(() => {
+    if (expenseHeaderRef.current) {
+      expenseHeaderRef.current.indeterminate = isSomeExpensesSelected;
+    }
+  }, [isSomeExpensesSelected]);
+
+  const toggleSelectAllExpenses = () => {
+    if (isAllExpensesSelected) {
+      setSelectedExpenseIds(new Set());
+    } else {
+      setSelectedExpenseIds(new Set(filteredExpensesList.map((e) => e.id)));
+    }
+  };
+
+  const toggleSelectOneExpense = (id: number) => {
+    setSelectedExpenseIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const handleExecuteDeleteExpense = async () => {
+    if (deleteExpenseConfirm.isBulk) {
+      const ids = Array.from(selectedExpenseIds);
+      try {
+        await Promise.allSettled(ids.map((id) => api.delete(`/finance/expenses/${id}`)));
+      } catch (err) {
+        console.warn('Fallback delete expense', err);
+      }
+      setExpenses((prev) => prev.filter((e) => !ids.includes(e.id)));
+      setSelectedExpenseIds(new Set());
+      notify.success(`${ids.length} expense(s) moved to Data Bin.`);
+    } else if (deleteExpenseConfirm.id) {
+      const id = deleteExpenseConfirm.id;
+      try {
+        await api.delete(`/finance/expenses/${id}`);
+      } catch (err) {
+        console.warn('Fallback delete expense', err);
+      }
+      setExpenses((prev) => prev.filter((e) => e.id !== id));
+      setSelectedExpenseIds((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+      notify.success('Expense moved to Data Bin.');
+    }
+    setDeleteExpenseConfirm({ open: false, isBulk: false });
+  };
 
   const handleMoneyOutSuccess = (payload: MoneyOutSuccessPayload) => {
     if (payload.expense) {
@@ -1824,6 +1934,17 @@ export const FinanceWorkspace: React.FC = () => {
                 {isAllJournalsSelected ? 'Deselect All' : `Select All (${journalEntries.length})`}
               </button>
 
+              {canDeleteJournal && selectedJournalIds.size > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setDeleteJournalConfirm({ open: true, isBulk: true })}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-destructive/10 hover:bg-destructive/20 text-destructive transition-all shadow-2xs cursor-pointer"
+                >
+                  <Trash2 className="size-3.5" />
+                  <span>Move to Bin ({selectedJournalIds.size})</span>
+                </button>
+              )}
+
               {selectedJournalIds.size > 0 && (
                 <>
                   <span className="text-muted/40">|</span>
@@ -1936,6 +2057,16 @@ export const FinanceWorkspace: React.FC = () => {
                         >
                           <RotateCcw className="size-3.5" />
                         </button>
+                        {canDeleteJournal && (
+                          <button
+                            type="button"
+                            onClick={() => setDeleteJournalConfirm({ open: true, isBulk: false, id: je.id })}
+                            className="p-1.5 text-destructive/80 hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors cursor-pointer"
+                            title="Move to Data Bin"
+                          >
+                            <Trash2 className="size-3.5" />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -1970,6 +2101,17 @@ export const FinanceWorkspace: React.FC = () => {
                     <FileSpreadsheet className="size-3 text-primary-fg" />
                     Export CSV ({selectedJournalIds.size})
                   </button>
+
+                  {canDeleteJournal && (
+                    <button
+                      type="button"
+                      onClick={() => setDeleteJournalConfirm({ open: true, isBulk: true })}
+                      className="flex h-8 items-center gap-1.5 rounded-xl bg-destructive text-destructive-fg px-3 text-xs font-semibold hover:opacity-90 transition-opacity cursor-pointer shadow-xs"
+                    >
+                      <Trash2 className="size-3 text-destructive-fg" />
+                      Move to Bin ({selectedJournalIds.size})
+                    </button>
+                  )}
 
                   <button
                     type="button"
@@ -2096,6 +2238,16 @@ export const FinanceWorkspace: React.FC = () => {
                           <Copy className="size-3.5" />
                           <span>Duplicate</span>
                         </button>
+                        {canDeleteAccount && !acc.is_system && (
+                          <button
+                            type="button"
+                            onClick={() => setDeletingAccount(acc)}
+                            className="p-1.5 text-muted hover:text-rose-600 hover:bg-rose-500/10 rounded-lg transition-colors cursor-pointer"
+                            title="Move to Data Bin"
+                          >
+                            <Trash2 className="size-3.5" />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -2181,14 +2333,16 @@ export const FinanceWorkspace: React.FC = () => {
                       </div>
                       <p className="text-xs text-muted">GL Code: {cashAcc.account_code} — On-Premises Petty Cash</p>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => setDeletingAccount(cashAcc)}
-                      className="p-1.5 text-muted hover:text-rose-600 hover:bg-rose-500/10 rounded-lg transition-colors cursor-pointer"
-                      title={`Delete ${cashAcc.name}`}
-                    >
-                      <Trash2 className="size-4" />
-                    </button>
+                    {canDeleteAccount && (
+                      <button
+                        type="button"
+                        onClick={() => setDeletingAccount(cashAcc)}
+                        className="p-1.5 text-muted hover:text-rose-600 hover:bg-rose-500/10 rounded-lg transition-colors cursor-pointer"
+                        title={`Move ${cashAcc.name} to Data Bin`}
+                      >
+                        <Trash2 className="size-4" />
+                      </button>
+                    )}
                   </div>
 
                   <div className="p-3.5 bg-surface-sunken rounded-xl space-y-1.5 border border-default">
@@ -2259,14 +2413,16 @@ export const FinanceWorkspace: React.FC = () => {
                         {ba.account_name} ({ba.branch_name})
                       </p>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => setDeletingBankAccount(ba)}
-                      className="p-1.5 text-muted hover:text-rose-600 hover:bg-rose-500/10 rounded-lg transition-colors cursor-pointer"
-                      title={`Delete ${ba.bank_name}`}
-                    >
-                      <Trash2 className="size-4" />
-                    </button>
+                    {canDeleteBank && (
+                      <button
+                        type="button"
+                        onClick={() => setDeletingBankAccount(ba)}
+                        className="p-1.5 text-muted hover:text-rose-600 hover:bg-rose-500/10 rounded-lg transition-colors cursor-pointer"
+                        title={`Move ${ba.bank_name} to Data Bin`}
+                      >
+                        <Trash2 className="size-4" />
+                      </button>
+                    )}
                   </div>
 
                   <div className="p-3.5 bg-surface-sunken rounded-xl space-y-1.5 border border-default">
@@ -2438,10 +2594,50 @@ export const FinanceWorkspace: React.FC = () => {
             </div>
           </div>
 
+          {/* Selected Expenses Bulk Action Ribbon */}
+          {selectedExpenseIds.size > 0 && (
+            <div className="flex items-center justify-between gap-2.5 px-4 py-2.5 rounded-xl bg-destructive/10 border border-destructive/20 text-xs">
+              <div className="flex items-center gap-2">
+                <span className="font-semibold text-destructive">
+                  {selectedExpenseIds.size} expense voucher{selectedExpenseIds.size > 1 ? 's' : ''} selected
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                {canDeleteExpense && (
+                  <button
+                    type="button"
+                    onClick={() => setDeleteExpenseConfirm({ open: true, isBulk: true })}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-destructive text-destructive-fg hover:opacity-90 transition shadow-2xs cursor-pointer"
+                  >
+                    <Trash2 className="size-3.5" />
+                    <span>Move to Bin ({selectedExpenseIds.size})</span>
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setSelectedExpenseIds(new Set())}
+                  className="text-xs font-medium text-muted hover:text-default cursor-pointer"
+                >
+                  Clear Selection
+                </button>
+              </div>
+            </div>
+          )}
+
           <div className="bg-surface rounded-2xl shadow-xs border border-default overflow-hidden">
             <table className="w-full text-left text-xs text-default">
               <thead className="bg-surface-sunken/70 text-muted uppercase text-[11px] font-semibold tracking-wider border-b border-default">
                 <tr>
+                  <th className="w-10 px-4 py-3.5 text-center">
+                    <input
+                      ref={expenseHeaderRef}
+                      type="checkbox"
+                      checked={isAllExpensesSelected}
+                      onChange={toggleSelectAllExpenses}
+                      className="size-4 rounded border-default text-primary focus:ring-primary cursor-pointer"
+                      title="Select all expenses"
+                    />
+                  </th>
                   <th className="px-5 py-3.5">Expense Date</th>
                   <th className="px-5 py-3.5">Category</th>
                   <th className="px-5 py-3.5">Payee Name</th>
@@ -2457,6 +2653,14 @@ export const FinanceWorkspace: React.FC = () => {
                   .filter((e) => expenseCategoryFilter === 'all' || e.category?.code === expenseCategoryFilter)
                   .map((exp) => (
                     <tr key={exp.id} className="hover:bg-surface-sunken/40 transition">
+                      <td className="w-10 px-4 py-3.5 text-center" onClick={(e) => e.stopPropagation()}>
+                        <input
+                          type="checkbox"
+                          checked={selectedExpenseIds.has(exp.id)}
+                          onChange={() => toggleSelectOneExpense(exp.id)}
+                          className="size-4 rounded border-default text-primary focus:ring-primary cursor-pointer"
+                        />
+                      </td>
                       <td className="px-5 py-3.5 font-mono text-muted">{exp.expense_date}</td>
                       <td className="px-5 py-3.5 font-semibold text-default">
                         {exp.category?.name}
@@ -2493,6 +2697,16 @@ export const FinanceWorkspace: React.FC = () => {
                             <Copy className="size-3.5" />
                             <span>Duplicate</span>
                           </button>
+                          {canDeleteExpense && (
+                            <button
+                              type="button"
+                              onClick={() => setDeleteExpenseConfirm({ open: true, isBulk: false, id: exp.id })}
+                              className="p-1.5 text-destructive/80 hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors cursor-pointer"
+                              title="Move to Data Bin"
+                            >
+                              <Trash2 className="size-3.5" />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -3702,18 +3916,18 @@ export const FinanceWorkspace: React.FC = () => {
         onImportSuccess={() => fetchBanksFromApi()}
       />
 
-      {/* Modal: Confirm Delete Bank Account */}
+      {/* Modal: Confirm Delete Bank Account (Move to Data Bin) */}
       <Modal
         open={Boolean(deletingBankAccount)}
         onClose={() => !isDeletingItem && setDeletingBankAccount(null)}
-        title="Delete Bank Account"
+        title="Move Bank Account to Data Bin"
         size="sm"
       >
         <div className="space-y-4">
-          <div className="flex items-start gap-3 p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400">
+          <div className="flex items-start gap-3 p-3.5 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive">
             <Trash2 className="size-5 shrink-0 mt-0.5" />
             <div className="text-xs leading-relaxed">
-              Are you sure you want to delete <span className="font-bold text-default">{deletingBankAccount?.bank_name}</span> ({deletingBankAccount?.account_number})? This action will remove the bank profile from your active treasury views.
+              Are you sure you want to move <span className="font-bold text-default">{deletingBankAccount?.bank_name}</span> ({deletingBankAccount?.account_number}) to the Data Bin? You can restore it anytime from Settings &gt; Data Bin.
             </div>
           </div>
 
@@ -3734,27 +3948,27 @@ export const FinanceWorkspace: React.FC = () => {
               type="button"
               disabled={isDeletingItem}
               onClick={confirmDeleteBankAccount}
-              className="px-5 py-2 text-xs bg-rose-600 hover:bg-rose-700 text-white font-semibold rounded-xl shadow-xs transition cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
+              className="px-5 py-2 text-xs bg-destructive text-destructive-fg font-semibold rounded-xl shadow-xs hover:opacity-90 transition cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
             >
               <Trash2 className="size-3.5" />
-              <span>{isDeletingItem ? 'Deleting...' : 'Delete Bank Account'}</span>
+              <span>{isDeletingItem ? 'Moving...' : 'Move to Bin'}</span>
             </button>
           </div>
         </div>
       </Modal>
 
-      {/* Modal: Confirm Delete Cash / Chart of Account */}
+      {/* Modal: Confirm Delete Cash / Chart of Account (Move to Data Bin) */}
       <Modal
         open={Boolean(deletingAccount)}
         onClose={() => !isDeletingItem && setDeletingAccount(null)}
-        title="Delete Cash Drawer / Ledger Head"
+        title="Move Account to Data Bin"
         size="sm"
       >
         <div className="space-y-4">
-          <div className="flex items-start gap-3 p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400">
+          <div className="flex items-start gap-3 p-3.5 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive">
             <Trash2 className="size-5 shrink-0 mt-0.5" />
             <div className="text-xs leading-relaxed">
-              Are you sure you want to delete <span className="font-bold text-default">{deletingAccount?.name}</span> (Code: {deletingAccount?.account_code})?
+              Are you sure you want to move <span className="font-bold text-default">{deletingAccount?.name}</span> (Code: {deletingAccount?.account_code}) to the Data Bin? You can restore it anytime from Settings &gt; Data Bin.
             </div>
           </div>
 
@@ -3764,7 +3978,7 @@ export const FinanceWorkspace: React.FC = () => {
             </div>
           ) : (
             <div className="text-xs text-muted">
-              Any future transactions linked to this account code will be prevented.
+              Any future transactions linked to this account code will be prevented until restored.
             </div>
           )}
 
@@ -3782,15 +3996,45 @@ export const FinanceWorkspace: React.FC = () => {
                 type="button"
                 disabled={isDeletingItem}
                 onClick={confirmDeleteAccount}
-                className="px-5 py-2 text-xs bg-rose-600 hover:bg-rose-700 text-white font-semibold rounded-xl shadow-xs transition cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
+                className="px-5 py-2 text-xs bg-destructive text-destructive-fg font-semibold rounded-xl shadow-xs hover:opacity-90 transition cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
               >
                 <Trash2 className="size-3.5" />
-                <span>{isDeletingItem ? 'Deleting...' : 'Delete Account'}</span>
+                <span>{isDeletingItem ? 'Moving...' : 'Move to Bin'}</span>
               </button>
             )}
           </div>
         </div>
       </Modal>
+
+      {/* ConfirmDialog: Move Journal Entry / Entries to Data Bin */}
+      <ConfirmDialog
+        open={deleteJournalConfirm.open}
+        onClose={() => setDeleteJournalConfirm({ open: false, isBulk: false })}
+        onConfirm={handleExecuteDeleteJournal}
+        title={deleteJournalConfirm.isBulk ? 'Move Selected Journals to Data Bin' : 'Move Journal Voucher to Data Bin'}
+        message={
+          deleteJournalConfirm.isBulk
+            ? `Are you sure you want to move ${selectedJournalIds.size} journal voucher(s) to the Data Bin? You can restore them anytime from Settings > Data Bin.`
+            : 'This record will be moved to the Data Bin. You can restore it anytime from Settings > Data Bin.'
+        }
+        confirmLabel="Move to Bin"
+        variant="danger"
+      />
+
+      {/* ConfirmDialog: Move Expense Voucher / Entries to Data Bin */}
+      <ConfirmDialog
+        open={deleteExpenseConfirm.open}
+        onClose={() => setDeleteExpenseConfirm({ open: false, isBulk: false })}
+        onConfirm={handleExecuteDeleteExpense}
+        title={deleteExpenseConfirm.isBulk ? 'Move Selected Expenses to Data Bin' : 'Move Expense Voucher to Data Bin'}
+        message={
+          deleteExpenseConfirm.isBulk
+            ? `Are you sure you want to move ${selectedExpenseIds.size} expense voucher(s) to the Data Bin? You can restore them anytime from Settings > Data Bin.`
+            : 'This record will be moved to the Data Bin. You can restore it anytime from Settings > Data Bin.'
+        }
+        confirmLabel="Move to Bin"
+        variant="danger"
+      />
     </div>
   );
 };

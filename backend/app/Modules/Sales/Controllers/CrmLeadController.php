@@ -624,5 +624,22 @@ final class CrmLeadController extends Controller
             ),
         ]);
     }
+
+    public function destroy(int $id): JsonResponse
+    {
+        $tenantId = TenantContext::current()->tenantId();
+
+        /** @var CrmLead $lead */
+        $lead = CrmLead::where('tenant_id', $tenantId)
+            ->where('id', $id)
+            ->firstOrFail();
+
+        $lead->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'CRM lead moved to Data Bin.',
+        ]);
+    }
 }
 

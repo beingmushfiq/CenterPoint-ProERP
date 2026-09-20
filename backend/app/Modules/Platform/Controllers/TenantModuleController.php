@@ -175,7 +175,7 @@ final class TenantModuleController extends Controller
     public function batchUpdate(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'modules' => 'required|array',
+            'modules' => 'present|array',
             'modules.*.module_key' => 'required|string',
             'modules.*.enabled' => 'required|boolean',
             'modules.*.config' => 'nullable|array',
@@ -195,7 +195,7 @@ final class TenantModuleController extends Controller
                     'module_key' => $key,
                 ],
                 [
-                    'enabled' => $mod['enabled'],
+                    'enabled' => filter_var($mod['enabled'], FILTER_VALIDATE_BOOLEAN),
                     'config' => $mod['config'] ?? [],
                 ]
             );

@@ -441,24 +441,44 @@ export const SettingsCenterWorkspace: React.FC = () => {
           if (payload['brand_favicon_url'] !== undefined) {
             localStorage.setItem('brand_favicon_url', String(payload['brand_favicon_url'] || ''));
           }
-          const savedOrgName = payload['company_name'] !== undefined ? payload['company_name'] : payload['company_legal_name'];
-          if (savedOrgName !== undefined) {
-            const orgStr = String(savedOrgName || '').trim();
-            if (orgStr) {
-              localStorage.setItem('company_name', orgStr);
-              window.dispatchEvent(new CustomEvent('tenant_branding_updated', { detail: { name: orgStr } }));
-              const currentTenant = useAuthStore.getState().tenant;
-              if (currentTenant) {
-                const updatedTenant = { ...currentTenant, name: orgStr };
-                useAuthStore.setState({ tenant: updatedTenant });
-                try {
-                  localStorage.setItem('auth_tenant', JSON.stringify(updatedTenant));
-                } catch (_err) {
-                  void _err;
-                }
+
+          const savedCompanyName = payload['company_name'] as string | undefined;
+          const savedLegalName = payload['company_legal_name'] as string | undefined;
+
+          // Determine the canonical display name (brand name takes priority; legal name is
+          // the authoritative fallback so every UI surface shows the correct entity name).
+          const displayName = String(savedCompanyName || savedLegalName || '').trim();
+
+          if (displayName) {
+            // 1. Persist to localStorage so useTenantBranding picks it up on next mount.
+            localStorage.setItem('company_name', displayName);
+
+            // 2. Fire the cross-component event for live listeners (Sidebar, SeoHead, PWA manifest, etc.)
+            window.dispatchEvent(new CustomEvent('tenant_branding_updated', { detail: { name: displayName } }));
+
+            // 3. Deeply update the in-memory tenant object so useTenantBranding's reactive
+            //    selectors (`authTenant.branding`) reflect the new values without a re-login.
+            const currentTenant = useAuthStore.getState().tenant;
+            if (currentTenant) {
+              const existingBranding = (currentTenant.branding as Record<string, unknown>) ?? {};
+              const updatedBranding: Record<string, unknown> = { ...existingBranding };
+              if (savedCompanyName !== undefined) updatedBranding['company_name'] = savedCompanyName;
+              if (savedLegalName !== undefined) updatedBranding['company_legal_name'] = savedLegalName;
+
+              const updatedTenant = {
+                ...currentTenant,
+                name: displayName,
+                branding: updatedBranding,
+              };
+              useAuthStore.setState({ tenant: updatedTenant });
+              try {
+                localStorage.setItem('auth_tenant', JSON.stringify(updatedTenant));
+              } catch (_err) {
+                void _err;
               }
             }
           }
+
         } catch (err) {
           void err;
         }

@@ -72,4 +72,14 @@ class CourierProviderController extends Controller
 
         return new CourierProviderResource($courier);
     }
+
+    public function destroy(CourierProvider $courier): JsonResponse
+    {
+        $courier->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Courier provider moved to Data Bin successfully',
+        ]);
+    }
 }

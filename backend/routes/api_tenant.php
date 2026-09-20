@@ -636,6 +636,8 @@ Route::middleware(['auth.jwt', 'tenant.resolve', 'tenant.active'])
                     ->middleware('permission:sales.payment.create')->name('store');
                 Route::get('{id}', [App\Modules\Sales\Controllers\PaymentController::class, 'show'])
                     ->middleware('permission:sales.payment.view')->name('show');
+                Route::delete('{id}', [App\Modules\Sales\Controllers\PaymentController::class, 'destroy'])
+                    ->middleware('permission:sales.payment.delete')->name('destroy');
             });
 
             Route::prefix('returns')->name('returns.')->group(static function (): void {
@@ -691,6 +693,8 @@ Route::middleware(['auth.jwt', 'tenant.resolve', 'tenant.active'])
                     ->middleware('permission:sales.lead.update,sales.order.approve')->name('convert');
                 Route::post('{id}/activities', [App\Modules\Sales\Controllers\CrmLeadController::class, 'addActivity'])
                     ->middleware('permission:sales.lead.update')->name('activities');
+                Route::delete('{id}', [App\Modules\Sales\Controllers\CrmLeadController::class, 'destroy'])
+                    ->middleware('permission:sales.lead.delete')->name('destroy');
             });
 
             // ── Salesmen & Targets ─────────────────────────────────────────
@@ -719,15 +723,19 @@ Route::middleware(['auth.jwt', 'tenant.resolve', 'tenant.active'])
             // ── Incentives ────────────────────────────────────────────────
             Route::prefix('incentives')->name('incentives.')->group(static function (): void {
                 Route::get('policies', [App\Modules\Sales\Controllers\IncentivePolicyController::class, 'policies'])
-                    ->name('policies');
+                    ->middleware('permission:sales.incentive.view')->name('policies');
                 Route::post('policies', [App\Modules\Sales\Controllers\IncentivePolicyController::class, 'storePolicy'])
-                    ->name('policies.store');
+                    ->middleware('permission:sales.incentive.create')->name('policies.store');
+                Route::delete('policies/{id}', [App\Modules\Sales\Controllers\IncentivePolicyController::class, 'destroyPolicy'])
+                    ->middleware('permission:sales.incentive.delete')->name('policies.destroy');
                 Route::get('calculations', [App\Modules\Sales\Controllers\IncentivePolicyController::class, 'calculations'])
-                    ->name('calculations');
+                    ->middleware('permission:sales.incentive.view')->name('calculations');
                 Route::post('calculate', [App\Modules\Sales\Controllers\IncentivePolicyController::class, 'calculate'])
-                    ->name('calculate');
+                    ->middleware('permission:sales.incentive.create')->name('calculate');
                 Route::post('calculations/{id}/approve', [App\Modules\Sales\Controllers\IncentivePolicyController::class, 'approve'])
-                    ->name('calculations.approve');
+                    ->middleware('permission:sales.incentive.approve')->name('calculations.approve');
+                Route::delete('calculations/{id}', [App\Modules\Sales\Controllers\IncentivePolicyController::class, 'destroyCalculation'])
+                    ->middleware('permission:sales.incentive.delete')->name('calculations.destroy');
             });
 
             // ── Coupons & Promotions ──────────────────────────────────────
@@ -796,6 +804,8 @@ Route::middleware(['auth.jwt', 'tenant.resolve', 'tenant.active'])
                     ->middleware('permission:logistics.delivery_order.view')->name('show');
                 Route::patch('{courier}', [App\Modules\Delivery\Controllers\CourierProviderController::class, 'update'])
                     ->middleware('permission:logistics.delivery_order.update')->name('update');
+                Route::delete('{courier}', [App\Modules\Delivery\Controllers\CourierProviderController::class, 'destroy'])
+                    ->middleware('permission:logistics.delivery_order.delete')->name('destroy');
             });
 
             Route::prefix('shipments')->name('shipments.')->group(static function (): void {
@@ -805,6 +815,8 @@ Route::middleware(['auth.jwt', 'tenant.resolve', 'tenant.active'])
                     ->middleware('permission:logistics.shipment.create')->name('store');
                 Route::get('{shipment}', [App\Modules\Delivery\Controllers\CourierShipmentController::class, 'show'])
                     ->middleware('permission:logistics.shipment.view')->name('show');
+                Route::delete('{shipment}', [App\Modules\Delivery\Controllers\CourierShipmentController::class, 'destroy'])
+                    ->middleware('permission:logistics.shipment.delete')->name('destroy');
                 Route::post('{shipment}/track', [App\Modules\Delivery\Controllers\CourierShipmentController::class, 'track'])
                     ->middleware('permission:logistics.shipment.view')->name('track');
                 Route::post('{shipment}/cancel', [App\Modules\Delivery\Controllers\CourierShipmentController::class, 'cancel'])
@@ -820,6 +832,8 @@ Route::middleware(['auth.jwt', 'tenant.resolve', 'tenant.active'])
                     ->middleware('permission:logistics.run_sheet.create')->name('store');
                 Route::get('{runSheet}', [App\Modules\Delivery\Controllers\RunSheetController::class, 'show'])
                     ->middleware('permission:logistics.run_sheet.view')->name('show');
+                Route::delete('{runSheet}', [App\Modules\Delivery\Controllers\RunSheetController::class, 'destroy'])
+                    ->middleware('permission:logistics.run_sheet.delete')->name('destroy');
                 Route::post('{runSheet}/complete', [App\Modules\Delivery\Controllers\RunSheetController::class, 'complete'])
                     ->middleware('permission:logistics.run_sheet.approve')->name('complete');
             });
@@ -869,7 +883,7 @@ Route::middleware(['auth.jwt', 'tenant.resolve', 'tenant.active'])
                 Route::match(['put', 'patch'], '{id}', [App\Modules\Finance\Controllers\ChartOfAccountController::class, 'update'])
                     ->middleware('permission:finance.account.create')->name('update');
                 Route::delete('{id}', [App\Modules\Finance\Controllers\ChartOfAccountController::class, 'destroy'])
-                    ->middleware('permission:finance.account.create')->name('destroy');
+                    ->middleware('permission:finance.account.delete')->name('destroy');
             });
 
             Route::prefix('journal-entries')->name('journal-entries.')->group(static function (): void {
@@ -879,6 +893,8 @@ Route::middleware(['auth.jwt', 'tenant.resolve', 'tenant.active'])
                     ->middleware('permission:finance.journal.create')->name('store');
                 Route::get('{id}', [App\Modules\Finance\Controllers\JournalEntryController::class, 'show'])
                     ->middleware('permission:finance.journal.view')->name('show');
+                Route::delete('{id}', [App\Modules\Finance\Controllers\JournalEntryController::class, 'destroy'])
+                    ->middleware('permission:finance.journal.delete')->name('destroy');
             });
 
             Route::prefix('bank-accounts')->name('bank-accounts.')->group(static function (): void {
@@ -891,7 +907,7 @@ Route::middleware(['auth.jwt', 'tenant.resolve', 'tenant.active'])
                 Route::match(['put', 'patch'], '{id}', [App\Modules\Finance\Controllers\BankAccountController::class, 'update'])
                     ->middleware('permission:finance.bank.create')->name('update');
                 Route::delete('{id}', [App\Modules\Finance\Controllers\BankAccountController::class, 'destroy'])
-                    ->middleware('permission:finance.bank.create')->name('destroy');
+                    ->middleware('permission:finance.bank.delete')->name('destroy');
             });
 
             Route::prefix('expenses')->name('expenses.')->group(static function (): void {
@@ -905,6 +921,8 @@ Route::middleware(['auth.jwt', 'tenant.resolve', 'tenant.active'])
                     ->middleware('permission:finance.expense.create')->name('store');
                 Route::get('{id}', [App\Modules\Finance\Controllers\ExpenseController::class, 'show'])
                     ->middleware('permission:finance.expense.view')->name('show');
+                Route::delete('{id}', [App\Modules\Finance\Controllers\ExpenseController::class, 'destroy'])
+                    ->middleware('permission:finance.expense.delete')->name('destroy');
             });
 
             Route::prefix('costing')->name('costing.')->group(static function (): void {
@@ -929,6 +947,8 @@ Route::middleware(['auth.jwt', 'tenant.resolve', 'tenant.active'])
                 ->middleware('permission:assets.asset.create')->name('store');
             Route::get('{id}', [App\Modules\Assets\Controllers\AssetController::class, 'show'])
                 ->middleware('permission:assets.asset.view')->name('show');
+            Route::delete('{id}', [App\Modules\Assets\Controllers\AssetController::class, 'destroy'])
+                ->middleware('permission:assets.asset.delete')->name('destroy');
 
             Route::prefix('depreciation')->name('depreciation.')->group(static function (): void {
                 Route::get('/', [App\Modules\Assets\Controllers\AssetDepreciationController::class, 'index'])
@@ -944,6 +964,8 @@ Route::middleware(['auth.jwt', 'tenant.resolve', 'tenant.active'])
                     ->middleware('permission:assets.maintenance.create')->name('store');
                 Route::get('{id}', [App\Modules\Assets\Controllers\MaintenanceOrderController::class, 'show'])
                     ->middleware('permission:assets.maintenance.view')->name('show');
+                Route::delete('{id}', [App\Modules\Assets\Controllers\MaintenanceOrderController::class, 'destroy'])
+                    ->middleware('permission:assets.maintenance.delete')->name('destroy');
             });
         });
 
@@ -1163,8 +1185,8 @@ Route::middleware(['auth.jwt', 'tenant.resolve', 'tenant.active'])
             Route::get('/', [App\Modules\Platform\Controllers\TenantModuleController::class, 'index'])->name('index');
             Route::get('nav-order', [App\Modules\Platform\Controllers\TenantModuleController::class, 'getNavOrder'])->name('nav-order.get');
             Route::put('nav-order', [App\Modules\Platform\Controllers\TenantModuleController::class, 'updateNavOrder'])->name('nav-order.update');
-            Route::put('{moduleKey}', [App\Modules\Platform\Controllers\TenantModuleController::class, 'update'])->name('update');
             Route::match(['put', 'post'], 'batch', [App\Modules\Platform\Controllers\TenantModuleController::class, 'batchUpdate'])->name('batch');
+            Route::put('{moduleKey}', [App\Modules\Platform\Controllers\TenantModuleController::class, 'update'])->name('update');
         });
 
         // ── Settings & Configuration System ─────────────────────────
@@ -1325,11 +1347,6 @@ Route::middleware(['auth.jwt', 'tenant.resolve', 'tenant.active'])
             // Capability Manifest (cached 5 min per tenant)
             Route::get('manifest', [App\Modules\Platform\Controllers\TenantCapabilityController::class, 'manifest'])->name('manifest');
 
-            // Dynamic Modules Enable/Disable
-            Route::get('modules', [App\Modules\Platform\Controllers\TenantModuleController::class, 'index'])->name('modules.index');
-            Route::match(['put', 'post'], 'modules/batch', [App\Modules\Platform\Controllers\TenantModuleController::class, 'batchUpdate'])->name('modules.batch');
-            Route::put('modules/{moduleKey}', [App\Modules\Platform\Controllers\TenantModuleController::class, 'update'])->name('modules.update');
-
             // Dynamic Production Stages
             Route::get('production-stages', [App\Modules\Platform\Controllers\TenantProductionStageController::class, 'index'])->name('production-stages.index');
             Route::post('production-stages', [App\Modules\Platform\Controllers\TenantProductionStageController::class, 'store'])->name('production-stages.store');
@@ -1367,6 +1384,8 @@ Route::middleware(['auth.jwt', 'tenant.resolve', 'tenant.active'])
             Route::get('stats', [App\Modules\Platform\Controllers\DataBinController::class, 'stats'])->name('stats');
             Route::get('/', [App\Modules\Platform\Controllers\DataBinController::class, 'index'])->name('index');
             Route::post('empty', [App\Modules\Platform\Controllers\DataBinController::class, 'empty'])->name('empty');
+            Route::post('bulk-restore', [App\Modules\Platform\Controllers\DataBinController::class, 'bulkRestore'])->name('bulk-restore');
+            Route::post('bulk-force-delete', [App\Modules\Platform\Controllers\DataBinController::class, 'bulkForceDelete'])->name('bulk-force-delete');
             Route::post('{type}/{id}/restore', [App\Modules\Platform\Controllers\DataBinController::class, 'restore'])->name('restore');
             Route::delete('{type}/{id}/force-delete', [App\Modules\Platform\Controllers\DataBinController::class, 'forceDelete'])->name('force-delete');
         });

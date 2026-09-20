@@ -29,4 +29,5 @@ playwright-report/
 
 # cPanel public_html dynamic storage
 public_html/storage
+*.zip
 

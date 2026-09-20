@@ -675,6 +675,122 @@ final class DataBinController extends Controller
     }
 
     /**
+     * Bulk restore multiple deleted resources back to active records.
+     */
+    public function bulkRestore(Request $request): JsonResponse
+    {
+        $tenantId = $this->resolveTenantId($request);
+        $items = $request->input('items', []);
+
+        if (!is_array($items) || empty($items)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No items provided for bulk restoration.',
+            ], 400);
+        }
+
+        $restoredCount = 0;
+        $failed = [];
+
+        foreach ($items as $item) {
+            $type = (string) ($item['type'] ?? '');
+            $id = (string) ($item['id'] ?? '');
+
+            if (!isset(self::TYPE_CONFIG[$type]) || empty($id)) {
+                $failed[] = ['type' => $type, 'id' => $id, 'reason' => 'Invalid type or ID'];
+                continue;
+            }
+
+            $config = self::TYPE_CONFIG[$type];
+            $modelClass = $config['model'];
+
+            try {
+                $record = $this->findTrashedRecord($modelClass, $tenantId, $id);
+                if ($record) {
+                    DB::transaction(function () use ($record): void {
+                        $record->restore();
+                        $this->cascadeRestoreChildren($record);
+                    });
+                    $restoredCount++;
+                } else {
+                    $failed[] = ['type' => $type, 'id' => $id, 'reason' => 'Record not found'];
+                }
+            } catch (\Throwable $e) {
+                $failed[] = ['type' => $type, 'id' => $id, 'reason' => $e->getMessage()];
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => "{$restoredCount} record(s) successfully restored to active records.",
+            'data' => [
+                'restored_count' => $restoredCount,
+                'failed_count' => count($failed),
+                'failed' => $failed,
+            ],
+        ]);
+    }
+
+    /**
+     * Bulk permanently purge multiple deleted resources.
+     */
+    public function bulkForceDelete(Request $request): JsonResponse
+    {
+        $tenantId = $this->resolveTenantId($request);
+        $items = $request->input('items', []);
+
+        if (!is_array($items) || empty($items)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No items provided for bulk purge.',
+            ], 400);
+        }
+
+        $purgedCount = 0;
+        $failed = [];
+
+        foreach ($items as $item) {
+            $type = (string) ($item['type'] ?? '');
+            $id = (string) ($item['id'] ?? '');
+
+            if (!isset(self::TYPE_CONFIG[$type]) || empty($id)) {
+                $failed[] = ['type' => $type, 'id' => $id, 'reason' => 'Invalid type or ID'];
+                continue;
+            }
+
+            $config = self::TYPE_CONFIG[$type];
+            $modelClass = $config['model'];
+
+            try {
+                $record = $this->findTrashedRecord($modelClass, $tenantId, $id);
+                if ($record) {
+                    DB::transaction(function () use ($record): void {
+                        $this->cascadeForceDeleteChildren($record);
+                        $record->forceDelete();
+                    });
+                    $purgedCount++;
+                } else {
+                    $failed[] = ['type' => $type, 'id' => $id, 'reason' => 'Record not found'];
+                }
+            } catch (\Illuminate\Database\QueryException $e) {
+                $failed[] = ['type' => $type, 'id' => $id, 'reason' => 'Referenced by other records'];
+            } catch (\Throwable $e) {
+                $failed[] = ['type' => $type, 'id' => $id, 'reason' => $e->getMessage()];
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => "{$purgedCount} record(s) permanently purged.",
+            'data' => [
+                'purged_count' => $purgedCount,
+                'failed_count' => count($failed),
+                'failed' => $failed,
+            ],
+        ]);
+    }
+
+    /**
      * Empty the bin entirely or for a specific type or domain.
      */
     public function empty(Request $request): JsonResponse

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import {
@@ -21,9 +21,12 @@ import {
   ShoppingCart,
   Upload,
   Download,
+  Trash2,
 } from 'lucide-react';
 import type { Lead, LeadStatus, LeadSource } from '../../../types/api/sales';
 import { api } from '../../../lib/api/client';
+import { useAuthStore } from '../../../lib/auth/authStore';
+import { ConfirmDialog } from '../../../components/ui/Modal';
 import { useCurrency } from '../../../hooks/useCurrency';
 import { SelectDropdown } from '../../../components/ui/Dropdown';
 import { Badge } from '../../../components/ui/Badge';
@@ -124,12 +127,19 @@ const STAGES: { id: LeadStatus; label: string; tone: string; dotBg: string; badg
 ];
 
 export function LeadsSection() {
+  const { hasPermission } = useAuthStore();
+  const canDelete = hasPermission('sales.lead.delete');
   const { formatCurrency, currencySymbol } = useCurrency();
   const queryClient = useQueryClient();
 
   const [search, setSearch] = useState('');
   const [stageFilter, setStageFilter] = useState<string>('all');
   const [showCreateModal, setShowCreateModal] = useState(false);
+
+  // Bulk Selection States
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [deleteConfirm, setDeleteConfirm] = useState<{ id?: number; isBulk?: boolean; title: string } | null>(null);
+  const headerCheckboxRef = useRef<HTMLInputElement>(null);
 
   // Fake Audit Modal State
   const [auditModalOpen, setAuditModalOpen] = useState(false);
@@ -480,6 +490,68 @@ type ApiError = { response?: { data?: { message?: string } } };
     return matchesSearch && matchesStage;
   });
 
+  const isAllSelected = filteredLeads.length > 0 && selectedIds.size === filteredLeads.length;
+  const isSomeSelected = selectedIds.size > 0 && !isAllSelected;
+
+  useEffect(() => {
+    if (headerCheckboxRef.current) {
+      headerCheckboxRef.current.indeterminate = isSomeSelected;
+    }
+  }, [isSomeSelected]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && selectedIds.size > 0) {
+        setSelectedIds(new Set());
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedIds.size]);
+
+  const toggleSelectAll = () => {
+    if (isAllSelected) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filteredLeads.map((l) => l.id)));
+    }
+  };
+
+  const toggleSelect = (id: number) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const deleteLeadMutation = useMutation({
+    mutationFn: async ({ id, ids }: { id?: number; ids?: number[] }) => {
+      if (ids && ids.length > 0) {
+        let count = 0;
+        for (const leadId of ids) {
+          await api.delete(`/sales/leads/${leadId}`);
+          count++;
+        }
+        return count;
+      } else if (id) {
+        await api.delete(`/sales/leads/${id}`);
+        return 1;
+      }
+      return 0;
+    },
+    onSuccess: (count) => {
+      toast.success(`Moved ${count} lead(s) to Data Bin`);
+      setSelectedIds(new Set());
+      setDeleteConfirm(null);
+      queryClient.invalidateQueries({ queryKey: ['crm', 'leads'] });
+    },
+    onError: (err: unknown) => {
+      toast.error(err instanceof Error ? err.message : 'Failed to delete lead');
+    },
+  });
+
   const totalPipelineValue = leads
     .filter((l) => l.status !== 'lost' && !l.is_fake)
     .reduce((sum, l) => sum + parseFloat(l.deal_value || '0'), 0);
@@ -598,12 +670,56 @@ type ApiError = { response?: { data?: { message?: string } } };
         </div>
       </div>
 
+      {/* Bulk Action Ribbon */}
+      {canDelete && selectedIds.size > 0 && (
+        <div className="flex items-center justify-between p-3 bg-rose-500/10 border border-rose-500/20 rounded-2xl animate-in fade-in">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold text-rose-600 dark:text-rose-400">
+              {selectedIds.size} lead(s) selected
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() =>
+                setDeleteConfirm({
+                  isBulk: true,
+                  title: `${selectedIds.size} selected lead(s)`,
+                })
+              }
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-rose-600 text-white hover:bg-rose-700 rounded-xl transition cursor-pointer"
+            >
+              <Trash2 className="size-3.5" />
+              <span>Move to Bin ({selectedIds.size})</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelectedIds(new Set())}
+              className="flex items-center gap-1 px-2.5 py-1.5 text-xs text-muted hover:text-default bg-surface rounded-xl border border-default transition cursor-pointer"
+            >
+              <X className="size-3.5" />
+              <span>Clear</span>
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Table View */}
       <div className="overflow-hidden rounded-2xl border border-default bg-surface shadow-2xs">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs text-default">
               <thead className="border-b border-default bg-surface-sunken text-[11px] font-semibold uppercase tracking-wider text-muted">
                 <tr>
+                  <th className="w-10 px-4 py-3.5 text-center">
+                    <input
+                      ref={headerCheckboxRef}
+                      type="checkbox"
+                      checked={isAllSelected}
+                      onChange={toggleSelectAll}
+                      aria-label="Select all leads"
+                      className="size-4 rounded border-default text-primary focus:ring-primary/20 cursor-pointer"
+                    />
+                  </th>
                   <th className="px-4 py-3.5">Lead Contact</th>
                   <th className="px-4 py-3.5">Company</th>
                   <th className="px-4 py-3.5">Source</th>
@@ -617,7 +733,7 @@ type ApiError = { response?: { data?: { message?: string } } };
               <tbody className="divide-y divide-default">
                 {filteredLeads.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="px-4 py-8 text-center text-muted">
+                    <td colSpan={9} className="px-4 py-8 text-center text-muted">
                       No leads match the filter criteria.
                     </td>
                   </tr>
@@ -629,7 +745,16 @@ type ApiError = { response?: { data?: { message?: string } } };
                     const canConvert = !isWon && !isFake;
 
                     return (
-                      <tr key={l.id} className="hover:bg-surface-sunken/60 transition-colors">
+                      <tr key={l.id} className={cn("hover:bg-surface-sunken/60 transition-colors", selectedIds.has(l.id) && "bg-primary/5")}>
+                        <td className="w-10 px-4 py-3.5 text-center" onClick={(e) => e.stopPropagation()}>
+                          <input
+                            type="checkbox"
+                            checked={selectedIds.has(l.id)}
+                            onChange={() => toggleSelect(l.id)}
+                            aria-label={`Select lead ${l.name}`}
+                            className="size-4 rounded border-default text-primary focus:ring-primary/20 cursor-pointer"
+                          />
+                        </td>
                         <td className="px-4 py-3.5">
                           <div className="font-bold text-default">{l.name}</div>
                           <div className="text-[10px] font-mono text-muted">{l.lead_number || `LD-${l.id}`}</div>
@@ -828,6 +953,26 @@ type ApiError = { response?: { data?: { message?: string } } };
                                       );
                                     })}
                                   </div>
+
+                                  {canDelete && (
+                                    <>
+                                      <div className="my-1 border-t border-default/70" />
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setDeleteConfirm({
+                                            id: l.id,
+                                            title: `lead "${l.name}"`,
+                                          });
+                                          setActiveMenuLeadId(null);
+                                        }}
+                                        className="flex w-full items-center gap-2 rounded-xl px-2.5 py-1.5 text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer"
+                                      >
+                                        <Trash2 className="size-3.5 text-rose-600 shrink-0" />
+                                        <span>Move to Bin</span>
+                                      </button>
+                                    </>
+                                  )}
                                 </div>
                               )}
                             </div>
@@ -1027,7 +1172,7 @@ type ApiError = { response?: { data?: { message?: string } } };
                   <div className="grid grid-cols-3 gap-2">
                     <select
                       value={activityType}
-                      onChange={(e) => setActivityType(e.target.value as any)}
+                      onChange={(e) => setActivityType(e.target.value as 'call' | 'visit' | 'email' | 'sms' | 'note' | 'task')}
                       className="rounded-lg border border-default bg-surface px-2.5 py-1.5 text-xs text-default"
                     >
                       <option value="call">Phone Call</option>
@@ -1295,6 +1440,23 @@ type ApiError = { response?: { data?: { message?: string } } };
         onImportSuccess={() => {
           queryClient.invalidateQueries({ queryKey: ['crm', 'leads'] });
         }}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        open={!!deleteConfirm}
+        onClose={() => setDeleteConfirm(null)}
+        onConfirm={() => {
+          if (deleteConfirm?.isBulk) {
+            deleteLeadMutation.mutate({ ids: Array.from(selectedIds) });
+          } else if (deleteConfirm?.id) {
+            deleteLeadMutation.mutate({ id: deleteConfirm.id });
+          }
+        }}
+        title="Move to Data Bin"
+        message={`Are you sure you want to move ${deleteConfirm?.title} to the Data Bin? You can restore it anytime from Settings > Data Bin.`}
+        confirmLabel="Move to Bin"
+        variant="danger"
       />
     </div>
   );

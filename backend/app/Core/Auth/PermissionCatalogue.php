@@ -40,6 +40,7 @@ class PermissionCatalogue
         'open',
         'close',
         'adjust',
+        'dispatch',
     ];
 
     /**
@@ -280,6 +281,28 @@ class PermissionCatalogue
         'sales.return.update',
         'sales.return.delete',
         'sales.return.approve',
+        'sales.payment.view',
+        'sales.payment.create',
+        'sales.payment.update',
+        'sales.payment.delete',
+        'sales.delivery.view',
+        'sales.delivery.create',
+        'sales.delivery.update',
+        'sales.delivery.delete',
+        'sales.delivery.dispatch',
+        'sales.exchange.view',
+        'sales.exchange.create',
+        'sales.exchange.update',
+        'sales.exchange.delete',
+        'sales.target.view',
+        'sales.target.create',
+        'sales.target.update',
+        'sales.target.delete',
+        'sales.incentive.view',
+        'sales.incentive.create',
+        'sales.incentive.update',
+        'sales.incentive.delete',
+        'sales.incentive.approve',
 
         // POS
         'pos.terminal.view',

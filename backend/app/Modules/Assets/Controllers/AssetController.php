@@ -101,6 +101,17 @@ class AssetController extends Controller
         ]);
     }
 
+    public function destroy(int $id): JsonResponse
+    {
+        $asset = Asset::findOrFail($id);
+        $asset->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Asset moved to Data Bin successfully',
+        ]);
+    }
+
     public function bulkImport(Request $request): JsonResponse
     {
         $tenantId = \App\Core\Tenancy\TenantContext::current()->tenantId();
