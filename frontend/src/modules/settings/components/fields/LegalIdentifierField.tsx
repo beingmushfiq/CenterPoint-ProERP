@@ -20,15 +20,14 @@ interface LegalIdentifierFieldProps {
   description?: string | undefined;
 }
 
-const FIELD_CONFIG: Record<
-  string,
-  {
-    icon: React.ElementType;
-    authorityTag: string;
-    placeholder: string;
-    contextHint: string;
-  }
-> = {
+interface FieldConfigItem {
+  icon: React.ElementType;
+  authorityTag: string;
+  placeholder: string;
+  contextHint: string;
+}
+
+const FIELD_CONFIG: Record<string, FieldConfigItem> = {
   company_name: {
     icon: Building2,
     authorityTag: 'Operating Brand / Trade Name',

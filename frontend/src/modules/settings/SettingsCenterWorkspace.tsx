@@ -453,7 +453,9 @@ export const SettingsCenterWorkspace: React.FC = () => {
                 useAuthStore.setState({ tenant: updatedTenant });
                 try {
                   localStorage.setItem('auth_tenant', JSON.stringify(updatedTenant));
-                } catch {}
+                } catch (_err) {
+                  void _err;
+                }
               }
             }
           }

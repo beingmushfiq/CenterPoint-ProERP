@@ -111,7 +111,9 @@ export function useTenantBranding(): TenantBranding {
         if (storedLogo) setLogoUrl(storedLogo);
         const storedFavicon = localStorage.getItem('brand_favicon_url');
         if (storedFavicon) setFaviconUrl(storedFavicon);
-      } catch {}
+      } catch (_err) {
+        void _err;
+      }
     };
 
     window.addEventListener('storage', handleBrandingSync);
@@ -138,7 +140,9 @@ export function useTenantBranding(): TenantBranding {
               setCustomCompanyName(sanitized);
               try {
                 localStorage.setItem('company_name', sanitized);
-              } catch {}
+              } catch (_err) {
+                void _err;
+              }
             }
           }
           if (data.logo_url) {

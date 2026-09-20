@@ -274,7 +274,9 @@ export const OnboardingWizard: React.FC = () => {
         try {
           localStorage.setItem('company_name', chosenName);
           window.dispatchEvent(new CustomEvent('tenant_branding_updated', { detail: { name: chosenName } }));
-        } catch {}
+        } catch (_err) {
+          void _err;
+        }
       }
     } catch {
       // Non-blocking
@@ -324,7 +326,9 @@ export const OnboardingWizard: React.FC = () => {
         try {
           localStorage.setItem('company_name', chosenName);
           window.dispatchEvent(new CustomEvent('tenant_branding_updated', { detail: { name: chosenName } }));
-        } catch {}
+        } catch (_err) {
+          void _err;
+        }
       }
 
       await invalidateManifest();

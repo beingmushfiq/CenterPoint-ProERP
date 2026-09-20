@@ -41,7 +41,8 @@ export function Sidebar({ isOpen, onClose, isCollapsed = false, onToggleCollapse
     try {
       const saved = localStorage.getItem('erp_sidebar_collapsed_sections');
       return saved ? JSON.parse(saved) : {};
-    } catch {
+    } catch (_err) {
+      void _err;
       return {};
     }
   });
