@@ -37,7 +37,7 @@ export const SeoHead: React.FC<SeoMetaProps> = ({
 }) => {
   useEffect(() => {
     // 1. Format document title
-    const activeBrand = (brandName || 'SliceMart Industries').trim();
+    const activeBrand = (brandName || 'Operations Platform').trim();
     let finalTitle = activeBrand;
 
     if (title && title.trim()) {

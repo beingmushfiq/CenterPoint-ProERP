@@ -15,7 +15,7 @@ import {
 import { Badge } from '../../../components/ui/Badge';
 import { Button } from '../../../components/ui/Button';
 import type { SettingsSchemaDictionary } from '../../../types/api/settings';
-import { useTenantBranding } from '../../../lib/theme/useTenantBranding';
+import { useTenantBranding, sanitizeTenantBusinessName } from '../../../lib/theme/useTenantBranding';
 import { useCurrency } from '../../../hooks/useCurrency';
 
 interface SettingsOverviewHubProps {
@@ -32,7 +32,11 @@ export const SettingsOverviewHub: React.FC<SettingsOverviewHubProps> = ({
 }) => {
   const { companyName: tenantBrandName } = useTenantBranding();
   const { currencyCode: activeCurrency, currencySymbol: activeSymbol } = useCurrency();
-  const companyName = String(formValues['company_legal_name'] || tenantBrandName || 'Enterprise Cloud');
+  const rawCandidate = String(formValues['company_legal_name'] || formValues['company_name'] || '').trim();
+  const companyName = sanitizeTenantBusinessName(
+    rawCandidate || tenantBrandName,
+    tenantBrandName || 'Enterprise Operations'
+  );
   const currency = String(formValues['currency_code'] || activeCurrency || 'USD');
   const currencySymbol = String(formValues['currency_symbol'] || activeSymbol || '$');
   const timezone = String(formValues['system_timezone'] || 'Asia/Dhaka');

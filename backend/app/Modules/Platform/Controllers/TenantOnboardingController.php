@@ -235,6 +235,7 @@ final class TenantOnboardingController extends Controller
         $tenant->onboarding_draft = $draft;
 
         $tenant->save();
+        $this->syncOnboardingToSettingsAndCompany($tenantId, $stepData);
         TenantCapabilityManifest::invalidate($tenantId);
 
         return response()->json([
@@ -384,11 +385,102 @@ final class TenantOnboardingController extends Controller
         }
 
         TenantCapabilityManifest::invalidate($tenantId);
+        $this->syncOnboardingToSettingsAndCompany($tenantId, $draft);
 
         return response()->json([
             'success' => true,
             'message' => 'Onboarding finalized successfully. Platform initialized with 100% profile score.',
             'data' => TenantCapabilityManifest::forTenant($tenantId, true),
         ]);
+    }
+
+    /**
+     * Synchronize onboarding inputs to settings table and default Company model.
+     */
+    private function syncOnboardingToSettingsAndCompany(int $tenantId, array $data): void
+    {
+        $settingsToSync = [];
+        if (!empty($data['company_name'])) {
+            $settingsToSync['company_name'] = $data['company_name'];
+        }
+        if (!empty($data['company_legal_name'])) {
+            $settingsToSync['company_legal_name'] = $data['company_legal_name'];
+        }
+        if (!empty($data['currency_code'])) {
+            $settingsToSync['currency_code'] = strtoupper(substr((string) $data['currency_code'], 0, 3));
+        }
+        if (!empty($data['timezone'])) {
+            $settingsToSync['system_timezone'] = $data['timezone'];
+        }
+        if (!empty($data['trade_license'])) {
+            $settingsToSync['trade_license_no'] = $data['trade_license'];
+        }
+        if (!empty($data['tax_number'])) {
+            $settingsToSync['tax_identification_number'] = $data['tax_number'];
+        }
+        if (!empty($data['address'])) {
+            $settingsToSync['registered_address'] = $data['address'];
+        }
+        if (!empty($data['phone'])) {
+            $settingsToSync['hotline_phone'] = $data['phone'];
+        }
+        if (!empty($data['email'])) {
+            $settingsToSync['support_email'] = $data['email'];
+        }
+        if (!empty($data['logo_url'])) {
+            $settingsToSync['brand_logo_url'] = $data['logo_url'];
+        }
+
+        foreach ($settingsToSync as $key => $val) {
+            \App\Models\Setting::withoutTenantScope()->updateOrCreate(
+                [
+                    'tenant_id' => $tenantId,
+                    'scope' => 'tenant',
+                    'group' => 'general',
+                    'key' => $key,
+                ],
+                [
+                    'value' => \App\Models\Setting::formatValueForStorage($val, 'string', false),
+                    'value_type' => 'string',
+                    'is_encrypted' => false,
+                ]
+            );
+        }
+
+        // Sync Company
+        $company = \App\Models\Company::withoutTenantScope()
+            ->where('tenant_id', $tenantId)
+            ->where('is_default', true)
+            ->first()
+            ?? \App\Models\Company::withoutTenantScope()->where('tenant_id', $tenantId)->first();
+
+        if ($company) {
+            $companyUpdates = [];
+            $businessName = !empty($data['company_name']) ? $data['company_name'] : (!empty($data['company_legal_name']) ? $data['company_legal_name'] : null);
+            if ($businessName) {
+                $companyUpdates['name'] = $businessName;
+            }
+            if (!empty($data['company_legal_name'])) {
+                $companyUpdates['legal_name'] = $data['company_legal_name'];
+            }
+            if (!empty($data['tax_number'])) {
+                $companyUpdates['tax_identifier'] = $data['tax_number'];
+            }
+            if (!empty($data['trade_license'])) {
+                $companyUpdates['registration_number'] = $data['trade_license'];
+            }
+            if (!empty($data['address'])) {
+                $companyUpdates['address'] = $data['address'];
+            }
+            if (!empty($data['email'])) {
+                $companyUpdates['email'] = $data['email'];
+            }
+            if (!empty($data['phone'])) {
+                $companyUpdates['phone'] = $data['phone'];
+            }
+            if (!empty($companyUpdates)) {
+                $company->update($companyUpdates);
+            }
+        }
     }
 }

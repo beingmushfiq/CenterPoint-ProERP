@@ -91,10 +91,33 @@ class SelectTenantAction extends Action
 
         $tenantData = null;
         if ($user->tenant !== null) {
+            $brandName = null;
+            if (is_array($user->tenant->branding)) {
+                $brandName = $user->tenant->branding['company_name'] ?? $user->tenant->branding['company_legal_name'] ?? null;
+            }
+            if (empty($brandName)) {
+                $brandSetting = \App\Models\Setting::withoutTenantScope()
+                    ->where('tenant_id', $user->tenant->id)
+                    ->where('group', 'general')
+                    ->whereIn('key', ['company_name', 'company_legal_name'])
+                    ->pluck('value', 'key');
+                $brandName = $brandSetting['company_name'] ?? $brandSetting['company_legal_name'] ?? null;
+                if (is_array($brandName) && isset($brandName['val'])) {
+                    $brandName = $brandName['val'];
+                }
+            }
+            $resolvedTenantName = ! empty($brandName) && is_string($brandName) && trim($brandName) !== ''
+                ? trim($brandName)
+                : $user->tenant->name;
+
+            if ($user->tenant->name !== $resolvedTenantName) {
+                $user->tenant->update(['name' => $resolvedTenantName]);
+            }
+
             $tenantData = [
                 'id' => $user->tenant->id,
                 'uuid' => $user->tenant->uuid,
-                'name' => $user->tenant->name,
+                'name' => $resolvedTenantName,
                 'slug' => $user->tenant->slug,
                 'status' => $user->tenant->status,
                 'currency' => $user->tenant->currency_code,

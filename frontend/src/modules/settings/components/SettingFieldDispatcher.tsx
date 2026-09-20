@@ -249,6 +249,7 @@ export const SettingFieldDispatcher: React.FC<SettingFieldDispatcherProps> = ({
 
   // 8. Corporate & Legal Registration Identifiers
   if (
+    settingKey === 'company_name' ||
     settingKey === 'company_legal_name' ||
     settingKey === 'trade_license_no' ||
     settingKey === 'tax_identification_number' ||

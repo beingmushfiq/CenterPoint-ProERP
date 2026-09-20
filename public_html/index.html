@@ -20,7 +20,7 @@
       tenant #1, not the product (PROJECT_CONTEXT.md §1). Tenant name and logo
       are injected at runtime from tenant settings; nothing here may name one.
     -->
-    <title>SliceMart Industries — ERP Operations Platform</title>
+    <title>ERP Operations Platform</title>
     <meta
       name="description"
       content="Multi-tenant manufacturing, inventory, sales, workforce and delivery operations platform."
@@ -136,8 +136,9 @@
 
         /* ── Dynamic Organization Title Sync ─────────────────────────────── */
         var storedCompany = read('company_name');
-        if (storedCompany && storedCompany !== 'CenterPoint ProERP' && storedCompany !== 'Enterprise Cloud ERP') {
-          document.title = storedCompany + ' — ERP Operations';
+        var staleNames = ['centerpoint proerp', 'centerpoint pro erp', 'centerpoint proerp erp', 'devcenterpoint proerp', 'devcenterpoint pro erp', 'enterprise cloud erp', 'enterprise cloud', 'operations erp'];
+        if (storedCompany && !staleNames.includes(storedCompany.trim().toLowerCase())) {
+          document.title = storedCompany.trim() + ' — ERP Operations';
         }
 
         /* Marks the boot loader's first real milestone (§7.5 tier 1). The rail
@@ -318,7 +319,7 @@
         }
       }
     </style>
-    <script type="module" crossorigin src="/assets/index-CVVGjoVT.js"></script>
+    <script type="module" crossorigin src="/assets/index-mdA3gugl.js"></script>
     <link rel="modulepreload" crossorigin href="/assets/rolldown-runtime-hePW80VL.js">
     <link rel="modulepreload" crossorigin href="/assets/createLucideIcon-CyrWxPaY.js">
     <link rel="modulepreload" crossorigin href="/assets/query-CGhxzULL.js">

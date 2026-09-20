@@ -24,7 +24,7 @@ export const isStaleEngineName = (name: string | null | undefined): boolean => {
   );
 };
 
-export const sanitizeTenantBusinessName = (name: string | null | undefined, fallback = 'SliceMart Industries'): string => {
+export const sanitizeTenantBusinessName = (name: string | null | undefined, fallback = 'Operations Platform'): string => {
   if (!name) return fallback;
   const trimmed = name.trim();
   if (isStaleEngineName(trimmed)) {
@@ -62,7 +62,7 @@ export function useTenantBranding(): TenantBranding {
   });
 
   const resolvedAuthName = sanitizeName(authBrandingName) || sanitizeName(authTenantName);
-  const companyName = customCompanyName || resolvedAuthName || 'SliceMart Industries';
+  const companyName = customCompanyName || resolvedAuthName || (authTenantName && !isStaleEngineName(authTenantName) ? authTenantName : 'Operations Platform');
 
   const [logoUrl, setLogoUrl] = useState<string | null>(() => {
     try {

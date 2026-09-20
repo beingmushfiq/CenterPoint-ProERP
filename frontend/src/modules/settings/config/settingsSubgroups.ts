@@ -63,6 +63,7 @@ export const SETTINGS_SUBGROUPS: Record<string, SubgroupDefinition[]> = {
       icon: Building2,
       previewType: 'identity',
       keys: [
+        'company_name',
         'company_legal_name',
         'trade_license_no',
         'tax_identification_number',

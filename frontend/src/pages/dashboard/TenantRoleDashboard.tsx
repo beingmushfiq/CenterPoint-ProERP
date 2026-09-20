@@ -151,8 +151,8 @@ export const TenantRoleDashboard: React.FC = () => {
   const erpInstallName = useMemo(() => {
     const brandingRecord = tenant?.branding as Record<string, unknown> | undefined;
     const brandingName = typeof brandingRecord?.['name'] === 'string' ? brandingRecord['name'] : undefined;
-    const raw = companyName || brandingName || tenant?.name || 'SliceMart Industries';
-    const cleanBase = sanitizeTenantBusinessName(raw, 'SliceMart Industries').replace(/\s+ERP$/i, '').trim();
+    const raw = companyName || brandingName || tenant?.name || 'Operations Platform';
+    const cleanBase = sanitizeTenantBusinessName(raw, 'Operations Platform').replace(/\s+ERP$/i, '').trim();
     return `${cleanBase} ERP`;
   }, [companyName, tenant]);
   const { t } = useTranslation(['dashboard', 'common', 'navigation']);

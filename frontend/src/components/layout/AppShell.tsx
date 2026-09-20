@@ -7,7 +7,7 @@ import { ImpersonationBanner } from './ImpersonationBanner';
 import { OfflineBanner } from './OfflineBanner';
 import { SeoHead } from '../seo/SeoHead';
 import { cn } from '../../lib/utils';
-import { useTenantBranding } from '../../lib/theme/useTenantBranding';
+import { useTenantBranding, isStaleEngineName } from '../../lib/theme/useTenantBranding';
 import { useAuthStore } from '../../lib/auth/authStore';
 import { InteractiveTutorialModal } from '../../modules/tutorial/InteractiveTutorialModal';
 
@@ -37,11 +37,11 @@ export function AppShell() {
   const { companyName } = useTenantBranding();
   const tenantName = useAuthStore((s) => s.tenant?.name);
   const brandName =
-    (companyName && companyName !== 'CenterPoint ProERP' && companyName !== 'Enterprise Cloud ERP')
+    (companyName && !isStaleEngineName(companyName))
       ? companyName
-      : (tenantName && tenantName !== 'CenterPoint ProERP' && tenantName !== 'Enterprise Cloud'
+      : (tenantName && !isStaleEngineName(tenantName)
         ? tenantName
-        : 'SliceMart Industries');
+        : 'Operations Platform');
 
   const pageTitle = useMemo(() => {
     const routeTitle = getRouteTitle(location.pathname);

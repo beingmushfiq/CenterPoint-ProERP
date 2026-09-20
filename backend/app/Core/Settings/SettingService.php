@@ -27,6 +27,7 @@ class SettingService
                 'title' => 'General & Business Profile',
                 'description' => 'Legal organization details, localization formats, financial calendar, and document numbering prefixes.',
                 'settings' => [
+                    'company_name' => ['label' => 'Operating Brand / Trade Name', 'type' => 'string', 'default' => '', 'sensitive' => false],
                     'company_legal_name' => ['label' => 'Legal Entity Name', 'type' => 'string', 'default' => 'SliceMart Industries Ltd.', 'sensitive' => false],
                     'trade_license_no' => ['label' => 'Trade License Number', 'type' => 'string', 'default' => 'TRAD/DNCC/019283/2024', 'sensitive' => false],
                     'tax_identification_number' => ['label' => 'TIN / BIN Registration', 'type' => 'string', 'default' => 'BIN-99210029381', 'sensitive' => false],
@@ -328,6 +329,28 @@ class SettingService
             return $platformSetting->getTypedValue();
         }
 
+        // 4b. Dynamic business identity defaults from Tenant & Company models
+        if ($group === 'general' && $tenantId) {
+            $tenant = \App\Models\Tenant::find($tenantId);
+            $branding = is_array($tenant?->branding) ? $tenant->branding : [];
+            if ($key === 'company_name') {
+                $candidate = $branding['company_name'] ?? $tenant?->name;
+                if (! empty($candidate)) {
+                    return $candidate;
+                }
+            }
+            if ($key === 'company_legal_name') {
+                $candidate = $branding['company_legal_name'] ?? $branding['company_name'] ?? null;
+                if (empty($candidate)) {
+                    $company = \App\Models\Company::withoutTenantScope()->where('tenant_id', $tenantId)->first();
+                    $candidate = $company?->legal_name ?? $company?->name ?? $tenant?->name;
+                }
+                if (! empty($candidate)) {
+                    return $candidate;
+                }
+            }
+        }
+
         // 5. Check Codebase Schema Dictionary default
         $schema = $this->getSchemaDictionary();
         if (isset($schema[$group]['settings'][$key]['default'])) {
@@ -448,6 +471,91 @@ class SettingService
             }
 
             $afterSnapshot[$key] = $isSensitive && ! empty($value) ? '••••••••' : $value;
+        }
+
+        // Synchronize core organization identity across Tenant and Company models
+        if ($group === 'general' && $tenantId) {
+            $tenant = \App\Models\Tenant::find($tenantId);
+            if ($tenant) {
+                $resolvedName = trim((string) ($values['company_name'] ?? $values['company_legal_name'] ?? ''));
+                if ($resolvedName !== '') {
+                    $tenant->name = $resolvedName;
+                }
+                if (! empty($values['currency_code'])) {
+                    $tenant->currency_code = strtoupper(substr((string) $values['currency_code'], 0, 3));
+                }
+                if (! empty($values['system_timezone'])) {
+                    $tenant->timezone = (string) $values['system_timezone'];
+                }
+
+                $branding = is_array($tenant->branding) ? $tenant->branding : [];
+                if (isset($values['company_name'])) {
+                    $branding['company_name'] = $values['company_name'];
+                }
+                if (isset($values['company_legal_name'])) {
+                    $branding['company_legal_name'] = $values['company_legal_name'];
+                }
+                if (isset($values['brand_logo_url'])) {
+                    $branding['logo_url'] = $values['brand_logo_url'];
+                }
+                if (isset($values['brand_favicon_url'])) {
+                    $branding['favicon_url'] = $values['brand_favicon_url'];
+                }
+                if (isset($values['hotline_phone'])) {
+                    $branding['phone'] = $values['hotline_phone'];
+                }
+                if (isset($values['support_email'])) {
+                    $branding['email'] = $values['support_email'];
+                }
+                if (isset($values['registered_address'])) {
+                    $branding['address'] = $values['registered_address'];
+                }
+                if (isset($values['tax_identification_number'])) {
+                    $branding['tax_number'] = $values['tax_identification_number'];
+                }
+                if (isset($values['trade_license_no'])) {
+                    $branding['trade_license'] = $values['trade_license_no'];
+                }
+                $tenant->branding = $branding;
+                $tenant->save();
+
+                // Synchronize default Company record
+                $company = \App\Models\Company::withoutTenantScope()
+                    ->where('tenant_id', $tenantId)
+                    ->where('is_default', true)
+                    ->first()
+                    ?? \App\Models\Company::withoutTenantScope()->where('tenant_id', $tenantId)->first();
+
+                if ($company) {
+                    $companyUpdates = [];
+                    if ($resolvedName !== '') {
+                        $companyUpdates['name'] = $resolvedName;
+                    }
+                    if (isset($values['company_legal_name'])) {
+                        $companyUpdates['legal_name'] = $values['company_legal_name'];
+                    }
+                    if (isset($values['tax_identification_number'])) {
+                        $companyUpdates['tax_identifier'] = $values['tax_identification_number'];
+                    }
+                    if (isset($values['trade_license_no'])) {
+                        $companyUpdates['registration_number'] = $values['trade_license_no'];
+                    }
+                    if (isset($values['registered_address'])) {
+                        $companyUpdates['address'] = $values['registered_address'];
+                    }
+                    if (isset($values['support_email'])) {
+                        $companyUpdates['email'] = $values['support_email'];
+                    }
+                    if (isset($values['hotline_phone'])) {
+                        $companyUpdates['phone'] = $values['hotline_phone'];
+                    }
+                    if (! empty($companyUpdates)) {
+                        $company->update($companyUpdates);
+                    }
+                }
+
+                \App\Core\Capabilities\TenantCapabilityManifest::invalidate($tenantId);
+            }
         }
 
         // Record Append-Only Audit Trail
@@ -629,6 +737,32 @@ class SettingService
         }
 
         $query->delete();
+
+        if ($group === 'general' && $tenantId) {
+            $tenant = \App\Models\Tenant::find($tenantId);
+            if ($tenant) {
+                $branding = is_array($tenant->branding) ? $tenant->branding : [];
+                unset($branding['company_name'], $branding['company_legal_name']);
+                $tenant->branding = $branding;
+
+                $schema = $this->getSchemaDictionary();
+                $defaultLegalName = (string) ($schema['general']['settings']['company_legal_name']['default'] ?? '');
+                if ($defaultLegalName !== '') {
+                    $tenant->name = $defaultLegalName;
+                }
+                $tenant->save();
+
+                $company = \App\Models\Company::withoutTenantScope()
+                    ->where('tenant_id', $tenantId)
+                    ->first();
+                if ($company && $defaultLegalName !== '') {
+                    $company->update([
+                        'name' => $defaultLegalName,
+                        'legal_name' => $defaultLegalName,
+                    ]);
+                }
+            }
+        }
 
         $this->auditLogger->record(
             action: AuditAction::Deleted,

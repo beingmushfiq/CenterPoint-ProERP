@@ -29,6 +29,12 @@ const FIELD_CONFIG: Record<
     contextHint: string;
   }
 > = {
+  company_name: {
+    icon: Building2,
+    authorityTag: 'Operating Brand / Trade Name',
+    placeholder: 'e.g. Acme Brands',
+    contextHint: 'The operational brand name displayed in workspaces, headers, and client communications.',
+  },
   company_legal_name: {
     icon: Building2,
     authorityTag: 'Primary Legal Entity',

@@ -406,7 +406,7 @@ class AuthController extends Controller
 
         $logoUrl = null;
         $faviconUrl = null;
-        $companyName = 'SliceMart Industries';
+        $companyName = $tenant?->name ?? 'Enterprise Operations';
 
         if ($tenant) {
             $logoSetting = \App\Models\Setting::withoutTenantScope()
@@ -445,7 +445,7 @@ class AuthController extends Controller
 
             if ($customBusinessName && trim((string) $customBusinessName) !== '') {
                 $companyName = (string) $customBusinessName;
-            } elseif ($customLegalName && trim((string) $customLegalName) !== '' && (string) $customLegalName !== 'Acme Industries Ltd.') {
+            } elseif ($customLegalName && trim((string) $customLegalName) !== '') {
                 $companyName = (string) $customLegalName;
             } elseif ($brandingName && trim((string) $brandingName) !== '') {
                 $companyName = (string) $brandingName;

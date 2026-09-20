@@ -41,15 +41,31 @@ final class ErpManifestController extends Controller
         $faviconUrl = null;
 
         if ($tenantId) {
-            $nameSetting = Setting::withoutTenantScope()
+            $brandSetting = Setting::withoutTenantScope()
                 ->where('tenant_id', $tenantId)
                 ->where('group', 'general')
-                ->where('key', 'company_legal_name')
-                ->first();
+                ->whereIn('key', ['company_name', 'company_legal_name'])
+                ->pluck('value', 'key');
 
-            $configuredName = $nameSetting?->getTypedValue();
-            if ($configuredName && is_string($configuredName) && trim($configuredName) !== '') {
-                $companyName = trim($configuredName);
+            $configuredBrandName = $brandSetting['company_name'] ?? null;
+            if (is_array($configuredBrandName) && isset($configuredBrandName['val'])) {
+                $configuredBrandName = $configuredBrandName['val'];
+            }
+            $configuredLegalName = $brandSetting['company_legal_name'] ?? null;
+            if (is_array($configuredLegalName) && isset($configuredLegalName['val'])) {
+                $configuredLegalName = $configuredLegalName['val'];
+            }
+
+            $brandingName = is_array($tenant?->branding)
+                ? ($tenant->branding['company_name'] ?? $tenant->branding['company_legal_name'] ?? null)
+                : null;
+
+            if ($configuredBrandName && is_string($configuredBrandName) && trim($configuredBrandName) !== '') {
+                $companyName = trim($configuredBrandName);
+            } elseif ($configuredLegalName && is_string($configuredLegalName) && trim($configuredLegalName) !== '') {
+                $companyName = trim($configuredLegalName);
+            } elseif ($brandingName && is_string($brandingName) && trim($brandingName) !== '') {
+                $companyName = trim($brandingName);
             } elseif ($tenant && ! empty($tenant->name)) {
                 $companyName = trim($tenant->name);
             }

@@ -167,7 +167,7 @@ export function Sidebar({ isOpen, onClose, isCollapsed = false, onToggleCollapse
     if (tenantName && !isStaleEngineName(tenantName)) {
       return tenantName;
     }
-    return 'SliceMart Industries';
+    return 'Operations Platform';
   }, [companyName, tenantName]);
 
   const erpInstallTitle = useMemo((): string => {

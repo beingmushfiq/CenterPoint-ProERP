@@ -84,6 +84,7 @@ import { SettingsPreviewDispatcher } from './components/SettingsPreviewDispatche
 import { SETTINGS_SUBGROUPS, type SubgroupDefinition } from './config/settingsSubgroups';
 import { SEGMENTED_OPTIONS } from './config/segmentedOptions';
 import { useWorkspaceTab } from '../../hooks/useWorkspaceTab';
+import { useAuthStore } from '../../lib/auth/authStore';
 import { useTranslation } from 'react-i18next';
 import type {
   SettingsSchemaDictionary,
@@ -324,7 +325,6 @@ export const SettingsCenterWorkspace: React.FC = () => {
   const loadGroupSettings = useCallback(async (group: string) => {
     if (
       [
-        'overview',
         'modules',
         'terminology',
         'production_stages',
@@ -345,10 +345,12 @@ export const SettingsCenterWorkspace: React.FC = () => {
       return;
     }
 
+    const fetchGroup = group === 'overview' ? 'general' : group;
+
     try {
       setLoading(true);
       setErrorMessage(null);
-      const res = await api.get<{ data?: { settings?: Record<string, SettingItem> }; settings?: Record<string, SettingItem> }>(`/settings/${group}`);
+      const res = await api.get<{ data?: { settings?: Record<string, SettingItem> }; settings?: Record<string, SettingItem> }>(`/settings/${fetchGroup}`);
       const payload = (res.data && typeof res.data === 'object' && 'data' in res.data && res.data.data)
         ? res.data.data
         : res.data;
@@ -445,6 +447,14 @@ export const SettingsCenterWorkspace: React.FC = () => {
             if (orgStr) {
               localStorage.setItem('company_name', orgStr);
               window.dispatchEvent(new CustomEvent('tenant_branding_updated', { detail: { name: orgStr } }));
+              const currentTenant = useAuthStore.getState().tenant;
+              if (currentTenant) {
+                const updatedTenant = { ...currentTenant, name: orgStr };
+                useAuthStore.setState({ tenant: updatedTenant });
+                try {
+                  localStorage.setItem('auth_tenant', JSON.stringify(updatedTenant));
+                } catch {}
+              }
             }
           }
         } catch (err) {
