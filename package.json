@@ -25,6 +25,9 @@
     "format:check": "prettier --check \"frontend/src/**/*.{ts,tsx,css}\" \"frontend/scripts/**/*.mjs\" \".github/workflows/*.yml\"",
     "build:prod": "npm run build --workspace frontend && node scripts/sync_public_html.cjs",
     "deploy:prepare": "npm run build:prod && node scripts/verify_deployment_readiness.cjs",
+    "deploy:all": "node scripts/deploy_all.cjs",
+    "deploy": "node scripts/deploy_all.cjs",
+    "sync:all": "node scripts/deploy_all.cjs",
     "verify": "npm run format:check && npm run lint && npm run typecheck && npm run depcruise && npm run test"
   },
   "devDependencies": {

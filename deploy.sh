@@ -1,4 +1,10 @@
 #!/usr/bin/env bash
-# DevCenterPoint ProERP — Root deployment runner
-DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-exec bash "${DIR}/scripts/auto-deploy.sh" "$@"
+# ==============================================================================
+# DevCenterPoint ProERP — One-Command Master Deployment (Linux/Bash/cPanel)
+# ==============================================================================
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "${SCRIPT_DIR}"
+
+exec node scripts/deploy_all.cjs "$@"
