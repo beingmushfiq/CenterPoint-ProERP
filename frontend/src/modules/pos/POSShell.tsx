@@ -837,7 +837,7 @@ export function POSShell({ session, onExit }: POSShellProps) {
   }, [session.operator_name]);
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-[var(--color-bg)] text-[var(--color-text)]">
+    <div className="fixed inset-0 z-50 flex flex-col bg-base text-default">
 
       {/* ── Terminal Drawer Backdrop ─────────────────────────────────── */}
       <div
@@ -855,12 +855,12 @@ export function POSShell({ session, onExit }: POSShellProps) {
               POS
             </div>
             <div>
-              <p className="font-bold text-sm text-[var(--color-text)]">
+              <p className="font-bold text-sm text-default">
                 {session.terminal_name ?? 'POS Terminal'}
               </p>
               <div className="flex items-center gap-1.5 mt-0.5">
                 <span className="pos-status-dot" />
-                <span className="text-[11px] text-[var(--color-text-muted)]">
+                <span className="text-[11px] text-muted">
                   Live — {session.session_number}
                 </span>
               </div>
@@ -869,7 +869,7 @@ export function POSShell({ session, onExit }: POSShellProps) {
           <button
             type="button"
             onClick={() => setIsDrawerOpen(false)}
-            className="flex h-8 w-8 items-center justify-center rounded-xl border border-[var(--color-border)] text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-raised)] transition-all cursor-pointer"
+            className="flex h-8 w-8 items-center justify-center rounded-xl border border-default text-muted hover:text-default hover:bg-surface-raised transition-all cursor-pointer"
             title="Close drawer (Esc)"
           >
             <X className="h-4 w-4" />
@@ -882,8 +882,8 @@ export function POSShell({ session, onExit }: POSShellProps) {
           {/* Live Clock Section */}
           <div className="pos-drawer-section flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Clock className="h-4 w-4 text-[var(--color-primary)]" />
-              <span className="text-[11px] font-semibold text-[var(--color-text-muted)] uppercase tracking-wider">Live Clock</span>
+              <Clock className="h-4 w-4 text-primary" />
+              <span className="text-[11px] font-semibold text-muted uppercase tracking-wider">Live Clock</span>
             </div>
             <span className="pos-live-clock">{liveClock}</span>
           </div>
@@ -932,8 +932,8 @@ export function POSShell({ session, onExit }: POSShellProps) {
                   <Clock className="h-4 w-4" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-semibold text-[var(--color-text)]">Parked / Held Sales</p>
-                  <p className="text-[10px] text-[var(--color-text-muted)]">Resume parked customer carts</p>
+                  <p className="text-xs font-semibold text-default">Parked / Held Sales</p>
+                  <p className="text-[10px] text-muted">Resume parked customer carts</p>
                 </div>
                 {heldSales.length > 0 && (
                   <span className="pos-held-badge">{heldSales.length}</span>
@@ -945,12 +945,12 @@ export function POSShell({ session, onExit }: POSShellProps) {
                 onClick={() => { handleOpenExchangeModal(); setIsDrawerOpen(false); }}
                 className="pos-drawer-nav-item"
               >
-                <div className="pos-drawer-nav-icon bg-primary/10 border border-primary/20 text-[var(--color-primary)]">
+                <div className="pos-drawer-nav-icon bg-primary/10 border border-primary/20 text-primary">
                   <ArrowLeftRight className="h-4 w-4" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-semibold text-[var(--color-text)]">Product Exchange</p>
-                  <p className="text-[10px] text-[var(--color-text-muted)]">Swap items from previous sale</p>
+                  <p className="text-xs font-semibold text-default">Product Exchange</p>
+                  <p className="text-[10px] text-muted">Swap items from previous sale</p>
                 </div>
               </button>
 
@@ -963,8 +963,8 @@ export function POSShell({ session, onExit }: POSShellProps) {
                   <RotateCcw className="h-4 w-4" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-semibold text-[var(--color-text)]">Return &amp; Refund</p>
-                  <p className="text-[10px] text-[var(--color-text-muted)]">Process customer returns</p>
+                  <p className="text-xs font-semibold text-default">Return &amp; Refund</p>
+                  <p className="text-[10px] text-muted">Process customer returns</p>
                 </div>
               </button>
             </div>
@@ -985,11 +985,11 @@ export function POSShell({ session, onExit }: POSShellProps) {
                 ['F10', 'Cash & Focus'],
                 ['Esc', 'Close Panels'],
               ].map(([key, desc]) => (
-                <div key={key} className="flex items-center gap-1.5 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg px-2 py-1.5">
-                  <span className="bg-[var(--color-surface-raised)] border border-[var(--color-border-strong)] rounded px-1 text-[9px] font-bold text-[var(--color-text)]">
+                <div key={key} className="flex items-center gap-1.5 bg-surface border border-default rounded-lg px-2 py-1.5">
+                  <span className="bg-surface-raised border border-strong rounded px-1 text-[9px] font-bold text-default">
                     {key}
                   </span>
-                  <span className="text-[var(--color-text-muted)] text-[9px] leading-tight">{desc}</span>
+                  <span className="text-muted text-[9px] leading-tight">{desc}</span>
                 </div>
               ))}
             </div>
@@ -1002,7 +1002,7 @@ export function POSShell({ session, onExit }: POSShellProps) {
             </div>
             <button
               onClick={onExit}
-              className="flex items-center gap-1.5 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-xs font-medium text-[var(--color-text)] hover:bg-[var(--color-surface-raised)] cursor-pointer transition-colors"
+              className="flex items-center gap-1.5 rounded-xl border border-default bg-surface px-3 py-2 text-xs font-medium text-default hover:bg-surface-raised cursor-pointer transition-colors"
             >
               <X className="h-3.5 w-3.5" />
               Exit
@@ -1012,7 +1012,7 @@ export function POSShell({ session, onExit }: POSShellProps) {
 
         {/* Drawer Footer */}
         <div className="pos-drawer-footer">
-          <div className="text-[10px] text-[var(--color-text-muted)] font-mono">
+          <div className="text-[10px] text-muted font-mono">
             Session #{session.session_number}
           </div>
           <span className="pos-live-clock text-sm">{liveClock}</span>
@@ -1020,13 +1020,13 @@ export function POSShell({ session, onExit }: POSShellProps) {
       </aside>
 
       {/* ── Top Header Bar ─────────────────────────────────────────── */}
-      <header className="flex h-14 shrink-0 items-center justify-between border-b border-[var(--color-border)] bg-[var(--color-surface-sunken)] px-3 sm:px-4 z-40">
+      <header className="flex h-14 shrink-0 items-center justify-between border-b border-default bg-surface-sunken px-3 sm:px-4 z-40">
         {/* Left: Drawer toggle + Brand */}
         <div className="flex items-center gap-3">
           <button
             type="button"
             onClick={() => setIsDrawerOpen(true)}
-            className="flex h-9 w-9 items-center justify-center rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-raised)] transition-all cursor-pointer"
+            className="flex h-9 w-9 items-center justify-center rounded-xl border border-default bg-surface text-muted hover:text-default hover:bg-surface-raised transition-all cursor-pointer"
             title="Open Terminal Menu"
           >
             <AlignJustify className="h-4 w-4" />
@@ -1038,7 +1038,7 @@ export function POSShell({ session, onExit }: POSShellProps) {
             </div>
             <div className="hidden sm:block">
               <div className="flex items-center gap-2">
-                <span className="font-bold text-sm text-[var(--color-text)] leading-tight">
+                <span className="font-bold text-sm text-default leading-tight">
                   {session.terminal_name ?? 'POS Register'}
                 </span>
                 <span className="hidden md:inline-flex items-center gap-1 rounded-md bg-emerald-500/10 px-1.5 py-0.5 text-[9px] font-bold text-emerald-500 border border-emerald-500/20">
@@ -1046,7 +1046,7 @@ export function POSShell({ session, onExit }: POSShellProps) {
                   Live
                 </span>
               </div>
-              <p className="text-[10px] text-[var(--color-text-muted)] font-mono leading-tight">
+              <p className="text-[10px] text-muted font-mono leading-tight">
                 {session.branch_name ?? 'Main Outlet'}
               </p>
             </div>
@@ -1056,7 +1056,7 @@ export function POSShell({ session, onExit }: POSShellProps) {
         {/* Center: Live clock (desktop) */}
         <div className="hidden lg:flex flex-col items-center">
           <span className="pos-live-clock text-base">{liveClock}</span>
-          <span className="text-[9px] text-[var(--color-text-subtle)] font-mono">
+          <span className="text-[9px] text-subtle font-mono">
             {new Date().toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })}
           </span>
         </div>
@@ -1064,18 +1064,18 @@ export function POSShell({ session, onExit }: POSShellProps) {
         {/* Right: Actions */}
         <div className="flex items-center gap-2">
           {/* Mobile: Catalog/Cart switcher */}
-          <div className="lg:hidden flex items-center bg-[var(--color-surface-sunken)] p-0.5 rounded-xl border border-[var(--color-border)]">
+          <div className="lg:hidden flex items-center bg-surface-sunken p-0.5 rounded-xl border border-default">
             <button
               type="button"
               onClick={() => setMobileTab('catalog')}
-              className={`px-3 py-1 text-[11px] font-bold rounded-lg transition-all cursor-pointer ${mobileTab === 'catalog' ? 'bg-[var(--color-primary)] text-white shadow-sm' : 'text-[var(--color-text-muted)] hover:text-[var(--color-text)]'}`}
+              className={`px-3 py-1 text-[11px] font-bold rounded-lg transition-all cursor-pointer ${mobileTab === 'catalog' ? 'bg-primary text-white shadow-sm' : 'text-muted hover:text-default'}`}
             >
               Catalog
             </button>
             <button
               type="button"
               onClick={() => setMobileTab('cart')}
-              className={`px-3 py-1 text-[11px] font-bold rounded-lg transition-all flex items-center gap-1 cursor-pointer ${mobileTab === 'cart' ? 'bg-[var(--color-primary)] text-white shadow-sm' : 'text-[var(--color-text-muted)] hover:text-[var(--color-text)]'}`}
+              className={`px-3 py-1 text-[11px] font-bold rounded-lg transition-all flex items-center gap-1 cursor-pointer ${mobileTab === 'cart' ? 'bg-primary text-white shadow-sm' : 'text-muted hover:text-default'}`}
             >
               <ShoppingBag className="size-3" />
               <span>Cart</span>
@@ -1090,7 +1090,7 @@ export function POSShell({ session, onExit }: POSShellProps) {
           {/* Held Sales */}
           <button
             onClick={() => setIsParkedDrawerOpen(true)}
-            className="hidden sm:flex items-center gap-1.5 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-2.5 py-1.5 text-xs font-semibold text-[var(--color-text)] hover:bg-[var(--color-surface-raised)] cursor-pointer transition-colors"
+            className="hidden sm:flex items-center gap-1.5 rounded-xl border border-default bg-surface px-2.5 py-1.5 text-xs font-semibold text-default hover:bg-surface-raised cursor-pointer transition-colors"
             title="Parked / Held Sales"
           >
             <Clock className="h-4 w-4 text-amber-500" />
@@ -1107,10 +1107,10 @@ export function POSShell({ session, onExit }: POSShellProps) {
           >
             <div className="pos-cashier-avatar">{operatorInitials}</div>
             <div className="hidden sm:block">
-              <p className="text-[11px] font-bold text-[var(--color-text)] leading-tight">
+              <p className="text-[11px] font-bold text-default leading-tight">
                 {session.operator_name ?? 'Cashier'}
               </p>
-              <p className="text-[9px] text-[var(--color-text-muted)]">
+              <p className="text-[9px] text-muted">
                 {session.session_number}
               </p>
             </div>
@@ -1119,7 +1119,7 @@ export function POSShell({ session, onExit }: POSShellProps) {
           {/* Exit */}
           <button
             onClick={onExit}
-            className="flex items-center gap-1 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-2.5 py-1.5 text-xs font-medium text-[var(--color-text)] hover:bg-[var(--color-surface-raised)] cursor-pointer transition-colors"
+            className="flex items-center gap-1 rounded-xl border border-default bg-surface px-2.5 py-1.5 text-xs font-medium text-default hover:bg-surface-raised cursor-pointer transition-colors"
           >
             <X className="h-4 w-4" />
             <span className="hidden sm:inline">Exit</span>
@@ -1131,14 +1131,14 @@ export function POSShell({ session, onExit }: POSShellProps) {
       <div className="pos-main-workspace flex flex-1 overflow-hidden relative">
 
         {/* ── LEFT: Product Catalog ───────────────────────────────── */}
-        <div className={`flex-1 flex-col border-r border-[var(--color-border)] p-3 sm:p-4 overflow-hidden ${
+        <div className={`flex-1 flex-col border-r border-default p-3 sm:p-4 overflow-hidden ${
           mobileTab === 'catalog' ? 'flex' : 'hidden lg:flex'
         }`}>
 
           {/* Search & Barcode Scan */}
           <div className="mb-3 flex gap-2">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--color-text-muted)]" />
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
               <input
                 ref={barcodeInputRef}
                 type="text"
@@ -1162,13 +1162,13 @@ export function POSShell({ session, onExit }: POSShellProps) {
                     }
                   }
                 }}
-                className="h-11 w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-sunken)] pl-10 pr-4 text-sm text-[var(--color-text)] placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-primary)] focus:outline-none"
+                className="h-11 w-full rounded-xl border border-default bg-surface-sunken pl-10 pr-4 text-sm text-default placeholder:text-muted focus:border-primary focus:outline-none"
               />
             </div>
             <button
               onClick={() => refetchProducts()}
               disabled={fetchingProducts}
-              className="flex h-11 items-center gap-1 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-sunken)] px-3 text-[var(--color-text-muted)] hover:text-[var(--color-text)] cursor-pointer transition-colors"
+              className="flex h-11 items-center gap-1 rounded-xl border border-default bg-surface-sunken px-3 text-muted hover:text-default cursor-pointer transition-colors"
               title="Refresh Products"
             >
               <RefreshCw className={`h-4 w-4 ${fetchingProducts ? 'animate-spin' : ''}`} />
@@ -1178,14 +1178,14 @@ export function POSShell({ session, onExit }: POSShellProps) {
           {/* Smart Category Navigation Bar */}
           <div className="mb-3">
             {isCategoriesCollapsed ? (
-              <div className="flex items-center justify-between rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-1.5 text-xs">
+              <div className="flex items-center justify-between rounded-xl border border-default bg-surface px-3 py-1.5 text-xs">
                 <div className="flex items-center gap-2">
-                  <Filter className="h-3.5 w-3.5 text-[var(--color-primary)] shrink-0" />
-                  <span className="font-semibold text-[var(--color-text-muted)] text-[11px]">Category:</span>
+                  <Filter className="h-3.5 w-3.5 text-primary shrink-0" />
+                  <span className="font-semibold text-muted text-[11px]">Category:</span>
                   <select
                     value={selectedCategory}
                     onChange={(e) => setSelectedCategory(e.target.value)}
-                    className="h-7 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-sunken)] px-2 text-xs font-semibold text-[var(--color-text)] focus:border-[var(--color-primary)] focus:outline-none cursor-pointer"
+                    className="h-7 rounded-lg border border-default bg-surface-sunken px-2 text-xs font-semibold text-default focus:border-primary focus:outline-none cursor-pointer"
                   >
                     {categoryTabs.map((tab) => (
                       <option key={tab.id} value={tab.id}>
@@ -1197,7 +1197,7 @@ export function POSShell({ session, onExit }: POSShellProps) {
                     <button
                       type="button"
                       onClick={() => setSelectedCategory('all')}
-                      className="text-[10px] text-[var(--color-primary)] hover:underline font-semibold cursor-pointer"
+                      className="text-[10px] text-primary hover:underline font-semibold cursor-pointer"
                     >
                       Reset
                     </button>
@@ -1206,7 +1206,7 @@ export function POSShell({ session, onExit }: POSShellProps) {
                 <button
                   type="button"
                   onClick={() => toggleCategoriesCollapsed(false)}
-                  className="flex items-center gap-1 text-[11px] font-semibold text-[var(--color-text-muted)] hover:text-[var(--color-text)] bg-[var(--color-surface-sunken)] hover:bg-[var(--color-surface)] px-2.5 py-1 rounded-lg border border-[var(--color-border)] transition-all cursor-pointer"
+                  className="flex items-center gap-1 text-[11px] font-semibold text-muted hover:text-default bg-surface-sunken hover:bg-surface px-2.5 py-1 rounded-lg border border-default transition-all cursor-pointer"
                   title="Expand Category Pills"
                 >
                   <span>Categories</span>
@@ -1218,7 +1218,7 @@ export function POSShell({ session, onExit }: POSShellProps) {
                 <button
                   type="button"
                   onClick={() => scrollCategories('left')}
-                  className="h-8 w-7 shrink-0 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] hover:bg-[var(--color-surface-sunken)] flex items-center justify-center text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-all cursor-pointer"
+                  className="h-8 w-7 shrink-0 rounded-xl border border-default bg-surface hover:bg-surface-sunken flex items-center justify-center text-muted hover:text-default transition-all cursor-pointer"
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </button>
@@ -1238,12 +1238,12 @@ export function POSShell({ session, onExit }: POSShellProps) {
                         onClick={() => setSelectedCategory(tab.id)}
                         className={`inline-flex shrink-0 items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold transition-all cursor-pointer select-none ${
                           isActive
-                            ? 'bg-[var(--color-primary)] text-white shadow-sm font-bold'
-                            : 'border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-muted)] hover:bg-[var(--color-surface-sunken)] hover:text-[var(--color-text)]'
+                            ? 'bg-primary text-white shadow-sm font-bold'
+                            : 'border border-default bg-surface text-muted hover:bg-surface-sunken hover:text-default'
                         }`}
                       >
                         <span>{tab.name}</span>
-                        <span className={`rounded-full px-1.5 py-0.5 text-[9px] font-mono ${isActive ? 'bg-white/20 text-white' : 'bg-[var(--color-surface-sunken)] text-[var(--color-text-muted)]'}`}>
+                        <span className={`rounded-full px-1.5 py-0.5 text-[9px] font-mono ${isActive ? 'bg-white/20 text-white' : 'bg-surface-sunken text-muted'}`}>
                           {tab.count}
                         </span>
                       </button>
@@ -1253,14 +1253,14 @@ export function POSShell({ session, onExit }: POSShellProps) {
                 <button
                   type="button"
                   onClick={() => scrollCategories('right')}
-                  className="h-8 w-7 shrink-0 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] hover:bg-[var(--color-surface-sunken)] flex items-center justify-center text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-all cursor-pointer"
+                  className="h-8 w-7 shrink-0 rounded-xl border border-default bg-surface hover:bg-surface-sunken flex items-center justify-center text-muted hover:text-default transition-all cursor-pointer"
                 >
                   <ChevronRight className="h-4 w-4" />
                 </button>
                 <button
                   type="button"
                   onClick={() => toggleCategoriesCollapsed(true)}
-                  className="h-8 shrink-0 px-2 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] hover:bg-[var(--color-surface-sunken)] flex items-center gap-1 text-[11px] font-semibold text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-all cursor-pointer"
+                  className="h-8 shrink-0 px-2 rounded-xl border border-default bg-surface hover:bg-surface-sunken flex items-center gap-1 text-[11px] font-semibold text-muted hover:text-default transition-all cursor-pointer"
                 >
                   <ChevronUp className="h-3.5 w-3.5" />
                   <span className="hidden xl:inline">Collapse</span>
@@ -1280,19 +1280,19 @@ export function POSShell({ session, onExit }: POSShellProps) {
                     style={{ animationDelay: `${i * 50}ms` }}
                   >
                     <div className="pos-product-no-img" style={{ background: 'var(--color-surface-sunken)', border: 'none' }} />
-                    <div className="h-3 w-3/4 rounded bg-[var(--color-surface-sunken)] mb-1" />
-                    <div className="h-3 w-1/2 rounded bg-[var(--color-surface-sunken)]" />
+                    <div className="h-3 w-3/4 rounded bg-surface-sunken mb-1" />
+                    <div className="h-3 w-1/2 rounded bg-surface-sunken" />
                   </div>
                 ))}
               </div>
             ) : filteredProducts.length === 0 ? (
-              <div className="flex flex-col h-48 items-center justify-center text-xs text-[var(--color-text-muted)] gap-2">
+              <div className="flex flex-col h-48 items-center justify-center text-xs text-muted gap-2">
                 <p>No products found matching your search or category filter.</p>
                 {(selectedCategory !== 'all' || search) && (
                   <button
                     type="button"
                     onClick={() => { setSelectedCategory('all'); setSearch(''); }}
-                    className="text-[var(--color-primary)] font-semibold hover:underline cursor-pointer"
+                    className="text-primary font-semibold hover:underline cursor-pointer"
                   >
                     Clear filters and show all
                   </button>
@@ -1333,7 +1333,7 @@ export function POSShell({ session, onExit }: POSShellProps) {
                             }}
                           />
                           <div
-                            className="pos-img-fallback absolute inset-0 hidden items-center justify-center font-black text-2xl text-[var(--color-primary)]"
+                            className="pos-img-fallback absolute inset-0 hidden items-center justify-center font-black text-2xl text-primary"
                             style={{ background: 'var(--color-primary-subtle)' }}
                           >
                             {p.name.charAt(0).toUpperCase()}
@@ -1367,18 +1367,18 @@ export function POSShell({ session, onExit }: POSShellProps) {
                       )}
 
                       {catName && !imageUrl && (
-                        <span className="mb-1 inline-block truncate max-w-full rounded bg-[var(--color-surface-sunken)] px-1.5 py-0.5 text-[9px] font-medium text-[var(--color-text-muted)] uppercase tracking-wider">
+                        <span className="mb-1 inline-block truncate max-w-full rounded bg-surface-sunken px-1.5 py-0.5 text-[9px] font-medium text-muted uppercase tracking-wider">
                           {catName}
                         </span>
                       )}
 
                       <div
-                        className="font-semibold text-xs text-[var(--color-text)] line-clamp-2 leading-snug"
+                        className="font-semibold text-xs text-default line-clamp-2 leading-snug"
                         title={p.name}
                       >
                         {p.name}
                       </div>
-                      <div className="font-mono text-[9px] text-[var(--color-text-subtle)] mt-0.5">{p.sku}</div>
+                      <div className="font-mono text-[9px] text-subtle mt-0.5">{p.sku}</div>
                       <div className="mt-auto pt-2 font-mono font-bold text-sm text-emerald-500">
                         {formatCurrency(price)}
                       </div>
@@ -1397,9 +1397,9 @@ export function POSShell({ session, onExit }: POSShellProps) {
 
           {/* Mobile Sticky Quick-Checkout Bar */}
           {cart.length > 0 && (
-            <div className="lg:hidden mt-3 p-3 bg-[var(--color-surface)] rounded-2xl border border-[var(--color-primary)]/30 shadow-lg flex items-center justify-between gap-3">
+            <div className="lg:hidden mt-3 p-3 bg-surface rounded-2xl border border-(--color-primary)/30 shadow-lg flex items-center justify-between gap-3">
               <div className="min-w-0">
-                <p className="text-[11px] text-[var(--color-text-muted)] font-medium truncate">
+                <p className="text-[11px] text-muted font-medium truncate">
                   {cart.length} line item{cart.length > 1 ? 's' : ''} in cart
                 </p>
                 <p className="font-mono font-black text-sm text-emerald-500">
@@ -1409,7 +1409,7 @@ export function POSShell({ session, onExit }: POSShellProps) {
               <button
                 type="button"
                 onClick={() => setMobileTab('cart')}
-                className="min-h-11 px-4 bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white rounded-xl font-bold text-xs shadow-sm flex items-center gap-2 cursor-pointer active:scale-95"
+                className="min-h-11 px-4 bg-primary hover:bg-primary-hover text-white rounded-xl font-bold text-xs shadow-sm flex items-center gap-2 cursor-pointer active:scale-95"
               >
                 <ShoppingBag className="size-4" />
                 <span>View Cart →</span>
@@ -1419,7 +1419,7 @@ export function POSShell({ session, onExit }: POSShellProps) {
         </div>
 
         {/* ── RIGHT: Cart & Payment Panel ─────────────────────────── */}
-        <div className={`w-full lg:w-[400px] flex-col bg-[var(--color-surface-sunken)]/40 overflow-hidden ${
+        <div className={`w-full lg:w-100 flex-col bg-(--color-surface-sunken)/40 overflow-hidden ${
           mobileTab === 'cart' ? 'flex' : 'hidden lg:flex'
         }`}>
           {/* Scrollable cart content */}
@@ -1430,7 +1430,7 @@ export function POSShell({ session, onExit }: POSShellProps) {
               <button
                 type="button"
                 onClick={() => setMobileTab('catalog')}
-                className="w-full min-h-11 px-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text)] hover:bg-[var(--color-surface-raised)] font-bold text-xs flex items-center justify-center gap-2 cursor-pointer"
+                className="w-full min-h-11 px-3 rounded-xl border border-default bg-surface text-default hover:bg-surface-raised font-bold text-xs flex items-center justify-center gap-2 cursor-pointer"
               >
                 <ChevronLeft className="h-4 w-4" />
                 Back to Product Catalog
@@ -1438,7 +1438,7 @@ export function POSShell({ session, onExit }: POSShellProps) {
             </div>
 
             {/* Multi-Cart Slot Tabs */}
-            <div className="flex items-center gap-1.5 bg-[var(--color-surface)] p-1 rounded-xl border border-[var(--color-border)]">
+            <div className="flex items-center gap-1.5 bg-surface p-1 rounded-xl border border-default">
               {slots.map((slot, idx) => {
                 const count = slot.cart.reduce((s, i) => s + i.quantity, 0);
                 const isActive = idx === activeSlotIndex;
@@ -1448,14 +1448,14 @@ export function POSShell({ session, onExit }: POSShellProps) {
                     onClick={() => setActiveSlotIndex(idx)}
                     className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
                       isActive
-                        ? 'bg-[var(--color-primary)] text-white shadow-sm'
-                        : 'text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-sunken)]'
+                        ? 'bg-primary text-white shadow-sm'
+                        : 'text-muted hover:text-default hover:bg-surface-sunken'
                     }`}
                   >
                     <span>{slot.label}</span>
                     {count > 0 && (
                       <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
-                        isActive ? 'bg-white/20 text-white' : 'bg-[var(--color-surface-sunken)] text-emerald-500 border border-[var(--color-border)]'
+                        isActive ? 'bg-white/20 text-white' : 'bg-surface-sunken text-emerald-500 border border-default'
                       }`}>
                         {count}
                       </span>
@@ -1466,11 +1466,11 @@ export function POSShell({ session, onExit }: POSShellProps) {
             </div>
 
             {/* Cart Header */}
-            <div className="flex items-center justify-between border-b border-[var(--color-border)] pb-2">
+            <div className="flex items-center justify-between border-b border-default pb-2">
               <div className="flex items-center gap-2">
                 <ShoppingBag className="h-4 w-4 text-emerald-500" />
-                <span className="font-semibold text-sm text-[var(--color-text)]">{currentSlot.label} Order</span>
-                <span className="rounded-full bg-[var(--color-surface-sunken)] border border-[var(--color-border)] px-2 py-0.5 text-[10px] font-bold text-[var(--color-text-muted)]">
+                <span className="font-semibold text-sm text-default">{currentSlot.label} Order</span>
+                <span className="rounded-full bg-surface-sunken border border-default px-2 py-0.5 text-[10px] font-bold text-muted">
                   {cart.reduce((s, i) => s + i.quantity, 0)}
                 </span>
               </div>
@@ -1493,9 +1493,9 @@ export function POSShell({ session, onExit }: POSShellProps) {
             </div>
 
             {/* Cart Items */}
-            <div className="divide-y divide-[var(--color-border)]">
+            <div className="divide-y divide-(--color-border)">
               {cart.length === 0 ? (
-                <div className="flex h-40 flex-col items-center justify-center text-[var(--color-text-muted)]">
+                <div className="flex h-40 flex-col items-center justify-center text-muted">
                   <ShoppingBag className="h-8 w-8 stroke-1 mb-2" />
                   <p className="text-xs font-medium">Cart is empty</p>
                   <p className="text-[10px]">Scan barcode (F2) or click products</p>
@@ -1510,17 +1510,17 @@ export function POSShell({ session, onExit }: POSShellProps) {
                     <div key={item.product.id} className="pos-cart-item">
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0 flex-1">
-                          <p className="font-semibold text-xs text-[var(--color-text)] truncate" title={item.product.name}>
+                          <p className="font-semibold text-xs text-default truncate" title={item.product.name}>
                             {item.product.name}
                           </p>
-                          <p className="font-mono text-[10px] text-[var(--color-text-muted)]">{item.product.sku}</p>
+                          <p className="font-mono text-[10px] text-muted">{item.product.sku}</p>
                         </div>
                         <div className="flex items-center gap-1.5 shrink-0">
                           <span className="font-mono font-bold text-xs text-emerald-500">{formatCurrency(lineTotal)}</span>
                           <button
                             type="button"
                             onClick={() => removeFromCart(item.product.id)}
-                            className="p-1.5 text-[var(--color-text-muted)] hover:text-rose-500 hover:bg-rose-500/10 rounded-lg cursor-pointer transition-colors"
+                            className="p-1.5 text-muted hover:text-rose-500 hover:bg-rose-500/10 rounded-lg cursor-pointer transition-colors"
                             title="Remove item"
                           >
                             <Trash2 className="h-3.5 w-3.5" />
@@ -1529,14 +1529,14 @@ export function POSShell({ session, onExit }: POSShellProps) {
                       </div>
 
                       {/* Qty / Price / Discount row */}
-                      <div className="mt-2 grid grid-cols-3 gap-1.5 bg-[var(--color-surface-sunken)]/60 p-1.5 rounded-lg border border-[var(--color-border)]/60 text-[11px]">
+                      <div className="mt-2 grid grid-cols-3 gap-1.5 bg-(--color-surface-sunken)/60 p-1.5 rounded-lg border border-(--color-border)/60 text-[11px]">
                         <div className="flex flex-col gap-0.5">
-                          <label className="text-[10px] font-semibold text-[var(--color-text-muted)]">Qty</label>
+                          <label className="text-[10px] font-semibold text-muted">Qty</label>
                           <div className="flex items-center gap-0.5">
                             <button
                               type="button"
                               onClick={() => updateQuantity(item.product.id, -1)}
-                              className="flex h-7 w-6 shrink-0 items-center justify-center rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text)] hover:bg-[var(--color-surface-sunken)] cursor-pointer transition-colors"
+                              className="flex h-7 w-6 shrink-0 items-center justify-center rounded-lg border border-default bg-surface text-default hover:bg-surface-sunken cursor-pointer transition-colors"
                             >
                               <Minus className="h-3 w-3" />
                             </button>
@@ -1546,12 +1546,12 @@ export function POSShell({ session, onExit }: POSShellProps) {
                               step="any"
                               value={item.quantity}
                               onChange={(e) => updateItemQuantity(item.product.id, parseFloat(e.target.value) || 0)}
-                              className="h-7 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-1 text-center font-mono font-bold text-xs text-[var(--color-text)] focus:border-[var(--color-primary)] focus:outline-none"
+                              className="h-7 w-full rounded-lg border border-default bg-surface px-1 text-center font-mono font-bold text-xs text-default focus:border-primary focus:outline-none"
                             />
                             <button
                               type="button"
                               onClick={() => updateQuantity(item.product.id, 1)}
-                              className="flex h-7 w-6 shrink-0 items-center justify-center rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text)] hover:bg-[var(--color-surface-sunken)] cursor-pointer transition-colors"
+                              className="flex h-7 w-6 shrink-0 items-center justify-center rounded-lg border border-default bg-surface text-default hover:bg-surface-sunken cursor-pointer transition-colors"
                             >
                               <Plus className="h-3 w-3" />
                             </button>
@@ -1559,19 +1559,19 @@ export function POSShell({ session, onExit }: POSShellProps) {
                         </div>
 
                         <div className="flex flex-col gap-0.5">
-                          <label className="text-[10px] font-semibold text-[var(--color-text-muted)]">Price</label>
+                          <label className="text-[10px] font-semibold text-muted">Price</label>
                           <input
                             type="number"
                             min="0"
                             step="any"
                             value={item.unit_price}
                             onChange={(e) => updateItemPrice(item.product.id, parseFloat(e.target.value) || 0)}
-                            className="h-7 w-full rounded border border-[var(--color-border)] bg-[var(--color-surface)] px-1 text-right font-mono font-bold text-xs text-[var(--color-text)] focus:border-[var(--color-primary)] focus:outline-none"
+                            className="h-7 w-full rounded border border-default bg-surface px-1 text-right font-mono font-bold text-xs text-default focus:border-primary focus:outline-none"
                           />
                         </div>
 
                         <div className="flex flex-col gap-0.5">
-                          <label className="text-[10px] font-semibold text-[var(--color-text-muted)]">
+                          <label className="text-[10px] font-semibold text-muted">
                             Disc ({item.discount_type === 'percentage' ? '%' : currencySymbol})
                           </label>
                           <div className="flex items-center">
@@ -1582,12 +1582,12 @@ export function POSShell({ session, onExit }: POSShellProps) {
                               placeholder="0"
                               value={item.discount === 0 ? '' : item.discount}
                               onChange={(e) => updateItemDiscount(item.product.id, Math.max(0, parseFloat(e.target.value) || 0))}
-                              className="h-7 w-full rounded-l border border-[var(--color-border)] bg-[var(--color-surface)] px-1 text-right font-mono font-bold text-xs text-rose-500 focus:border-[var(--color-primary)] focus:outline-none"
+                              className="h-7 w-full rounded-l border border-default bg-surface px-1 text-right font-mono font-bold text-xs text-rose-500 focus:border-primary focus:outline-none"
                             />
                             <button
                               type="button"
                               onClick={() => toggleItemDiscountType(item.product.id)}
-                              className="flex h-7 w-6 shrink-0 items-center justify-center rounded-r border border-l-0 border-[var(--color-border)] bg-[var(--color-surface-sunken)] font-bold text-[10px] text-[var(--color-text-muted)] hover:text-[var(--color-text)] cursor-pointer"
+                              className="flex h-7 w-6 shrink-0 items-center justify-center rounded-r border border-l-0 border-default bg-surface-sunken font-bold text-[10px] text-muted hover:text-default cursor-pointer"
                               title="Toggle flat/percentage"
                             >
                               {item.discount_type === 'percentage' ? '%' : currencySymbol}
@@ -1602,17 +1602,17 @@ export function POSShell({ session, onExit }: POSShellProps) {
             </div>
 
             {/* Customer Selector */}
-            <div className="space-y-2 border-t border-[var(--color-border)] pt-3">
+            <div className="space-y-2 border-t border-default pt-3">
               <div className="flex items-center justify-between">
-                <label className="text-[11px] font-bold uppercase tracking-wider text-[var(--color-text-muted)] flex items-center gap-1.5">
-                  <User className="size-3.5 text-[var(--color-primary)]" />
+                <label className="text-[11px] font-bold uppercase tracking-wider text-muted flex items-center gap-1.5">
+                  <User className="size-3.5 text-primary" />
                   Customer
                 </label>
                 {currentSlot.customerPartyId && (
                   <button
                     type="button"
                     onClick={() => updateCurrentSlot({ customerPartyId: null, customerName: '', customerPhone: '' })}
-                    className="text-[10px] text-[var(--color-primary)] hover:underline cursor-pointer"
+                    className="text-[10px] text-primary hover:underline cursor-pointer"
                   >
                     Reset to Walk-in
                   </button>
@@ -1637,27 +1637,27 @@ export function POSShell({ session, onExit }: POSShellProps) {
                     }
                   </div>
                   <div className="flex-1 min-w-0 text-left">
-                    <p className="text-xs font-semibold text-[var(--color-text)] truncate">
+                    <p className="text-xs font-semibold text-default truncate">
                       {currentSlot.customerName || 'Walk-in Customer'}
                     </p>
                     {currentSlot.customerPhone && (
-                      <p className="text-[10px] text-[var(--color-text-muted)]">{currentSlot.customerPhone}</p>
+                      <p className="text-[10px] text-muted">{currentSlot.customerPhone}</p>
                     )}
                   </div>
-                  <ChevronDown className={`h-3.5 w-3.5 text-[var(--color-text-muted)] shrink-0 transition-transform ${isCustomerDropdownOpen ? 'rotate-180' : ''}`} />
+                  <ChevronDown className={`h-3.5 w-3.5 text-muted shrink-0 transition-transform ${isCustomerDropdownOpen ? 'rotate-180' : ''}`} />
                 </button>
 
                 {isCustomerDropdownOpen && (
                   <div className="pos-customer-dropdown">
                     <div className="pos-customer-dropdown-search">
-                      <Search className="h-3.5 w-3.5 text-[var(--color-text-muted)] shrink-0" />
+                      <Search className="h-3.5 w-3.5 text-muted shrink-0" />
                       <input
                         ref={customerSearchRef}
                         type="text"
                         placeholder="Search by name or phone..."
                         value={customerSearchQuery}
                         onChange={(e) => setCustomerSearchQuery(e.target.value)}
-                        className="flex-1 bg-transparent text-xs text-[var(--color-text)] placeholder:text-[var(--color-text-muted)] focus:outline-none"
+                        className="flex-1 bg-transparent text-xs text-default placeholder:text-muted focus:outline-none"
                         autoComplete="off"
                       />
                     </div>
@@ -1676,8 +1676,8 @@ export function POSShell({ session, onExit }: POSShellProps) {
                           <User className="h-3.5 w-3.5" />
                         </div>
                         <div className="text-left">
-                          <p className="text-xs font-semibold text-[var(--color-text)]">Walk-in Customer</p>
-                          <p className="text-[10px] text-[var(--color-text-muted)]">General Retail Sale</p>
+                          <p className="text-xs font-semibold text-default">Walk-in Customer</p>
+                          <p className="text-[10px] text-muted">General Retail Sale</p>
                         </div>
                       </button>
                       {filteredCustomerOptions.map((c) => (
@@ -1702,15 +1702,15 @@ export function POSShell({ session, onExit }: POSShellProps) {
                             {c.name.charAt(0).toUpperCase()}
                           </div>
                           <div className="text-left min-w-0">
-                            <p className="text-xs font-semibold text-[var(--color-text)] truncate">{c.name}</p>
-                            <p className="text-[10px] text-[var(--color-text-muted)]">
+                            <p className="text-xs font-semibold text-default truncate">{c.name}</p>
+                            <p className="text-[10px] text-muted">
                               {c.phone ?? ''} {c.type ? `· ${c.type}` : ''}
                             </p>
                           </div>
                         </button>
                       ))}
                       {filteredCustomerOptions.length === 0 && customerSearchQuery && (
-                        <p className="text-center text-[10px] text-[var(--color-text-muted)] py-4">No customers found</p>
+                        <p className="text-center text-[10px] text-muted py-4">No customers found</p>
                       )}
                     </div>
                   </div>
@@ -1725,29 +1725,29 @@ export function POSShell({ session, onExit }: POSShellProps) {
                   placeholder="Name (F4)"
                   value={customerName}
                   onChange={(e) => updateCurrentSlot({ customerName: e.target.value })}
-                  className="h-8 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-2.5 text-xs text-[var(--color-text)] placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-primary)] focus:outline-none"
+                  className="h-8 rounded-xl border border-default bg-surface px-2.5 text-xs text-default placeholder:text-muted focus:border-primary focus:outline-none"
                 />
                 <input
                   type="text"
                   placeholder="Phone"
                   value={customerPhone}
                   onChange={(e) => updateCurrentSlot({ customerPhone: e.target.value })}
-                  className="h-8 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-2.5 text-xs text-[var(--color-text)] placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-primary)] focus:outline-none"
+                  className="h-8 rounded-xl border border-default bg-surface px-2.5 text-xs text-default placeholder:text-muted focus:border-primary focus:outline-none"
                 />
               </div>
             </div>
 
             {/* Sale Note */}
-            <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-2.5 space-y-1.5">
+            <div className="rounded-xl border border-default bg-surface p-2.5 space-y-1.5">
               <button
                 type="button"
                 onClick={() => setIsNoteExpanded(!isNoteExpanded)}
-                className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-[var(--color-text-muted)] hover:text-[var(--color-text)] cursor-pointer transition-colors w-full"
+                className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-muted hover:text-default cursor-pointer transition-colors w-full"
               >
-                <StickyNote className="h-3.5 w-3.5 text-[var(--color-primary)]" />
+                <StickyNote className="h-3.5 w-3.5 text-primary" />
                 <span>Sale Note</span>
                 {currentSlot.notes?.trim() && (
-                  <span className="rounded-full bg-[var(--color-primary)]/10 text-[var(--color-primary)] px-1.5 py-0.5 text-[9px] font-bold lowercase">
+                  <span className="rounded-full bg-(--color-primary)/10 text-primary px-1.5 py-0.5 text-[9px] font-bold lowercase">
                     added
                   </span>
                 )}
@@ -1760,10 +1760,10 @@ export function POSShell({ session, onExit }: POSShellProps) {
                     placeholder="Add note for this sale..."
                     value={currentSlot.notes || ''}
                     onChange={(e) => updateCurrentSlot({ notes: e.target.value })}
-                    className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-sunken)] p-2 text-xs text-[var(--color-text)] placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-primary)] focus:outline-none resize-none"
+                    className="w-full rounded-lg border border-default bg-surface-sunken p-2 text-xs text-default placeholder:text-muted focus:border-primary focus:outline-none resize-none"
                     maxLength={500}
                   />
-                  <div className="flex items-center justify-between text-[10px] text-[var(--color-text-muted)]">
+                  <div className="flex items-center justify-between text-[10px] text-muted">
                     <span>Printed on receipt</span>
                     <span>{(currentSlot.notes || '').length}/500</span>
                   </div>
@@ -1772,9 +1772,9 @@ export function POSShell({ session, onExit }: POSShellProps) {
             </div>
 
             {/* Payment Method — 2×2 Large Icon Grid */}
-            <div className="space-y-2 border-t border-[var(--color-border)] pt-3">
+            <div className="space-y-2 border-t border-default pt-3">
               <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--color-text-muted)]">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-muted">
                   Payment Method
                 </span>
                 <button
@@ -1791,8 +1791,8 @@ export function POSShell({ session, onExit }: POSShellProps) {
                   }}
                   className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                     isSplitPayment
-                      ? 'bg-[var(--color-primary)] text-white shadow-sm'
-                      : 'border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-sunken)]'
+                      ? 'bg-primary text-white shadow-sm'
+                      : 'border border-default bg-surface text-muted hover:text-default hover:bg-surface-sunken'
                   }`}
                 >
                   <Split className="h-3 w-3" />
@@ -1841,8 +1841,8 @@ export function POSShell({ session, onExit }: POSShellProps) {
 
                   {/* Cash Tendered Input */}
                   {tenderMethod === 'cash' && (
-                    <div className="flex items-center justify-between gap-2 rounded-xl bg-[var(--color-surface-sunken)] border border-[var(--color-border)] p-2.5">
-                      <span className="text-[11px] text-[var(--color-text-muted)]">Cash Received:</span>
+                    <div className="flex items-center justify-between gap-2 rounded-xl bg-surface-sunken border border-default p-2.5">
+                      <span className="text-[11px] text-muted">Cash Received:</span>
                       <input
                         ref={cashTenderedInputRef}
                         type="number"
@@ -1850,17 +1850,17 @@ export function POSShell({ session, onExit }: POSShellProps) {
                         placeholder={grandTotal.toString()}
                         value={cashTendered}
                         onChange={(e) => updateCurrentSlot({ cashTendered: e.target.value })}
-                        className="h-8 w-32 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-2 text-right font-mono font-bold text-sm text-emerald-500 focus:border-[var(--color-primary)] focus:outline-none"
+                        className="h-8 w-32 rounded-lg border border-default bg-surface px-2 text-right font-mono font-bold text-sm text-emerald-500 focus:border-primary focus:outline-none"
                       />
                     </div>
                   )}
                 </>
               ) : (
                 /* Multi-Payment / Split Tender Panel */
-                <div className="space-y-2 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-sunken)] p-2.5">
+                <div className="space-y-2 rounded-xl border border-default bg-surface-sunken p-2.5">
                   <div className="space-y-2 max-h-48 overflow-y-auto pr-0.5">
                     {splitPayments.map((payment) => (
-                      <div key={payment.id} className="flex flex-col gap-1.5 p-2 rounded-lg bg-[var(--color-surface)] border border-[var(--color-border)]">
+                      <div key={payment.id} className="flex flex-col gap-1.5 p-2 rounded-lg bg-surface border border-default">
                         <div className="flex items-center gap-1.5">
                           <select
                             value={payment.method}
@@ -1873,7 +1873,7 @@ export function POSShell({ session, onExit }: POSShellProps) {
                                 ),
                               }));
                             }}
-                            className="h-7 flex-1 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-sunken)] px-1.5 text-xs font-medium text-[var(--color-text)] focus:border-[var(--color-primary)] focus:outline-none"
+                            className="h-7 flex-1 rounded-lg border border-default bg-surface-sunken px-1.5 text-xs font-medium text-default focus:border-primary focus:outline-none"
                           >
                             <option value="cash">Cash</option>
                             <option value="card">Card / POS</option>
@@ -1882,7 +1882,7 @@ export function POSShell({ session, onExit }: POSShellProps) {
                           </select>
 
                           <div className="relative w-28">
-                            <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] text-[var(--color-text-muted)] font-bold">{currencySymbol}</span>
+                            <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] text-muted font-bold">{currencySymbol}</span>
                             <input
                               type="number"
                               min="0"
@@ -1898,7 +1898,7 @@ export function POSShell({ session, onExit }: POSShellProps) {
                                 }));
                               }}
                               placeholder="Amount"
-                              className="h-7 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-sunken)] pl-5 pr-2 text-right font-mono font-bold text-xs text-[var(--color-text)] focus:border-[var(--color-primary)] focus:outline-none"
+                              className="h-7 w-full rounded-lg border border-default bg-surface-sunken pl-5 pr-2 text-right font-mono font-bold text-xs text-default focus:border-primary focus:outline-none"
                             />
                           </div>
 
@@ -1909,7 +1909,7 @@ export function POSShell({ session, onExit }: POSShellProps) {
                                 ...prev,
                                 splitPayments: (prev.splitPayments ?? []).filter((p) => p.id !== payment.id),
                               }))}
-                              className="p-1 rounded-md text-[var(--color-text-muted)] hover:text-rose-500 hover:bg-[var(--color-surface-sunken)] cursor-pointer transition-colors"
+                              className="p-1 rounded-md text-muted hover:text-rose-500 hover:bg-surface-sunken cursor-pointer transition-colors"
                             >
                               <Trash2 className="h-3.5 w-3.5" />
                             </button>
@@ -1917,8 +1917,8 @@ export function POSShell({ session, onExit }: POSShellProps) {
                         </div>
 
                         {payment.method === 'cash' && (
-                          <div className="flex items-center justify-between text-[11px] bg-[var(--color-surface-sunken)]/60 px-2 py-1 rounded border border-[var(--color-border)]/50 font-mono">
-                            <span className="text-[var(--color-text-muted)]">Cash Rcvd:</span>
+                          <div className="flex items-center justify-between text-[11px] bg-(--color-surface-sunken)/60 px-2 py-1 rounded border border-(--color-border)/50 font-mono">
+                            <span className="text-muted">Cash Rcvd:</span>
                             <input
                               type="number"
                               min="0"
@@ -1934,7 +1934,7 @@ export function POSShell({ session, onExit }: POSShellProps) {
                                   ),
                                 }));
                               }}
-                              className="h-5 w-20 rounded border border-[var(--color-border)] bg-[var(--color-surface)] px-1 text-right text-xs font-bold focus:outline-none"
+                              className="h-5 w-20 rounded border border-default bg-surface px-1 text-right text-xs font-bold focus:outline-none"
                             />
                             {(payment.changeGiven ?? 0) > 0 && (
                               <span className="text-emerald-500 font-bold text-[10px]">
@@ -1947,7 +1947,7 @@ export function POSShell({ session, onExit }: POSShellProps) {
                     ))}
                   </div>
 
-                  <div className="flex items-center justify-between gap-2 pt-1 border-t border-[var(--color-border)]/60">
+                  <div className="flex items-center justify-between gap-2 pt-1 border-t border-(--color-border)/60">
                     <button
                       type="button"
                       onClick={() => {
@@ -1965,7 +1965,7 @@ export function POSShell({ session, onExit }: POSShellProps) {
                           ],
                         }));
                       }}
-                      className="flex items-center gap-1 text-[11px] font-bold text-[var(--color-primary)] hover:underline cursor-pointer"
+                      className="flex items-center gap-1 text-[11px] font-bold text-primary hover:underline cursor-pointer"
                     >
                       <Plus className="h-3 w-3" />
                       Add Method
@@ -1983,10 +1983,10 @@ export function POSShell({ session, onExit }: POSShellProps) {
             </div>
 
             {/* Order Summary */}
-            <div className="space-y-1.5 text-xs text-[var(--color-text-muted)] border-t border-[var(--color-border)] pt-2 font-mono">
+            <div className="space-y-1.5 text-xs text-muted border-t border-default pt-2 font-mono">
               <div className="flex justify-between">
                 <span>Subtotal:</span>
-                <span className="text-[var(--color-text)]">{formatCurrency(subtotal)}</span>
+                <span className="text-default">{formatCurrency(subtotal)}</span>
               </div>
               {totalLineDiscounts > 0 && (
                 <div className="flex justify-between text-rose-500">
@@ -1995,7 +1995,7 @@ export function POSShell({ session, onExit }: POSShellProps) {
                 </div>
               )}
               <div className="flex items-center justify-between gap-2 py-0.5">
-                <span className="font-medium text-[var(--color-text)] font-sans">Order Discount (F8):</span>
+                <span className="font-medium text-default font-sans">Order Discount (F8):</span>
                 <div className="flex items-center">
                   <input
                     ref={orderDiscountInputRef}
@@ -2005,12 +2005,12 @@ export function POSShell({ session, onExit }: POSShellProps) {
                     placeholder="0"
                     value={currentSlot.order_discount_value || ''}
                     onChange={(e) => updateCurrentSlot({ order_discount_value: e.target.value })}
-                    className="h-6 w-16 rounded-l border border-[var(--color-border)] bg-[var(--color-surface)] px-1 text-right font-mono font-bold text-xs text-rose-500 focus:border-[var(--color-primary)] focus:outline-none"
+                    className="h-6 w-16 rounded-l border border-default bg-surface px-1 text-right font-mono font-bold text-xs text-rose-500 focus:border-primary focus:outline-none"
                   />
                   <button
                     type="button"
                     onClick={() => updateCurrentSlot({ order_discount_type: (currentSlot.order_discount_type || 'flat') === 'flat' ? 'percentage' : 'flat' })}
-                    className="flex h-6 w-5 items-center justify-center rounded-r border border-l-0 border-[var(--color-border)] bg-[var(--color-surface-sunken)] font-bold text-[10px] text-[var(--color-text-muted)] hover:text-[var(--color-text)] cursor-pointer"
+                    className="flex h-6 w-5 items-center justify-center rounded-r border border-l-0 border-default bg-surface-sunken font-bold text-[10px] text-muted hover:text-default cursor-pointer"
                     title="Toggle Flat/Percentage"
                   >
                     {(currentSlot.order_discount_type || 'flat') === 'percentage' ? '%' : currencySymbol}
@@ -2024,7 +2024,7 @@ export function POSShell({ session, onExit }: POSShellProps) {
                 </div>
               )}
               {discountTotal > 0 && (
-                <div className="flex justify-between text-rose-500 font-bold border-t border-[var(--color-border)]/40 pt-1">
+                <div className="flex justify-between text-rose-500 font-bold border-t border-(--color-border)/40 pt-1">
                   <span>Total Discount:</span>
                   <span>-{formatCurrency(discountTotal)}</span>
                 </div>
@@ -2042,14 +2042,14 @@ export function POSShell({ session, onExit }: POSShellProps) {
           <div className="pos-checkout-footer">
             <div className="pos-checkout-total">
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-text-muted)]">Total Payable</p>
-                <p className="font-mono font-black text-2xl text-[var(--color-text)] leading-tight">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-muted">Total Payable</p>
+                <p className="font-mono font-black text-2xl text-default leading-tight">
                   {formatCurrency(grandTotal)}
                 </p>
               </div>
               {changeGiven > 0 && (
                 <div className="text-right">
-                  <p className="text-[10px] text-[var(--color-text-muted)]">Change</p>
+                  <p className="text-[10px] text-muted">Change</p>
                   <p className="font-mono font-bold text-lg text-amber-500">{formatCurrency(changeGiven)}</p>
                 </div>
               )}
@@ -2068,7 +2068,7 @@ export function POSShell({ session, onExit }: POSShellProps) {
             </button>
 
             {/* Shortcut hints */}
-            <div className="flex items-center justify-between text-[9px] text-[var(--color-text-subtle)] pt-1.5 font-mono">
+            <div className="flex items-center justify-between text-[9px] text-subtle pt-1.5 font-mono">
               <span>[F2] Search</span>
               <span>[F4] Customer</span>
               <span>[F8] Discount</span>
@@ -2127,36 +2127,36 @@ export function POSShell({ session, onExit }: POSShellProps) {
 
       {/* ── Park Sale Modal ────────────────────────────────────────── */}
       {isParkModalOpen && (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="w-full max-w-md rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between border-b border-[var(--color-border)] pb-3">
+        <div className="fixed inset-0 z-70 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="w-full max-w-md rounded-2xl border border-default bg-surface p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-default pb-3">
               <div className="flex items-center gap-2">
                 <PauseCircle className="h-5 w-5 text-amber-500" />
-                <h3 className="text-base font-bold text-[var(--color-text)]">Hold / Park Active Cart</h3>
+                <h3 className="text-base font-bold text-default">Hold / Park Active Cart</h3>
               </div>
-              <button onClick={() => setIsParkModalOpen(false)} className="text-[var(--color-text-muted)] hover:text-[var(--color-text)] cursor-pointer text-sm">✕</button>
+              <button onClick={() => setIsParkModalOpen(false)} className="text-muted hover:text-default cursor-pointer text-sm">✕</button>
             </div>
             <form onSubmit={handleParkSale} className="space-y-3">
-              <p className="text-xs text-[var(--color-text-muted)]">
+              <p className="text-xs text-muted">
                 This will save the current cart with {cart.length} item(s) totalling{' '}
-                <span className="font-bold text-[var(--color-text)] font-mono">{formatCurrency(grandTotal)}</span> to the server queue.
+                <span className="font-bold text-default font-mono">{formatCurrency(grandTotal)}</span> to the server queue.
               </p>
               <div>
-                <label className="block text-xs font-semibold text-[var(--color-text-muted)] uppercase mb-1">Reference / Note</label>
+                <label className="block text-xs font-semibold text-muted uppercase mb-1">Reference / Note</label>
                 <input
                   type="text"
                   value={parkNote}
                   onChange={(e) => setParkNote(e.target.value)}
                   placeholder={`e.g. ${customerName || 'Customer'} — Waiting`}
-                  className="w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-sunken)] px-3 py-2 text-sm text-[var(--color-text)] focus:border-[var(--color-primary)] focus:outline-none"
+                  className="w-full rounded-xl border border-default bg-surface-sunken px-3 py-2 text-sm text-default focus:border-primary focus:outline-none"
                   autoFocus
                 />
               </div>
-              <div className="flex justify-end gap-2 pt-3 border-t border-[var(--color-border)]">
+              <div className="flex justify-end gap-2 pt-3 border-t border-default">
                 <button
                   type="button"
                   onClick={() => setIsParkModalOpen(false)}
-                  className="px-4 py-2 text-xs font-medium border border-[var(--color-border)] rounded-xl hover:bg-[var(--color-surface-sunken)] text-[var(--color-text)] cursor-pointer"
+                  className="px-4 py-2 text-xs font-medium border border-default rounded-xl hover:bg-surface-sunken text-default cursor-pointer"
                 >
                   Cancel
                 </button>
@@ -2175,42 +2175,42 @@ export function POSShell({ session, onExit }: POSShellProps) {
 
       {/* ── Parked Sales Drawer Modal ──────────────────────────────── */}
       {isParkedDrawerOpen && (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="w-full max-w-2xl rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6 shadow-2xl space-y-4 max-h-[85vh] flex flex-col">
-            <div className="flex items-center justify-between border-b border-[var(--color-border)] pb-3">
+        <div className="fixed inset-0 z-70 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="w-full max-w-2xl rounded-2xl border border-default bg-surface p-6 shadow-2xl space-y-4 max-h-[85vh] flex flex-col">
+            <div className="flex items-center justify-between border-b border-default pb-3">
               <div className="flex items-center gap-2">
                 <Clock className="h-5 w-5 text-amber-500" />
-                <h3 className="text-base font-bold text-[var(--color-text)]">Parked / Held Sales Queue</h3>
+                <h3 className="text-base font-bold text-default">Parked / Held Sales Queue</h3>
                 <span className="rounded-full bg-amber-500/10 text-amber-500 px-2 py-0.5 text-xs font-bold border border-amber-500/20">
                   {heldSales.length} on hold
                 </span>
               </div>
-              <button onClick={() => setIsParkedDrawerOpen(false)} className="text-[var(--color-text-muted)] hover:text-[var(--color-text)] cursor-pointer text-sm">✕</button>
+              <button onClick={() => setIsParkedDrawerOpen(false)} className="text-muted hover:text-default cursor-pointer text-sm">✕</button>
             </div>
             <div className="flex-1 overflow-y-auto space-y-2.5 pr-1">
               {heldSales.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-12 text-[var(--color-text-muted)]">
+                <div className="flex flex-col items-center justify-center py-12 text-muted">
                   <PauseCircle className="h-10 w-10 stroke-1 mb-2" />
                   <p className="text-sm font-medium">No sales are currently held</p>
                   <p className="text-xs">Click "Hold" in the cart when a customer needs time to pay.</p>
                 </div>
               ) : (
                 heldSales.map((sale) => (
-                  <div key={sale.id} className="p-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-sunken)] flex items-center justify-between gap-4 hover:border-amber-500/40 transition-colors">
+                  <div key={sale.id} className="p-4 rounded-xl border border-default bg-surface-sunken flex items-center justify-between gap-4 hover:border-amber-500/40 transition-colors">
                     <div className="space-y-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className="font-bold text-sm text-[var(--color-text)] truncate">{sale.reference_note || 'Held Sale'}</span>
-                        <span className="text-[10px] font-mono text-[var(--color-text-muted)] bg-[var(--color-surface)] px-2 py-0.5 rounded border border-[var(--color-border)]">
+                        <span className="font-bold text-sm text-default truncate">{sale.reference_note || 'Held Sale'}</span>
+                        <span className="text-[10px] font-mono text-muted bg-surface px-2 py-0.5 rounded border border-default">
                           {new Date(sale.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </span>
                       </div>
-                      <p className="text-xs text-[var(--color-text-muted)]">
+                      <p className="text-xs text-muted">
                         {sale.cart_payload?.items?.length ?? 0} item(s) • Total:{' '}
                         <span className="font-bold text-emerald-500 font-mono">{formatCurrency(sale.total_amount)}</span>
                       </p>
                       {sale.cart_payload?.customerName && (
-                        <p className="text-[11px] text-[var(--color-text-muted)]">
-                          Customer: <span className="text-[var(--color-text)] font-medium">{sale.cart_payload.customerName}</span>
+                        <p className="text-[11px] text-muted">
+                          Customer: <span className="text-default font-medium">{sale.cart_payload.customerName}</span>
                           {sale.cart_payload.customerPhone && ` (${sale.cart_payload.customerPhone})`}
                         </p>
                       )}
@@ -2218,14 +2218,14 @@ export function POSShell({ session, onExit }: POSShellProps) {
                     <div className="flex items-center gap-2 shrink-0">
                       <button
                         onClick={() => handleResumeSale(sale)}
-                        className="px-3.5 py-1.5 rounded-xl bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors"
+                        className="px-3.5 py-1.5 rounded-xl bg-primary hover:bg-primary-hover text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors"
                       >
                         <PlayCircle className="h-3.5 w-3.5" />
                         Resume
                       </button>
                       <button
                         onClick={() => handleDiscardHeldSale(sale.id)}
-                        className="p-1.5 rounded-xl border border-[var(--color-border)] text-[var(--color-text-muted)] hover:text-rose-500 hover:bg-[var(--color-surface)] cursor-pointer transition-colors"
+                        className="p-1.5 rounded-xl border border-default text-muted hover:text-rose-500 hover:bg-surface cursor-pointer transition-colors"
                         title="Discard held sale"
                       >
                         <Trash2 className="h-4 w-4" />
@@ -2235,11 +2235,11 @@ export function POSShell({ session, onExit }: POSShellProps) {
                 ))
               )}
             </div>
-            <div className="pt-3 border-t border-[var(--color-border)] flex justify-between items-center text-xs text-[var(--color-text-muted)]">
+            <div className="pt-3 border-t border-default flex justify-between items-center text-xs text-muted">
               <span>Resuming a cart loads items into your active register slot.</span>
               <button
                 onClick={() => setIsParkedDrawerOpen(false)}
-                className="px-4 py-2 border border-[var(--color-border)] rounded-xl hover:bg-[var(--color-surface-sunken)] text-[var(--color-text)] font-medium cursor-pointer"
+                className="px-4 py-2 border border-default rounded-xl hover:bg-surface-sunken text-default font-medium cursor-pointer"
               >
                 Close
               </button>
@@ -2250,13 +2250,13 @@ export function POSShell({ session, onExit }: POSShellProps) {
 
       {/* ── Receipt Modal ──────────────────────────────────────────── */}
       {lastReceipt && (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="w-full max-w-sm rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6 shadow-2xl">
+        <div className="fixed inset-0 z-70 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="w-full max-w-sm rounded-2xl border border-default bg-surface p-6 shadow-2xl">
             <div className="flex items-center justify-center text-emerald-500 mb-2">
               <CheckCircle2 className="h-12 w-12" />
             </div>
-            <h3 className="text-center text-base font-bold text-[var(--color-text)]">Sale Completed!</h3>
-            <p className="text-center font-mono text-xs text-[var(--color-text-muted)] mt-1">
+            <h3 className="text-center text-base font-bold text-default">Sale Completed!</h3>
+            <p className="text-center font-mono text-xs text-muted mt-1">
               Invoice #{lastReceipt.invoice.invoice_number}
             </p>
 
@@ -2266,27 +2266,27 @@ export function POSShell({ session, onExit }: POSShellProps) {
                 0
               );
               return (
-                <div className="mt-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-sunken)] p-4 font-mono text-xs space-y-2.5">
-                  <div className="flex justify-between text-[var(--color-text-muted)]">
+                <div className="mt-4 rounded-xl border border-default bg-surface-sunken p-4 font-mono text-xs space-y-2.5">
+                  <div className="flex justify-between text-muted">
                     <span>Order No:</span>
-                    <span className="text-[var(--color-text)] font-semibold">{lastReceipt.order.order_number}</span>
+                    <span className="text-default font-semibold">{lastReceipt.order.order_number}</span>
                   </div>
-                  <div className="flex justify-between text-[var(--color-text-muted)]">
+                  <div className="flex justify-between text-muted">
                     <span>Total Bill:</span>
-                    <span className="text-[var(--color-text)] font-bold">{formatCurrency(lastReceipt.order.total_amount)}</span>
+                    <span className="text-default font-bold">{formatCurrency(lastReceipt.order.total_amount)}</span>
                   </div>
                   {lastCompletedPayments.length > 0 && (
-                    <div className="border-t border-[var(--color-border)]/60 pt-2 space-y-1.5 text-[11px]">
-                      <div className="flex justify-between text-[var(--color-text-muted)] font-sans font-semibold">
+                    <div className="border-t border-(--color-border)/60 pt-2 space-y-1.5 text-[11px]">
+                      <div className="flex justify-between text-muted font-sans font-semibold">
                         <span>Tender Breakdown:</span>
                         {lastCompletedPayments.length > 1 && <span>Amount</span>}
                       </div>
                       {lastCompletedPayments.map((p, idx) => (
                         <div key={idx} className="flex justify-between">
-                          <span className="capitalize text-[var(--color-text)]">
+                          <span className="capitalize text-default">
                             {p.method === 'mobile_banking' ? 'bKash / Nagad' : p.method === 'credit_adjustment' ? 'Credit' : p.method === 'cash' ? 'Cash Tendered' : 'Card / POS'}:
                           </span>
-                          <span className="font-bold text-[var(--color-text)]">{formatCurrency(parseFloat(p.amount))}</span>
+                          <span className="font-bold text-default">{formatCurrency(parseFloat(p.amount))}</span>
                         </div>
                       ))}
                       {receiptTotalChange > 0 && (
@@ -2297,16 +2297,16 @@ export function POSShell({ session, onExit }: POSShellProps) {
                       )}
                     </div>
                   )}
-                  <div className="flex justify-between border-t border-[var(--color-border)]/60 pt-2 text-[var(--color-text-muted)]">
-                    <span className="font-semibold text-[var(--color-text)] font-sans">Net Paid:</span>
+                  <div className="flex justify-between border-t border-(--color-border)/60 pt-2 text-muted">
+                    <span className="font-semibold text-default font-sans">Net Paid:</span>
                     <span className="text-emerald-500 font-bold text-sm">{formatCurrency(lastReceipt.order.total_amount)}</span>
                   </div>
                   {lastReceipt.order.notes && (
-                    <div className="border-t border-[var(--color-border)]/60 pt-2 text-left space-y-0.5">
-                      <span className="text-[10px] font-bold text-[var(--color-text-muted)] uppercase tracking-wider flex items-center gap-1">
-                        <StickyNote className="h-3 w-3 text-[var(--color-primary)]" /> Sale Note:
+                    <div className="border-t border-(--color-border)/60 pt-2 text-left space-y-0.5">
+                      <span className="text-[10px] font-bold text-muted uppercase tracking-wider flex items-center gap-1">
+                        <StickyNote className="h-3 w-3 text-primary" /> Sale Note:
                       </span>
-                      <p className="text-[var(--color-text)] font-sans text-xs italic pl-4">{lastReceipt.order.notes}</p>
+                      <p className="text-default font-sans text-xs italic pl-4">{lastReceipt.order.notes}</p>
                     </div>
                   )}
                 </div>
@@ -2318,15 +2318,15 @@ export function POSShell({ session, onExit }: POSShellProps) {
                 <button
                   type="button"
                   onClick={() => handlePrintReceipt('thermal')}
-                  className="flex items-center justify-center gap-1.5 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-sunken)] py-2.5 px-3 text-xs font-semibold text-[var(--color-text)] hover:bg-[var(--color-surface)] hover:border-[var(--color-primary)]/50 cursor-pointer transition-all"
+                  className="flex items-center justify-center gap-1.5 rounded-xl border border-default bg-surface-sunken py-2.5 px-3 text-xs font-semibold text-default hover:bg-surface hover:border-(--color-primary)/50 cursor-pointer transition-all"
                 >
-                  <Printer className="h-3.5 w-3.5 text-[var(--color-primary)]" />
+                  <Printer className="h-3.5 w-3.5 text-primary" />
                   Thermal (80mm)
                 </button>
                 <button
                   type="button"
                   onClick={() => handlePrintReceipt('a4')}
-                  className="flex items-center justify-center gap-1.5 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-sunken)] py-2.5 px-3 text-xs font-semibold text-[var(--color-text)] hover:bg-[var(--color-surface)] hover:border-[var(--color-primary)]/50 cursor-pointer transition-all"
+                  className="flex items-center justify-center gap-1.5 rounded-xl border border-default bg-surface-sunken py-2.5 px-3 text-xs font-semibold text-default hover:bg-surface hover:border-(--color-primary)/50 cursor-pointer transition-all"
                 >
                   <FileText className="h-3.5 w-3.5 text-blue-500" />
                   A4 Invoice
@@ -2346,7 +2346,7 @@ export function POSShell({ session, onExit }: POSShellProps) {
                   setLastReceipt(null);
                   handleOpenExchangeModal(invoiceId, invoiceNum, orderItems);
                 }}
-                className="w-full flex items-center justify-center gap-1.5 rounded-xl border border-[var(--color-primary)]/40 bg-[var(--color-primary)]/5 py-2 px-3 text-xs font-semibold text-[var(--color-primary)] hover:bg-[var(--color-primary)]/10 cursor-pointer transition-all"
+                className="w-full flex items-center justify-center gap-1.5 rounded-xl border border-(--color-primary)/40 bg-(--color-primary)/5 py-2 px-3 text-xs font-semibold text-primary hover:bg-(--color-primary)/10 cursor-pointer transition-all"
               >
                 <ArrowLeftRight className="h-3.5 w-3.5" />
                 Exchange Items from This Sale
