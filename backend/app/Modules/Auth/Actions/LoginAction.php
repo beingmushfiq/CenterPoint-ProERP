@@ -82,20 +82,23 @@ class LoginAction extends Action
 
         $sortedUsers = $this->sortUsersByRelevance($validUsers, $identifier);
 
-        // Multi-tenant membership: if user belongs to multiple active tenants and no tenant was requested
-        if ($sortedUsers->count() > 1 && $requestedTenantId === null) {
-            $tenants = array_values($sortedUsers->map(static function (User $u): array {
+        // Multi-tenant membership: if user belongs to multiple active distinct tenants and no tenant was requested
+        $uniqueTenants = $sortedUsers
+            ->map(static function (User $u): array {
                 return [
                     'id' => (int) $u->tenant_id,
                     'uuid' => $u->tenant !== null ? $u->tenant->uuid : '',
                     'name' => $u->tenant !== null ? $u->tenant->name : 'Default Organization',
                     'slug' => $u->tenant !== null ? $u->tenant->slug : '',
                 ];
-            })->all());
+            })
+            ->unique('id')
+            ->values();
 
+        if ($uniqueTenants->count() > 1 && $requestedTenantId === null) {
             return [
                 'requires_tenant_selection' => true,
-                'tenants' => $tenants,
+                'tenants' => $uniqueTenants->all(),
             ];
         }
 
