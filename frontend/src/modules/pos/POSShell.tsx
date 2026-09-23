@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   AlignJustify,
@@ -11,7 +11,6 @@ import {
   ChevronUp,
   Clock,
   CreditCard,
-  DollarSign,
   FileText,
   Filter,
   Keyboard,
