@@ -100,7 +100,7 @@ export function AppShell() {
         <div
           className={cn(
             'flex flex-1 flex-col min-w-0 w-full max-w-full overflow-x-hidden transition-[padding] duration-300 ease-in-out',
-            isSidebarCollapsed ? 'lg:pl-20' : 'lg:pl-64'
+            isSidebarCollapsed ? 'lg:pl-20' : 'lg:pl-72'
           )}
         >
           <AppHeader

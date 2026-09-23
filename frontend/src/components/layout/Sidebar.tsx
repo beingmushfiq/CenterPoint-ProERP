@@ -215,7 +215,9 @@ export function Sidebar({ isOpen, onClose, isCollapsed = false, onToggleCollapse
         className={cn(
           'fixed top-0 bottom-0 left-0 z-(--z-modal) lg:z-30 flex flex-col border-r border-(--nav-border) bg-(--nav-bg) text-default transition-all duration-300 ease-in-out lg:translate-x-0 select-none shadow-2xl dark:shadow-black/90 touch-pan-y',
           isOpen ? 'translate-x-0' : '-translate-x-full',
-          isCollapsed ? 'lg:w-20 w-[min(20rem,calc(100vw-2.5rem))] sm:w-72' : 'w-[min(20rem,calc(100vw-2.5rem))] sm:w-72'
+          isCollapsed
+            ? 'w-[min(20rem,calc(100vw-2.5rem))] sm:w-72 lg:w-20'
+            : 'w-[min(20rem,calc(100vw-2.5rem))] sm:w-72 lg:w-72'
         )}
       >
         {/* Subtle Ambient Radial Lighting for Dark Mode */}
