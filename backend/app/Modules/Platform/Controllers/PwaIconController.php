@@ -20,8 +20,8 @@ final class PwaIconController extends Controller
      */
     public function icon(Request $request, string $scope): Response
     {
-        $size = max(64, min(1024, (int) $request->query('size', 192)));
-        $isMaskable = (bool) $request->query('maskable', 0);
+        $size = max(64, min(1024, (int) ($request->query('size') ?? 192)));
+        $isMaskable = $request->boolean('maskable');
         $isStorefront = strtolower($scope) === 'storefront';
 
         $tenant = TenantResolver::resolveFromRequest($request);

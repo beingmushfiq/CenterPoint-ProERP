@@ -10,6 +10,7 @@ use App\Models\TenantNotFoundLog;
 use App\Models\TenantRedirect;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class TenantRedirectController extends Controller
 {
@@ -18,7 +19,7 @@ class TenantRedirectController extends Controller
         if (TenantContext::isBound()) {
             return TenantContext::current()->tenantId();
         }
-        return (int) ($request->attributes->get('tenant_id') ?? auth()->user()?->tenant_id ?? 1);
+        return (int) ($request->attributes->get('tenant_id') ?? $request->user()?->tenant_id ?? Auth::user()?->tenant_id ?? 1);
     }
 
     /**
@@ -40,7 +41,7 @@ class TenantRedirectController extends Controller
             });
         }
 
-        $redirects = $query->paginate((int) $request->query('per_page', 25));
+        $redirects = $query->paginate((int) ($request->query('per_page') ?? 25));
 
         return response()->json([
             'success' => true,
@@ -90,7 +91,7 @@ class TenantRedirectController extends Controller
             'status_code' => $validated['status_code'] ?? 301,
             'is_active' => $validated['is_active'] ?? true,
             'notes' => $validated['notes'] ?? null,
-            'created_by' => auth()->id(),
+            'created_by' => $request->user()?->id ?? Auth::id(),
         ]);
 
         return response()->json([
@@ -122,7 +123,7 @@ class TenantRedirectController extends Controller
             $validated['source_path'] = '/' . ltrim(trim($validated['source_path']), '/');
         }
 
-        $redirect->update(array_merge($validated, ['updated_by' => auth()->id()]));
+        $redirect->update(array_merge($validated, ['updated_by' => $request->user()?->id ?? Auth::id()]));
 
         return response()->json([
             'success' => true,
@@ -165,7 +166,7 @@ class TenantRedirectController extends Controller
             $query->where('is_resolved', false);
         }
 
-        $logs = $query->paginate((int) $request->query('per_page', 25));
+        $logs = $query->paginate((int) ($request->query('per_page') ?? 25));
 
         return response()->json([
             'success' => true,
@@ -203,7 +204,7 @@ class TenantRedirectController extends Controller
                 'status_code' => $request->input('status_code', 301),
                 'is_active' => true,
                 'notes' => "Auto-resolved from 404 log (hits: {$log->hit_count})",
-                'created_by' => auth()->id(),
+                'created_by' => $request->user()?->id ?? Auth::id(),
             ]
         );
 

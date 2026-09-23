@@ -129,11 +129,11 @@ export const ExecutiveDashboardView: React.FC<ExecutiveDashboardViewProps> = ({
       ───────────────────────────────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-default pb-4">
         <div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-default font-sans">
               {t('controls.operationsOverview', { defaultValue: 'Executive Operations Overview' })}
             </h2>
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 shrink-0">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
               {t('controls.allSystemsOperational')}
             </span>
@@ -143,7 +143,7 @@ export const ExecutiveDashboardView: React.FC<ExecutiveDashboardViewProps> = ({
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <Link
             to="/reports"
             className="flex items-center gap-1.5 rounded-xl border border-default bg-surface px-3 py-2 text-xs font-semibold text-default hover:bg-surface-sunken transition-all shadow-2xs"
@@ -166,20 +166,20 @@ export const ExecutiveDashboardView: React.FC<ExecutiveDashboardViewProps> = ({
       ───────────────────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-3">
         {/* KPI 1: Total Revenue */}
-        <div className="rounded-2xl border border-default bg-surface p-4 shadow-xs flex flex-col justify-between hover:border-primary/40 transition-all">
+        <div className="rounded-2xl border border-default bg-surface p-3.5 sm:p-4 shadow-xs flex flex-col justify-between hover:border-primary/40 transition-all">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold text-muted uppercase tracking-wider">
+            <span className="text-[10px] font-bold text-muted uppercase tracking-wider truncate">
               {t('kpi.todayRevenue', { defaultValue: "TODAY'S REVENUE" })}
             </span>
-            <div className="flex size-7 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+            <div className="flex size-7 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 shrink-0 ml-1">
               <TrendingUp className="size-3.5" />
             </div>
           </div>
-          <div className="mt-2">
-            <div className="text-xl sm:text-2xl font-extrabold font-mono text-default">
+          <div className="mt-2 min-w-0">
+            <div className="text-lg sm:text-2xl font-extrabold font-mono text-default truncate" title={metrics ? formatCurrency(metrics.commercial.today_revenue) : formatCurrency(0)}>
               {metrics ? formatCurrency(metrics.commercial.today_revenue) : formatCurrency(0)}
             </div>
-            <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
+            <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 truncate block">
               {t('kpi.month')}:{' '}
               {metrics ? formatCurrency(metrics.commercial.month_revenue) : formatCurrency(0)}
             </span>
@@ -187,20 +187,20 @@ export const ExecutiveDashboardView: React.FC<ExecutiveDashboardViewProps> = ({
         </div>
 
         {/* KPI 2: Active Orders */}
-        <div className="rounded-2xl border border-default bg-surface p-4 shadow-xs flex flex-col justify-between hover:border-primary/40 transition-all">
+        <div className="rounded-2xl border border-default bg-surface p-3.5 sm:p-4 shadow-xs flex flex-col justify-between hover:border-primary/40 transition-all">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold text-muted uppercase tracking-wider">
+            <span className="text-[10px] font-bold text-muted uppercase tracking-wider truncate">
               {t('kpi.activeOrders')}
             </span>
-            <div className="flex size-7 items-center justify-center rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400">
+            <div className="flex size-7 items-center justify-center rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 shrink-0 ml-1">
               <ShoppingBag className="size-3.5" />
             </div>
           </div>
-          <div className="mt-2">
-            <div className="text-xl sm:text-2xl font-extrabold font-mono text-default">
+          <div className="mt-2 min-w-0">
+            <div className="text-lg sm:text-2xl font-extrabold font-mono text-default truncate">
               {metrics ? t('kpi.ordersCount', { count: metrics.commercial.active_orders }) : t('kpi.ordersCount', { count: 0 })}
             </div>
-            <span className="text-[10px] font-semibold text-muted">
+            <span className="text-[10px] font-semibold text-muted truncate block">
               {t('kpi.due')}:{' '}
               {metrics
                 ? formatCurrency(metrics.commercial.total_receivable_due)
@@ -210,20 +210,20 @@ export const ExecutiveDashboardView: React.FC<ExecutiveDashboardViewProps> = ({
         </div>
 
         {/* KPI 3: Factory Production */}
-        <div className="rounded-2xl border border-default bg-surface p-4 shadow-xs flex flex-col justify-between hover:border-primary/40 transition-all">
+        <div className="rounded-2xl border border-default bg-surface p-3.5 sm:p-4 shadow-xs flex flex-col justify-between hover:border-primary/40 transition-all">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold text-muted uppercase tracking-wider">
+            <span className="text-[10px] font-bold text-muted uppercase tracking-wider truncate">
               {t('kpi.todayOutput')}
             </span>
-            <div className="flex size-7 items-center justify-center rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">
+            <div className="flex size-7 items-center justify-center rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 shrink-0 ml-1">
               <Factory className="size-3.5" />
             </div>
           </div>
-          <div className="mt-2">
-            <div className="text-xl sm:text-2xl font-extrabold font-mono text-default">
+          <div className="mt-2 min-w-0">
+            <div className="text-lg sm:text-2xl font-extrabold font-mono text-default truncate">
               {metrics ? t('kpi.pcsCount', { count: metrics.production.today_output }) : t('kpi.pcsCount', { count: 0 })}
             </div>
-            <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
+            <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 truncate block">
               {metrics
                 ? t('kpi.targetAchieved', { percent: metrics.production.achievement_rate })
                 : t('kpi.targetAchieved', { percent: 0 })}
@@ -232,20 +232,20 @@ export const ExecutiveDashboardView: React.FC<ExecutiveDashboardViewProps> = ({
         </div>
 
         {/* KPI 4: Inventory Valuation */}
-        <div className="rounded-2xl border border-default bg-surface p-4 shadow-xs flex flex-col justify-between hover:border-primary/40 transition-all">
+        <div className="rounded-2xl border border-default bg-surface p-3.5 sm:p-4 shadow-xs flex flex-col justify-between hover:border-primary/40 transition-all">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold text-muted uppercase tracking-wider">
+            <span className="text-[10px] font-bold text-muted uppercase tracking-wider truncate">
               {t('kpi.stockValuation')}
             </span>
-            <div className="flex size-7 items-center justify-center rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400">
+            <div className="flex size-7 items-center justify-center rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 shrink-0 ml-1">
               <Warehouse className="size-3.5" />
             </div>
           </div>
-          <div className="mt-2">
-            <div className="text-xl sm:text-2xl font-extrabold font-mono text-default">
+          <div className="mt-2 min-w-0">
+            <div className="text-lg sm:text-2xl font-extrabold font-mono text-default truncate" title={metrics ? formatCurrency(metrics.inventory.total_valuation) : formatCurrency(0)}>
               {metrics ? formatCurrency(metrics.inventory.total_valuation) : formatCurrency(0)}
             </div>
-            <span className="text-[10px] font-semibold text-amber-600 dark:text-amber-400">
+            <span className="text-[10px] font-semibold text-amber-600 dark:text-amber-400 truncate block">
               {metrics
                 ? t('kpi.reorderWarnings', { count: metrics.inventory.low_stock_count })
                 : t('kpi.reorderWarnings', { count: 0 })}
@@ -254,29 +254,29 @@ export const ExecutiveDashboardView: React.FC<ExecutiveDashboardViewProps> = ({
         </div>
 
         {/* KPI 5: QC Pass Rate */}
-        <div className="rounded-2xl border border-default bg-surface p-4 shadow-xs flex flex-col justify-between hover:border-primary/40 transition-all">
+        <div className="rounded-2xl border border-default bg-surface p-3.5 sm:p-4 shadow-xs flex flex-col justify-between hover:border-primary/40 transition-all">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold text-muted uppercase tracking-wider">
+            <span className="text-[10px] font-bold text-muted uppercase tracking-wider truncate">
               {t('kpi.qcPassRateTitle')}
             </span>
-            <div className="flex size-7 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+            <div className="flex size-7 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 shrink-0 ml-1">
               <Microscope className="size-3.5" />
             </div>
           </div>
-          <div className="mt-2">
-            <div className="text-xl sm:text-2xl font-extrabold font-mono text-default">
+          <div className="mt-2 min-w-0">
+            <div className="text-lg sm:text-2xl font-extrabold font-mono text-default truncate">
               {metrics ? `${metrics.quality.qc_pass_rate}%` : '100%'}
             </div>
-            <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
+            <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 truncate block">
               {metrics ? t('kpi.pendingTests', { count: metrics.quality.pending_inspections }) : t('kpi.pendingTests', { count: 0 })}
             </span>
           </div>
         </div>
 
         {/* KPI 6: Line Capacity */}
-        <div className="rounded-2xl border border-default bg-surface p-4 shadow-xs flex flex-col justify-between hover:border-primary/40 transition-all">
+        <div className="rounded-2xl border border-default bg-surface p-3.5 sm:p-4 shadow-xs flex flex-col justify-between hover:border-primary/40 transition-all">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold text-muted uppercase tracking-wider">
+            <span className="text-[10px] font-bold text-muted uppercase tracking-wider truncate">
               {t('kpi.facilityCapacity')}
             </span>
             <div className="flex size-7 items-center justify-center rounded-lg bg-purple-500/10 text-purple-600 dark:text-purple-400">

@@ -35,6 +35,7 @@ import {
   Trash2,
   Brain,
   Compass,
+  Layers,
 } from 'lucide-react';
 import { SliceMartBrainModal } from './SliceMartBrainModal';
 import { LanguageSwitcher } from '../ui/LanguageSwitcher';
@@ -263,18 +264,30 @@ export function AppHeader({
   };
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 w-full items-center justify-between border-b border-default bg-surface/95 px-3 sm:px-6 backdrop-blur-md transition-token-colors">
-      {/* Left side: Hamburger + Search + Mobile Search Trigger */}
-      <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0 mr-2 sm:mr-4">
-        {/* Mobile Navigation Drawer Trigger (< lg) */}
+    <header className="sticky top-0 z-30 flex h-16 w-full items-center justify-between border-b border-default bg-surface/95 px-2.5 sm:px-6 backdrop-blur-md transition-token-colors">
+      {/* Left side: Mobile Hamburger Trigger + Monogram + Search */}
+      <div className="flex items-center gap-1.5 sm:gap-3 shrink-0 lg:flex-1 lg:min-w-0 mr-1 sm:mr-4">
+        {/* Mobile Navigation Drawer Trigger (< lg) - High-Priority Non-Collapsible Anchor */}
         <button
           type="button"
           onClick={onToggleSidebar}
-          className="rounded-lg p-2 text-muted hover:bg-surface-sunken hover:text-default transition-token-colors lg:hidden focus-visible:ring-focus cursor-pointer shrink-0"
-          aria-label="Toggle Navigation"
+          className="flex items-center justify-center size-9.5 rounded-xl text-default bg-surface-sunken hover:bg-surface-raised border border-default/80 transition-token-colors lg:hidden focus-visible:ring-focus cursor-pointer shrink-0 shadow-2xs active:scale-95"
+          aria-label={t('navigation.toggleNavigation', 'Toggle Navigation')}
+          title="Open Menu"
         >
           <Menu className="size-5" />
         </button>
+
+        {/* Mobile Brand Emblem (< lg) */}
+        <Link
+          to="/dashboard"
+          className="flex lg:hidden items-center gap-1.5 p-1 rounded-xl hover:bg-surface-sunken transition-colors cursor-pointer shrink-0"
+          title="Dashboard"
+        >
+          <div className="flex size-7.5 items-center justify-center rounded-lg bg-linear-to-br from-indigo-500 to-indigo-700 text-white shadow-xs">
+            <Layers className="size-4" />
+          </div>
+        </Link>
 
         {/* Desktop Collapse/Expand Sidebar Trigger (>= lg) */}
         {onToggleCollapse && (
@@ -297,10 +310,11 @@ export function AppHeader({
         <button
           type="button"
           onClick={() => setIsMobileSearchOpen(true)}
-          className="xl:hidden flex items-center justify-center p-2 rounded-lg text-muted hover:text-default hover:bg-surface-sunken transition-colors"
+          className="xl:hidden flex items-center justify-center size-9 rounded-xl text-muted hover:text-default hover:bg-surface-sunken transition-colors shrink-0"
           title={t('navigation.searchPlaceholder', 'Search products, orders, batches... (Ctrl+K)')}
+          aria-label="Search"
         >
-          <Search className="size-4.5" />
+          <Search className="size-4" />
         </button>
 
         {/* Desktop Global Omnisearch (>= xl) */}
@@ -421,12 +435,12 @@ export function AppHeader({
         {/* ── POS (Point of Sale) Register Direct Action Button ──── */}
         <Link
           to="/pos"
-          className="flex items-center gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-600 dark:hover:bg-emerald-500 px-2.5 sm:px-3 py-1.5 text-xs font-bold text-white shadow-xs transition-colors cursor-pointer shrink-0"
+          className="flex items-center gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-600 dark:hover:bg-emerald-500 px-2 sm:px-2.5 py-1.5 text-xs font-bold text-white shadow-xs transition-colors cursor-pointer shrink-0"
           title="Open Point of Sale Counter Terminal"
         >
           <Store className="size-3.5" />
+          <span className="hidden md:inline xl:hidden">POS</span>
           <span className="hidden xl:inline">{t('navigation.posTerminal', 'POS Terminal')}</span>
-          <span className="xl:hidden">{t('navigation.items.pos', 'POS')}</span>
         </Link>
 
         {/* Branch Selector Dropdown */}
@@ -476,11 +490,11 @@ export function AppHeader({
         )}
 
         {/* ── Comprehensive + Quick Add Dropdown ────────────────── */}
-        <div className="relative">
+        <div className="relative shrink-0">
           <button
             type="button"
             onClick={() => setIsQuickAddOpen(!isQuickAddOpen)}
-            className="flex items-center gap-1.5 rounded-xl bg-blue-600 px-2.5 xl:px-3 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-blue-700 transition-colors cursor-pointer"
+            className="flex items-center gap-1.5 rounded-xl bg-blue-600 px-2 sm:px-2.5 xl:px-3 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-blue-700 transition-colors cursor-pointer shrink-0"
             title={t('navigation.quickAdd', 'Quick Add')}
           >
             <Plus className="size-3.5" />
@@ -626,11 +640,11 @@ export function AppHeader({
         </div>
 
         {/* Notifications Bell Dropdown */}
-        <div className="relative">
+        <div className="relative shrink-0">
           <button
             type="button"
             onClick={() => setIsNotifMenuOpen(!isNotifMenuOpen)}
-            className="relative rounded-lg p-2 text-muted hover:bg-surface-sunken hover:text-default transition-token-colors focus-visible:ring-focus cursor-pointer"
+            className="relative rounded-lg p-1.5 sm:p-2 text-muted hover:bg-surface-sunken hover:text-default transition-token-colors focus-visible:ring-focus cursor-pointer"
             aria-label="Notifications"
           >
             <Bell className="size-4" />
@@ -729,18 +743,18 @@ export function AppHeader({
         <button
           type="button"
           onClick={toggleTheme}
-          className="rounded-lg p-2 text-muted hover:bg-surface-sunken hover:text-default transition-token-colors focus-visible:ring-focus cursor-pointer"
+          className="rounded-lg p-1.5 sm:p-2 text-muted hover:bg-surface-sunken hover:text-default transition-token-colors focus-visible:ring-focus cursor-pointer shrink-0"
           aria-label={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
         >
           {theme === 'dark' ? <Sun className="size-4 text-amber-400" /> : <Moon className="size-4 text-slate-700" />}
         </button>
 
         {/* User Profile Dropdown */}
-        <div className="relative">
+        <div className="relative shrink-0">
           <button
             type="button"
             onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-            className="flex items-center gap-2 rounded-lg p-1 hover:bg-surface-sunken transition-token-colors focus-visible:ring-focus border border-transparent hover:border-default cursor-pointer"
+            className="flex items-center gap-1.5 rounded-lg p-1 hover:bg-surface-sunken transition-token-colors focus-visible:ring-focus border border-transparent hover:border-default cursor-pointer"
           >
             <div className="flex size-7 items-center justify-center rounded-lg bg-surface-sunken text-default font-bold text-xs border border-default shadow-xs">
               {user?.name ? user.name.split(' ').map((n) => n[0]).slice(0, 2).join('') : 'MR'}

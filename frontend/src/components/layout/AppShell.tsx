@@ -3,6 +3,7 @@ import { Outlet, useLocation } from 'react-router-dom';
 import { RouteLoadingFallback } from '../routing/RouteLoadingFallback';
 import { AppHeader } from './AppHeader';
 import { Sidebar } from './Sidebar';
+import { MobileBottomNav } from './MobileBottomNav';
 import { ImpersonationBanner } from './ImpersonationBanner';
 import { OfflineBanner } from './OfflineBanner';
 import { SeoHead } from '../seo/SeoHead';
@@ -47,6 +48,13 @@ export function AppShell() {
     const routeTitle = getRouteTitle(location.pathname);
     return routeTitle ? `${routeTitle} | ${brandName}` : `${brandName} — ERP Operations`;
   }, [location.pathname, brandName]);
+
+  // Close mobile sidebar drawer upon navigation
+  const [prevPathname, setPrevPathname] = useState(location.pathname);
+  if (prevPathname !== location.pathname) {
+    setPrevPathname(location.pathname);
+    setIsMobileSidebarOpen(false);
+  }
 
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
     try {
@@ -101,13 +109,19 @@ export function AppShell() {
             onToggleCollapse={toggleSidebarCollapse}
           />
 
-          <main className="flex-1 p-(--page-padding-mobile) sm:p-(--page-padding) overflow-x-hidden min-w-0 w-full max-w-full">
+          <main className="flex-1 p-(--page-padding-mobile) pb-20 sm:p-(--page-padding) sm:pb-24 lg:pb-(--page-padding) overflow-x-hidden min-w-0 w-full max-w-full">
             <Suspense fallback={<RouteLoadingFallback />}>
               <Outlet />
             </Suspense>
           </main>
         </div>
       </div>
+
+      {/* Mobile Persistent Bottom Navigation Bar (< lg) */}
+      <MobileBottomNav
+        onToggleSidebar={() => setIsMobileSidebarOpen((prev) => !prev)}
+        isSidebarOpen={isMobileSidebarOpen}
+      />
     </div>
   );
 }

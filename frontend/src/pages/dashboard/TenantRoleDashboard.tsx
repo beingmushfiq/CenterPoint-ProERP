@@ -571,23 +571,23 @@ export const TenantRoleDashboard: React.FC = () => {
       ───────────────────────────────────────────────────────────── */}
       <div className="bg-surface border border-default p-2.5 rounded-2xl shadow-2xs space-y-2.5">
         {/* Top Control Bar: Role Identifier & Telemetry Actions */}
-        <div className="flex items-center justify-between gap-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
           <div className="flex items-center gap-2.5 min-w-0 pl-1">
             <div className="flex size-8 items-center justify-center rounded-xl bg-primary/10 text-primary border border-primary/20 shrink-0">
               <LayoutDashboard className="size-4" />
             </div>
             <div className="flex items-center gap-2 min-w-0">
-              <span className="text-xs font-bold text-default truncate">
+              <span className="text-xs font-bold text-default">
                 {user?.role ??
                   (user?.is_platform_admin ? t('controls.superAdmin') : t('controls.operationsMember'))}
               </span>
-              <span className="hidden sm:inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-medium bg-surface-sunken text-muted border border-default">
+              <span className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-medium bg-surface-sunken text-muted border border-default">
                 {t('controls.perspective')}
               </span>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
             <a
               href={getStorefrontExternalUrl(storeSlug)}
               target="_blank"

@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Core\Tenancy\Concerns\BelongsToTenant;
+use Carbon\CarbonInterface;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -12,6 +14,47 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
 
+/**
+ * App\Models\Storefront
+ *
+ * @property int $id
+ * @property int $tenant_id
+ * @property string $uuid
+ * @property string $code
+ * @property string $name
+ * @property string|null $domain
+ * @property string $subdomain
+ * @property int|null $company_id
+ * @property int|null $default_branch_id
+ * @property int|null $default_warehouse_id
+ * @property int|null $price_list_id
+ * @property string $currency
+ * @property string $locale
+ * @property array<string, mixed>|null $theme
+ * @property int|null $logo_attachment_id
+ * @property int|null $favicon_attachment_id
+ * @property string|null $meta_title
+ * @property string|null $meta_description
+ * @property bool $guest_checkout_enabled
+ * @property bool $cod_enabled
+ * @property bool $online_payment_enabled
+ * @property string|null $whatsapp_number
+ * @property bool $whatsapp_ordering_enabled
+ * @property string|null $whatsapp_default_message
+ * @property string|null $min_order_amount
+ * @property string $status
+ * @property CarbonInterface|null $published_at
+ * @property int|null $created_by
+ * @property int|null $updated_by
+ * @property CarbonInterface|null $created_at
+ * @property CarbonInterface|null $updated_at
+ * @property CarbonInterface|null $deleted_at
+ * @property-read Company|null $company
+ * @property-read Branch|null $branch
+ * @property-read Warehouse|null $warehouse
+ * @property-read Collection<int, StorefrontProduct> $products
+ * @property-read Collection<int, Cart> $carts
+ */
 class Storefront extends Model
 {
     use BelongsToTenant;

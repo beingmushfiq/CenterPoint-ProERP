@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Ecommerce\Controllers;
 
+use App\Core\Tenancy\TenantContext;
 use App\Http\Controllers\Controller;
 use App\Models\Storefront;
 use App\Models\Tenant;
@@ -22,7 +23,7 @@ class StorefrontSitemapController extends Controller
      */
     protected function resolveTenantAndStorefront(Request $request): array
     {
-        $tenantId = $request->attributes->get('tenant_id') ?? tenant('id');
+        $tenantId = $request->attributes->get('tenant_id') ?? (TenantContext::isBound() ? TenantContext::current()->tenantId() : null);
         $storefront = $request->attributes->get('storefront');
 
         if (! $tenantId) {

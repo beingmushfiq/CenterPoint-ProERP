@@ -207,11 +207,15 @@ export function Sidebar({ isOpen, onClose, isCollapsed = false, onToggleCollapse
       )}
 
       {/* Adaptive Luxury Sidebar container */}
+      {/* Adaptive Luxury Sidebar container */}
       <aside
+        role="dialog"
+        aria-modal={isOpen ? 'true' : undefined}
+        aria-label="Navigation drawer"
         className={cn(
-          'fixed top-0 bottom-0 left-0 z-(--z-modal) lg:z-30 flex flex-col border-r border-(--nav-border) bg-(--nav-bg) text-default transition-all duration-300 ease-in-out lg:translate-x-0 select-none shadow-xl dark:shadow-black/80',
+          'fixed top-0 bottom-0 left-0 z-(--z-modal) lg:z-30 flex flex-col border-r border-(--nav-border) bg-(--nav-bg) text-default transition-all duration-300 ease-in-out lg:translate-x-0 select-none shadow-2xl dark:shadow-black/90 touch-pan-y',
           isOpen ? 'translate-x-0' : '-translate-x-full',
-          isCollapsed ? 'lg:w-20 w-[min(18rem,calc(100vw-3rem))] sm:w-64' : 'w-[min(18rem,calc(100vw-3rem))] sm:w-64'
+          isCollapsed ? 'lg:w-20 w-[min(20rem,calc(100vw-2.5rem))] sm:w-72' : 'w-[min(20rem,calc(100vw-2.5rem))] sm:w-72'
         )}
       >
         {/* Subtle Ambient Radial Lighting for Dark Mode */}
@@ -280,23 +284,23 @@ export function Sidebar({ isOpen, onClose, isCollapsed = false, onToggleCollapse
         </div>
 
         {/* Quick Command & Workspace Search */}
-        {!isCollapsed ? (
-          <div className="px-3 pt-3 pb-1 shrink-0">
-            <div className="relative flex items-center w-full rounded-lg bg-(--nav-bg-deep) border border-(--nav-border) px-2.5 py-1.5 text-xs text-muted hover:border-primary/40 transition-colors group">
-              <Search className="size-3.5 text-muted group-hover:text-primary transition-colors mr-2 shrink-0" />
-              <input
-                type="text"
-                placeholder={t('common:action.search') + '...'}
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-transparent text-xs text-default placeholder:text-muted outline-none"
-              />
-              <kbd className="hidden sm:inline-flex items-center px-1.5 py-0.5 text-[9px] font-mono text-muted bg-surface rounded border border-(--nav-border) ml-auto shrink-0">
-                ⌘K
-              </kbd>
-            </div>
+        <div className={cn('px-3 pt-3 pb-1 shrink-0', isCollapsed && 'lg:hidden')}>
+          <div className="relative flex items-center w-full rounded-lg bg-(--nav-bg-deep) border border-(--nav-border) px-2.5 py-1.5 text-xs text-muted hover:border-primary/40 transition-colors group">
+            <Search className="size-3.5 text-muted group-hover:text-primary transition-colors mr-2 shrink-0" />
+            <input
+              type="text"
+              placeholder={t('common:action.search') + '...'}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-transparent text-xs text-default placeholder:text-muted outline-none"
+            />
+            <kbd className="hidden sm:inline-flex items-center px-1.5 py-0.5 text-[9px] font-mono text-muted bg-surface rounded border border-(--nav-border) ml-auto shrink-0">
+              ⌘K
+            </kbd>
           </div>
-        ) : (
+        </div>
+
+        {isCollapsed && (
           <div className="hidden lg:flex flex-col items-center gap-1.5 pt-2.5 pb-1 shrink-0 px-2">
             <button
               type="button"
@@ -336,31 +340,33 @@ export function Sidebar({ isOpen, onClose, isCollapsed = false, onToggleCollapse
             return (
               <div key={section.title} className="space-y-0.5">
                 {/* Section Header */}
-                {!isCollapsed ? (
-                  <button
-                    type="button"
-                    onClick={() => toggleSection(section.title)}
-                    className="w-full px-2.5 py-1.5 text-[10px] font-bold tracking-[0.14em] text-(--nav-section-fg) uppercase flex items-center justify-between group hover:text-default rounded-md transition-colors cursor-pointer"
-                  >
-                    <div className="flex items-center gap-1.5 truncate">
-                      <span className="size-1 rounded-full bg-primary/60" />
-                      <span className="truncate">{t(`sections.${section.id}` as unknown as string, { defaultValue: section.title })}</span>
-                      {hasActiveChild && isSectionCollapsed && (
-                        <span className="size-1.5 rounded-full bg-primary animate-pulse" title="Active module inside" />
-                      )}
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-[9px] font-mono text-muted/60 opacity-0 group-hover:opacity-100 transition-opacity">
-                        {visibleItems.length}
-                      </span>
-                      {isSectionCollapsed ? (
-                        <ChevronRight className="size-3 text-muted/60" />
-                      ) : (
-                        <ChevronDown className="size-3 text-muted/60" />
-                      )}
-                    </div>
-                  </button>
-                ) : (
+                <button
+                  type="button"
+                  onClick={() => toggleSection(section.title)}
+                  className={cn(
+                    'w-full px-2.5 py-1.5 text-[10px] font-bold tracking-[0.14em] text-(--nav-section-fg) uppercase flex items-center justify-between group hover:text-default rounded-md transition-colors cursor-pointer',
+                    isCollapsed && 'lg:hidden'
+                  )}
+                >
+                  <div className="flex items-center gap-1.5 truncate">
+                    <span className="size-1 rounded-full bg-primary/60" />
+                    <span className="truncate">{t(`sections.${section.id}` as unknown as string, { defaultValue: section.title })}</span>
+                    {hasActiveChild && isSectionCollapsed && (
+                      <span className="size-1.5 rounded-full bg-primary animate-pulse" title="Active module inside" />
+                    )}
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[9px] font-mono text-muted/60 opacity-0 group-hover:opacity-100 transition-opacity">
+                      {visibleItems.length}
+                    </span>
+                    {isSectionCollapsed ? (
+                      <ChevronRight className="size-3 text-muted/60" />
+                    ) : (
+                      <ChevronDown className="size-3 text-muted/60" />
+                    )}
+                  </div>
+                </button>
+                {isCollapsed && (
                   <div className="hidden lg:block my-2 border-t border-(--nav-border)/50" />
                 )}
 
@@ -468,30 +474,29 @@ export function Sidebar({ isOpen, onClose, isCollapsed = false, onToggleCollapse
         )}
 
         {/* Desktop & Mobile Sidebar Bottom Footer with Version, Status & DevCenterPoint Branding */}
-        <div className="flex flex-col border-t border-(--nav-border) px-3 py-2 bg-(--nav-bg-deep)/50 shrink-0 gap-1">
-          {!isCollapsed ? (
-            <>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-1.5 text-xs text-muted/80">
-                  <span className="size-1.5 rounded-full bg-emerald-500" />
-                  <span className="font-medium text-[11px]">{tenantTier}</span>
-                </div>
-                <span className="text-[9px] font-mono text-muted/60 uppercase">{appVersion}</span>
+        <div className="flex flex-col border-t border-(--nav-border) px-3 py-2 bg-(--nav-bg-deep)/50 shrink-0 gap-1 pb-safe">
+          <div className={cn('flex flex-col gap-1', isCollapsed && 'lg:hidden')}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5 text-xs text-muted/80">
+                <span className="size-1.5 rounded-full bg-emerald-500" />
+                <span className="font-medium text-[11px]">{tenantTier}</span>
               </div>
-              <div className="text-[10px] text-muted/70 flex items-center justify-between pt-0.5 border-t border-(--nav-border)/40">
-                <span className="truncate">{i18n.language === 'bn' ? 'প্রকৌশল:' : 'Engineered by:'}</span>
-                <a
-                  href="https://devcenterpoint.com"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="font-medium text-primary hover:underline transition-colors shrink-0"
-                >
-                  DevCenterPoint
-                </a>
-              </div>
-            </>
-          ) : (
-            <div className="w-full flex items-center justify-center py-0.5">
+              <span className="text-[9px] font-mono text-muted/60 uppercase">{appVersion}</span>
+            </div>
+            <div className="text-[10px] text-muted/70 flex items-center justify-between pt-0.5 border-t border-(--nav-border)/40">
+              <span className="truncate">{i18n.language === 'bn' ? 'প্রকৌশল:' : 'Engineered by:'}</span>
+              <a
+                href="https://devcenterpoint.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-medium text-primary hover:underline transition-colors shrink-0"
+              >
+                DevCenterPoint
+              </a>
+            </div>
+          </div>
+          {isCollapsed && (
+            <div className="hidden lg:flex w-full items-center justify-center py-0.5">
               <a
                 href="https://devcenterpoint.com"
                 target="_blank"

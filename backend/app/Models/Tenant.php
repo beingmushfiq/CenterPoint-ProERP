@@ -27,9 +27,17 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property string|null $logo_path
  * @property array<string, mixed>|null $branding
  * @property array<string, mixed>|null $settings
+ * @property CarbonInterface|null $onboarding_completed_at
+ * @property int|null $onboarding_step
+ * @property array<string, mixed>|null $onboarding_draft
+ * @property string|null $industry_profile_key
+ * @property string|null $manufacturing_type
+ * @property array<string, mixed>|null $terminology
  * @property CarbonInterface|null $trial_ends_at
+ * @property CarbonInterface|null $activated_at
  * @property CarbonInterface|null $grace_period_ends_at
  * @property CarbonInterface|null $suspended_at
+ * @property CarbonInterface|null $archived_at
  * @property CarbonInterface|null $created_at
  * @property CarbonInterface|null $updated_at
  * @property CarbonInterface|null $deleted_at

@@ -29,6 +29,13 @@ import {
   Zap,
   Building2,
   Coins,
+  ChevronLeft,
+  ChevronRight,
+  ChevronDown,
+  ChevronUp,
+  ChevronsUpDown,
+  Maximize2,
+  Minimize2,
 } from 'lucide-react';
 import { PrintPreviewModal } from '../../components/print/PrintPreviewModal';
 import { SelectDropdown } from '../../components/ui/Dropdown';
@@ -125,6 +132,18 @@ export const ReportsWorkspace: React.FC = () => {
 
   // Display Mode: Consolidated Hubs (Phase 5 & 11) vs Full Directory (84 items)
   const [displayMode, setDisplayMode] = useState<'hubs' | 'directory'>('hubs');
+
+  // 12-Module Navigation strip scroll & expand state
+  const moduleNavContainerRef = React.useRef<HTMLDivElement>(null);
+  const [isModuleNavExpanded, setIsModuleNavExpanded] = useState<boolean>(false);
+  const [canScrollLeft, setCanScrollLeft] = useState<boolean>(false);
+  const [canScrollRight, setCanScrollRight] = useState<boolean>(false);
+
+  // Consolidated Hubs Explorer state (expandable, collapsable, scrollable)
+  const [isHubsExplorerCollapsed, setIsHubsExplorerCollapsed] = useState<boolean>(false);
+  const [hubsScrollMode, setHubsScrollMode] = useState<'scrollable' | 'expanded'>('scrollable');
+  const [collapsedHubIds, setCollapsedHubIds] = useState<Record<string, boolean>>({});
+  const [areAllCardsCollapsed, setAreAllCardsCollapsed] = useState<boolean>(false);
 
   // Date filters & presets (dynamic current-month initialization)
   const [startDate, setStartDate] = useState<string>(() => {
@@ -318,6 +337,84 @@ export const ReportsWorkspace: React.FC = () => {
   const activeModule = useMemo(() => {
     return REPORT_MODULES.find((m) => m.id === selectedModule) || REPORT_MODULES[0];
   }, [selectedModule]);
+
+  // Active hub & view resolution
+  const activeHub = useMemo(() => {
+    return REPORT_HUBS.find((h) => h.views.some((v) => v.code === selectedReportCode));
+  }, [selectedReportCode]);
+
+  const activeHubView = useMemo(() => {
+    return activeHub?.views.find((v) => v.code === selectedReportCode);
+  }, [activeHub, selectedReportCode]);
+
+  // Check overflow / scroll status for 12-Module Navigation Pills
+  const checkNavScroll = useCallback(() => {
+    const el = moduleNavContainerRef.current;
+    if (!el) return;
+    const hasOverflow = el.scrollWidth > el.clientWidth + 2;
+    setCanScrollLeft(el.scrollLeft > 6);
+    setCanScrollRight(hasOverflow && el.scrollLeft < el.scrollWidth - el.clientWidth - 6);
+  }, []);
+
+  useEffect(() => {
+    const el = moduleNavContainerRef.current;
+    if (!el) return;
+    checkNavScroll();
+    const handleResize = () => checkNavScroll();
+    window.addEventListener('resize', handleResize);
+    el.addEventListener('scroll', checkNavScroll, { passive: true });
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      el.removeEventListener('scroll', checkNavScroll);
+    };
+  }, [checkNavScroll, isModuleNavExpanded]);
+
+  const scrollModuleNav = (direction: 'left' | 'right') => {
+    if (moduleNavContainerRef.current) {
+      const offset = direction === 'left' ? -260 : 260;
+      moduleNavContainerRef.current.scrollBy({ left: offset, behavior: 'smooth' });
+    }
+  };
+
+  const handleSelectModuleWithScroll = (modId: string, event?: React.MouseEvent<HTMLButtonElement>) => {
+    handleSelectModule(modId);
+    if (!isModuleNavExpanded && event?.currentTarget) {
+      event.currentTarget.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    }
+  };
+
+  // Card collapse & expand toggles
+  const toggleCardCollapse = (hubId: string) => {
+    setCollapsedHubIds((prev) => ({
+      ...prev,
+      [hubId]: !prev[hubId],
+    }));
+  };
+
+  const toggleAllCards = () => {
+    const next = !areAllCardsCollapsed;
+    setAreAllCardsCollapsed(next);
+    const updated: Record<string, boolean> = {};
+    filteredHubs.forEach((h) => {
+      const isCurrent = h.views.some((v) => v.code === selectedReportCode);
+      updated[h.id] = next && !isCurrent;
+    });
+    setCollapsedHubIds(updated);
+  };
+
+  const handleSelectReportView = (code: string) => {
+    setSelectedReportCode(code);
+    const targetHub = REPORT_HUBS.find((h) => h.views.some((v) => v.code === code));
+    if (targetHub && collapsedHubIds[targetHub.id]) {
+      setCollapsedHubIds((prev) => ({ ...prev, [targetHub.id]: false }));
+    }
+    if (window.innerWidth < 1024) {
+      const target = document.getElementById('report-telemetry-section');
+      if (target) {
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+  };
 
   // Module switcher handler
   const handleSelectModule = (modId: string) => {
@@ -690,40 +787,98 @@ export const ReportsWorkspace: React.FC = () => {
         </div>
       </div>
 
-      {/* 12-Module Navigation Pills */}
-      <div className="bg-white dark:bg-slate-900 p-2 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-x-auto">
-        <div className="flex items-center gap-1.5 min-w-max">
-          {REPORT_MODULES.map((mod) => {
-            const Icon = MODULE_ICONS[mod.id] || Layers;
-            const isSelected = selectedModule === mod.id;
-            const count = moduleCounts[mod.id] || 0;
-            return (
-              <button
-                key={mod.id}
-                type="button"
-                onClick={() => handleSelectModule(mod.id)}
-                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                  isSelected
-                    ? 'bg-indigo-600 text-white shadow-sm ring-1 ring-indigo-500'
-                    : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/60'
-                }`}
-              >
-                <Icon className={`w-4 h-4 ${isSelected ? 'text-white' : 'text-slate-400'}`} />
-                <span>{getLocalizedModuleShortName(mod.id, mod.shortName, isBn)}</span>
-                {count > 0 && (
-                  <span
-                    className={`ml-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
-                      isSelected
-                        ? 'bg-white/20 text-white'
-                        : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
-                    }`}
-                  >
-                    {count}
-                  </span>
-                )}
-              </button>
-            );
-          })}
+      {/* 12-Module Navigation Pills (Expandable & Scrollable with sleek arrow controls) */}
+      <div className="bg-white dark:bg-slate-900 p-2 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs relative">
+        <div className="flex items-center gap-1.5">
+          {/* Scroll Left Button */}
+          {!isModuleNavExpanded && canScrollLeft && (
+            <button
+              type="button"
+              onClick={() => scrollModuleNav('left')}
+              className="absolute left-2 z-10 p-1.5 rounded-lg bg-white/95 dark:bg-slate-900/95 border border-slate-200 dark:border-slate-700 shadow-md text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 cursor-pointer backdrop-blur-xs transition-all"
+              aria-label="Scroll left"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+          )}
+
+          {/* Module Pills List: either single-row scrollable or full multi-row wrap grid */}
+          <div
+            ref={moduleNavContainerRef}
+            className={`flex-1 transition-all ${
+              isModuleNavExpanded
+                ? 'flex flex-wrap gap-1.5'
+                : 'flex items-center gap-1.5 overflow-x-auto no-scrollbar scroll-smooth'
+            }`}
+          >
+            {REPORT_MODULES.map((mod) => {
+              const Icon = MODULE_ICONS[mod.id] || Layers;
+              const isSelected = selectedModule === mod.id;
+              const count = moduleCounts[mod.id] || 0;
+              return (
+                <button
+                  key={mod.id}
+                  type="button"
+                  onClick={(e) => handleSelectModuleWithScroll(mod.id, e)}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
+                    isSelected
+                      ? 'bg-indigo-600 text-white shadow-xs ring-2 ring-indigo-500/50 scale-[1.01]'
+                      : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/60'
+                  }`}
+                >
+                  <Icon className={`w-4 h-4 ${isSelected ? 'text-white' : 'text-slate-400'}`} />
+                  <span>{getLocalizedModuleShortName(mod.id, mod.shortName, isBn)}</span>
+                  {count > 0 && (
+                    <span
+                      className={`ml-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
+                        isSelected
+                          ? 'bg-white/20 text-white'
+                          : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
+                      }`}
+                    >
+                      {count}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Scroll Right Button */}
+          {!isModuleNavExpanded && canScrollRight && (
+            <button
+              type="button"
+              onClick={() => scrollModuleNav('right')}
+              className="absolute right-12 z-10 p-1.5 rounded-lg bg-white/95 dark:bg-slate-900/95 border border-slate-200 dark:border-slate-700 shadow-md text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 cursor-pointer backdrop-blur-xs transition-all"
+              aria-label="Scroll right"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          )}
+
+          {/* Expand / Collapse Module Pills Button */}
+          <button
+            type="button"
+            onClick={() => setIsModuleNavExpanded((prev) => !prev)}
+            title={isModuleNavExpanded ? (isBn ? 'এক লাইনে সংকুচিত করুন' : 'Collapse to strip') : (isBn ? 'সকল মডিউল বিস্তার করুন' : 'Expand all modules')}
+            className={`p-2 rounded-lg border text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer shrink-0 ${
+              isModuleNavExpanded
+                ? 'bg-indigo-50 dark:bg-indigo-950/50 border-indigo-200 dark:border-indigo-800 text-indigo-600 dark:text-indigo-400'
+                : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+            }`}
+          >
+            {isModuleNavExpanded ? (
+              <>
+                <ChevronUp className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline text-[11px]">{isBn ? 'সংকুচিত' : 'Collapse'}</span>
+              </>
+            ) : (
+              <>
+                <ChevronDown className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline text-[11px]">{isBn ? 'সকল (১২)' : 'All 12'}</span>
+              </>
+            )}
+          </button>
         </div>
       </div>
 
@@ -790,203 +945,400 @@ export const ReportsWorkspace: React.FC = () => {
             }
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-3 py-1.5 text-xs bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:border-indigo-500 transition-colors"
+            className="w-full pl-9 pr-8 py-1.5 text-xs bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:border-indigo-500 transition-colors"
           />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => setSearchQuery('')}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
         </div>
       </div>
 
       {/* Report Selection Area (Hubs vs Directory) */}
-      <div className="space-y-2">
-        <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 px-1">
-          <span>
-            {displayMode === 'hubs' ? (
-              isBn ? (
+      <div className="space-y-2.5">
+        <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500 dark:text-slate-400 px-1">
+          <div className="flex items-center gap-2">
+            <span>
+              {displayMode === 'hubs' ? (
+                isBn ? (
+                  <>
+                    <span className="font-semibold text-indigo-600 dark:text-indigo-400">
+                      {getLocalizedModuleName(activeModule?.id || 'all', activeModule?.name || 'সকল মডিউল', true)}
+                    </span>{' '}
+                    মডিউলে <strong className="text-slate-800 dark:text-slate-200">{filteredHubs.length}</strong>টি সমন্বিত অ্যানালিটিক্স হাব
+                  </>
+                ) : (
+                  <>
+                    Showing <strong className="text-slate-800 dark:text-slate-200">{filteredHubs.length}</strong> consolidated hubs in{' '}
+                    <span className="capitalize font-semibold text-indigo-600 dark:text-indigo-400">{activeModule?.name || 'All Modules'}</span>
+                  </>
+                )
+              ) : isBn ? (
                 <>
                   <span className="font-semibold text-indigo-600 dark:text-indigo-400">
                     {getLocalizedModuleName(activeModule?.id || 'all', activeModule?.name || 'সকল মডিউল', true)}
                   </span>{' '}
-                  মডিউলে <strong className="text-slate-800 dark:text-slate-200">{filteredHubs.length}</strong>টি সমন্বিত অ্যানালিটিক্স হাব
+                  বিভাগে <strong className="text-slate-800 dark:text-slate-200">{filteredDefinitions.length}</strong>টি প্রতিবেদন প্রদর্শিত হচ্ছে
                 </>
               ) : (
                 <>
-                  Showing <strong className="text-slate-800 dark:text-slate-200">{filteredHubs.length}</strong> consolidated hubs in{' '}
+                  Showing <strong className="text-slate-800 dark:text-slate-200">{filteredDefinitions.length}</strong> reports in{' '}
                   <span className="capitalize font-semibold text-indigo-600 dark:text-indigo-400">{activeModule?.name || 'All Modules'}</span>
                 </>
-              )
-            ) : isBn ? (
+              )}
+            </span>
+          </div>
+
+          {/* Interactive Hubs & Cards Controls */}
+          <div className="flex items-center gap-2">
+            {displayMode === 'hubs' && (
               <>
-                <span className="font-semibold text-indigo-600 dark:text-indigo-400">
-                  {getLocalizedModuleName(activeModule?.id || 'all', activeModule?.name || 'সকল মডিউল', true)}
-                </span>{' '}
-                বিভাগে <strong className="text-slate-800 dark:text-slate-200">{filteredDefinitions.length}</strong>টি প্রতিবেদন প্রদর্শিত হচ্ছে
-              </>
-            ) : (
-              <>
-                Showing <strong className="text-slate-800 dark:text-slate-200">{filteredDefinitions.length}</strong> reports in{' '}
-                <span className="capitalize font-semibold text-indigo-600 dark:text-indigo-400">{activeModule?.name || 'All Modules'}</span>
+                {/* Expand / Collapse All Cards */}
+                <button
+                  type="button"
+                  onClick={toggleAllCards}
+                  className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium rounded-md bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
+                  title={areAllCardsCollapsed ? 'Expand all hub cards' : 'Collapse all hub cards'}
+                >
+                  <ChevronsUpDown className="w-3 h-3 text-slate-400" />
+                  <span>{areAllCardsCollapsed ? (isBn ? 'সব বিস্তার' : 'Expand Cards') : (isBn ? 'সব সংকুচিত' : 'Collapse Cards')}</span>
+                </button>
+
+                {/* Scrollable vs Full Height Grid Toggle */}
+                <button
+                  type="button"
+                  onClick={() => setHubsScrollMode((prev) => (prev === 'scrollable' ? 'expanded' : 'scrollable'))}
+                  className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium rounded-md bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
+                  title={hubsScrollMode === 'scrollable' ? 'Switch to Full Grid View' : 'Switch to Scrollable View'}
+                >
+                  {hubsScrollMode === 'scrollable' ? (
+                    <>
+                      <Maximize2 className="w-3 h-3 text-slate-400" />
+                      <span className="hidden sm:inline">{isBn ? 'সম্পূর্ণ গ্রিড' : 'Full Grid'}</span>
+                    </>
+                  ) : (
+                    <>
+                      <Minimize2 className="w-3 h-3 text-slate-400" />
+                      <span className="hidden sm:inline">{isBn ? 'স্ক্রোলযোগ্য' : 'Scrollable'}</span>
+                    </>
+                  )}
+                </button>
+
+                {/* Collapse / Expand Entire Hubs Explorer */}
+                <button
+                  type="button"
+                  onClick={() => setIsHubsExplorerCollapsed((prev) => !prev)}
+                  className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold rounded-md bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 text-indigo-600 dark:text-indigo-400 transition-colors cursor-pointer"
+                >
+                  {isHubsExplorerCollapsed ? (
+                    <>
+                      <ChevronDown className="w-3 h-3" />
+                      <span>{isBn ? 'হাবসমূহ দেখুন' : 'Show Hubs'}</span>
+                    </>
+                  ) : (
+                    <>
+                      <ChevronUp className="w-3 h-3" />
+                      <span>{isBn ? 'হাইড করুন' : 'Hide Hubs'}</span>
+                    </>
+                  )}
+                </button>
               </>
             )}
-          </span>
-          <span className="text-[11px] text-slate-400">
-            {isBn ? 'প্রতিবেদন দেখতে যেকোনো ভিউ ট্যাবে ক্লিক করুন' : 'Click any sub-view tab to activate query telemetry'}
-          </span>
+          </div>
         </div>
 
+        {/* When Entire Hubs Explorer is collapsed: Compact Active Report Banner */}
+        {isHubsExplorerCollapsed && activeHub && (
+          <div className="p-3.5 rounded-xl border border-indigo-200 dark:border-indigo-900/60 bg-linear-to-r from-indigo-50/70 via-white to-indigo-50/40 dark:from-indigo-950/40 dark:via-slate-900 dark:to-indigo-950/20 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in fade-in duration-200">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-lg bg-indigo-600 text-white flex items-center justify-center shadow-xs shrink-0">
+                {(() => {
+                  const Icon = MODULE_ICONS[activeHub.iconName] || MODULE_ICONS[activeHub.module] || Layers;
+                  return <Icon className="w-5 h-5" />;
+                })()}
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
+                    {getLocalizedModuleShortName(activeHub.module, activeHub.module, isBn)} Hub
+                  </span>
+                  <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9.5px] font-bold bg-indigo-100 dark:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300">
+                    Active Telemetry
+                  </span>
+                </div>
+                <div className="text-xs sm:text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
+                  <span>{isBn ? activeHub.titleBn : activeHub.titleEn}</span>
+                  <span className="text-slate-400">/</span>
+                  <span className="text-indigo-600 dark:text-indigo-400 font-bold">
+                    {isBn ? activeHubView?.labelBn : activeHubView?.labelEn}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 self-end sm:self-auto">
+              <div className="flex items-center gap-1 overflow-x-auto no-scrollbar max-w-xs sm:max-w-md">
+                {activeHub.views.map((v) => (
+                  <button
+                    key={v.code}
+                    type="button"
+                    onClick={() => handleSelectReportView(v.code)}
+                    className={`px-2.5 py-1 rounded text-xs font-medium whitespace-nowrap transition-all cursor-pointer ${
+                      v.code === selectedReportCode
+                        ? 'bg-indigo-600 text-white font-semibold shadow-xs scale-105'
+                        : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-50'
+                    }`}
+                  >
+                    {isBn ? v.labelBn : v.labelEn}
+                  </button>
+                ))}
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setIsHubsExplorerCollapsed(false)}
+                className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 shadow-xs transition-colors shrink-0 cursor-pointer"
+              >
+                <ChevronDown className="w-3.5 h-3.5 text-slate-500" />
+                <span>{isBn ? 'হাবসমূহ খুলুন' : 'Expand Hubs'}</span>
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* ── MODE 1: 20 Consolidated Hubs with Multi-View Tabs (Phase 5 & 11) ── */}
-        {displayMode === 'hubs' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5 p-1">
-            {filteredHubs.map((hub) => {
-              const isCurrentCodeInHub = hub.views.some((v) => v.code === selectedReportCode);
-              const HubIcon = MODULE_ICONS[hub.iconName] || MODULE_ICONS[hub.module] || Layers;
-              return (
-                <div
-                  key={hub.id}
-                  className={`p-3.5 rounded-xl border transition-all flex flex-col justify-between ${
-                    isCurrentCodeInHub
-                      ? 'border-indigo-600 dark:border-indigo-500 bg-indigo-50/50 dark:bg-indigo-950/30 shadow-xs ring-1 ring-indigo-500/50'
-                      : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-700'
-                  }`}
-                >
-                  <div>
-                    <div className="flex items-center justify-between gap-2 mb-1.5">
-                      <span className="inline-flex items-center gap-1.5 font-semibold text-xs text-indigo-600 dark:text-indigo-400">
-                        <HubIcon className="w-3.5 h-3.5" />
-                        {getLocalizedModuleShortName(hub.module, hub.module, isBn)}
-                      </span>
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
-                        {hub.views.length} {isBn ? 'টি ভিউ' : 'Views'}
-                      </span>
-                    </div>
+        {displayMode === 'hubs' && !isHubsExplorerCollapsed && (
+          <div
+            className={`transition-all ${
+              hubsScrollMode === 'scrollable'
+                ? 'max-h-128 overflow-y-auto pr-1 no-scrollbar sm:custom-scrollbar scroll-smooth'
+                : ''
+            }`}
+          >
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5 p-1">
+              {filteredHubs.map((hub) => {
+                const isCurrentCodeInHub = hub.views.some((v) => v.code === selectedReportCode);
+                const HubIcon = MODULE_ICONS[hub.iconName] || MODULE_ICONS[hub.module] || Layers;
+                const isCardCollapsed = !isCurrentCodeInHub && (collapsedHubIds[hub.id] ?? false);
+                const activeViewInCard = hub.views.find((v) => v.code === selectedReportCode);
 
-                    <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 tracking-tight">
-                      {isBn ? hub.titleBn : hub.titleEn}
-                    </h3>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 line-clamp-2 leading-relaxed">
-                      {isBn ? hub.descBn : hub.descEn}
-                    </p>
+                return (
+                  <div
+                    key={hub.id}
+                    className={`rounded-xl border transition-all flex flex-col justify-between ${
+                      isCurrentCodeInHub
+                        ? 'border-indigo-600 dark:border-indigo-500 bg-indigo-50/50 dark:bg-indigo-950/30 shadow-xs ring-2 ring-indigo-500/40'
+                        : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-700 hover:shadow-xs'
+                    }`}
+                  >
+                    <div className="p-3.5">
+                      {/* Card Header */}
+                      <div className="flex items-center justify-between gap-2 mb-1.5 select-none">
+                        <div className="flex items-center gap-1.5">
+                          <span className="inline-flex items-center gap-1.5 font-semibold text-xs text-indigo-600 dark:text-indigo-400">
+                            <HubIcon className="w-3.5 h-3.5" />
+                            {getLocalizedModuleShortName(hub.module, hub.module, isBn)}
+                          </span>
+                          {isCurrentCodeInHub && (
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9.5px] font-bold bg-indigo-100 dark:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300">
+                              <span className="w-1.5 h-1.5 rounded-full bg-indigo-600 animate-pulse"></span>
+                              {isBn ? 'সক্রিয়' : 'Active'}
+                            </span>
+                          )}
+                        </div>
 
-                    {/* Sub-View Tabs */}
-                    <div className="mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-800/80">
-                      <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">
-                        {isBn ? 'ভিউ নির্বাচন করুন:' : 'Select Report View:'}
+                        <div className="flex items-center gap-1.5">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
+                            {hub.views.length} {isBn ? 'টি ভিউ' : 'Views'}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => toggleCardCollapse(hub.id)}
+                            className="p-1 rounded-md text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                            aria-label={isCardCollapsed ? 'Expand card' : 'Collapse card'}
+                          >
+                            {isCardCollapsed ? (
+                              <ChevronDown className="w-3.5 h-3.5" />
+                            ) : (
+                              <ChevronUp className="w-3.5 h-3.5" />
+                            )}
+                          </button>
+                        </div>
                       </div>
-                      <div className="flex flex-wrap gap-1.5">
-                        {hub.views.map((v) => {
-                          const isViewActive = v.code === selectedReportCode;
-                          return (
-                            <button
-                              key={v.code}
-                              type="button"
-                              onClick={() => setSelectedReportCode(v.code)}
-                              className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium transition-all cursor-pointer ${
-                                isViewActive
-                                  ? 'bg-indigo-600 text-white shadow-xs font-semibold'
-                                  : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
-                              }`}
-                            >
-                              {isViewActive && <CheckCircle className="w-3 h-3 text-white" />}
-                              <span>{isBn ? v.labelBn : v.labelEn}</span>
-                            </button>
-                          );
-                        })}
-                      </div>
+
+                      {/* Hub Title */}
+                      <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 tracking-tight">
+                        {isBn ? hub.titleBn : hub.titleEn}
+                      </h3>
+
+                      {/* Collapsed State Summary */}
+                      {isCardCollapsed ? (
+                        <div className="mt-2.5 pt-2 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-xs text-slate-500">
+                          <span className="text-[11px] text-slate-400 flex items-center gap-1">
+                            <span>{hub.views[0] ? (isBn ? hub.views[0].labelBn : hub.views[0].labelEn) : ''}</span>
+                            {hub.views.length > 1 && (
+                              <span className="text-[10px] font-medium text-indigo-600 dark:text-indigo-400">
+                                +{hub.views.length - 1} more
+                              </span>
+                            )}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => toggleCardCollapse(hub.id)}
+                            className="text-[10px] font-semibold text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer"
+                          >
+                            {isBn ? 'ভিউসমূহ দেখুন' : 'Show Views'}
+                          </button>
+                        </div>
+                      ) : (
+                        <>
+                          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 line-clamp-2 leading-relaxed">
+                            {isBn ? hub.descBn : hub.descEn}
+                          </p>
+
+                          {/* Sub-View Tabs (Expandable & Interactive) */}
+                          <div className="mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-800/80">
+                            <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">
+                              <span>{isBn ? 'ভিউ নির্বাচন করুন:' : 'Select Report View:'}</span>
+                              {isCurrentCodeInHub && (
+                                <span className="text-indigo-600 dark:text-indigo-400 lowercase font-mono text-[9.5px]">
+                                  {activeViewInCard?.code}
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex flex-wrap gap-1.5">
+                              {hub.views.map((v) => {
+                                const isViewActive = v.code === selectedReportCode;
+                                return (
+                                  <button
+                                    key={v.code}
+                                    type="button"
+                                    onClick={() => handleSelectReportView(v.code)}
+                                    className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium transition-all cursor-pointer ${
+                                      isViewActive
+                                        ? 'bg-indigo-600 text-white shadow-xs font-semibold scale-[1.02]'
+                                        : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-slate-100'
+                                    }`}
+                                  >
+                                    {isViewActive && <CheckCircle className="w-3 h-3 text-white" />}
+                                    <span>{isBn ? v.labelBn : v.labelEn}</span>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        </>
+                      )}
                     </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
 
-            {filteredHubs.length === 0 && (
-              <div className="col-span-full py-8 text-center bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
-                <p className="text-sm text-slate-500">
-                  {isBn ? 'আপনার অনুসন্ধানের সাথে কোনো সমন্বিত হাব মেলেনি।' : 'No analytical hubs matched your search criteria.'}
-                </p>
-                <button
-                  onClick={() => {
-                    setSearchQuery('');
-                    setSelectedModule('all');
-                  }}
-                  className="mt-2 text-xs font-semibold text-indigo-600 hover:underline cursor-pointer"
-                >
-                  {isBn ? 'ফিল্টার রিসেট করুন' : 'Clear search'}
-                </button>
-              </div>
-            )}
+              {filteredHubs.length === 0 && (
+                <div className="col-span-full py-8 text-center bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
+                  <p className="text-sm text-slate-500">
+                    {isBn ? 'আপনার অনুসন্ধানের সাথে কোনো সমন্বিত হাব মেলেনি।' : 'No analytical hubs matched your search criteria.'}
+                  </p>
+                  <button
+                    onClick={() => {
+                      setSearchQuery('');
+                      setSelectedModule('all');
+                    }}
+                    className="mt-2 text-xs font-semibold text-indigo-600 hover:underline cursor-pointer"
+                  >
+                    {isBn ? 'ফিল্টার রিসেট করুন' : 'Clear search'}
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         )}
 
         {/* ── MODE 2: Full 84 Reports Directory (Granular Browsing) ── */}
-        {displayMode === 'directory' && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 max-h-90 overflow-y-auto p-1">
-            {filteredDefinitions.map((def) => {
-              const isSelected = def.code === selectedReportCode;
-              const ModIcon = MODULE_ICONS[def.module] || Layers;
-              return (
-                <button
-                  type="button"
-                  key={def.code}
-                  onClick={() => setSelectedReportCode(def.code)}
-                  className={`p-3 rounded-xl border text-left cursor-pointer transition-all flex flex-col justify-between ${
-                    isSelected
-                      ? 'border-indigo-600 dark:border-indigo-500 bg-indigo-50/70 dark:bg-indigo-950/40 shadow-sm ring-1 ring-indigo-500'
-                      : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-700 hover:shadow-xs'
-                  }`}
-                >
-                  <div>
-                    <div className="flex items-center justify-between text-xs mb-1.5">
-                      <span className="inline-flex items-center gap-1 font-semibold text-[10px] text-slate-500 uppercase tracking-wider">
-                        <ModIcon className="w-3 h-3 text-indigo-500" />
-                        {getLocalizedModuleShortName(def.module, def.module, isBn)}
-                      </span>
-                      <span
-                        className={`inline-flex items-center px-1.5 py-0.5 rounded text-[9.5px] font-bold uppercase tracking-wider ${
-                          def.tier === 'live'
-                            ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300'
-                            : 'bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-300'
-                        }`}
-                      >
-                        {def.tier === 'live' ? (isBn ? 'লাইভ' : 'LIVE') : (isBn ? 'দৈনিক' : 'DAILY')}
-                      </span>
+        {displayMode === 'directory' && !isHubsExplorerCollapsed && (
+          <div
+            className={`transition-all ${
+              hubsScrollMode === 'scrollable'
+                ? 'max-h-128 overflow-y-auto pr-1 no-scrollbar sm:custom-scrollbar scroll-smooth'
+                : ''
+            }`}
+          >
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 p-1">
+              {filteredDefinitions.map((def) => {
+                const isSelected = def.code === selectedReportCode;
+                const ModIcon = MODULE_ICONS[def.module] || Layers;
+                return (
+                  <button
+                    type="button"
+                    key={def.code}
+                    onClick={() => handleSelectReportView(def.code)}
+                    className={`p-3 rounded-xl border text-left cursor-pointer transition-all flex flex-col justify-between ${
+                      isSelected
+                        ? 'border-indigo-600 dark:border-indigo-500 bg-indigo-50/70 dark:bg-indigo-950/40 shadow-sm ring-1 ring-indigo-500'
+                        : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-700 hover:shadow-xs'
+                    }`}
+                  >
+                    <div>
+                      <div className="flex items-center justify-between text-xs mb-1.5">
+                        <span className="inline-flex items-center gap-1 font-semibold text-[10px] text-slate-500 uppercase tracking-wider">
+                          <ModIcon className="w-3 h-3 text-indigo-500" />
+                          {getLocalizedModuleShortName(def.module, def.module, isBn)}
+                        </span>
+                        <span
+                          className={`inline-flex items-center px-1.5 py-0.5 rounded text-[9.5px] font-bold uppercase tracking-wider ${
+                            def.tier === 'live'
+                              ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300'
+                              : 'bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-300'
+                          }`}
+                        >
+                          {def.tier === 'live' ? (isBn ? 'লাইভ' : 'LIVE') : (isBn ? 'দৈনিক' : 'DAILY')}
+                        </span>
+                      </div>
+                      <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 line-clamp-1">
+                        {getLocalizedReportName(def.code, def.name, isBn)}
+                      </h3>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 mt-1 leading-relaxed">
+                        {getLocalizedReportDesc(def.code, def.description, isBn)}
+                      </p>
                     </div>
-                    <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 line-clamp-1">
-                      {getLocalizedReportName(def.code, def.name, isBn)}
-                    </h3>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 mt-1 leading-relaxed">
-                      {getLocalizedReportDesc(def.code, def.description, isBn)}
-                    </p>
-                  </div>
 
-                  <div className="mt-2.5 pt-2 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-[11px] text-slate-400">
-                    <span className="font-mono text-[10px]">{def.code}</span>
-                    <span className="capitalize">{getLocalizedCategoryLabel(def.category, def.category, isBn)}</span>
-                  </div>
-                </button>
-              );
-            })}
+                    <div className="mt-2.5 pt-2 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-[11px] text-slate-400">
+                      <span className="font-mono text-[10px]">{def.code}</span>
+                      <span className="capitalize">{getLocalizedCategoryLabel(def.category, def.category, isBn)}</span>
+                    </div>
+                  </button>
+                );
+              })}
 
-            {filteredDefinitions.length === 0 && (
-              <div className="col-span-full py-8 text-center bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
-                <p className="text-sm text-slate-500">
-                  {isBn ? 'আপনার অনুসন্ধানের সাথে কোনো প্রতিবেদন মেলেনি।' : 'No reports matched your search criteria.'}
-                </p>
-                <button
-                  onClick={() => {
-                    setSearchQuery('');
-                    setSelectedModule('all');
-                    setSelectedCategory('all');
-                  }}
-                  className="mt-2 text-xs font-semibold text-indigo-600 hover:underline cursor-pointer"
-                >
-                  {isBn ? 'সকল ফিল্টার রিসেট করুন' : 'Clear all filters'}
-                </button>
-              </div>
-            )}
+              {filteredDefinitions.length === 0 && (
+                <div className="col-span-full py-8 text-center bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
+                  <p className="text-sm text-slate-500">
+                    {isBn ? 'আপনার অনুসন্ধানের সাথে কোনো প্রতিবেদন মেলেনি।' : 'No reports matched your search criteria.'}
+                  </p>
+                  <button
+                    onClick={() => {
+                      setSearchQuery('');
+                      setSelectedModule('all');
+                      setSelectedCategory('all');
+                    }}
+                    className="mt-2 text-xs font-semibold text-indigo-600 hover:underline cursor-pointer"
+                  >
+                    {isBn ? 'সকল ফিল্টার রিসেট করুন' : 'Clear all filters'}
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>
 
       {/* Controls & Filter Toolbar */}
-      <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+      <div id="report-telemetry-section" className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex flex-wrap items-center gap-3">
             {/* Quick Presets */}
