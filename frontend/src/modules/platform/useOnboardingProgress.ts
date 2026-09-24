@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../../lib/api/client';
@@ -6,6 +6,7 @@ import { useTenantCapabilityStore } from '../../lib/capabilities/tenantCapabilit
 import { useAuthStore } from '../../lib/auth/authStore';
 
 const STORAGE_SKIP_KEY = 'erp_onboarding_skipped';
+const STORAGE_COMPLETED_KEY = 'erp_onboarding_completed';
 
 export interface CompletionMilestones {
   percentage: number;
@@ -50,6 +51,16 @@ export function useOnboardingProgress() {
   const isAuthenticated = authStatus === 'authenticated';
   const tenant = useAuthStore((s) => s.tenant);
 
+  // Fast-path: Check localStorage to prevent flashing/splashing on page reload
+  const [localCompleted] = useState<boolean>(() => {
+    try {
+      if (typeof window === 'undefined' || typeof localStorage === 'undefined') return false;
+      return localStorage.getItem(STORAGE_COMPLETED_KEY) === 'true';
+    } catch {
+      return false;
+    }
+  });
+
   const [isSkipped, setIsSkipped] = useState<boolean>(() => {
     try {
       return sessionStorage.getItem(STORAGE_SKIP_KEY) === 'true';
@@ -78,13 +89,28 @@ export function useOnboardingProgress() {
         return null;
       }
     },
-    enabled: isAuthenticated && Boolean(tenant),
-    staleTime: 30_000,
+    enabled: isAuthenticated && Boolean(tenant) && !localCompleted,
+    staleTime: 60_000,
   });
 
   const backendCompleted = stateQuery.data?.onboarding_completed ?? false;
   const manifestCompleted = manifest?.onboarding_completed ?? false;
-  const isCompleted = backendCompleted || manifestCompleted;
+  const isCompleted = localCompleted || backendCompleted || manifestCompleted;
+
+  // Persist completion state locally whenever backend confirms it
+  useEffect(() => {
+    if (backendCompleted || manifestCompleted) {
+      try {
+        localStorage.setItem(STORAGE_COMPLETED_KEY, 'true');
+      } catch {
+        // Ignore storage errors
+      }
+    }
+  }, [backendCompleted, manifestCompleted]);
+
+  // While query is loading and we don't have local or manifest confirmation,
+  // do NOT show startup modal or progress card to prevent flashing on reload
+  const isInitialLoading = stateQuery.isLoading && !stateQuery.data && !localCompleted && !manifestCompleted;
 
   const completionPercentage = isCompleted
     ? 100
@@ -125,13 +151,13 @@ export function useOnboardingProgress() {
 
   return {
     state: stateQuery.data,
-    isLoading: stateQuery.isLoading,
+    isLoading: isInitialLoading,
     isCompleted,
     completionPercentage,
     milestones,
     isSkipped,
-    shouldShowStartupModal: !isCompleted && !isSkipped,
-    shouldShowProgressCard: !isCompleted,
+    shouldShowStartupModal: !isCompleted && !isSkipped && !isInitialLoading,
+    shouldShowProgressCard: !isCompleted && !isInitialLoading,
     skipOnboarding,
     resetSkip,
     resumeOnboarding,

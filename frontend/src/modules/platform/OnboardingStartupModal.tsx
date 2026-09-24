@@ -25,6 +25,7 @@ const MILESTONE_LABELS: Record<string, { label: string; icon: React.FC<{ classNa
 export const OnboardingStartupModal: React.FC = () => {
   const {
     shouldShowStartupModal,
+    isLoading,
     completionPercentage,
     milestones,
     skipOnboarding,
@@ -33,7 +34,7 @@ export const OnboardingStartupModal: React.FC = () => {
 
   const tenant = useAuthStore((s) => s.tenant);
 
-  if (!shouldShowStartupModal) {
+  if (isLoading || !shouldShowStartupModal) {
     return null;
   }
 

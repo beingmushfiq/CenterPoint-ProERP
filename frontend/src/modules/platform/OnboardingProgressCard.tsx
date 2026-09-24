@@ -26,6 +26,7 @@ export const OnboardingProgressCard: React.FC = () => {
   const { t } = useTranslation(['dashboard', 'common']);
   const {
     shouldShowProgressCard,
+    isLoading,
     completionPercentage,
     milestones,
     resumeOnboarding,
@@ -34,7 +35,7 @@ export const OnboardingProgressCard: React.FC = () => {
   const openTutorial = useTutorialStore((s) => s.openTutorial);
   const [isExpanded, setIsExpanded] = useState(false);
 
-  if (!shouldShowProgressCard) {
+  if (isLoading || !shouldShowProgressCard) {
     return null;
   }
 

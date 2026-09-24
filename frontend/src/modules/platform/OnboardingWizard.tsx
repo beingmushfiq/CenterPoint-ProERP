@@ -331,6 +331,12 @@ export const OnboardingWizard: React.FC = () => {
         }
       }
 
+      try {
+        localStorage.setItem('erp_onboarding_completed', 'true');
+      } catch (_err) {
+        void _err;
+      }
+
       await invalidateManifest();
       await bootstrapManifest(true);
       notify.success('🎉 Workspace initialized with 100% profile score!');
