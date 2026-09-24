@@ -100,4 +100,34 @@ describe('MobileQuickAddDrawer Component', () => {
 
     expect(container).toBeEmptyDOMElement();
   });
+
+  it('filters actions dynamically when searching', async () => {
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <MobileQuickAddDrawer isOpen={true} onClose={vi.fn()} />
+      </MemoryRouter>
+    );
+
+    const searchInput = screen.getByPlaceholderText(/search actions/i);
+    await user.type(searchInput, 'Expense');
+
+    expect(screen.getByText(/Operational Expense/i)).toBeInTheDocument();
+    expect(screen.queryByText(/POS Terminal/i)).not.toBeInTheDocument();
+  });
+
+  it('filters actions by category pill', async () => {
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <MobileQuickAddDrawer isOpen={true} onClose={vi.fn()} />
+      </MemoryRouter>
+    );
+
+    const factoryFilter = screen.getByRole('button', { name: /factory & qc/i });
+    await user.click(factoryFilter);
+
+    expect(screen.getByText(/New Production Batch/i)).toBeInTheDocument();
+    expect(screen.queryByText(/POS Terminal/i)).not.toBeInTheDocument();
+  });
 });

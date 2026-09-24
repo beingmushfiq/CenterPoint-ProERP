@@ -34,6 +34,7 @@ import {
   Package,
   ShieldCheck,
   Check,
+  X,
 } from 'lucide-react';
 
 interface ProductDescriptionEditorProps {
@@ -62,6 +63,7 @@ const PRESET_HIGHLIGHTS = [
   { label: 'Rose', value: '#fecdd3' },
   { label: 'Purple', value: '#f3e8ff' },
   { label: 'Amber', value: '#fed7aa' },
+  { label: 'Lime Light', value: '#d9f99d' },
 ];
 
 const INDUSTRY_BADGE_PRESETS = [
@@ -136,6 +138,18 @@ export function ProductDescriptionEditor({
   const [showTemplateMenu, setShowTemplateMenu] = useState(false);
   const [showBadgeMenu, setShowBadgeMenu] = useState(false);
 
+  // Dynamic Popover Alignment ('left' or 'right' to stay within modal/screen bounds)
+  const [colorAlign, setColorAlign] = useState<'left' | 'right'>('right');
+  const [highlightAlign, setHighlightAlign] = useState<'left' | 'right'>('right');
+  const [badgeAlign, setBadgeAlign] = useState<'left' | 'right'>('left');
+  const [templateAlign, setTemplateAlign] = useState<'left' | 'right'>('left');
+
+  // Trigger refs for bounding calculations
+  const colorBtnRef = useRef<HTMLDivElement>(null);
+  const highlightBtnRef = useRef<HTMLDivElement>(null);
+  const badgeBtnRef = useRef<HTMLDivElement>(null);
+  const templateBtnRef = useRef<HTMLDivElement>(null);
+
   // Color state
   const [customTextColor, setCustomTextColor] = useState('#4f46e5');
   const [customHighlightColor, setCustomHighlightColor] = useState('#fef08a');
@@ -169,6 +183,55 @@ export function ProductDescriptionEditor({
     };
   }, []);
 
+  // Compute smart alignment for dropdowns so they never overflow editor or modal bounds
+  const computeDropdownAlignment = (btnEl: HTMLElement | null, desiredWidth = 290): 'left' | 'right' => {
+    if (!btnEl || !containerRef.current) return 'right';
+    const btnRect = btnEl.getBoundingClientRect();
+    const contRect = containerRef.current.getBoundingClientRect();
+    const spaceOnRight = contRect.right - btnRect.left;
+    return spaceOnRight < desiredWidth ? 'right' : 'left';
+  };
+
+  const toggleColorPicker = () => {
+    if (!showColorPicker) {
+      setColorAlign(computeDropdownAlignment(colorBtnRef.current, 290));
+    }
+    setShowColorPicker(!showColorPicker);
+    setShowHighlightPicker(false);
+    setShowBadgeMenu(false);
+    setShowTemplateMenu(false);
+  };
+
+  const toggleHighlightPicker = () => {
+    if (!showHighlightPicker) {
+      setHighlightAlign(computeDropdownAlignment(highlightBtnRef.current, 290));
+    }
+    setShowHighlightPicker(!showHighlightPicker);
+    setShowColorPicker(false);
+    setShowBadgeMenu(false);
+    setShowTemplateMenu(false);
+  };
+
+  const toggleBadgeMenu = () => {
+    if (!showBadgeMenu) {
+      setBadgeAlign(computeDropdownAlignment(badgeBtnRef.current, 320));
+    }
+    setShowBadgeMenu(!showBadgeMenu);
+    setShowTemplateMenu(false);
+    setShowColorPicker(false);
+    setShowHighlightPicker(false);
+  };
+
+  const toggleTemplateMenu = () => {
+    if (!showTemplateMenu) {
+      setTemplateAlign(computeDropdownAlignment(templateBtnRef.current, 300));
+    }
+    setShowTemplateMenu(!showTemplateMenu);
+    setShowBadgeMenu(false);
+    setShowColorPicker(false);
+    setShowHighlightPicker(false);
+  };
+
   const sanitizeHtml = useCallback((html: string) => {
     return DOMPurify.sanitize(html, {
       ADD_TAGS: [
@@ -196,7 +259,9 @@ export function ProductDescriptionEditor({
   // Execute formatting command in Visual Mode
   const executeCommand = (command: string, arg: string | undefined = undefined) => {
     visualEditorRef.current?.focus();
-    document.execCommand(command, false, arg);
+    if (typeof document !== 'undefined' && typeof document.execCommand === 'function') {
+      document.execCommand(command, false, arg);
+    }
     if (visualEditorRef.current) {
       const updated = visualEditorRef.current.innerHTML;
       isUpdatingFromInternalRef.current = true;
@@ -589,15 +654,10 @@ export function ProductDescriptionEditor({
               {/* 🎨 Dynamic Color & Highlight Picker */}
               <div className="flex items-center gap-1">
                 {/* Text Color Dropdown */}
-                <div className="relative">
+                <div ref={colorBtnRef} className="relative">
                   <button
                     type="button"
-                    onClick={() => {
-                      setShowColorPicker(!showColorPicker);
-                      setShowHighlightPicker(false);
-                      setShowBadgeMenu(false);
-                      setShowTemplateMenu(false);
-                    }}
+                    onClick={toggleColorPicker}
                     className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer shadow-2xs"
                     title="Choose Text Color (Palette & Custom Picker)"
                   >
@@ -610,9 +670,30 @@ export function ProductDescriptionEditor({
                   </button>
 
                   {showColorPicker && (
-                    <div className="absolute left-0 top-full mt-1.5 z-50 p-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-2xl space-y-3 w-64 max-w-[calc(100vw-2rem)]">
+                    <div
+                      className={`absolute top-full mt-1.5 z-50 p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-2xl space-y-3 w-72 max-w-[calc(100vw-2rem)] ${
+                        colorAlign === 'right' ? 'right-0' : 'left-0'
+                      }`}
+                    >
+                      {/* Dropdown Header */}
+                      <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
+                        <span className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                          <Palette className="size-3.5 text-indigo-500" />
+                          Text Color
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setShowColorPicker(false)}
+                          className="size-5 rounded-md flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                          title="Close"
+                        >
+                          <X className="size-3.5" />
+                        </button>
+                      </div>
+
+                      {/* Preset Swatches */}
                       <div>
-                        <div className="text-[10px] font-bold uppercase text-slate-400 mb-1.5 tracking-wider">
+                        <div className="text-[10px] font-bold uppercase text-slate-400 dark:text-slate-500 mb-1.5 tracking-wider">
                           Preset Colors
                         </div>
                         <div className="grid grid-cols-4 gap-1.5">
@@ -625,7 +706,7 @@ export function ProductDescriptionEditor({
                                 setCustomTextColor(c.value);
                                 setShowColorPicker(false);
                               }}
-                              className="size-7 rounded-lg border border-slate-300 dark:border-slate-700 hover:scale-110 transition-transform cursor-pointer shadow-xs"
+                              className="size-7.5 rounded-xl border border-slate-300 dark:border-slate-700 hover:scale-110 active:scale-95 transition-all cursor-pointer shadow-xs"
                               style={{ backgroundColor: c.value }}
                               title={c.label}
                             />
@@ -633,23 +714,30 @@ export function ProductDescriptionEditor({
                         </div>
                       </div>
 
-                      <div className="pt-2 border-t border-slate-200 dark:border-slate-800 space-y-2">
-                        <div className="text-[10px] font-bold uppercase text-slate-400 tracking-wider">
-                          Custom Hex & Color Picker
+                      {/* Custom Hex Row */}
+                      <div className="pt-2 border-t border-slate-100 dark:border-slate-800 space-y-2">
+                        <div className="text-[10px] font-bold uppercase text-slate-400 dark:text-slate-500 tracking-wider">
+                          Custom Text Color
                         </div>
                         <div className="flex items-center gap-2">
-                          <input
-                            type="color"
-                            value={customTextColor}
-                            onChange={(e) => setCustomTextColor(e.target.value)}
-                            className="size-8 rounded-lg border border-slate-300 dark:border-slate-700 cursor-pointer p-0.5 bg-transparent"
-                          />
+                          <div className="relative size-8 shrink-0 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 shadow-2xs group cursor-pointer">
+                            <input
+                              type="color"
+                              value={customTextColor.startsWith('#') ? customTextColor : '#4f46e5'}
+                              onChange={(e) => setCustomTextColor(e.target.value)}
+                              className="absolute inset-0 size-full opacity-0 cursor-pointer"
+                            />
+                            <div
+                              className="size-full rounded-lg transition-transform group-hover:scale-105"
+                              style={{ backgroundColor: customTextColor }}
+                            />
+                          </div>
                           <input
                             type="text"
                             value={customTextColor}
                             onChange={(e) => setCustomTextColor(e.target.value)}
                             placeholder="#4f46e5"
-                            className="flex-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-2.5 py-1 text-xs font-mono uppercase text-slate-900 dark:text-white"
+                            className="w-24 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-2 py-1.5 text-xs font-mono uppercase text-slate-900 dark:text-white text-center focus:outline-none focus:ring-1 focus:ring-primary"
                           />
                           <button
                             type="button"
@@ -657,7 +745,7 @@ export function ProductDescriptionEditor({
                               executeCommand('foreColor', customTextColor);
                               setShowColorPicker(false);
                             }}
-                            className="px-2.5 py-1 rounded-lg bg-primary text-white text-xs font-bold hover:bg-primary/90 shadow-xs cursor-pointer"
+                            className="flex-1 py-1.5 px-3 rounded-lg bg-primary text-white text-xs font-bold hover:bg-primary/90 active:scale-95 shadow-xs transition-all cursor-pointer text-center"
                           >
                             Apply
                           </button>
@@ -668,15 +756,10 @@ export function ProductDescriptionEditor({
                 </div>
 
                 {/* Highlight Color Dropdown */}
-                <div className="relative">
+                <div ref={highlightBtnRef} className="relative">
                   <button
                     type="button"
-                    onClick={() => {
-                      setShowHighlightPicker(!showHighlightPicker);
-                      setShowColorPicker(false);
-                      setShowBadgeMenu(false);
-                      setShowTemplateMenu(false);
-                    }}
+                    onClick={toggleHighlightPicker}
                     className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer shadow-2xs"
                     title="Highlight Background (Palette & Custom Picker)"
                   >
@@ -689,9 +772,30 @@ export function ProductDescriptionEditor({
                   </button>
 
                   {showHighlightPicker && (
-                    <div className="absolute left-0 top-full mt-1.5 z-50 p-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-2xl space-y-3 w-64 max-w-[calc(100vw-2rem)]">
+                    <div
+                      className={`absolute top-full mt-1.5 z-50 p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-2xl space-y-3 w-72 max-w-[calc(100vw-2rem)] ${
+                        highlightAlign === 'right' ? 'right-0' : 'left-0'
+                      }`}
+                    >
+                      {/* Dropdown Header */}
+                      <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
+                        <span className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                          <Highlighter className="size-3.5 text-amber-500" />
+                          Highlight Text
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setShowHighlightPicker(false)}
+                          className="size-5 rounded-md flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                          title="Close"
+                        >
+                          <X className="size-3.5" />
+                        </button>
+                      </div>
+
+                      {/* Preset Swatches */}
                       <div>
-                        <div className="text-[10px] font-bold uppercase text-slate-400 mb-1.5 tracking-wider">
+                        <div className="text-[10px] font-bold uppercase text-slate-400 dark:text-slate-500 mb-1.5 tracking-wider">
                           Preset Highlights
                         </div>
                         <div className="grid grid-cols-4 gap-1.5">
@@ -701,36 +805,43 @@ export function ProductDescriptionEditor({
                               type="button"
                               onClick={() => {
                                 executeCommand('hiliteColor', h.value);
-                                setCustomHighlightColor(h.value);
+                                setCustomHighlightColor(h.value === 'transparent' ? '#ffffff' : h.value);
                                 setShowHighlightPicker(false);
                               }}
-                              className="size-7 rounded-lg border border-slate-300 dark:border-slate-700 hover:scale-110 transition-transform cursor-pointer shadow-xs flex items-center justify-center text-[10px] font-bold text-slate-800"
+                              className="size-7.5 rounded-xl border border-slate-300 dark:border-slate-700 hover:scale-110 active:scale-95 transition-all cursor-pointer shadow-xs flex items-center justify-center text-[11px] font-bold text-slate-700"
                               style={{ backgroundColor: h.value }}
                               title={h.label}
                             >
-                              {h.value === 'transparent' ? '✕' : ''}
+                              {h.value === 'transparent' ? <span className="text-slate-400 text-xs">✕</span> : ''}
                             </button>
                           ))}
                         </div>
                       </div>
 
-                      <div className="pt-2 border-t border-slate-200 dark:border-slate-800 space-y-2">
-                        <div className="text-[10px] font-bold uppercase text-slate-400 tracking-wider">
-                          Custom Background Picker
+                      {/* Custom Hex Row */}
+                      <div className="pt-2 border-t border-slate-100 dark:border-slate-800 space-y-2">
+                        <div className="text-[10px] font-bold uppercase text-slate-400 dark:text-slate-500 tracking-wider">
+                          Custom Background Color
                         </div>
                         <div className="flex items-center gap-2">
-                          <input
-                            type="color"
-                            value={customHighlightColor}
-                            onChange={(e) => setCustomHighlightColor(e.target.value)}
-                            className="size-8 rounded-lg border border-slate-300 dark:border-slate-700 cursor-pointer p-0.5 bg-transparent"
-                          />
+                          <div className="relative size-8 shrink-0 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 shadow-2xs group cursor-pointer">
+                            <input
+                              type="color"
+                              value={customHighlightColor.startsWith('#') ? customHighlightColor : '#fef08a'}
+                              onChange={(e) => setCustomHighlightColor(e.target.value)}
+                              className="absolute inset-0 size-full opacity-0 cursor-pointer"
+                            />
+                            <div
+                              className="size-full rounded-lg transition-transform group-hover:scale-105"
+                              style={{ backgroundColor: customHighlightColor }}
+                            />
+                          </div>
                           <input
                             type="text"
                             value={customHighlightColor}
                             onChange={(e) => setCustomHighlightColor(e.target.value)}
                             placeholder="#fef08a"
-                            className="flex-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-2.5 py-1 text-xs font-mono uppercase text-slate-900 dark:text-white"
+                            className="w-24 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-2 py-1.5 text-xs font-mono uppercase text-slate-900 dark:text-white text-center focus:outline-none focus:ring-1 focus:ring-amber-500"
                           />
                           <button
                             type="button"
@@ -738,7 +849,7 @@ export function ProductDescriptionEditor({
                               executeCommand('hiliteColor', customHighlightColor);
                               setShowHighlightPicker(false);
                             }}
-                            className="px-2.5 py-1 rounded-lg bg-amber-500 text-white text-xs font-bold hover:bg-amber-600 shadow-xs cursor-pointer"
+                            className="flex-1 py-1.5 px-3 rounded-lg bg-amber-500 text-white text-xs font-bold hover:bg-amber-600 active:scale-95 shadow-xs transition-all cursor-pointer text-center"
                           >
                             Apply
                           </button>
@@ -763,15 +874,10 @@ export function ProductDescriptionEditor({
           </button>
 
           {/* 🏷️ Dynamic Custom Badge Creator & Multi-Industry Presets */}
-          <div className="relative">
+          <div ref={badgeBtnRef} className="relative">
             <button
               type="button"
-              onClick={() => {
-                setShowBadgeMenu(!showBadgeMenu);
-                setShowTemplateMenu(false);
-                setShowColorPicker(false);
-                setShowHighlightPicker(false);
-              }}
+              onClick={toggleBadgeMenu}
               className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer shadow-2xs"
               title="Create Custom Badges or Select Multi-Industry Presets"
             >
@@ -780,7 +886,11 @@ export function ProductDescriptionEditor({
             </button>
 
             {showBadgeMenu && (
-              <div className="absolute left-0 top-full mt-1.5 z-50 p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-2xl space-y-3 w-80 max-w-[calc(100vw-2rem)]">
+              <div
+                className={`absolute top-full mt-1.5 z-50 p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-2xl space-y-3 w-80 max-w-[calc(100vw-2rem)] ${
+                  badgeAlign === 'right' ? 'right-0' : 'left-0'
+                }`}
+              >
                 {/* Tab Switcher */}
                 <div className="flex rounded-xl bg-slate-100 dark:bg-slate-800 p-1">
                   <button
@@ -968,15 +1078,10 @@ export function ProductDescriptionEditor({
           </div>
 
           {/* ✨ All-Purpose Multi-Industry Templates */}
-          <div className="relative">
+          <div ref={templateBtnRef} className="relative">
             <button
               type="button"
-              onClick={() => {
-                setShowTemplateMenu(!showTemplateMenu);
-                setShowBadgeMenu(false);
-                setShowColorPicker(false);
-                setShowHighlightPicker(false);
-              }}
+              onClick={toggleTemplateMenu}
               className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-linear-to-r from-primary/10 to-indigo-500/10 border border-primary/30 text-xs font-bold text-primary hover:bg-primary/20 transition-all cursor-pointer shadow-2xs"
               title="Insert Universal Multi-Industry Specification Templates"
             >
@@ -985,7 +1090,11 @@ export function ProductDescriptionEditor({
             </button>
 
             {showTemplateMenu && (
-              <div className="absolute left-0 top-full mt-1.5 z-50 p-2 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-2xl space-y-1 w-72 max-w-[calc(100vw-2rem)] max-h-80 overflow-y-auto">
+              <div
+                className={`absolute top-full mt-1.5 z-50 p-2 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-2xl space-y-1 w-72 max-w-[calc(100vw-2rem)] max-h-80 overflow-y-auto ${
+                  templateAlign === 'right' ? 'right-0' : 'left-0'
+                }`}
+              >
                 <div className="text-[10px] font-bold uppercase text-slate-400 px-2.5 py-1 tracking-wider">
                   Universal Specification Blueprints
                 </div>
