@@ -36,6 +36,12 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
     location.pathname === '/dashboard' || location.pathname === '/';
   const isPosActive = location.pathname.startsWith('/pos');
 
+  const handleNavClick = () => {
+    if (isSidebarOpen) {
+      onToggleSidebar();
+    }
+  };
+
   return (
     <nav
       className="fixed bottom-0 inset-x-0 z-40 lg:hidden border-t border-default bg-surface/95 backdrop-blur-md pb-safe select-none shadow-[0_-4px_16px_rgba(0,0,0,0.06)] dark:shadow-[0_-4px_16px_rgba(0,0,0,0.4)] transition-token-colors"
@@ -45,6 +51,7 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
         {/* 1. Dashboard */}
         <NavLink
           to="/dashboard"
+          onClick={handleNavClick}
           className={({ isActive }) =>
             cn(
               'flex flex-col items-center justify-center h-full py-1 text-[10px] font-medium transition-colors cursor-pointer group active:scale-95',
@@ -71,6 +78,7 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
         {isPosEnabled ? (
           <NavLink
             to="/pos"
+            onClick={handleNavClick}
             className={({ isActive }) =>
               cn(
                 'flex flex-col items-center justify-center h-full py-1 text-[10px] font-medium transition-colors cursor-pointer group active:scale-95',
@@ -95,6 +103,7 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
         ) : (
           <NavLink
             to="/production"
+            onClick={handleNavClick}
             className={({ isActive }) =>
               cn(
                 'flex flex-col items-center justify-center h-full py-1 text-[10px] font-medium transition-colors cursor-pointer group active:scale-95',
@@ -127,6 +136,7 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
         {/* 4. Inventory / Stock Hub */}
         <NavLink
           to="/inventory"
+          onClick={handleNavClick}
           className={({ isActive }) =>
             cn(
               'flex flex-col items-center justify-center h-full py-1 text-[10px] font-medium transition-colors cursor-pointer group active:scale-95',

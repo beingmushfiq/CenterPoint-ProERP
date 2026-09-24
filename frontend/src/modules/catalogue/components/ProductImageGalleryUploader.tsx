@@ -31,34 +31,34 @@ interface ProductImageGalleryUploaderProps {
   onQueuedImagesChange?: (images: LocalQueuedImage[]) => void;
 }
 
+const EMPTY_IMAGES: ProductImage[] = [];
+
 export function ProductImageGalleryUploader({
   productUuid,
-  existingImages = [],
+  existingImages = EMPTY_IMAGES,
   primaryImageUrl,
   onPrimaryImageChange,
   queuedImages,
   onQueuedImagesChange,
 }: ProductImageGalleryUploaderProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [images, setImages] = useState<ProductImage[]>(existingImages);
-  const [localQueue, setLocalQueue] = useState<LocalQueuedImage[]>(queuedImages || []);
+  const [images, setImages] = useState<ProductImage[]>(() => existingImages);
+  const [internalQueue, setInternalQueue] = useState<LocalQueuedImage[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [urlInput, setUrlInput] = useState('');
   const [isAddingUrl, setIsAddingUrl] = useState(false);
 
-  const [prevExisting, setPrevExisting] = useState(existingImages);
-  const [prevQueued, setPrevQueued] = useState(queuedImages);
+  // Controlled vs uncontrolled queue logic
+  const isControlledQueue = queuedImages !== undefined;
+  const currentQueue = isControlledQueue ? queuedImages : internalQueue;
 
-  if (existingImages && existingImages !== prevExisting) {
-    setPrevExisting(existingImages);
-    setImages(existingImages);
-  }
-
-  if (queuedImages && queuedImages !== prevQueued) {
-    setPrevQueued(queuedImages);
-    setLocalQueue(queuedImages);
-  }
+  const updateQueue = (next: LocalQueuedImage[]) => {
+    if (!isControlledQueue) {
+      setInternalQueue(next);
+    }
+    onQueuedImagesChange?.(next);
+  };
 
   // Handle file uploads (multiple files supported)
   const handleFiles = async (fileList: FileList | null) => {
@@ -125,12 +125,11 @@ export function ProductImageGalleryUploader({
         id: `queued_${Date.now()}_${idx}_${Math.random().toString(36).substring(2, 6)}`,
         previewUrl: URL.createObjectURL(file),
         file,
-        is_primary: localQueue.length === 0 && idx === 0,
+        is_primary: currentQueue.length === 0 && idx === 0,
       }));
 
-      const updated = [...localQueue, ...newItems];
-      setLocalQueue(updated);
-      onQueuedImagesChange?.(updated);
+      const updated = [...currentQueue, ...newItems];
+      updateQueue(updated);
 
       if (updated.length > 0 && !primaryImageUrl && onPrimaryImageChange && updated[0]) {
         onPrimaryImageChange(updated[0].previewUrl);
@@ -176,11 +175,10 @@ export function ProductImageGalleryUploader({
         id: `queued_url_${Date.now()}`,
         previewUrl: url,
         url,
-        is_primary: localQueue.length === 0,
+        is_primary: currentQueue.length === 0,
       };
-      const updated = [...localQueue, newItem];
-      setLocalQueue(updated);
-      onQueuedImagesChange?.(updated);
+      const updated = [...currentQueue, newItem];
+      updateQueue(updated);
       if (updated.length === 1 && onPrimaryImageChange) {
         onPrimaryImageChange(url);
       }
@@ -210,12 +208,11 @@ export function ProductImageGalleryUploader({
         notify.error('Could not update primary image.');
       }
     } else {
-      const updated = localQueue.map((item) => ({
+      const updated = currentQueue.map((item) => ({
         ...item,
         is_primary: item.id === targetId,
       }));
-      setLocalQueue(updated);
-      onQueuedImagesChange?.(updated);
+      updateQueue(updated);
       const targetItem = updated.find((i) => i.id === targetId);
       if (targetItem && onPrimaryImageChange) {
         onPrimaryImageChange(targetItem.previewUrl);
@@ -244,16 +241,15 @@ export function ProductImageGalleryUploader({
         notify.error('Could not delete image.');
       }
     } else {
-      const updated = localQueue.filter((item) => item.id !== targetId);
+      const updated = currentQueue.filter((item) => item.id !== targetId);
       const firstUpdated = updated[0];
-      if (localQueue.find((i) => i.id === targetId)?.is_primary && firstUpdated) {
+      if (currentQueue.find((i) => i.id === targetId)?.is_primary && firstUpdated) {
         firstUpdated.is_primary = true;
         if (onPrimaryImageChange) {
           onPrimaryImageChange(firstUpdated.previewUrl);
         }
       }
-      setLocalQueue(updated);
-      onQueuedImagesChange?.(updated);
+      updateQueue(updated);
       notify.success('Image removed from draft.');
     }
   };
@@ -282,16 +278,15 @@ export function ProductImageGalleryUploader({
         notify.error('Failed to persist new image order.');
       }
     } else {
-      if (targetIdx < 0 || targetIdx >= localQueue.length) return;
-      const curItem = localQueue[index];
-      const targetItem = localQueue[targetIdx];
+      if (targetIdx < 0 || targetIdx >= currentQueue.length) return;
+      const curItem = currentQueue[index];
+      const targetItem = currentQueue[targetIdx];
       if (!curItem || !targetItem) return;
 
-      const reordered = [...localQueue];
+      const reordered = [...currentQueue];
       reordered[index] = targetItem;
       reordered[targetIdx] = curItem;
-      setLocalQueue(reordered);
-      onQueuedImagesChange?.(reordered);
+      updateQueue(reordered);
     }
   };
 
@@ -318,7 +313,7 @@ export function ProductImageGalleryUploader({
         url: img.url,
         is_primary: img.is_primary,
       }))
-    : localQueue.map((item) => ({
+    : currentQueue.map((item) => ({
         id: item.id,
         url: item.previewUrl,
         is_primary: item.is_primary,

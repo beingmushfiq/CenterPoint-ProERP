@@ -84,4 +84,23 @@ describe('MobileBottomNav Component', () => {
 
     expect(handleToggle).toHaveBeenCalledTimes(1);
   });
+
+  it('triggers onOpenQuickAdd when the center plus action button is clicked', async () => {
+    const user = userEvent.setup();
+    const handleQuickAdd = vi.fn();
+    render(
+      <MemoryRouter initialEntries={['/dashboard']}>
+        <MobileBottomNav
+          onToggleSidebar={vi.fn()}
+          isSidebarOpen={false}
+          onOpenQuickAdd={handleQuickAdd}
+        />
+      </MemoryRouter>
+    );
+
+    const quickAddBtn = screen.getByRole('button', { name: /quick create action/i });
+    await user.click(quickAddBtn);
+
+    expect(handleQuickAdd).toHaveBeenCalledTimes(1);
+  });
 });

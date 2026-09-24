@@ -49,9 +49,11 @@ import {
 } from '../components/ProductImageGalleryUploader';
 import { SerpPreviewCard } from '../../../components/seo/SerpPreviewCard';
 import { DiscoverabilityChecklist } from '../../../components/seo/DiscoverabilityChecklist';
-import type { Product, Category, Brand } from '../../../types/api/catalog';
+import type { Product, Category, Brand, ProductImage } from '../../../types/api/catalog';
 import type { Unit } from '../../../types/api/unit';
 import { useCurrency } from '../../../hooks/useCurrency';
+
+const EMPTY_PRODUCT_IMAGES: ProductImage[] = [];
 
 interface ProductFormDraft {
   sku: string;
@@ -1610,6 +1612,7 @@ export function ProductsSection() {
                   Product Image Gallery & Media
                 </label>
                 <ProductImageGalleryUploader
+                  key="create-uploader"
                   queuedImages={createQueuedImages}
                   onQueuedImagesChange={setCreateQueuedImages}
                   primaryImageUrl={draft.image_url}
@@ -2293,8 +2296,9 @@ export function ProductsSection() {
                     Product Image Gallery & Media
                   </label>
                   <ProductImageGalleryUploader
+                    key={editingProduct.id}
                     productUuid={editingProduct.id}
-                    existingImages={editingProduct.images || []}
+                    existingImages={editingProduct.images || EMPTY_PRODUCT_IMAGES}
                     primaryImageUrl={draft.image_url}
                     onPrimaryImageChange={(url) => setDraft((prev) => ({ ...prev, image_url: url }))}
                   />

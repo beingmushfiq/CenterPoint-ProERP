@@ -4,6 +4,7 @@ import { RouteLoadingFallback } from '../routing/RouteLoadingFallback';
 import { AppHeader } from './AppHeader';
 import { Sidebar } from './Sidebar';
 import { MobileBottomNav } from './MobileBottomNav';
+import { MobileQuickAddDrawer } from './MobileQuickAddDrawer';
 import { ImpersonationBanner } from './ImpersonationBanner';
 import { OfflineBanner } from './OfflineBanner';
 import { SeoHead } from '../seo/SeoHead';
@@ -49,13 +50,7 @@ export function AppShell() {
     return routeTitle ? `${routeTitle} | ${brandName}` : `${brandName} — ERP Operations`;
   }, [location.pathname, brandName]);
 
-  // Close mobile sidebar drawer upon navigation
-  const [prevPathname, setPrevPathname] = useState(location.pathname);
-  if (prevPathname !== location.pathname) {
-    setPrevPathname(location.pathname);
-    setIsMobileSidebarOpen(false);
-  }
-
+  const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
     try {
       return localStorage.getItem('erp_sidebar_collapsed') === 'true';
@@ -121,6 +116,13 @@ export function AppShell() {
       <MobileBottomNav
         onToggleSidebar={() => setIsMobileSidebarOpen((prev) => !prev)}
         isSidebarOpen={isMobileSidebarOpen}
+        onOpenQuickAdd={() => setIsQuickAddOpen(true)}
+      />
+
+      {/* Mobile Quick Action Hub Sheet */}
+      <MobileQuickAddDrawer
+        isOpen={isQuickAddOpen}
+        onClose={() => setIsQuickAddOpen(false)}
       />
     </div>
   );
