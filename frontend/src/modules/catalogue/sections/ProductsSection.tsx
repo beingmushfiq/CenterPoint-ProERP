@@ -60,6 +60,9 @@ interface ProductFormDraft {
   name: string;
   type: string;
   base_unit_id: string;
+  purchase_unit_id?: string | null;
+  sales_unit_id?: string | null;
+  tax_profile_id?: string | null;
   category_id?: string | null;
   brand_id?: string | null;
   standard_cost: string;
@@ -79,6 +82,7 @@ interface ProductFormDraft {
   opening_stock?: string | null;
   warehouse_id?: string | null;
   tracking_mode?: string;
+  shelf_life_days?: string | null;
   online_slug?: string | null;
   online_meta?: {
     meta_title?: string;
@@ -330,6 +334,19 @@ export function ProductsSection() {
     mutationFn: ({ id, payload }: { id: string; payload: Partial<ProductFormDraft> }) => {
       const finalPayload = {
         ...payload,
+        warehouse_id: payload.warehouse_id || null,
+        category_id: payload.category_id || null,
+        brand_id: payload.brand_id || null,
+        purchase_unit_id: payload.purchase_unit_id || null,
+        sales_unit_id: payload.sales_unit_id || null,
+        tax_profile_id: payload.tax_profile_id || null,
+        shelf_life_days: payload.shelf_life_days ? Number(payload.shelf_life_days) : null,
+        opening_stock:
+          payload.opening_stock !== null &&
+          payload.opening_stock !== undefined &&
+          payload.opening_stock !== ''
+            ? Number(payload.opening_stock)
+            : null,
         online_meta: {
           ...(payload.online_meta || {}),
           ...(payload.image_url ? { image_url: payload.image_url } : {}),
@@ -408,11 +425,22 @@ export function ProductsSection() {
       meta_description?: string;
       canonical_url?: string;
     } | null;
+    const initialStockStr =
+      p.stock_quantity !== null && p.stock_quantity !== undefined
+        ? String(p.stock_quantity)
+        : p.opening_stock !== null && p.opening_stock !== undefined
+        ? String(p.opening_stock)
+        : '0';
+
     setDraft({
       sku: p.sku,
       name: p.name,
       type: p.type,
       base_unit_id: String(p.base_unit_id),
+      purchase_unit_id: p.purchase_unit_id ? String(p.purchase_unit_id) : '',
+      sales_unit_id: p.sales_unit_id ? String(p.sales_unit_id) : '',
+      tax_profile_id: p.tax_profile_id ? String(p.tax_profile_id) : '',
+      shelf_life_days: p.shelf_life_days !== null && p.shelf_life_days !== undefined ? String(p.shelf_life_days) : '',
       category_id: p.category_id ? String(p.category_id) : null,
       brand_id: p.brand_id ? String(p.brand_id) : null,
       standard_cost: p.standard_cost,
@@ -429,7 +457,7 @@ export function ProductsSection() {
       reorder_level: p.reorder_level || '10',
       reorder_quantity: p.reorder_quantity || '50',
       weight: p.weight || '1',
-      opening_stock: '0',
+      opening_stock: initialStockStr,
       warehouse_id: '',
       tracking_mode: p.tracking_mode || 'batch',
       online_slug: p.online_slug || '',
@@ -438,7 +466,15 @@ export function ProductsSection() {
     setEditingProduct(p);
     const prodId = (p as { uuid?: string }).uuid || p.id;
     void api.get<Product>(`/products/${prodId}`).then((res) => {
-      if (res.data) setEditingProduct(res.data);
+      if (res.data) {
+        setEditingProduct(res.data);
+        if (res.data.stock_quantity !== null && res.data.stock_quantity !== undefined) {
+          setDraft((prev) => ({
+            ...prev,
+            opening_stock: String(res.data.stock_quantity),
+          }));
+        }
+      }
     }).catch(() => {});
     void api.get(`/products/${prodId}/images`).catch(() => {});
   };
@@ -2312,8 +2348,8 @@ export function ProductsSection() {
                         onChange={(e) => setDraft({ ...draft, opening_stock: e.target.value })}
                         className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs text-slate-900 dark:text-white font-mono focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none shadow-2xs"
                       />
-                      <span className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5 block">
-                        Initial on-hand stock balance
+                      <span className="text-[10px] text-indigo-600 dark:text-indigo-400 font-medium mt-0.5 block">
+                        Recorded on-hand stock: {editingProduct.stock_quantity ?? 0} {unitMap.get(String(draft.base_unit_id)) || 'Units'}. Changing this updates the inventory balance.
                       </span>
                     </div>
 
