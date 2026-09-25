@@ -838,15 +838,17 @@ export function QcInspectionsSection() {
               </label>
               <select
                 value={draft.inspection_type}
-                onChange={(e) =>
+                onChange={(e) => {
+                  const val = e.target.value as 'incoming' | 'in_process' | 'final';
                   setDraft((d) => ({
                     ...d,
-                    inspection_type: e.target.value as 'incoming' | 'in_process' | 'final',
-                  }))
-                }
+                    inspection_type: val,
+                    ...(val === 'incoming' ? { batch_id: undefined } : {}),
+                  }));
+                }}
                 className="w-full rounded-xl border border-default bg-surface-sunken p-2 text-xs text-default focus:border-primary focus:outline-none"
               >
-                <option value="incoming">Incoming Raw Material</option>
+                <option value="incoming">Incoming Receiving (Raw Materials & Purchased FG)</option>
                 <option value="in_process">In-Process Floor Check</option>
                 <option value="final">Final Finished Good QA</option>
               </select>
@@ -866,7 +868,7 @@ export function QcInspectionsSection() {
                 }
                 className="w-full rounded-xl border border-default bg-surface-sunken p-2 text-xs text-default focus:border-primary focus:outline-none"
               >
-                <option value="">None (Independent)</option>
+                <option value="">{draft.inspection_type === 'incoming' ? 'None (Incoming Vendor Shipment)' : 'None (Independent)'}</option>
                 {batches.map((b) => (
                   <option key={b.id} value={b.id}>
                     {b.batch_number}
@@ -886,11 +888,24 @@ export function QcInspectionsSection() {
                 onChange={(e) => setDraft((d) => ({ ...d, product_id: e.target.value }))}
                 className="w-full rounded-xl border border-default bg-surface-sunken p-2 text-xs text-default focus:border-primary focus:outline-none"
               >
-                {products.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.sku} - {p.name}
-                  </option>
-                ))}
+                <optgroup label="Finished Goods (Manufactured / Purchased)">
+                  {products
+                    .filter((p) => p.type === 'finished' || p.type === 'finished_good')
+                    .map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.sku} - {p.name}
+                      </option>
+                    ))}
+                </optgroup>
+                <optgroup label="Raw Materials & Components">
+                  {products
+                    .filter((p) => p.type !== 'finished' && p.type !== 'finished_good')
+                    .map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.sku} - {p.name}
+                      </option>
+                    ))}
+                </optgroup>
               </select>
             </div>
 

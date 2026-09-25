@@ -28,12 +28,14 @@ import { ActionMenuPortal } from '../../../components/ui/ActionMenuPortal';
 import { cn } from '../../../lib/utils';
 
 interface GrnFormItem {
+  product_id?: number | string;
   product_name: string;
   product_sku: string;
   batch_code: string;
   received_quantity: string;
   rejected_quantity: string;
   accepted_quantity: string;
+  unit_id?: number | string;
   unit_code: string;
   unit_cost: string;
 }
@@ -132,7 +134,16 @@ export function GoodsReceiptsSection() {
   const { config: businessConfig } = useBusinessConfig();
 
   // Form State
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    grn_number: string;
+    po_number: string;
+    supplier_name: string;
+    warehouse_name: string;
+    receipt_date: string;
+    supplier_document_number: string;
+    notes: string;
+    items: GrnFormItem[];
+  }>({
     grn_number: '',
     po_number: 'PO-202608-001',
     supplier_name: 'Bengal Glass & Ceramic Ltd.',
@@ -221,14 +232,14 @@ export function GoodsReceiptsSection() {
         id: Date.now() + idx,
         uuid: `gri-${Date.now() + idx}`,
         goods_receipt_id: Date.now(),
-        product_id: idx + 1,
+        product_id: it.product_id ? Number(it.product_id) : idx + 1,
         product_name: it.product_name,
         product_sku: it.product_sku,
         batch_code: it.batch_code,
         received_quantity: it.received_quantity,
         rejected_quantity: it.rejected_quantity,
         accepted_quantity: it.accepted_quantity,
-        unit_id: 1,
+        unit_id: it.unit_id ? Number(it.unit_id) : 1,
         unit_code: it.unit_code,
         unit_cost: it.unit_cost,
         total_cost: (parseFloat(it.accepted_quantity || '0') * parseFloat(it.unit_cost || '0')).toFixed(2),

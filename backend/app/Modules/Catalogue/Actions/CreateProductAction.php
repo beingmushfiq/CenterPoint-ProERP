@@ -37,6 +37,26 @@ final class CreateProductAction extends Action
             $openingStock = (float) ($input['opening_stock'] ?? $input['initial_stock'] ?? 0);
             $warehouseUuid = $input['warehouse_id'] ?? null;
 
+            $type = (string) ($input['type'] ?? 'finished');
+            if (!array_key_exists('is_purchased', $input)) {
+                $input['is_purchased'] = match ($type) {
+                    'raw_material', 'packaging', 'consumable', 'finished', 'asset_part' => true,
+                    default => false,
+                };
+            }
+            if (!array_key_exists('is_produced', $input)) {
+                $input['is_produced'] = match ($type) {
+                    'finished', 'semi_finished' => true,
+                    default => false,
+                };
+            }
+            if (!array_key_exists('is_sold', $input)) {
+                $input['is_sold'] = match ($type) {
+                    'finished', 'service' => true,
+                    default => false,
+                };
+            }
+
             $payload = $this->resolveReferences($input, (int) $actor->tenant_id);
             unset($payload['user'], $payload['opening_stock'], $payload['initial_stock'], $payload['warehouse_id']);
 

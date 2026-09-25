@@ -1,6 +1,10 @@
 import React, { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { X, ShoppingCart, Plus, Trash2 } from 'lucide-react';
 import type { PurchaseOrder, PurchaseOrderItem } from '../../../types/api/purchasing';
+import type { Product } from '../../../types/api/catalog';
+import { api } from '../../../lib/api/client';
+import { extractList } from '../../../lib/api/apiData';
 import { useCurrency } from '../../../hooks/useCurrency';
 import { notify } from '../../../components/ui/Toast';
 
@@ -50,7 +54,19 @@ export const FastPoModal: React.FC<FastPoModalProps> = ({
   });
   const [notes, setNotes] = useState('');
 
-  const [items, setItems] = useState<Array<{ name: string; sku: string; qty: string; price: string; unit: string }>>(() => {
+  const { data: purchasableProducts = [] } = useQuery<Product[]>({
+    queryKey: ['catalogue', 'products', 'purchasable'],
+    queryFn: async () => {
+      try {
+        const res = await api.get<Product[]>('/products?per_page=100');
+        return extractList<Product>(res).filter((p) => p.is_purchased !== false);
+      } catch {
+        return [];
+      }
+    },
+  });
+
+  const [items, setItems] = useState<Array<{ product_id?: number | string; name: string; sku: string; qty: string; price: string; unit: string }>>(() => {
     if (initialItems && initialItems.length > 0) {
       return initialItems.map((item) => ({
         name: item.name,
@@ -60,7 +76,7 @@ export const FastPoModal: React.FC<FastPoModalProps> = ({
         unit: 'PCS',
       }));
     }
-    return [{ name: 'Microcrystalline Ceramic Glass Panel', sku: 'RAW-CERAMIC-PANEL', qty: '100', price: '450', unit: 'PCS' }];
+    return [{ product_id: 1, name: 'Microcrystalline Ceramic Glass Panel', sku: 'RAW-CERAMIC-PANEL', qty: '100', price: '450', unit: 'PCS' }];
   });
 
   const addItemRow = () => {
@@ -72,10 +88,10 @@ export const FastPoModal: React.FC<FastPoModalProps> = ({
     setItems((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const updateItem = (index: number, field: string, value: string) => {
+  const updateItem = (index: number, patch: Partial<{ product_id?: number | string; name: string; sku: string; qty: string; price: string; unit: string }>) => {
     setItems((prev) => {
       const copy = [...prev];
-      copy[index] = { ...copy[index]!, [field]: value };
+      copy[index] = { ...copy[index]!, ...patch };
       return copy;
     });
   };
@@ -108,9 +124,9 @@ export const FastPoModal: React.FC<FastPoModalProps> = ({
         id: baseId + idx,
         uuid: `poi-${baseId}-${idx}`,
         purchase_order_id: baseId,
-        product_id: 100 + idx,
-        product_name: item.name || 'Raw Material Component',
-        product_sku: item.sku || `RAW-${idx + 1}`,
+        product_id: item.product_id ? Number(item.product_id) : (100 + idx),
+        product_name: item.name || 'Purchased Item',
+        product_sku: item.sku || `ITEM-${idx + 1}`,
         quantity: q.toFixed(2),
         received_quantity: '0.00',
         billed_quantity: '0.00',
@@ -267,12 +283,59 @@ export const FastPoModal: React.FC<FastPoModalProps> = ({
                   key={idx}
                   className="grid grid-cols-12 gap-2 p-2.5 rounded-xl bg-surface-sunken border border-default items-center text-xs"
                 >
-                  <div className="col-span-5">
+                  <div className="col-span-5 space-y-1">
+                    {purchasableProducts.length > 0 && (
+                      <select
+                        value={
+                          purchasableProducts.find(
+                            (p) =>
+                              (item.product_id && (p.product_id === Number(item.product_id) || p.id === String(item.product_id))) ||
+                              p.sku === item.sku
+                          )?.sku || ''
+                        }
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          if (!val) return;
+                          const prod = purchasableProducts.find((p) => p.sku === val);
+                          if (prod) {
+                            const unitCode = prod.base_unit?.code || prod.unit?.code || 'PCS';
+                            updateItem(idx, {
+                              product_id: prod.product_id || prod.id,
+                              name: prod.name,
+                              sku: prod.sku,
+                              unit: unitCode,
+                              price: parseFloat(prod.standard_cost || '0') > 0 ? String(parseFloat(prod.standard_cost)) : item.price,
+                            });
+                          }
+                        }}
+                        className="w-full px-2 py-1 border border-default rounded-lg bg-surface text-default text-[11px] focus:border-primary focus:outline-none cursor-pointer"
+                      >
+                        <option value="">-- Choose Item ({purchasableProducts.length}) --</option>
+                        <optgroup label="Finished Goods">
+                          {purchasableProducts
+                            .filter((p) => p.type === 'finished')
+                            .map((p) => (
+                              <option key={p.id} value={p.sku}>
+                                [FG] {p.name}
+                              </option>
+                            ))}
+                        </optgroup>
+                        <optgroup label="Raw Materials & Components">
+                          {purchasableProducts
+                            .filter((p) => p.type !== 'finished')
+                            .map((p) => (
+                              <option key={p.id} value={p.sku}>
+                                [{p.type?.replace('_', ' ') || 'RM'}] {p.name}
+                              </option>
+                            ))}
+                        </optgroup>
+                      </select>
+                    )}
                     <input
                       type="text"
                       placeholder="Item name / Material description"
                       value={item.name}
-                      onChange={(e) => updateItem(idx, 'name', e.target.value)}
+                      onChange={(e) => updateItem(idx, { name: e.target.value })}
                       required
                       className="w-full px-2.5 py-1.5 border border-default rounded-lg bg-surface text-default focus:border-primary focus:outline-none text-xs"
                     />
@@ -285,7 +348,7 @@ export const FastPoModal: React.FC<FastPoModalProps> = ({
                         step="1"
                         min="1"
                         value={item.qty}
-                        onChange={(e) => updateItem(idx, 'qty', e.target.value)}
+                        onChange={(e) => updateItem(idx, { qty: e.target.value })}
                         required
                         className="w-full px-2 py-1.5 border border-default rounded-lg bg-surface text-default text-right font-mono focus:border-primary focus:outline-none text-xs"
                       />
@@ -298,7 +361,7 @@ export const FastPoModal: React.FC<FastPoModalProps> = ({
                       placeholder="Unit Price"
                       step="0.01"
                       value={item.price}
-                      onChange={(e) => updateItem(idx, 'price', e.target.value)}
+                      onChange={(e) => updateItem(idx, { price: e.target.value })}
                       required
                       className="w-full px-2 py-1.5 border border-default rounded-lg bg-surface text-default text-right font-mono focus:border-primary focus:outline-none text-xs"
                     />

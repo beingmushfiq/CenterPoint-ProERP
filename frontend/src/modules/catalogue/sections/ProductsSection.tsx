@@ -64,6 +64,9 @@ interface ProductFormDraft {
   brand_id?: string | null;
   standard_cost: string;
   default_sale_price: string;
+  is_produced?: boolean;
+  is_purchased?: boolean;
+  is_sold?: boolean;
   is_stock_tracked?: boolean;
   is_online?: boolean;
   status?: string;
@@ -150,6 +153,9 @@ export function ProductsSection() {
     brand_id: null,
     standard_cost: '0.0000',
     default_sale_price: '0.0000',
+    is_produced: true,
+    is_purchased: true,
+    is_sold: true,
     is_stock_tracked: true,
     is_online: true,
     status: 'active',
@@ -372,6 +378,9 @@ export function ProductsSection() {
       brand_id: null,
       standard_cost: '0.0000',
       default_sale_price: '0.0000',
+      is_produced: true,
+      is_purchased: true,
+      is_sold: true,
       is_stock_tracked: true,
       is_online: true,
       status: 'active',
@@ -408,6 +417,9 @@ export function ProductsSection() {
       brand_id: p.brand_id ? String(p.brand_id) : null,
       standard_cost: p.standard_cost,
       default_sale_price: p.default_sale_price,
+      is_produced: p.is_produced ?? (p.type === 'finished' || p.type === 'semi_finished'),
+      is_purchased: p.is_purchased ?? (p.type !== 'semi_finished'),
+      is_sold: p.is_sold ?? (p.type === 'finished' || p.type === 'service'),
       is_stock_tracked: p.is_stock_tracked,
       is_online: p.is_online,
       status: p.status,
@@ -449,6 +461,9 @@ export function ProductsSection() {
       brand_id: p.brand_id ? String(p.brand_id) : null,
       standard_cost: p.standard_cost || '0.0000',
       default_sale_price: p.default_sale_price || '0.0000',
+      is_produced: p.is_produced ?? (p.type === 'finished' || p.type === 'semi_finished'),
+      is_purchased: p.is_purchased ?? (p.type !== 'semi_finished'),
+      is_sold: p.is_sold ?? (p.type === 'finished' || p.type === 'service'),
       is_stock_tracked: p.is_stock_tracked ?? true,
       is_online: false,
       status: 'active',
@@ -985,10 +1000,29 @@ export function ProductsSection() {
                         </div>
                       </td>
                       <td className="py-3 px-3">
-                        <span className="inline-flex items-center gap-1 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-2 py-0.5 text-[10px] font-medium text-slate-600 dark:text-slate-400 capitalize">
-                          <Tag className="h-3 w-3 text-slate-400" />
-                          {p.type.replace('_', ' ')}
-                        </span>
+                        <div className="flex flex-col items-start gap-1">
+                          <span className="inline-flex items-center gap-1 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-2 py-0.5 text-[10px] font-medium text-slate-600 dark:text-slate-400 capitalize">
+                            <Tag className="h-3 w-3 text-slate-400" />
+                            {p.type.replace('_', ' ')}
+                          </span>
+                          <div className="flex items-center gap-1">
+                            {p.is_purchased && (
+                              <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20" title="Purchasable via Purchase Orders">
+                                Buy
+                              </span>
+                            )}
+                            {p.is_produced && (
+                              <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20" title="Producible via Production Work Orders">
+                                Make
+                              </span>
+                            )}
+                            {p.is_sold && (
+                              <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20" title="Sellable via Sales Orders & POS">
+                                Sell
+                              </span>
+                            )}
+                          </div>
+                        </div>
                       </td>
                       <td className="py-3 px-3 font-mono text-slate-700 dark:text-slate-300 font-medium">
                         {formatCurrency(p.standard_cost)}
@@ -1599,6 +1633,65 @@ export function ProductsSection() {
                     </span>
                   </div>
                 </label>
+              </div>
+
+              {/* Business Capabilities */}
+              <div className="pt-3 border-t border-slate-200 dark:border-slate-800">
+                <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-2">
+                  Business Capabilities
+                </span>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <label className="flex items-start gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                    <input
+                      type="checkbox"
+                      checked={draft.is_purchased ?? true}
+                      onChange={(e) => setDraft({ ...draft, is_purchased: e.target.checked })}
+                      className="mt-0.5 size-4 rounded border-slate-300 text-primary focus:ring-primary/20"
+                    />
+                    <div>
+                      <span className="text-xs font-semibold text-slate-900 dark:text-white block">
+                        Can Be Purchased
+                      </span>
+                      <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                        Available on POs & Supplier GRN
+                      </span>
+                    </div>
+                  </label>
+
+                  <label className="flex items-start gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                    <input
+                      type="checkbox"
+                      checked={draft.is_produced ?? true}
+                      onChange={(e) => setDraft({ ...draft, is_produced: e.target.checked })}
+                      className="mt-0.5 size-4 rounded border-slate-300 text-primary focus:ring-primary/20"
+                    />
+                    <div>
+                      <span className="text-xs font-semibold text-slate-900 dark:text-white block">
+                        Can Be Produced
+                      </span>
+                      <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                        Work orders & BOM manufacturing
+                      </span>
+                    </div>
+                  </label>
+
+                  <label className="flex items-start gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                    <input
+                      type="checkbox"
+                      checked={draft.is_sold ?? true}
+                      onChange={(e) => setDraft({ ...draft, is_sold: e.target.checked })}
+                      className="mt-0.5 size-4 rounded border-slate-300 text-primary focus:ring-primary/20"
+                    />
+                    <div>
+                      <span className="text-xs font-semibold text-slate-900 dark:text-white block">
+                        Can Be Sold
+                      </span>
+                      <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                        Sales orders, invoices & POS
+                      </span>
+                    </div>
+                  </label>
+                </div>
               </div>
             </div>
           )}
@@ -2283,6 +2376,65 @@ export function ProductsSection() {
                       </span>
                     </div>
                   </label>
+                </div>
+
+                {/* Business Capabilities */}
+                <div className="pt-3 border-t border-slate-200 dark:border-slate-800">
+                  <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-2">
+                    Business Capabilities
+                  </span>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <label className="flex items-start gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                      <input
+                        type="checkbox"
+                        checked={draft.is_purchased ?? true}
+                        onChange={(e) => setDraft({ ...draft, is_purchased: e.target.checked })}
+                        className="mt-0.5 size-4 rounded border-slate-300 text-primary focus:ring-primary/20"
+                      />
+                      <div>
+                        <span className="text-xs font-semibold text-slate-900 dark:text-white block">
+                          Can Be Purchased
+                        </span>
+                        <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                          Available on POs & Supplier GRN
+                        </span>
+                      </div>
+                    </label>
+
+                    <label className="flex items-start gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                      <input
+                        type="checkbox"
+                        checked={draft.is_produced ?? true}
+                        onChange={(e) => setDraft({ ...draft, is_produced: e.target.checked })}
+                        className="mt-0.5 size-4 rounded border-slate-300 text-primary focus:ring-primary/20"
+                      />
+                      <div>
+                        <span className="text-xs font-semibold text-slate-900 dark:text-white block">
+                          Can Be Produced
+                        </span>
+                        <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                          Work orders & BOM manufacturing
+                        </span>
+                      </div>
+                    </label>
+
+                    <label className="flex items-start gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                      <input
+                        type="checkbox"
+                        checked={draft.is_sold ?? true}
+                        onChange={(e) => setDraft({ ...draft, is_sold: e.target.checked })}
+                        className="mt-0.5 size-4 rounded border-slate-300 text-primary focus:ring-primary/20"
+                      />
+                      <div>
+                        <span className="text-xs font-semibold text-slate-900 dark:text-white block">
+                          Can Be Sold
+                        </span>
+                        <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                          Sales orders, invoices & POS
+                        </span>
+                      </div>
+                    </label>
+                  </div>
                 </div>
               </div>
             )}

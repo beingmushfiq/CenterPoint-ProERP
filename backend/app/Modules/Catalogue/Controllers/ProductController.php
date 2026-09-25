@@ -27,7 +27,7 @@ final class ProductController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $allowed = ['type', 'status', 'category_id', 'brand_id', 'is_online', 'q', 'sort', 'page', 'per_page', 'include'];
+        $allowed = ['type', 'status', 'category_id', 'brand_id', 'is_online', 'is_purchased', 'is_produced', 'is_sold', 'q', 'sort', 'page', 'per_page', 'include'];
         $unknown = array_diff(array_keys($request->all()), $allowed);
         if ($unknown !== []) {
             return ErrorResponse::make(request: $request, code: 'VALIDATION_FAILED', message: 'Unknown query parameter(s): '.implode(', ', $unknown), httpStatus: 422, retryable: false);
@@ -49,9 +49,11 @@ final class ProductController extends Controller
                 });
             }
         }
-        $online = $request->input('is_online');
-        if (is_string($online)) {
-            $query->where('is_online', filter_var($online, FILTER_VALIDATE_BOOLEAN));
+        foreach (['is_online', 'is_purchased', 'is_produced', 'is_sold'] as $flag) {
+            $val = $request->input($flag);
+            if ($val !== null && $val !== '') {
+                $query->where($flag, filter_var($val, FILTER_VALIDATE_BOOLEAN));
+            }
         }
         $search = $request->input('q');
         if (is_string($search) && mb_strlen($search) >= 2) {
@@ -92,7 +94,7 @@ final class ProductController extends Controller
         $page = is_int($pageRaw) ? $pageRaw : (int) $pageRaw;
         $paginated = $query->paginate($perPage, ['*'], 'page', $page);
         $filters = [];
-        foreach (['type', 'status', 'category_id', 'brand_id', 'is_online', 'q'] as $field) {
+        foreach (['type', 'status', 'category_id', 'brand_id', 'is_online', 'is_purchased', 'is_produced', 'is_sold', 'q'] as $field) {
             if ($request->filled($field)) {
                 $filters[$field] = $request->input($field);
             }

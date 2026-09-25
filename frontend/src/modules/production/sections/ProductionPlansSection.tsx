@@ -344,7 +344,7 @@ export function ProductionPlansSection() {
             variant="primary"
             onClick={() => {
               setErrorMsg(null);
-              const defaultProduct = products.find((p) => p.type === 'finished_good') ?? products[0];
+              const defaultProduct = products.find((p) => p.type === 'finished' || p.type === 'finished_good' || p.is_produced) ?? products[0];
               const matchingBom = defaultProduct
                 ? boms.find((b) => b.product_id === defaultProduct.id) ?? boms[0]
                 : boms[0];
@@ -755,7 +755,7 @@ export function ProductionPlansSection() {
               <button
                 type="button"
                 onClick={() => {
-                  const defaultProduct = products.find((p) => p.type === 'finished_good') ?? products[0];
+                  const defaultProduct = products.find((p) => p.type === 'finished' || p.type === 'finished_good' || p.is_produced) ?? products[0];
                   const matchingBom = defaultProduct
                     ? boms.find((b) => b.product_id === defaultProduct.id) ?? boms[0]
                     : boms[0];

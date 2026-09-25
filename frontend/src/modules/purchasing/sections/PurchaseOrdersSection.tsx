@@ -30,6 +30,7 @@ import {
   ChevronDown,
 } from 'lucide-react';
 import type { PurchaseOrder } from '../../../types/api/purchasing';
+import type { Product } from '../../../types/api/catalog';
 import { api } from '../../../lib/api/client';
 import { extractList } from '../../../lib/api/apiData';
 import { PrintPreviewModal } from '../../../components/print/PrintPreviewModal';
@@ -42,9 +43,11 @@ import { ActionMenuPortal } from '../../../components/ui/ActionMenuPortal';
 import { cn } from '../../../lib/utils';
 
 interface PoFormItem {
+  product_id?: number | string;
   product_name: string;
   product_sku: string;
   quantity: string;
+  unit_id?: number | string;
   unit_code: string;
   unit_price: string;
   discount_type?: 'flat' | 'percentage';
@@ -273,6 +276,30 @@ export function PurchaseOrdersSection({ onReceivePo, onCreateBill }: PurchaseOrd
     initialData: SAMPLE_ORDERS,
   });
 
+  const { data: purchasableProducts = [] } = useQuery<Product[]>({
+    queryKey: ['catalogue', 'products', 'purchasable'],
+    queryFn: async () => {
+      try {
+        const res = await api.get<Product[]>('/products?per_page=100');
+        return extractList<Product>(res).filter((p) => p.is_purchased !== false);
+      } catch {
+        return [];
+      }
+    },
+  });
+
+  const { data: warehouses = [] } = useQuery<Array<{ id: number | string; uuid?: string; name: string; code: string }>>({
+    queryKey: ['inventory', 'warehouses', 'options'],
+    queryFn: async () => {
+      try {
+        const res = await api.get<Array<{ id: number | string; uuid?: string; name: string; code: string }>>('/warehouses');
+        return extractList<{ id: number | string; uuid?: string; name: string; code: string }>(res);
+      } catch {
+        return [];
+      }
+    },
+  });
+
   const approveMutation = useMutation({
     mutationFn: async (orderId: number) => {
       await api.post(`/purchasing/orders/${orderId}/approve`, {});
@@ -398,13 +425,13 @@ export function PurchaseOrdersSection({ onReceivePo, onCreateBill }: PurchaseOrd
           id: Date.now() + idx,
           uuid: `poi-${Date.now() + idx}`,
           purchase_order_id: Date.now(),
-          product_id: idx + 1,
+          product_id: it.product_id ? Number(it.product_id) : idx + 1,
           product_name: it.product_name,
           product_sku: it.product_sku,
           quantity: it.quantity,
           received_quantity: '0.00',
           billed_quantity: '0.00',
-          unit_id: 1,
+          unit_id: it.unit_id ? Number(it.unit_id) : 1,
           unit_code: it.unit_code,
           unit_price: it.unit_price,
           discount_amount: totalEffectiveDisc.toFixed(2),
@@ -424,9 +451,9 @@ export function PurchaseOrdersSection({ onReceivePo, onCreateBill }: PurchaseOrd
       order_discount_type: formData.order_discount_type || 'flat',
       order_discount_value: String(formData.order_discount_value || '0'),
       items: formData.items.map((it, idx) => ({
-        product_id: idx + 1,
+        product_id: it.product_id ? Number(it.product_id) : idx + 1,
         quantity: it.quantity,
-        unit_id: 1,
+        unit_id: it.unit_id ? Number(it.unit_id) : 1,
         unit_price: it.unit_price,
         discount_type: it.discount_type || 'flat',
         discount_value: String(it.discount_amount || '0'),
@@ -469,13 +496,13 @@ export function PurchaseOrdersSection({ onReceivePo, onCreateBill }: PurchaseOrd
         id: activeOrder.items?.[idx]?.id ?? Date.now() + idx,
         uuid: activeOrder.items?.[idx]?.uuid ?? `poi-${Date.now() + idx}`,
         purchase_order_id: activeOrder.id,
-        product_id: activeOrder.items?.[idx]?.product_id ?? idx + 1,
+        product_id: it.product_id ? Number(it.product_id) : (activeOrder.items?.[idx]?.product_id ?? idx + 1),
         product_name: it.product_name,
         product_sku: it.product_sku,
         quantity: it.quantity,
         received_quantity: activeOrder.items?.[idx]?.received_quantity ?? '0.00',
         billed_quantity: activeOrder.items?.[idx]?.billed_quantity ?? '0.00',
-        unit_id: activeOrder.items?.[idx]?.unit_id ?? 1,
+        unit_id: it.unit_id ? Number(it.unit_id) : (activeOrder.items?.[idx]?.unit_id ?? 1),
         unit_code: it.unit_code,
         unit_price: it.unit_price,
         discount_amount: totalEffectiveDisc.toFixed(2),
@@ -1080,9 +1107,11 @@ export function PurchaseOrdersSection({ onReceivePo, onCreateBill }: PurchaseOrd
                         order_discount_type: 'flat',
                         order_discount_value: order.discount_amount || '0.00',
                         items: order.items?.map((it) => ({
+                          product_id: it.product_id,
                           product_name: it.product_name || '',
                           product_sku: it.product_sku || '',
                           quantity: it.quantity,
+                          unit_id: it.unit_id,
                           unit_code: it.unit_code || 'PCS',
                           unit_price: it.unit_price,
                           discount_type: 'flat' as const,
@@ -1119,9 +1148,11 @@ export function PurchaseOrdersSection({ onReceivePo, onCreateBill }: PurchaseOrd
                             order_discount_type: 'flat',
                             order_discount_value: order.discount_amount || '0.00',
                             items: order.items?.map((it) => ({
+                              product_id: it.product_id,
                               product_name: it.product_name || '',
                               product_sku: it.product_sku || '',
                               quantity: it.quantity,
+                              unit_id: it.unit_id,
                               unit_code: it.unit_code || 'KG',
                               unit_price: it.unit_price,
                               discount_type: 'flat' as const,
@@ -1326,13 +1357,28 @@ export function PurchaseOrdersSection({ onReceivePo, onCreateBill }: PurchaseOrd
                 </div>
                 <div>
                   <label className="block font-semibold text-muted mb-1">Target Warehouse</label>
-                  <input
-                    type="text"
-                    value={formData.warehouse_name}
-                    onChange={(e) => setFormData({ ...formData, warehouse_name: e.target.value })}
-                    className="w-full rounded-xl border border-default bg-surface-sunken px-3 py-2 text-default focus:border-primary focus:outline-none"
-                    required
-                  />
+                  {warehouses.length > 0 ? (
+                    <select
+                      value={formData.warehouse_name}
+                      onChange={(e) => setFormData({ ...formData, warehouse_name: e.target.value })}
+                      className="w-full rounded-xl border border-default bg-surface-sunken px-3 py-2 text-default focus:border-primary focus:outline-none cursor-pointer"
+                      required
+                    >
+                      {warehouses.map((w) => (
+                        <option key={w.uuid || w.id} value={w.name}>
+                          {w.name} ({w.code})
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input
+                      type="text"
+                      value={formData.warehouse_name}
+                      onChange={(e) => setFormData({ ...formData, warehouse_name: e.target.value })}
+                      className="w-full rounded-xl border border-default bg-surface-sunken px-3 py-2 text-default focus:border-primary focus:outline-none"
+                      required
+                    />
+                  )}
                 </div>
                 <div>
                   <label className="block font-semibold text-muted mb-1">Expected Delivery Date</label>
@@ -1371,13 +1417,61 @@ export function PurchaseOrdersSection({ onReceivePo, onCreateBill }: PurchaseOrd
 
                 {formData.items.map((item, idx) => (
                   <div key={idx} className="grid grid-cols-12 gap-2 items-center bg-surface p-2.5 rounded-lg border border-default">
-                    <div className="col-span-4">
+                    <div className="col-span-4 space-y-1">
+                      {purchasableProducts.length > 0 && (
+                        <select
+                          value={
+                            purchasableProducts.find(
+                              (p) =>
+                                (item.product_id && (p.product_id === Number(item.product_id) || p.id === String(item.product_id))) ||
+                                p.sku === item.product_sku
+                            )?.sku || ''
+                          }
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            if (!val) return;
+                            const prod = purchasableProducts.find((p) => p.sku === val);
+                            if (prod) {
+                              const unitCode = prod.base_unit?.code || prod.unit?.code || 'PCS';
+                              updateFormItem(idx, {
+                                product_id: prod.product_id || prod.id,
+                                product_name: prod.name,
+                                product_sku: prod.sku,
+                                unit_id: prod.unit_id || 1,
+                                unit_code: unitCode,
+                                unit_price: parseFloat(prod.standard_cost || '0') > 0 ? String(parseFloat(prod.standard_cost)) : item.unit_price,
+                              });
+                            }
+                          }}
+                          className="w-full rounded-lg border border-default bg-surface-sunken px-2 py-1 text-[11px] text-default focus:border-primary focus:outline-none mb-1 font-medium cursor-pointer"
+                        >
+                          <option value="">-- Select from Catalog ({purchasableProducts.length}) --</option>
+                          <optgroup label="Finished Goods">
+                            {purchasableProducts
+                              .filter((p) => p.type === 'finished')
+                              .map((p) => (
+                                <option key={p.id} value={p.sku}>
+                                  [FG] {p.name} ({p.sku})
+                                </option>
+                              ))}
+                          </optgroup>
+                          <optgroup label="Raw Materials & Components">
+                            {purchasableProducts
+                              .filter((p) => p.type !== 'finished')
+                              .map((p) => (
+                                <option key={p.id} value={p.sku}>
+                                  [{p.type?.replace('_', ' ') || 'RM'}] {p.name} ({p.sku})
+                                </option>
+                              ))}
+                          </optgroup>
+                        </select>
+                      )}
                       <input
                         type="text"
-                        placeholder="Product Description"
+                        placeholder="Product Description or SKU"
                         value={item.product_name}
                         onChange={(e) => updateFormItem(idx, { product_name: e.target.value })}
-                        className="w-full rounded-lg border border-default bg-surface-sunken px-2 py-1.5 text-xs text-default focus:border-primary focus:outline-none"
+                        className="w-full rounded-lg border border-default bg-surface-sunken px-2 py-1 text-xs text-default focus:border-primary focus:outline-none"
                         required
                       />
                     </div>
@@ -1715,13 +1809,61 @@ export function PurchaseOrdersSection({ onReceivePo, onCreateBill }: PurchaseOrd
 
                 {formData.items.map((item, idx) => (
                   <div key={idx} className="grid grid-cols-12 gap-2 items-center bg-surface p-2.5 rounded-lg border border-default">
-                    <div className="col-span-4">
+                    <div className="col-span-4 space-y-1">
+                      {purchasableProducts.length > 0 && (
+                        <select
+                          value={
+                            purchasableProducts.find(
+                              (p) =>
+                                (item.product_id && (p.product_id === Number(item.product_id) || p.id === String(item.product_id))) ||
+                                p.sku === item.product_sku
+                            )?.sku || ''
+                          }
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            if (!val) return;
+                            const prod = purchasableProducts.find((p) => p.sku === val);
+                            if (prod) {
+                              const unitCode = prod.base_unit?.code || prod.unit?.code || 'PCS';
+                              updateFormItem(idx, {
+                                product_id: prod.product_id || prod.id,
+                                product_name: prod.name,
+                                product_sku: prod.sku,
+                                unit_id: prod.unit_id || 1,
+                                unit_code: unitCode,
+                                unit_price: parseFloat(prod.standard_cost || '0') > 0 ? String(parseFloat(prod.standard_cost)) : item.unit_price,
+                              });
+                            }
+                          }}
+                          className="w-full rounded-lg border border-default bg-surface-sunken px-2 py-1 text-[11px] text-default focus:border-primary focus:outline-none mb-1 font-medium cursor-pointer"
+                        >
+                          <option value="">-- Select from Catalog ({purchasableProducts.length}) --</option>
+                          <optgroup label="Finished Goods">
+                            {purchasableProducts
+                              .filter((p) => p.type === 'finished')
+                              .map((p) => (
+                                <option key={p.id} value={p.sku}>
+                                  [FG] {p.name} ({p.sku})
+                                </option>
+                              ))}
+                          </optgroup>
+                          <optgroup label="Raw Materials & Components">
+                            {purchasableProducts
+                              .filter((p) => p.type !== 'finished')
+                              .map((p) => (
+                                <option key={p.id} value={p.sku}>
+                                  [{p.type?.replace('_', ' ') || 'RM'}] {p.name} ({p.sku})
+                                </option>
+                              ))}
+                          </optgroup>
+                        </select>
+                      )}
                       <input
                         type="text"
-                        placeholder="Product Description"
+                        placeholder="Product Description or SKU"
                         value={item.product_name}
                         onChange={(e) => updateFormItem(idx, { product_name: e.target.value })}
-                        className="w-full rounded-lg border border-default bg-surface-sunken px-2 py-1.5 text-xs text-default focus:border-primary focus:outline-none"
+                        className="w-full rounded-lg border border-default bg-surface-sunken px-2 py-1 text-xs text-default focus:border-primary focus:outline-none"
                         required
                       />
                     </div>
