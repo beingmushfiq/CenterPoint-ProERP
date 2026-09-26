@@ -36,82 +36,6 @@ interface SalesReturnFormItem {
   condition: string;
 }
 
-const SAMPLE_RETURNS: SalesReturn[] = [
-  {
-    id: 1,
-    uuid: 'srt-001',
-    return_number: 'SRT-202608-001',
-    invoice_id: 1,
-    invoice_number: 'INV-202608-001',
-    sales_order_id: 1,
-    party_id: 1,
-    customer_name: 'Apex Footwear Central Kitchen',
-    warehouse_id: 1,
-    warehouse_name: 'Main Distribution Hub (Dhaka)',
-    return_date: '2026-08-30',
-    reason_code_id: 1,
-    reason_code_name: 'Damaged in transit packaging',
-    restock: false,
-    subtotal: '2850.00',
-    tax_amount: '142.50',
-    total_amount: '2992.50',
-    refund_method: 'credit_note',
-    credit_note_number: 'CN-202608-001',
-    status: 'completed',
-    approved_at: '2026-08-30T16:00:00Z',
-    items: [
-      {
-        id: 701,
-        uuid: 'sri-701',
-        product_id: 1,
-        product_name: 'Infrared Cooker 2200W (SM-IC220)',
-        quantity: '1.00',
-        unit_id: 2,
-        unit_price: '2850.00',
-        line_total: '2850.00',
-        condition: 'damaged',
-      },
-    ],
-    created_at: '2026-08-30T11:00:00Z',
-  },
-  {
-    id: 2,
-    uuid: 'srt-002',
-    return_number: 'SRT-202608-002',
-    invoice_id: 2,
-    sales_order_id: 2,
-    party_id: 2,
-    customer_name: 'Pran-RFL Group (Catering Div)',
-    warehouse_id: 1,
-    warehouse_name: 'Main Distribution Hub (Dhaka)',
-    return_date: '2026-08-30',
-    reason_code_id: 2,
-    reason_code_name: 'Wrong item shipped by dispatch',
-    restock: true,
-    subtotal: '7000.00',
-    tax_amount: '350.00',
-    total_amount: '7350.00',
-    refund_method: 'bank_transfer',
-    credit_note_number: null,
-    status: 'draft',
-    approved_at: null,
-    items: [
-      {
-        id: 702,
-        uuid: 'sri-702',
-        product_id: 3,
-        product_name: 'Double Burner Gas Stove (Toughened Glass)',
-        quantity: '2.00',
-        unit_id: 2,
-        unit_price: '3500.00',
-        line_total: '7000.00',
-        condition: 'good',
-      },
-    ],
-    created_at: '2026-08-30T14:30:00Z',
-  },
-];
-
 export function SalesReturnsSection() {
   const { hasPermission } = useAuthStore();
   const canDelete = hasPermission('sales.return.delete');
@@ -268,22 +192,19 @@ export function SalesReturnsSection() {
     }
   };
 
-  const { data: returns = SAMPLE_RETURNS, isLoading, isFetching, refetch } = useQuery<SalesReturn[]>({
+  const { data: returns = [], isLoading, isFetching, refetch } = useQuery<SalesReturn[]>({
     queryKey: ['sales', 'returns'],
     queryFn: async () => {
       try {
         const res = await api.get<{ data: SalesReturn[] } | SalesReturn[]>('/sales/returns');
         const raw = res.data;
         const list = Array.isArray(raw) ? raw : (raw?.data ?? []);
-        if (list && list.length > 0) {
-          return list;
-        }
-      } catch {
-        // Sample fallback
+        return list;
+      } catch (err) {
+        console.error('Failed to load sales returns', err);
+        return [];
       }
-      return SAMPLE_RETURNS;
     },
-    initialData: SAMPLE_RETURNS,
   });
 
   const handleViewReturn = async (r: SalesReturn) => {
@@ -430,7 +351,8 @@ export function SalesReturnsSection() {
       setShowDeleteModal(false);
       setActiveReturn(null);
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : 'Failed to delete sales return');
+      const anyErr = err as { response?: { data?: { message?: string } }; message?: string };
+      toast.error(anyErr?.response?.data?.message || (err instanceof Error ? err.message : 'Failed to delete sales return'));
     }
   };
 
@@ -476,7 +398,8 @@ export function SalesReturnsSection() {
     return matchesSearch && matchesStatus;
   });
 
-  const isAllSelected = filteredReturns.length > 0 && selectedIds.size === filteredReturns.length;
+  const deletableReturns = filteredReturns.filter((r) => r.status !== 'completed' && r.status !== 'approved');
+  const isAllSelected = deletableReturns.length > 0 && selectedIds.size === deletableReturns.length;
   const isSomeSelected = selectedIds.size > 0 && !isAllSelected;
 
   useEffect(() => {
@@ -499,7 +422,7 @@ export function SalesReturnsSection() {
     if (isAllSelected) {
       setSelectedIds(new Set());
     } else {
-      setSelectedIds(new Set(filteredReturns.map((r) => r.id)));
+      setSelectedIds(new Set(deletableReturns.map((r) => r.id)));
     }
   };
 
@@ -515,16 +438,34 @@ export function SalesReturnsSection() {
   const handleBulkDelete = async () => {
     setIsBulkDeleting(true);
     let count = 0;
+    const errors: string[] = [];
     try {
       for (const id of Array.from(selectedIds)) {
         try {
           await api.delete(`/sales/returns/${id}`);
           count++;
-        } catch {
-          // ignore failures on single items
+        } catch (err: unknown) {
+          const anyErr = err as { response?: { status?: number; data?: { message?: string } }; message?: string };
+          if (anyErr?.response?.data?.message) {
+            errors.push(anyErr.response.data.message);
+          } else if (anyErr?.response?.status === 404) {
+            errors.push(`Return #${id} was not found on server.`);
+          } else {
+            errors.push(anyErr?.message || `Failed to move return #${id}`);
+          }
         }
       }
-      toast.success(`${count} sales return(s) moved to Data Bin.`);
+      if (count > 0) {
+        toast.success(`${count} sales return(s) moved to Data Bin.`);
+      }
+      if (errors.length > 0) {
+        const unique = Array.from(new Set(errors));
+        toast.error(
+          count === 0
+            ? `Could not move to Data Bin: ${unique.join(' ')}`
+            : `${errors.length} return(s) could not be moved: ${unique.join(' ')}`
+        );
+      }
       queryClient.invalidateQueries({ queryKey: ['sales', 'returns'] });
       setSelectedIds(new Set());
       setShowBulkDeleteModal(false);
@@ -752,9 +693,11 @@ export function SalesReturnsSection() {
                       <input
                         type="checkbox"
                         checked={selectedIds.has(r.id)}
+                        disabled={r.status === 'completed' || r.status === 'approved'}
                         onChange={() => toggleSelect(r.id)}
                         aria-label={`Select return ${r.return_number}`}
-                        className="size-4 rounded border-default text-primary focus:ring-primary/20 cursor-pointer"
+                        className="size-4 rounded border-default text-primary focus:ring-primary/20 cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+                        title={r.status === 'completed' || r.status === 'approved' ? 'Approved or completed returns cannot be deleted' : undefined}
                       />
                     </td>
                     <td className="px-4 py-3.5 font-mono font-medium text-default">

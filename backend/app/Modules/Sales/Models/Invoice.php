@@ -23,8 +23,8 @@ use Illuminate\Support\Str;
  * @property int|null $company_id
  * @property int|null $branch_id
  * @property int|null $party_id
- * @property string $invoice_date
- * @property string|null $due_date
+ * @property \Illuminate\Support\Carbon $invoice_date
+ * @property \Illuminate\Support\Carbon|null $due_date
  * @property string $subtotal
  * @property string $discount_amount
  * @property string $tax_amount

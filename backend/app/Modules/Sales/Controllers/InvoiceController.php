@@ -224,8 +224,12 @@ final class InvoiceController extends Controller
                     }
                     $party = $partyMap[$lowerCustomerKey];
 
-                    $date = !empty($row['invoice_date']) ? trim((string) $row['invoice_date']) : now()->format('Y-m-d');
-                    $dueDate = !empty($row['due_date']) ? trim((string) $row['due_date']) : $date;
+                    $date = \Illuminate\Support\Carbon::parse(
+                        !empty($row['invoice_date']) ? trim((string) $row['invoice_date']) : now()->format('Y-m-d')
+                    );
+                    $dueDate = \Illuminate\Support\Carbon::parse(
+                        !empty($row['due_date']) ? trim((string) $row['due_date']) : $date->toDateString()
+                    );
 
                     $totalAmountRaw = $row['total_amount'] ?? null;
                     if ($totalAmountRaw === null || !is_numeric($totalAmountRaw) || (float) $totalAmountRaw <= 0) {
