@@ -23,6 +23,41 @@ if (!defined('LARAVEL_START')) {
 }
 
 // =============================================================================
+// Instant SPA Routing Handler
+// When requests for frontend client routes (e.g. /login, /dashboard, /reports,
+// /platform, etc.) reach index.php on LiteSpeed / Apache, immediately serve
+// index.html so the client-side React Router handles the route.
+// =============================================================================
+$requestUri = $_SERVER['REQUEST_URI'] ?? '/';
+$requestPath = parse_url($requestUri, PHP_URL_PATH) ?: '/';
+$requestMethod = $_SERVER['REQUEST_METHOD'] ?? 'GET';
+
+$isApiOrSystemRoute = str_starts_with($requestPath, '/api/')
+    || $requestPath === '/api'
+    || str_starts_with($requestPath, '/sanctum/')
+    || in_array($requestPath, ['/up', '/healthz', '/readyz', '/robots.txt', '/sitemap.xml', '/manifest.json'], true)
+    || (bool) preg_match('#^/store/[^/]+/(manifest\.json|sitemap.*\.xml|robots\.txt)$#', $requestPath)
+    || str_contains($requestPath, 'index.php/api/');
+
+$isStaticFile = (bool) preg_match('/\.(js|css|png|jpe?g|gif|svg|ico|webp|woff2?|ttf|eot|json|map)$/i', $requestPath);
+
+if (!$isApiOrSystemRoute && !$isStaticFile && in_array($requestMethod, ['GET', 'HEAD'], true)) {
+    $spaIndexFile = __DIR__ . '/index.html';
+    if (file_exists($spaIndexFile)) {
+        header('Content-Type: text/html; charset=utf-8');
+        header('Cache-Control: no-cache, no-store, must-revalidate');
+        header('Pragma: no-cache');
+        header('Expires: 0');
+        if ($requestMethod === 'HEAD') {
+            header('Content-Length: ' . (string) filesize($spaIndexFile));
+            exit(0);
+        }
+        readfile($spaIndexFile);
+        exit(0);
+    }
+}
+
+// =============================================================================
 // Server Layout (cPanel Multi-Project):
 //   Document Root:  /home/devcente/projects/proerp/public/   ← this file lives here
 //   Laravel App:    /home/devcente/projects/proerp/backend/  ← one level up

@@ -59,8 +59,8 @@ final class DataBinController extends Controller
             'model' => \App\Modules\Sales\Models\CrmLead::class,
             'label' => 'CRM Lead',
             'domain' => 'commercial',
-            'name_fields' => ['contact_name', 'company_name', 'title'],
-            'search_fields' => ['contact_name', 'company_name', 'title', 'email'],
+            'name_fields' => ['name', 'company_name', 'lead_number'],
+            'search_fields' => ['name', 'company_name', 'lead_number', 'email'],
         ],
         'salesman_targets' => [
             'model' => \App\Modules\Sales\Models\SalesmanTarget::class,

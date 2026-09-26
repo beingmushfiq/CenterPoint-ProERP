@@ -629,16 +629,40 @@ final class CrmLeadController extends Controller
     {
         $tenantId = TenantContext::current()->tenantId();
 
-        /** @var CrmLead $lead */
+        /** @var CrmLead|null $lead */
         $lead = CrmLead::where('tenant_id', $tenantId)
             ->where('id', $id)
-            ->firstOrFail();
+            ->first();
 
-        $lead->delete();
+        if ($lead !== null) {
+            $lead->delete();
+        }
 
         return response()->json([
             'success' => true,
             'message' => 'CRM lead moved to Data Bin.',
+        ]);
+    }
+
+    public function bulkDestroy(Request $request): JsonResponse
+    {
+        $tenantId = TenantContext::current()->tenantId();
+
+        $validated = $request->validate([
+            'ids'   => ['required', 'array'],
+            'ids.*' => ['integer'],
+        ]);
+
+        $count = CrmLead::where('tenant_id', $tenantId)
+            ->whereIn('id', $validated['ids'])
+            ->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => "{$count} CRM lead(s) moved to Data Bin.",
+            'data'    => [
+                'deleted_count' => $count,
+            ],
         ]);
     }
 }

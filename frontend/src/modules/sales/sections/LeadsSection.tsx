@@ -529,22 +529,58 @@ type ApiError = { response?: { data?: { message?: string } } };
   const deleteLeadMutation = useMutation({
     mutationFn: async ({ id, ids }: { id?: number; ids?: number[] }) => {
       if (ids && ids.length > 0) {
-        let count = 0;
-        for (const leadId of ids) {
-          await api.delete(`/sales/leads/${leadId}`);
-          count++;
+        try {
+          await api.post('/sales/leads/bulk-delete', { ids });
+          return ids.length;
+        } catch {
+          // Fallback to sequential deletion
+          let count = 0;
+          for (const leadId of ids) {
+            try {
+              await api.delete(`/sales/leads/${leadId}`);
+              count++;
+            } catch (err: unknown) {
+              const status = (err as { status?: number; response?: { status?: number } })?.status ?? 
+                             (err as { response?: { status?: number } })?.response?.status;
+              if (status === 404) {
+                count++;
+              } else {
+                throw err;
+              }
+            }
+          }
+          return count;
         }
-        return count;
       } else if (id) {
-        await api.delete(`/sales/leads/${id}`);
+        try {
+          await api.delete(`/sales/leads/${id}`);
+        } catch (err: unknown) {
+          const status = (err as { status?: number; response?: { status?: number } })?.status ?? 
+                         (err as { response?: { status?: number } })?.response?.status;
+          if (status !== 404) {
+            throw err;
+          }
+        }
         return 1;
       }
       return 0;
     },
     onSuccess: (count) => {
       toast.success(`Moved ${count} lead(s) to Data Bin`);
+      const targetId = deleteConfirm?.id;
+      const isBulk = deleteConfirm?.isBulk;
+      const idsToRemove = isBulk ? Array.from(selectedIds) : targetId ? [targetId] : [];
+
       setSelectedIds(new Set());
       setDeleteConfirm(null);
+
+      // Optimistically update query cache immediately so sample / deleted leads disappear right away
+      queryClient.setQueryData<Lead[]>(['crm', 'leads'], (old) => {
+        if (!old) return [];
+        const removeSet = new Set(idsToRemove);
+        return old.filter((l) => !removeSet.has(l.id));
+      });
+
       queryClient.invalidateQueries({ queryKey: ['crm', 'leads'] });
     },
     onError: (err: unknown) => {

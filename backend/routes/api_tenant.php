@@ -679,6 +679,8 @@ Route::middleware(['auth.jwt', 'tenant.resolve', 'tenant.active'])
                     ->middleware('permission:sales.lead.create')->name('store');
                 Route::post('bulk-import', [App\Modules\Sales\Controllers\CrmLeadController::class, 'bulkImport'])
                     ->middleware('permission:sales.lead.create')->name('bulk-import');
+                Route::post('bulk-delete', [App\Modules\Sales\Controllers\CrmLeadController::class, 'bulkDestroy'])
+                    ->middleware('permission:sales.lead.delete')->name('bulk-delete');
                 Route::get('{id}', [App\Modules\Sales\Controllers\CrmLeadController::class, 'show'])
                     ->middleware('permission:sales.lead.view')->name('show');
                 Route::put('{id}', [App\Modules\Sales\Controllers\CrmLeadController::class, 'update'])

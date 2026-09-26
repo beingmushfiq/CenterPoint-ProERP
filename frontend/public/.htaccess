@@ -12,6 +12,8 @@
     </IfModule>
 
     RewriteEngine On
+    RewriteBase /
+
     # 1. Enforce HTTPS across all domains and subdomains
     RewriteCond %{HTTPS} off
     RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
@@ -28,32 +30,26 @@
     RewriteCond %{HTTP:x-xsrf-token} .
     RewriteRule .* - [E=HTTP_X_XSRF_TOKEN:%{HTTP:X-XSRF-Token}]
 
-    # 5. Serve existing static files and directories directly (CSS, JS, images, fonts)
+    # 5. Serve existing static files and directories directly (CSS, JS, images, fonts, icons)
     RewriteCond %{REQUEST_FILENAME} -f [OR]
     RewriteCond %{REQUEST_FILENAME} -d
     RewriteRule ^ - [L]
 
-    # 6. Route API requests and Health check directly to Laravel index.php
+    # 6. Route API requests, health endpoints, and system probes directly to Laravel index.php
     RewriteCond %{REQUEST_FILENAME} !-f
-    RewriteCond %{REQUEST_URI} (^|/)(index\.php/)?api(/|$) [NC,OR]
-    RewriteCond %{REQUEST_URI} (^|/)(index\.php/)?up$ [NC,OR]
-    RewriteCond %{REQUEST_URI} (^|/)(index\.php/)?healthz? [NC]
-    RewriteRule ^ index.php [L,QSA]
+    RewriteCond %{REQUEST_URI} ^/(index\.php/)?(api|up|healthz?|readyz|sanctum)(/|$) [NC,OR]
+    RewriteCond %{REQUEST_URI} ^/(index\.php/)?store/[^/]+/api(/|$) [NC]
+    RewriteRule ^(.*)$ index.php [L,QSA]
 
-    # 7. SPA fallback: Route browser client routes to index.html (never route API, Health, or Mutations)
+    # 7. Frontend SPA fallback: Route client browser navigation (/login, /dashboard, etc.) to index.html
     RewriteCond %{REQUEST_METHOD} ^(GET|HEAD)$
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteCond %{REQUEST_FILENAME} !-d
-    RewriteCond %{REQUEST_URI} !(^|/)(index\.php/)?api(/|$) [NC]
-    RewriteCond %{REQUEST_URI} !(^|/)(index\.php/)?up$ [NC]
-    RewriteCond %{REQUEST_URI} !(^|/)(index\.php/)?healthz? [NC]
-    RewriteCond %{REQUEST_URI} !(^|/)index\.php [NC]
     RewriteRule ^ index.html [L]
 
-    # 8. Fallback: Pass non-file requests to Laravel index.php
+    # 8. General fallback: Route any remaining dynamic requests to Laravel index.php
     RewriteCond %{REQUEST_FILENAME} !-f
-    RewriteCond %{REQUEST_URI} !(^|/)index\.php [NC]
-    RewriteRule ^ index.php [L,QSA]
+    RewriteRule ^(.*)$ index.php [L,QSA]
 </IfModule>
 
 # Security Headers
