@@ -153,7 +153,7 @@ const SAMPLE_DELIVERIES: DeliveryOrder[] = [
 
 export function DeliveriesSection() {
   const { hasPermission } = useAuthStore();
-  const canDelete = hasPermission('sales.delivery.delete');
+  const canDelete = hasPermission(['sales.delivery.delete', 'sales.delivery.dispatch']);
 
   const { formatCurrency, currencySymbol } = useCurrency();
   const queryClient = useQueryClient();

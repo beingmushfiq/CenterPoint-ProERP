@@ -626,7 +626,7 @@ Route::middleware(['auth.jwt', 'tenant.resolve', 'tenant.active'])
                 Route::post('{id}/deliver', [App\Modules\Sales\Controllers\DeliveryOrderController::class, 'deliver'])
                     ->middleware('permission:sales.delivery.dispatch')->name('deliver');
                 Route::delete('{id}', [App\Modules\Sales\Controllers\DeliveryOrderController::class, 'destroy'])
-                    ->middleware('permission:sales.delivery.dispatch')->name('destroy');
+                    ->middleware('permission:sales.delivery.delete,sales.delivery.dispatch')->name('destroy');
             });
 
             Route::prefix('payments')->name('payments.')->group(static function (): void {
