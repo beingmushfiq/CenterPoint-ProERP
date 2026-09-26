@@ -18,6 +18,9 @@ final class PartyResource extends JsonResource
     {
         return [
             'id' => $this->uuid,
+            'uuid' => $this->uuid,
+            'numeric_id' => $this->id,
+            'party_id' => $this->id,
             'code' => $this->code,
             'name' => $this->name,
             'legal_name' => $this->legal_name,

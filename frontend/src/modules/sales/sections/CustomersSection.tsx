@@ -24,98 +24,16 @@ import { ConfirmDialog } from '../../../components/ui/Modal';
 import { useCurrency } from '../../../hooks/useCurrency';
 import { SelectDropdown } from '../../../components/ui/Dropdown';
 
-const SAMPLE_CUSTOMERS: CustomerCrm[] = [
-  {
-    id: 1,
-    uuid: 'cust-001',
-    name: 'Bengal Textile Mills Ltd',
-    type: 'corporate',
-    email: 'accounts@bengaltextile.com',
-    phone: '+8801711223344',
-    address: 'Plot 42, Sector 7, Uttara Commercial Area',
-    city: 'Dhaka',
-    credit_limit: '1000000.00',
-    current_balance: '345000.00',
-    loyalty_points: 1420,
-    total_orders_count: 28,
-    lifetime_value: '3850000.00',
-    status: 'active',
-    created_at: '2025-11-12',
-  },
-  {
-    id: 2,
-    uuid: 'cust-002',
-    name: 'Chittagong Packaging Solutions',
-    type: 'wholesale',
-    email: 'procure@ctgpackaging.com',
-    phone: '+8801819988776',
-    address: '102 Agrabad Commercial Area',
-    city: 'Chittagong',
-    credit_limit: '500000.00',
-    current_balance: '120000.00',
-    loyalty_points: 860,
-    total_orders_count: 14,
-    lifetime_value: '1920000.00',
-    status: 'active',
-    created_at: '2026-01-18',
-  },
-  {
-    id: 3,
-    uuid: 'cust-003',
-    name: 'Apex Footwear Dealer Network',
-    type: 'dealer',
-    email: 'distribution@apexdealer.bd',
-    phone: '+8801912345678',
-    address: 'Shafipur, Kaliakair',
-    city: 'Gazipur',
-    credit_limit: '1500000.00',
-    current_balance: '820000.00',
-    loyalty_points: 3100,
-    total_orders_count: 52,
-    lifetime_value: '7400000.00',
-    status: 'active',
-    created_at: '2025-08-04',
-  },
-  {
-    id: 4,
-    uuid: 'cust-004',
-    name: 'Kazi Super Mart (Gulshan-2)',
-    type: 'retail',
-    email: 'manager@kazimart.com',
-    phone: '+8801611122233',
-    address: 'House 14, Road 113, Gulshan-2',
-    city: 'Dhaka',
-    credit_limit: '150000.00',
-    current_balance: '0.00',
-    loyalty_points: 450,
-    total_orders_count: 9,
-    lifetime_value: '420000.00',
-    status: 'active',
-    created_at: '2026-04-10',
-  },
-  {
-    id: 5,
-    uuid: 'cust-005',
-    name: 'Al-Madina Trading & Distribution',
-    type: 'wholesale',
-    email: 'info@almadinatrading.com',
-    phone: '+8801733445566',
-    address: 'Khatunganj Commercial Street',
-    city: 'Chittagong',
-    credit_limit: '300000.00',
-    current_balance: '298000.00',
-    loyalty_points: 120,
-    total_orders_count: 4,
-    lifetime_value: '310000.00',
-    status: 'blocked',
-    created_at: '2026-03-01',
-  },
-];
 
 interface PartyRaw {
-  id: number;
+  id: string | number;
   uuid?: string;
+  numeric_id?: number;
+  party_id?: number;
+  code?: string;
   name: string;
+  is_customer?: boolean;
+  type?: string;
   customer_tier?: string;
   email?: string | null;
   phone?: string | null;
@@ -128,6 +46,7 @@ interface PartyRaw {
   lifetime_value?: string | null;
   status?: string;
   created_at?: string | null;
+  addresses?: Array<{ city?: string; line1?: string }>;
 }
 
 interface StatusBadgeSelectorProps {
@@ -284,30 +203,36 @@ export function CustomersSection() {
     status: 'active',
   });
 
-  const { data: customers = SAMPLE_CUSTOMERS, isFetching, refetch } = useQuery<CustomerCrm[]>({
+  const { data: customers = [], isFetching, refetch } = useQuery<CustomerCrm[]>({
     queryKey: ['sales', 'customers'],
     queryFn: async () => {
       try {
-        const res = await api.get<PartyRaw[]>('/parties?type=customer');
-        if (res.data && res.data.length > 0) {
-          const rawList = res.data as PartyRaw[];
-          return rawList.map((p) => {
-            const validTier = (['retail', 'wholesale', 'dealer', 'corporate'].includes(p.customer_tier || '')
-              ? p.customer_tier
+        const res = await api.get<{ data: PartyRaw[] } | PartyRaw[]>('/parties?is_customer=true&per_page=100');
+        const raw = res.data;
+        const rawList = (Array.isArray(raw) ? raw : (raw as { data?: PartyRaw[] })?.data ?? []) as PartyRaw[];
+        if (Array.isArray(rawList)) {
+          return rawList.map((p, idx) => {
+            const validTier = (['retail', 'wholesale', 'dealer', 'corporate'].includes(p.customer_tier || p.type || '')
+              ? (p.customer_tier || p.type)
               : 'retail') as 'retail' | 'wholesale' | 'dealer' | 'corporate';
             const validStatus = (['active', 'inactive', 'blocked'].includes(p.status || '')
               ? p.status
               : 'active') as 'active' | 'inactive' | 'blocked';
 
+            const uuid = String(p.uuid || p.id);
+            const numId = typeof p.numeric_id === 'number'
+              ? p.numeric_id
+              : (typeof p.party_id === 'number' ? p.party_id : (typeof p.id === 'number' ? p.id : idx + 1));
+
             return {
-              id: p.id,
-              uuid: p.uuid ?? `cust-${p.id}`,
+              id: numId,
+              uuid,
               name: p.name,
               type: validTier,
               email: p.email ?? null,
               phone: p.phone ?? '',
-              address: p.address ?? null,
-              city: p.city ?? 'Dhaka',
+              address: p.address ?? p.addresses?.[0]?.line1 ?? null,
+              city: p.city ?? p.addresses?.[0]?.city ?? 'Dhaka',
               credit_limit: p.credit_limit ?? '0.00',
               current_balance: p.current_balance ?? '0.00',
               loyalty_points: p.loyalty_points ?? 0,
@@ -318,12 +243,11 @@ export function CustomersSection() {
             };
           });
         }
-      } catch {
-        // Fallback to sample customers
+      } catch (err) {
+        console.error('Failed to load customers', err);
       }
-      return SAMPLE_CUSTOMERS;
+      return [];
     },
-    initialData: SAMPLE_CUSTOMERS,
   });
 
   const handleCreateCustomer = (e: React.FormEvent) => {
@@ -417,12 +341,30 @@ export function CustomersSection() {
       if (items && items.length > 0) {
         let count = 0;
         for (const item of items) {
-          await api.delete(`/parties/${item.uuid || item.id}`);
-          count++;
+          const target = item.uuid || String(item.id);
+          try {
+            await api.delete(`/parties/${target}`);
+            count++;
+          } catch (err: unknown) {
+            const anyErr = err as { response?: { status?: number } };
+            if (anyErr?.response?.status === 404) {
+              count++;
+            } else {
+              throw err;
+            }
+          }
         }
         return count;
       } else if (uuid || id) {
-        await api.delete(`/parties/${uuid || id}`);
+        const target = uuid || String(id);
+        try {
+          await api.delete(`/parties/${target}`);
+        } catch (err: unknown) {
+          const anyErr = err as { response?: { status?: number } };
+          if (anyErr?.response?.status !== 404) {
+            throw err;
+          }
+        }
         return 1;
       }
       return 0;
@@ -434,7 +376,8 @@ export function CustomersSection() {
       queryClient.invalidateQueries({ queryKey: ['sales', 'customers'] });
     },
     onError: (err: unknown) => {
-      toast.error(err instanceof Error ? err.message : 'Failed to delete customer');
+      const anyErr = err as { response?: { data?: { message?: string } } };
+      toast.error(anyErr?.response?.data?.message || (err instanceof Error ? err.message : 'Failed to delete customer'));
     },
   });
 
