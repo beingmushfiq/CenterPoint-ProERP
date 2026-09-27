@@ -147,4 +147,64 @@ final class ProductionHardeningTest extends TestCase
         ]);
         $this->assertGreaterThan(0, Tenant::count());
     }
+
+    /**
+     * Test that PlansAndTenantsSeeder cleanly resolves pre-existing tenant slug collisions
+     * (e.g. where Tenant 1 had 'demoerp' and another row already held 'slicemart').
+     */
+    public function test_plans_and_tenants_seeder_resolves_conflicting_tenant_slugs(): void
+    {
+        // 1. Seed plans first
+        $this->seed(\Database\Seeders\PlansSeeder::class);
+        $planId = \Illuminate\Support\Facades\DB::table('plans')->where('code', 'ENTERPRISE')->value('id');
+
+        // 2. Pre-create Tenant 1 as 'demoerp'
+        \Illuminate\Support\Facades\DB::table('tenants')->insert([
+            'id' => 1,
+            'uuid' => (string) \Illuminate\Support\Str::uuid(),
+            'plan_id' => $planId,
+            'name' => 'Legacy Demo ERP',
+            'slug' => 'demoerp',
+            'status' => 'active',
+            'currency_code' => 'BDT',
+            'timezone' => 'Asia/Dhaka',
+            'locale' => 'en',
+            'date_format' => 'Y-m-d',
+            'number_format' => 'standard',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        // 3. Pre-create Tenant 2 as 'slicemart' (the exact conflict seen in production)
+        \Illuminate\Support\Facades\DB::table('tenants')->insert([
+            'id' => 2,
+            'uuid' => (string) \Illuminate\Support\Str::uuid(),
+            'plan_id' => $planId,
+            'name' => 'SliceMart Pre-existing',
+            'slug' => 'slicemart',
+            'status' => 'active',
+            'currency_code' => 'BDT',
+            'timezone' => 'Asia/Dhaka',
+            'locale' => 'en',
+            'date_format' => 'Y-m-d',
+            'number_format' => 'standard',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        // 4. Run PlansAndTenantsSeeder - MUST execute cleanly without Duplicate entry uq_tenants_slug
+        $this->seed(\Database\Seeders\PlansAndTenantsSeeder::class);
+
+        // 5. Assert Tenant 1 is now SliceMart
+        $this->assertDatabaseHas('tenants', [
+            'id' => 1,
+            'slug' => 'slicemart',
+            'name' => 'SliceMart Industries',
+        ]);
+
+        // 6. Assert demoerp still exists
+        $this->assertDatabaseHas('tenants', [
+            'slug' => 'demoerp',
+        ]);
+    }
 }

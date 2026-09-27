@@ -18,9 +18,23 @@ final class PlansAndTenantsSeeder extends Seeder
         $enterprisePlanId = DB::table('plans')->where('code', 'ENTERPRISE')->value('id');
 
         // 2. Seed Flagship Client (SliceMart Industries - slug: slicemart)
-        $tenant = Tenant::find(1) ?? Tenant::where('slug', 'slicemart')->orWhere('slug', 'demoerp')->first();
+        // If a tenant other than ID 1 currently holds the slug 'slicemart',
+        // temporarily rename its slug to avoid violating unique constraint uq_tenants_slug.
+        $conflictingTenant = Tenant::withTrashed()
+            ->where('slug', 'slicemart')
+            ->where('id', '!=', 1)
+            ->first();
+
+        if ($conflictingTenant) {
+            $conflictingTenant->update([
+                'slug' => 'slicemart-migrating-' . $conflictingTenant->id,
+            ]);
+        }
+
+        // Now safely ensure Tenant ID 1 is the flagship 'slicemart' tenant
+        $tenant = Tenant::withTrashed()->find(1);
         if (! $tenant) {
-            $tenant = Tenant::create([
+            DB::table('tenants')->insert([
                 'id' => 1,
                 'uuid' => (string) Str::uuid(),
                 'plan_id' => $enterprisePlanId,
@@ -32,8 +46,14 @@ final class PlansAndTenantsSeeder extends Seeder
                 'locale' => 'en',
                 'date_format' => 'Y-m-d',
                 'number_format' => 'standard',
+                'created_at' => now(),
+                'updated_at' => now(),
             ]);
+            $tenant = Tenant::findOrFail(1);
         } else {
+            if ($tenant->trashed()) {
+                $tenant->restore();
+            }
             $tenant->update([
                 'name' => 'SliceMart Industries',
                 'slug' => 'slicemart',
@@ -42,24 +62,49 @@ final class PlansAndTenantsSeeder extends Seeder
         }
 
         // Ensure demoerp tenant also exists for backward compatibility with demo tests
-        $demoTenant = Tenant::where('slug', 'demoerp')->first();
+        $demoTenant = Tenant::withTrashed()->where('slug', 'demoerp')->first();
         if (! $demoTenant) {
-            DB::table('tenants')->insert([
-                'id' => 2,
-                'uuid' => (string) Str::uuid(),
-                'plan_id' => $enterprisePlanId,
-                'name' => 'Demo Enterprise Operations',
-                'slug' => 'demoerp',
-                'status' => 'active',
-                'currency_code' => 'BDT',
-                'timezone' => 'Asia/Dhaka',
-                'locale' => 'en',
-                'date_format' => 'Y-m-d',
-                'number_format' => 'standard',
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
-            $demoTenant = Tenant::where('slug', 'demoerp')->first();
+            if ($conflictingTenant) {
+                if ($conflictingTenant->trashed()) {
+                    $conflictingTenant->restore();
+                }
+                $conflictingTenant->update([
+                    'name' => 'Demo Enterprise Operations',
+                    'slug' => 'demoerp',
+                    'status' => 'active',
+                ]);
+                $demoTenant = $conflictingTenant;
+            } else {
+                $tenant2 = Tenant::withTrashed()->find(2);
+                if ($tenant2) {
+                    if ($tenant2->trashed()) {
+                        $tenant2->restore();
+                    }
+                    $tenant2->update([
+                        'name' => 'Demo Enterprise Operations',
+                        'slug' => 'demoerp',
+                        'status' => 'active',
+                    ]);
+                    $demoTenant = $tenant2;
+                } else {
+                    DB::table('tenants')->insert([
+                        'id' => 2,
+                        'uuid' => (string) Str::uuid(),
+                        'plan_id' => $enterprisePlanId,
+                        'name' => 'Demo Enterprise Operations',
+                        'slug' => 'demoerp',
+                        'status' => 'active',
+                        'currency_code' => 'BDT',
+                        'timezone' => 'Asia/Dhaka',
+                        'locale' => 'en',
+                        'date_format' => 'Y-m-d',
+                        'number_format' => 'standard',
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+                    $demoTenant = Tenant::where('slug', 'demoerp')->first();
+                }
+            }
         }
 
         // 3. Tenant Subscription Record
