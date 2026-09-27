@@ -163,9 +163,6 @@ fi
 if [ -f "${REPO_DIR}/portfolio_public_html/index.html" ]; then
     cp "${REPO_DIR}/portfolio_public_html/index.html" "${PORTFOLIO_DIR}/index.html"
     echo "Deployed portfolio index.html to ${PORTFOLIO_DIR}/index.html" | tee -a "${LOG_FILE}"
-elif [ -f "${SCRIPTS_TARGET}/portfolio-placeholder.html" ]; then
-    cp "${SCRIPTS_TARGET}/portfolio-placeholder.html" "${PORTFOLIO_DIR}/index.html"
-    echo "Deployed portfolio placeholder to ${PORTFOLIO_DIR}/index.html" | tee -a "${LOG_FILE}"
 fi
 
 # Install portfolio index.php forwarder (safeguard for subdomain API routing)
