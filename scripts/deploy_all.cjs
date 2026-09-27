@@ -279,8 +279,6 @@ function deployDistToDirectory(destDir) {
     'index.php',
     '.htaccess',
     'deploy-webhook.php',
-    'portfolio-placeholder.html',
-    'portfolio-htaccess.txt',
   ]);
 
   const distAssetsDir = path.join(SOURCE_DIST, 'assets');

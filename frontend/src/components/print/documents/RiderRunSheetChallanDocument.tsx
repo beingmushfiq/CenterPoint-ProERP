@@ -28,56 +28,6 @@ export interface RiderRunSheetChallanDocumentProps {
   businessConfig?: BusinessConfig;
 }
 
-const SAMPLE_RUN_SHEET_STOPS: Record<string, RunSheetManifestStop[]> = {
-  'RS-20260828-001': [
-    {
-      stop_number: 1,
-      delivery_number: 'DO-202608-00101',
-      order_number: 'SO-2026-0042',
-      customer_name: 'Bengal Textile Mills Ltd (Rahim Chowdhury)',
-      customer_phone: '+8801711223344',
-      delivery_address: 'Plot 42, Sector 7, Uttara Commercial Area, Dhaka',
-      items_summary: 'Infrared Cooker 2200W (2 units), Heating Coils (5 pcs)',
-      package_count: 2,
-      payment_method: 'COD',
-      cod_amount: '8000.00',
-      cod_collected: '8000.00',
-      status: 'delivered',
-      recipient_notes: 'Received by Security Desk (Jamal)',
-    },
-    {
-      stop_number: 2,
-      delivery_number: 'DO-202608-00102',
-      order_number: 'SO-2026-0045',
-      customer_name: 'Urban Retailers Hub (Anika Tabassum)',
-      customer_phone: '+8801822334455',
-      delivery_address: 'House 14, Road 11, Dhanmondi R/A, Dhaka',
-      items_summary: 'Double Burner Gas Stove (2 units), Glass Panels (2 pcs)',
-      package_count: 2,
-      payment_method: 'COD',
-      cod_amount: '9500.00',
-      cod_collected: '0.00',
-      status: 'in_transit',
-      recipient_notes: 'Call before arrival / Leave at reception',
-    },
-    {
-      stop_number: 3,
-      delivery_number: 'DO-202608-00103',
-      order_number: 'SO-2026-0049',
-      customer_name: 'Dhaka Superstore Mart (Zubair Al-Mamun)',
-      customer_phone: '+8801712345678',
-      delivery_address: 'Shop 4B, Level 1, Gulshan-2 Circle Market, Dhaka',
-      items_summary: 'Infrared Cooker 3500W Double Burner (1 unit)',
-      package_count: 1,
-      payment_method: 'COD',
-      cod_amount: '6500.00',
-      cod_collected: '0.00',
-      status: 'in_transit',
-      recipient_notes: 'Store Manager desk handover',
-    },
-  ],
-};
-
 export function RiderRunSheetChallanDocument({
   runSheet,
   stops: propStops,
@@ -86,11 +36,13 @@ export function RiderRunSheetChallanDocument({
   const { t } = useTranslation('documents');
   const stops: RunSheetManifestStop[] = useMemo(() => {
     if (propStops && propStops.length > 0) return propStops;
-    if (SAMPLE_RUN_SHEET_STOPS[runSheet.run_sheet_number]) {
-      return SAMPLE_RUN_SHEET_STOPS[runSheet.run_sheet_number]!;
+    if ((runSheet as any).stops && (runSheet as any).stops.length > 0) {
+      return (runSheet as any).stops;
     }
-    // Fallback generated stops from count
-    return Array.from({ length: runSheet.total_stops || 1 }).map((_, i) => ({
+    if (!runSheet.total_stops || runSheet.total_stops === 0) {
+      return [];
+    }
+    return Array.from({ length: runSheet.total_stops }).map((_, i) => ({
       stop_number: i + 1,
       delivery_number: `DO-202608-${(100 + i + 1).toString()}`,
       order_number: `SO-2026-${(40 + i + 1).toString()}`,

@@ -13,9 +13,15 @@ export default defineConfig({
     ),
   },
   resolve: {
+    alias: {
+      react: 'react',
+      'react-dom': 'react-dom',
+      'react-dom/client': 'react-dom/client',
+    },
     dedupe: [
       'react',
       'react-dom',
+      'react-dom/client',
       'react-router',
       'react-router-dom',
       'zustand',
@@ -27,6 +33,10 @@ export default defineConfig({
     include: [
       'react',
       'react-dom',
+      'react-dom/client',
+      'react/jsx-runtime',
+      'react/jsx-dev-runtime',
+      'react-router',
       'react-router-dom',
       'zustand',
       'sonner',

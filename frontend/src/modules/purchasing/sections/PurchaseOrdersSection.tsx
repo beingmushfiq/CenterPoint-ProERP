@@ -72,143 +72,6 @@ interface PoFormItem {
   tax_rate: string;
 }
 
-const SAMPLE_ORDERS: PurchaseOrder[] = [
-  {
-    id: 1,
-    uuid: 'po-001',
-    po_number: 'PO-202608-001',
-    party_id: 1,
-    supplier_name: 'Bengal Glass & Ceramic Ltd.',
-    warehouse_id: 1,
-    warehouse_name: 'Tejgaon Central Electronic Components & Parts Warehouse',
-    order_date: '2026-08-25',
-    expected_delivery_date: '2026-09-02',
-    currency_code: 'BDT',
-    exchange_rate: '1.0000',
-    subtotal_amount: '225000.00',
-    discount_amount: '5000.00',
-    tax_amount: '11000.00',
-    grand_total: '231000.00',
-    received_value: '0.00',
-    billed_value: '0.00',
-    status: 'approved',
-    approved_by: 1,
-    approved_at: '2026-08-25T14:30:00Z',
-    notes: 'Grade A microcrystalline black ceramic glass panels (280x360mm).',
-    terms_and_conditions: 'Payment terms: Net 30 days upon inspection approval.',
-    items: [
-      {
-        id: 201,
-        uuid: 'poi-201',
-        purchase_order_id: 1,
-        product_id: 1,
-        product_name: 'Microcrystalline Ceramic Glass Panel',
-        product_sku: 'RAW-CERAMIC-PANEL',
-        quantity: '500.00',
-        received_quantity: '0.00',
-        billed_quantity: '0.00',
-        unit_id: 2,
-        unit_code: 'PCS',
-        unit_price: '450.00',
-        discount_amount: '5000.00',
-        tax_rate: '5.00',
-        tax_amount: '11000.00',
-        subtotal_amount: '225000.00',
-        total_amount: '231000.00',
-      },
-    ],
-    created_at: '2026-08-25T10:00:00Z',
-  },
-  {
-    id: 2,
-    uuid: 'po-002',
-    po_number: 'PO-202608-002',
-    party_id: 2,
-    supplier_name: 'Delta Micro Electronics Ltd.',
-    warehouse_id: 1,
-    warehouse_name: 'Tejgaon Central Electronic Components & Parts Warehouse',
-    order_date: '2026-08-26',
-    expected_delivery_date: '2026-09-01',
-    currency_code: 'BDT',
-    exchange_rate: '1.0000',
-    subtotal_amount: '190000.00',
-    discount_amount: '0.00',
-    tax_amount: '9500.00',
-    grand_total: '199500.00',
-    received_value: '199500.00',
-    billed_value: '199500.00',
-    status: 'received',
-    approved_by: 1,
-    approved_at: '2026-08-26T11:00:00Z',
-    notes: '2200W pure copper infrared heating coils with mica support plate.',
-    items: [
-      {
-        id: 202,
-        uuid: 'poi-202',
-        purchase_order_id: 2,
-        product_id: 2,
-        product_name: '2200W Infrared Heating Coil',
-        product_sku: 'RAW-COIL-2200W',
-        quantity: '500.00',
-        received_quantity: '500.00',
-        billed_quantity: '500.00',
-        unit_id: 2,
-        unit_code: 'PCS',
-        unit_price: '380.00',
-        discount_amount: '0.00',
-        tax_rate: '5.00',
-        tax_amount: '9500.00',
-        subtotal_amount: '190000.00',
-        total_amount: '199500.00',
-      },
-    ],
-    created_at: '2026-08-26T09:00:00Z',
-  },
-  {
-    id: 3,
-    uuid: 'po-003',
-    po_number: 'PO-202608-003',
-    party_id: 3,
-    supplier_name: 'PackMaster Industrial Packaging Ltd.',
-    warehouse_id: 1,
-    warehouse_name: 'Tejgaon Central Electronic Components & Parts Warehouse',
-    order_date: '2026-08-28',
-    expected_delivery_date: '2026-09-08',
-    currency_code: 'BDT',
-    exchange_rate: '1.0000',
-    subtotal_amount: '85000.00',
-    discount_amount: '1000.00',
-    tax_amount: '4200.00',
-    grand_total: '88200.00',
-    received_value: '0.00',
-    billed_value: '0.00',
-    status: 'draft',
-    notes: 'Custom molded shockproof EPE foam buffers for infrared cookers.',
-    items: [
-      {
-        id: 203,
-        uuid: 'poi-203',
-        purchase_order_id: 3,
-        product_id: 3,
-        product_name: 'Infrared Cooker Shockproof EPE Foam Set',
-        product_sku: 'PKG-FOAM-IRC',
-        quantity: '1000.00',
-        received_quantity: '0.00',
-        billed_quantity: '0.00',
-        unit_id: 3,
-        unit_code: 'SET',
-        unit_price: '85.00',
-        discount_amount: '1000.00',
-        tax_rate: '5.00',
-        tax_amount: '4200.00',
-        subtotal_amount: '85000.00',
-        total_amount: '88200.00',
-      },
-    ],
-    created_at: '2026-08-28T15:00:00Z',
-  },
-];
-
 export interface PurchaseOrdersSectionProps {
   onReceivePo?: (order: PurchaseOrder) => void;
   onCreateBill?: (order: PurchaseOrder) => void;
@@ -291,21 +154,16 @@ export function PurchaseOrdersSection({ onReceivePo, onCreateBill }: PurchaseOrd
     ],
   }));
 
-  const { data: orders = SAMPLE_ORDERS, isLoading, isFetching, refetch } = useQuery<PurchaseOrder[]>({
+  const { data: orders = [], isLoading, isFetching, refetch } = useQuery<PurchaseOrder[]>({
     queryKey: ['purchasing', 'orders'],
     queryFn: async () => {
       try {
         const res = await api.get<PurchaseOrder[]>('/purchasing/orders');
-        const list = extractList<PurchaseOrder>(res);
-        if (list.length > 0) {
-          return list;
-        }
+        return extractList<PurchaseOrder>(res);
       } catch {
-        // Fallback to sample orders
+        return [];
       }
-      return SAMPLE_ORDERS;
     },
-    initialData: SAMPLE_ORDERS,
   });
 
   const { data: purchasableProducts = [] } = useQuery<Product[]>({

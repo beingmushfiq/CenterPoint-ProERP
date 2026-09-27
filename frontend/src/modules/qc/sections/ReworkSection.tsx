@@ -17,6 +17,7 @@ import {
   X,
 } from 'lucide-react';
 import { api } from '../../../lib/api/client';
+import { extractList } from '../../../lib/api/apiData';
 import { useAuthStore } from '../../../lib/auth/authStore';
 import { SelectDropdown } from '../../../components/ui/Dropdown';
 import { Modal, ConfirmDialog } from '../../../components/ui/Modal';
@@ -49,105 +50,6 @@ export interface ReworkOrder {
   completed_at?: string | null;
   created_at: string;
 }
-
-const SAMPLE_REWORK_ORDERS: ReworkOrder[] = [
-  {
-    id: 1,
-    uuid: 'rwk-001',
-    rework_number: 'RWK-2026-001',
-    batch_number: 'BAT-202608-012',
-    product_name: 'Master Corrugated Box 5-Ply (Large)',
-    defect_category: 'Flute Delamination & Edge Crush',
-    defect_notes: 'Adhesive curing failure along side seam during high-speed corrugation run.',
-    qty_defective: 250,
-    unit: 'PCS',
-    assigned_station: 'Secondary Gluing & Press Station 2',
-    assigned_operator: 'Md. Farooq Hossain (Senior Tech)',
-    status: 'in_rework',
-    rework_cost: '3400.00',
-    salvage_qty: 230,
-    scrap_qty: 20,
-    started_at: '2026-08-29 09:00',
-    created_at: '2026-08-28',
-  },
-  {
-    id: 2,
-    uuid: 'rwk-002',
-    rework_number: 'RWK-2026-002',
-    batch_number: 'BAT-202608-015',
-    product_name: 'Custom Poly Bags (Printed)',
-    defect_category: 'Flexographic Print Misalignment',
-    defect_notes: 'Ink registration drift on 2nd color cylinder. Trim and re-heat seal tops.',
-    qty_defective: 800,
-    unit: 'PCS',
-    assigned_station: 'Heat Sealing & Slitting Station 1',
-    assigned_operator: 'Shamsul Alam',
-    status: 'completed',
-    rework_cost: '4800.00',
-    salvage_qty: 760,
-    scrap_qty: 40,
-    started_at: '2026-08-26 14:00',
-    completed_at: '2026-08-27 11:30',
-    created_at: '2026-08-26',
-  },
-  {
-    id: 3,
-    uuid: 'rwk-003',
-    rework_number: 'RWK-2026-003',
-    batch_number: 'BAT-202608-019',
-    product_name: 'Industrial Stretch Film Roll (23 Micron)',
-    defect_category: 'Uneven Tension Gauge',
-    defect_notes: 'Core misalignment resulting in roll edge telescoping. Rewind on turret rewinder.',
-    qty_defective: 45,
-    unit: 'Rolls',
-    assigned_station: 'Turret Rewinder & Core Calibrator',
-    assigned_operator: 'Anowar Hossain',
-    status: 'pending',
-    rework_cost: '1200.00',
-    salvage_qty: 0,
-    scrap_qty: 0,
-    created_at: '2026-08-25',
-  },
-  {
-    id: 4,
-    uuid: 'rwk-004',
-    rework_number: 'RWK-2026-004',
-    batch_number: 'BAT-202608-023',
-    product_name: 'Rigid Setup Box (Embossed Lid)',
-    defect_category: 'Corner Tear & Warping',
-    defect_notes: 'Moisture absorption during storage prior to wrap application.',
-    qty_defective: 120,
-    unit: 'PCS',
-    assigned_station: 'Secondary Gluing & Press Station 1',
-    assigned_operator: 'Kamal Pasha',
-    status: 'scrapped',
-    rework_cost: '1850.00',
-    salvage_qty: 0,
-    scrap_qty: 120,
-    started_at: '2026-08-22 10:00',
-    completed_at: '2026-08-22 16:30',
-    created_at: '2026-08-21',
-  },
-  {
-    id: 5,
-    uuid: 'rwk-005',
-    rework_number: 'RWK-2026-005',
-    batch_number: 'BAT-202608-008',
-    product_name: 'Heavy Duty Corner Protectors',
-    defect_category: 'Insufficient Compression Density',
-    defect_notes: 'Re-press and cure under hydraulic clamping jig.',
-    qty_defective: 500,
-    unit: 'PCS',
-    assigned_station: 'Manual Finishing & Rework Cell',
-    assigned_operator: 'Md. Farooq Hossain',
-    status: 'in_rework',
-    rework_cost: '2100.00',
-    salvage_qty: 480,
-    scrap_qty: 20,
-    started_at: '2026-08-20 11:00',
-    created_at: '2026-08-19',
-  },
-];
 
 export function ReworkSection() {
   const { hasPermission } = useAuthStore();
@@ -222,20 +124,16 @@ export function ReworkSection() {
     },
   });
 
-  const { data: reworkOrders = SAMPLE_REWORK_ORDERS, isLoading, isFetching, refetch } = useQuery<ReworkOrder[]>({
+  const { data: reworkOrders = [], isLoading, isFetching, refetch } = useQuery<ReworkOrder[]>({
     queryKey: ['qc', 'rework-orders'],
     queryFn: async () => {
       try {
         const res = await api.get<ReworkOrder[]>('/qc/rework-orders');
-        if (res.data && res.data.length > 0) {
-          return res.data;
-        }
+        return extractList<ReworkOrder>(res);
       } catch {
-        // Fallback to sample data
+        return [];
       }
-      return SAMPLE_REWORK_ORDERS;
     },
-    initialData: SAMPLE_REWORK_ORDERS,
   });
 
   const handleCreateOrder = async (e: React.FormEvent) => {

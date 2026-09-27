@@ -40,76 +40,13 @@ interface WorkerPerformanceRow {
   verified?: boolean;
 }
 
-const SAMPLE_PERFORMANCE: WorkerPerformanceRow[] = [
-  {
-    id: 1,
-    worker_code: 'EMP-00101',
-    name: 'Abdul Karim',
-    designation: 'Fabric Cutting Operator',
-    production_line: 'Line #1 (Carton Stitching)',
-    target_units: 500,
-    good_units: 540,
-    rejected_units: 8,
-    efficiency_pct: 108.0,
-    piece_rate: 2.5,
-    accrued_wage: 1350.0,
-    rating: 'Superior',
-    verified: true,
-  },
-  {
-    id: 2,
-    worker_code: 'EMP-00102',
-    name: 'Md. Shahidul Islam',
-    designation: 'Industrial Sewing Machinist',
-    production_line: 'Line #2 (Die-Cutting & Creasing)',
-    target_units: 450,
-    good_units: 420,
-    rejected_units: 14,
-    efficiency_pct: 93.3,
-    piece_rate: 3.0,
-    accrued_wage: 1260.0,
-    rating: 'Standard',
-    verified: false,
-  },
-  {
-    id: 3,
-    worker_code: 'EMP-00103',
-    name: 'Faruk Hossain',
-    designation: 'Printing Machine Helper',
-    production_line: 'Line #3 (Flexo Printing)',
-    target_units: 600,
-    good_units: 630,
-    rejected_units: 5,
-    efficiency_pct: 105.0,
-    piece_rate: 2.0,
-    accrued_wage: 1260.0,
-    rating: 'Superior',
-    verified: true,
-  },
-  {
-    id: 4,
-    worker_code: 'EMP-00104',
-    name: 'Nasir Uddin',
-    designation: 'Gluing & Folding Operator',
-    production_line: 'Line #1 (Carton Stitching)',
-    target_units: 400,
-    good_units: 310,
-    rejected_units: 26,
-    efficiency_pct: 77.5,
-    piece_rate: 2.8,
-    accrued_wage: 868.0,
-    rating: 'Needs Attention',
-    verified: false,
-  },
-];
-
 export function WorkerPerformanceSection() {
   const { formatCurrency } = useCurrency();
   const [search, setSearch] = useState('');
   const [selectedDate, setSelectedDate] = useState<string>(
     new Date().toISOString().slice(0, 10)
   );
-  const [localRows, setLocalRows] = useState<WorkerPerformanceRow[]>(SAMPLE_PERFORMANCE);
+  const [localRows, setLocalRows] = useState<WorkerPerformanceRow[]>([]);
 
   // Selection & Bulk Actions
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
@@ -160,7 +97,7 @@ export function WorkerPerformanceSection() {
         const res = await api.get<{ data?: RawWorkerEntryItem[] } | RawWorkerEntryItem[]>(`/production/worker-entries?entry_date=${selectedDate}`);
         const rawData = res.data;
         const list = Array.isArray(rawData) ? rawData : (rawData?.data ?? []);
-        if (Array.isArray(list) && list.length > 0) {
+        if (Array.isArray(list)) {
           const parsed = list.map((item: RawWorkerEntryItem) => {
             const good = parseFloat(String(item.good_quantity ?? item.good_units ?? 0));
             const rej = parseFloat(String(item.reject_quantity ?? item.rejected_units ?? 0));
@@ -185,9 +122,11 @@ export function WorkerPerformanceSection() {
           setLocalRows(parsed);
           return parsed;
         }
-        return localRows;
+        setLocalRows([]);
+        return [];
       } catch {
-        return localRows;
+        setLocalRows([]);
+        return [];
       }
     },
     staleTime: 60 * 1000,

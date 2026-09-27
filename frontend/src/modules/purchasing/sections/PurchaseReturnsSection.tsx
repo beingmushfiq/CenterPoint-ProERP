@@ -31,74 +31,6 @@ interface ReturnFormItem {
   notes: string;
 }
 
-const SAMPLE_RETURNS: PurchaseReturn[] = [
-  {
-    id: 1,
-    uuid: 'prt-001',
-    return_number: 'PRT-202608-001',
-    purchase_order_id: 1,
-    goods_receipt_id: 2,
-    party_id: 1,
-    supplier_name: 'Bengal Glass & Ceramic Ltd.',
-    warehouse_id: 1,
-    warehouse_name: 'Tejgaon Central Electronic Components & Parts Warehouse',
-    return_date: '2026-08-29',
-    currency_code: 'BDT',
-    total_amount: '2250.00',
-    status: 'completed',
-    reason: '5 ceramic glass panels chipped at corners rejected at gate inspection.',
-    items: [
-      {
-        id: 501,
-        uuid: 'pri-501',
-        purchase_return_id: 1,
-        product_id: 1,
-        product_name: 'Microcrystalline Ceramic Glass Panel',
-        product_sku: 'RAW-CERAMIC-PANEL',
-        quantity: '5.00',
-        unit_id: 2,
-        unit_code: 'PCS',
-        unit_price: '450.00',
-        total_amount: '2250.00',
-        notes: 'Corner cracks identified during inbound unloading.',
-      },
-    ],
-    created_at: '2026-08-29T09:30:00Z',
-  },
-  {
-    id: 2,
-    uuid: 'prt-002',
-    return_number: 'PRT-202608-002',
-    purchase_order_id: 3,
-    goods_receipt_id: null,
-    party_id: 3,
-    supplier_name: 'PackMaster Industrial Packaging Ltd.',
-    warehouse_id: 1,
-    warehouse_name: 'Tejgaon Central Electronic Components & Parts Warehouse',
-    return_date: '2026-08-30',
-    currency_code: 'BDT',
-    total_amount: '8500.00',
-    status: 'draft',
-    reason: 'Dimension mismatch on 100 sets EPE foam buffers.',
-    items: [
-      {
-        id: 502,
-        uuid: 'pri-502',
-        purchase_return_id: 2,
-        product_id: 3,
-        product_name: 'Infrared Cooker Shockproof EPE Foam Set',
-        product_sku: 'PKG-FOAM-IRC',
-        quantity: '100.00',
-        unit_id: 3,
-        unit_code: 'SET',
-        unit_price: '85.00',
-        total_amount: '8500.00',
-        notes: 'Buffer cut depth too shallow for 2200W cooker chassis.',
-      },
-    ],
-    created_at: '2026-08-30T11:00:00Z',
-  },
-];
 
 export function PurchaseReturnsSection() {
   const { formatCurrency, currencyCode } = useCurrency();
@@ -135,20 +67,17 @@ export function PurchaseReturnsSection() {
     ],
   });
 
-  const { data: returns = SAMPLE_RETURNS, isLoading, isFetching, refetch } = useQuery<PurchaseReturn[]>({
+  const { data: returns = [], isLoading, isFetching, refetch } = useQuery<PurchaseReturn[]>({
     queryKey: ['purchasing', 'returns'],
     queryFn: async () => {
       try {
-        const res = await api.get<PurchaseReturn[]>('/purchasing/returns');
-        if (res.data && res.data.length > 0) {
-          return res.data;
-        }
+        const res = await api.get<{ data?: PurchaseReturn[] } | PurchaseReturn[]>('/purchasing/returns');
+        const raw = res.data;
+        return Array.isArray(raw) ? raw : (raw?.data ?? []);
       } catch {
-        // Keep sample data
+        return [];
       }
-      return SAMPLE_RETURNS;
     },
-    initialData: SAMPLE_RETURNS,
   });
 
   const handleViewReturn = async (ret: PurchaseReturn) => {

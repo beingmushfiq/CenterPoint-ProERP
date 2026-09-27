@@ -16,19 +16,6 @@ interface FastPoModalProps {
   initialItems?: Array<{ name: string; sku: string; quantity: number; unitPrice: number }>;
 }
 
-const SAMPLE_SUPPLIERS = [
-  { id: 1, name: 'Bengal Glass & Ceramic Ltd.', defaultWarehouse: 'Tejgaon Central Electronic Components & Parts Warehouse' },
-  { id: 2, name: 'Aarong Fabric Mills Ltd.', defaultWarehouse: 'Tejgaon Central Raw Materials Warehouse' },
-  { id: 3, name: 'Dhaka Packaging Solutions Ltd.', defaultWarehouse: 'Tejgaon Finished Goods Dispatch Center' },
-  { id: 4, name: 'Sonargaon Steel & Wire Industries', defaultWarehouse: 'Tejgaon Central Raw Materials Warehouse' },
-];
-
-const SAMPLE_WAREHOUSES = [
-  { id: 1, name: 'Tejgaon Central Raw Materials Warehouse' },
-  { id: 2, name: 'Tejgaon Finished Goods Dispatch Center' },
-  { id: 3, name: 'Gulshan Retail Floor Stock' },
-];
-
 function generatePoNumber(): string {
   const now = new Date();
   const ym = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}`;
@@ -45,7 +32,31 @@ export const FastPoModal: React.FC<FastPoModalProps> = ({
 }) => {
   const { formatCurrency } = useCurrency();
 
-  const [supplierName, setSupplierName] = useState(initialSupplierName || SAMPLE_SUPPLIERS[0]?.name || '');
+  const { data: suppliers = [] } = useQuery<Array<{ id: number; name: string }>>({
+    queryKey: ['catalogue', 'parties', 'suppliers'],
+    queryFn: async () => {
+      try {
+        const res = await api.get<any>('/parties?is_vendor=true&per_page=100');
+        return extractList<{ id: number; name: string }>(res);
+      } catch {
+        return [];
+      }
+    },
+  });
+
+  const { data: warehouses = [] } = useQuery<Array<{ id: number; name: string }>>({
+    queryKey: ['catalogue', 'warehouses'],
+    queryFn: async () => {
+      try {
+        const res = await api.get<any>('/warehouses');
+        return extractList<{ id: number; name: string }>(res);
+      } catch {
+        return [];
+      }
+    },
+  });
+
+  const [supplierName, setSupplierName] = useState(initialSupplierName || '');
   const [warehouseId, setWarehouseId] = useState<number>(1);
   const [expectedDate, setExpectedDate] = useState(() => {
     const d = new Date();
@@ -113,7 +124,7 @@ export const FastPoModal: React.FC<FastPoModalProps> = ({
     }
 
     const poNumber = generatePoNumber();
-    const selectedWh = SAMPLE_WAREHOUSES.find((w) => w.id === warehouseId) ?? SAMPLE_WAREHOUSES[0]!;
+    const selectedWh = warehouses.find((w) => w.id === warehouseId) ?? warehouses[0];
     const baseId = new Date().getTime();
 
     const poItems: PurchaseOrderItem[] = items.map((item, idx) => {
@@ -147,8 +158,8 @@ export const FastPoModal: React.FC<FastPoModalProps> = ({
       po_number: poNumber,
       party_id: 1,
       supplier_name: supplierName,
-      warehouse_id: selectedWh.id,
-      warehouse_name: selectedWh.name,
+      warehouse_id: selectedWh ? Number(selectedWh.id) : 1,
+      warehouse_name: selectedWh?.name || 'Main Warehouse',
       order_date: new Date().toISOString().slice(0, 10),
       expected_delivery_date: expectedDate,
       currency_code: 'BDT',
@@ -215,7 +226,7 @@ export const FastPoModal: React.FC<FastPoModalProps> = ({
                 className="w-full px-3 py-2 border border-default rounded-xl bg-surface-sunken text-default text-xs sm:text-sm focus:border-primary focus:outline-none"
               />
               <datalist id="suppliers-list">
-                {SAMPLE_SUPPLIERS.map((s) => (
+                {suppliers.map((s) => (
                   <option key={s.id} value={s.name} />
                 ))}
               </datalist>
@@ -230,7 +241,7 @@ export const FastPoModal: React.FC<FastPoModalProps> = ({
                 onChange={(e) => setWarehouseId(parseInt(e.target.value))}
                 className="w-full px-3 py-2 border border-default rounded-xl bg-surface-sunken text-default text-xs sm:text-sm focus:border-primary focus:outline-none"
               >
-                {SAMPLE_WAREHOUSES.map((w) => (
+                {warehouses.map((w) => (
                   <option key={w.id} value={w.id}>
                     {w.name}
                   </option>

@@ -78,101 +78,7 @@ interface Exchange {
   replacement_items?: ExchangeItem[];
 }
 
-// ─── Sample data ──────────────────────────────────────────────────────────────
 
-const SAMPLE_EXCHANGES: Exchange[] = [
-  {
-    id: 1,
-    uuid: 'ex-001',
-    exchange_number: 'EX-20260912-ABC123',
-    original_invoice_id: 12,
-    original_sales_order_id: 15,
-    party_id: 1,
-    warehouse_id: 1,
-    exchange_date: '2026-09-10',
-    reason_code_id: 1,
-    exchange_type: 'upgrade',
-    return_subtotal: '2850.0000',
-    replacement_subtotal: '3500.0000',
-    difference_amount: '650.0000',
-    difference_settlement: 'top_up',
-    status: 'approved',
-    notes: 'Customer upgraded to the 2500W model.',
-    approved_at: '2026-09-10T14:30:00Z',
-    created_at: '2026-09-10T11:00:00Z',
-    customer_name: 'Apex Retail Showroom',
-    warehouse_name: 'Main Distribution Hub (Dhaka)',
-    reason_code_name: 'Customer product upgrade',
-    return_items: [
-      {
-        id: 1,
-        product_id: 10,
-        product_name: 'Infrared Cooker 2200W (SM-IC220)',
-        quantity: '1.0000',
-        unit_id: 1,
-        unit_price: '2850.0000',
-        line_total: '2850.0000',
-        condition: 'good',
-        restock: true,
-      },
-    ],
-    replacement_items: [
-      {
-        id: 2,
-        product_id: 11,
-        product_name: 'Infrared Cooker 2500W Pro (SM-IC250)',
-        quantity: '1.0000',
-        unit_id: 1,
-        unit_price: '3500.0000',
-        line_total: '3500.0000',
-      },
-    ],
-  },
-  {
-    id: 2,
-    uuid: 'ex-002',
-    exchange_number: 'EX-20260911-DEF456',
-    party_id: 2,
-    warehouse_id: 1,
-    exchange_date: '2026-09-11',
-    reason_code_id: 2,
-    exchange_type: 'like_for_like',
-    return_subtotal: '5400.0000',
-    replacement_subtotal: '5400.0000',
-    difference_amount: '0.0000',
-    difference_settlement: 'none',
-    status: 'draft',
-    notes: 'Defective unit — same model replacement.',
-    created_at: '2026-09-11T09:00:00Z',
-    customer_name: 'Pran-RFL Group (Catering Div)',
-    warehouse_name: 'Main Distribution Hub (Dhaka)',
-    reason_code_name: 'Manufacturing defect',
-    return_items: [
-      {
-        id: 3,
-        product_id: 12,
-        product_name: 'Double Burner Gas Stove (SM-GS2B)',
-        quantity: '2.0000',
-        unit_id: 1,
-        unit_price: '2700.0000',
-        line_total: '5400.0000',
-        condition: 'defective',
-        restock: false,
-      },
-    ],
-    replacement_items: [
-      {
-        id: 4,
-        product_id: 12,
-        product_name: 'Double Burner Gas Stove (SM-GS2B)',
-        quantity: '2.0000',
-        unit_id: 1,
-        unit_price: '2700.0000',
-        line_total: '5400.0000',
-      },
-    ],
-  },
-];
 
 // ─── Form state & dropdown option types ─────────────────────────────────────
 
@@ -409,19 +315,16 @@ export function ExchangesSection() {
   });
 
   // ── Query Exchanges ───────────────────────────────────────────────────────
-  const { data: exchanges = SAMPLE_EXCHANGES, isLoading, refetch } = useQuery<Exchange[]>({
+  const { data: exchanges = [], isLoading, refetch } = useQuery<Exchange[]>({
     queryKey: ['sales', 'exchanges'],
     queryFn: async () => {
       try {
         const res = await api.get<unknown>('/sales/exchanges');
-        const rows = extractArray<Exchange>(res.data);
-        if (rows.length > 0) return rows;
+        return extractArray<Exchange>(res.data);
       } catch {
-        // fallback to sample
+        return [];
       }
-      return SAMPLE_EXCHANGES;
     },
-    initialData: SAMPLE_EXCHANGES,
   });
 
   const handleOpenView = async (ex: Exchange) => {

@@ -22,61 +22,6 @@ import { KPICard } from '../../../components/ui/KPICard';
 import { ActionMenuPortal } from '../../../components/ui/ActionMenuPortal';
 import { cn } from '../../../lib/utils';
 
-const SAMPLE_OVERDUE_INVOICES = [
-  {
-    id: 1,
-    invoice_number: 'INV-2608-0012',
-    customer_name: 'Bengal Textile Mills Ltd',
-    customer_phone: '+8801711223344',
-    invoice_date: '2026-07-15',
-    due_date: '2026-08-15',
-    total_amount: '450000.00',
-    paid_amount: '200000.00',
-    due_amount: '250000.00',
-    overdue_days: 23,
-    status: 'partially_paid',
-  },
-  {
-    id: 2,
-    invoice_number: 'INV-2608-0019',
-    customer_name: 'Urban Retailers Hub',
-    customer_phone: '+8801822334455',
-    invoice_date: '2026-07-28',
-    due_date: '2026-08-28',
-    total_amount: '185000.00',
-    paid_amount: '0.00',
-    due_amount: '185000.00',
-    overdue_days: 10,
-    status: 'posted',
-  },
-  {
-    id: 3,
-    invoice_number: 'INV-2607-0088',
-    customer_name: 'Metro Garments Accessories',
-    customer_phone: '+8801933557799',
-    invoice_date: '2026-05-10',
-    due_date: '2026-06-10',
-    total_amount: '320000.00',
-    paid_amount: '50000.00',
-    due_amount: '270000.00',
-    overdue_days: 89,
-    status: 'partially_paid',
-  },
-  {
-    id: 4,
-    invoice_number: 'INV-2608-0034',
-    customer_name: 'Dhaka Packaging Center',
-    customer_phone: '+8801644889900',
-    invoice_date: '2026-08-01',
-    due_date: '2026-08-31',
-    total_amount: '95000.00',
-    paid_amount: '0.00',
-    due_amount: '95000.00',
-    overdue_days: 7,
-    status: 'posted',
-  },
-];
-
 interface RawInvoiceRecord {
   id: number;
   invoice_number: string;
@@ -119,43 +64,40 @@ export function DueCollectionSection({ onCollect, onQuickCollect }: DueCollectio
   const [actionMenuAnchor, setActionMenuAnchor] = useState<HTMLElement | null>(null);
 
   // Fetch real invoices from backend
-  const { data: invoices = SAMPLE_OVERDUE_INVOICES, isFetching, refetch } = useQuery<DueInvoiceItem[]>({
+  const { data: invoices = [], isFetching, refetch } = useQuery<DueInvoiceItem[]>({
     queryKey: ['finance', 'due-collection'],
     queryFn: async () => {
       try {
         const res = await api.get<{ data?: RawInvoiceRecord[] } | RawInvoiceRecord[]>('/sales/invoices?per_page=100');
         const rawData = res.data;
         const list = Array.isArray(rawData) ? rawData : (rawData?.data ?? []);
-        if (Array.isArray(list) && list.length > 0) {
+        if (Array.isArray(list)) {
           const withDue = list.filter((inv) => parseFloat(String(inv.due_amount || '0')) > 0);
-          if (withDue.length > 0) {
-            return withDue.map((inv) => {
-              const invDate = new Date(inv.invoice_date || inv.created_at || Date.now());
-              const dueDate = inv.due_date ? new Date(inv.due_date) : new Date(invDate.getTime() + 30 * 86400000);
-              const today = new Date();
-              const diffDays = Math.max(0, Math.floor((today.getTime() - dueDate.getTime()) / 86400000));
-              return {
-                id: inv.id,
-                invoice_number: inv.invoice_number,
-                customer_name: inv.customer_name ?? inv.customer?.name ?? 'Valued Customer',
-                customer_phone: inv.customer_phone ?? inv.customer?.phone ?? '-',
-                invoice_date: inv.invoice_date ?? inv.created_at?.slice(0, 10) ?? '',
-                due_date: dueDate.toISOString().slice(0, 10),
-                total_amount: String(inv.total_amount ?? '0.00'),
-                paid_amount: String(inv.paid_amount ?? '0.00'),
-                due_amount: String(inv.due_amount ?? '0.00'),
-                overdue_days: diffDays,
-                status: inv.status ?? 'posted',
-              };
-            });
-          }
+          return withDue.map((inv) => {
+            const invDate = new Date(inv.invoice_date || inv.created_at || Date.now());
+            const dueDate = inv.due_date ? new Date(inv.due_date) : new Date(invDate.getTime() + 30 * 86400000);
+            const today = new Date();
+            const diffDays = Math.max(0, Math.floor((today.getTime() - dueDate.getTime()) / 86400000));
+            return {
+              id: inv.id,
+              invoice_number: inv.invoice_number,
+              customer_name: inv.customer_name ?? inv.customer?.name ?? 'Valued Customer',
+              customer_phone: inv.customer_phone ?? inv.customer?.phone ?? '-',
+              invoice_date: inv.invoice_date ?? inv.created_at?.slice(0, 10) ?? '',
+              due_date: dueDate.toISOString().slice(0, 10),
+              total_amount: String(inv.total_amount ?? '0.00'),
+              paid_amount: String(inv.paid_amount ?? '0.00'),
+              due_amount: String(inv.due_amount ?? '0.00'),
+              overdue_days: diffDays,
+              status: inv.status ?? 'posted',
+            };
+          });
         }
       } catch {
-        // Fallback
+        return [];
       }
-      return SAMPLE_OVERDUE_INVOICES;
+      return [];
     },
-    initialData: SAMPLE_OVERDUE_INVOICES,
   });
 
   const filtered = invoices.filter((inv) => {

@@ -1,107 +1,31 @@
 import React, { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { api } from '../../lib/api/client';
+import { extractList } from '../../lib/api/apiData';
 import { ShieldAlert, Search, Filter, Eye, User, CheckCircle2, FileCode } from 'lucide-react';
 import type { AuditLogItem } from '../../types/api/audit';
 import { SelectDropdown } from '../../components/ui/Dropdown';
-
-const MOCK_AUDIT_LOGS: AuditLogItem[] = [
-  {
-    id: 101,
-    uuid: 'audit-001',
-    user_id: 1,
-    user: {
-      id: 1,
-      name: 'Tanvir Hossain (Admin)',
-      email: 'tanvir@company.com',
-    },
-    action: 'updated',
-    auditable_type: 'Product',
-    auditable_id: '42',
-    changed_fields: ['cost_price', 'selling_price'],
-    before: {
-      sku: 'TSH-001',
-      cost_price: '120.00',
-      selling_price: '250.00',
-    },
-    after: {
-      sku: 'TSH-001',
-      cost_price: '135.00',
-      selling_price: '280.00',
-    },
-    context: {
-      reason: 'Raw cotton yarn price increase from supplier',
-    },
-    ip: '103.25.244.12',
-    user_agent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
-    correlation_id: 'corr-8923a1',
-    created_at: '2026-08-28T10:14:22Z',
-  },
-  {
-    id: 102,
-    uuid: 'audit-002',
-    user_id: 2,
-    user: {
-      id: 2,
-      name: 'Rahim Uddin (Accountant)',
-      email: 'rahim@company.com',
-    },
-    action: 'posted',
-    auditable_type: 'JournalEntry',
-    auditable_id: 'JE-202608-001',
-    changed_fields: ['status', 'posted_at', 'posted_by'],
-    before: {
-      status: 'draft',
-      posted_at: null,
-      posted_by: null,
-    },
-    after: {
-      status: 'posted',
-      posted_at: '2026-08-28T09:45:00Z',
-      posted_by: 2,
-    },
-    context: {
-      total_debit: '5000.00',
-      total_credit: '5000.00',
-    },
-    ip: '103.25.244.18',
-    user_agent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)',
-    correlation_id: 'corr-9941b2',
-    created_at: '2026-08-28T09:45:01Z',
-  },
-  {
-    id: 103,
-    uuid: 'audit-003',
-    user_id: 1,
-    user: {
-      id: 1,
-      name: 'Tanvir Hossain (Admin)',
-      email: 'tanvir@company.com',
-    },
-    action: 'created',
-    auditable_type: 'ProductionBatch',
-    auditable_id: 'BAT-202608-001',
-    changed_fields: ['batch_number', 'planned_quantity', 'status'],
-    before: {},
-    after: {
-      batch_number: 'BAT-202608-001',
-      planned_quantity: '1000.00',
-      status: 'planned',
-    },
-    context: {
-      factory_code: 'FAC-01',
-    },
-    ip: '103.25.244.12',
-    user_agent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
-    correlation_id: 'corr-1029c3',
-    created_at: '2026-08-28T08:30:10Z',
-  },
-];
 
 export const AuditLogWorkspace: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedAction, setSelectedAction] = useState('all');
   const [selectedLog, setSelectedLog] = useState<AuditLogItem | null>(null);
 
-  const filteredLogs = MOCK_AUDIT_LOGS.filter((log) => {
+  const { data: auditLogs = [], isLoading } = useQuery<AuditLogItem[]>({
+    queryKey: ['audit-logs', selectedAction],
+    queryFn: async () => {
+      try {
+        const params = new URLSearchParams();
+        if (selectedAction !== 'all') params.set('action', selectedAction);
+        const res = await api.get<any>(`/audit-logs?${params.toString()}`);
+        return extractList<AuditLogItem>(res);
+      } catch {
+        return [];
+      }
+    },
+  });
+
+  const filteredLogs = auditLogs.filter((log) => {
     const matchesSearch =
       log.auditable_type.toLowerCase().includes(searchTerm.toLowerCase()) ||
       String(log.auditable_id).toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -199,7 +123,20 @@ export const AuditLogWorkspace: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {filteredLogs.map((log) => (
+              {isLoading ? (
+                <tr>
+                  <td colSpan={6} className="text-center py-8 text-xs text-slate-500">
+                    Loading audit trail records...
+                  </td>
+                </tr>
+              ) : filteredLogs.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="text-center py-8 text-xs text-slate-500">
+                    No audit records found. Actions performed across the system will be recorded here automatically.
+                  </td>
+                </tr>
+              ) : (
+                filteredLogs.map((log) => (
                 <tr key={log.id} className="hover:bg-slate-50/60 transition-colors">
                   <td className="px-4 py-3 text-slate-600 whitespace-nowrap">
                     {new Date(log.created_at).toLocaleString()}
@@ -249,7 +186,8 @@ export const AuditLogWorkspace: React.FC = () => {
                     </button>
                   </td>
                 </tr>
-              ))}
+              ))
+              )}
             </tbody>
           </table>
         </div>

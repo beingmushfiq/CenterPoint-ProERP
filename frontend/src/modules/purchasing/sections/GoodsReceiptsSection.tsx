@@ -40,81 +40,6 @@ interface GrnFormItem {
   unit_cost: string;
 }
 
-const SAMPLE_RECEIPTS: GoodsReceipt[] = [
-  {
-    id: 1,
-    uuid: 'grn-001',
-    grn_number: 'GRN-202608-001',
-    purchase_order_id: 2,
-    po_number: 'PO-202608-002',
-    party_id: 2,
-    supplier_name: 'Meghna Sugar Refinery Ltd.',
-    warehouse_id: 1,
-    warehouse_name: 'Central Raw Materials Silo',
-    receipt_date: '2026-08-27',
-    supplier_document_number: 'DC-884910-A',
-    status: 'completed',
-    received_by: 1,
-    notes: 'Bulk sugar delivered via Truck Dhaka-Metro-Ta-11-2094. Verified with scale bridge.',
-    items: [
-      {
-        id: 301,
-        uuid: 'gri-301',
-        goods_receipt_id: 1,
-        product_id: 2,
-        product_name: 'Refined Cane Sugar (Fine Grain)',
-        product_sku: 'RM-SUGAR-01',
-        batch_code: 'BAT-SUG-2608',
-        expiry_date: '2028-08-20',
-        received_quantity: '500.00',
-        rejected_quantity: '0.00',
-        accepted_quantity: '500.00',
-        unit_id: 1,
-        unit_code: 'KG',
-        unit_cost: '130.00',
-        total_cost: '65000.00',
-      },
-    ],
-    created_at: '2026-08-27T10:00:00Z',
-  },
-  {
-    id: 2,
-    uuid: 'grn-002',
-    grn_number: 'GRN-202608-002',
-    purchase_order_id: 1,
-    po_number: 'PO-202608-001',
-    party_id: 1,
-    supplier_name: 'Bengal Glass & Ceramic Ltd.',
-    warehouse_id: 1,
-    warehouse_name: 'Tejgaon Central Electronic Components & Parts Warehouse',
-    receipt_date: '2026-08-28',
-    supplier_document_number: 'INV-BGC-9021',
-    status: 'draft',
-    received_by: 1,
-    notes: 'Ceramic glass batch unloading. Flatness & surface inspection underway.',
-    items: [
-      {
-        id: 302,
-        uuid: 'gri-302',
-        goods_receipt_id: 2,
-        product_id: 1,
-        product_name: 'Microcrystalline Ceramic Glass Panel',
-        product_sku: 'RAW-CERAMIC-PANEL',
-        batch_code: 'BAT-GLS-2608-01',
-        expiry_date: null,
-        received_quantity: '500.00',
-        rejected_quantity: '5.00',
-        accepted_quantity: '495.00',
-        unit_id: 2,
-        unit_code: 'PCS',
-        unit_cost: '450.00',
-        total_cost: '222750.00',
-      },
-    ],
-    created_at: '2026-08-28T14:30:00Z',
-  },
-];
-
 export function GoodsReceiptsSection() {
   const { formatCurrency } = useCurrency();
   const queryClient = useQueryClient();
@@ -165,21 +90,16 @@ export function GoodsReceiptsSection() {
     ],
   });
 
-  const { data: receipts = SAMPLE_RECEIPTS, isLoading, isFetching, refetch } = useQuery<GoodsReceipt[]>({
+  const { data: receipts = [], isLoading, isFetching, refetch } = useQuery<GoodsReceipt[]>({
     queryKey: ['purchasing', 'goods-receipts'],
     queryFn: async () => {
       try {
         const res = await api.get<GoodsReceipt[]>('/purchasing/goods-receipts');
-        const list = extractList<GoodsReceipt>(res);
-        if (list.length > 0) {
-          return list;
-        }
+        return extractList<GoodsReceipt>(res);
       } catch {
-        // Keep sample data
+        return [];
       }
-      return SAMPLE_RECEIPTS;
     },
-    initialData: SAMPLE_RECEIPTS,
   });
 
   const handleViewGrn = async (grn: GoodsReceipt) => {

@@ -16,64 +16,8 @@ import {
 } from 'lucide-react';
 import type { PosTerminal } from '../../../types/api/pos';
 import { api } from '../../../lib/api/client';
+import { extractList } from '../../../lib/api/apiData';
 import { SelectDropdown } from '../../../components/ui/Dropdown';
-
-const SAMPLE_TERMINALS: PosTerminal[] = [
-  {
-    id: 1,
-    uuid: 'term-001',
-    code: 'POS-GUL-01',
-    name: 'Gulshan Flagship - Counter 1 (Main Cashier)',
-    branch_id: 1,
-    branch_name: 'Gulshan Avenue Flagship Store',
-    default_warehouse_id: 1,
-    default_warehouse_name: 'Gulshan Retail Floor Stock',
-    printer_config: {
-      type: 'thermal_network',
-      paper_width: '80mm',
-      ip_address: '192.168.1.150',
-      auto_cut: true,
-    },
-    is_active: true,
-    created_at: '2026-08-01T09:00:00Z',
-  },
-  {
-    id: 2,
-    uuid: 'term-002',
-    code: 'POS-GUL-02',
-    name: 'Gulshan Flagship - Counter 2 (Appliance Showroom)',
-    branch_id: 1,
-    branch_name: 'Gulshan Avenue Flagship Store',
-    default_warehouse_id: 1,
-    default_warehouse_name: 'Gulshan Retail Floor Stock',
-    printer_config: {
-      type: 'thermal_usb',
-      paper_width: '80mm',
-      device_port: 'COM3',
-      auto_cut: true,
-    },
-    is_active: true,
-    created_at: '2026-08-01T09:00:00Z',
-  },
-  {
-    id: 3,
-    uuid: 'term-003',
-    code: 'POS-CTG-01',
-    name: 'Chittagong GEC Counter 1',
-    branch_id: 2,
-    branch_name: 'Chittagong GEC Circle Store',
-    default_warehouse_id: 2,
-    default_warehouse_name: 'Chittagong Regional Stock',
-    printer_config: {
-      type: 'thermal_network',
-      paper_width: '80mm',
-      ip_address: '192.168.2.110',
-      auto_cut: true,
-    },
-    is_active: false,
-    created_at: '2026-08-15T11:00:00Z',
-  },
-];
 
 export function PosTerminalsSection() {
   const queryClient = useQueryClient();
@@ -100,20 +44,16 @@ export function PosTerminalsSection() {
     is_active: true,
   });
 
-  const { data: terminals = SAMPLE_TERMINALS, isLoading, isFetching, refetch } = useQuery<PosTerminal[]>({
+  const { data: terminals = [], isLoading, isFetching, refetch } = useQuery<PosTerminal[]>({
     queryKey: ['pos', 'terminals'],
     queryFn: async () => {
       try {
         const res = await api.get<PosTerminal[]>('/pos/terminals');
-        if (res.data && res.data.length > 0) {
-          return res.data;
-        }
+        return extractList<PosTerminal>(res);
       } catch {
-        // Keep sample data
+        return [];
       }
-      return SAMPLE_TERMINALS;
     },
-    initialData: SAMPLE_TERMINALS,
   });
 
   const handleToggleActive = async (termId: number) => {

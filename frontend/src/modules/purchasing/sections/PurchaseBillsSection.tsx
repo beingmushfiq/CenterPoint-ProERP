@@ -37,95 +37,6 @@ interface BillFormItem {
   tax_rate: string;
 }
 
-const SAMPLE_BILLS: PurchaseBill[] = [
-  {
-    id: 1,
-    uuid: 'bill-001',
-    bill_number: 'BILL-202608-001',
-    purchase_order_id: 2,
-    po_number: 'PO-202608-002',
-    goods_receipt_id: 1,
-    party_id: 2,
-    supplier_name: 'Meghna Sugar Refinery Ltd.',
-    bill_date: '2026-08-27',
-    due_date: '2026-09-26',
-    supplier_invoice_number: 'INV-MSR-4091',
-    currency_code: 'BDT',
-    exchange_rate: '1.0000',
-    subtotal_amount: '65000.00',
-    discount_amount: '0.00',
-    tax_amount: '3250.00',
-    grand_total: '68250.00',
-    paid_amount: '0.00',
-    status: 'approved',
-    payment_status: 'unpaid',
-    notes: 'Bulk sugar shipment invoice. 30 days credit terms.',
-    items: [
-      {
-        id: 401,
-        uuid: 'pbi-401',
-        purchase_bill_id: 1,
-        product_id: 2,
-        product_name: 'Refined Cane Sugar (Fine Grain)',
-        product_sku: 'RM-SUGAR-01',
-        quantity: '500.00',
-        unit_id: 1,
-        unit_code: 'KG',
-        unit_price: '130.00',
-        discount_amount: '0.00',
-        tax_rate: '5.00',
-        tax_amount: '3250.00',
-        subtotal_amount: '65000.00',
-        total_amount: '68250.00',
-      },
-    ],
-    created_at: '2026-08-27T11:30:00Z',
-  },
-  {
-    id: 2,
-    uuid: 'bill-002',
-    bill_number: 'BILL-202608-002',
-    purchase_order_id: 1,
-    po_number: 'PO-202608-001',
-    goods_receipt_id: 2,
-    party_id: 1,
-    supplier_name: 'Bengal Glass & Ceramic Ltd.',
-    bill_date: '2026-08-28',
-    due_date: '2026-09-15',
-    supplier_invoice_number: 'BGC-INV-88219',
-    currency_code: 'BDT',
-    exchange_rate: '1.0000',
-    subtotal_amount: '222750.00',
-    discount_amount: '2750.00',
-    tax_amount: '11000.00',
-    grand_total: '231000.00',
-    paid_amount: '231000.00',
-    status: 'paid',
-    payment_status: 'paid',
-    notes: 'Ceramic glass lot settled via Bank Wire TT-88390.',
-    items: [
-      {
-        id: 402,
-        uuid: 'pbi-402',
-        purchase_bill_id: 2,
-        product_id: 1,
-        product_name: 'Microcrystalline Ceramic Glass Panel',
-        product_sku: 'RAW-CERAMIC-PANEL',
-        quantity: '495.00',
-        unit_id: 2,
-        unit_code: 'PCS',
-        unit_price: '450.00',
-        discount_amount: '2750.00',
-        tax_rate: '5.00',
-        tax_amount: '11000.00',
-        subtotal_amount: '222750.00',
-        total_amount: '231000.00',
-      },
-    ],
-    created_at: '2026-08-28T16:00:00Z',
-  },
-];
-
 export function PurchaseBillsSection() {
   const { formatCurrency, currencyCode } = useCurrency();
   const queryClient = useQueryClient();
@@ -223,21 +134,16 @@ export function PurchaseBillsSection() {
     };
   };
 
-  const { data: bills = SAMPLE_BILLS, isLoading, isFetching, refetch } = useQuery<PurchaseBill[]>({
+  const { data: bills = [], isLoading, isFetching, refetch } = useQuery<PurchaseBill[]>({
     queryKey: ['purchasing', 'bills'],
     queryFn: async () => {
       try {
         const res = await api.get<PurchaseBill[]>('/purchasing/bills');
-        const list = extractList<PurchaseBill>(res);
-        if (list.length > 0) {
-          return list;
-        }
+        return extractList<PurchaseBill>(res);
       } catch {
-        // Fallback to sample bills
+        return [];
       }
-      return SAMPLE_BILLS;
     },
-    initialData: SAMPLE_BILLS,
   });
 
   const approveMutation = useMutation({

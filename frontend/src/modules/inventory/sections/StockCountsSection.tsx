@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import type { StockCount } from '../../../types/api/inventory';
 import { api } from '../../../lib/api/client';
+import { extractList } from '../../../lib/api/apiData';
 import { SelectDropdown } from '../../../components/ui/Dropdown';
 import { ActionMenuPortal } from '../../../components/ui/ActionMenuPortal';
 import { cn } from '../../../lib/utils';
@@ -30,81 +31,6 @@ interface CountFormItem {
   counted_quantity: string;
   unit_code: string;
 }
-
-const SAMPLE_COUNTS: StockCount[] = [
-  {
-    id: 1,
-    uuid: 'cnt-001',
-    count_number: 'CNT-202608-001',
-    warehouse_id: 1,
-    warehouse_name: 'Tejgaon Central Electronic Components & Parts Warehouse',
-    count_date: '2026-08-30',
-    count_type: 'cycle',
-    status: 'counting',
-    notes: 'Monthly cycle audit for high-volume ceramic panels and heating coils.',
-    items: [
-      {
-        id: 1001,
-        uuid: 'cnti-1001',
-        stock_count_id: 1,
-        product_id: 1,
-        product_name: 'Microcrystalline Ceramic Glass Panel',
-        product_sku: 'RAW-CERAMIC-PANEL',
-        snapshot_quantity: '850.00',
-        counted_quantity: '848.00',
-        variance_quantity: '-2.00',
-        variance_cost: '-900.00',
-        unit_id: 2,
-        unit_code: 'PCS',
-      },
-      {
-        id: 1002,
-        uuid: 'cnti-1002',
-        stock_count_id: 1,
-        product_id: 2,
-        product_name: '2200W Infrared Heating Coil',
-        product_sku: 'RAW-COIL-2200W',
-        snapshot_quantity: '600.00',
-        counted_quantity: '600.00',
-        variance_quantity: '0.00',
-        variance_cost: '0.00',
-        unit_id: 2,
-        unit_code: 'PCS',
-      },
-    ],
-    created_at: '2026-08-30T07:00:00Z',
-  },
-  {
-    id: 2,
-    uuid: 'cnt-002',
-    count_number: 'CNT-202608-002',
-    warehouse_id: 3,
-    warehouse_name: 'Dhaka Main Finished Appliances Distribution Depot',
-    count_date: '2026-08-29',
-    count_type: 'spot',
-    status: 'completed',
-    reconciled_by: 1,
-    reconciled_at: '2026-08-29T18:00:00Z',
-    notes: 'Surprise spot check on finished infrared cooker buffer racks.',
-    items: [
-      {
-        id: 1003,
-        uuid: 'cnti-1003',
-        stock_count_id: 2,
-        product_id: 1,
-        product_name: 'Infrared Cooker 2200W (SM-IC220)',
-        product_sku: 'FG-IC-2200',
-        snapshot_quantity: '150.00',
-        counted_quantity: '150.00',
-        variance_quantity: '0.00',
-        variance_cost: '0.00',
-        unit_id: 2,
-        unit_code: 'PCS',
-      },
-    ],
-    created_at: '2026-08-29T15:30:00Z',
-  },
-];
 
 export function StockCountsSection() {
   const queryClient = useQueryClient();
@@ -138,20 +64,16 @@ export function StockCountsSection() {
     ],
   });
 
-  const { data: counts = SAMPLE_COUNTS, isLoading, isFetching, refetch } = useQuery<StockCount[]>({
+  const { data: counts = [], isLoading, isFetching, refetch } = useQuery<StockCount[]>({
     queryKey: ['inventory', 'counts'],
     queryFn: async () => {
       try {
         const res = await api.get<StockCount[]>('/inventory/counts');
-        if (res.data && res.data.length > 0) {
-          return res.data;
-        }
+        return extractList<StockCount>(res);
       } catch {
-        // Keep sample data
+        return [];
       }
-      return SAMPLE_COUNTS;
     },
-    initialData: SAMPLE_COUNTS,
   });
 
   const handleReconcile = async (countId: number) => {

@@ -35,86 +35,7 @@ import { cn } from '../../../lib/utils';
 import { UniversalImportModal } from '../../../components/import/UniversalImportModal';
 import { leadImportSchema } from '../schemas/leadImportSchema';
 
-const SAMPLE_LEADS: Lead[] = [
-  {
-    id: 1,
-    uuid: 'lead-001',
-    lead_number: 'LD-260820-0001',
-    name: 'Rahim Chowdhury',
-    company_name: 'Bengal Textile Mills Ltd',
-    email: 'rahim@bengaltextile.com',
-    phone: '+8801711223344',
-    status: 'proposal',
-    stage: 'proposal',
-    deal_value: '450000.00',
-    currency_code: 'BDT',
-    source: 'storefront',
-    assigned_to: 'Kazi Farhan (Sales Exec)',
-    notes: 'Inquiring for bulk customized poly packaging and industrial rolls (10,000 units/mo).',
-    expected_close_date: '2026-09-15',
-    is_fake: false,
-    created_at: '2026-08-20',
-  },
-  {
-    id: 2,
-    uuid: 'lead-002',
-    lead_number: 'LD-260822-0002',
-    name: 'Anika Tabassum',
-    company_name: 'Urban Retailers Hub',
-    email: 'anika@urbanretail.bd',
-    phone: '+8801822334455',
-    status: 'qualified',
-    stage: 'qualified',
-    deal_value: '185000.00',
-    currency_code: 'BDT',
-    source: 'referral',
-    assigned_to: 'Nusrat Jahan',
-    notes: 'Looking to switch suppliers for corrugated master cartons.',
-    expected_close_date: '2026-09-08',
-    is_fake: false,
-    created_at: '2026-08-22',
-  },
-  {
-    id: 3,
-    uuid: 'lead-003',
-    lead_number: 'LD-260815-0003',
-    name: 'Mahmudul Hasan',
-    company_name: 'Apex Footwear Supply Chain',
-    email: 'm.hasan@apexsupplies.com',
-    phone: '+8801933445566',
-    status: 'won',
-    stage: 'won',
-    deal_value: '820000.00',
-    currency_code: 'BDT',
-    source: 'website',
-    assigned_to: 'Kazi Farhan (Sales Exec)',
-    notes: 'Price negotiation on 5-ply export grade boxes completed. Contract signed.',
-    expected_close_date: '2026-09-02',
-    converted_at: '2026-09-02T10:00:00Z',
-    is_fake: false,
-    created_at: '2026-08-15',
-  },
-  {
-    id: 4,
-    uuid: 'lead-004',
-    lead_number: 'LD-260829-0004',
-    name: 'Zubair Al-Mamun',
-    company_name: 'Dhaka Superstore Mart',
-    email: 'zubair@dhakasuper.com',
-    phone: '+8801644556677',
-    status: 'fake',
-    stage: 'fake',
-    deal_value: '95000.00',
-    currency_code: 'BDT',
-    source: 'cold_outreach',
-    assigned_to: 'Unassigned',
-    notes: 'Phone number unreachable, invalid company registered address.',
-    validation_notes: 'Phone switched off on 3 attempts; no trade license match.',
-    is_fake: true,
-    expected_close_date: '2026-09-20',
-    created_at: '2026-08-29',
-  },
-];
+
 
 const STAGES: { id: LeadStatus; label: string; tone: string; dotBg: string; badgeBg: string }[] = [
   { id: 'new', label: 'New Inquiries', tone: 'text-sky-600 dark:text-sky-400', dotBg: 'bg-sky-500', badgeBg: 'bg-sky-500/10 border-sky-500/20' },
@@ -319,8 +240,8 @@ interface RawLeadResponse {
 
 type ApiError = { response?: { data?: { message?: string } } };
 
-  // Query Leads from Real API with fallback
-  const { data: leads = SAMPLE_LEADS, isFetching, refetch } = useQuery<Lead[]>({
+  // Query Leads from Real API
+  const { data: leads = [], isFetching, refetch } = useQuery<Lead[]>({
     queryKey: ['crm', 'leads'],
     queryFn: async () => {
       try {
@@ -335,11 +256,9 @@ type ApiError = { response?: { data?: { message?: string } } };
           assigned_to: item.assigned_user_name ?? item.assigned_to ?? 'Unassigned',
         }));
       } catch {
-        // Fallback to sample data if endpoint unreachable
-        return SAMPLE_LEADS;
+        return [];
       }
     },
-    initialData: SAMPLE_LEADS,
   });
 
   // Create Lead Mutation

@@ -17,69 +17,13 @@ import {
 } from 'lucide-react';
 import type { PosSession } from '../../../types/api/pos';
 import { api } from '../../../lib/api/client';
+import { extractList } from '../../../lib/api/apiData';
 import { useCurrency } from '../../../hooks/useCurrency';
 import { SelectDropdown } from '../../../components/ui/Dropdown';
 
 interface PosSessionsSectionProps {
   onLaunchPOS?: (session: PosSession) => void;
 }
-
-const SAMPLE_SESSIONS: PosSession[] = [
-  {
-    id: 1,
-    uuid: 'sess-001',
-    session_number: 'SES-202608-001',
-    terminal_id: 1,
-    terminal_name: 'Gulshan Flagship - Counter 1',
-    branch_id: 1,
-    branch_name: 'Gulshan Avenue Flagship Store',
-    warehouse_id: 1,
-    warehouse_name: 'Gulshan Retail Floor Stock',
-    user_id: 1,
-    operator_name: 'Tanvir Hossain (Cashier A)',
-    opened_at: '2026-08-30T08:00:00Z',
-    closed_at: null,
-    opening_cash: '2000.00',
-    expected_cash: '18450.00',
-    counted_cash: null,
-    cash_variance: null,
-    card_total: '12400.00',
-    mobile_total: '8950.00',
-    credit_total: '0.00',
-    sales_count: 42,
-    refund_total: '300.00',
-    status: 'open',
-    notes: 'Morning shift started with opening drawer float.',
-    created_at: '2026-08-30T08:00:00Z',
-  },
-  {
-    id: 2,
-    uuid: 'sess-002',
-    session_number: 'SES-202608-002',
-    terminal_id: 2,
-    terminal_name: 'Gulshan Flagship - Counter 2',
-    branch_id: 1,
-    branch_name: 'Gulshan Avenue Flagship Store',
-    warehouse_id: 1,
-    warehouse_name: 'Gulshan Retail Floor Stock',
-    user_id: 2,
-    operator_name: 'Sabrina Islam (Cashier B)',
-    opened_at: '2026-08-29T14:00:00Z',
-    closed_at: '2026-08-29T22:30:00Z',
-    opening_cash: '2000.00',
-    expected_cash: '24600.00',
-    counted_cash: '24600.00',
-    cash_variance: '0.00',
-    card_total: '18500.00',
-    mobile_total: '14200.00',
-    credit_total: '0.00',
-    sales_count: 68,
-    refund_total: '0.00',
-    status: 'closed',
-    notes: 'Evening closing reconciled with zero cash drawer variance.',
-    created_at: '2026-08-29T14:00:00Z',
-  },
-];
 
 export function PosSessionsSection({ onLaunchPOS }: PosSessionsSectionProps) {
   const { formatCurrency, currencySymbol } = useCurrency();
@@ -108,20 +52,16 @@ export function PosSessionsSection({ onLaunchPOS }: PosSessionsSectionProps) {
     notes: '',
   });
 
-  const { data: sessions = SAMPLE_SESSIONS, isLoading, isFetching, refetch } = useQuery<PosSession[]>({
+  const { data: sessions = [], isLoading, isFetching, refetch } = useQuery<PosSession[]>({
     queryKey: ['pos', 'sessions'],
     queryFn: async () => {
       try {
         const sessRes = await api.get<PosSession[]>('/pos/sessions');
-        if (sessRes.data && sessRes.data.length > 0) {
-          return sessRes.data;
-        }
+        return extractList<PosSession>(sessRes);
       } catch {
-        // Keep sample data
+        return [];
       }
-      return SAMPLE_SESSIONS;
     },
-    initialData: SAMPLE_SESSIONS,
   });
 
   const handleOpenSession = (e: React.FormEvent) => {

@@ -34,122 +34,7 @@ interface DeliveryFormItem {
   quantity: string;
 }
 
-const SAMPLE_DELIVERIES: DeliveryOrder[] = [
-  {
-    id: 1,
-    uuid: 'del-001',
-    delivery_number: 'DO-202608-001',
-    sales_order_id: 1,
-    sales_order_number: 'SO-202608-001',
-    warehouse_id: 1,
-    warehouse_name: 'Main Distribution Hub (Dhaka)',
-    recipient_name: 'Apex Footwear Central Kitchen',
-    recipient_phone: '+880 1711-209481',
-    delivery_type: 'express_courier',
-    scheduled_date: '2026-08-30',
-    status: 'in_transit',
-    cod_amount: '48500.00',
-    cod_collected_amount: '0.00',
-    cod_status: 'pending',
-    delivery_charge: '250.00',
-    package_count: 5,
-    special_instructions: 'Handle with care. Fragile electronic appliances & ceramic glass.',
-    items: [
-      {
-        id: 601,
-        uuid: 'doi-601',
-        delivery_order_id: 1,
-        product_id: 1,
-        product_name: 'Infrared Cooker 2200W (SM-IC220)',
-        quantity: '10.00',
-        delivered_quantity: '0.00',
-        returned_quantity: '0.00',
-        unit_id: 2,
-      },
-      {
-        id: 602,
-        uuid: 'doi-602',
-        delivery_order_id: 1,
-        product_id: 2,
-        product_name: 'Infrared Cooker 3500W Double Burner (SM-IC350)',
-        quantity: '5.00',
-        delivered_quantity: '0.00',
-        returned_quantity: '0.00',
-        unit_id: 2,
-      },
-    ],
-    created_at: '2026-08-30T09:00:00Z',
-  },
-  {
-    id: 2,
-    uuid: 'do-002',
-    delivery_number: 'DO-202608-002',
-    sales_order_id: 2,
-    sales_order_number: 'SO-202608-002',
-    warehouse_id: 1,
-    warehouse_name: 'Main Distribution Hub (Dhaka)',
-    recipient_name: 'Pran-RFL Group (Catering Div)',
-    recipient_phone: '+880 1819-332918',
-    delivery_type: 'express_courier',
-    scheduled_date: '2026-08-30',
-    status: 'delivered',
-    delivered_at: '2026-08-30T14:30:00Z',
-    cod_amount: '0.00',
-    cod_collected_amount: '0.00',
-    cod_status: 'none',
-    delivery_charge: '180.00',
-    package_count: 3,
-    special_instructions: 'Deliver to 2nd Floor Receiving Gate. Call prior to arrival.',
-    items: [
-      {
-        id: 603,
-        uuid: 'doi-603',
-        delivery_order_id: 2,
-        product_id: 3,
-        product_name: 'Double Burner Gas Stove (Toughened Glass)',
-        quantity: '8.00',
-        delivered_quantity: '8.00',
-        returned_quantity: '0.00',
-        unit_id: 2,
-      },
-    ],
-    created_at: '2026-08-29T14:00:00Z',
-  },
-  {
-    id: 3,
-    uuid: 'del-003',
-    delivery_number: 'DO-202608-003',
-    sales_order_id: 3,
-    sales_order_number: 'SO-202608-003',
-    warehouse_id: 2,
-    warehouse_name: 'Chittagong Regional Hub',
-    recipient_name: 'Agora Departmental Store',
-    recipient_phone: '+880 1912-778899',
-    delivery_type: 'third_party_logistics',
-    scheduled_date: '2026-08-31',
-    status: 'pending',
-    cod_amount: '12400.00',
-    cod_collected_amount: '0.00',
-    cod_status: 'pending',
-    delivery_charge: '180.00',
-    package_count: 3,
-    special_instructions: 'Customer requested evening delivery.',
-    items: [
-      {
-        id: 604,
-        uuid: 'doi-604',
-        delivery_order_id: 3,
-        product_id: 4,
-        product_name: 'Brioche Burger Bun (Pack of 12)',
-        quantity: '80.00',
-        delivered_quantity: '0.00',
-        returned_quantity: '0.00',
-        unit_id: 2,
-      },
-    ],
-    created_at: '2026-08-30T14:00:00Z',
-  },
-];
+
 
 export function DeliveriesSection() {
   const { hasPermission } = useAuthStore();
@@ -197,21 +82,16 @@ export function DeliveriesSection() {
     ],
   });
 
-  const { data: deliveries = SAMPLE_DELIVERIES, isLoading, isFetching, refetch } = useQuery<DeliveryOrder[]>({
+  const { data: deliveries = [], isLoading, isFetching, refetch } = useQuery<DeliveryOrder[]>({
     queryKey: ['sales', 'deliveries'],
     queryFn: async () => {
       try {
         const res = await api.get<DeliveryOrder[]>('/sales/deliveries');
-        const list = extractList<DeliveryOrder>(res);
-        if (list.length > 0) {
-          return list;
-        }
+        return extractList<DeliveryOrder>(res);
       } catch {
-        // Keep sample data
+        return [];
       }
-      return SAMPLE_DELIVERIES;
     },
-    initialData: SAMPLE_DELIVERIES,
   });
 
   const handleViewDelivery = async (d: DeliveryOrder) => {

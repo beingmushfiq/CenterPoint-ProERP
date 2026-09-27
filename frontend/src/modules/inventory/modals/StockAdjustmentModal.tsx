@@ -1,4 +1,7 @@
 import React, { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { api } from '../../../lib/api/client';
+import { extractList } from '../../../lib/api/apiData';
 import { X, AlertTriangle, AlertCircle } from 'lucide-react';
 import { notify } from '../../../components/ui/Toast';
 
@@ -9,35 +12,46 @@ interface StockAdjustmentModalProps {
   initialProductName?: string;
 }
 
-const SAMPLE_WAREHOUSES = [
-  { id: 1, name: 'Tejgaon Central Raw Materials Warehouse' },
-  { id: 2, name: 'Tejgaon Finished Goods Dispatch Center' },
-  { id: 3, name: 'Gulshan Retail Floor Stock' },
-];
-
-const SAMPLE_PRODUCTS = [
-  { id: 1, name: 'Premium Cotton Oxford Shirt - Blue / L', sku: 'SHT-OXF-BLU-L', available: 250, unit: 'PCS' },
-  { id: 2, name: 'Slim Fit Denim Jeans 14oz - Indigo / 32', sku: 'JNS-SLM-IND-32', available: 180, unit: 'PCS' },
-  { id: 3, name: 'Microcrystalline Ceramic Glass Panel', sku: 'RAW-CERAMIC-PANEL', available: 500, unit: 'PCS' },
-  { id: 4, name: 'Copper Core Induction Heating Coil', sku: 'RAW-INDUCT-COIL', available: 420, unit: 'PCS' },
-];
-
 export const StockAdjustmentModal: React.FC<StockAdjustmentModalProps> = ({
   open,
   onClose,
   onSuccess,
   initialProductName = '',
 }) => {
+  const { data: warehouses = [] } = useQuery<Array<{ id: number; name: string }>>({
+    queryKey: ['catalogue', 'warehouses'],
+    queryFn: async () => {
+      try {
+        const res = await api.get<any>('/warehouses');
+        return extractList<{ id: number; name: string }>(res);
+      } catch {
+        return [];
+      }
+    },
+  });
+
+  const { data: products = [] } = useQuery<Array<{ id: number; name: string; sku: string; unit?: string; available?: number }>>({
+    queryKey: ['catalogue', 'products'],
+    queryFn: async () => {
+      try {
+        const res = await api.get<any>('/products?per_page=100');
+        return extractList<{ id: number; name: string; sku: string; unit?: string }>(res);
+      } catch {
+        return [];
+      }
+    },
+  });
+
   const [warehouseId, setWarehouseId] = useState<number>(1);
-  const [productName, setProductName] = useState(initialProductName || SAMPLE_PRODUCTS[0]?.name || '');
+  const [productName, setProductName] = useState(initialProductName || '');
   const [adjustmentType, setAdjustmentType] = useState<'damaged' | 'lost' | 'found' | 'expired'>('damaged');
   const [quantity, setQuantity] = useState('5');
   const [reason, setReason] = useState('');
 
   if (!open) return null;
 
-  const selectedProduct = SAMPLE_PRODUCTS.find((p) => p.name === productName) || SAMPLE_PRODUCTS[0]!;
-  const selectedWarehouse = SAMPLE_WAREHOUSES.find((w) => w.id === warehouseId) ?? SAMPLE_WAREHOUSES[0]!;
+  const selectedProduct = products.find((p) => p.name === productName) || products[0];
+  const selectedWarehouse = warehouses.find((w) => w.id === warehouseId) ?? warehouses[0];
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,7 +65,7 @@ export const StockAdjustmentModal: React.FC<StockAdjustmentModalProps> = ({
     const actionText = adjustmentType === 'found' ? 'Stock Added' : 'Stock Written Off';
 
     notify.success(actionText, {
-      description: `${adjNumber}: Adjusted ${numQty} ${selectedProduct.unit} of "${productName}" (${adjustmentType}) at ${selectedWarehouse.name}.`,
+      description: `${adjNumber}: Adjusted ${numQty} ${(selectedProduct?.unit || 'PCS')} of "${productName}" (${adjustmentType}) at ${(selectedWarehouse?.name || 'Warehouse')}.`,
     });
 
     onSuccess?.();
@@ -94,7 +108,7 @@ export const StockAdjustmentModal: React.FC<StockAdjustmentModalProps> = ({
                 onChange={(e) => setWarehouseId(parseInt(e.target.value))}
                 className="w-full px-3 py-2 border border-default rounded-xl bg-surface-sunken text-default text-xs sm:text-sm focus:border-rose-500 focus:outline-none"
               >
-                {SAMPLE_WAREHOUSES.map((w) => (
+                {warehouses.map((w) => (
                   <option key={w.id} value={w.id}>
                     {w.name}
                   </option>
@@ -128,9 +142,9 @@ export const StockAdjustmentModal: React.FC<StockAdjustmentModalProps> = ({
               onChange={(e) => setProductName(e.target.value)}
               className="w-full px-3 py-2 border border-default rounded-xl bg-surface-sunken text-default text-xs sm:text-sm focus:border-rose-500 focus:outline-none"
             >
-              {SAMPLE_PRODUCTS.map((p) => (
+              {products.map((p) => (
                 <option key={p.id} value={p.name}>
-                  {p.name} (Current: {p.available} {p.unit})
+                  {p.name} {p.unit ? `(${p.unit})` : ''}
                 </option>
               ))}
             </select>
@@ -138,7 +152,7 @@ export const StockAdjustmentModal: React.FC<StockAdjustmentModalProps> = ({
 
           <div>
             <label className="block text-xs font-semibold text-default mb-1">
-              Quantity to Adjust ({selectedProduct.unit}) <span className="text-rose-500">*</span>
+              Quantity to Adjust ({(selectedProduct?.unit || 'PCS')}) <span className="text-rose-500">*</span>
             </label>
             <input
               type="number"
@@ -166,8 +180,8 @@ export const StockAdjustmentModal: React.FC<StockAdjustmentModalProps> = ({
             <AlertCircle className="size-4 text-rose-600 dark:text-rose-400 shrink-0" />
             <span>
               {adjustmentType === 'found'
-                ? `Will increase stock balance by ${quantity} ${selectedProduct.unit} in ${selectedWarehouse.name}.`
-                : `Will deduct ${quantity} ${selectedProduct.unit} from available stock in ${selectedWarehouse.name} and record the loss.`}
+                ? `Will increase stock balance by ${quantity} ${(selectedProduct?.unit || 'PCS')} in ${(selectedWarehouse?.name || 'Warehouse')}.`
+                : `Will deduct ${quantity} ${(selectedProduct?.unit || 'PCS')} from available stock in ${(selectedWarehouse?.name || 'Warehouse')} and record the loss.`}
             </span>
           </div>
 

@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import type { PurchaseRequisition } from '../../../types/api/purchasing';
 import { api } from '../../../lib/api/client';
+import { extractList } from '../../../lib/api/apiData';
 import { useCurrency } from '../../../hooks/useCurrency';
 import { SelectDropdown } from '../../../components/ui/Dropdown';
 import { ActionMenuPortal } from '../../../components/ui/ActionMenuPortal';
@@ -32,85 +33,6 @@ interface RequisitionFormItem {
   estimated_unit_cost: string;
   reason: string;
 }
-
-const SAMPLE_REQUISITIONS: PurchaseRequisition[] = [
-  {
-    id: 1,
-    uuid: 'pr-001',
-    requisition_number: 'PR-202608-001',
-    warehouse_id: 1,
-    warehouse_name: 'Central Components Warehouse',
-    requisition_date: '2026-08-25',
-    required_by_date: '2026-09-05',
-    status: 'draft',
-    department: 'Infrared Cooker Assembly Line 1',
-    requester_name: 'Karim Ahmed (Assembly Line Supervisor)',
-    notes: 'Urgent ceramic glass panels and heating coils replenishment for scheduled cooker run.',
-    items: [
-      {
-        id: 101,
-        uuid: 'pri-101',
-        purchase_requisition_id: 1,
-        product_id: 1,
-        product_name: 'A-Grade Microcrystalline Ceramic Glass Panel (280x360mm)',
-        product_sku: 'RAW-CERAMIC-PANEL',
-        quantity: '500.00',
-        unit_id: 1,
-        unit_code: 'PCS',
-        estimated_unit_cost: '450.00',
-        estimated_total_cost: '225000.00',
-        reason: 'Buffer inventory low for cooker assembly',
-      },
-      {
-        id: 102,
-        uuid: 'pri-102',
-        purchase_requisition_id: 1,
-        product_id: 2,
-        product_name: '2200W High-Efficiency Infrared Heating Coil',
-        product_sku: 'RAW-COIL-2200W',
-        quantity: '500.00',
-        unit_id: 1,
-        unit_code: 'PCS',
-        estimated_unit_cost: '380.00',
-        estimated_total_cost: '190000.00',
-        reason: 'Scheduled single burner cooker batch',
-      },
-    ],
-    created_at: '2026-08-25T09:30:00Z',
-  },
-  {
-    id: 2,
-    uuid: 'pr-002',
-    requisition_number: 'PR-202608-002',
-    warehouse_id: 2,
-    warehouse_name: 'Packaging Depot 3',
-    requisition_date: '2026-08-26',
-    required_by_date: '2026-09-02',
-    status: 'approved',
-    department: 'Packaging & Dispatch',
-    requester_name: 'Salma Begum (Inventory Supervisor)',
-    approved_by: 1,
-    approved_at: '2026-08-26T14:00:00Z',
-    notes: 'Shockproof EPE foam protective packaging run.',
-    items: [
-      {
-        id: 103,
-        uuid: 'pri-103',
-        purchase_requisition_id: 2,
-        product_id: 3,
-        product_name: 'Custom Molded Shockproof EPE Protection Foam (Set)',
-        product_sku: 'PKG-FOAM-IRC',
-        quantity: '1000.00',
-        unit_id: 2,
-        unit_code: 'SET',
-        estimated_unit_cost: '65.00',
-        estimated_total_cost: '65000.00',
-        reason: 'Restocking cooker packaging lines',
-      },
-    ],
-    created_at: '2026-08-26T11:00:00Z',
-  },
-];
 
 export function PurchaseRequisitionsSection() {
   const { formatCurrency } = useCurrency();
@@ -151,20 +73,16 @@ export function PurchaseRequisitionsSection() {
     ],
   }));
 
-  const { data: requisitions = SAMPLE_REQUISITIONS, isLoading, isFetching, refetch } = useQuery<PurchaseRequisition[]>({
+  const { data: requisitions = [], isLoading, isFetching, refetch } = useQuery<PurchaseRequisition[]>({
     queryKey: ['purchasing', 'requisitions'],
     queryFn: async () => {
       try {
         const res = await api.get<PurchaseRequisition[]>('/purchasing/requisitions');
-        if (res.data && res.data.length > 0) {
-          return res.data;
-        }
+        return extractList<PurchaseRequisition>(res);
       } catch {
-        // Keep sample data
+        return [];
       }
-      return SAMPLE_REQUISITIONS;
     },
-    initialData: SAMPLE_REQUISITIONS,
   });
 
   const handleViewReq = async (req: PurchaseRequisition) => {

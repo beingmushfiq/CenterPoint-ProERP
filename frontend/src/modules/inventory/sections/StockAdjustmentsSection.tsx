@@ -37,71 +37,6 @@ interface AdjFormItem {
   batch_code: string;
 }
 
-const SAMPLE_ADJUSTMENTS: StockAdjustment[] = [
-  {
-    id: 1,
-    uuid: 'adj-001',
-    adjustment_number: 'ADJ-202608-001',
-    warehouse_id: 1,
-    warehouse_name: 'Tejgaon Central Electronic Components & Parts Warehouse',
-    adjustment_date: '2026-08-30',
-    reason_code_id: 1,
-    reason_code: 'SCRAP_CHIP',
-    reason_name: 'Chipped ceramic glass discarded during assembly prep',
-    status: 'approved',
-    approved_by: 1,
-    approved_at: '2026-08-30T10:00:00Z',
-    notes: 'Discarded 5 units chipped ceramic panels during morning QA check.',
-    items: [
-      {
-        id: 901,
-        uuid: 'adji-901',
-        stock_adjustment_id: 1,
-        product_id: 1,
-        product_name: 'Microcrystalline Ceramic Glass Panel',
-        product_sku: 'RAW-CERAMIC-PANEL',
-        direction: 'out',
-        quantity: '5.00',
-        unit_id: 2,
-        unit_cost: '450.00',
-        total_cost: '2250.00',
-        batch_code: 'BAT-GLS-2608-01',
-      },
-    ],
-    created_at: '2026-08-30T09:15:00Z',
-  },
-  {
-    id: 2,
-    uuid: 'adj-002',
-    adjustment_number: 'ADJ-202608-002',
-    warehouse_id: 2,
-    warehouse_name: 'Cooker Assembly Line 1 Floor Buffer',
-    adjustment_date: '2026-08-30',
-    reason_code_id: 2,
-    reason_code: 'COUNT_FOUND',
-    reason_name: 'Physical stock surplus found during cycle count',
-    status: 'draft',
-    notes: 'Surplus cooling fans found in Line 1 staging rack.',
-    items: [
-      {
-        id: 902,
-        uuid: 'adji-902',
-        stock_adjustment_id: 2,
-        product_id: 5,
-        product_name: 'Brushless DC Cooling Fan 12V',
-        product_sku: 'RAW-FAN-DC12V',
-        direction: 'in',
-        quantity: '15.00',
-        unit_id: 2,
-        unit_cost: '120.00',
-        total_cost: '1800.00',
-        batch_code: 'BAT-FAN-2608',
-      },
-    ],
-    created_at: '2026-08-30T14:00:00Z',
-  },
-];
-
 export function StockAdjustmentsSection() {
   const { currencySymbol, formatCurrency } = useCurrency();
   const queryClient = useQueryClient();
@@ -143,21 +78,16 @@ export function StockAdjustmentsSection() {
     queryFn: ({ signal }) => api.get<unknown[]>('/reason-codes', { signal }),
   });
 
-  const { data: adjustments = SAMPLE_ADJUSTMENTS, isLoading, isFetching, refetch } = useQuery<StockAdjustment[]>({
+  const { data: adjustments = [], isLoading, isFetching, refetch } = useQuery<StockAdjustment[]>({
     queryKey: ['inventory', 'adjustments'],
     queryFn: async () => {
       try {
         const res = await api.get<StockAdjustment[]>('/inventory/adjustments');
-        const list = extractList<StockAdjustment>(res);
-        if (list.length > 0) {
-          return list;
-        }
+        return extractList<StockAdjustment>(res);
       } catch {
-        // Keep sample data
+        return [];
       }
-      return SAMPLE_ADJUSTMENTS;
     },
-    initialData: SAMPLE_ADJUSTMENTS,
   });
 
   const handleApprove = async (adjId: number) => {

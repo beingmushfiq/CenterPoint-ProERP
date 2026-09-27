@@ -21,9 +21,7 @@ const TARGET_DIR = path.join(ROOT_DIR, 'public_html');
 const PRESERVED_FILES = new Set([
   'index.php',
   '.htaccess',
-  'deploy-webhook.php',
-  'portfolio-placeholder.html',
-  'portfolio-htaccess.txt'
+  'deploy-webhook.php'
 ]);
 
 function ensureDirSync(dir) {

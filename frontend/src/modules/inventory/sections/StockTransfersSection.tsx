@@ -40,99 +40,6 @@ interface TransferFormItem {
   unit_code: string;
 }
 
-const SAMPLE_TRANSFERS: StockTransfer[] = [
-  {
-    id: 1,
-    uuid: 'tr-001',
-    transfer_number: 'TR-202608-001',
-    from_warehouse_id: 1,
-    from_warehouse_name: 'Tejgaon Central Electronic Components & Parts Warehouse',
-    to_warehouse_id: 2,
-    to_warehouse_name: 'Cooker Assembly Line 1 Floor Buffer',
-    transfer_date: '2026-08-30',
-    status: 'in_transit',
-    dispatched_by: 1,
-    dispatched_at: '2026-08-30T08:30:00Z',
-    notes: 'Ceramic panels and coils replenishment for daily cooker assembly shift.',
-    items: [
-      {
-        id: 801,
-        uuid: 'tri-801',
-        stock_transfer_id: 1,
-        product_id: 1,
-        product_name: 'Microcrystalline Ceramic Glass Panel',
-        product_sku: 'RAW-CERAMIC-PANEL',
-        batch_code: 'BAT-GLS-2608-01',
-        sent_quantity: '200.00',
-        received_quantity: '0.00',
-        unit_id: 2,
-        unit_code: 'PCS',
-      },
-    ],
-    created_at: '2026-08-30T08:00:00Z',
-  },
-  {
-    id: 2,
-    uuid: 'tr-002',
-    transfer_number: 'TR-202608-002',
-    from_warehouse_id: 2,
-    from_warehouse_name: 'Cooker Assembly Line 1 Floor Buffer',
-    to_warehouse_id: 3,
-    to_warehouse_name: 'Dhaka Main Finished Appliances Distribution Depot',
-    transfer_date: '2026-08-29',
-    status: 'received',
-    dispatched_by: 1,
-    dispatched_at: '2026-08-29T14:00:00Z',
-    received_by: 2,
-    received_at: '2026-08-29T16:15:00Z',
-    notes: 'Finished infrared cookers moved to main distribution depot.',
-    items: [
-      {
-        id: 802,
-        uuid: 'tri-802',
-        stock_transfer_id: 2,
-        product_id: 2,
-        product_name: 'Infrared Cooker 2200W (SM-IC220)',
-        product_sku: 'FG-IC-2200',
-        batch_code: 'BAT-IRC-2908',
-        sent_quantity: '100.00',
-        received_quantity: '100.00',
-        unit_id: 2,
-        unit_code: 'PCS',
-      },
-    ],
-    created_at: '2026-08-29T13:30:00Z',
-  },
-  {
-    id: 3,
-    uuid: 'tr-003',
-    transfer_number: 'TR-202608-003',
-    from_warehouse_id: 1,
-    from_warehouse_name: 'Central Raw Materials Silo',
-    to_warehouse_id: 4,
-    to_warehouse_name: 'Retail Display Shelf Storefront',
-    transfer_date: '2026-08-31',
-    status: 'draft',
-    notes: 'Packaging and merchandise restock request.',
-    items: [
-      {
-        id: 803,
-        uuid: 'tri-803',
-        stock_transfer_id: 3,
-        product_id: 3,
-        product_name: 'Refined Cane Sugar (Fine Grain)',
-        product_sku: 'RM-SUGAR-01',
-        batch_code: 'BAT-SUG-3108',
-        sent_quantity: '100.00',
-        received_quantity: '0.00',
-        unit_id: 1,
-        unit_code: 'KG',
-      },
-    ],
-    created_at: '2026-08-31T09:00:00Z',
-  },
-];
-
 export function StockTransfersSection() {
   const { hasPermission } = useAuthStore();
   const canDelete = hasPermission('inventory.transfer.delete');
@@ -176,21 +83,16 @@ export function StockTransfersSection() {
     ],
   });
 
-  const { data: transfers = SAMPLE_TRANSFERS, isLoading, isFetching, refetch } = useQuery<StockTransfer[]>({
+  const { data: transfers = [], isLoading, isFetching, refetch } = useQuery<StockTransfer[]>({
     queryKey: ['inventory', 'transfers'],
     queryFn: async () => {
       try {
         const res = await api.get<StockTransfer[]>('/inventory/transfers');
-        const list = extractList<StockTransfer>(res);
-        if (list.length > 0) {
-          return list;
-        }
+        return extractList<StockTransfer>(res);
       } catch {
-        // Keep sample data
+        return [];
       }
-      return SAMPLE_TRANSFERS;
     },
-    initialData: SAMPLE_TRANSFERS,
   });
 
   const handleDispatch = async (transferId: number) => {
