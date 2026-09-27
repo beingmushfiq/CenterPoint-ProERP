@@ -7,13 +7,11 @@ namespace App\Modules\Finance\Models;
 use App\Core\Tenancy\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
 
 class BankTransaction extends Model
 {
     use BelongsToTenant;
-    use SoftDeletes;
 
     protected $table = 'bank_transactions';
 

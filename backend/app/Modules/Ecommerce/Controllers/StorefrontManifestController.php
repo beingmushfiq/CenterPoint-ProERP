@@ -23,16 +23,13 @@ final class StorefrontManifestController extends Controller
         /** @var Storefront|null $storefront */
         $storefront = $request->attributes->get('storefront');
 
-        if (! $storefront) {
-            $storefront = TenantResolver::resolveStorefrontFromRequest($request);
+        $subdomainQuery = $request->query('subdomain');
+        if ($subdomainQuery && is_string($subdomainQuery)) {
+            $storefront = Storefront::withoutTenantScope()->where('subdomain', $subdomainQuery)->first();
         }
 
-        // Fallback resolution by query parameter or first tenant storefront
         if (! $storefront) {
-            $subdomain = $request->query('subdomain');
-            if ($subdomain) {
-                $storefront = Storefront::where('subdomain', $subdomain)->first();
-            }
+            $storefront = TenantResolver::resolveStorefrontFromRequest($request);
         }
 
         if (! $storefront) {

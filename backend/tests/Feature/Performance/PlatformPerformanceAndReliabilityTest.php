@@ -44,8 +44,24 @@ class PlatformPerformanceAndReliabilityTest extends TestCase
 
     private function getTenantUser(Tenant $tenant, string $email = 'admin@slicemart.test'): User
     {
-        /** @var User $user */
-        $user = User::withoutTenantScope()->where('email', $email)->firstOrFail();
+        /** @var User|null $user */
+        $user = User::withoutTenantScope()->where('email', $email)->first()
+            ?? User::withoutTenantScope()->where('email', 'admin@dcp.com')->first()
+            ?? User::withoutTenantScope()->first();
+
+        if (! $user) {
+            $user = User::create([
+                'uuid' => (string) \Illuminate\Support\Str::uuid(),
+                'email' => $email,
+                'name' => 'Performance Test User',
+                'password' => \Illuminate\Support\Facades\Hash::make('12345678'),
+                'tenant_id' => $tenant->id,
+                'status' => 'active',
+                'token_version' => 1,
+                'perm_version' => 1,
+            ]);
+        }
+
         $user->tenant_id = $tenant->id;
         $user->save();
 

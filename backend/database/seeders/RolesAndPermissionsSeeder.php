@@ -234,6 +234,12 @@ final class RolesAndPermissionsSeeder extends Seeder
                 'phone' => '+8801700000021',
                 'role' => $superAdminRole,
             ],
+            [
+                'email' => 'sales@slicemart.test',
+                'name' => 'SliceMart Sales Officer',
+                'phone' => '+8801700000022',
+                'role' => $salesRole,
+            ],
         ];
 
         foreach ($demoUsers as $demoData) {

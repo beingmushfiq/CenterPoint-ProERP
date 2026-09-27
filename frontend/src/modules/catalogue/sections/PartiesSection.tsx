@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Mail, Phone, Plus, Search, Eye, Edit2, Trash2, Upload, Download } from 'lucide-react';
+import { Mail, Phone, Plus, Search, Eye, Edit2, Trash2, Upload, Download, History } from 'lucide-react';
 import { api } from '../../../lib/api/client';
 import { Modal } from '../../../components/ui/Modal';
 import { Button } from '../../../components/ui/Button';
@@ -11,6 +11,21 @@ import { isApiError } from '../../../lib/api/errors';
 import { notify } from '../../../components/ui/Toast';
 import type { Party } from '../../../types/api/party';
 import { useCurrency } from '../../../hooks/useCurrency';
+import { cn } from '../../../lib/utils';
+import { TableControls, type ColumnDef } from '../../../components/ui/TableControls';
+import { useTablePrefs } from '../../../hooks/useTablePrefs';
+import { DestructiveConfirmationDialog } from '../../../components/ui/DestructiveConfirmationDialog';
+import { useAuthStore } from '../../../lib/auth/authStore';
+import { AuditTimelineDrawer } from '../../../components/ui/AuditTimelineDrawer';
+
+const PARTY_COLUMNS: ColumnDef[] = [
+  { key: 'name', label: 'Party Name & Code', required: true },
+  { key: 'roles', label: 'Roles' },
+  { key: 'contact', label: 'Contact' },
+  { key: 'balance', label: 'Current Balance' },
+  { key: 'status', label: 'Status' },
+  { key: 'actions', label: 'Actions', required: true },
+];
 
 interface PartyFormDraft {
   code: string;
@@ -41,7 +56,23 @@ export function PartiesSection() {
   const [editingParty, setEditingParty] = useState<Party | null>(null);
   const [viewingParty, setViewingParty] = useState<Party | null>(null);
   const [deletingParty, setDeletingParty] = useState<Party | null>(null);
+  const [auditingParty, setAuditingParty] = useState<Party | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  const { hasPermission } = useAuthStore();
+  const canCreate = hasPermission(['catalog.party.create', 'catalog.party.manage', 'catalog.*']);
+  const canEdit = hasPermission(['catalog.party.update', 'catalog.party.manage', 'catalog.*']);
+  const canDelete = hasPermission(['catalog.party.delete', 'catalog.party.manage', 'catalog.*']);
+
+  const { density, setDensity, visibleColumns, toggleColumn, isVisible, cellClass } = useTablePrefs({
+    tableId: 'catalogue_parties',
+    defaultColumns: {
+      roles: true,
+      contact: true,
+      balance: true,
+      status: true,
+    },
+  });
 
   const [draft, setDraft] = useState<PartyFormDraft>({
     code: '',
@@ -212,14 +243,16 @@ export function PartiesSection() {
       `"${p.current_balance || '0.00'}"`,
       `"${p.status}"`,
     ]);
-    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
-    const encodedUri = encodeURI(csvContent);
+    const csvContent = '\uFEFF' + [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
+    link.setAttribute('href', url);
     link.setAttribute('download', `parties_export_${new Date().toISOString().slice(0, 10)}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    URL.revokeObjectURL(url);
     notify.success(`Exported ${parties.length} parties to CSV.`);
   };
 
@@ -257,6 +290,14 @@ export function PartiesSection() {
         </div>
 
         <div className="flex items-center gap-2">
+          <TableControls
+            density={density}
+            onDensityChange={setDensity}
+            columns={PARTY_COLUMNS}
+            visibleColumns={visibleColumns}
+            onToggleColumn={toggleColumn}
+          />
+
           <Button
             variant="secondary"
             onClick={handleExportPartiesCsv}
@@ -277,34 +318,36 @@ export function PartiesSection() {
             <span>Import Parties</span>
           </Button>
 
-          <Button
-            variant="primary"
-            onClick={() => {
-              setErrorMsg(null);
-              setDraft({
-                code: '',
-                name: '',
-                legal_name: '',
-                is_customer: true,
-                is_supplier: false,
-                is_dealer: false,
-                is_agent: false,
-                type: 'business',
-                phone: '',
-                email: '',
-                credit_limit: '0.0000',
-                credit_days: 0,
-                line1: '',
-                city: 'Dhaka',
-                is_active: true,
-              });
-              setIsCreateOpen(true);
-            }}
-            className="flex items-center gap-1.5 shadow-xs"
-          >
-            <Plus className="h-4 w-4" />
-            <span>New Party</span>
-          </Button>
+          {canCreate && (
+            <Button
+              variant="primary"
+              onClick={() => {
+                setErrorMsg(null);
+                setDraft({
+                  code: '',
+                  name: '',
+                  legal_name: '',
+                  is_customer: true,
+                  is_supplier: false,
+                  is_dealer: false,
+                  is_agent: false,
+                  type: 'business',
+                  phone: '',
+                  email: '',
+                  credit_limit: '0.0000',
+                  credit_days: 0,
+                  line1: '',
+                  city: 'Dhaka',
+                  is_active: true,
+                });
+                setIsCreateOpen(true);
+              }}
+              className="flex items-center gap-1.5 shadow-xs"
+            >
+              <Plus className="h-4 w-4" />
+              <span>New Party</span>
+            </Button>
+          )}
         </div>
       </div>
 
@@ -315,16 +358,16 @@ export function PartiesSection() {
         data={partiesQuery.data}
         isFetching={partiesQuery.isFetching}
       >
-        <div className="overflow-hidden rounded-2xl border border-default bg-surface shadow-2xs">
+        <div className="overflow-hidden rounded-2xl border border-default bg-surface shadow-2xs max-h-[70vh] overflow-y-auto">
           <table className="w-full text-left text-xs text-default border-collapse">
-            <thead className="border-b border-default bg-surface-sunken/70 text-[11px] font-semibold uppercase tracking-wider text-muted">
+            <thead className="sticky top-0 z-10 border-b border-default bg-surface-sunken/95 backdrop-blur-xs text-[11px] font-semibold uppercase tracking-wider text-muted">
               <tr>
-                <th className="py-3.5 pl-4 pr-3">Party Name & Code</th>
-                <th className="py-3.5 px-3">Roles</th>
-                <th className="py-3.5 px-3">Contact</th>
-                <th className="py-3.5 px-3">Current Balance</th>
-                <th className="py-3.5 px-3">Status</th>
-                <th className="py-3.5 pr-4 pl-3 text-right">Actions</th>
+                {isVisible('name') && <th className={cn("py-3.5 pl-4 pr-3", cellClass)}>Party Name & Code</th>}
+                {isVisible('roles') && <th className={cn("py-3.5 px-3", cellClass)}>Roles</th>}
+                {isVisible('contact') && <th className={cn("py-3.5 px-3", cellClass)}>Contact</th>}
+                {isVisible('balance') && <th className={cn("py-3.5 px-3", cellClass)}>Current Balance</th>}
+                {isVisible('status') && <th className={cn("py-3.5 px-3", cellClass)}>Status</th>}
+                {isVisible('actions') && <th className={cn("py-3.5 pr-4 pl-3 text-right", cellClass)}>Actions</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-default">
@@ -337,102 +380,159 @@ export function PartiesSection() {
               ) : (
                 parties.map((p) => (
                   <tr key={p.id} className="hover:bg-surface-sunken/50 transition-colors">
-                    <td className="py-3.5 pl-4 pr-3">
-                      <div className="font-semibold text-default">{p.name}</div>
-                      <div className="text-[11px] text-primary font-mono mt-0.5">{p.code}</div>
-                    </td>
-                    <td className="py-3.5 px-3">
-                      <div className="flex flex-wrap gap-1">
-                        {p.is_customer && (
-                          <span className="rounded bg-blue-500/10 border border-blue-500/20 px-1.5 py-0.5 text-[9px] font-semibold text-blue-600 dark:text-blue-400">
-                            Customer
-                          </span>
-                        )}
-                        {p.is_supplier && (
-                          <span className="rounded bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 text-[9px] font-semibold text-amber-600 dark:text-amber-400">
-                            Supplier
-                          </span>
-                        )}
-                        {p.is_dealer && (
-                          <span className="rounded bg-purple-500/10 border border-purple-500/20 px-1.5 py-0.5 text-[9px] font-semibold text-purple-600 dark:text-purple-400">
-                            Dealer
-                          </span>
-                        )}
-                        {p.is_agent && (
-                          <span className="rounded bg-teal-500/10 border border-teal-500/20 px-1.5 py-0.5 text-[9px] font-semibold text-teal-600 dark:text-teal-400">
-                            Agent
-                          </span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="py-3.5 px-3 space-y-0.5">
-                      {p.phone && (
-                        <div className="flex items-center gap-1 text-[11px] text-muted">
-                          <Phone className="size-3 text-muted" />
-                          <span>{p.phone}</span>
+                    {isVisible('name') && (
+                      <td className={cn("py-3.5 pl-4 pr-3", cellClass)}>
+                        <div className="font-semibold text-default">{p.name}</div>
+                        <div className="text-[11px] text-primary font-mono mt-0.5">{p.code}</div>
+                      </td>
+                    )}
+                    {isVisible('roles') && (
+                      <td className={cn("py-3.5 px-3", cellClass)}>
+                        <div className="flex flex-wrap gap-1">
+                          {p.is_customer && (
+                            <span className="rounded bg-blue-500/10 border border-blue-500/20 px-1.5 py-0.5 text-[9px] font-semibold text-blue-600 dark:text-blue-400">
+                              Customer
+                            </span>
+                          )}
+                          {p.is_supplier && (
+                            <span className="rounded bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 text-[9px] font-semibold text-amber-600 dark:text-amber-400">
+                              Supplier
+                            </span>
+                          )}
+                          {p.is_dealer && (
+                            <span className="rounded bg-purple-500/10 border border-purple-500/20 px-1.5 py-0.5 text-[9px] font-semibold text-purple-600 dark:text-purple-400">
+                              Dealer
+                            </span>
+                          )}
+                          {p.is_agent && (
+                            <span className="rounded bg-teal-500/10 border border-teal-500/20 px-1.5 py-0.5 text-[9px] font-semibold text-teal-600 dark:text-teal-400">
+                              Agent
+                            </span>
+                          )}
                         </div>
-                      )}
-                      {p.email && (
-                        <div className="flex items-center gap-1 text-[11px] text-muted">
-                          <Mail className="size-3 text-muted" />
-                          <span>{p.email}</span>
+                      </td>
+                    )}
+                    {isVisible('contact') && (
+                      <td className={cn("py-3.5 px-3 space-y-0.5", cellClass)}>
+                        {p.phone && (
+                          <div className="flex items-center gap-1 text-[11px] text-muted">
+                            <Phone className="size-3 text-muted" />
+                            <span>{p.phone}</span>
+                          </div>
+                        )}
+                        {p.email && (
+                          <div className="flex items-center gap-1 text-[11px] text-muted">
+                            <Mail className="size-3 text-muted" />
+                            <span>{p.email}</span>
+                          </div>
+                        )}
+                      </td>
+                    )}
+                    {isVisible('balance') && (
+                      <td className={cn("py-3.5 px-3 font-mono", cellClass)}>
+                        <span
+                          className={
+                            Number(p.current_balance) > 0
+                              ? 'text-rose-600 dark:text-rose-400 font-semibold'
+                              : 'text-default'
+                          }
+                        >
+                          {formatCurrency(p.current_balance)}
+                        </span>
+                      </td>
+                    )}
+                    {isVisible('status') && (
+                      <td className={cn("py-3.5 px-3", cellClass)}>
+                        <span
+                          className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${
+                            p.status === 'active'
+                              ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
+                              : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20'
+                          }`}
+                        >
+                          {p.status}
+                        </span>
+                      </td>
+                    )}
+                    {isVisible('actions') && (
+                      <td className={cn("py-3.5 pr-4 pl-3 text-right", cellClass)}>
+                        <div className="inline-flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => setViewingParty(p)}
+                            className="inline-flex items-center justify-center size-7 rounded-lg text-muted hover:text-default hover:bg-surface-sunken transition-colors cursor-pointer"
+                            title="View Party Details"
+                          >
+                            <Eye className="size-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setAuditingParty(p)}
+                            className="inline-flex items-center justify-center size-7 rounded-lg text-muted hover:text-default hover:bg-surface-sunken transition-colors cursor-pointer"
+                            title="View Audit History"
+                          >
+                            <History className="size-3.5" />
+                          </button>
+                          {canEdit && (
+                            <button
+                              type="button"
+                              onClick={() => handleOpenEdit(p)}
+                              className="inline-flex items-center justify-center size-7 rounded-lg text-muted hover:text-primary hover:bg-surface-sunken transition-colors cursor-pointer"
+                              title="Edit Party"
+                            >
+                              <Edit2 className="size-3.5" />
+                            </button>
+                          )}
+                          {canDelete && (
+                            <button
+                              type="button"
+                              onClick={() => setDeletingParty(p)}
+                              className="inline-flex items-center justify-center size-7 rounded-lg text-muted hover:text-rose-600 dark:hover:text-rose-400 hover:bg-surface-sunken transition-colors cursor-pointer"
+                              title="Delete Party"
+                            >
+                              <Trash2 className="size-3.5" />
+                            </button>
+                          )}
                         </div>
-                      )}
-                    </td>
-                    <td className="py-3.5 px-3 font-mono">
-                      <span
-                        className={
-                          Number(p.current_balance) > 0
-                            ? 'text-rose-600 dark:text-rose-400 font-semibold'
-                            : 'text-default'
-                        }
-                      >
-                        {formatCurrency(p.current_balance)}
-                      </span>
-                    </td>
-                    <td className="py-3.5 px-3">
-                      <span
-                        className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${
-                          p.status === 'active'
-                            ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
-                            : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20'
-                        }`}
-                      >
-                        {p.status}
-                      </span>
-                    </td>
-                    <td className="py-3.5 pr-4 pl-3 text-right">
-                      <div className="inline-flex items-center gap-1">
-                        <button
-                          type="button"
-                          onClick={() => setViewingParty(p)}
-                          className="inline-flex items-center justify-center size-7 rounded-lg text-muted hover:text-default hover:bg-surface-sunken transition-colors cursor-pointer"
-                          title="View Party Details"
-                        >
-                          <Eye className="size-3.5" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleOpenEdit(p)}
-                          className="inline-flex items-center justify-center size-7 rounded-lg text-muted hover:text-primary hover:bg-surface-sunken transition-colors cursor-pointer"
-                          title="Edit Party"
-                        >
-                          <Edit2 className="size-3.5" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setDeletingParty(p)}
-                          className="inline-flex items-center justify-center size-7 rounded-lg text-muted hover:text-rose-600 dark:hover:text-rose-400 hover:bg-surface-sunken transition-colors cursor-pointer"
-                          title="Delete Party"
-                        >
-                          <Trash2 className="size-3.5" />
-                        </button>
-                      </div>
-                    </td>
+                      </td>
+                    )}
                   </tr>
                 ))
               )}
             </tbody>
+            {parties.length > 0 && (
+              <tfoot className="sticky bottom-0 z-10 border-t-2 border-default bg-surface-sunken/95 backdrop-blur-xs font-semibold text-xs text-default">
+                <tr>
+                  <td
+                    colSpan={
+                      (isVisible('name') ? 1 : 0) +
+                      (isVisible('roles') ? 1 : 0) +
+                      (isVisible('contact') ? 1 : 0)
+                    }
+                    className={cn("py-3 pl-4 pr-3 font-medium text-muted", cellClass)}
+                  >
+                    Total ({parties.length} Parties)
+                  </td>
+                  {isVisible('balance') && (
+                    <td className={cn("py-3 px-3 font-mono font-bold text-default", cellClass)}>
+                      {formatCurrency(
+                        parties.reduce((sum, p) => sum + parseFloat(p.current_balance || '0'), 0)
+                      )}
+                    </td>
+                  )}
+                  {isVisible('status') && (
+                    <td className={cn("py-3 px-3 text-muted text-2xs", cellClass)}>
+                      {parties.filter((p) => p.status === 'active').length} Active
+                    </td>
+                  )}
+                  {isVisible('actions') && (
+                    <td className={cn("py-3 pr-4 pl-3 text-right text-2xs text-muted font-normal", cellClass)}>
+                      Summary
+                    </td>
+                  )}
+                </tr>
+              </tfoot>
+            )}
           </table>
         </div>
       </QueryBoundary>
@@ -711,38 +811,57 @@ export function PartiesSection() {
         </Modal>
       )}
 
-      {/* Delete Party Modal */}
+      {/* Delete Party Modal (Sprint C3 Destructive UX Overhaul) */}
       {deletingParty && (
-        <Modal
+        <DestructiveConfirmationDialog
           open={Boolean(deletingParty)}
           onClose={() => setDeletingParty(null)}
+          onConfirmDelete={() => deleteMutation.mutate(deletingParty.id)}
           title="Delete Party"
-        >
-          <div className="space-y-4 text-xs">
-            <p className="text-default">
-              Are you sure you want to delete party{' '}
-              <strong className="text-primary font-mono">{deletingParty.name}</strong> (
-              {deletingParty.code})?
-            </p>
-            <p className="text-muted text-[11px]">
-              This operation will be rejected if open invoices, orders, or ledger balances are associated with this party.
-            </p>
-
-            <div className="flex justify-end gap-2.5 pt-4 border-t border-default">
-              <Button variant="secondary" onClick={() => setDeletingParty(null)}>
-                Cancel
-              </Button>
-              <Button
-                variant="danger"
-                onClick={() => deleteMutation.mutate(deletingParty.id)}
-                disabled={deleteMutation.isPending}
-              >
-                {deleteMutation.isPending ? 'Deleting...' : 'Confirm Delete'}
-              </Button>
-            </div>
-          </div>
-        </Modal>
+          entityType="Party"
+          entityName={deletingParty.name}
+          entityCode={deletingParty.code}
+          impactItems={[
+            {
+              label: 'Party Roles',
+              count: [
+                deletingParty.is_customer ? 'Customer' : '',
+                deletingParty.is_supplier ? 'Supplier' : '',
+                deletingParty.is_dealer ? 'Dealer' : '',
+                deletingParty.is_agent ? 'Agent' : '',
+              ].filter(Boolean).join(', ') || 'None',
+            },
+            {
+              label: 'Current Ledger Balance',
+              count: formatCurrency(deletingParty.current_balance),
+              warning: parseFloat(deletingParty.current_balance || '0') > 0,
+            },
+            {
+              label: 'Credit Limit',
+              count: formatCurrency(deletingParty.credit_limit),
+            },
+            {
+              label: 'Credit Days',
+              count: `${deletingParty.credit_days || 0} days`,
+            },
+          ]}
+          warningMessage={
+            parseFloat(deletingParty.current_balance || '0') > 0
+              ? 'This party has an active balance. The database will reject permanent deletion if historical invoices or transactions exist.'
+              : 'Party deletion will be rejected if open orders, shipments, or transaction ledgers are linked to this record.'
+          }
+          isDeleting={deleteMutation.isPending}
+        />
       )}
+      {/* Audit Timeline Drawer */}
+      <AuditTimelineDrawer
+        isOpen={Boolean(auditingParty)}
+        onClose={() => setAuditingParty(null)}
+        entityType="Party"
+        entityId={auditingParty?.id}
+        entityTitle={auditingParty ? `${auditingParty.name} (${auditingParty.code})` : undefined}
+      />
+
       {/* Universal Bulk Import Modal */}
       <UniversalImportModal
         isOpen={isImportOpen}

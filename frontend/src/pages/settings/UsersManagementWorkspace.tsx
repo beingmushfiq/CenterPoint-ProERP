@@ -104,7 +104,7 @@ export const UsersManagementWorkspace: React.FC = () => {
   const [passwordModalUser, setPasswordModalUser] = useState<UserData | null>(null);
   const [toggleStatusUser, setToggleStatusUser] = useState<UserData | null>(null);
   const [editUserModalOpen, setEditUserModalOpen] = useState(false);
-  const [editingUserData, setEditingUserData] = useState<any | null>(null);
+  const [editingUserData, setEditingUserData] = useState<UserData | null>(null);
   const [editLoading, setEditLoading] = useState(false);
   const [editSubmitting, setEditSubmitting] = useState(false);
 
@@ -374,11 +374,11 @@ export const UsersManagementWorkspace: React.FC = () => {
     setEditUserModalOpen(true);
     setEditLoading(true);
     try {
-      const res = await api.get<any>(`/users/${user.id}`);
+      const res = await api.get<{ data?: UserData } | UserData>(`/users/${user.id}`);
       const payload = (res.data && typeof res.data === 'object' && 'data' in res.data)
-        ? (res.data as any).data
+        ? res.data.data
         : res.data;
-      setEditingUserData(payload || user);
+      setEditingUserData((payload as UserData) || user);
     } catch {
       setEditingUserData(user);
     } finally {
@@ -1235,7 +1235,7 @@ export const UsersManagementWorkspace: React.FC = () => {
               <label className="block text-xs font-semibold text-foreground mb-1">Account Status</label>
               <select
                 value={editingUserData.status || 'active'}
-                onChange={(e) => setEditingUserData({ ...editingUserData, status: e.target.value })}
+                onChange={(e) => setEditingUserData({ ...editingUserData, status: e.target.value as 'active' | 'suspended' })}
                 className="w-full px-3 py-2 text-xs rounded-lg border border-border bg-background focus:outline-none focus:ring-1 focus:ring-primary"
               >
                 <option value="active">Active (Full system login enabled)</option>
@@ -1250,7 +1250,7 @@ export const UsersManagementWorkspace: React.FC = () => {
                   {editingUserData.employee.display_name} ({editingUserData.employee.employee_code})
                 </div>
                 <div className="text-2xs text-muted-foreground">
-                  Dept: {editingUserData.employee.department?.name || 'N/A'} • Role: {editingUserData.employee.designation?.name || 'N/A'}
+                  Dept: {editingUserData.employee.department || 'N/A'} • Role: {editingUserData.employee.designation || 'N/A'}
                 </div>
               </div>
             )}

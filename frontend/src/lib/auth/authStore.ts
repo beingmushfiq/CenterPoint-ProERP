@@ -121,7 +121,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
       try {
         useTenantCapabilityStore.getState().bootstrap();
-      } catch {}
+      } catch {
+        // Capability bootstrap error ignored during initial tenant select
+      }
 
       get().bootstrap().catch(() => {});
     } catch (err: unknown) {

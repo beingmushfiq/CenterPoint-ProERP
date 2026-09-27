@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
+﻿import { useState, useEffect, useRef, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   CheckCircle2,
@@ -25,6 +25,7 @@ import {
   Truck,
   FileText,
   DollarSign,
+  AlertTriangle,
 } from 'lucide-react';
 import type { SalesOrder, SalesOrderStatus, SalesOrderPaymentStatus } from '../../../types/api/sales';
 import type { Product } from '../../../types/api/catalog';
@@ -37,6 +38,8 @@ import { ConfirmDialog } from '../../../components/ui/Modal';
 import { notify } from '../../../components/ui/Toast';
 import { useAuthStore } from '../../../lib/auth/authStore';
 import { cn } from '../../../lib/utils';
+import { useTablePrefs } from '../../../hooks/useTablePrefs';
+import { TableControls } from '../../../components/ui/TableControls';
 
 interface SalesOrdersSectionProps {
   onNavigateToTab?: (tab: string) => void;
@@ -84,6 +87,19 @@ export function SalesOrdersSection({ onNavigateToTab }: SalesOrdersSectionProps 
   const canApproveOrder = hasPermission('sales.order.approve');
   const canDeleteOrder = hasPermission('sales.order.delete');
   const canChangeStatus = canApproveOrder || canCreateOrder;
+
+  // Table preferences — density + column visibility, persisted to localStorage
+  const { density, setDensity, visibleColumns, toggleColumn, isVisible, cellClass } = useTablePrefs({
+    tableId: 'sales_orders',
+    defaultColumns: {
+      date:     true,
+      channel:  true,
+      customer: true,
+      amount:   true,
+      status:   true,
+      payment:  true,
+    },
+  });
 
   const { formatCurrency, currencySymbol } = useCurrency();
   const queryClient = useQueryClient();
@@ -735,6 +751,21 @@ export function SalesOrdersSection({ onNavigateToTab }: SalesOrdersSectionProps 
             <RefreshCw className={`h-3.5 w-3.5 ${isFetching ? 'animate-spin' : ''}`} />
           </button>
 
+          <TableControls
+            density={density}
+            onDensityChange={setDensity}
+            columns={[
+              { key: 'date',     label: 'Date' },
+              { key: 'channel',  label: 'Channel' },
+              { key: 'customer', label: 'Customer' },
+              { key: 'amount',   label: 'Amount' },
+              { key: 'status',   label: 'Status' },
+              { key: 'payment',  label: 'Payment' },
+            ]}
+            visibleColumns={visibleColumns}
+            onToggleColumn={toggleColumn}
+          />
+
           {canCreateOrder && (
             <button
               onClick={() => setShowCreateModal(true)}
@@ -753,7 +784,7 @@ export function SalesOrdersSection({ onNavigateToTab }: SalesOrdersSectionProps 
           <table className="w-full text-left text-xs text-default">
             <thead className="border-b border-default bg-surface-sunken text-[11px] font-semibold uppercase tracking-wider text-muted">
               <tr>
-                <th className="w-10 px-3 py-3.5 text-center">
+                <th className={`w-10 ${cellClass} text-center`}>
                   <input
                     ref={headerCheckboxRef}
                     type="checkbox"
@@ -763,20 +794,20 @@ export function SalesOrdersSection({ onNavigateToTab }: SalesOrdersSectionProps 
                     title="Select all visible orders"
                   />
                 </th>
-                <th className="px-4 py-3.5">Order Number</th>
-                <th className="px-4 py-3.5">Date</th>
-                <th className="px-4 py-3.5">Channel</th>
-                <th className="px-4 py-3.5">Customer</th>
-                <th className="px-4 py-3.5">Amount</th>
-                <th className="px-4 py-3.5">Status</th>
-                <th className="px-4 py-3.5">Payment</th>
-                <th className="px-4 py-3.5 text-right">Actions</th>
+                <th className={cellClass}>Order Number</th>
+                {isVisible('date')     && <th className={cellClass}>Date</th>}
+                {isVisible('channel')  && <th className={cellClass}>Channel</th>}
+                {isVisible('customer') && <th className={cellClass}>Customer</th>}
+                {isVisible('amount')   && <th className={cellClass}>Amount</th>}
+                {isVisible('status')   && <th className={cellClass}>Status</th>}
+                {isVisible('payment')  && <th className={cellClass}>Payment</th>}
+                <th className={`${cellClass} text-right`}>Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-default">
               {isLoading ? (
                 <tr>
-                  <td colSpan={9} className="px-4 py-12 text-center text-muted">
+                  <td colSpan={3 + (isVisible('date') ? 1 : 0) + (isVisible('channel') ? 1 : 0) + (isVisible('customer') ? 1 : 0) + (isVisible('amount') ? 1 : 0) + (isVisible('status') ? 1 : 0) + (isVisible('payment') ? 1 : 0)} className="px-4 py-12 text-center text-muted">
                     <div className="flex flex-col items-center justify-center gap-2">
                       <RefreshCw className="size-5 animate-spin text-primary" />
                       <span>Loading sales orders...</span>
@@ -785,7 +816,7 @@ export function SalesOrdersSection({ onNavigateToTab }: SalesOrdersSectionProps 
                 </tr>
               ) : filteredOrders.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="px-4 py-12 text-center text-muted">
+                  <td colSpan={3 + (isVisible('date') ? 1 : 0) + (isVisible('channel') ? 1 : 0) + (isVisible('customer') ? 1 : 0) + (isVisible('amount') ? 1 : 0) + (isVisible('status') ? 1 : 0) + (isVisible('payment') ? 1 : 0)} className="px-4 py-12 text-center text-muted">
                     <div className="flex flex-col items-center justify-center gap-2">
                       <ShoppingCart className="size-8 text-muted/50" />
                       <span className="font-medium">No sales orders found.</span>
@@ -803,7 +834,7 @@ export function SalesOrdersSection({ onNavigateToTab }: SalesOrdersSectionProps 
                     )}
                     title="Click row to view and process order"
                   >
-                    <td className="w-10 px-3 py-3.5 text-center" onClick={(e) => e.stopPropagation()}>
+                    <td className={`w-10 ${cellClass} text-center`} onClick={(e) => e.stopPropagation()}>
                       <input
                         type="checkbox"
                         checked={selectedOrderIds.has(order.id)}
@@ -812,12 +843,13 @@ export function SalesOrdersSection({ onNavigateToTab }: SalesOrdersSectionProps 
                         title="Select order"
                       />
                     </td>
-                    <td className="px-4 py-3.5 font-mono font-medium text-emerald-600 dark:text-emerald-400 group-hover:underline">
+                    <td className={`${cellClass} font-mono font-medium text-emerald-600 dark:text-emerald-400 group-hover:underline`}>
                       {order.order_number}
                     </td>
-                    <td className="px-4 py-3.5 text-muted">{order.order_date}</td>
-                    <td className="px-4 py-3.5">{getChannelBadge(order.channel)}</td>
-                    <td className="px-4 py-3.5 text-default font-medium">
+                    {isVisible('date') && <td className={`${cellClass} text-muted`}>{order.order_date}</td>}
+                    {isVisible('channel') && <td className={cellClass}>{getChannelBadge(order.channel)}</td>}
+                    {isVisible('customer') && (
+                    <td className={`${cellClass} text-default font-medium`}>
                       <div>{order.customer_name ?? 'Walk-in / Direct'}</div>
                       {order.lead ? (
                         <div className="flex items-center gap-1 mt-0.5">
@@ -843,10 +875,14 @@ export function SalesOrdersSection({ onNavigateToTab }: SalesOrdersSectionProps 
                         </div>
                       ) : null}
                     </td>
-                    <td className="px-4 py-3.5 font-mono font-medium text-default">
+                    )}
+                    {isVisible('amount') && (
+                    <td className={`${cellClass} font-mono font-medium text-default`}>
                       {formatCurrency(order.total_amount)}
                     </td>
-                    <td className="px-4 py-3.5 relative" onClick={(e) => e.stopPropagation()}>
+                    )}
+                    {isVisible('status') && (
+                    <td className={`${cellClass} relative`} onClick={(e) => e.stopPropagation()}>
                       {canChangeStatus ? (
                         <div className="order-status-dropdown-container relative inline-block">
                           <button
@@ -919,7 +955,9 @@ export function SalesOrdersSection({ onNavigateToTab }: SalesOrdersSectionProps 
                         getStatusBadge(order.status)
                       )}
                     </td>
-                    <td className="px-4 py-3.5 relative" onClick={(e) => e.stopPropagation()}>
+                    )}
+                    {isVisible('payment') && (
+                    <td className={`${cellClass} relative`} onClick={(e) => e.stopPropagation()}>
                       {canChangeStatus ? (
                         <div className="order-payment-dropdown-container relative inline-block">
                           <button
@@ -1012,7 +1050,8 @@ export function SalesOrdersSection({ onNavigateToTab }: SalesOrdersSectionProps 
                         </span>
                       )}
                     </td>
-                    <td className="px-4 py-3.5 text-right" onClick={(e) => e.stopPropagation()}>
+                    )}
+                    <td className={`${cellClass} text-right`} onClick={(e) => e.stopPropagation()}>
                       <div className="flex items-center justify-end gap-1.5">
                         {canApproveOrder && (order.status === 'draft' || order.status === 'pending') && (
                           <button
@@ -1120,7 +1159,7 @@ export function SalesOrdersSection({ onNavigateToTab }: SalesOrdersSectionProps 
                 {selectedOrderIds.size}
               </span>
               <span className="text-xs font-semibold text-default">
-                Order{selectedOrderIds.size > 1 ? 's' : ''} Selected
+                Order{selectedOrderIds.size > 1 ? 's' : ''}' Selected
               </span>
             </div>
 
@@ -1274,26 +1313,47 @@ export function SalesOrdersSection({ onNavigateToTab }: SalesOrdersSectionProps 
                   <div key={idx} className="grid grid-cols-12 gap-2 items-center bg-surface p-2.5 rounded-lg border border-default">
                     <div className="col-span-5">
                       {catalogProducts.length > 0 ? (
-                        <select
-                          value={item.product_id}
-                          onChange={(e) => {
-                            const pId = Number(e.target.value);
-                            const found = catalogProducts.find((p) => Number(p.id) === pId);
-                            updateItem(idx, {
-                              product_id: pId,
-                              product_name: found?.name || item.product_name,
-                              unit_price: found?.default_sale_price || item.unit_price,
-                              unit_id: Number(found?.base_unit_id || 1),
-                            });
-                          }}
-                          className="w-full rounded-lg border border-default bg-surface-sunken px-2 py-1.5 text-xs text-default focus:border-primary focus:outline-none"
-                        >
-                          {catalogProducts.map((p) => (
-                            <option key={p.id} value={p.id}>
-                              {p.name} ({formatCurrency(p.default_sale_price || '0')})
-                            </option>
-                          ))}
-                        </select>
+                        <div>
+                          <select
+                            value={item.product_id}
+                            onChange={(e) => {
+                              const pId = Number(e.target.value);
+                              const found = catalogProducts.find((p) => Number(p.id) === pId);
+                              updateItem(idx, {
+                                product_id: pId,
+                                product_name: found?.name || item.product_name,
+                                unit_price: found?.default_sale_price || item.unit_price,
+                                unit_id: Number(found?.base_unit_id || 1),
+                              });
+                            }}
+                            className="w-full rounded-lg border border-default bg-surface-sunken px-2 py-1.5 text-xs text-default focus:border-primary focus:outline-none"
+                          >
+                            {catalogProducts.map((p) => (
+                              <option key={p.id} value={p.id}>
+                                {p.name} ({formatCurrency(p.default_sale_price || '0')})
+                              </option>
+                            ))}
+                          </select>
+                          {/* Real-time stock indicator */}
+                          {(() => {
+                            const found = catalogProducts.find((p) => Number(p.id) === item.product_id);
+                            const stock = found?.stock_quantity ?? null;
+                            const ordered = parseFloat(item.quantity || '0');
+                            if (stock === null) return null;
+                            const isOver = ordered > stock;
+                            return (
+                              <div className={`flex items-center gap-1 mt-1 text-[10px] font-medium ${
+                                isOver ? 'text-amber-600 dark:text-amber-400' : stock < 10 ? 'text-amber-500' : 'text-emerald-600 dark:text-emerald-400'
+                              }`}>
+                                {isOver ? (
+                                  <AlertTriangle className="size-3 shrink-0" />
+                                ) : null}
+                                <span>Stock: {stock} {found?.base_unit?.name || 'units'}</span>
+                                {isOver && <span className="font-semibold">— Exceeds available</span>}
+                              </div>
+                            );
+                          })()}
+                        </div>
                       ) : (
                         <input
                           type="text"
@@ -1305,16 +1365,28 @@ export function SalesOrdersSection({ onNavigateToTab }: SalesOrdersSectionProps 
                       )}
                     </div>
                     <div className="col-span-2">
-                      <input
-                        type="number"
-                        min="0.001"
-                        step="any"
-                        placeholder="Qty"
-                        value={item.quantity}
-                        onChange={(e) => updateItem(idx, { quantity: e.target.value })}
-                        className="w-full rounded-lg border border-default bg-surface-sunken px-2 py-1.5 text-xs text-default font-mono focus:border-primary focus:outline-none"
-                        required
-                      />
+                      {(() => {
+                        const found = catalogProducts.find((p) => Number(p.id) === item.product_id);
+                        const stock = found?.stock_quantity ?? null;
+                        const ordered = parseFloat(item.quantity || '0');
+                        const isOver = stock !== null && ordered > stock;
+                        return (
+                          <input
+                            type="number"
+                            min="0.001"
+                            step="any"
+                            placeholder="Qty"
+                            value={item.quantity}
+                            onChange={(e) => updateItem(idx, { quantity: e.target.value })}
+                            className={`w-full rounded-lg border px-2 py-1.5 text-xs font-mono focus:outline-none ${
+                              isOver
+                                ? 'border-amber-400 bg-amber-500/5 text-amber-700 dark:text-amber-300 focus:border-amber-500'
+                                : 'border-default bg-surface-sunken text-default focus:border-primary'
+                            }`}
+                            required
+                          />
+                        );
+                      })()}
                     </div>
                     <div className="col-span-2">
                       <input

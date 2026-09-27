@@ -112,21 +112,14 @@ export function UnitsSection() {
     setEditingUnit(unit);
   };
 
-  const { data: _unitOptions } = useQuery({
-    queryKey: ['catalogue', 'units', 'options'],
-    queryFn: async () => {
-      const res = await api.get<any>('/units/options');
-      return (res.data && typeof res.data === 'object' && 'data' in res.data) ? res.data.data : res.data;
-    },
-  });
-
   const handleViewUnit = async (u: Unit) => {
     try {
-      const res = await api.get<any>(`/units/${u.uuid || u.id}`);
-      const payload = (res.data && typeof res.data === 'object' && 'data' in res.data)
-        ? res.data.data
-        : res.data;
-      setViewingUnit(payload || u);
+      const res = await api.get<{ data?: Unit } | Unit>(`/units/${u.uuid || u.id}`);
+      const raw = res.data;
+      const unitData = (raw && typeof raw === 'object' && 'data' in raw && raw.data)
+        ? raw.data
+        : (raw as Unit);
+      setViewingUnit(unitData || u);
     } catch {
       setViewingUnit(u);
     }
@@ -148,7 +141,7 @@ export function UnitsSection() {
       u.is_base ? 'TRUE' : 'FALSE',
       u.is_active ? 'TRUE' : 'FALSE',
     ]);
-    const csvContent = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
+    const csvContent = '\uFEFF' + [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');

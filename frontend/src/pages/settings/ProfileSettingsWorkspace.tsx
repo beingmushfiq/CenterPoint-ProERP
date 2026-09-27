@@ -55,14 +55,14 @@ export const ProfileSettingsWorkspace: React.FC = () => {
   const permissionsQuery = useQuery({
     queryKey: ['auth', 'permissions'],
     queryFn: async () => {
-      const res = await api.get<any>('/auth/permissions');
+      const res = await api.get<{ data?: Array<{ name?: string; code?: string } | string> } | Array<{ name?: string; code?: string } | string>>('/auth/permissions');
       return (res.data && typeof res.data === 'object' && 'data' in res.data) ? res.data.data : res.data;
     },
     staleTime: 5 * 60 * 1000,
   });
 
   const allAvailablePermissions = Array.isArray(permissionsQuery.data)
-    ? permissionsQuery.data.map((p: any) => typeof p === 'string' ? p : p.name || p.code || String(p))
+    ? permissionsQuery.data.map((p: { name?: string; code?: string } | string) => typeof p === 'string' ? p : p.name || p.code || String(p))
     : permissionList;
 
   const filteredPermissions = (allAvailablePermissions.length > 0 ? allAvailablePermissions : permissionList).filter((p: string) =>
@@ -118,8 +118,9 @@ export const ProfileSettingsWorkspace: React.FC = () => {
       setNewPassword('');
       setConfirmPassword('');
       setTimeout(() => setSecuritySuccess(null), 4000);
-    } catch (err: any) {
-      setSecurityError(err?.response?.data?.message || err?.message || 'Failed to update password. Please check your current password.');
+    } catch (err: unknown) {
+      const anyErr = err as { response?: { data?: { message?: string } }; message?: string };
+      setSecurityError(anyErr?.response?.data?.message || anyErr?.message || 'Failed to update password. Please check your current password.');
     } finally {
       setIsUpdatingPassword(false);
     }
@@ -132,8 +133,9 @@ export const ProfileSettingsWorkspace: React.FC = () => {
       await api.post('/auth/logout-all', {});
       setSecuritySuccess('All other active sessions have been terminated.');
       setTimeout(() => setSecuritySuccess(null), 4000);
-    } catch (err: any) {
-      setSecurityError(err?.response?.data?.message || 'Failed to terminate other sessions.');
+    } catch (err: unknown) {
+      const anyErr = err as { response?: { data?: { message?: string } } };
+      setSecurityError(anyErr?.response?.data?.message || 'Failed to terminate other sessions.');
     } finally {
       setIsLoggingOutAll(false);
     }

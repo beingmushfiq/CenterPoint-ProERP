@@ -26,12 +26,14 @@ import {
   Globe,
   Activity,
   CheckCircle2,
+  MoreHorizontal,
+  History,
 } from 'lucide-react';
 import { UniversalImportModal } from '../../../components/import/UniversalImportModal';
 import { productImportSchema } from '../schemas/productImportSchema';
 import { cn } from '../../../lib/utils';
 import { api } from '../../../lib/api/client';
-import { Modal } from '../../../components/ui/Modal';
+import { Modal, ConfirmDialog } from '../../../components/ui/Modal';
 import { Button } from '../../../components/ui/Button';
 import { SelectDropdown } from '../../../components/ui/Dropdown';
 import { QueryBoundary } from '../../../components/patterns/QueryBoundary';
@@ -39,6 +41,12 @@ import { isApiError } from '../../../lib/api/errors';
 import { notify } from '../../../components/ui/Toast';
 import { BarcodeGeneratorModal } from '../../../components/print/labels/BarcodeGeneratorModal';
 import { DynamicCustomFields } from '../../../components/forms/DynamicCustomFields';
+import { TableControls, type ColumnDef } from '../../../components/ui/TableControls';
+import { useTablePrefs } from '../../../hooks/useTablePrefs';
+import { DestructiveConfirmationDialog } from '../../../components/ui/DestructiveConfirmationDialog';
+import { ActionMenuPortal } from '../../../components/ui/ActionMenuPortal';
+import { AuditTimelineDrawer } from '../../../components/ui/AuditTimelineDrawer';
+import { useAuthStore } from '../../../lib/auth/authStore';
 import {
   ProductDescriptionEditor,
   RenderHtmlContent,
@@ -102,6 +110,10 @@ interface WarehouseOption {
 
 export function ProductsSection() {
   const { currencyCode, currencySymbol, formatCurrency } = useCurrency();
+  const { hasPermission } = useAuthStore();
+  const canCreate = hasPermission(['catalog.product.create', 'catalog.*']);
+  const canEdit = hasPermission(['catalog.product.edit', 'catalog.*']);
+  const canDelete = hasPermission(['catalog.product.delete', 'catalog.*']);
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -109,6 +121,7 @@ export function ProductsSection() {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [viewingProduct, setViewingProduct] = useState<Product | null>(null);
   const [deletingProduct, setDeletingProduct] = useState<Product | null>(null);
+  const [auditingProduct, setAuditingProduct] = useState<Product | null>(null);
   const [createQueuedImages, setCreateQueuedImages] = useState<LocalQueuedImage[]>([]);
   const [selectedLabelProducts, setSelectedLabelProducts] = useState<Product[]>([]);
   const [selectedProductIds, setSelectedProductIds] = useState<Set<string | number>>(new Set());
@@ -173,6 +186,53 @@ export function ProductsSection() {
     warehouse_id: '',
     tracking_mode: 'batch',
   });
+
+  // Table Preferences & Column Visibility (Sprint C1)
+  const PRODUCT_TABLE_COLUMNS: ColumnDef[] = [
+    { key: 'name', label: 'Product SKU & Name', required: true },
+    { key: 'type', label: 'Product Type' },
+    { key: 'standard_cost', label: 'Standard Cost' },
+    { key: 'sale_price', label: 'Sale Price' },
+    { key: 'stock_quantity', label: 'Stock / Qty' },
+    { key: 'status', label: 'Status' },
+  ];
+
+  const {
+    density,
+    setDensity,
+    visibleColumns,
+    toggleColumn,
+    isVisible,
+    cellClass,
+  } = useTablePrefs({
+    tableId: 'catalogue_products',
+    defaultColumns: {
+      type: true,
+      standard_cost: true,
+      sale_price: true,
+      stock_quantity: true,
+      status: true,
+    },
+    defaultDensity: 'comfortable',
+  });
+
+  const [openActionMenuId, setOpenActionMenuId] = useState<string | null>(null);
+  const [actionMenuAnchor, setActionMenuAnchor] = useState<HTMLElement | null>(null);
+
+  // Form Discipline & Unsaved Changes Guard (Sprint C2)
+  const [formIsDirty, setFormIsDirty] = useState(false);
+  const [closeConfirmOpen, setCloseConfirmOpen] = useState(false);
+
+  const handleRequestCloseModal = () => {
+    if (formIsDirty) {
+      setCloseConfirmOpen(true);
+    } else {
+      setIsCreateOpen(false);
+      setEditingProduct(null);
+      resetDraft();
+      setFormIsDirty(false);
+    }
+  };
 
   const queryClient = useQueryClient();
 
@@ -811,7 +871,15 @@ export function ProductsSection() {
           />
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <TableControls
+            density={density}
+            onDensityChange={setDensity}
+            columns={PRODUCT_TABLE_COLUMNS}
+            visibleColumns={visibleColumns}
+            onToggleColumn={toggleColumn}
+          />
+
           <Button
             variant={selectedProductIds.size > 0 ? 'primary' : 'secondary'}
             onClick={handleBulkPrintBarcodes}
@@ -823,18 +891,21 @@ export function ProductsSection() {
             </span>
           </Button>
 
-          <Button
-            variant="primary"
-            onClick={() => {
-              setErrorMsg(null);
-              resetDraft();
-              setIsCreateOpen(true);
-            }}
-            className="flex items-center gap-1.5 shadow-md shadow-primary/20"
-          >
-            <Plus className="h-4 w-4" />
-            <span>New Product</span>
-          </Button>
+          {canCreate && (
+            <Button
+              variant="primary"
+              onClick={() => {
+                setErrorMsg(null);
+                resetDraft();
+                setFormIsDirty(false);
+                setIsCreateOpen(true);
+              }}
+              className="flex items-center gap-1.5 shadow-md shadow-primary/20"
+            >
+              <Plus className="h-4 w-4" />
+              <span>New Product</span>
+            </Button>
+          )}
         </div>
       </div>
 
@@ -944,11 +1015,11 @@ export function ProductsSection() {
         data={productsQuery.data}
         isFetching={productsQuery.isFetching}
       >
-        <div className="overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs">
+        <div className="overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs max-h-[70vh] overflow-y-auto">
           <table className="w-full text-left text-xs text-slate-800 dark:text-slate-200 border-collapse">
-            <thead className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60 text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+            <thead className="sticky top-0 z-10 border-b border-slate-200 dark:border-slate-800 bg-slate-50/95 dark:bg-slate-800/95 backdrop-blur-xs text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
               <tr>
-                <th className="py-3.5 pl-4 pr-2 w-10 text-center">
+                <th className={cn("pl-4 pr-2 w-10 text-center", cellClass)}>
                   <input
                     type="checkbox"
                     ref={indeterminateRef}
@@ -958,13 +1029,13 @@ export function ProductsSection() {
                     className="size-4 rounded-sm border-slate-300 dark:border-slate-700 text-primary focus:ring-primary/20 accent-primary cursor-pointer transition-colors"
                   />
                 </th>
-                <th className="py-3.5 pl-2 pr-3">Product SKU & Name</th>
-                <th className="py-3.5 px-3">Type</th>
-                <th className="py-3.5 px-3">Standard Cost</th>
-                <th className="py-3.5 px-3">Sale Price</th>
-                <th className="py-3.5 px-3">Stock / Qty</th>
-                <th className="py-3.5 px-3">Status</th>
-                <th className="py-3.5 pr-4 pl-3 text-right">Actions</th>
+                <th className={cn("pl-2 pr-3", cellClass)}>Product SKU & Name</th>
+                {isVisible('type') && <th className={cn("px-3", cellClass)}>Type</th>}
+                {isVisible('standard_cost') && <th className={cn("px-3", cellClass)}>Standard Cost</th>}
+                {isVisible('sale_price') && <th className={cn("px-3", cellClass)}>Sale Price</th>}
+                {isVisible('stock_quantity') && <th className={cn("px-3", cellClass)}>Stock / Qty</th>}
+                {isVisible('status') && <th className={cn("px-3", cellClass)}>Status</th>}
+                <th className={cn("pr-4 pl-3 text-right", cellClass)}>Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -998,7 +1069,7 @@ export function ProductsSection() {
                           : 'hover:bg-slate-50/80 dark:hover:bg-slate-800/40'
                       )}
                     >
-                      <td className="py-3 pl-4 pr-2 w-10 text-center">
+                      <td className={cn("pl-4 pr-2 w-10 text-center", cellClass)}>
                         <input
                           type="checkbox"
                           checked={isSelected}
@@ -1007,7 +1078,7 @@ export function ProductsSection() {
                           className="size-4 rounded-sm border-slate-300 dark:border-slate-700 text-primary focus:ring-primary/20 accent-primary cursor-pointer transition-colors"
                         />
                       </td>
-                      <td className="py-3 pl-2 pr-3">
+                      <td className={cn("pl-2 pr-3", cellClass)}>
                         <div className="flex items-center gap-3">
                           {thumb ? (
                             <img
@@ -1035,107 +1106,117 @@ export function ProductsSection() {
                           </div>
                         </div>
                       </td>
-                      <td className="py-3 px-3">
-                        <div className="flex flex-col items-start gap-1">
-                          <span className="inline-flex items-center gap-1 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-2 py-0.5 text-[10px] font-medium text-slate-600 dark:text-slate-400 capitalize">
-                            <Tag className="h-3 w-3 text-slate-400" />
-                            {p.type.replace('_', ' ')}
-                          </span>
-                          <div className="flex items-center gap-1">
-                            {p.is_purchased && (
-                              <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20" title="Purchasable via Purchase Orders">
-                                Buy
-                              </span>
-                            )}
-                            {p.is_produced && (
-                              <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20" title="Producible via Production Work Orders">
-                                Make
-                              </span>
-                            )}
-                            {p.is_sold && (
-                              <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20" title="Sellable via Sales Orders & POS">
-                                Sell
-                              </span>
-                            )}
+                      {isVisible('type') && (
+                        <td className={cn("px-3", cellClass)}>
+                          <div className="flex flex-col items-start gap-1">
+                            <span className="inline-flex items-center gap-1 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-2 py-0.5 text-[10px] font-medium text-slate-600 dark:text-slate-400 capitalize">
+                              <Tag className="h-3 w-3 text-slate-400" />
+                              {p.type.replace('_', ' ')}
+                            </span>
+                            <div className="flex items-center gap-1">
+                              {p.is_purchased && (
+                                <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20" title="Purchasable via Purchase Orders">
+                                  Buy
+                                </span>
+                              )}
+                              {p.is_produced && (
+                                <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20" title="Producible via Production Work Orders">
+                                  Make
+                                </span>
+                              )}
+                              {p.is_sold && (
+                                <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20" title="Sellable via Sales Orders & POS">
+                                  Sell
+                                </span>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                      </td>
-                      <td className="py-3 px-3 font-mono text-slate-700 dark:text-slate-300 font-medium">
-                        {formatCurrency(p.standard_cost)}
-                      </td>
-                      <td className="py-3 px-3 font-mono text-emerald-600 dark:text-emerald-400 font-bold">
-                        {formatCurrency(p.default_sale_price)}
-                      </td>
-                      <td className="py-3 px-3">
-                        {p.is_stock_tracked ? (
-                          (() => {
-                            const qty = Number(p.stock_quantity ?? 0);
-                            const reorderLevel = Number(p.reorder_level || 0);
-                            const unitCode = unitMap.get(String(p.base_unit_id)) || 'PCS';
-                            const isOutOfStock = qty <= 0;
-                            const isLowStock = !isOutOfStock && qty <= reorderLevel;
+                        </td>
+                      )}
+                      {isVisible('standard_cost') && (
+                        <td className={cn("px-3 font-mono text-slate-700 dark:text-slate-300 font-medium", cellClass)}>
+                          {formatCurrency(p.standard_cost)}
+                        </td>
+                      )}
+                      {isVisible('sale_price') && (
+                        <td className={cn("px-3 font-mono text-emerald-600 dark:text-emerald-400 font-bold", cellClass)}>
+                          {formatCurrency(p.default_sale_price)}
+                        </td>
+                      )}
+                      {isVisible('stock_quantity') && (
+                        <td className={cn("px-3", cellClass)}>
+                          {p.is_stock_tracked ? (
+                            (() => {
+                              const qty = Number(p.stock_quantity ?? 0);
+                              const reorderLevel = Number(p.reorder_level || 0);
+                              const unitCode = unitMap.get(String(p.base_unit_id)) || 'PCS';
+                              const isOutOfStock = qty <= 0;
+                              const isLowStock = !isOutOfStock && qty <= reorderLevel;
 
-                            return (
-                              <div className="flex flex-col gap-1">
-                                <div className="flex items-center gap-1 font-mono font-bold text-slate-900 dark:text-white text-xs">
-                                  <span>
-                                    {qty.toLocaleString(undefined, {
-                                      minimumFractionDigits: 0,
-                                      maximumFractionDigits: 2,
-                                    })}
-                                  </span>
-                                  <span className="text-[10px] font-normal uppercase text-slate-400">
-                                    {unitCode}
-                                  </span>
-                                </div>
-                                <div>
-                                  <span
-                                    className={`inline-flex items-center gap-1 rounded-full px-2 py-0.2 text-[9px] font-semibold tracking-wide uppercase ${
-                                      isOutOfStock
-                                        ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20'
-                                        : isLowStock
-                                          ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20'
-                                          : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
-                                    }`}
-                                  >
+                              return (
+                                <div className="flex flex-col gap-1">
+                                  <div className="flex items-center gap-1 font-mono font-bold text-slate-900 dark:text-white text-xs">
+                                    <span>
+                                      {qty.toLocaleString(undefined, {
+                                        minimumFractionDigits: 0,
+                                        maximumFractionDigits: 2,
+                                      })}
+                                    </span>
+                                    <span className="text-[10px] font-normal uppercase text-slate-400">
+                                      {unitCode}
+                                    </span>
+                                  </div>
+                                  <div>
                                     <span
-                                      className={`size-1.5 rounded-full ${
+                                      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.2 text-[9px] font-semibold tracking-wide uppercase ${
                                         isOutOfStock
-                                          ? 'bg-rose-500'
+                                          ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20'
                                           : isLowStock
-                                            ? 'bg-amber-500'
-                                            : 'bg-emerald-500'
+                                            ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20'
+                                            : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
                                       }`}
-                                    />
-                                    {isOutOfStock
-                                      ? 'Out of Stock'
-                                      : isLowStock
-                                        ? 'Low Stock'
-                                        : 'In Stock'}
-                                  </span>
+                                    >
+                                      <span
+                                        className={`size-1.5 rounded-full ${
+                                          isOutOfStock
+                                            ? 'bg-rose-500'
+                                            : isLowStock
+                                              ? 'bg-amber-500'
+                                              : 'bg-emerald-500'
+                                        }`}
+                                      />
+                                      {isOutOfStock
+                                        ? 'Out of Stock'
+                                        : isLowStock
+                                          ? 'Low Stock'
+                                          : 'In Stock'}
+                                    </span>
+                                  </div>
                                 </div>
-                              </div>
-                            );
-                          })()
-                        ) : (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 dark:bg-slate-800 px-2 py-0.5 text-[10px] font-medium text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
-                            <span className="size-1.5 rounded-full bg-slate-400" />
-                            Non-stock
+                              );
+                            })()
+                          ) : (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 dark:bg-slate-800 px-2 py-0.5 text-[10px] font-medium text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
+                              <span className="size-1.5 rounded-full bg-slate-400" />
+                              Non-stock
+                            </span>
+                          )}
+                        </td>
+                      )}
+                      {isVisible('status') && (
+                        <td className={cn("px-3", cellClass)}>
+                          <span
+                            className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${
+                              p.status === 'active'
+                                ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
+                                : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20'
+                            }`}
+                          >
+                            {p.status}
                           </span>
-                        )}
-                      </td>
-                      <td className="py-3 px-3">
-                        <span
-                          className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${
-                            p.status === 'active'
-                              ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
-                              : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20'
-                          }`}
-                        >
-                          {p.status}
-                        </span>
-                      </td>
-                      <td className="py-3 pr-4 pl-3 text-right">
+                        </td>
+                      )}
+                      <td className={cn("pr-4 pl-3 text-right", cellClass)}>
                         <div className="inline-flex items-center gap-1">
                           <button
                             type="button"
@@ -1147,14 +1228,6 @@ export function ProductsSection() {
                           </button>
                           <button
                             type="button"
-                            onClick={() => handleDuplicate(p)}
-                            className="inline-flex items-center justify-center size-7.5 rounded-xl text-slate-500 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-500/10 hover:border-amber-500/20 transition-all cursor-pointer border border-transparent shadow-2xs"
-                            title="Duplicate Product & Specs"
-                          >
-                            <Copy className="size-3.5" />
-                          </button>
-                          <button
-                            type="button"
                             onClick={() => handleOpenEdit(p)}
                             className="inline-flex items-center justify-center size-7.5 rounded-xl text-slate-500 hover:text-primary hover:bg-primary/10 hover:border-primary/20 transition-all cursor-pointer border border-transparent shadow-2xs"
                             title="Edit Product & Specs"
@@ -1163,32 +1236,25 @@ export function ProductsSection() {
                           </button>
                           <button
                             type="button"
-                            onClick={() => setSelectedLabelProducts([p])}
-                            className="inline-flex items-center justify-center size-7.5 rounded-xl text-slate-500 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-500/10 hover:border-emerald-500/20 transition-all cursor-pointer border border-transparent shadow-2xs"
-                            title="Thermal Barcode Label"
-                          >
-                            <QrCode className="size-3.5" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleToggleStorefrontPublish(p, !p.is_online)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (openActionMenuId === p.id) {
+                                setOpenActionMenuId(null);
+                                setActionMenuAnchor(null);
+                              } else {
+                                setOpenActionMenuId(p.id);
+                                setActionMenuAnchor(e.currentTarget);
+                              }
+                            }}
                             className={cn(
                               "inline-flex items-center justify-center size-7.5 rounded-xl transition-all cursor-pointer border shadow-2xs",
-                              p.is_online
-                                ? "text-indigo-600 dark:text-indigo-400 bg-indigo-500/10 border-indigo-500/30 hover:bg-indigo-500/20"
-                                : "text-slate-400 hover:text-indigo-600 hover:bg-indigo-500/10 border-transparent hover:border-indigo-500/20"
+                              openActionMenuId === p.id
+                                ? "bg-primary text-primary-fg border-primary shadow-xs"
+                                : "text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 border-transparent hover:border-slate-200 dark:hover:border-slate-700"
                             )}
-                            title={p.is_online ? "Published to Online Storefront (Click to unpublish)" : "Publish to Online Storefront"}
+                            title="More Product Actions"
                           >
-                            <Globe className="size-3.5" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setDeletingProduct(p)}
-                            className="inline-flex items-center justify-center size-7.5 rounded-xl text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-500/10 hover:border-rose-500/20 transition-all cursor-pointer border border-transparent shadow-2xs"
-                            title="Delete Product"
-                          >
-                            <Trash2 className="size-3.5" />
+                            <MoreHorizontal className="size-3.5" />
                           </button>
                         </div>
                       </td>
@@ -1197,7 +1263,154 @@ export function ProductsSection() {
                 })
               )}
             </tbody>
+            {products.length > 0 && (
+              <tfoot className="border-t-2 border-slate-200 dark:border-slate-700 bg-slate-50/90 dark:bg-slate-800/90 font-semibold text-slate-800 dark:text-slate-200 text-xs">
+                <tr>
+                  <td className={cn("text-center", cellClass)} />
+                  <td className={cellClass}>
+                    <div className="font-bold text-default">
+                      Total: {products.length} {products.length === 1 ? 'Product' : 'Products'}
+                    </div>
+                  </td>
+                  {isVisible('type') && <td className={cellClass} />}
+                  {isVisible('standard_cost') && (
+                    <td className={cn("font-mono", cellClass)}>
+                      Avg: {formatCurrency(
+                        products.reduce((acc, p) => acc + (parseFloat(p.standard_cost) || 0), 0) / products.length
+                      )}
+                    </td>
+                  )}
+                  {isVisible('sale_price') && (
+                    <td className={cn("font-mono text-emerald-600 dark:text-emerald-400 font-bold", cellClass)}>
+                      Avg: {formatCurrency(
+                        products.reduce((acc, p) => acc + (parseFloat(p.default_sale_price) || 0), 0) / products.length
+                      )}
+                    </td>
+                  )}
+                  {isVisible('stock_quantity') && (
+                    <td className={cn("font-mono font-bold", cellClass)}>
+                      {products
+                        .reduce((acc, p) => acc + (parseFloat(String(p.stock_quantity ?? 0)) || 0), 0)
+                        .toLocaleString(undefined, { maximumFractionDigits: 2 })}{' '}
+                      Units
+                    </td>
+                  )}
+                  {isVisible('status') && (
+                    <td className={cellClass}>
+                      <span className="text-[11px] text-muted">
+                        {products.filter((p) => p.status === 'active').length} Active
+                      </span>
+                    </td>
+                  )}
+                  <td className={cn("pr-4 pl-3 text-right text-muted text-[11px]", cellClass)}>
+                    Summary
+                  </td>
+                </tr>
+              </tfoot>
+            )}
           </table>
+          {openActionMenuId && (() => {
+            const p = products.find((x) => x.id === openActionMenuId);
+            if (!p) return null;
+            return (
+              <ActionMenuPortal
+                isOpen={Boolean(openActionMenuId && actionMenuAnchor)}
+                anchorEl={actionMenuAnchor}
+                onClose={() => {
+                  setOpenActionMenuId(null);
+                  setActionMenuAnchor(null);
+                }}
+                width="14rem"
+              >
+                <div className="p-1 space-y-0.5 text-xs">
+                  <div className="px-2.5 py-1.5 border-b border-default text-2xs text-muted font-mono truncate">
+                    {p.name} ({p.sku})
+                  </div>
+                  {canEdit && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setOpenActionMenuId(null);
+                        setActionMenuAnchor(null);
+                        handleOpenEdit(p);
+                      }}
+                      className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left text-default hover:bg-surface-sunken transition-colors cursor-pointer"
+                    >
+                      <Edit2 className="size-3.5 text-blue-500" />
+                      <span>Edit Product...</span>
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setOpenActionMenuId(null);
+                      setActionMenuAnchor(null);
+                      handleDuplicate(p);
+                    }}
+                    className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left text-default hover:bg-surface-sunken transition-colors cursor-pointer"
+                  >
+                    <Copy className="size-3.5 text-amber-500" />
+                    <span>Duplicate Product</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setOpenActionMenuId(null);
+                      setActionMenuAnchor(null);
+                      setSelectedLabelProducts([p]);
+                    }}
+                    className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left text-default hover:bg-surface-sunken transition-colors cursor-pointer"
+                  >
+                    <QrCode className="size-3.5 text-emerald-500" />
+                    <span>Thermal Barcode Label</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setOpenActionMenuId(null);
+                      setActionMenuAnchor(null);
+                      handleToggleStorefrontPublish(p, !p.is_online);
+                    }}
+                    className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left text-default hover:bg-surface-sunken transition-colors cursor-pointer"
+                  >
+                    <Globe className="size-3.5 text-indigo-500" />
+                    <span>{p.is_online ? 'Unpublish from Storefront' : 'Publish to Storefront'}</span>
+                  </button>
+                  <div className="my-1 border-t border-default" />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setOpenActionMenuId(null);
+                      setActionMenuAnchor(null);
+                      setAuditingProduct(p);
+                    }}
+                    className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left text-default hover:bg-surface-sunken transition-colors cursor-pointer"
+                  >
+                    <History className="size-3.5 text-primary" />
+                    <span>View Audit History...</span>
+                  </button>
+
+                  {canDelete && (
+                    <>
+                      <div className="my-1 border-t border-default" />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setOpenActionMenuId(null);
+                          setActionMenuAnchor(null);
+                          setDeletingProduct(p);
+                        }}
+                        className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer font-medium"
+                      >
+                        <Trash2 className="size-3.5 text-rose-500" />
+                        <span>Delete Product...</span>
+                      </button>
+                    </>
+                  )}
+                </div>
+              </ActionMenuPortal>
+            );
+          })()}
         </div>
       </QueryBoundary>
 
@@ -1206,7 +1419,7 @@ export function ProductsSection() {
           ═══════════════════════════════════════════════════════════════════════ */}
       <Modal
         open={isCreateOpen}
-        onClose={() => setIsCreateOpen(false)}
+        onClose={handleRequestCloseModal}
         title="Create New Product"
         subtitle="Register catalog items with units, pricing, media, specs and custom HTML notes"
         icon={<Package className="size-4.5" />}
@@ -1948,7 +2161,7 @@ export function ProductsSection() {
               {activeFormTab === 'custom' && 'Step 4 of 4 · Custom Attributes'}
             </div>
             <div className="flex gap-2">
-              <Button variant="secondary" type="button" onClick={() => setIsCreateOpen(false)}>
+              <Button variant="secondary" type="button" onClick={handleRequestCloseModal}>
                 Cancel
               </Button>
               <Button
@@ -1970,7 +2183,7 @@ export function ProductsSection() {
       {editingProduct && (
         <Modal
           open={Boolean(editingProduct)}
-          onClose={() => setEditingProduct(null)}
+          onClose={handleRequestCloseModal}
           title={`Edit Product: ${editingProduct.sku}`}
           subtitle={`Modify specifications for ${editingProduct.name}`}
           icon={<Edit2 className="size-4.5" />}
@@ -2669,7 +2882,7 @@ export function ProductsSection() {
                 {activeFormTab === 'media' && 'Step 3 of 3 · Visuals & HTML Notes'}
               </div>
               <div className="flex gap-2">
-                <Button variant="secondary" type="button" onClick={() => setEditingProduct(null)}>
+                <Button variant="secondary" type="button" onClick={handleRequestCloseModal}>
                   Cancel
                 </Button>
                 <Button
@@ -3227,43 +3440,67 @@ export function ProductsSection() {
       )}
 
       {/* ═══════════════════════════════════════════════════════════════════════
-          DELETE PRODUCT CONFIRMATION MODAL
+          DELETE PRODUCT CONFIRMATION MODAL (Destructive UX Overhaul - Sprint C3)
           ═══════════════════════════════════════════════════════════════════════ */}
       {deletingProduct && (
-        <Modal
+        <DestructiveConfirmationDialog
           open={Boolean(deletingProduct)}
           onClose={() => setDeletingProduct(null)}
-          title="Delete Product"
-          subtitle="Confirm removal from active production & sales catalog"
-          icon={<Trash2 className="size-4.5 text-rose-500" />}
-          size="sm"
-        >
-          <div className="space-y-4 text-xs">
-            <p className="text-slate-800 dark:text-slate-200 leading-relaxed">
-              Are you sure you want to delete product{' '}
-              <strong className="text-primary font-mono">{deletingProduct.sku}</strong> (
-              {deletingProduct.name})?
-            </p>
-            <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-400 text-[11px] leading-relaxed">
-              ⚠️ Deleting this product is protected: any historical inventory transactions or
-              production batches will retain ledger integrity.
-            </div>
-
-            <div className="flex justify-end gap-2.5 pt-3 border-t border-slate-200 dark:border-slate-800">
-              <Button variant="secondary" onClick={() => setDeletingProduct(null)}>
-                Cancel
-              </Button>
-              <Button
-                variant="danger"
-                onClick={() => deleteMutation.mutate(deletingProduct.id)}
-                disabled={deleteMutation.isPending}
-              >
-                {deleteMutation.isPending ? 'Deleting...' : 'Confirm Delete'}
-              </Button>
-            </div>
-          </div>
-        </Modal>
+          entityType="Product"
+          entityName={deletingProduct.name}
+          entityCode={deletingProduct.sku}
+          impactItems={[
+            {
+              label: 'Active Inventory On-Hand',
+              count: `${Number(deletingProduct.stock_quantity ?? 0).toLocaleString()} ${unitMap.get(String(deletingProduct.base_unit_id)) || 'Units'}`,
+              warning: Number(deletingProduct.stock_quantity ?? 0) > 0,
+            },
+            {
+              label: 'Storefront Status',
+              count: deletingProduct.is_online ? 'Published Online' : 'Offline / Draft',
+              warning: Boolean(deletingProduct.is_online),
+            },
+            {
+              label: 'Classification',
+              count: (deletingProduct.type || 'finished').replace('_', ' ').toUpperCase(),
+            },
+            {
+              label: 'Tracking Mode',
+              count: (deletingProduct.tracking_mode || 'batch').toUpperCase(),
+            },
+          ]}
+          warningMessage={`Deleting "${deletingProduct.name}" (${deletingProduct.sku}) is protected: any historical inventory ledger transactions, BOM references, or sales records will retain full audit integrity.`}
+          onArchive={async () => {
+            try {
+              await api.patch(`/products/${deletingProduct.id}`, { status: 'inactive' });
+              await queryClient.invalidateQueries({ queryKey: ['catalogue', 'products'] });
+              setDeletingProduct(null);
+              notify.success(`Product "${deletingProduct.name}" deactivated and archived.`);
+            } catch (err) {
+              notify.error(isApiError(err) ? err.message : 'Failed to deactivate product.');
+            }
+          }}
+          onConfirmDelete={() => deleteMutation.mutate(deletingProduct.id)}
+          isDeleting={deleteMutation.isPending}
+        />
       )}
+
+      {/* Dirty Form Discard Confirmation Dialog */}
+      <ConfirmDialog
+        open={closeConfirmOpen}
+        onClose={() => setCloseConfirmOpen(false)}
+        onConfirm={() => {
+          setCloseConfirmOpen(false);
+          setIsCreateOpen(false);
+          setEditingProduct(null);
+          resetDraft();
+          setFormIsDirty(false);
+        }}
+        title="Discard Unsaved Product Changes?"
+        message="You have unsaved changes in this product specification. If you close now, your draft modifications will be lost."
+        confirmLabel="Discard & Close"
+        variant="danger"
+      />
 
       {/* ═══════════════════════════════════════════════════════════════════════
           FLOATING DOCKED BULK ACTIONS TOOLBAR
@@ -3413,6 +3650,16 @@ export function ProductsSection() {
         onImportSuccess={() => {
           queryClient.invalidateQueries({ queryKey: ['catalogue', 'products'] });
         }}
+      />
+
+      {/* Entity Audit History Drawer */}
+      <AuditTimelineDrawer
+        isOpen={Boolean(auditingProduct)}
+        onClose={() => setAuditingProduct(null)}
+        entityType="Product"
+        entityId={auditingProduct?.id}
+        entityTitle={auditingProduct?.name}
+        entityCode={auditingProduct?.sku}
       />
     </div>
   );

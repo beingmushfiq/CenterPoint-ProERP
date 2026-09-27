@@ -122,9 +122,9 @@ export const WorkflowAutomationWorkspace: React.FC = () => {
       if (showLoading) {
         setLoading(true);
       }
-      const res = await api.get<any>('/workflows');
+      const res = await api.get<{ data?: { workflows?: WorkflowItem[]; logs?: WorkflowLog[]; stats?: WorkflowStats }; workflows?: WorkflowItem[]; logs?: WorkflowLog[]; stats?: WorkflowStats }>('/workflows');
       const payload = (res.data && typeof res.data === 'object' && 'data' in res.data)
-        ? (res.data as any).data
+        ? res.data.data
         : res.data;
 
       if (payload?.workflows) {
@@ -142,8 +142,35 @@ export const WorkflowAutomationWorkspace: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    void fetchWorkflows();
-  }, [fetchWorkflows]);
+    let ignore = false;
+    api
+      .get<{ data?: { workflows?: WorkflowItem[]; logs?: WorkflowLog[]; stats?: WorkflowStats }; workflows?: WorkflowItem[]; logs?: WorkflowLog[]; stats?: WorkflowStats }>('/workflows')
+      .then((res) => {
+        if (ignore) return;
+        const payload = (res.data && typeof res.data === 'object' && 'data' in res.data)
+          ? res.data.data
+          : res.data;
+
+        if (payload?.workflows) {
+          setWorkflows(payload.workflows);
+          setLogs(payload.logs || []);
+          if (payload.stats) {
+            setStats(payload.stats);
+          }
+        }
+        setLoading(false);
+      })
+      .catch(() => {
+        if (!ignore) {
+          notify.error('Failed to load workflow automation recipes.');
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      ignore = true;
+    };
+  }, []);
 
   const handleToggle = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -168,15 +195,16 @@ export const WorkflowAutomationWorkspace: React.FC = () => {
       setTestLoading(true);
       setTestResultSteps(null);
 
-      const res = await api.post<any>(`/workflows/${workflow.id}/test`);
+      const res = await api.post<{ data?: { steps?: Array<{ step: number; name: string; detail: string; status: string }>; log?: WorkflowLog }; steps?: Array<{ step: number; name: string; detail: string; status: string }>; log?: WorkflowLog }>(`/workflows/${workflow.id}/test`);
       const payload = (res.data && typeof res.data === 'object' && 'data' in res.data)
-        ? (res.data as any).data
+        ? res.data.data
         : res.data;
 
       if (payload?.steps) {
         setTestResultSteps(payload.steps);
         if (payload.log) {
-          setLogs((prev) => [payload.log, ...prev]);
+          const newLog: WorkflowLog = payload.log;
+          setLogs((prev) => [newLog, ...prev]);
         }
         setWorkflows((prev) =>
           prev.map((w) =>
@@ -230,10 +258,10 @@ export const WorkflowAutomationWorkspace: React.FC = () => {
         ],
       };
 
-      const res = await api.post<any>('/workflows', payload);
+      const res = await api.post<{ data?: WorkflowItem } | WorkflowItem>('/workflows', payload);
       const created = (res.data && typeof res.data === 'object' && 'data' in res.data)
-        ? (res.data as any).data
-        : res.data;
+        ? res.data.data
+        : (res.data as WorkflowItem);
 
       if (created?.id) {
         setWorkflows((prev) => [created, ...prev]);
@@ -257,8 +285,9 @@ export const WorkflowAutomationWorkspace: React.FC = () => {
         setIsCreateOpen(false);
         notify.success('Workflow created successfully');
       }
-    } catch (err: any) {
-      notify.error(err?.response?.data?.message || 'Failed to create workflow recipe');
+    } catch (err: unknown) {
+      const apiErr = err as { response?: { data?: { message?: string } } };
+      notify.error(apiErr?.response?.data?.message || 'Failed to create workflow recipe');
     } finally {
       setCreateSubmitting(false);
     }

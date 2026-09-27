@@ -38,7 +38,6 @@ return new class extends Migration
             $table->string('reconciliation_status', 32)->default('unreconciled'); // unreconciled, reconciled, disputed
 
             $table->timestamps();
-            $table->softDeletes();
             $table->unsignedBigInteger('created_by')->nullable();
             $table->unsignedBigInteger('updated_by')->nullable();
 

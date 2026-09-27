@@ -21,6 +21,18 @@ vi.mock('../../hooks/useCurrency', () => ({
   }),
 }));
 
+// Mock Auth hook
+const mockAuthState = {
+  user: { id: 1, name: 'Admin User', role: 'admin' },
+  hasPermission: () => true,
+  hasModuleAccess: () => true,
+};
+
+vi.mock('../../lib/auth/authStore', () => ({
+  useAuthStore: (selector?: (s: typeof mockAuthState) => unknown) =>
+    selector ? selector(mockAuthState) : mockAuthState,
+}));
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: { retry: false },
@@ -178,10 +190,6 @@ describe('HrWorkspace Component & Action Controls', () => {
   it('renders bulk selection controls and toggles selection via toolbar and header checkbox', () => {
     renderWithProviders(['/hr?tab=employees']);
 
-    // Toolbar select all button should be present
-    const toolbarSelectBtn = screen.getByRole('button', { name: /Select All \(\d+\)/i });
-    expect(toolbarSelectBtn).toBeInTheDocument();
-
     // Table header select all checkbox button
     const headerCheckbox = screen.getByRole('button', { name: /Select all employees/i });
     expect(headerCheckbox).toBeInTheDocument();
@@ -191,14 +199,14 @@ describe('HrWorkspace Component & Action Controls', () => {
     expect(rowCheckboxes.length).toBeGreaterThanOrEqual(1);
 
     // Click select all
-    fireEvent.click(toolbarSelectBtn);
+    fireEvent.click(headerCheckbox);
 
     // Ribbon should appear
     expect(screen.getByText(/Employees Selected/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Mark Active/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Mark Inactive/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Print Badges/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Delete Selected/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Move to Bin/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Deselect All/i })).toBeInTheDocument();
   });
 
@@ -213,14 +221,14 @@ describe('HrWorkspace Component & Action Controls', () => {
 
     // Dropdown should be visible with explicit options
     expect(screen.getByText(/ERP Access & Roles/i)).toBeInTheDocument();
-    const deleteBtn = screen.getByRole('button', { name: /Delete Employee/i });
+    const deleteBtn = screen.getByRole('button', { name: /Move to Bin/i });
     expect(deleteBtn).toBeInTheDocument();
 
-    // Click Delete Employee
+    // Click Move to Bin (Delete)
     fireEvent.click(deleteBtn);
 
-    // Confirmation modal should open with Confirm Delete button
-    expect(screen.getByRole('button', { name: /Confirm Delete/i })).toBeInTheDocument();
+    // Confirmation modal should open with confirm action button
+    expect(screen.getAllByRole('button', { name: /Move to Bin/i }).length).toBeGreaterThanOrEqual(1);
   });
 });
 

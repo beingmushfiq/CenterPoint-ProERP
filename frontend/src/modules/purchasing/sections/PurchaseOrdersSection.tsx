@@ -28,6 +28,7 @@ import {
   X,
   Download,
   ChevronDown,
+  History,
 } from 'lucide-react';
 import type { PurchaseOrder } from '../../../types/api/purchasing';
 import type { Product } from '../../../types/api/catalog';
@@ -41,6 +42,22 @@ import { SelectDropdown } from '../../../components/ui/Dropdown';
 import { useCurrency } from '../../../hooks/useCurrency';
 import { ActionMenuPortal } from '../../../components/ui/ActionMenuPortal';
 import { cn } from '../../../lib/utils';
+import { TableControls, type ColumnDef } from '../../../components/ui/TableControls';
+import { useTablePrefs } from '../../../hooks/useTablePrefs';
+import { DestructiveConfirmationDialog } from '../../../components/ui/DestructiveConfirmationDialog';
+import { useAuthStore } from '../../../lib/auth/authStore';
+import { AuditTimelineDrawer } from '../../../components/ui/AuditTimelineDrawer';
+
+const PO_COLUMNS: ColumnDef[] = [
+  { key: 'select', label: 'Select', required: true },
+  { key: 'po_number', label: 'PO Number', required: true },
+  { key: 'supplier', label: 'Vendor / Supplier', required: true },
+  { key: 'warehouse', label: 'Warehouse' },
+  { key: 'order_date', label: 'Order Date' },
+  { key: 'grand_total', label: 'Grand Total' },
+  { key: 'status', label: 'Status' },
+  { key: 'actions', label: 'Actions', required: true },
+];
 
 interface PoFormItem {
   product_id?: number | string;
@@ -205,6 +222,16 @@ export function PurchaseOrdersSection({ onReceivePo, onCreateBill }: PurchaseOrd
   const [, setActionLoading] = useState<number | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const { density, setDensity, visibleColumns, toggleColumn, isVisible, cellClass } = useTablePrefs({
+    tableId: 'purchase_orders',
+    defaultColumns: {
+      warehouse: true,
+      order_date: true,
+      grand_total: true,
+      status: true,
+    },
+  });
+
   // Modals
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showViewModal, setShowViewModal] = useState(false);
@@ -214,7 +241,12 @@ export function PurchaseOrdersSection({ onReceivePo, onCreateBill }: PurchaseOrd
   const [printOrder, setPrintOrder] = useState<PurchaseOrder | null>(null);
   const [openActionMenuId, setOpenActionMenuId] = useState<number | null>(null);
   const [actionMenuAnchor, setActionMenuAnchor] = useState<HTMLElement | null>(null);
+  const [auditingOrder, setAuditingOrder] = useState<PurchaseOrder | null>(null);
   const { config: businessConfig } = useBusinessConfig();
+
+  const { hasPermission } = useAuthStore();
+  const canCreate = hasPermission(['purchasing.order.create', 'purchasing.order.manage', 'purchasing.*']);
+  const canDelete = hasPermission(['purchasing.order.delete', 'purchasing.order.manage', 'purchasing.*']);
 
   // Multi-Record Selection State
   const [selectedPoIds, setSelectedPoIds] = useState<Set<number>>(new Set());
@@ -885,6 +917,14 @@ export function PurchaseOrdersSection({ onReceivePo, onCreateBill }: PurchaseOrd
             aria-label="Filter POs by status"
           />
 
+          <TableControls
+            density={density}
+            onDensityChange={setDensity}
+            columns={PO_COLUMNS}
+            visibleColumns={visibleColumns}
+            onToggleColumn={toggleColumn}
+          />
+
           <button
             type="button"
             onClick={() => exportPoCsv(filteredOrders)}
@@ -905,65 +945,69 @@ export function PurchaseOrdersSection({ onReceivePo, onCreateBill }: PurchaseOrd
             <RefreshCw className={`size-3.5 ${isFetching ? 'animate-spin' : ''}`} />
           </button>
 
-          <button
-            onClick={() => {
-              setFormData({
-                po_number: '',
-                supplier_name: 'Bengal Glass & Ceramic Ltd.',
-                warehouse_name: 'Tejgaon Central Electronic Components & Parts Warehouse',
-                order_date: new Date().toISOString().slice(0, 10),
-                expected_delivery_date: new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10),
-                currency_code: currencyCode,
-                terms_and_conditions: 'Net 30 Days upon inspection pass.',
-                notes: '',
-                order_discount_type: 'flat',
-                order_discount_value: '',
-                items: [
-                  {
-                    product_name: 'Microcrystalline Ceramic Glass Panel',
-                    product_sku: 'RAW-CERAMIC-PANEL',
-                    quantity: '500',
-                    unit_code: 'PCS',
-                    unit_price: '450.00',
-                    discount_type: 'flat',
-                    discount_amount: '0.00',
-                    tax_rate: '5.00',
-                  },
-                ],
-              });
-              setShowCreateModal(true);
-            }}
-            className="flex h-9 items-center gap-1.5 rounded-xl bg-primary px-3.5 text-xs font-semibold text-primary-fg hover:opacity-90 shadow-xs transition-opacity cursor-pointer"
-          >
-            <Plus className="size-3.5" />
-            <span>Create PO</span>
-          </button>
+          {canCreate && (
+            <button
+              onClick={() => {
+                setFormData({
+                  po_number: '',
+                  supplier_name: 'Bengal Glass & Ceramic Ltd.',
+                  warehouse_name: 'Tejgaon Central Electronic Components & Parts Warehouse',
+                  order_date: new Date().toISOString().slice(0, 10),
+                  expected_delivery_date: new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10),
+                  currency_code: currencyCode,
+                  terms_and_conditions: 'Net 30 Days upon inspection pass.',
+                  notes: '',
+                  order_discount_type: 'flat',
+                  order_discount_value: '',
+                  items: [
+                    {
+                      product_name: 'Microcrystalline Ceramic Glass Panel',
+                      product_sku: 'RAW-CERAMIC-PANEL',
+                      quantity: '500',
+                      unit_code: 'PCS',
+                      unit_price: '450.00',
+                      discount_type: 'flat',
+                      discount_amount: '0.00',
+                      tax_rate: '5.00',
+                    },
+                  ],
+                });
+                setShowCreateModal(true);
+              }}
+              className="flex h-9 items-center gap-1.5 rounded-xl bg-primary px-3.5 text-xs font-semibold text-primary-fg hover:opacity-90 shadow-xs transition-opacity cursor-pointer"
+            >
+              <Plus className="size-3.5" />
+              <span>Create PO</span>
+            </button>
+          )}
         </div>
       </div>
 
       {/* Orders Table */}
-      <div className="rounded-2xl border border-default bg-surface shadow-2xs overflow-hidden">
+      <div className="overflow-hidden rounded-2xl border border-default bg-surface shadow-2xs max-h-[70vh] overflow-y-auto">
         <div className="overflow-x-auto min-h-75">
-          <table className="w-full text-left text-xs text-default">
-            <thead className="bg-surface-sunken text-[11px] font-semibold text-muted uppercase tracking-wider border-b border-default">
+          <table className="w-full text-left text-xs text-default border-collapse">
+            <thead className="sticky top-0 z-10 border-b border-default bg-surface-sunken/95 backdrop-blur-xs text-[11px] font-semibold uppercase tracking-wider text-muted">
               <tr>
-                <th className="w-10 px-3 py-3.5 text-center">
-                  <input
-                    ref={headerCheckboxRef}
-                    type="checkbox"
-                    checked={isAllSelected}
-                    onChange={toggleSelectAll}
-                    className="size-4 rounded border-default text-primary focus:ring-primary cursor-pointer"
-                    title="Select all visible POs"
-                  />
-                </th>
-                <th className="px-4 py-3.5">PO Number</th>
-                <th className="px-4 py-3.5">Vendor / Supplier</th>
-                <th className="px-4 py-3.5">Warehouse</th>
-                <th className="px-4 py-3.5">Order Date</th>
-                <th className="px-4 py-3.5 text-right">Grand Total</th>
-                <th className="px-4 py-3.5">Status</th>
-                <th className="px-4 py-3.5 text-right">Actions</th>
+                {isVisible('select') && (
+                  <th className={cn("w-10 text-center", cellClass)}>
+                    <input
+                      ref={headerCheckboxRef}
+                      type="checkbox"
+                      checked={isAllSelected}
+                      onChange={toggleSelectAll}
+                      className="size-4 rounded border-default text-primary focus:ring-primary cursor-pointer"
+                      title="Select all visible POs"
+                    />
+                  </th>
+                )}
+                {isVisible('po_number') && <th className={cn("px-4", cellClass)}>PO Number</th>}
+                {isVisible('supplier') && <th className={cn("px-4", cellClass)}>Vendor / Supplier</th>}
+                {isVisible('warehouse') && <th className={cn("px-4", cellClass)}>Warehouse</th>}
+                {isVisible('order_date') && <th className={cn("px-4", cellClass)}>Order Date</th>}
+                {isVisible('grand_total') && <th className={cn("px-4 text-right", cellClass)}>Grand Total</th>}
+                {isVisible('status') && <th className={cn("px-4", cellClass)}>Status</th>}
+                {isVisible('actions') && <th className={cn("px-4 text-right", cellClass)}>Actions</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-default">
@@ -1013,67 +1057,110 @@ export function PurchaseOrdersSection({ onReceivePo, onCreateBill }: PurchaseOrd
                       selectedPoIds.has(o.id) && "bg-primary/5 dark:bg-primary/10"
                     )}
                   >
-                    <td className="w-10 px-3 py-3.5 text-center" onClick={(e) => e.stopPropagation()}>
-                      <input
-                        type="checkbox"
-                        checked={selectedPoIds.has(o.id)}
-                        onChange={() => toggleSelectPo(o.id)}
-                        className="size-4 rounded border-default text-primary focus:ring-primary cursor-pointer"
-                        title="Select PO"
-                      />
-                    </td>
-                    <td className="px-4 py-3.5 font-mono font-medium text-default">
-                      <div className="flex items-center gap-1.5">
-                        <FileSpreadsheet className="size-3.5 text-primary" />
-                        <span>{o.po_number}</span>
-                      </div>
-                      <div className="text-[10px] text-muted font-sans mt-0.5">Exp. Delivery: {o.expected_delivery_date || '—'}</div>
-                    </td>
-                    <td className="px-4 py-3.5 font-semibold text-default">{o.supplier_name ?? '—'}</td>
-                    <td className="px-4 py-3.5 text-muted">{o.warehouse_name ?? '—'}</td>
-                    <td className="px-4 py-3.5 font-mono text-muted">{o.order_date}</td>
-                    <td className="px-4 py-3.5 text-right font-mono font-semibold text-default">
-                      {formatCurrency(o.grand_total)}
-                    </td>
-                    <td className="px-4 py-3.5">{getStatusBadge(o.status)}</td>
-                    <td className="px-4 py-3.5 text-right">
-                      <div className="flex items-center justify-end gap-1.5">
-                        <button
-                          type="button"
-                          onClick={() => handleViewOrder(o)}
-                          className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-surface hover:bg-surface-sunken border border-default text-default transition-colors cursor-pointer"
-                        >
-                          View
-                        </button>
+                    {isVisible('select') && (
+                      <td className={cn("w-10 text-center", cellClass)} onClick={(e) => e.stopPropagation()}>
+                        <input
+                          type="checkbox"
+                          checked={selectedPoIds.has(o.id)}
+                          onChange={() => toggleSelectPo(o.id)}
+                          className="size-4 rounded border-default text-primary focus:ring-primary cursor-pointer"
+                          title="Select PO"
+                        />
+                      </td>
+                    )}
+                    {isVisible('po_number') && (
+                      <td className={cn("px-4 font-mono font-medium text-default", cellClass)}>
+                        <div className="flex items-center gap-1.5">
+                          <FileSpreadsheet className="size-3.5 text-primary" />
+                          <span>{o.po_number}</span>
+                        </div>
+                        <div className="text-[10px] text-muted font-sans mt-0.5">Exp. Delivery: {o.expected_delivery_date || '—'}</div>
+                      </td>
+                    )}
+                    {isVisible('supplier') && <td className={cn("px-4 font-semibold text-default", cellClass)}>{o.supplier_name ?? '—'}</td>}
+                    {isVisible('warehouse') && <td className={cn("px-4 text-muted", cellClass)}>{o.warehouse_name ?? '—'}</td>}
+                    {isVisible('order_date') && <td className={cn("px-4 font-mono text-muted", cellClass)}>{o.order_date}</td>}
+                    {isVisible('grand_total') && (
+                      <td className={cn("px-4 text-right font-mono font-semibold text-default", cellClass)}>
+                        {formatCurrency(o.grand_total)}
+                      </td>
+                    )}
+                    {isVisible('status') && <td className={cn("px-4", cellClass)}>{getStatusBadge(o.status)}</td>}
+                    {isVisible('actions') && (
+                      <td className={cn("px-4 text-right", cellClass)}>
+                        <div className="flex items-center justify-end gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => handleViewOrder(o)}
+                            className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-surface hover:bg-surface-sunken border border-default text-default transition-colors cursor-pointer"
+                          >
+                            View
+                          </button>
 
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (openActionMenuId === o.id) {
-                              setOpenActionMenuId(null);
-                              setActionMenuAnchor(null);
-                            } else {
-                              setOpenActionMenuId(o.id);
-                              setActionMenuAnchor(e.currentTarget);
-                            }
-                          }}
-                          className={cn(
-                            'inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold rounded-lg border transition-colors cursor-pointer',
-                            openActionMenuId === o.id
-                              ? 'bg-primary text-primary-fg border-primary shadow-xs'
-                              : 'bg-surface hover:bg-surface-sunken border-default text-default'
-                          )}
-                        >
-                          <span>Actions</span>
-                          <ChevronDown className="size-3 text-muted" />
-                        </button>
-                      </div>
-                    </td>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (openActionMenuId === o.id) {
+                                setOpenActionMenuId(null);
+                                setActionMenuAnchor(null);
+                              } else {
+                                setOpenActionMenuId(o.id);
+                                setActionMenuAnchor(e.currentTarget);
+                              }
+                            }}
+                            className={cn(
+                              'inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold rounded-lg border transition-colors cursor-pointer',
+                              openActionMenuId === o.id
+                                ? 'bg-primary text-primary-fg border-primary shadow-xs'
+                                : 'bg-surface hover:bg-surface-sunken border-default text-default'
+                            )}
+                          >
+                            <span>Actions</span>
+                            <ChevronDown className="size-3 text-muted" />
+                          </button>
+                        </div>
+                      </td>
+                    )}
                   </tr>
                 ))
               )}
             </tbody>
+            {filteredOrders.length > 0 && (
+              <tfoot className="sticky bottom-0 z-10 border-t-2 border-default bg-surface-sunken/95 backdrop-blur-xs font-semibold text-xs text-default">
+                <tr>
+                  <td
+                    colSpan={
+                      (isVisible('select') ? 1 : 0) +
+                      (isVisible('po_number') ? 1 : 0) +
+                      (isVisible('supplier') ? 1 : 0) +
+                      (isVisible('warehouse') ? 1 : 0) +
+                      (isVisible('order_date') ? 1 : 0)
+                    }
+                    className={cn("px-4 font-medium text-muted", cellClass)}
+                  >
+                    Total ({filteredOrders.length} Purchase Orders)
+                  </td>
+                  {isVisible('grand_total') && (
+                    <td className={cn("px-4 text-right font-mono font-bold text-default", cellClass)}>
+                      {formatCurrency(
+                        filteredOrders.reduce((sum, o) => sum + parseFloat(o.grand_total || '0'), 0)
+                      )}
+                    </td>
+                  )}
+                  {isVisible('status') && (
+                    <td className={cn("px-4 text-muted text-2xs", cellClass)}>
+                      {filteredOrders.filter((o) => o.status === 'received').length} Fulfilled
+                    </td>
+                  )}
+                  {isVisible('actions') && (
+                    <td className={cn("px-4 text-right text-2xs text-muted font-normal", cellClass)}>
+                      Summary
+                    </td>
+                  )}
+                </tr>
+              </tfoot>
+            )}
           </table>
 
           {openActionMenuId && (() => {
@@ -1238,7 +1325,20 @@ export function PurchaseOrdersSection({ onReceivePo, onCreateBill }: PurchaseOrd
                     <span>Print Purchase Order</span>
                   </button>
 
-                  {order.status === 'draft' && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setOpenActionMenuId(null);
+                      setActionMenuAnchor(null);
+                      setAuditingOrder(order);
+                    }}
+                    className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left text-default hover:bg-surface-sunken transition-colors cursor-pointer"
+                  >
+                    <History className="size-3.5 text-muted" />
+                    <span>View Audit History...</span>
+                  </button>
+
+                  {canDelete && order.status === 'draft' && (
                     <>
                       <div className="my-1 border-t border-default" />
                       <button
@@ -2050,38 +2150,51 @@ export function PurchaseOrdersSection({ onReceivePo, onCreateBill }: PurchaseOrd
         </div>
       )}
 
-      {/* DELETE / CANCEL CONFIRMATION MODAL */}
+      {/* DELETE / CANCEL CONFIRMATION MODAL (Sprint C3 Destructive UX) */}
       {showDeleteModal && activeOrder && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs">
-          <div className="w-full max-w-sm rounded-2xl border border-default bg-surface p-6 shadow-xl text-center space-y-4">
-            <div className="size-12 rounded-full bg-rose-500/10 text-rose-500 flex items-center justify-center mx-auto">
-              <Trash2 className="size-6" />
-            </div>
-            <div>
-              <h3 className="text-base font-bold text-default">Cancel Purchase Order?</h3>
-              <p className="text-xs text-muted mt-1">
-                Are you sure you want to cancel PO <span className="font-mono font-semibold text-default">{activeOrder.po_number}</span>?
-              </p>
-            </div>
-            <div className="flex items-center justify-center gap-2 pt-2">
-              <button
-                type="button"
-                onClick={() => setShowDeleteModal(false)}
-                className="px-4 py-2 rounded-xl border border-default text-muted hover:text-default cursor-pointer"
-              >
-                Keep Order
-              </button>
-              <button
-                type="button"
-                onClick={handleDeleteOrder}
-                className="px-4 py-2 rounded-xl bg-rose-600 text-white font-semibold hover:bg-rose-700 cursor-pointer"
-              >
-                Confirm Cancel
-              </button>
-            </div>
-          </div>
-        </div>
+        <DestructiveConfirmationDialog
+          open={showDeleteModal}
+          onClose={() => setShowDeleteModal(false)}
+          onConfirmDelete={handleDeleteOrder}
+          title="Cancel Purchase Order"
+          entityType="Purchase Order"
+          entityName={activeOrder.supplier_name || 'Purchase Order'}
+          entityCode={activeOrder.po_number}
+          impactItems={[
+            {
+              label: 'Vendor / Supplier',
+              count: activeOrder.supplier_name || '—',
+            },
+            {
+              label: 'Warehouse Destination',
+              count: activeOrder.warehouse_name || '—',
+            },
+            {
+              label: 'Order Date',
+              count: activeOrder.order_date,
+            },
+            {
+              label: 'Contracted Items',
+              count: `${activeOrder.items?.length || 0} line items`,
+            },
+            {
+              label: 'Committed Grand Total',
+              count: formatCurrency(activeOrder.grand_total),
+              warning: parseFloat(activeOrder.grand_total || '0') > 0,
+            },
+          ]}
+          warningMessage="Cancelling this purchase order will revoke all commercial commitments with the supplier and prevent goods from being received into warehouse inventory."
+        />
       )}
+
+      {/* Audit Timeline Drawer */}
+      <AuditTimelineDrawer
+        isOpen={Boolean(auditingOrder)}
+        onClose={() => setAuditingOrder(null)}
+        entityType="PurchaseOrder"
+        entityId={auditingOrder?.id}
+        entityTitle={auditingOrder ? `PO #${auditingOrder.po_number}` : undefined}
+      />
 
       {/* Print Purchase Order Modal */}
       {printOrder && (

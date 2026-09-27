@@ -22,24 +22,31 @@ const STANDARD_TERMS = [
   { key: 'supplier', default: 'Supplier / Vendor', label: 'Supplier / Vendor', description: 'Terms for procurement vendors.' },
 ];
 
+interface IndustryProfileOption {
+  key: string;
+  name: string;
+  description?: string;
+  badge?: string;
+}
+
 export const TerminologySection: React.FC = () => {
   const manifest = useTenantCapabilityStore((state) => state.manifest);
   const invalidateManifest = useTenantCapabilityStore((state) => state.invalidate);
   const [userOverrides, setUserOverrides] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
-  const [profiles, setProfiles] = useState<any[]>([]);
+  const [profiles, setProfiles] = useState<IndustryProfileOption[]>([]);
   const [selectedProfileKey, setSelectedProfileKey] = useState<string>('');
   const [applyingProfile, setApplyingProfile] = useState(false);
 
   useEffect(() => {
-    api.get<any>('/industry-profiles').then((res) => {
+    api.get<{ data?: IndustryProfileOption[] } | IndustryProfileOption[]>('/industry-profiles').then((res) => {
       const list = (res.data && typeof res.data === 'object' && 'data' in res.data)
         ? res.data.data
         : res.data;
       if (Array.isArray(list) && list.length > 0) {
         setProfiles(list);
         if (!selectedProfileKey) {
-          setSelectedProfileKey(list[0].key);
+          setSelectedProfileKey(list[0]?.key || '');
         }
       }
     }).catch(() => {});
@@ -150,8 +157,8 @@ export const TerminologySection: React.FC = () => {
                 className="rounded-lg border border-default bg-surface px-3 py-2 text-xs text-default focus:border-indigo-500 focus:outline-none"
               >
                 {profiles.map((p) => (
-                  <option key={p.key || p.id} value={p.key || p.id}>
-                    {p.name || p.title || p.key}
+                  <option key={p.key} value={p.key}>
+                    {p.name || p.key}
                   </option>
                 ))}
               </select>

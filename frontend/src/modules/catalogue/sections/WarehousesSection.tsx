@@ -138,12 +138,12 @@ export function WarehousesSection() {
     queryKey: ['catalogue', 'warehouses', viewingWarehouse?.id, 'locations'],
     queryFn: async () => {
       if (!viewingWarehouse) return [];
-      const wId = (viewingWarehouse as any).uuid || viewingWarehouse.id;
-      const res = await api.get<any>(`/warehouses/${wId}/locations`);
+      const wId = (viewingWarehouse as { uuid?: string }).uuid || viewingWarehouse.id;
+      const res = await api.get<{ data?: WarehouseLocation[] } | WarehouseLocation[]>(`/warehouses/${wId}/locations`);
       const list = (res.data && typeof res.data === 'object' && 'data' in res.data)
         ? res.data.data
         : res.data;
-      return Array.isArray(list) ? list : [];
+      return Array.isArray(list) ? (list as WarehouseLocation[]) : [];
     },
     enabled: Boolean(viewingWarehouse),
   });
@@ -151,20 +151,22 @@ export function WarehousesSection() {
   const handleInspectLocation = async (locationId: string | number) => {
     if (!viewingWarehouse) return;
     try {
-      const wId = (viewingWarehouse as any).uuid || viewingWarehouse.id;
-      const res = await api.get<any>(`/warehouses/${wId}/locations/${locationId}`);
-      const loc = (res.data && typeof res.data === 'object' && 'data' in res.data) ? res.data.data : res.data;
-      notify.info(`Storage Bin: ${loc.name} (${loc.code})`);
+      const wId = (viewingWarehouse as { uuid?: string }).uuid || viewingWarehouse.id;
+      const res = await api.get<{ data?: WarehouseLocation } | WarehouseLocation>(`/warehouses/${wId}/locations/${locationId}`);
+      const loc = (res.data && typeof res.data === 'object' && 'data' in res.data) ? res.data.data : (res.data as WarehouseLocation);
+      if (loc) {
+        notify.info(`Storage Bin: ${loc.name} (${loc.code})`);
+      }
     } catch {
       notify.error('Failed to load storage bin details');
     }
   };
 
-  const handleToggleLocationActive = async (loc: any) => {
+  const handleToggleLocationActive = async (loc: WarehouseLocation) => {
     if (!viewingWarehouse) return;
     try {
-      const wId = (viewingWarehouse as any).uuid || viewingWarehouse.id;
-      await api.patch(`/warehouses/${wId}/locations/${loc.uuid || loc.id}`, {
+      const wId = (viewingWarehouse as { uuid?: string }).uuid || viewingWarehouse.id;
+      await api.patch(`/warehouses/${wId}/locations/${(loc as { uuid?: string }).uuid || loc.id}`, {
         is_active: !loc.is_active,
       });
       notify.success('Location bin status updated');
@@ -178,7 +180,7 @@ export function WarehousesSection() {
     if (!viewingWarehouse) return;
     if (!confirm('Are you sure you want to delete this storage location bin?')) return;
     try {
-      const wId = (viewingWarehouse as any).uuid || viewingWarehouse.id;
+      const wId = (viewingWarehouse as { uuid?: string }).uuid || viewingWarehouse.id;
       await api.delete(`/warehouses/${wId}/locations/${locationId}`);
       notify.success('Storage bin deleted');
       refetchLocations();
@@ -190,11 +192,11 @@ export function WarehousesSection() {
   const handleOpenEdit = async (w: Warehouse) => {
     setErrorMsg(null);
     try {
-      const res = await api.get<any>(`/warehouses/${(w as any).uuid || w.id}`);
+      const res = await api.get<{ data?: Warehouse } | Warehouse>(`/warehouses/${(w as { uuid?: string }).uuid || w.id}`);
       const fresh = (res.data && typeof res.data === 'object' && 'data' in res.data)
         ? res.data.data
         : res.data;
-      const target = fresh || w;
+      const target = (fresh as Warehouse) || w;
       setDraft({
         code: target.code,
         name: target.name,
@@ -764,7 +766,7 @@ export function WarehousesSection() {
                         </td>
                       </tr>
                     ) : (
-                      warehouseLocations?.map((loc: any) => (
+                      warehouseLocations?.map((loc: WarehouseLocation) => (
                         <tr key={loc.id} className="hover:bg-surface-sunken/50">
                           <td className="px-3 py-2 font-mono font-semibold text-primary">{loc.code}</td>
                           <td className="px-3 py-2 font-medium text-default">{loc.name}</td>
@@ -780,7 +782,7 @@ export function WarehousesSection() {
                             <div className="inline-flex items-center gap-1">
                               <button
                                 type="button"
-                                onClick={() => handleInspectLocation(loc.uuid || loc.id)}
+                                onClick={() => handleInspectLocation(loc.id)}
                                 className="p-1 text-primary hover:bg-surface-sunken rounded"
                                 title="Inspect bin"
                               >
@@ -796,7 +798,7 @@ export function WarehousesSection() {
                               </button>
                               <button
                                 type="button"
-                                onClick={() => handleDeleteLocation(loc.uuid || loc.id)}
+                                onClick={() => handleDeleteLocation(loc.id)}
                                 className="p-1 text-muted hover:text-rose-600 hover:bg-rose-500/10 rounded"
                                 title="Delete bin"
                               >

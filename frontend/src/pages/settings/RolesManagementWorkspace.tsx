@@ -90,11 +90,25 @@ export const RolesManagementWorkspace: React.FC = () => {
   const [deleting, setDeleting] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
 
+interface RoleMemberUser {
+  id: number;
+  name: string;
+  email: string;
+  avatar_url?: string | null;
+  phone?: string | null;
+  status?: string;
+  employee?: {
+    employee_code?: string;
+    department?: string;
+    designation?: string;
+  } | null;
+}
+
   // Role Members Modal
   const [membersRole, setMembersRole] = useState<RoleData | null>(null);
-  const [roleMembers, setRoleMembers] = useState<any[]>([]);
+  const [roleMembers, setRoleMembers] = useState<RoleMemberUser[]>([]);
   const [loadingMembers, setLoadingMembers] = useState(false);
-  const [allUsersList, setAllUsersList] = useState<any[]>([]);
+  const [allUsersList, setAllUsersList] = useState<RoleMemberUser[]>([]);
   const [selectedUserToAdd, setSelectedUserToAdd] = useState<string>('');
   const [addingMember, setAddingMember] = useState(false);
   const [removingMemberId, setRemovingMemberId] = useState<number | null>(null);
@@ -154,16 +168,16 @@ export const RolesManagementWorkspace: React.FC = () => {
   // Open Edit Role Modal
   const handleOpenEdit = async (role: RoleData) => {
     try {
-      const res = await api.get<any>(`/roles/${role.id}`);
+      const res = await api.get<{ data?: RoleData } | RoleData>(`/roles/${role.id}`);
       const payload = (res.data && typeof res.data === 'object' && 'data' in res.data)
-        ? (res.data as any).data
+        ? res.data.data
         : res.data;
-      const target = payload || role;
+      const target = (payload as RoleData) || role;
       setEditingRole(target);
       setRoleName(target.name);
       setRoleSlug(target.slug);
       setRoleDescription(target.description || '');
-      const ids = new Set<number>((target.permissions || []).map((p: any) => Number(p.id)));
+      const ids = new Set<number>((target.permissions || []).map((p: PermissionItem | { id: number | string }) => Number(p.id)));
       setSelectedPermIds(ids);
       setIsModalOpen(true);
     } catch {
@@ -335,13 +349,17 @@ export const RolesManagementWorkspace: React.FC = () => {
     setSelectedUserToAdd('');
     try {
       const [membersRes, usersRes] = await Promise.all([
-        api.get<any>(`/roles/${role.id}/users`),
-        allUsersList.length === 0 ? api.get<any>('/users') : Promise.resolve({ data: allUsersList }),
+        api.get<{ data?: RoleMemberUser[] } | RoleMemberUser[]>(`/roles/${role.id}/users`),
+        allUsersList.length === 0 ? api.get<{ data?: RoleMemberUser[] } | RoleMemberUser[]>('/users') : Promise.resolve({ data: allUsersList }),
       ]);
-      const members = membersRes.data?.data || (Array.isArray(membersRes.data) ? membersRes.data : []);
+      const members = membersRes.data && typeof membersRes.data === 'object' && 'data' in membersRes.data && Array.isArray((membersRes.data as { data?: RoleMemberUser[] }).data)
+        ? (membersRes.data as { data: RoleMemberUser[] }).data
+        : (Array.isArray(membersRes.data) ? membersRes.data : []);
       setRoleMembers(members);
 
-      const users = usersRes.data?.data || (Array.isArray(usersRes.data) ? usersRes.data : []);
+      const users = usersRes.data && typeof usersRes.data === 'object' && 'data' in usersRes.data && Array.isArray((usersRes.data as { data?: RoleMemberUser[] }).data)
+        ? (usersRes.data as { data: RoleMemberUser[] }).data
+        : (Array.isArray(usersRes.data) ? (usersRes.data as RoleMemberUser[]) : []);
       setAllUsersList(users);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Failed to load role members';
@@ -360,8 +378,10 @@ export const RolesManagementWorkspace: React.FC = () => {
       });
       notify.success('User assigned to role successfully.');
       setSelectedUserToAdd('');
-      const membersRes = await api.get<any>(`/roles/${membersRole.id}/users`);
-      const members = membersRes.data?.data || (Array.isArray(membersRes.data) ? membersRes.data : []);
+      const membersRes = await api.get<{ data?: RoleMemberUser[] } | RoleMemberUser[]>(`/roles/${membersRole.id}/users`);
+      const members = membersRes.data && typeof membersRes.data === 'object' && 'data' in membersRes.data && Array.isArray((membersRes.data as { data?: RoleMemberUser[] }).data)
+        ? (membersRes.data as { data: RoleMemberUser[] }).data
+        : (Array.isArray(membersRes.data) ? membersRes.data : []);
       setRoleMembers(members);
       setRoles((prev) =>
         prev.map((r) => (r.id === membersRole.id ? { ...r, users_count: (r.users_count ?? 0) + 1 } : r))

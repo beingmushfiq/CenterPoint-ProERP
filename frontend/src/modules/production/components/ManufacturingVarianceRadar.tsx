@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import {
   Layers,
   ArrowUpRight,
@@ -58,33 +59,19 @@ interface RadarData {
 }
 
 export const ManufacturingVarianceRadar: React.FC = () => {
-  const [data, setData] = useState<RadarData | null>(null);
-  const [loading, setLoading] = useState(true);
   const [selectedBatchId, setSelectedBatchId] = useState<number | null>(null);
 
-  const fetchRadarData = useCallback(async (batchId?: number | null) => {
-    try {
-      setLoading(true);
-      const res = batchId
-        ? await api.get<RadarData>(`/production/variance-radar?batch_id=${batchId}`)
+  const { data: radarResponse, isLoading: loading, refetch } = useQuery<RadarData>({
+    queryKey: ['production', 'variance-radar', selectedBatchId],
+    queryFn: async () => {
+      const res = selectedBatchId
+        ? await api.get<RadarData>(`/production/variance-radar?batch_id=${selectedBatchId}`)
         : await api.get<RadarData>('/production/variance-radar');
-      if (res.data) {
-        setData(res.data);
-        if (!selectedBatchId && res.data.active_batch?.id) {
-          setSelectedBatchId(res.data.active_batch.id);
-        }
-      }
-    } catch {
-      // Fallback
-    } finally {
-      setLoading(false);
-    }
-  }, [selectedBatchId]);
+      return res.data;
+    },
+  });
 
-  useEffect(() => {
-    void fetchRadarData(selectedBatchId);
-  }, [selectedBatchId, fetchRadarData]);
-
+  const data = radarResponse ?? null;
   const summary = data?.summary;
   const isFavorable = (summary?.net_variance ?? 0) >= 0;
 
@@ -113,7 +100,7 @@ export const ManufacturingVarianceRadar: React.FC = () => {
             <div className="flex flex-col text-right">
               <span className="text-3xs font-semibold text-muted uppercase">Active Production Batch</span>
               <select
-                value={selectedBatchId ?? ''}
+                value={selectedBatchId ?? data?.active_batch?.id ?? ''}
                 onChange={(e) => setSelectedBatchId(Number(e.target.value))}
                 className="mt-1 px-3 py-1.5 rounded-xl border border-default bg-surface-sunken text-xs font-semibold text-default focus:outline-hidden focus:border-primary cursor-pointer"
               >
@@ -127,7 +114,7 @@ export const ManufacturingVarianceRadar: React.FC = () => {
             <Button
               variant="secondary"
               size="sm"
-              onClick={() => fetchRadarData(selectedBatchId)}
+              onClick={() => void refetch()}
               disabled={loading}
               className="mt-4 cursor-pointer"
             >

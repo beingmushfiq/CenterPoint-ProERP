@@ -4,7 +4,7 @@ import { api } from '../../lib/api/client';
  * Enterprise Route Registry for Bulk Import Aliases
  * Ensures all secondary backend aliases across modules are wired for batch imports.
  */
-export async function executeImportAlias(endpoint: string, payload: any = {}) {
+export async function executeImportAlias(endpoint: string, payload: unknown = {}) {
   switch (endpoint) {
     case 'boms':
       return api.post('/boms/bulk-import', payload);

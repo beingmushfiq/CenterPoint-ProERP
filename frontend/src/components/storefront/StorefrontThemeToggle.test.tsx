@@ -4,7 +4,7 @@ import { StorefrontThemeToggle } from './StorefrontThemeToggle';
 
 // Mock theme transition to avoid document.startViewTransition crashes in jsdom
 vi.mock('../../lib/theme/themeTransition', () => ({
-  toggleThemeWithTransition: (currentTheme: string, _e: any, onApply: (next: 'light' | 'dark') => void) => {
+  toggleThemeWithTransition: (currentTheme: string, _e: unknown, onApply: (next: 'light' | 'dark') => void) => {
     const nextTheme = currentTheme === 'dark' ? 'light' : 'dark';
     localStorage.setItem('ui.theme', nextTheme);
     localStorage.setItem('theme', nextTheme);

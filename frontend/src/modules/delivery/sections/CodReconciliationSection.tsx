@@ -114,7 +114,7 @@ export const CodReconciliationSection: React.FC<CodReconciliationSectionProps> =
 
       {/* Table */}
       <div className="overflow-x-auto min-h-75 bg-surface rounded-2xl border border-default shadow-2xs">
-        <table className="w-full text-left text-xs min-w-[750px]">
+        <table className="w-full text-left text-xs min-w-187.5">
           <thead className="bg-surface-sunken text-[10px] uppercase font-bold text-muted border-b border-default">
             <tr>
               <th className="px-4 py-3">RECONCILIATION #</th>

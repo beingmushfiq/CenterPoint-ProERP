@@ -59,6 +59,7 @@ final class PlansAndTenantsSeeder extends Seeder
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
+            $demoTenant = Tenant::where('slug', 'demoerp')->first();
         }
 
         // 3. Tenant Subscription Record

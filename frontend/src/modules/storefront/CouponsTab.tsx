@@ -203,9 +203,9 @@ export const CouponsTab: React.FC = () => {
   // Open Edit Modal
   const openEditModal = (coupon: Coupon) => {
     setEditingCoupon(coupon);
-    api.get<any>(`/sales/coupons/${coupon.id}`).then((res) => {
+    api.get<{ data?: Partial<Coupon> } | Partial<Coupon>>(`/sales/coupons/${coupon.id}`).then((res) => {
       const live = (res?.data && typeof res.data === 'object' && 'data' in res.data) ? res.data.data : res?.data;
-      if (live) setEditingCoupon((prev) => prev ? { ...prev, ...live } : live);
+      if (live) setEditingCoupon((prev) => prev ? { ...prev, ...live } : (live as Coupon));
     }).catch(() => {});
     setFormData({
       code: coupon.code,

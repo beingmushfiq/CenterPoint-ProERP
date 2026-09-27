@@ -1,17 +1,22 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Ban, CheckCircle2, Clock, Printer, RefreshCw, Search, Sliders, FileText, DollarSign, BookOpen, ArrowLeftRight, Upload, Download, Trash2, X } from 'lucide-react';
+import { Ban, CheckCircle2, Clock, Printer, RefreshCw, Search, Sliders, FileText, DollarSign, BookOpen, ArrowLeftRight, Upload, Download, Trash2, X, MoreHorizontal, History } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Invoice } from '../../../types/api/sales';
 import { api } from '../../../lib/api/client';
 import { useAuthStore } from '../../../lib/auth/authStore';
-import { ConfirmDialog } from '../../../components/ui/Modal';
 import { InvoiceTemplateBuilder } from '../components/InvoiceTemplateBuilder';
 import { useCurrency } from '../../../hooks/useCurrency';
 import { SelectDropdown } from '../../../components/ui/Dropdown';
 import { UniversalImportModal } from '../../../components/import/UniversalImportModal';
 import { historicalInvoiceImportSchema } from '../schemas/historicalInvoiceImportSchema';
+import { TableControls, type ColumnDef } from '../../../components/ui/TableControls';
+import { useTablePrefs } from '../../../hooks/useTablePrefs';
+import { DestructiveConfirmationDialog } from '../../../components/ui/DestructiveConfirmationDialog';
+import { ActionMenuPortal } from '../../../components/ui/ActionMenuPortal';
+import { AuditTimelineDrawer } from '../../../components/ui/AuditTimelineDrawer';
+import { cn } from '../../../lib/utils';
 
 interface InvoicesSectionProps {
   onNavigateToTab?: (tab: string) => void;
@@ -29,11 +34,46 @@ export function InvoicesSection({ onNavigateToTab }: InvoicesSectionProps = {}) 
   const [previewInvoice, setPreviewInvoice] = useState<Invoice | null>(null);
   const [showDesigner, setShowDesigner] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
+  const [auditingInvoice, setAuditingInvoice] = useState<Invoice | null>(null);
 
   // Bulk Selection States
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
-  const [deleteConfirm, setDeleteConfirm] = useState<{ id?: number; isBulk?: boolean; title: string } | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<{ id?: number; isBulk?: boolean; title: string; invoice?: Invoice } | null>(null);
   const headerCheckboxRef = useRef<HTMLInputElement>(null);
+
+  // Table Preferences & Column Visibility (Sprint C1)
+  const INVOICE_TABLE_COLUMNS: ColumnDef[] = [
+    { key: 'invoice_number', label: 'Invoice Number', required: true },
+    { key: 'date', label: 'Date' },
+    { key: 'customer', label: 'Customer' },
+    { key: 'subtotal', label: 'Subtotal' },
+    { key: 'margin', label: 'Gross Margin' },
+    { key: 'total', label: 'Total Amount' },
+    { key: 'status', label: 'Status' },
+  ];
+
+  const {
+    density,
+    setDensity,
+    visibleColumns,
+    toggleColumn,
+    isVisible,
+    cellClass,
+  } = useTablePrefs({
+    tableId: 'sales_invoices',
+    defaultColumns: {
+      date: true,
+      customer: true,
+      subtotal: true,
+      margin: true,
+      total: true,
+      status: true,
+    },
+    defaultDensity: 'comfortable',
+  });
+
+  const [openActionMenuId, setOpenActionMenuId] = useState<number | null>(null);
+  const [actionMenuAnchor, setActionMenuAnchor] = useState<HTMLElement | null>(null);
 
   const handleExportCsv = () => {
     if (invoices.length === 0) {
@@ -338,6 +378,14 @@ export function InvoicesSection({ onNavigateToTab }: InvoicesSectionProps = {}) 
             <Sliders className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
             Template Designer & Preview
           </button>
+
+          <TableControls
+            density={density}
+            onDensityChange={setDensity}
+            columns={INVOICE_TABLE_COLUMNS}
+            visibleColumns={visibleColumns}
+            onToggleColumn={toggleColumn}
+          />
         </div>
       </div>
 
@@ -376,12 +424,12 @@ export function InvoicesSection({ onNavigateToTab }: InvoicesSectionProps = {}) 
       )}
 
       {/* Invoices Table */}
-      <div className="overflow-hidden rounded-2xl border border-default bg-surface shadow-2xs">
+      <div className="overflow-hidden rounded-2xl border border-default bg-surface shadow-2xs max-h-[70vh] overflow-y-auto">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs text-default">
-            <thead className="border-b border-default bg-surface-sunken text-[11px] font-semibold uppercase tracking-wider text-muted">
+          <table className="w-full text-left text-xs text-default border-collapse">
+            <thead className="sticky top-0 z-10 border-b border-default bg-surface-sunken/95 backdrop-blur-xs text-[11px] font-semibold uppercase tracking-wider text-muted">
               <tr>
-                <th className="w-10 px-4 py-3.5 text-center">
+                <th className={cn("w-10 text-center", cellClass)}>
                   <input
                     ref={headerCheckboxRef}
                     type="checkbox"
@@ -391,14 +439,14 @@ export function InvoicesSection({ onNavigateToTab }: InvoicesSectionProps = {}) 
                     className="size-4 rounded border-default text-primary focus:ring-primary/20 cursor-pointer"
                   />
                 </th>
-                <th className="px-4 py-3.5">Invoice Number</th>
-                <th className="px-4 py-3.5">Date</th>
-                <th className="px-4 py-3.5">Customer</th>
-                <th className="px-4 py-3.5">Subtotal</th>
-                <th className="px-4 py-3.5">Gross Margin</th>
-                <th className="px-4 py-3.5">Total Amount</th>
-                <th className="px-4 py-3.5">Status</th>
-                <th className="px-4 py-3.5 text-right">Actions</th>
+                <th className={cn("px-4", cellClass)}>Invoice Number</th>
+                {isVisible('date') && <th className={cn("px-4", cellClass)}>Date</th>}
+                {isVisible('customer') && <th className={cn("px-4", cellClass)}>Customer</th>}
+                {isVisible('subtotal') && <th className={cn("px-4", cellClass)}>Subtotal</th>}
+                {isVisible('margin') && <th className={cn("px-4", cellClass)}>Gross Margin</th>}
+                {isVisible('total') && <th className={cn("px-4", cellClass)}>Total Amount</th>}
+                {isVisible('status') && <th className={cn("px-4", cellClass)}>Status</th>}
+                <th className={cn("px-4 text-right", cellClass)}>Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-default">
@@ -429,7 +477,7 @@ export function InvoicesSection({ onNavigateToTab }: InvoicesSectionProps = {}) 
                   const isSelected = selectedIds.has(inv.id);
                   return (
                     <tr key={inv.id} className={`hover:bg-surface-sunken/60 transition-colors ${isSelected ? 'bg-primary/5' : ''}`}>
-                      <td className="w-10 px-4 py-3.5 text-center" onClick={(e) => e.stopPropagation()}>
+                      <td className={cn("w-10 text-center", cellClass)} onClick={(e) => e.stopPropagation()}>
                         <input
                           type="checkbox"
                           checked={isSelected}
@@ -438,7 +486,7 @@ export function InvoicesSection({ onNavigateToTab }: InvoicesSectionProps = {}) 
                           className="size-4 rounded border-default text-primary focus:ring-primary/20 cursor-pointer"
                         />
                       </td>
-                      <td className="px-4 py-3.5 font-mono font-medium text-emerald-600 dark:text-emerald-400">
+                      <td className={cn("px-4 font-mono font-medium text-emerald-600 dark:text-emerald-400", cellClass)}>
                         <div className="flex items-center gap-1.5 flex-wrap">
                           <span>{inv.invoice_number}</span>
                           {inv.has_exchanges && (
@@ -451,31 +499,39 @@ export function InvoicesSection({ onNavigateToTab }: InvoicesSectionProps = {}) 
                           )}
                         </div>
                       </td>
-                      <td className="px-4 py-3.5 text-muted">{inv.invoice_date}</td>
-                      <td className="px-4 py-3.5 text-default font-medium">
-                        {inv.customer_name ?? 'Counter Customer'}
-                      </td>
-                      <td className="px-4 py-3.5 font-mono text-default">
-                        {formatCurrency(subtotalNum)}
-                      </td>
-                      <td className="px-4 py-3.5">
-                        <div className="flex items-center gap-1.5">
-                          <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400 text-xs">
-                            {formatCurrency(grossProfit)}
-                          </span>
-                          <span className="text-[10px] text-muted font-mono">
-                            ({marginPct.toFixed(1)}%)
-                          </span>
-                          <span className="text-[9px] px-1.5 py-0.5 rounded-md bg-surface-sunken border border-default text-muted font-mono" title="Locked to historical COGS at transaction time">
-                            🔒 Locked
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3.5 font-mono font-medium text-default">
-                        {formatCurrency(inv.total_amount)}
-                      </td>
-                      <td className="px-4 py-3.5">{getStatusBadge(inv.status)}</td>
-                      <td className="px-4 py-3.5 text-right space-x-1.5">
+                      {isVisible('date') && <td className={cn("px-4 text-muted", cellClass)}>{inv.invoice_date}</td>}
+                      {isVisible('customer') && (
+                        <td className={cn("px-4 text-default font-medium", cellClass)}>
+                          {inv.customer_name ?? 'Counter Customer'}
+                        </td>
+                      )}
+                      {isVisible('subtotal') && (
+                        <td className={cn("px-4 font-mono text-default", cellClass)}>
+                          {formatCurrency(subtotalNum)}
+                        </td>
+                      )}
+                      {isVisible('margin') && (
+                        <td className={cn("px-4", cellClass)}>
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400 text-xs">
+                              {formatCurrency(grossProfit)}
+                            </span>
+                            <span className="text-[10px] text-muted font-mono">
+                              ({marginPct.toFixed(1)}%)
+                            </span>
+                            <span className="text-[9px] px-1.5 py-0.5 rounded-md bg-surface-sunken border border-default text-muted font-mono" title="Locked to historical COGS at transaction time">
+                              🔒 Locked
+                            </span>
+                          </div>
+                        </td>
+                      )}
+                      {isVisible('total') && (
+                        <td className={cn("px-4 font-mono font-medium text-default", cellClass)}>
+                          {formatCurrency(inv.total_amount)}
+                        </td>
+                      )}
+                      {isVisible('status') && <td className={cn("px-4", cellClass)}>{getStatusBadge(inv.status)}</td>}
+                      <td className={cn("px-4 text-right space-x-1.5", cellClass)}>
                         <button
                           onClick={() => handlePreviewInvoice(inv)}
                           className="inline-flex items-center gap-1 rounded-xl bg-surface-sunken border border-default px-2.5 py-1 text-[11px] font-medium text-default hover:bg-surface transition-colors cursor-pointer"
@@ -502,47 +558,165 @@ export function InvoicesSection({ onNavigateToTab }: InvoicesSectionProps = {}) 
                             <span>Collect</span>
                           </button>
                         )}
-                        {(inv.status === 'posted' || inv.status === 'paid') && (
-                          <Link
-                            to="/finance?tab=gl"
-                            className="inline-flex items-center gap-1 rounded-xl bg-surface-sunken border border-default px-2 py-1 text-[11px] font-medium text-muted hover:text-primary hover:border-primary/40 transition-colors"
-                            title="View posted accounting journals in General Ledger"
-                          >
-                            <BookOpen className="size-3" />
-                            <span>Ledger</span>
-                          </Link>
-                        )}
-                        {inv.status !== 'void' && (
-                          <button
-                            onClick={() => setShowVoidModal(inv.id)}
-                            className="rounded-xl bg-rose-500/10 border border-rose-500/20 px-2.5 py-1 text-[11px] font-medium text-rose-600 dark:text-rose-400 hover:bg-rose-500/20 transition-colors cursor-pointer"
-                          >
-                            Void
-                          </button>
-                        )}
-                        {canDelete && (
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setDeleteConfirm({
-                                id: inv.id,
-                                title: `invoice ${inv.invoice_number}`,
-                              })
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (openActionMenuId === inv.id) {
+                              setOpenActionMenuId(null);
+                              setActionMenuAnchor(null);
+                            } else {
+                              setOpenActionMenuId(inv.id);
+                              setActionMenuAnchor(e.currentTarget);
                             }
-                            className="rounded-xl bg-rose-500/10 border border-rose-500/20 px-2.5 py-1 text-[11px] font-medium text-rose-600 dark:text-rose-400 hover:bg-rose-500/20 transition-colors cursor-pointer inline-flex items-center gap-1"
-                            title="Move invoice to Data Bin"
-                          >
-                            <Trash2 className="size-3" />
-                            <span>Move to Bin</span>
-                          </button>
-                        )}
+                          }}
+                          className={cn(
+                            "inline-flex items-center justify-center size-7 rounded-xl transition-all cursor-pointer border shadow-2xs",
+                            openActionMenuId === inv.id
+                              ? "bg-primary text-primary-fg border-primary shadow-xs"
+                              : "text-muted hover:text-default bg-surface-sunken hover:bg-surface border-default"
+                          )}
+                          title="More Invoice Actions"
+                        >
+                          <MoreHorizontal className="size-3.5" />
+                        </button>
                       </td>
                     </tr>
                   );
                 })
               )}
             </tbody>
+            {filteredInvoices.length > 0 && (
+              <tfoot className="border-t-2 border-default bg-surface-sunken/90 font-semibold text-default text-xs">
+                <tr>
+                  <td className={cn("text-center", cellClass)} />
+                  <td className={cellClass}>
+                    <div className="font-bold">
+                      Total: {filteredInvoices.length} {filteredInvoices.length === 1 ? 'Invoice' : 'Invoices'}
+                    </div>
+                  </td>
+                  {isVisible('date') && <td className={cellClass} />}
+                  {isVisible('customer') && <td className={cellClass} />}
+                  {isVisible('subtotal') && (
+                    <td className={cn("font-mono", cellClass)}>
+                      {formatCurrency(
+                        filteredInvoices.reduce((sum, inv) => sum + (parseFloat(inv.subtotal || '0') || 0), 0)
+                      )}
+                    </td>
+                  )}
+                  {isVisible('margin') && (
+                    <td className={cn("font-mono text-emerald-600 dark:text-emerald-400", cellClass)}>
+                      {formatCurrency(
+                        filteredInvoices.reduce((sum, inv) => {
+                          const s = parseFloat(inv.subtotal || '0') || 0;
+                          return sum + Math.max(0, s - s * 0.62);
+                        }, 0)
+                      )}
+                    </td>
+                  )}
+                  {isVisible('total') && (
+                    <td className={cn("font-mono font-bold text-primary", cellClass)}>
+                      {formatCurrency(
+                        filteredInvoices.reduce((sum, inv) => sum + (parseFloat(inv.total_amount || '0') || 0), 0)
+                      )}
+                    </td>
+                  )}
+                  {isVisible('status') && (
+                    <td className={cellClass}>
+                      <span className="text-[11px] text-muted">
+                        {filteredInvoices.filter((inv) => inv.status === 'paid').length} Paid
+                      </span>
+                    </td>
+                  )}
+                  <td className={cn("px-4 text-right text-muted text-[11px]", cellClass)}>
+                    Summary
+                  </td>
+                </tr>
+              </tfoot>
+            )}
           </table>
+          {openActionMenuId && (() => {
+            const inv = filteredInvoices.find((x) => x.id === openActionMenuId);
+            if (!inv) return null;
+            return (
+              <ActionMenuPortal
+                isOpen={Boolean(openActionMenuId && actionMenuAnchor)}
+                anchorEl={actionMenuAnchor}
+                onClose={() => {
+                  setOpenActionMenuId(null);
+                  setActionMenuAnchor(null);
+                }}
+                width="13rem"
+              >
+                <div className="p-1 space-y-0.5 text-xs">
+                  <div className="px-2.5 py-1.5 border-b border-default text-2xs text-muted font-mono truncate">
+                    Invoice #{inv.invoice_number}
+                  </div>
+                  {(inv.status === 'posted' || inv.status === 'paid') && (
+                    <Link
+                      to="/finance?tab=gl"
+                      onClick={() => {
+                        setOpenActionMenuId(null);
+                        setActionMenuAnchor(null);
+                      }}
+                      className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left text-default hover:bg-surface-sunken transition-colors cursor-pointer"
+                    >
+                      <BookOpen className="size-3.5 text-primary" />
+                      <span>General Ledger</span>
+                    </Link>
+                  )}
+                  {inv.status !== 'void' && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setOpenActionMenuId(null);
+                        setActionMenuAnchor(null);
+                        setShowVoidModal(inv.id);
+                      }}
+                      className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left text-amber-600 dark:text-amber-400 hover:bg-amber-500/10 transition-colors cursor-pointer"
+                    >
+                      <Ban className="size-3.5" />
+                      <span>Void Invoice</span>
+                    </button>
+                  )}
+                  <div className="my-1 border-t border-default" />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setOpenActionMenuId(null);
+                      setActionMenuAnchor(null);
+                      setAuditingInvoice(inv);
+                    }}
+                    className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left text-default hover:bg-surface-sunken transition-colors cursor-pointer"
+                  >
+                    <History className="size-3.5 text-primary" />
+                    <span>View Audit History...</span>
+                  </button>
+                  {canDelete && (
+                    <>
+                      <div className="my-1 border-t border-default" />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setOpenActionMenuId(null);
+                          setActionMenuAnchor(null);
+                          setDeleteConfirm({
+                            id: inv.id,
+                            title: `invoice ${inv.invoice_number}`,
+                            invoice: inv,
+                          });
+                        }}
+                        className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer font-medium"
+                      >
+                        <Trash2 className="size-3.5 text-rose-500" />
+                        <span>Move to Bin</span>
+                      </button>
+                    </>
+                  )}
+                </div>
+              </ActionMenuPortal>
+            );
+          })()}
         </div>
       </div>
 
@@ -616,21 +790,73 @@ export function InvoicesSection({ onNavigateToTab }: InvoicesSectionProps = {}) 
         }}
       />
 
-      {/* Delete Confirmation Dialog */}
-      <ConfirmDialog
-        open={!!deleteConfirm}
-        onClose={() => setDeleteConfirm(null)}
-        onConfirm={() => {
-          if (deleteConfirm?.isBulk) {
-            deleteInvoiceMutation.mutate({ ids: Array.from(selectedIds) });
-          } else if (deleteConfirm?.id) {
-            deleteInvoiceMutation.mutate({ id: deleteConfirm.id });
+      {/* Delete Confirmation Dialog (Destructive UX Overhaul - Sprint C3) */}
+      {deleteConfirm && (
+        <DestructiveConfirmationDialog
+          open={!!deleteConfirm}
+          onClose={() => setDeleteConfirm(null)}
+          onConfirmDelete={() => {
+            if (deleteConfirm.isBulk) {
+              deleteInvoiceMutation.mutate({ ids: Array.from(selectedIds) });
+            } else if (deleteConfirm.id) {
+              deleteInvoiceMutation.mutate({ id: deleteConfirm.id });
+            }
+          }}
+          title={deleteConfirm.isBulk ? `Delete ${selectedIds.size} Invoices` : 'Delete Invoice'}
+          entityType="Invoice"
+          entityName={deleteConfirm.title}
+          entityCode={deleteConfirm.invoice?.invoice_number}
+          impactItems={
+            deleteConfirm.invoice
+              ? [
+                  {
+                    label: 'Total Amount',
+                    count: formatCurrency(deleteConfirm.invoice.total_amount),
+                    warning: parseFloat(deleteConfirm.invoice.total_amount || '0') > 0,
+                  },
+                  {
+                    label: 'Invoice Status',
+                    count: (deleteConfirm.invoice.status || 'posted').toUpperCase(),
+                  },
+                  {
+                    label: 'Customer',
+                    count: deleteConfirm.invoice.customer_name || 'Counter Customer',
+                  },
+                  {
+                    label: 'Exchanges Count',
+                    count: deleteConfirm.invoice.has_exchanges ? String(deleteConfirm.invoice.exchanges_count ?? 1) : 'None',
+                    warning: Boolean(deleteConfirm.invoice.has_exchanges),
+                  },
+                ]
+              : [
+                  {
+                    label: 'Total Selected Invoices',
+                    count: selectedIds.size,
+                    warning: true,
+                  },
+                  {
+                    label: 'Combined Total Value',
+                    count: formatCurrency(
+                      filteredInvoices
+                        .filter((inv) => selectedIds.has(inv.id))
+                        .reduce((sum, inv) => sum + (parseFloat(inv.total_amount || '0') || 0), 0)
+                    ),
+                  },
+                ]
           }
-        }}
-        title="Move to Data Bin"
-        message={`Are you sure you want to move ${deleteConfirm?.title} to the Data Bin? You can restore it anytime from Settings > Data Bin.`}
-        confirmLabel="Move to Bin"
-        variant="danger"
+          warningMessage={`Moving ${deleteConfirm.title} to Data Bin will withdraw it from the active ledger while retaining audit records. You can restore it anytime from Settings > Data Bin.`}
+          isDeleting={deleteInvoiceMutation.isPending}
+        />
+      )}
+
+      {/* Entity Audit History Drawer */}
+      <AuditTimelineDrawer
+        isOpen={Boolean(auditingInvoice)}
+        onClose={() => setAuditingInvoice(null)}
+        entityType="Invoice"
+        entityId={auditingInvoice?.id}
+        entityTitle={`Invoice #${auditingInvoice?.invoice_number}`}
+        entityCode={auditingInvoice?.status}
       />
     </div>
   );

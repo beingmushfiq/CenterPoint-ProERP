@@ -1,10 +1,25 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# DevCenterPoint ProERP — Unified Master Deployment Runner (Linux / cPanel / Bash)
+# SliceMart FMS / DevCenterPoint ProERP — Unified Master Bash Deployment Runner
 # ==============================================================================
-# Target Layout:
-#   Backend Directory:  /home/devcente/projects/proerp/backend
-#   Frontend Directory: /home/devcente/projects/proerp/public
+# Supported Environments:
+#   - Linux VPS (Ubuntu, Debian, AlmaLinux, Rocky)
+#   - cPanel / CloudLinux Shared Hosting
+#   - Docker Containers & CI/CD Pipelines (GitHub Actions)
+#   - macOS & WSL (Windows Subsystem for Linux)
+#
+# Usage:
+#   bash deploy.sh [OPTIONS]
+#   ./deploy.sh [OPTIONS]
+#
+# Options:
+#   --in-place               Deploy directly inside current repository (backend/ & public_html/)
+#   --target-backend=PATH    Custom destination path for Laravel backend
+#   --target-frontend=PATH   Custom destination path for public SPA document root
+#   --skip-build             Skip frontend build (deploy existing pre-built assets)
+#   --skip-migrate           Skip database migrations
+#   --seed                   Run full database seeders (Platform & Flagship tenant)
+#   --help, -h               Show this help message
 # ==============================================================================
 set -euo pipefail
 
@@ -12,71 +27,105 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_DIR="${SCRIPT_DIR}"
 cd "${REPO_DIR}"
 
-DEFAULT_BACKEND="/home/devcente/projects/proerp/backend"
-DEFAULT_FRONTEND="/home/devcente/projects/proerp/public"
-
-TARGET_BACKEND="${DEFAULT_BACKEND}"
-TARGET_FRONTEND="${DEFAULT_FRONTEND}"
+# ------------------------------------------------------------------------------
+# 0. Parse Command-Line Options
+# ------------------------------------------------------------------------------
+IN_PLACE=false
+CUSTOM_BACKEND=""
+CUSTOM_FRONTEND=""
 SKIP_BUILD=false
 SKIP_MIGRATE=false
 FORCE_SEED=false
 
 for arg in "$@"; do
     case "$arg" in
-        --target-backend=*) TARGET_BACKEND="${arg#*=}" ;;
-        --target-frontend=*) TARGET_FRONTEND="${arg#*=}" ;;
-        --skip-build) SKIP_BUILD=true ;;
-        --skip-migrate) SKIP_MIGRATE=true ;;
-        --seed) FORCE_SEED=true ;;
+        --in-place)
+            IN_PLACE=true
+            ;;
+        --target-backend=*)
+            CUSTOM_BACKEND="${arg#*=}"
+            ;;
+        --target-frontend=*)
+            CUSTOM_FRONTEND="${arg#*=}"
+            ;;
+        --skip-build)
+            SKIP_BUILD=true
+            ;;
+        --skip-migrate)
+            SKIP_MIGRATE=true
+            ;;
+        --seed)
+            FORCE_SEED=true
+            ;;
+        --help|-h)
+            echo "=================================================================="
+            echo " SliceMart FMS — Unified Bash Deployment Runner                   "
+            echo "=================================================================="
+            echo " Usage: bash deploy.sh [OPTIONS]"
+            echo ""
+            echo " Options:"
+            echo "   --in-place               Deploy directly in current repo directory"
+            echo "   --target-backend=PATH    Custom target directory for backend"
+            echo "   --target-frontend=PATH   Custom target directory for frontend public"
+            echo "   --skip-build             Skip npm frontend build"
+            echo "   --skip-migrate           Skip database migrations"
+            echo "   --seed                   Run full database seeders"
+            echo "   --help, -h               Show this help message"
+            echo "=================================================================="
+            exit 0
+            ;;
+        *)
+            echo "Notice: Unknown argument '$arg' passed."
+            ;;
     esac
 done
 
 # ------------------------------------------------------------------------------
-# 1. Attempt Node.js Discovery (Standard, cPanel MultiPHP, and NVM paths)
+# 1. Environment & Target Directory Resolution
 # ------------------------------------------------------------------------------
-NODE_BIN=""
-if command -v node &> /dev/null; then
-    NODE_BIN="$(command -v node)"
-elif [ -x "/opt/cpanel/ea-nodejs22/bin/node" ]; then
-    NODE_BIN="/opt/cpanel/ea-nodejs22/bin/node"
-elif [ -x "/opt/cpanel/ea-nodejs20/bin/node" ]; then
-    NODE_BIN="/opt/cpanel/ea-nodejs20/bin/node"
-elif [ -x "/opt/cpanel/ea-nodejs18/bin/node" ]; then
-    NODE_BIN="/opt/cpanel/ea-nodejs18/bin/node"
-elif [ -x "/usr/local/bin/node" ]; then
-    NODE_BIN="/usr/local/bin/node"
-elif [ -x "/usr/bin/node" ]; then
-    NODE_BIN="/usr/bin/node"
-elif [ -f "${HOME}/.nvm/nvm.sh" ]; then
-    export NVM_DIR="${HOME}/.nvm"
-    # shellcheck disable=SC1090
-    [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" 2>/dev/null || true
-    if command -v node &> /dev/null; then
-        NODE_BIN="$(command -v node)"
-    fi
+CPANEL_USER="${CPANEL_USER:-$(whoami 2>/dev/null || echo 'devcente')}"
+USER_HOME="${HOME:-/home/${CPANEL_USER}}"
+
+if [ -n "${CUSTOM_BACKEND}" ]; then
+    TARGET_BACKEND="${CUSTOM_BACKEND}"
+elif [ "${IN_PLACE}" = true ]; then
+    TARGET_BACKEND="${REPO_DIR}/backend"
+elif [ -d "/home/devcente/projects/proerp/backend" ]; then
+    TARGET_BACKEND="/home/devcente/projects/proerp/backend"
+elif [ -d "${USER_HOME}/projects/proerp/backend" ]; then
+    TARGET_BACKEND="${USER_HOME}/projects/proerp/backend"
+else
+    TARGET_BACKEND="${REPO_DIR}/backend"
 fi
 
-# ------------------------------------------------------------------------------
-# 2. If Node.js is Available and Building is requested, use Node engine
-# ------------------------------------------------------------------------------
-if [ -n "${NODE_BIN}" ] && [ "${SKIP_BUILD}" = false ] && [ -f "${REPO_DIR}/scripts/deploy_all.cjs" ]; then
-    echo "Using Node.js: ${NODE_BIN}"
-    exec "${NODE_BIN}" scripts/deploy_all.cjs --target-backend="${TARGET_BACKEND}" --target-frontend="${TARGET_FRONTEND}" "$@"
+if [ -n "${CUSTOM_FRONTEND}" ]; then
+    TARGET_FRONTEND="${CUSTOM_FRONTEND}"
+elif [ "${IN_PLACE}" = true ]; then
+    TARGET_FRONTEND="${REPO_DIR}/public_html"
+elif [ -d "/home/devcente/projects/proerp/public" ]; then
+    TARGET_FRONTEND="/home/devcente/projects/proerp/public"
+elif [ -d "${USER_HOME}/projects/proerp/public" ]; then
+    TARGET_FRONTEND="${USER_HOME}/projects/proerp/public"
+elif [ -d "${USER_HOME}/public_html" ] && [ "${USER_HOME}/public_html" != "${REPO_DIR}/public_html" ]; then
+    TARGET_FRONTEND="${USER_HOME}/public_html"
+else
+    TARGET_FRONTEND="${REPO_DIR}/public_html"
 fi
 
-# ------------------------------------------------------------------------------
-# 3. Native Zero-Dependency Server Deployment Pipeline (Pure Bash & PHP)
-# (Executes when Node.js is not installed on cPanel/shared hosting server)
-# ------------------------------------------------------------------------------
+START_TIME=$(date +%s)
+
 echo "=================================================================="
-echo " DevCenterPoint ProERP — Native Server Deployment Pipeline        "
-echo "=================================================================="
-echo " Source Directory:   ${REPO_DIR}"
-echo " Backend Directory:  ${TARGET_BACKEND}"
-echo " Frontend Directory: ${TARGET_FRONTEND}"
+echo " SliceMart FMS — Automated Bash Deployment Started               "
+echo " Timestamp:          $(date '+%Y-%m-%d %H:%M:%S')"
+echo " Source Repo:        ${REPO_DIR}"
+echo " Backend Target:     ${TARGET_BACKEND}"
+echo " Frontend Target:    ${TARGET_FRONTEND}"
+echo " In-Place Mode:      ${IN_PLACE}"
 echo "=================================================================="
 
-# A. Find PHP CLI Binary
+# ------------------------------------------------------------------------------
+# 2. PHP CLI Discovery (MultiPHP 8.4/8.5, System PHP)
+# ------------------------------------------------------------------------------
 PHP_BIN=""
 if [ -n "${PHP_BIN:-}" ] && [ -x "${PHP_BIN}" ]; then
     :
@@ -93,34 +142,73 @@ elif command -v php &> /dev/null; then
 else
     PHP_BIN="php"
 fi
-echo "Using PHP: $(${PHP_BIN} -v 2>/dev/null | head -n 1 || echo 'php')"
+echo "✓ PHP CLI: $(${PHP_BIN} -v 2>/dev/null | head -n 1 || echo 'php')"
 
-# B. Ensure Destination Directories Exist
-mkdir -p "${TARGET_BACKEND}"
-mkdir -p "${TARGET_FRONTEND}"
-mkdir -p "${HOME}/logs"
-
-# C. Deploy Frontend Dist / Web Assets
-echo "--- [1/4] Deploying Frontend Web Distribution ---"
-if [ -d "${REPO_DIR}/public_html" ]; then
-    echo "Syncing pre-built SPA bundle from public_html -> ${TARGET_FRONTEND}"
-    cp -Rf "${REPO_DIR}/public_html/." "${TARGET_FRONTEND}/"
-    [ -f "${REPO_DIR}/public_html/.htaccess" ] && cp -f "${REPO_DIR}/public_html/.htaccess" "${TARGET_FRONTEND}/.htaccess"
-    [ -f "${REPO_DIR}/public_html/index.php" ] && cp -f "${REPO_DIR}/public_html/index.php" "${TARGET_FRONTEND}/index.php"
-    [ -f "${REPO_DIR}/public_html/index.html" ] && cp -f "${REPO_DIR}/public_html/index.html" "${TARGET_FRONTEND}/index.html"
-    echo "✓ Frontend web files deployed to ${TARGET_FRONTEND}."
-elif [ -d "${REPO_DIR}/frontend/dist" ]; then
-    echo "Syncing pre-built SPA bundle from frontend/dist -> ${TARGET_FRONTEND}"
-    cp -Rf "${REPO_DIR}/frontend/dist/." "${TARGET_FRONTEND}/"
-    echo "✓ Frontend web files deployed to ${TARGET_FRONTEND}."
-else
-    echo "Notice: No public_html or frontend/dist directory found in repo."
+# ------------------------------------------------------------------------------
+# 3. Node.js & Frontend Build (If npm/node are available and not skipped)
+# ------------------------------------------------------------------------------
+NODE_BIN=""
+if command -v node &> /dev/null; then
+    NODE_BIN="$(command -v node)"
+elif [ -x "/opt/cpanel/ea-nodejs22/bin/node" ]; then
+    NODE_BIN="/opt/cpanel/ea-nodejs22/bin/node"
+elif [ -x "/opt/cpanel/ea-nodejs20/bin/node" ]; then
+    NODE_BIN="/opt/cpanel/ea-nodejs20/bin/node"
+elif [ -x "/opt/cpanel/ea-nodejs18/bin/node" ]; then
+    NODE_BIN="/opt/cpanel/ea-nodejs18/bin/node"
+elif [ -x "/usr/local/bin/node" ]; then
+    NODE_BIN="/usr/local/bin/node"
+elif [ -f "${HOME}/.nvm/nvm.sh" ]; then
+    export NVM_DIR="${HOME}/.nvm"
+    # shellcheck disable=SC1090
+    [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" 2>/dev/null || true
+    if command -v node &> /dev/null; then
+        NODE_BIN="$(command -v node)"
+    fi
 fi
 
-# D. Deploy Backend Application Files
-echo "--- [2/4] Synchronizing Backend Application Files ---"
+if [ "${SKIP_BUILD}" = false ] && [ -n "${NODE_BIN}" ] && command -v npm &> /dev/null; then
+    echo "--- [1/5] Building Frontend Production Bundle (Node: ${NODE_BIN}) ---"
+    (
+        cd "${REPO_DIR}"
+        npm run build:prod
+    ) || {
+        echo "Warning: Build failed; proceeding with pre-built assets in public_html."
+    }
+else
+    echo "--- [1/5] Skipping Frontend Build (Using Pre-built public_html Assets) ---"
+fi
+
+# ------------------------------------------------------------------------------
+# 4. Target Directory Scaffolding & Web Assets Deployment
+# ------------------------------------------------------------------------------
+echo "--- [2/5] Deploying Web Frontend Distribution ---"
+mkdir -p "${TARGET_FRONTEND}"
+mkdir -p "${TARGET_BACKEND}"
+mkdir -p "${USER_HOME}/logs"
+
+if [ -d "${REPO_DIR}/public_html" ] && [ "${REPO_DIR}/public_html" != "${TARGET_FRONTEND}" ]; then
+    echo "Syncing public_html -> ${TARGET_FRONTEND}"
+    cp -Rf "${REPO_DIR}/public_html/." "${TARGET_FRONTEND}/"
+    echo "✓ Frontend assets synchronized to ${TARGET_FRONTEND}."
+else
+    echo "✓ Frontend assets already in place at ${TARGET_FRONTEND}."
+fi
+
+# Ensure critical web entry files exist
+if [ ! -f "${TARGET_FRONTEND}/index.php" ] && [ -f "${REPO_DIR}/public_html/index.php" ]; then
+    cp -f "${REPO_DIR}/public_html/index.php" "${TARGET_FRONTEND}/index.php"
+fi
+if [ ! -f "${TARGET_FRONTEND}/.htaccess" ] && [ -f "${REPO_DIR}/public_html/.htaccess" ]; then
+    cp -f "${REPO_DIR}/public_html/.htaccess" "${TARGET_FRONTEND}/.htaccess"
+fi
+
+# ------------------------------------------------------------------------------
+# 5. Backend Files Synchronization
+# ------------------------------------------------------------------------------
+echo "--- [3/5] Synchronizing Backend Application Files ---"
 if [ "${REPO_DIR}/backend" != "${TARGET_BACKEND}" ]; then
-    # Preserve existing .env in target directory
+    # Preserve existing .env
     if [ -f "${TARGET_BACKEND}/.env" ]; then
         cp -f "${TARGET_BACKEND}/.env" "${TARGET_BACKEND}/.env.bak"
     fi
@@ -131,40 +219,54 @@ if [ "${REPO_DIR}/backend" != "${TARGET_BACKEND}" ]; then
         cp -Rf "${REPO_DIR}/backend/." "${TARGET_BACKEND}/"
     fi
 
-    # Restore .env
+    # Restore or initialize .env
     if [ -f "${TARGET_BACKEND}/.env.bak" ]; then
         mv -f "${TARGET_BACKEND}/.env.bak" "${TARGET_BACKEND}/.env"
-    elif [ ! -f "${TARGET_BACKEND}/.env" ] && [ -f "${TARGET_BACKEND}/.env.production.example" ]; then
-        cp -f "${TARGET_BACKEND}/.env.production.example" "${TARGET_BACKEND}/.env"
-        echo "Notice: Created .env from .env.production.example (please configure DB credentials)."
     fi
-    echo "✓ Backend files synchronized to ${TARGET_BACKEND}."
+    echo "✓ Backend files copied to ${TARGET_BACKEND}."
 else
-    echo "✓ Backend source is already in ${TARGET_BACKEND}."
+    echo "✓ Backend application is already located at ${TARGET_BACKEND}."
 fi
 
-# E. Storage Directories & Permissions
-echo "--- [3/4] Scaffolding Storage & Permissions ---"
+# Ensure .env exists
+if [ ! -f "${TARGET_BACKEND}/.env" ]; then
+    if [ -f "${REPO_DIR}/.env.production.example" ]; then
+        cp "${REPO_DIR}/.env.production.example" "${TARGET_BACKEND}/.env"
+        echo "Notice: Created ${TARGET_BACKEND}/.env from .env.production.example."
+    elif [ -f "${TARGET_BACKEND}/.env.example" ]; then
+        cp "${TARGET_BACKEND}/.env.example" "${TARGET_BACKEND}/.env"
+        echo "Notice: Created ${TARGET_BACKEND}/.env from .env.example."
+    fi
+fi
+
+# ------------------------------------------------------------------------------
+# 6. Storage Permissions & Symlinks
+# ------------------------------------------------------------------------------
+echo "--- [4/5] Scaffolding Storage & Permissions ---"
 mkdir -p "${TARGET_BACKEND}/storage/app/public"
 mkdir -p "${TARGET_BACKEND}/storage/framework/cache/data"
 mkdir -p "${TARGET_BACKEND}/storage/framework/sessions"
 mkdir -p "${TARGET_BACKEND}/storage/framework/views"
+mkdir -p "${TARGET_BACKEND}/storage/framework/testing"
 mkdir -p "${TARGET_BACKEND}/storage/logs"
 mkdir -p "${TARGET_BACKEND}/bootstrap/cache"
-chmod -R 775 "${TARGET_BACKEND}/storage" "${TARGET_BACKEND}/bootstrap/cache" 2>/dev/null || true
-echo "✓ Storage directories and 775 permissions configured."
 
-# Public Storage Symlink
+chmod -R 775 "${TARGET_BACKEND}/storage" "${TARGET_BACKEND}/bootstrap/cache" 2>/dev/null || true
+echo "✓ Storage directories created and 775 permissions set."
+
+# Create public storage symlink
 if [ ! -L "${TARGET_FRONTEND}/storage" ] && [ ! -e "${TARGET_FRONTEND}/storage" ]; then
     ln -sfn "${TARGET_BACKEND}/storage/app/public" "${TARGET_FRONTEND}/storage" 2>/dev/null || true
-    echo "✓ Public storage symlink created: ${TARGET_FRONTEND}/storage -> ${TARGET_BACKEND}/storage/app/public"
+    echo "✓ Public storage symlink: ${TARGET_FRONTEND}/storage -> ${TARGET_BACKEND}/storage/app/public"
 fi
 
-# F. Backend Actions: Composer, Migrations, Seeders, Caches, Queue
-echo "--- [4/4] Executing Backend Actions ---"
+# ------------------------------------------------------------------------------
+# 7. Composer, Migrations, Seeders & Production Caches
+# ------------------------------------------------------------------------------
+echo "--- [5/5] Executing Backend Actions (Composer, Migrations, Caches) ---"
 cd "${TARGET_BACKEND}"
 
-# Composer install if available
+# Resolve Composer
 COMPOSER_BIN=""
 if command -v composer &> /dev/null; then
     COMPOSER_BIN="$(command -v composer)"
@@ -172,34 +274,57 @@ elif [ -x "/opt/cpanel/composer/bin/composer" ]; then
     COMPOSER_BIN="${PHP_BIN} /opt/cpanel/composer/bin/composer"
 elif [ -f "${TARGET_BACKEND}/composer.phar" ]; then
     COMPOSER_BIN="${PHP_BIN} ${TARGET_BACKEND}/composer.phar"
+elif [ -f "${USER_HOME}/composer.phar" ]; then
+    COMPOSER_BIN="${PHP_BIN} ${USER_HOME}/composer.phar"
+fi
+
+# Auto-download composer if missing and vendor is absent
+if [ -z "${COMPOSER_BIN}" ] && [ ! -f "${TARGET_BACKEND}/vendor/autoload.php" ]; then
+    echo "Composer not found and vendor is absent. Downloading composer.phar..."
+    ${PHP_BIN} -r "copy('https://getcomposer.org/installer', 'composer-setup.php');" 2>/dev/null || true
+    if [ -f "composer-setup.php" ]; then
+        ${PHP_BIN} composer-setup.php --quiet 2>/dev/null || true
+        rm -f composer-setup.php
+        if [ -f "composer.phar" ]; then
+            COMPOSER_BIN="${PHP_BIN} composer.phar"
+        fi
+    fi
 fi
 
 if [ -n "${COMPOSER_BIN}" ] && [ -f "${TARGET_BACKEND}/composer.json" ]; then
     echo "Running Composer install..."
-    ${COMPOSER_BIN} install --no-dev --prefer-dist --optimize-autoloader --no-interaction 2>/dev/null || {
-        echo "Notice: Composer install completed or skipped."
+    ${COMPOSER_BIN} install --no-dev --prefer-dist --optimize-autoloader --no-interaction || {
+        echo "Notice: Composer install completed with warnings or vendor is cached."
     }
 fi
 
-# Storage link via artisan
+# Key generation if APP_KEY is empty
+if [ -f "${TARGET_BACKEND}/.env" ]; then
+    if ! grep -q "^APP_KEY=.\+" "${TARGET_BACKEND}/.env"; then
+        echo "Generating Application Key (APP_KEY)..."
+        ${PHP_BIN} artisan key:generate --force 2>/dev/null || true
+    fi
+fi
+
+# Link storage via Artisan
 ${PHP_BIN} artisan storage:link 2>/dev/null || true
 
-# Migrations & Seeders
-if [ -f "${TARGET_BACKEND}/.env" ] && [ -f "${TARGET_BACKEND}/vendor/autoload.php" ]; then
-    if [ "${SKIP_MIGRATE}" = false ]; then
-        echo "Running database migrations..."
-        ${PHP_BIN} artisan migrate --force --no-interaction 2>/dev/null || echo "Notice: Migrations check completed."
+# Run Migrations & Seeders
+if [ "${SKIP_MIGRATE}" = false ] && [ -f "${TARGET_BACKEND}/vendor/autoload.php" ]; then
+    echo "Running database migrations..."
+    ${PHP_BIN} artisan migrate --force --no-interaction || echo "Notice: Migrations check finished."
 
-        if [ "${FORCE_SEED}" = true ]; then
-            echo "Running full database seeders..."
-            ${PHP_BIN} artisan db:seed --force --no-interaction 2>/dev/null || true
-        else
-            ${PHP_BIN} artisan db:seed --class=SystemPermissionsSeeder --force --no-interaction 2>/dev/null || true
-            ${PHP_BIN} artisan db:seed --class=ReportDefinitionsTableSeeder --force --no-interaction 2>/dev/null || true
-        fi
+    if [ "${FORCE_SEED}" = true ]; then
+        echo "Running full database seeders..."
+        ${PHP_BIN} artisan db:seed --force --no-interaction || true
+    else
+        ${PHP_BIN} artisan db:seed --class=SystemPermissionsSeeder --force --no-interaction 2>/dev/null || true
+        ${PHP_BIN} artisan db:seed --class=ReportDefinitionsTableSeeder --force --no-interaction 2>/dev/null || true
     fi
+fi
 
-    # Caches
+# Rebuild Production Caches
+if [ -f "${TARGET_BACKEND}/vendor/autoload.php" ]; then
     echo "Rebuilding production caches..."
     ${PHP_BIN} artisan config:clear >/dev/null 2>&1 || true
     ${PHP_BIN} artisan config:cache >/dev/null 2>&1 || true
@@ -208,12 +333,41 @@ if [ -f "${TARGET_BACKEND}/.env" ] && [ -f "${TARGET_BACKEND}/vendor/autoload.ph
     ${PHP_BIN} artisan event:cache >/dev/null 2>&1 || true
     ${PHP_BIN} artisan queue:restart >/dev/null 2>&1 || true
     echo "✓ Production caches compiled and queue restarted."
-else
-    echo "Notice: Skipping artisan migrations/cache until .env and vendor/autoload.php are in place."
 fi
 
+# ------------------------------------------------------------------------------
+# 8. Post-Deployment Verification & Health Summary
+# ------------------------------------------------------------------------------
+END_TIME=$(date +%s)
+DURATION=$((END_TIME - START_TIME))
+
+echo ""
 echo "=================================================================="
-echo " DEPLOYMENT COMPLETED SUCCESSFULLY!                              "
-echo " Backend:  ${TARGET_BACKEND}"
-echo " Frontend: ${TARGET_FRONTEND}"
+echo " DEPLOYMENT COMPLETED SUCCESSFULLY IN ${DURATION}s               "
+echo "=================================================================="
+echo " Backend Directory:  ${TARGET_BACKEND}"
+echo " Frontend Directory: ${TARGET_FRONTEND}"
+echo " PHP CLI Version:    $(${PHP_BIN} -v 2>/dev/null | head -n 1 || echo 'php')"
+echo ""
+echo " Health Checks:"
+if [ -f "${TARGET_FRONTEND}/index.html" ]; then
+    echo "   [✓] SPA index.html present"
+else
+    echo "   [!] SPA index.html missing"
+fi
+if [ -f "${TARGET_FRONTEND}/index.php" ]; then
+    echo "   [✓] Server index.php entry point present"
+else
+    echo "   [!] Server index.php missing"
+fi
+if [ -f "${TARGET_FRONTEND}/.htaccess" ]; then
+    echo "   [✓] Apache .htaccess routing rules present"
+else
+    echo "   [!] .htaccess missing"
+fi
+if [ -e "${TARGET_FRONTEND}/storage" ]; then
+    echo "   [✓] Public storage symlink active"
+else
+    echo "   [!] Public storage symlink not found"
+fi
 echo "=================================================================="

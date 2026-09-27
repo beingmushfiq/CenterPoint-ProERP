@@ -1,4 +1,4 @@
-import React, { Suspense, useState, useEffect } from 'react';
+import React, { Suspense, useState } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import { PlatformSidebar } from './PlatformSidebar';
 import { PlatformHeader } from './PlatformHeader';
@@ -9,10 +9,12 @@ import { RouteLoadingFallback } from '../routing/RouteLoadingFallback';
 export const PlatformShell: React.FC = () => {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const location = useLocation();
+  const [prevPath, setPrevPath] = useState(location.pathname);
 
-  useEffect(() => {
+  if (prevPath !== location.pathname) {
+    setPrevPath(location.pathname);
     setMobileSidebarOpen(false);
-  }, [location.pathname]);
+  }
 
   return (
     <div className="min-h-screen bg-base text-default flex flex-col font-sans antialiased selection:bg-amber-500 selection:text-white relative">

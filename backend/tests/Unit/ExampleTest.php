@@ -31,15 +31,15 @@ class ExampleTest extends TestCase
         $constraint = $decoded['require']['php'];
         $this->assertIsString($constraint);
 
-        // `^8.5` -> `8.5`. Only the caret form is declared; anything else is a
-        // deliberate change that should come with a deliberate test change.
+        // Support `^8.5` or `^8.4|^8.5` constraints
         $this->assertMatchesRegularExpression(
-            '/^\^\d+\.\d+$/',
+            '/^\^\d+\.\d+(\|\^\d+\.\d+)?$/',
             $constraint,
             "Unexpected PHP constraint {$constraint}; update this test alongside it."
         );
 
-        $floor = ltrim($constraint, '^');
+        $firstConstraint = explode('|', $constraint)[0];
+        $floor = ltrim($firstConstraint, '^');
 
         $this->assertTrue(
             version_compare(PHP_VERSION, $floor.'.0', '>='),

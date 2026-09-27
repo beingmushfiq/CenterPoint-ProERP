@@ -176,7 +176,7 @@ export const TenantDirectoryWorkspace: React.FC = () => {
     }
   };
 
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = React.useCallback((status: string) => {
     switch (status) {
       case 'active':
         return (
@@ -207,7 +207,7 @@ export const TenantDirectoryWorkspace: React.FC = () => {
           </span>
         );
     }
-  };
+  }, [t, isBn]);
 
   const columns: ResponsiveColumn<PlatformTenant>[] = useMemo(
     () => [
@@ -356,7 +356,7 @@ export const TenantDirectoryWorkspace: React.FC = () => {
         ),
       },
     ],
-    [isBn]
+    [isBn, getStatusBadge]
   );
 
   return (
