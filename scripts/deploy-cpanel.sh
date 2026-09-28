@@ -28,7 +28,7 @@ set -euo pipefail
 #           → /home/devcente/backend (legacy single-project fallback)
 #           → repo-relative (local dev fallback)
 # ------------------------------------------------------------------------------
-CPANEL_USER="${CPANEL_USER:-devcente}"
+CPANEL_USER="${CPANEL_USER:-$(whoami 2>/dev/null || echo 'devcente')}"
 HOME_DIR="${HOME:-/home/${CPANEL_USER}}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
@@ -56,7 +56,7 @@ if [ -d "${HOME_DIR}/projects/proerp/backend" ]; then
 elif [ -d "${HOME_DIR}/backend" ]; then
     # Legacy single-project layout — still works but deprecated
     BACKEND_DIR="${HOME_DIR}/backend"
-    echo "WARNING: Using legacy /home/devcente/backend path. Migrate to /home/devcente/projects/proerp/backend."
+    echo "WARNING: Using legacy ${HOME_DIR}/backend path. Migrate to ${HOME_DIR}/projects/proerp/backend."
 elif [ -d "${REPO_DIR}/backend" ]; then
     BACKEND_DIR="${REPO_DIR}/backend"
 else
@@ -199,8 +199,8 @@ if [ ! -f "${BACKEND_DIR}/vendor/autoload.php" ]; then
     echo " NOTICE: ${BACKEND_DIR}/vendor/autoload.php not found."
     echo " Laravel commands cannot run without Composer vendor dependencies."
     echo " Action Required:"
-    echo "   Option A: Run composer install in /home/devcente/backend via cPanel Terminal"
-    echo "   Option B: Upload your local 'backend/vendor' folder to '/home/devcente/backend/vendor'"
+    echo "   Option A: Run composer install in ${BACKEND_DIR} via cPanel Terminal"
+    echo "   Option B: Upload your local 'backend/vendor' folder to '${BACKEND_DIR}/vendor'"
     echo " Skipping artisan migrations and cache rebuild to prevent deployment crash."
     echo "=================================================================="
     CAN_RUN_ARTISAN=false
@@ -211,7 +211,7 @@ if [ ! -f "${BACKEND_DIR}/.env" ]; then
     echo "=================================================================="
     echo " NOTICE: ${BACKEND_DIR}/.env not found."
     echo " Action Required:"
-    echo "   Copy .env.production.example to .env in /home/devcente/backend"
+    echo "   Copy .env.production.example to .env in ${BACKEND_DIR}"
     echo "   and configure your database credentials (DB_DATABASE, DB_USERNAME, DB_PASSWORD)."
     echo " Skipping migrations and config cache until .env is created."
     echo "=================================================================="
