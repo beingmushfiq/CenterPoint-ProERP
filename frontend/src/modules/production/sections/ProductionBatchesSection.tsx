@@ -20,7 +20,10 @@ import {
   X,
   ShieldCheck,
   ChevronDown,
+  RotateCcw,
+  AlertTriangle,
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { api } from '../../../lib/api/client';
 import { Modal } from '../../../components/ui/Modal';
 import { Button } from '../../../components/ui/Button';
@@ -99,7 +102,77 @@ export function ProductionBatchesSection() {
     unit_cost: '15.0000',
   });
 
+  // QC Rework Dispatch Modal state
+  interface BatchReworkDraft {
+    defect_category: string;
+    defect_notes: string;
+    qty_defective: string;
+    unit?: string;
+    assigned_station: string;
+    assigned_operator: string;
+    estimated_cost?: string;
+    rework_cost: string;
+  }
+
+  const [reworkModalBatch, setReworkModalBatch] = useState<ProductionBatch | null>(null);
+  const [reworkDraft, setReworkDraft] = useState<BatchReworkDraft>({
+    defect_category: 'Flute Delamination & Edge Crush',
+    defect_notes: '',
+    qty_defective: '10',
+    unit: 'PCS',
+    assigned_station: 'Secondary Gluing & Press Station 1',
+    assigned_operator: 'Assigned Lead Tech',
+    estimated_cost: '250.00',
+    rework_cost: '250.00',
+  });
+
   const queryClient = useQueryClient();
+
+  const sendToReworkMutation = useMutation({
+    mutationFn: async (batch: ProductionBatch) => {
+      const payload = {
+        rework_number: `RWK-${new Date().getFullYear()}-${Date.now().toString().slice(-4)}`,
+        batch_id: batch.id,
+        batch_number: batch.batch_number,
+        product_id: batch.product_id,
+        product_name: batch.product_name || 'Production Batch Output',
+        defect_category: reworkDraft.defect_category,
+        defect_notes: reworkDraft.defect_notes || `Auto-flagged from Batch ${batch.batch_number} QC output variance.`,
+        qty_defective: parseInt(reworkDraft.qty_defective, 10) || 1,
+        unit: reworkDraft.unit || 'PCS',
+        assigned_station: reworkDraft.assigned_station,
+        assigned_operator: reworkDraft.assigned_operator,
+        status: 'pending',
+        rework_cost: reworkDraft.rework_cost || reworkDraft.estimated_cost || '0.00',
+        salvage_qty: 0,
+        scrap_qty: 0,
+        created_at: new Date().toISOString().slice(0, 10),
+      };
+      await api.post('/qc/rework-orders', payload);
+    },
+    onSuccess: (_, batch) => {
+      toast.success(`Batch ${batch.batch_number} sent to QC Rework Order.`);
+      queryClient.invalidateQueries({ queryKey: ['qc', 'rework-orders'] });
+      queryClient.invalidateQueries({ queryKey: ['production', 'batches'] });
+      setReworkModalBatch(null);
+    },
+    onError: (err: unknown) => {
+      toast.error(err instanceof Error ? err.message : 'Failed to dispatch to Rework');
+    },
+  });
+
+  const hasQcDefect = (b: ProductionBatch) => {
+    const rejected = b.outputs?.reduce((acc, o) => acc + (parseFloat(o.rejected_quantity) || 0), 0) || 0;
+    return rejected > 0 || parseFloat(b.process_loss_quantity || '0') > 10;
+  };
+
+  const getBatchStageNumber = (batch: ProductionBatch): number => {
+    if (batch.status === 'completed' || batch.status === 'closed') return 5;
+    if (batch.outputs && batch.outputs.length > 0) return 4;
+    if (batch.status === 'in_progress') return 3;
+    if (Number(batch.total_input_quantity || 0) > 0) return 2;
+    return 1;
+  };
 
   // Queries
   const batchesQuery = useQuery({
@@ -628,7 +701,15 @@ export function ProductionBatchesSection() {
                           )}
                         </td>
                         <td className="px-4 py-3.5 text-center whitespace-nowrap">
-                          <StatusBadge status={batch.status} />
+                          <div className="flex flex-col items-center gap-1">
+                            <StatusBadge status={batch.status} />
+                            {hasQcDefect(batch) && (
+                              <span className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/30">
+                                <AlertTriangle className="size-3 text-amber-500" />
+                                QC Defect
+                              </span>
+                            )}
+                          </div>
                         </td>
                         <td className="px-4 py-3.5 text-center whitespace-nowrap">
                           {getCompletenessBadge(batch.context_completeness)}
@@ -669,6 +750,29 @@ export function ProductionBatchesSection() {
                               >
                                 <CheckCircle2 className="size-3 text-emerald-600 dark:text-emerald-400 shrink-0" />
                                 <span>Output</span>
+                              </button>
+                            )}
+
+                            {hasQcDefect(batch) && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const rejected = batch.outputs?.reduce((acc, o) => acc + (parseFloat(o.rejected_quantity) || 0), 0) || 0;
+                                  setReworkDraft({
+                                    defect_category: 'Workmanship / Dimension Defect',
+                                    defect_notes: `Batch ${batch.batch_number} failed QC with ${rejected > 0 ? `${rejected} units rejected` : 'excess process loss'}. Requires inspection and rework.`,
+                                    qty_defective: rejected > 0 ? String(rejected) : '5.0000',
+                                    assigned_station: 'Rework Station 1',
+                                    assigned_operator: 'Floor Supervisor',
+                                    rework_cost: '25.0000',
+                                  });
+                                  setReworkModalBatch(batch);
+                                }}
+                                className="px-2 py-1 text-xs bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-700 hover:bg-amber-100 rounded-lg font-bold transition cursor-pointer flex items-center gap-1 shadow-2xs"
+                                title="Send batch to QC Rework"
+                              >
+                                <RotateCcw className="size-3 text-amber-600 dark:text-amber-400 shrink-0" />
+                                <span>Rework</span>
                               </button>
                             )}
 
@@ -811,6 +915,28 @@ export function ProductionBatchesSection() {
                                 >
                                   <Sparkles className="size-3.5 text-amber-500 shrink-0" />
                                   <span>Analyze Yield</span>
+                                </button>
+
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setOpenActionMenuId(null);
+                                    setActionMenuAnchor(null);
+                                    const rejected = batch.outputs?.reduce((acc, o) => acc + (parseFloat(o.rejected_quantity) || 0), 0) || 0;
+                                    setReworkDraft({
+                                      defect_category: 'Workmanship / Dimension Defect',
+                                      defect_notes: `Batch ${batch.batch_number} flagged for rework.`,
+                                      qty_defective: rejected > 0 ? String(rejected) : '5.0000',
+                                      assigned_station: 'Rework Station 1',
+                                      assigned_operator: 'Floor Supervisor',
+                                      rework_cost: '25.0000',
+                                    });
+                                    setReworkModalBatch(batch);
+                                  }}
+                                  className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs text-amber-600 dark:text-amber-400 hover:bg-surface-sunken transition-colors cursor-pointer"
+                                >
+                                  <RotateCcw className="size-3.5 text-amber-500 shrink-0" />
+                                  <span>Send to QC Rework</span>
                                 </button>
 
                                 <div className="px-2.5 py-1.5">
@@ -1179,6 +1305,86 @@ export function ProductionBatchesSection() {
           size="lg"
         >
           <div className="space-y-4">
+            {/* Batch Workflow Stepper */}
+            <div className="rounded-xl bg-surface-sunken p-3.5 border border-border">
+              <div className="text-[11px] font-semibold text-muted uppercase tracking-wider mb-2.5 flex items-center justify-between">
+                <span>Production Workflow Lifecycle</span>
+                <span className="text-[11px] font-mono text-primary font-bold">Stage {getBatchStageNumber(activeBatchModal.batch)} of 5</span>
+              </div>
+              <div className="grid grid-cols-5 gap-1.5 text-center">
+                {[
+                  { num: 1, label: 'Created', desc: 'Batch Drafted' },
+                  { num: 2, label: 'Materials', desc: 'Raw Mat Issued' },
+                  { num: 3, label: 'Production', desc: 'Floor Execution' },
+                  { num: 4, label: 'QC Check', desc: 'Testing & Insp' },
+                  { num: 5, label: 'Completed', desc: 'Stock Ready' },
+                ].map((stage) => {
+                  const currentStage = getBatchStageNumber(activeBatchModal.batch);
+                  const isPast = stage.num < currentStage;
+                  const isCurrent = stage.num === currentStage;
+                  return (
+                    <div
+                      key={stage.num}
+                      className={`flex flex-col items-center p-2 rounded-lg border transition-all ${
+                        isCurrent
+                          ? 'bg-primary/10 border-primary text-primary font-bold shadow-2xs'
+                          : isPast
+                          ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400'
+                          : 'bg-surface/40 border-border/50 text-muted opacity-60'
+                      }`}
+                    >
+                      <div
+                        className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold mb-1 ${
+                          isCurrent
+                            ? 'bg-primary text-white'
+                            : isPast
+                            ? 'bg-emerald-500 text-white'
+                            : 'bg-surface-sunken border border-border text-muted'
+                        }`}
+                      >
+                        {isPast ? '✓' : stage.num}
+                      </div>
+                      <span className="text-[11px] leading-tight font-medium">{stage.label}</span>
+                      <span className="text-[9px] opacity-75 hidden sm:inline">{stage.desc}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* QC Defect Alert Banner */}
+            {hasQcDefect(activeBatchModal.batch) && (
+              <div className="flex items-center justify-between gap-3 p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-300 text-xs">
+                <div className="flex items-center gap-2">
+                  <AlertTriangle className="size-4 text-amber-500 shrink-0" />
+                  <div>
+                    <span className="font-bold">QC Defect Flagged:</span> This batch contains rejected units or abnormal process variance.
+                  </div>
+                </div>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => {
+                    const b = activeBatchModal.batch;
+                    const rejected = b.outputs?.reduce((acc, o) => acc + (parseFloat(o.rejected_quantity) || 0), 0) || 0;
+                    setReworkDraft({
+                      defect_category: 'Workmanship / Dimension Defect',
+                      defect_notes: `Batch ${b.batch_number} flagged for rework during inspection review.`,
+                      qty_defective: rejected > 0 ? String(rejected) : '5.0000',
+                      assigned_station: 'Rework Station 1',
+                      assigned_operator: 'Floor Supervisor',
+                      rework_cost: '25.0000',
+                    });
+                    setReworkModalBatch(b);
+                  }}
+                  className="shrink-0 flex items-center gap-1.5 font-bold border-amber-500/40 text-amber-700 dark:text-amber-300 hover:bg-amber-500/20"
+                >
+                  <RotateCcw className="size-3.5" />
+                  <span>Send to QC Rework</span>
+                </Button>
+              </div>
+            )}
+
             {/* Batch Context & Header Info */}
             <div className="rounded-xl bg-surface-sunken p-3.5 border border-border space-y-2.5">
               <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/50 pb-2.5">
@@ -1373,6 +1579,30 @@ export function ProductionBatchesSection() {
                   <Sparkles className="size-3.5" />
                   <span>Analyze Yield</span>
                 </Button>
+
+                {hasQcDefect(activeBatchModal.batch) && (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => {
+                      const b = activeBatchModal.batch;
+                      const rejected = b.outputs?.reduce((acc, o) => acc + (parseFloat(o.rejected_quantity) || 0), 0) || 0;
+                      setReworkDraft({
+                        defect_category: 'Workmanship / Dimension Defect',
+                        defect_notes: `Batch ${b.batch_number} flagged for rework.`,
+                        qty_defective: rejected > 0 ? String(rejected) : '5.0000',
+                        assigned_station: 'Rework Station 1',
+                        assigned_operator: 'Floor Supervisor',
+                        rework_cost: '25.0000',
+                      });
+                      setReworkModalBatch(b);
+                    }}
+                    className="flex items-center gap-1 text-amber-600 dark:text-amber-400 font-bold"
+                  >
+                    <RotateCcw className="size-3.5" />
+                    <span>Send to Rework</span>
+                  </Button>
+                )}
               </div>
 
               <Button variant="secondary" onClick={() => setActiveBatchModal(null)}>
@@ -1498,6 +1728,111 @@ export function ProductionBatchesSection() {
                 className="bg-rose-600 hover:bg-rose-700 text-white font-medium"
               >
                 {isBulkDeleting ? 'Deleting...' : `Delete ${selectedBatchIds.size} Batches`}
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* Send to QC Rework Modal */}
+      {reworkModalBatch && (
+        <Modal
+          open={Boolean(reworkModalBatch)}
+          onClose={() => setReworkModalBatch(null)}
+          title={`Send Batch to QC Rework: ${reworkModalBatch.batch_number}`}
+          size="md"
+        >
+          <div className="space-y-4 text-xs">
+            <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400">
+              Routing this batch to Quality Control will generate a linked Rework Order and assign floor operators to salvage rejected goods.
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-[11px] font-semibold text-muted uppercase tracking-wider mb-1">
+                  Defect Category
+                </label>
+                <select
+                  value={reworkDraft.defect_category}
+                  onChange={(e) => setReworkDraft((d) => ({ ...d, defect_category: e.target.value }))}
+                  className="w-full rounded-xl border border-default bg-surface-sunken p-2 text-xs text-default focus:border-primary focus:outline-none"
+                >
+                  <option value="Workmanship / Dimension Defect">Workmanship / Dimension Defect</option>
+                  <option value="Surface Blemish / Coating">Surface Blemish / Coating</option>
+                  <option value="Assembly Tolerance">Assembly Tolerance</option>
+                  <option value="Packaging / Sealing Defect">Packaging / Sealing Defect</option>
+                  <option value="Contamination / Foreign Material">Contamination / Foreign Material</option>
+                  <option value="Other Defect">Other Defect</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold text-muted uppercase tracking-wider mb-1">
+                  Qty Defective (Units)
+                </label>
+                <input
+                  type="number"
+                  step="any"
+                  value={reworkDraft.qty_defective}
+                  onChange={(e) => setReworkDraft((d) => ({ ...d, qty_defective: e.target.value }))}
+                  className="w-full rounded-xl border border-default bg-surface-sunken p-2 text-xs text-default focus:border-primary focus:outline-none font-mono"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-[11px] font-semibold text-muted uppercase tracking-wider mb-1">
+                  Assigned Station
+                </label>
+                <input
+                  type="text"
+                  value={reworkDraft.assigned_station}
+                  onChange={(e) => setReworkDraft((d) => ({ ...d, assigned_station: e.target.value }))}
+                  placeholder="e.g. Salvage Station 2"
+                  className="w-full rounded-xl border border-default bg-surface-sunken p-2 text-xs text-default focus:border-primary focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold text-muted uppercase tracking-wider mb-1">
+                  Estimated Rework Cost ($)
+                </label>
+                <input
+                  type="number"
+                  step="any"
+                  value={reworkDraft.rework_cost}
+                  onChange={(e) => setReworkDraft((d) => ({ ...d, rework_cost: e.target.value }))}
+                  className="w-full rounded-xl border border-default bg-surface-sunken p-2 text-xs text-default focus:border-primary focus:outline-none font-mono"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-semibold text-muted uppercase tracking-wider mb-1">
+                Defect Notes & Corrective Instructions
+              </label>
+              <textarea
+                rows={3}
+                value={reworkDraft.defect_notes}
+                onChange={(e) => setReworkDraft((d) => ({ ...d, defect_notes: e.target.value }))}
+                placeholder="Detailed observation of fault, instructions for salvage or replacement..."
+                className="w-full rounded-xl border border-default bg-surface-sunken p-2 text-xs text-default focus:border-primary focus:outline-none"
+              />
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-3 border-t border-border">
+              <Button variant="secondary" onClick={() => setReworkModalBatch(null)}>
+                Cancel
+              </Button>
+              <Button
+                variant="primary"
+                onClick={() => reworkModalBatch && sendToReworkMutation.mutate(reworkModalBatch)}
+                disabled={sendToReworkMutation.isPending || !reworkModalBatch}
+                className="flex items-center gap-1.5 bg-amber-600 hover:bg-amber-700 text-white"
+              >
+                <RotateCcw className="size-3.5" />
+                <span>{sendToReworkMutation.isPending ? 'Dispatching...' : 'Dispatch Rework Order'}</span>
               </Button>
             </div>
           </div>

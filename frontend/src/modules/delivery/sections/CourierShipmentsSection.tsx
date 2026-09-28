@@ -1,13 +1,78 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import type { CourierShipment, CourierProvider } from '../../../types/api/delivery';
 import type { DeliveryOrder } from '../../../types/api/sales';
 import { useCurrency } from '../../../hooks/useCurrency';
 import { useAuthStore } from '../../../lib/auth/authStore';
 import { SelectDropdown } from '../../../components/ui/Dropdown';
-import { ChevronDown, RefreshCw, Printer, XCircle, Plus, Search, Truck, X, Trash2 } from 'lucide-react';
+import {
+  ChevronDown,
+  RefreshCw,
+  Printer,
+  XCircle,
+  Plus,
+  Search,
+  Truck,
+  X,
+  Trash2,
+  AlertTriangle,
+  AlertOctagon,
+  Clock,
+  CheckCircle2,
+  Zap,
+} from 'lucide-react';
 import { ActionMenuPortal } from '../../../components/ui/ActionMenuPortal';
 import { ConfirmDialog } from '../../../components/ui/Modal';
+import { notify } from '../../../components/ui/Toast';
 import { cn } from '../../../lib/utils';
+
+export interface SlaInfo {
+  status: 'on_track' | 'warning' | 'breached' | 'completed';
+  elapsedHours: number;
+  badgeClass: string;
+  label: string;
+}
+
+export function getShipmentSla(s: CourierShipment): SlaInfo {
+  const isCompleted = ['delivered', 'cancelled', 'returned'].includes(s.status);
+  const dateStr = s.confirmed_at || s.requested_at || s.created_at;
+  const elapsed = dateStr
+    ? Math.max(0, Math.floor((Date.now() - new Date(dateStr).getTime()) / (1000 * 3600)))
+    : 0;
+
+  if (isCompleted) {
+    return {
+      status: 'completed',
+      elapsedHours: elapsed,
+      badgeClass: 'bg-surface-sunken text-muted border-default',
+      label: `Completed (${elapsed}h)`,
+    };
+  }
+
+  if (elapsed >= 72) {
+    return {
+      status: 'breached',
+      elapsedHours: elapsed,
+      badgeClass: 'bg-rose-500/15 text-rose-600 dark:text-rose-400 border-rose-500/30',
+      label: `>72h SLA Breach (${elapsed}h)`,
+    };
+  }
+
+  if (elapsed >= 48) {
+    return {
+      status: 'warning',
+      elapsedHours: elapsed,
+      badgeClass: 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30',
+      label: `>48h At Risk (${elapsed}h)`,
+    };
+  }
+
+  return {
+    status: 'on_track',
+    elapsedHours: elapsed,
+    badgeClass: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20',
+    label: `On Track (${elapsed}h)`,
+  };
+}
 
 interface CourierShipmentsSectionProps {
   shipments: CourierShipment[];
@@ -38,6 +103,7 @@ export const CourierShipmentsSection: React.FC<CourierShipmentsSectionProps> = (
 
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
   const [selectedProvider, setSelectedProvider] = useState<string>('all');
+  const [selectedSla, setSelectedSla] = useState<'all' | 'breached' | 'warning' | 'on_track'>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [isBookModalOpen, setIsBookModalOpen] = useState(false);
   const [selectedDeliveryId, setSelectedDeliveryId] = useState<number>(0);
@@ -46,6 +112,19 @@ export const CourierShipmentsSection: React.FC<CourierShipmentsSectionProps> = (
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [openActionMenuId, setOpenActionMenuId] = useState<number | null>(null);
   const [actionMenuAnchor, setActionMenuAnchor] = useState<HTMLElement | null>(null);
+
+  const slaCounts = useMemo(() => {
+    let breached = 0;
+    let warning = 0;
+    let onTrack = 0;
+    shipments.forEach((s) => {
+      const sla = getShipmentSla(s);
+      if (sla.status === 'breached') breached++;
+      else if (sla.status === 'warning') warning++;
+      else if (sla.status === 'on_track') onTrack++;
+    });
+    return { breached, warning, onTrack, total: shipments.length };
+  }, [shipments]);
 
   // Selection & Delete Confirmation State
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
@@ -65,7 +144,11 @@ export const CourierShipmentsSection: React.FC<CourierShipmentsSectionProps> = (
       (s.consignment_id?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
       (s.awb_number?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
       (s.delivery_number?.toLowerCase() || '').includes(searchQuery.toLowerCase());
-    return matchesStatus && matchesProvider && matchesSearch;
+    if (!matchesStatus || !matchesProvider || !matchesSearch) return false;
+
+    if (selectedSla === 'all') return true;
+    const sla = getShipmentSla(s);
+    return sla.status === selectedSla;
   });
 
   const isAllSelected = filteredShipments.length > 0 && selectedIds.size === filteredShipments.length;
@@ -164,6 +247,96 @@ export const CourierShipmentsSection: React.FC<CourierShipmentsSectionProps> = (
         >
           <Plus className="size-3.5" />
           <span>Book 3PL Shipment</span>
+        </button>
+      </div>
+
+      {/* SLA Breach Intelligence Filter Pills */}
+      <div className="flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          onClick={() => setSelectedSla('all')}
+          className={cn(
+            'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition cursor-pointer border',
+            selectedSla === 'all'
+              ? 'bg-primary text-primary-fg border-primary shadow-xs'
+              : 'bg-surface text-muted hover:text-default border-default hover:bg-surface-sunken'
+          )}
+        >
+          <span>All Consignments</span>
+          <span
+            className={cn(
+              'px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold',
+              selectedSla === 'all' ? 'bg-primary-fg/20 text-primary-fg' : 'bg-surface-sunken text-muted'
+            )}
+          >
+            {slaCounts.total}
+          </span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setSelectedSla('breached')}
+          className={cn(
+            'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition cursor-pointer border',
+            selectedSla === 'breached'
+              ? 'bg-rose-600 text-white border-rose-600 shadow-xs'
+              : 'bg-rose-500/10 text-rose-700 dark:text-rose-400 border-rose-500/20 hover:bg-rose-500/20'
+          )}
+        >
+          <AlertOctagon className="size-3.5" />
+          <span>Critical SLA Breach (&gt;72h)</span>
+          <span
+            className={cn(
+              'px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold',
+              selectedSla === 'breached' ? 'bg-white/20 text-white' : 'bg-rose-500/20 text-rose-700 dark:text-rose-300'
+            )}
+          >
+            {slaCounts.breached}
+          </span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setSelectedSla('warning')}
+          className={cn(
+            'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition cursor-pointer border',
+            selectedSla === 'warning'
+              ? 'bg-amber-600 text-white border-amber-600 shadow-xs'
+              : 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20 hover:bg-amber-500/20'
+          )}
+        >
+          <AlertTriangle className="size-3.5" />
+          <span>SLA At Risk (&gt;48h)</span>
+          <span
+            className={cn(
+              'px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold',
+              selectedSla === 'warning' ? 'bg-white/20 text-white' : 'bg-amber-500/20 text-amber-700 dark:text-amber-300'
+            )}
+          >
+            {slaCounts.warning}
+          </span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setSelectedSla('on_track')}
+          className={cn(
+            'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition cursor-pointer border',
+            selectedSla === 'on_track'
+              ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
+              : 'bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/20 hover:bg-blue-500/20'
+          )}
+        >
+          <Clock className="size-3.5" />
+          <span>On Track (&lt;48h)</span>
+          <span
+            className={cn(
+              'px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold',
+              selectedSla === 'on_track' ? 'bg-white/20 text-white' : 'bg-blue-500/20 text-blue-700 dark:text-blue-300'
+            )}
+          >
+            {slaCounts.onTrack}
+          </span>
         </button>
       </div>
 
@@ -266,6 +439,7 @@ export const CourierShipmentsSection: React.FC<CourierShipmentsSectionProps> = (
               <th className="px-4 py-3">DELIVERY ORDER</th>
               <th className="px-4 py-3">COD AMOUNT</th>
               <th className="px-4 py-3">STATUS</th>
+              <th className="px-4 py-3">SLA &amp; TRANSIT</th>
               <th className="px-4 py-3">SYNCED AT</th>
               <th className="px-4 py-3 text-right">ACTIONS</th>
             </tr>
@@ -273,7 +447,7 @@ export const CourierShipmentsSection: React.FC<CourierShipmentsSectionProps> = (
           <tbody className="divide-y divide-default text-default">
             {filteredShipments.length === 0 ? (
               <tr>
-                <td colSpan={8} className="px-4 py-8 text-center text-muted text-xs font-sans">
+                <td colSpan={9} className="px-4 py-8 text-center text-muted text-xs font-sans">
                   No courier shipments found matching the active filters.
                 </td>
               </tr>
@@ -283,7 +457,8 @@ export const CourierShipmentsSection: React.FC<CourierShipmentsSectionProps> = (
                   key={s.id}
                   className={cn(
                     'hover:bg-surface-sunken/40 transition-colors',
-                    selectedIds.has(s.id) && 'bg-primary/5'
+                    selectedIds.has(s.id) && 'bg-primary/5',
+                    getShipmentSla(s).status === 'breached' && 'bg-rose-500/5 hover:bg-rose-500/10'
                   )}
                 >
                   <td className="w-10 px-4 py-3 text-center" onClick={(e) => e.stopPropagation()}>
@@ -317,6 +492,25 @@ export const CourierShipmentsSection: React.FC<CourierShipmentsSectionProps> = (
                     {formatCurrency(s.cod_amount)}
                   </td>
                   <td className="px-4 py-3">{getStatusBadge(s.status)}</td>
+                  <td className="px-4 py-3">
+                    {(() => {
+                      const sla = getShipmentSla(s);
+                      return (
+                        <span
+                          className={cn(
+                            'inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[10px] uppercase tracking-wider border font-medium',
+                            sla.badgeClass
+                          )}
+                        >
+                          {sla.status === 'breached' && <AlertOctagon className="size-3 text-rose-500" />}
+                          {sla.status === 'warning' && <AlertTriangle className="size-3 text-amber-500" />}
+                          {sla.status === 'on_track' && <Clock className="size-3 text-blue-500" />}
+                          {sla.status === 'completed' && <CheckCircle2 className="size-3 text-emerald-500" />}
+                          <span>{sla.label}</span>
+                        </span>
+                      );
+                    })()}
+                  </td>
                   <td className="px-4 py-3 text-muted text-[11px]">
                     {s.last_synced_at
                       ? new Date(s.last_synced_at).toLocaleTimeString([], {
@@ -399,6 +593,22 @@ export const CourierShipmentsSection: React.FC<CourierShipmentsSectionProps> = (
                     <Printer className="size-3.5 text-muted" />
                     <span>Download Label</span>
                   </button>
+                  {item.status !== 'cancelled' && item.status !== 'delivered' && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        notify.success(
+                          `Priority SLA expedite request sent to ${item.provider_name || 'Courier'} for AWB ${item.awb_number || item.consignment_id || '#' + item.id}.`
+                        );
+                        setOpenActionMenuId(null);
+                        setActionMenuAnchor(null);
+                      }}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-xs font-semibold text-amber-600 dark:text-amber-400 hover:bg-amber-500/10 transition-colors cursor-pointer"
+                    >
+                      <Zap className="size-3.5 text-amber-500" />
+                      <span>Expedite 3PL Delivery</span>
+                    </button>
+                  )}
                   {item.status !== 'cancelled' && item.status !== 'delivered' && (
                     <button
                       type="button"

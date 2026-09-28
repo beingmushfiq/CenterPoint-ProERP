@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ClipboardList, Plus, Search, Trash2, Rocket, Copy, FileUp, ChevronDown, CheckCircle2, X } from 'lucide-react';
+import { ClipboardList, Plus, Search, Trash2, Rocket, Copy, FileUp, ChevronDown, CheckCircle2, X, LayoutList, BarChart3, Calendar } from 'lucide-react';
 import { api } from '../../../lib/api/client';
 import { useAuthStore } from '../../../lib/auth/authStore';
 import { Modal, ConfirmDialog } from '../../../components/ui/Modal';
@@ -51,6 +51,7 @@ export function ProductionPlansSection() {
 
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [viewMode, setViewMode] = useState<'table' | 'gantt'>('table');
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<ProductionPlan | null>(null);
@@ -331,6 +332,32 @@ export function ProductionPlansSection() {
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
+          {/* Table / Gantt View Switcher */}
+          <div className="flex items-center rounded-xl border border-default bg-surface-sunken p-0.5">
+            <button
+              type="button"
+              onClick={() => setViewMode('table')}
+              className={cn(
+                'flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-semibold transition cursor-pointer',
+                viewMode === 'table' ? 'bg-surface text-primary shadow-xs' : 'text-muted hover:text-default'
+              )}
+            >
+              <LayoutList className="size-3.5" />
+              <span>Table</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode('gantt')}
+              className={cn(
+                'flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-semibold transition cursor-pointer',
+                viewMode === 'gantt' ? 'bg-surface text-primary shadow-xs' : 'text-muted hover:text-default'
+              )}
+            >
+              <BarChart3 className="size-3.5" />
+              <span>Gantt Timeline</span>
+            </button>
+          </div>
+
           <Button
             variant="secondary"
             onClick={() => setIsImportOpen(true)}
@@ -410,7 +437,8 @@ export function ProductionPlansSection() {
         data={plansQuery.data}
         isFetching={plansQuery.isFetching}
       >
-        <div className="overflow-hidden rounded-2xl border border-default bg-surface shadow-2xs">
+        {viewMode === 'table' ? (
+          <div className="overflow-hidden rounded-2xl border border-default bg-surface shadow-2xs">
           <div className="overflow-x-auto min-h-75">
             <table className="w-full text-left text-xs text-default border-collapse">
               <thead className="border-b border-default bg-surface-sunken text-[11px] font-semibold uppercase tracking-wider text-muted">
@@ -677,6 +705,136 @@ export function ProductionPlansSection() {
             </table>
           </div>
         </div>
+        ) : (
+          /* Gantt-lite Timeline View */
+          <div className="overflow-hidden rounded-2xl border border-default bg-surface shadow-2xs">
+            <div className="p-4 border-b border-default bg-surface-sunken flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Calendar className="size-4 text-primary" />
+                <span className="text-xs font-bold text-default uppercase tracking-wider">Production Plans Timeline & Gantt Schedule</span>
+              </div>
+              <span className="text-[11px] text-muted font-medium">
+                Tracking {plans.length} production cycles
+              </span>
+            </div>
+
+            {plans.length === 0 ? (
+              <div className="py-12 text-center text-muted">
+                <ClipboardList className="size-8 mx-auto mb-2 text-muted" />
+                <div className="text-sm font-medium text-default">No plans to plot on timeline</div>
+              </div>
+            ) : (
+              <div className="p-4 space-y-4">
+                {(() => {
+                  const timestamps = plans.flatMap((p) => [
+                    new Date(p.start_date).getTime(),
+                    new Date(p.end_date).getTime(),
+                  ]).filter((t) => !isNaN(t));
+
+                  const now = Date.now();
+                  const minTime = timestamps.length > 0 ? Math.min(...timestamps, now - 3 * 86400000) : now - 7 * 86400000;
+                  const maxTime = timestamps.length > 0 ? Math.max(...timestamps, now + 14 * 86400000) : now + 14 * 86400000;
+                  const totalDuration = Math.max(86400000, maxTime - minTime);
+                  const todayPct = Math.min(100, Math.max(0, ((now - minTime) / totalDuration) * 100));
+
+                  return (
+                    <div className="space-y-3">
+                      {/* Timeline Header Ruler */}
+                      <div className="relative h-7 bg-surface-sunken rounded-lg border border-border text-[10px] text-muted flex items-center justify-between px-3">
+                        <span>{new Date(minTime).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>
+                        <span className="font-semibold text-primary">Today ({new Date(now).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })})</span>
+                        <span>{new Date(maxTime).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>
+
+                        {/* Today vertical marker line */}
+                        <div
+                          className="absolute top-0 bottom-0 w-0.5 bg-primary/70 z-10 pointer-events-none"
+                          style={{ left: `${todayPct}%` }}
+                        />
+                      </div>
+
+                      {/* Gantt Plan Tracks */}
+                      <div className="divide-y divide-default/40">
+                        {plans.map((plan) => {
+                          const pStart = new Date(plan.start_date).getTime();
+                          const pEnd = new Date(plan.end_date).getTime();
+                          const validDates = !isNaN(pStart) && !isNaN(pEnd) && pEnd >= pStart;
+
+                          const startPct = validDates
+                            ? Math.min(100, Math.max(0, ((pStart - minTime) / totalDuration) * 100))
+                            : 0;
+                          const endPct = validDates
+                            ? Math.min(100, Math.max(startPct + 5, ((pEnd - minTime) / totalDuration) * 100))
+                            : 100;
+                          const widthPct = Math.max(6, endPct - startPct);
+
+                          const totalPlanned = plan.items?.reduce((s, i) => s + (parseFloat(i.planned_quantity) || 0), 0) || 0;
+                          const totalCompleted = plan.items?.reduce((s, i) => s + (parseFloat(i.completed_quantity) || 0), 0) || 0;
+                          const progressPct = totalPlanned > 0 ? Math.min(100, Math.round((totalCompleted / totalPlanned) * 100)) : 0;
+
+                          return (
+                            <div
+                              key={plan.id}
+                              className="py-3 px-2 hover:bg-surface-sunken/40 rounded-xl transition-colors cursor-pointer group"
+                              onClick={() => setSelectedPlan(plan)}
+                            >
+                              <div className="flex items-center justify-between mb-1.5 text-xs">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-mono font-bold text-primary">{plan.plan_number}</span>
+                                  <span className="font-semibold text-default">{plan.title}</span>
+                                  <span className="text-[10px] text-muted">({plan.items?.length || 0} items)</span>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                  <span className="text-[11px] font-mono text-muted">
+                                    {plan.start_date} → {plan.end_date}
+                                  </span>
+                                  <span className="text-[11px] font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                                    {progressPct}% Done
+                                  </span>
+                                  <StatusBadge status={plan.status} />
+                                </div>
+                              </div>
+
+                              {/* Gantt Track Bar */}
+                              <div className="relative h-7 rounded-lg bg-surface-sunken border border-border/60 overflow-hidden">
+                                <div
+                                  className="absolute top-0 bottom-0 w-0.5 bg-primary/30 z-0 pointer-events-none"
+                                  style={{ left: `${todayPct}%` }}
+                                />
+                                <div
+                                  className="absolute top-1 bottom-1 rounded-md overflow-hidden shadow-xs flex items-center px-2 text-[10px] font-bold text-white transition-all group-hover:ring-2 group-hover:ring-primary/40"
+                                  style={{
+                                    left: `${startPct}%`,
+                                    width: `${widthPct}%`,
+                                    backgroundColor:
+                                      plan.status === 'completed'
+                                        ? '#059669'
+                                        : plan.status === 'in_progress'
+                                        ? '#2563eb'
+                                        : plan.status === 'approved'
+                                        ? '#d97706'
+                                        : '#64748b',
+                                  }}
+                                >
+                                  <div
+                                    className="absolute top-0 bottom-0 left-0 bg-white/20 transition-all"
+                                    style={{ width: `${progressPct}%` }}
+                                  />
+                                  <span className="relative z-10 truncate drop-shadow-xs">
+                                    {plan.plan_number} ({progressPct}%)
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
+          </div>
+        )}
       </QueryBoundary>
 
       {/* Create Plan Modal */}

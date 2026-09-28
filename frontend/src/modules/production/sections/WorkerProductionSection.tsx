@@ -12,6 +12,7 @@ import {
   Users,
   FileUp,
   ChevronDown,
+  LayoutGrid,
 } from 'lucide-react';
 import { api } from '../../../lib/api/client';
 import { Modal } from '../../../components/ui/Modal';
@@ -60,6 +61,14 @@ interface EditEntryDraft {
   wage_type: 'piece_rate' | 'hourly';
 }
 
+interface BulkGridRow {
+  employee_id: string;
+  good_quantity: string;
+  rework_quantity: string;
+  rejected_quantity: string;
+  piece_rate: string;
+}
+
 export function WorkerProductionSection() {
   const { formatCurrency } = useCurrency();
   const [search, setSearch] = useState('');
@@ -77,6 +86,15 @@ export function WorkerProductionSection() {
     id: '',
     name: '',
   });
+
+  // Bulk Piece-Rate Grid State
+  const [isBulkGridOpen, setIsBulkGridOpen] = useState(false);
+  const [bulkGridBatchId, setBulkGridBatchId] = useState('');
+  const [bulkGridShift, setBulkGridShift] = useState<'morning' | 'evening' | 'night' | 'general'>('morning');
+  const [bulkGridDate, setBulkGridDate] = useState(new Date().toISOString().slice(0, 10));
+  const [bulkGridRows, setBulkGridRows] = useState<BulkGridRow[]>([]);
+  const [bulkGridSubmitting, setBulkGridSubmitting] = useState(false);
+  const [bulkGridError, setBulkGridError] = useState<string | null>(null);
 
   useEffect(() => {
     const handleOutsideClick = (e: MouseEvent) => {
@@ -334,6 +352,79 @@ export function WorkerProductionSection() {
     }
   };
 
+  const handleOpenBulkGrid = () => {
+    setBulkGridError(null);
+    const defaultBatch = batches[0];
+    setBulkGridBatchId(defaultBatch?.id ?? '');
+    setBulkGridDate(new Date().toISOString().slice(0, 10));
+    setBulkGridShift('morning');
+    if (employees.length > 0) {
+      setBulkGridRows(
+        employees.slice(0, Math.min(5, employees.length)).map((emp) => ({
+          employee_id: emp.id,
+          good_quantity: '50.0000',
+          rework_quantity: '0.0000',
+          rejected_quantity: '0.0000',
+          piece_rate: '2.5000',
+        }))
+      );
+    } else {
+      setBulkGridRows([
+        {
+          employee_id: '',
+          good_quantity: '50.0000',
+          rework_quantity: '0.0000',
+          rejected_quantity: '0.0000',
+          piece_rate: '2.5000',
+        },
+      ]);
+    }
+    setIsBulkGridOpen(true);
+  };
+
+  const handleBulkGridSubmit = async () => {
+    if (!bulkGridBatchId) {
+      setBulkGridError('Please select a production batch.');
+      return;
+    }
+    const validRows = bulkGridRows.filter((r) => r.employee_id && parseFloat(r.good_quantity) >= 0);
+    if (validRows.length === 0) {
+      setBulkGridError('Please configure at least one valid worker output row.');
+      return;
+    }
+    const batch = batches.find((b) => b.id === bulkGridBatchId);
+    const productId = batch?.product_id ?? products[0]?.id ?? '';
+
+    setBulkGridSubmitting(true);
+    setBulkGridError(null);
+    try {
+      await Promise.all(
+        validRows.map((row) =>
+          api.post('/production/worker-entries', {
+            batch_id: bulkGridBatchId,
+            employee_id: row.employee_id,
+            product_id: productId,
+            work_date: bulkGridDate,
+            shift: bulkGridShift,
+            wage_type: 'piece_rate',
+            good_quantity: row.good_quantity,
+            rework_quantity: row.rework_quantity,
+            rejected_quantity: row.rejected_quantity,
+            piece_rate: row.piece_rate,
+          })
+        )
+      );
+      await queryClient.invalidateQueries({ queryKey: ['production', 'worker-entries'] });
+      await queryClient.invalidateQueries({ queryKey: ['production', 'worker-entries', 'summary'] });
+      setIsBulkGridOpen(false);
+    } catch (err) {
+      if (isApiError(err)) setBulkGridError(err.message ?? 'Failed to log bulk entries.');
+      else setBulkGridError('Failed to save bulk worker outputs.');
+    } finally {
+      setBulkGridSubmitting(false);
+    }
+  };
+
   const exportSelectedCsv = (selectedEntries: WorkerProductionEntry[]) => {
     if (selectedEntries.length === 0) return;
     const headers = ['Worker', 'Employee Code', 'Batch', 'Product', 'Date', 'Shift', 'Good Qty', 'Rework Qty', 'Rejected Qty', 'Total Earned', 'Status'];
@@ -442,6 +533,15 @@ export function WorkerProductionSection() {
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
+          <Button
+            variant="secondary"
+            onClick={handleOpenBulkGrid}
+            className="flex items-center gap-1.5 min-h-11"
+          >
+            <LayoutGrid className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+            <span>Bulk Piece-Rate Grid</span>
+          </Button>
+
           <Button
             variant="secondary"
             onClick={() => setIsImportOpen(true)}
@@ -1155,6 +1255,259 @@ export function WorkerProductionSection() {
           queryClient.invalidateQueries({ queryKey: ['production', 'worker-entries', 'summary'] });
         }}
       />
+
+      {/* Bulk Piece-Rate Entry Grid Modal */}
+      {isBulkGridOpen && (
+        <Modal
+          open={isBulkGridOpen}
+          onClose={() => !bulkGridSubmitting && setIsBulkGridOpen(false)}
+          title="Bulk Piece-Rate Floor Entry Grid"
+          size="lg"
+        >
+          <div className="space-y-4">
+            {bulkGridError && (
+              <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-3 text-xs text-red-500">
+                {bulkGridError}
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3 rounded-xl bg-surface-sunken border border-border">
+              <div>
+                <label className="block text-[11px] font-semibold text-muted uppercase tracking-wider mb-1">
+                  Batch
+                </label>
+                <select
+                  value={bulkGridBatchId}
+                  onChange={(e) => setBulkGridBatchId(e.target.value)}
+                  className="w-full rounded-xl border border-default bg-surface p-2 text-xs text-default focus:border-primary focus:outline-none"
+                >
+                  <option value="">Select Batch</option>
+                  {batches.map((b) => (
+                    <option key={b.id} value={b.id}>
+                      {b.batch_number} - {b.product_name ?? b.product_id}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold text-muted uppercase tracking-wider mb-1">
+                  Work Date
+                </label>
+                <input
+                  type="date"
+                  value={bulkGridDate}
+                  onChange={(e) => setBulkGridDate(e.target.value)}
+                  className="w-full rounded-xl border border-default bg-surface p-2 text-xs text-default focus:border-primary focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold text-muted uppercase tracking-wider mb-1">
+                  Shift
+                </label>
+                <select
+                  value={bulkGridShift}
+                  onChange={(e) => setBulkGridShift(e.target.value as any)}
+                  className="w-full rounded-xl border border-default bg-surface p-2 text-xs text-default focus:border-primary focus:outline-none"
+                >
+                  <option value="morning">Morning Shift</option>
+                  <option value="evening">Evening Shift</option>
+                  <option value="night">Night Shift</option>
+                  <option value="general">General Shift</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Grid Table */}
+            <div className="overflow-x-auto rounded-xl border border-default">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead className="border-b border-default bg-surface-sunken text-[11px] font-semibold text-muted uppercase tracking-wider">
+                  <tr>
+                    <th className="px-3 py-2.5">Worker</th>
+                    <th className="px-3 py-2.5 w-28 text-right">Good Qty</th>
+                    <th className="px-3 py-2.5 w-24 text-right">Rework Qty</th>
+                    <th className="px-3 py-2.5 w-24 text-right">Rejected</th>
+                    <th className="px-3 py-2.5 w-28 text-right">Rate ($)</th>
+                    <th className="px-3 py-2.5 w-28 text-right">Earned ($)</th>
+                    <th className="px-2 py-2.5 w-10 text-center"></th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-default">
+                  {bulkGridRows.map((row, idx) => {
+                    const earned = (parseFloat(row.good_quantity) || 0) * (parseFloat(row.piece_rate) || 0);
+                    return (
+                      <tr key={idx} className="hover:bg-surface-sunken/40">
+                        <td className="px-3 py-2">
+                          <select
+                            value={row.employee_id}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setBulkGridRows((rows) =>
+                                rows.map((r, i) => (i === idx ? { ...r, employee_id: val } : r))
+                              );
+                            }}
+                            className="w-full rounded-lg border border-default bg-surface p-1.5 text-xs text-default focus:border-primary focus:outline-none"
+                          >
+                            <option value="">Select Worker</option>
+                            {employees.map((emp) => (
+                              <option key={emp.id} value={emp.id}>
+                                {emp.full_name} {emp.employee_code ? `(${emp.employee_code})` : ''}
+                              </option>
+                            ))}
+                          </select>
+                        </td>
+                        <td className="px-3 py-2">
+                          <input
+                            type="number"
+                            step="any"
+                            value={row.good_quantity}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setBulkGridRows((rows) =>
+                                rows.map((r, i) => (i === idx ? { ...r, good_quantity: val } : r))
+                              );
+                            }}
+                            className="w-full rounded-lg border border-default bg-surface p-1.5 text-xs text-right font-mono focus:border-primary focus:outline-none"
+                          />
+                        </td>
+                        <td className="px-3 py-2">
+                          <input
+                            type="number"
+                            step="any"
+                            value={row.rework_quantity}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setBulkGridRows((rows) =>
+                                rows.map((r, i) => (i === idx ? { ...r, rework_quantity: val } : r))
+                              );
+                            }}
+                            className="w-full rounded-lg border border-default bg-surface p-1.5 text-xs text-right font-mono focus:border-primary focus:outline-none"
+                          />
+                        </td>
+                        <td className="px-3 py-2">
+                          <input
+                            type="number"
+                            step="any"
+                            value={row.rejected_quantity}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setBulkGridRows((rows) =>
+                                rows.map((r, i) => (i === idx ? { ...r, rejected_quantity: val } : r))
+                              );
+                            }}
+                            className="w-full rounded-lg border border-default bg-surface p-1.5 text-xs text-right font-mono focus:border-primary focus:outline-none"
+                          />
+                        </td>
+                        <td className="px-3 py-2">
+                          <input
+                            type="number"
+                            step="any"
+                            value={row.piece_rate}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setBulkGridRows((rows) =>
+                                rows.map((r, i) => (i === idx ? { ...r, piece_rate: val } : r))
+                              );
+                            }}
+                            className="w-full rounded-lg border border-default bg-surface p-1.5 text-xs text-right font-mono focus:border-primary focus:outline-none"
+                          />
+                        </td>
+                        <td className="px-3 py-2 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                          {formatCurrency(earned)}
+                        </td>
+                        <td className="px-2 py-2 text-center">
+                          {bulkGridRows.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setBulkGridRows((rows) => rows.filter((_, i) => i !== idx))
+                              }
+                              className="text-muted hover:text-rose-500 p-1 cursor-pointer"
+                              title="Remove row"
+                            >
+                              <Trash2 className="size-3.5" />
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+                <tfoot className="border-t border-default bg-surface-sunken font-semibold text-xs">
+                  <tr>
+                    <td className="px-3 py-2 text-default">
+                      Total ({bulkGridRows.length} workers)
+                    </td>
+                    <td className="px-3 py-2 text-right font-mono text-emerald-600 dark:text-emerald-400">
+                      {bulkGridRows.reduce((acc, r) => acc + (parseFloat(r.good_quantity) || 0), 0).toFixed(2)}
+                    </td>
+                    <td className="px-3 py-2 text-right font-mono text-amber-600">
+                      {bulkGridRows.reduce((acc, r) => acc + (parseFloat(r.rework_quantity) || 0), 0).toFixed(2)}
+                    </td>
+                    <td className="px-3 py-2 text-right font-mono text-rose-600">
+                      {bulkGridRows.reduce((acc, r) => acc + (parseFloat(r.rejected_quantity) || 0), 0).toFixed(2)}
+                    </td>
+                    <td className="px-3 py-2 text-right text-muted">-</td>
+                    <td className="px-3 py-2 text-right font-mono font-bold text-primary">
+                      {formatCurrency(
+                        bulkGridRows.reduce(
+                          (acc, r) =>
+                            acc + (parseFloat(r.good_quantity) || 0) * (parseFloat(r.piece_rate) || 0),
+                          0
+                        )
+                      )}
+                    </td>
+                    <td></td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+
+            <div className="flex items-center justify-between pt-2">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() =>
+                  setBulkGridRows((rows) => [
+                    ...rows,
+                    {
+                      employee_id: '',
+                      good_quantity: '50.0000',
+                      rework_quantity: '0.0000',
+                      rejected_quantity: '0.0000',
+                      piece_rate: '2.5000',
+                    },
+                  ])
+                }
+                className="flex items-center gap-1.5"
+              >
+                <Plus className="size-3.5" />
+                <span>Add Worker Row</span>
+              </Button>
+
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  onClick={() => setIsBulkGridOpen(false)}
+                  disabled={bulkGridSubmitting}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="primary"
+                  onClick={handleBulkGridSubmit}
+                  disabled={bulkGridSubmitting}
+                  className="flex items-center gap-1.5"
+                >
+                  <Users className="size-3.5" />
+                  <span>{bulkGridSubmitting ? 'Logging...' : `Submit Output for ${bulkGridRows.length} Workers`}</span>
+                </Button>
+              </div>
+            </div>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }

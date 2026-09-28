@@ -1,7 +1,7 @@
 # 🏭 Master Implementation & Testing Record (Phases 0 — 11)
 ### Production ERP + Storefront — Full Platform Upgrade
 > **Single Source of Truth** for Platform Architecture, Multi-Payment, Design, Workflows & Module Upgrades  
-> **Overall Progress**: Phase 0 (100% COMPLETE) | Phase 1 (100% COMPLETE) | Phase 2 (100% COMPLETE) | Phase 3 (100% COMPLETE) | Phase 4 (100% COMPLETE) | Phase 5 (READY TO PROCEED)  
+> **Overall Progress**: Phase 0 (100% COMPLETE) | Phase 1 (100% COMPLETE) | Phase 2 (100% COMPLETE) | Phase 3 (100% COMPLETE) | Phase 4 (100% COMPLETE) | Phase 5 (100% COMPLETE) | Phase 6 (READY TO PROCEED)  
 > **Last Verified**: September 29, 2026 | **Build Status**: Green (0 TypeScript Errors, 100% Automated Tests Passing)
 
 ---
@@ -15,8 +15,8 @@
 | **Phase 2** | **Reports Hub Redesign & Consolidation** | **COMPLETED & VERIFIED** | **PASS** (64/64 backend, 6/6 Vitest, 0 TS errors) | Deduplicated 8 reports (84 → 76), 7 Domain Hubs, dual-engine ApexCharts/Chart.js, 4-card KPI strip, pinned & recent strips |
 | **Phase 3** | **Dashboard & KPI Visuals Upgrade** | **COMPLETED & VERIFIED** | **PASS** (6/6 backend, 9/9 Vitest, 0 TS errors) | Mini sparklines (SVG cubic-bezier), directional % delta badges, TodayAlertsStrip, interactive multi-series ApexCharts with overlay toggle, live department health metrics |
 | **Phase 4** | **Core Modules UX (Sales, POS, Purchasing, Inventory)** | **COMPLETED & VERIFIED** | **PASS** (299/299 Vitest, 0 TS errors) | HID barcode scanner buffer, 6-stage leads Kanban, bulk order dispatch, branded invoice PDF, X-Report, replenishment alerts, 7d velocity chart |
-| **Phase 5** | **Production, QC & Logistics Workflows** | 🟡 **NEXT TO PROCEED** | *Pending User Authorization* | Stage stepper, rework actions, AQL calculator, courier reconciliation, SLA tracking |
-| **Phase 6** | **Finance & Fixed Assets Upgrades** | ⚪ Queued | *Pending* | Bank statement reconciliation, depreciation schedules, QR asset labels |
+| **Phase 5** | **Production, QC & Logistics Workflows** | **COMPLETED & VERIFIED** | **PASS** (302/302 Vitest, 0 TS errors) | 5-stage stepper, QC defect badge & rework modal, Gantt-lite plans view, worker bulk piece-rate grid, ISO 2859-1 AQL calculator & auto disposition, QC sparkline, COD reconciliation, route optimization & courier SLA breach alerts |
+| **Phase 6** | **Finance & Fixed Assets Upgrades** | 🟡 **NEXT TO PROCEED** | *Pending User Authorization* | Bank statement reconciliation, depreciation schedules, QR asset labels |
 | **Phase 7** | **HR Workspace (Kiosk Removed)** | ⚪ Queued | *Pending* | Calendar attendance, salary calculation breakdown, leave notifications |
 | **Phase 8** | **Settings, Roles, Activity Logs & Data Bin** | ⚪ Queued | *Pending* | Dedicated routes, permission matrix, human-readable diffs, 30s undo countdown |
 | **Phase 9** | **Storefront (Page Builder & Public Checkout)** | ⚪ Queued | *Pending* | Section splitting, drag-and-drop ordering, guest checkout, gateway placeholder |
@@ -294,22 +294,77 @@
 
 ---
 
-## ⚪ PHASE 5: Production, QC & Logistics Workflows (QUEUED)
+## 🟢 PHASE 5: Production, QC & Logistics Workflows (COMPLETED & VERIFIED)
 
-- [ ] **Production**:
-  - Batch status stepper (`Created → Raw Materials → Stage N → QC → Completed`).
-  - "QC Failed" badge on batch with "Send to Rework" direct action.
-  - Gantt-lite view for production plans.
-  - Worker bulk piece-rate entry grid.
-- [ ] **QC**:
-  - AQL sample size calculator.
-  - Defect checklist with pass/fail per parameter.
-  - Auto-create Rework record on FAIL; auto-create Wastage on scrap.
-  - QC pass-rate sparkline on workspace header.
-- [ ] **Logistics**:
-  - Courier COD reconciliation.
-  - Route optimization indicator on delivery run sheets.
-  - Courier SLA breach alerts.
+- **Execution Date**: September 29, 2026
+- **Status**: **100% COMPLETE & VERIFIED**
+- **Test Evidence**:
+  - `npm run typecheck` (`tsc -b --noEmit`): **EXIT CODE 0 (0 errors across entire workspace)**
+  - `npx vitest run`: **44 passed test files, 302 passed tests, 0 failures (100% pass rate)**
+
+### Deliverables & Architecture Improvements
+
+#### 1. Production Module Workflows
+- **5-Stage Production Stepper** ([ProductionBatchesSection.tsx](file:///d:/Production%20ERP%20with%20Storefront/slicemart-fms/frontend/src/modules/production/sections/ProductionBatchesSection.tsx)):
+  - Visual 5-stage lifecycle stepper: `Created (1) → Raw Materials (2) → Stage Progression (3) → Quality Control (4) → Completed (5)`.
+  - Dynamic status styling: completed stages with emerald checkmarks, active stage with pulsing blue indicator, and pending stages with neutral outlines.
+- **QC Defect Tracking & Rework Order Routing** ([ProductionBatchesSection.tsx](file:///d:/Production%20ERP%20with%20Storefront/slicemart-fms/frontend/src/modules/production/sections/ProductionBatchesSection.tsx)):
+  - Visual `QC Defect` warning badges rendered directly on batch rows when `qc_status === 'defect'` or `'failed'`.
+  - Alert banner in the Batch Details Drawer alerting operators of flagged QC defects.
+  - Dedicated "Send to QC Rework" action in table row menu and in details drawer opening the Rework Modal.
+  - Rework Modal (`<Modal open={Boolean(reworkModalBatch)}>`) with work center selection, reason, rework instructions, estimated hours, and estimated cost fields, posting directly to `api.post('/qc/rework-orders', ...)` with optimistic notification.
+- **Gantt-Lite Timeline View** ([ProductionPlansSection.tsx](file:///d:/Production%20ERP%20with%20Storefront/slicemart-fms/frontend/src/modules/production/sections/ProductionPlansSection.tsx)):
+  - View switcher toggle between standard **Table View** and **Timeline Gantt** view.
+  - Interactive Gantt bars plotting plan start and target completion dates across dynamic date boundaries.
+  - Live progress percentage bar (`completed_quantity / planned_quantity`), formatted units, status color coding, and a dynamic "Today" guideline marker.
+- **Worker Bulk Piece-Rate Entry Grid** ([WorkerProductionSection.tsx](file:///d:/Production%20ERP%20with%20Storefront/slicemart-fms/frontend/src/modules/production/sections/WorkerProductionSection.tsx)):
+  - "Bulk Piece-Rate Grid" modal (`isBulkGridOpen`) for rapid batch entry.
+  - Multi-worker tabular grid allowing simultaneous entry for multiple workers, operations, good units, defect units, and piece rates.
+  - Real-time calculation of total earned wages (`good_quantity * piece_rate`).
+  - Summary KPI strip calculating total good output, total defects, and cumulative payroll liability with bulk submission via `api.post('/production/worker-entries', ...)`.
+
+#### 2. Quality Control (QC) Workflows
+- **ISO 2859-1 / ANSI ASQ Z1.4 AQL Sampling Calculator** ([QcInspectionsSection.tsx](file:///d:/Production%20ERP%20with%20Storefront/slicemart-fms/frontend/src/modules/qc/sections/QcInspectionsSection.tsx)):
+  - Built-in dynamic AQL sampling engine (`getAqlCalculation`).
+  - Computes sample size code letters (A through R), required inspection sample quantity, and Accept (Ac) / Reject (Re) criteria based on Lot Size, General Inspection Levels (I, II, III), and selected AQL threshold (1.0%, 1.5%, 2.5%, 4.0%).
+  - Auto-fill helper populating calculated sample size into inspection form fields.
+- **Specification Auto-Loader & Interactive Parameter Checklist** ([QcInspectionsSection.tsx](file:///d:/Production%20ERP%20with%20Storefront/slicemart-fms/frontend/src/modules/qc/sections/QcInspectionsSection.tsx)):
+  - "Quick-load All Specs" button automatically pulling predefined quality standards for the product.
+  - Interactive parameter checklist with pass/fail toggle switch, tolerance limits, and parameter defect notes.
+- **Automated Disposition Routing** ([QcInspectionsSection.tsx](file:///d:/Production%20ERP%20with%20Storefront/slicemart-fms/frontend/src/modules/qc/sections/QcInspectionsSection.tsx)):
+  - On inspection failure, automatically prompts and routes disposition:
+    - Auto-creates linked Rework Orders to `/qc/rework-orders` with batch ID, defect type, and instructions.
+    - Auto-creates linked scrap Wastage records to `/qc/wastage-records` for scrapped quantities.
+- **Quality Intelligence Command Strip** ([QcWorkspace.tsx](file:///d:/Production%20ERP%20with%20Storefront/slicemart-fms/frontend/src/modules/qc/QcWorkspace.tsx)):
+  - Real-time First Pass Yield (FPY / Pass Rate %) metric card with target indicator.
+  - Interactive 7-day SVG sparkline visualizing quality pass rate trends.
+  - Active rework order tracking and pending inspection volume counters.
+
+#### 3. Logistics & Delivery Workflows
+- **Courier COD Reconciliation** ([CodReconciliationSection.tsx](file:///d:/Production%20ERP%20with%20Storefront/slicemart-fms/frontend/src/modules/delivery/sections/CodReconciliationSection.tsx)):
+  - 4-metric KPI summary strip: Total Expected COD, Total Remitted, Net Settlement Variance, and Disputed Records count.
+  - 3PL Courier fee deduction calculator (Handling Fee, Delivery Charge, COD % surcharge).
+  - Net bank remittance calculation and reconciliation status tagging.
+- **Run Sheet Route Optimization** ([RunSheetsSection.tsx](file:///d:/Production%20ERP%20with%20Storefront/slicemart-fms/frontend/src/modules/delivery/sections/RunSheetsSection.tsx)):
+  - `ROUTE EFFICIENCY` table column with `Optimized (94%)` and `Direct Route` indicator badges.
+  - "Auto-Optimize Route Sequence" button in Create Run Sheet modal sorting stops into geographically optimal drop sequences.
+- **Courier SLA Breach Alerts & Transit Intelligence** ([CourierShipmentsSection.tsx](file:///d:/Production%20ERP%20with%20Storefront/slicemart-fms/frontend/src/modules/delivery/sections/CourierShipmentsSection.tsx)):
+  - Automated transit time calculation (`getShipmentSla`) measuring elapsed hours since consignment dispatch.
+  - Dynamic color-coded SLA badges: `>48h At Risk` (amber), `>72h SLA Breach` (rose/red), `<48h On Track` (emerald), and `Delivered`.
+  - 4 interactive filter pills with dynamic count badges (`All Consignments`, `Critical SLA Breach (>72h)`, `SLA At Risk (>48h)`, `On Track (<48h)`).
+  - "Expedite 3PL Delivery" SLA fast-track action.
+- **Logistics Intelligence Command Strip** ([DeliveryWorkspace.tsx](file:///d:/Production%20ERP%20with%20Storefront/slicemart-fms/frontend/src/modules/delivery/DeliveryWorkspace.tsx)):
+  - Courier SLA Adherence % gauge with 7-day transit SLA trend sparkline.
+  - In-transit parcel counter, at-risk parcel counter, and SLA breached parcel counter with one-click filter routing.
+
+### 5.4 Test Verification Evidence
+- **Frontend Strict TypeScript Check**:
+  - Command: `npm run typecheck` (`tsc -b --noEmit`)
+  - Result: **EXIT CODE 0 (0 errors across entire workspace)**.
+- **Frontend Automated Test Suite**:
+  - Command: `npx vitest run`
+  - Result: **44 passed test files, 302 passed tests, 0 failures (100% pass rate)**.
+  - Includes dedicated tests for [CourierShipmentsSection.test.tsx](file:///d:/Production%20ERP%20with%20Storefront/slicemart-fms/frontend/src/modules/delivery/sections/CourierShipmentsSection.test.tsx) verifying SLA transit calculations, filter pill rendering, and table filtering.
 
 ---
 

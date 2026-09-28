@@ -16,7 +16,10 @@ import {
   XCircle,
   RotateCcw,
   ChevronDown,
+  Calculator,
+  AlertOctagon,
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { api } from '../../../lib/api/client';
 import { Modal } from '../../../components/ui/Modal';
 import { Button } from '../../../components/ui/Button';
@@ -99,6 +102,72 @@ export function QcInspectionsSection() {
     defects: [],
   });
 
+  // AQL Calculator & Defect Routing State
+  const [showAqlModal, setShowAqlModal] = useState(false);
+  const [aqlLotSize, setAqlLotSize] = useState('500');
+  const [aqlLevel, setAqlLevel] = useState<'I' | 'II' | 'III'>('II');
+  const [aqlTarget, setAqlTarget] = useState<1.0 | 1.5 | 2.5 | 4.0>(2.5);
+  const [autoCreateRework, setAutoCreateRework] = useState(true);
+  const [autoCreateWastage, setAutoCreateWastage] = useState(false);
+  const [isDispatchingRework, setIsDispatchingRework] = useState(false);
+
+  const getAqlCalculation = (
+    lotSize: number,
+    level: 'I' | 'II' | 'III' = 'II',
+    aql: 1.0 | 1.5 | 2.5 | 4.0 = 2.5
+  ) => {
+    let rangeIdx = 0;
+    if (lotSize <= 8) rangeIdx = 0;
+    else if (lotSize <= 15) rangeIdx = 1;
+    else if (lotSize <= 25) rangeIdx = 2;
+    else if (lotSize <= 50) rangeIdx = 3;
+    else if (lotSize <= 90) rangeIdx = 4;
+    else if (lotSize <= 150) rangeIdx = 5;
+    else if (lotSize <= 280) rangeIdx = 6;
+    else if (lotSize <= 500) rangeIdx = 7;
+    else if (lotSize <= 1200) rangeIdx = 8;
+    else if (lotSize <= 3200) rangeIdx = 9;
+    else if (lotSize <= 10000) rangeIdx = 10;
+    else if (lotSize <= 35000) rangeIdx = 11;
+    else if (lotSize <= 150000) rangeIdx = 12;
+    else if (lotSize <= 500000) rangeIdx = 13;
+    else rangeIdx = 14;
+
+    const letterMatrix: Record<'I' | 'II' | 'III', string[]> = {
+      I: ['A', 'A', 'B', 'C', 'C', 'D', 'E', 'F', 'G', 'H', 'J', 'K', 'L', 'M', 'N'],
+      II: ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'J', 'K', 'L', 'M', 'N', 'P', 'Q'],
+      III: ['B', 'C', 'D', 'E', 'F', 'G', 'H', 'J', 'K', 'L', 'M', 'N', 'P', 'Q', 'R'],
+    };
+
+    const codeLetter = letterMatrix[level][rangeIdx] ?? 'J';
+    const sampleSizeMap: Record<string, number> = {
+      A: 2, B: 3, C: 5, D: 8, E: 13, F: 20, G: 32, H: 50,
+      J: 80, K: 125, L: 200, M: 315, N: 500, P: 800, Q: 1250, R: 2000,
+    };
+    const sampleSize = sampleSizeMap[codeLetter] || 80;
+
+    const aqlTable: Record<string, Record<number, [number, number]>> = {
+      A: { 1.0: [0, 1], 1.5: [0, 1], 2.5: [0, 1], 4.0: [0, 1] },
+      B: { 1.0: [0, 1], 1.5: [0, 1], 2.5: [0, 1], 4.0: [0, 1] },
+      C: { 1.0: [0, 1], 1.5: [0, 1], 2.5: [0, 1], 4.0: [0, 1] },
+      D: { 1.0: [0, 1], 1.5: [0, 1], 2.5: [0, 1], 4.0: [1, 2] },
+      E: { 1.0: [0, 1], 1.5: [0, 1], 2.5: [1, 2], 4.0: [1, 2] },
+      F: { 1.0: [0, 1], 1.5: [1, 2], 2.5: [1, 2], 4.0: [2, 3] },
+      G: { 1.0: [1, 2], 1.5: [1, 2], 2.5: [2, 3], 4.0: [3, 4] },
+      H: { 1.0: [1, 2], 1.5: [2, 3], 2.5: [3, 4], 4.0: [5, 6] },
+      J: { 1.0: [2, 3], 1.5: [3, 4], 2.5: [5, 6], 4.0: [7, 8] },
+      K: { 1.0: [3, 4], 1.5: [5, 6], 2.5: [7, 8], 4.0: [10, 11] },
+      L: { 1.0: [5, 6], 1.5: [7, 8], 2.5: [10, 11], 4.0: [14, 15] },
+      M: { 1.0: [7, 8], 1.5: [10, 11], 2.5: [14, 15], 4.0: [21, 22] },
+      N: { 1.0: [10, 11], 1.5: [14, 15], 2.5: [21, 22], 4.0: [21, 22] },
+      P: { 1.0: [14, 15], 1.5: [21, 22], 2.5: [21, 22], 4.0: [21, 22] },
+      Q: { 1.0: [21, 22], 1.5: [21, 22], 2.5: [21, 22], 4.0: [21, 22] },
+    };
+
+    const [ac, re] = aqlTable[codeLetter]?.[aql] ?? [2, 3];
+    return { codeLetter, sampleSize, acceptanceNum: ac, rejectionNum: re };
+  };
+
   const queryClient = useQueryClient();
 
   // Queries
@@ -132,7 +201,7 @@ export function QcInspectionsSection() {
 
   // Mutations
   const createMutation = useMutation({
-    mutationFn: (payloadDraft: CreateInspectionDraft) => {
+    mutationFn: async (payloadDraft: CreateInspectionDraft) => {
       const payload = {
         inspection_number: `QC-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-${Math.random().toString(36).substring(2, 7).toUpperCase()}`,
         production_batch_id: payloadDraft.batch_id || undefined,
@@ -156,12 +225,66 @@ export function QcInspectionsSection() {
         })),
         defects: payloadDraft.defects,
       };
-      return api.post<QcInspection>('/qc/inspections', payload);
+
+      const res = await api.post<QcInspection>('/qc/inspections', payload);
+
+      // Auto-create Rework Order if flagged on rejection
+      if (autoCreateRework && (payloadDraft.result === 'fail' || parseFloat(payloadDraft.rejected_quantity) > 0)) {
+        try {
+          const selectedBatch = batches.find((b) => b.id === payloadDraft.batch_id);
+          const selectedProduct = products.find((p) => p.id === payloadDraft.product_id);
+          await api.post('/qc/rework-orders', {
+            rework_number: `RWK-${Date.now().toString().slice(-6)}`,
+            batch_id: payloadDraft.batch_id || selectedBatch?.id,
+            batch_number: selectedBatch?.batch_number,
+            product_id: payloadDraft.product_id,
+            product_name: selectedProduct?.name,
+            defect_category: payloadDraft.defects[0]?.defect_type || 'QC Parameter Failure',
+            defect_notes: `Auto-generated from inspection ${payload.inspection_number}. ${payloadDraft.notes || ''}`.trim(),
+            qty_defective: payloadDraft.rejected_quantity || '1.0000',
+            unit: 'units',
+            assigned_station: 'Rework Bay 1',
+            assigned_operator: 'Floor Technician',
+            status: 'pending',
+            rework_cost: '25.0000',
+            salvage_qty: 0,
+            scrap_qty: 0,
+            created_at: new Date().toISOString(),
+          });
+          await queryClient.invalidateQueries({ queryKey: ['qc', 'rework-orders'] });
+        } catch (e) {
+          console.warn('Could not auto-create rework order', e);
+        }
+      }
+
+      // Auto-create Wastage Record if scrap flagged
+      if (autoCreateWastage && parseFloat(payloadDraft.rejected_quantity) > 0) {
+        try {
+          await api.post('/qc/wastage-records', {
+            wastage_number: `WST-${Date.now().toString().slice(-6)}`,
+            product_id: payloadDraft.product_id,
+            production_batch_id: payloadDraft.batch_id,
+            stage: 'qc',
+            quantity: payloadDraft.rejected_quantity,
+            unit_id: 'default',
+            reason_code_id: 'default',
+            estimated_cost: '20.0000',
+            is_recoverable: false,
+            notes: `Auto-recorded scrap from inspection ${payload.inspection_number}`,
+          });
+          await queryClient.invalidateQueries({ queryKey: ['qc', 'wastage-records'] });
+        } catch (e) {
+          console.warn('Could not auto-create wastage record', e);
+        }
+      }
+
+      return res;
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['qc', 'inspections'] });
       setIsCreateOpen(false);
       setErrorMsg(null);
+      toast.success('Inspection recorded successfully.');
     },
     onError: (err) => {
       if (isApiError(err)) setErrorMsg(err.message ?? 'Failed to log QC inspection.');
@@ -924,9 +1047,26 @@ export function QcInspectionsSection() {
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
-              <label className="block text-[11px] font-semibold text-muted uppercase tracking-wider mb-1">
-                Sample Size
-              </label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-[11px] font-semibold text-muted uppercase tracking-wider">
+                  Sample Size
+                </label>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const selBatch = batches.find((b) => b.id === draft.batch_id);
+                    if (selBatch?.target_quantity) {
+                      setAqlLotSize(String(Math.round(parseFloat(selBatch.target_quantity))));
+                    }
+                    setShowAqlModal(true);
+                  }}
+                  className="text-[10px] text-primary hover:underline font-semibold flex items-center gap-1 cursor-pointer"
+                  title="Calculate standard AQL sample size from lot size"
+                >
+                  <Calculator className="size-3" />
+                  <span>AQL Tool</span>
+                </button>
+              </div>
               <input
                 type="number"
                 step="0.0001"
@@ -1031,37 +1171,60 @@ export function QcInspectionsSection() {
           <div className="space-y-2 pt-2 border-t border-default">
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-semibold text-muted uppercase tracking-wider">
-                Parameter Tests ({draft.results.length})
+                Parameter Checklist ({draft.results.length})
               </span>
-              {parameters.length > draft.results.length && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    const unadded = parameters.find(
-                      (p) => !draft.results.some((r) => r.qc_parameter_id === p.id)
-                    );
-                    if (unadded) {
+              <div className="flex items-center gap-2">
+                {parameters.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const relevant = parameters.filter((p) => !(p as any).product_id || (p as any).product_id === draft.product_id);
+                      const listToUse = relevant.length > 0 ? relevant : parameters;
                       setDraft((d) => ({
                         ...d,
-                        results: [
-                          ...d.results,
-                          {
-                            qc_parameter_id: unadded.id,
-                            parameter_name: unadded.name,
-                            measured_value: unadded.target_value ?? '1.0000',
-                            is_passed: true,
-                          },
-                        ],
+                        results: listToUse.map((p) => ({
+                          qc_parameter_id: p.id,
+                          parameter_name: p.name,
+                          measured_value: p.target_value ?? '1.0000',
+                          is_passed: true,
+                        })),
                       }));
-                    }
-                  }}
-                  className="text-xs text-primary flex items-center gap-1"
-                >
-                  <Plus className="h-3 w-3" />
-                  <span>Add Parameter Test</span>
-                </Button>
-              )}
+                    }}
+                    className="text-[11px] text-primary hover:underline font-medium cursor-pointer"
+                  >
+                    Quick-load All ({parameters.length}) Specs
+                  </button>
+                )}
+                {parameters.length > draft.results.length && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      const unadded = parameters.find(
+                        (p) => !draft.results.some((r) => r.qc_parameter_id === p.id)
+                      );
+                      if (unadded) {
+                        setDraft((d) => ({
+                          ...d,
+                          results: [
+                            ...d.results,
+                            {
+                              qc_parameter_id: unadded.id,
+                              parameter_name: unadded.name,
+                              measured_value: unadded.target_value ?? '1.0000',
+                              is_passed: true,
+                            },
+                          ],
+                        }));
+                      }
+                    }}
+                    className="text-xs text-primary flex items-center gap-1"
+                  >
+                    <Plus className="h-3 w-3" />
+                    <span>Add Parameter</span>
+                  </Button>
+                )}
+              </div>
             </div>
 
             {draft.results.length > 0 && (
@@ -1091,11 +1254,16 @@ export function QcInspectionsSection() {
                     <button
                       type="button"
                       onClick={() => {
+                        const updatedResults = draft.results.map((r, i) =>
+                          i === idx ? { ...r, is_passed: !r.is_passed } : r
+                        );
+                        const anyFailed = updatedResults.some((r) => !r.is_passed);
                         setDraft((d) => ({
                           ...d,
-                          results: d.results.map((r, i) =>
-                            i === idx ? { ...r, is_passed: !r.is_passed } : r
-                          ),
+                          results: updatedResults,
+                          result: anyFailed ? 'fail' : 'pass',
+                          rejected_quantity:
+                            anyFailed && parseFloat(d.rejected_quantity) === 0 ? '1.0000' : d.rejected_quantity,
                         }));
                       }}
                       className={`min-h-11 min-w-18 sm:min-h-9 px-3 py-2 rounded-xl text-xs font-bold cursor-pointer transition-all active:scale-95 shadow-2xs flex items-center justify-center touch-target-factory ${
@@ -1225,6 +1393,40 @@ export function QcInspectionsSection() {
               </div>
             )}
           </div>
+
+          {/* Automated Disposition Routing on Failure */}
+          {(draft.result === 'fail' || draft.result === 'partial' || parseFloat(draft.rejected_quantity) > 0) && (
+            <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 space-y-2">
+              <div className="flex items-center gap-1.5 text-xs font-bold text-amber-700 dark:text-amber-300">
+                <AlertTriangle className="size-4 text-amber-500 shrink-0" />
+                <span>Non-Conformance Handling: Automated Workflow Actions</span>
+              </div>
+              <div className="space-y-1.5 text-xs text-default">
+                <label className="flex items-center gap-2 cursor-pointer font-medium">
+                  <input
+                    type="checkbox"
+                    checked={autoCreateRework}
+                    onChange={(e) => setAutoCreateRework(e.target.checked)}
+                    className="rounded text-primary border-default"
+                  />
+                  <span>
+                    Auto-create <strong>QC Rework Order</strong> for salvage & repair
+                  </span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer font-medium">
+                  <input
+                    type="checkbox"
+                    checked={autoCreateWastage}
+                    onChange={(e) => setAutoCreateWastage(e.target.checked)}
+                    className="rounded text-primary border-default"
+                  />
+                  <span>
+                    Record scrapped units as <strong>Material Wastage</strong>
+                  </span>
+                </label>
+              </div>
+            </div>
+          )}
 
           <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-3 border-t border-default">
             <Button variant="ghost" className="w-full sm:w-auto min-h-11 sm:min-h-9.5 touch-target" onClick={() => setIsCreateOpen(false)}>
@@ -1547,21 +1749,80 @@ export function QcInspectionsSection() {
 
             <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-2 pt-3 border-t border-default">
               {parseFloat(selectedInspection.rejected_quantity || selectedInspection.failed_quantity || '0') > 0 && (
-                <Button
-                  variant="primary"
-                  size="sm"
-                  onClick={() => {
-                    alert(
-                      `Rework Batch successfully generated for ${
-                        selectedInspection.rejected_quantity ?? selectedInspection.failed_quantity
-                      } units of ${selectedInspection.product_name ?? 'Product'}. Assigned to Rework Cell #1.`
-                    );
-                  }}
-                  className="bg-amber-600 hover:bg-amber-500 text-white min-h-11 sm:min-h-9 w-full sm:w-auto touch-target"
-                >
-                  ⚡ Convert to Rework Batch (
-                  {selectedInspection.rejected_quantity ?? selectedInspection.failed_quantity} pcs)
-                </Button>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    disabled={isDispatchingRework}
+                    onClick={async () => {
+                      setIsDispatchingRework(true);
+                      try {
+                        const rejQty = selectedInspection.rejected_quantity ?? selectedInspection.failed_quantity ?? '1.0000';
+                        await api.post('/qc/rework-orders', {
+                          rework_number: `RWK-${Date.now().toString().slice(-6)}`,
+                          batch_id: (selectedInspection as any).production_batch_id || selectedInspection.batch_id,
+                          product_id: selectedInspection.product_id,
+                          product_name: selectedInspection.product_name,
+                          defect_category: selectedInspection.defects?.[0]?.defect_type || 'QC Inspection Rejection',
+                          defect_notes: `Created from inspection ${selectedInspection.inspection_number}`,
+                          qty_defective: rejQty,
+                          unit: 'units',
+                          assigned_station: 'Rework Bay 1',
+                          assigned_operator: 'Floor Technician',
+                          status: 'pending',
+                          rework_cost: '30.0000',
+                          salvage_qty: 0,
+                          scrap_qty: 0,
+                          created_at: new Date().toISOString(),
+                        });
+                        await queryClient.invalidateQueries({ queryKey: ['qc', 'rework-orders'] });
+                        toast.success(`Rework Order created for ${rejQty} units.`);
+                      } catch (err) {
+                        toast.error('Failed to create rework order.');
+                      } finally {
+                        setIsDispatchingRework(false);
+                      }
+                    }}
+                    className="bg-amber-600 hover:bg-amber-500 text-white min-h-11 sm:min-h-9 w-full sm:w-auto touch-target flex items-center gap-1.5"
+                  >
+                    <RotateCcw className="size-3.5" />
+                    <span>
+                      {isDispatchingRework
+                        ? 'Creating...'
+                        : `Dispatch to Rework (${selectedInspection.rejected_quantity ?? selectedInspection.failed_quantity} units)`}
+                    </span>
+                  </Button>
+
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={async () => {
+                      try {
+                        const rejQty = selectedInspection.rejected_quantity ?? selectedInspection.failed_quantity ?? '1.0000';
+                        await api.post('/qc/wastage-records', {
+                          wastage_number: `WST-${Date.now().toString().slice(-6)}`,
+                          product_id: selectedInspection.product_id,
+                          production_batch_id: (selectedInspection as any).production_batch_id || selectedInspection.batch_id,
+                          stage: 'qc',
+                          quantity: rejQty,
+                          unit_id: 'default',
+                          reason_code_id: 'default',
+                          estimated_cost: '25.0000',
+                          is_recoverable: false,
+                          notes: `Direct scrap logged from inspection ${selectedInspection.inspection_number}`,
+                        });
+                        await queryClient.invalidateQueries({ queryKey: ['qc', 'wastage-records'] });
+                        toast.success(`Scrap recorded as material wastage.`);
+                      } catch (err) {
+                        toast.error('Failed to record wastage.');
+                      }
+                    }}
+                    className="text-rose-600 border-rose-500/30 hover:bg-rose-500/10 min-h-11 sm:min-h-9 w-full sm:w-auto touch-target flex items-center gap-1.5"
+                  >
+                    <AlertOctagon className="size-3.5" />
+                    <span>Record Scrap as Wastage</span>
+                  </Button>
+                </div>
               )}
               <div className="flex items-center gap-2 sm:ml-auto w-full sm:w-auto justify-end">
                 <Button
@@ -1581,6 +1842,134 @@ export function QcInspectionsSection() {
                 </Button>
               </div>
             </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* AQL Sample Size Calculator Modal */}
+      {showAqlModal && (
+        <Modal
+          open={showAqlModal}
+          onClose={() => setShowAqlModal(false)}
+          title="AQL Sampling Calculator (ISO 2859-1 / ANSI ASQ Z1.4)"
+          size="md"
+        >
+          <div className="space-y-4 text-xs">
+            <div className="p-3 rounded-xl bg-primary/10 border border-primary/20 text-default">
+              Calculate statistically valid sample sizes and acceptance/rejection (Ac/Re) defect thresholds according to standard single sampling inspection plans.
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div>
+                <label className="block text-[11px] font-semibold text-muted uppercase tracking-wider mb-1">
+                  Lot Size (Units)
+                </label>
+                <input
+                  type="number"
+                  min="2"
+                  value={aqlLotSize}
+                  onChange={(e) => setAqlLotSize(e.target.value)}
+                  className="w-full rounded-xl border border-default bg-surface-sunken p-2 text-xs text-default font-mono focus:border-primary focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold text-muted uppercase tracking-wider mb-1">
+                  Inspection Level
+                </label>
+                <select
+                  value={aqlLevel}
+                  onChange={(e) => setAqlLevel(e.target.value as 'I' | 'II' | 'III')}
+                  className="w-full rounded-xl border border-default bg-surface-sunken p-2 text-xs text-default focus:border-primary focus:outline-none"
+                >
+                  <option value="I">Level I (Reduced)</option>
+                  <option value="II">Level II (Normal - Standard)</option>
+                  <option value="III">Level III (Tightened)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold text-muted uppercase tracking-wider mb-1">
+                  Target AQL Limit
+                </label>
+                <select
+                  value={aqlTarget}
+                  onChange={(e) => setAqlTarget(parseFloat(e.target.value) as any)}
+                  className="w-full rounded-xl border border-default bg-surface-sunken p-2 text-xs text-default focus:border-primary focus:outline-none"
+                >
+                  <option value={1.0}>1.0% (Critical Specs)</option>
+                  <option value={1.5}>1.5% (Major Tolerance)</option>
+                  <option value={2.5}>2.5% (Standard Manufacturing)</option>
+                  <option value={4.0}>4.0% (Minor Cosmetic)</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Real-time Calculation Result */}
+            {(() => {
+              const lot = Math.max(2, parseFloat(aqlLotSize) || 500);
+              const result = getAqlCalculation(lot, aqlLevel, aqlTarget);
+              return (
+                <div className="rounded-xl bg-surface-sunken p-3.5 border border-default space-y-3">
+                  <div className="text-[11px] font-semibold text-muted uppercase tracking-wider">
+                    Sampling Plan Specification
+                  </div>
+                  <div className="grid grid-cols-4 gap-2 text-center">
+                    <div className="p-2 rounded-lg bg-surface border border-default">
+                      <span className="text-[10px] text-muted block uppercase">Code Letter</span>
+                      <span className="text-base font-bold font-mono text-primary">{result.codeLetter}</span>
+                    </div>
+                    <div className="p-2 rounded-lg bg-surface border border-default">
+                      <span className="text-[10px] text-muted block uppercase">Sample Size</span>
+                      <span className="text-base font-bold font-mono text-default">{result.sampleSize}</span>
+                    </div>
+                    <div className="p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/30">
+                      <span className="text-[10px] text-emerald-600 block uppercase font-bold">Ac (Pass &le;)</span>
+                      <span className="text-base font-bold font-mono text-emerald-600 dark:text-emerald-400">
+                        {result.acceptanceNum}
+                      </span>
+                    </div>
+                    <div className="p-2 rounded-lg bg-rose-500/10 border border-rose-500/30">
+                      <span className="text-[10px] text-rose-600 block uppercase font-bold">Re (Reject &ge;)</span>
+                      <span className="text-base font-bold font-mono text-rose-600 dark:text-rose-400">
+                        {result.rejectionNum}
+                      </span>
+                    </div>
+                  </div>
+                  <p className="text-[11px] text-muted">
+                    Inspect <strong>{result.sampleSize} units</strong> randomly from the lot of {lot}. Accept the lot if defects &le; <strong>{result.acceptanceNum}</strong>; reject the lot if defects &ge; <strong>{result.rejectionNum}</strong>.
+                  </p>
+
+                  <div className="flex justify-end gap-2 pt-2 border-t border-default/50">
+                    <Button variant="ghost" onClick={() => setShowAqlModal(false)}>
+                      Close
+                    </Button>
+                    <Button
+                      variant="primary"
+                      onClick={() => {
+                        setDraft((d) => {
+                          const sampleStr = result.sampleSize.toFixed(4);
+                          return {
+                            ...d,
+                            sample_size: sampleStr,
+                            inspected_quantity: sampleStr,
+                            passed_quantity: sampleStr,
+                            rejected_quantity: '0.0000',
+                            result: 'pass',
+                          };
+                        });
+                        setShowAqlModal(false);
+                        toast.success(`Applied AQL sample size: ${result.sampleSize} units.`);
+                      }}
+                      className="flex items-center gap-1.5"
+                    >
+                      <CheckCircle2 className="size-3.5" />
+                      <span>Apply Sample Size ({result.sampleSize} units)</span>
+                    </Button>
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         </Modal>
       )}

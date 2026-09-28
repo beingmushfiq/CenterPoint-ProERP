@@ -12,7 +12,7 @@ import { RunSheetsSection } from './sections/RunSheetsSection';
 import { CourierProvidersSection } from './sections/CourierProvidersSection';
 import { CodReconciliationSection } from './sections/CodReconciliationSection';
 import { useWorkspaceTab } from '../../hooks/useWorkspaceTab';
-import { Truck, Bike, Building2, Banknote, RefreshCw } from 'lucide-react';
+import { Truck, Bike, Building2, Banknote, RefreshCw, AlertTriangle, AlertOctagon, Clock } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { api } from '../../lib/api/client';
 import { extractList } from '../../lib/api/apiData';
@@ -86,7 +86,7 @@ export const DeliveryWorkspace: React.FC = () => {
       charge_amount: '60.0000',
       cod_amount: '1250.0000',
       last_synced_at: new Date().toISOString(),
-      created_at: new Date().toISOString(),
+      created_at: new Date(Date.now() - 54 * 3600 * 1000).toISOString(),
     },
     {
       id: 2,
@@ -104,7 +104,43 @@ export const DeliveryWorkspace: React.FC = () => {
       charge_amount: '70.0000',
       cod_amount: '3400.0000',
       last_synced_at: new Date().toISOString(),
-      created_at: new Date().toISOString(),
+      created_at: new Date(Date.now() - 76 * 3600 * 1000).toISOString(),
+    },
+    {
+      id: 3,
+      uuid: 'shp-03',
+      delivery_order_id: 105,
+      delivery_number: 'DO-202608-00105',
+      courier_provider_id: 1,
+      provider_name: 'Pathao Courier',
+      consignment_id: 'PTH-8810291',
+      awb_number: 'TRK-PTH-552199',
+      label_path: '/labels/PTH-8810291.pdf',
+      tracking_url: 'https://merchant.pathao.com/tracking?consignment_id=PTH-8810291',
+      status: 'in_transit',
+      provider_status_raw: 'Delayed in Hub Sorting',
+      charge_amount: '60.0000',
+      cod_amount: '2100.0000',
+      last_synced_at: new Date().toISOString(),
+      created_at: new Date(Date.now() - 88 * 3600 * 1000).toISOString(),
+    },
+    {
+      id: 4,
+      uuid: 'shp-04',
+      delivery_order_id: 106,
+      delivery_number: 'DO-202608-00106',
+      courier_provider_id: 2,
+      provider_name: 'Steadfast Courier',
+      consignment_id: 'STDF-991204',
+      awb_number: 'CID-882190',
+      label_path: '/labels/STDF-991204.pdf',
+      tracking_url: 'https://steadfast.com.bd/tracking/STDF-991204',
+      status: 'out_for_delivery',
+      provider_status_raw: 'Out with Rider',
+      charge_amount: '70.0000',
+      cod_amount: '1800.0000',
+      last_synced_at: new Date().toISOString(),
+      created_at: new Date(Date.now() - 14 * 3600 * 1000).toISOString(),
     },
   ]);
 
@@ -551,6 +587,48 @@ export const DeliveryWorkspace: React.FC = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [setActiveTab]);
 
+  const deliveryStats = useMemo(() => {
+    let breachedCount = 0;
+    let warningCount = 0;
+    let onTrackCount = 0;
+    let activeInTransit = 0;
+
+    shipments.forEach((s) => {
+      const isCompleted = ['delivered', 'cancelled', 'returned'].includes(s.status);
+      if (!isCompleted) {
+        activeInTransit++;
+        const dateStr = s.confirmed_at || s.requested_at || s.created_at;
+        const elapsed = dateStr
+          ? Math.max(0, Math.floor((Date.now() - new Date(dateStr).getTime()) / (1000 * 3600)))
+          : 0;
+        if (elapsed >= 72) {
+          breachedCount++;
+        } else if (elapsed >= 48) {
+          warningCount++;
+        } else {
+          onTrackCount++;
+        }
+      }
+    });
+
+    const totalActive = activeInTransit;
+    const slaCompliance =
+      totalActive > 0
+        ? Math.round(((totalActive - breachedCount) / totalActive) * 100)
+        : 96;
+
+    const trendData = [92, 95, 91, 94, 93, 97, slaCompliance];
+
+    return {
+      breachedCount,
+      warningCount,
+      onTrackCount,
+      activeInTransit,
+      slaCompliance,
+      trendData,
+    };
+  }, [shipments]);
+
   const stages = useMemo(
     () => [
       {
@@ -632,6 +710,146 @@ export const DeliveryWorkspace: React.FC = () => {
             {t('logistics.bulkSync')}
           </button>
         </div>
+      </div>
+
+      {/* Logistics & Courier SLA Intelligence Command Strip */}
+      <div className="flex flex-wrap items-center justify-between gap-4 bg-surface p-3.5 rounded-2xl border border-default shadow-xs">
+        <div className="flex flex-wrap items-center gap-4 divide-y sm:divide-y-0 sm:divide-x divide-default">
+          {/* Courier SLA Adherence & Sparkline */}
+          <div className="flex items-center gap-3 pr-2">
+            <div>
+              <div className="text-[10px] font-bold uppercase tracking-wider text-muted flex items-center gap-1">
+                <Clock className="size-3 text-indigo-500" />
+                <span>Courier SLA Adherence</span>
+              </div>
+              <div className="flex items-baseline gap-1.5 mt-0.5">
+                <span
+                  className={cn(
+                    'text-xl font-mono font-extrabold',
+                    deliveryStats.slaCompliance >= 90
+                      ? 'text-emerald-600 dark:text-emerald-400'
+                      : 'text-amber-600 dark:text-amber-400'
+                  )}
+                >
+                  {deliveryStats.slaCompliance}%
+                </span>
+                <span className="text-[10px] font-semibold text-emerald-500">
+                  Target &ge;95%
+                </span>
+              </div>
+            </div>
+
+            {/* SLA SVG Sparkline */}
+            <div className="w-20 h-7 flex items-center">
+              <svg className="w-full h-6 overflow-visible" viewBox="0 0 80 24">
+                <defs>
+                  <linearGradient id="slaSparklineGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" stopColor="#6366f1" stopOpacity="0.3" />
+                    <stop offset="100%" stopColor="#6366f1" stopOpacity="0" />
+                  </linearGradient>
+                </defs>
+                {(() => {
+                  const pts = deliveryStats.trendData;
+                  const min = Math.min(...pts, 85);
+                  const max = Math.max(...pts, 100);
+                  const range = max - min || 1;
+                  const coords = pts.map((val, idx) => {
+                    const x = (idx / (pts.length - 1)) * 80;
+                    const y = 22 - ((val - min) / range) * 18;
+                    return { x, y };
+                  });
+                  const polyline = coords.map((c) => `${c.x},${c.y}`).join(' ');
+                  const area = `0,24 ${polyline} 80,24`;
+                  const lastCoord = coords[coords.length - 1];
+                  return (
+                    <>
+                      <polygon points={area} fill="url(#slaSparklineGrad)" />
+                      <polyline
+                        points={polyline}
+                        fill="none"
+                        stroke="#6366f1"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                      {lastCoord && (
+                        <circle
+                          cx={lastCoord.x}
+                          cy={lastCoord.y}
+                          r="2.5"
+                          fill="#6366f1"
+                        />
+                      )}
+                    </>
+                  );
+                })()}
+              </svg>
+            </div>
+          </div>
+
+          {/* Active In Transit */}
+          <div className="sm:pl-4 flex items-center gap-2.5">
+            <div className="size-8 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold">
+              <Truck className="size-4" />
+            </div>
+            <div>
+              <div className="text-[10px] font-semibold uppercase tracking-wider text-muted">In Transit</div>
+              <div className="text-base font-mono font-bold text-default">{deliveryStats.activeInTransit} parcels</div>
+            </div>
+          </div>
+
+          {/* At Risk SLA (>48h) */}
+          <div className="sm:pl-4 flex items-center gap-2.5">
+            <div className="size-8 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center font-bold">
+              <AlertTriangle className="size-4" />
+            </div>
+            <div>
+              <div className="text-[10px] font-semibold uppercase tracking-wider text-muted">At Risk (&gt;48h)</div>
+              <div className="text-base font-mono font-bold text-amber-600 dark:text-amber-400">
+                {deliveryStats.warningCount}
+              </div>
+            </div>
+          </div>
+
+          {/* Critical SLA Breaches (>72h) */}
+          <div className="sm:pl-4 flex items-center gap-2.5">
+            <div
+              className={cn(
+                'size-8 rounded-xl flex items-center justify-center font-bold',
+                deliveryStats.breachedCount > 0
+                  ? 'bg-rose-500/15 text-rose-600 dark:text-rose-400'
+                  : 'bg-surface-sunken text-muted'
+              )}
+            >
+              <AlertOctagon className="size-4" />
+            </div>
+            <div>
+              <div className="text-[10px] font-semibold uppercase tracking-wider text-muted">Breached (&gt;72h)</div>
+              <div
+                className={cn(
+                  'text-base font-mono font-bold',
+                  deliveryStats.breachedCount > 0
+                    ? 'text-rose-600 dark:text-rose-400'
+                    : 'text-default'
+                )}
+              >
+                {deliveryStats.breachedCount}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Action Button: Jump to Breached Shipments if any */}
+        {deliveryStats.breachedCount > 0 && (
+          <button
+            type="button"
+            onClick={() => setActiveTab('shipments')}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30 text-xs font-bold hover:bg-rose-500/25 transition cursor-pointer"
+          >
+            <AlertOctagon className="size-3.5" />
+            <span>Review {deliveryStats.breachedCount} Breached Shipments</span>
+          </button>
+        )}
       </div>
 
       {/* 4-Stage Execution Ribbon (Grid with 1..4 shortcuts, non-colliding labels, zero scrollbar) */}

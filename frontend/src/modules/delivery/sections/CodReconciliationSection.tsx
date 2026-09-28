@@ -31,6 +31,8 @@ export const CodReconciliationSection: React.FC<CodReconciliationSectionProps> =
   const [sourceId, setSourceId] = useState<number>(0);
   const [expectedAmount, setExpectedAmount] = useState<string>('0.00');
   const [receivedAmount, setReceivedAmount] = useState<string>('0.00');
+  const [courierFee, setCourierFee] = useState<string>('0.00');
+  const [codFee, setCodFee] = useState<string>('0.00');
   const [notes, setNotes] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [openActionMenuId, setOpenActionMenuId] = useState<number | null>(null);
@@ -54,15 +56,24 @@ export const CodReconciliationSection: React.FC<CodReconciliationSectionProps> =
     if (!sourceId) return;
     setIsSubmitting(true);
     try {
+      const deductionNotes =
+        Number(courierFee) > 0 || Number(codFee) > 0
+          ? ` [Courier Fee: ${formatCurrency(courierFee)}, COD Fee: ${formatCurrency(codFee)}, Net: ${formatCurrency(
+              Math.max(0, Number(receivedAmount) - Number(courierFee) - Number(codFee))
+            )}]`
+          : '';
+
       await onCreateReconciliation({
         source_type: sourceType,
         source_id: sourceId,
         expected_amount: expectedAmount,
         received_amount: receivedAmount,
-        notes,
+        notes: (notes + deductionNotes).trim(),
       });
       setIsModalOpen(false);
       setSourceId(0);
+      setCourierFee('0.00');
+      setCodFee('0.00');
       setNotes('');
     } finally {
       setIsSubmitting(false);
@@ -110,6 +121,66 @@ export const CodReconciliationSection: React.FC<CodReconciliationSectionProps> =
           <Plus className="size-3.5" />
           <span>Reconcile Cash</span>
         </button>
+      </div>
+
+      {/* Reconciliation KPI Metrics */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="p-3 rounded-2xl bg-surface border border-default shadow-2xs">
+          <span className="text-[10px] font-semibold text-muted uppercase tracking-wider block">
+            Total Expected COD
+          </span>
+          <span className="text-base font-mono font-bold text-default mt-0.5 block">
+            {formatCurrency(
+              reconciliations.reduce((s, r) => s + (parseFloat(r.expected_amount) || 0), 0)
+            )}
+          </span>
+          <span className="text-[10px] text-muted">{reconciliations.length} settlement cycles</span>
+        </div>
+
+        <div className="p-3 rounded-2xl bg-surface border border-default shadow-2xs">
+          <span className="text-[10px] font-semibold text-muted uppercase tracking-wider block">
+            Total Received & Remitted
+          </span>
+          <span className="text-base font-mono font-bold text-emerald-600 dark:text-emerald-400 mt-0.5 block">
+            {formatCurrency(
+              reconciliations.reduce((s, r) => s + (parseFloat(r.received_amount) || 0), 0)
+            )}
+          </span>
+          <span className="text-[10px] text-emerald-600">Settled to company accounts</span>
+        </div>
+
+        <div className="p-3 rounded-2xl bg-surface border border-default shadow-2xs">
+          <span className="text-[10px] font-semibold text-muted uppercase tracking-wider block">
+            Net Settlement Variance
+          </span>
+          {(() => {
+            const netVar = reconciliations.reduce((s, r) => s + (parseFloat(r.variance_amount) || 0), 0);
+            return (
+              <>
+                <span
+                  className={cn(
+                    'text-base font-mono font-bold mt-0.5 block',
+                    netVar === 0 ? 'text-emerald-600' : 'text-rose-600 dark:text-rose-400'
+                  )}
+                >
+                  {netVar > 0 ? '+' : ''}
+                  {formatCurrency(netVar)}
+                </span>
+                <span className="text-[10px] text-muted">Over / (Shortage) delta</span>
+              </>
+            );
+          })()}
+        </div>
+
+        <div className="p-3 rounded-2xl bg-surface border border-default shadow-2xs">
+          <span className="text-[10px] font-semibold text-muted uppercase tracking-wider block">
+            Disputed Settlements
+          </span>
+          <span className="text-base font-mono font-bold text-amber-600 dark:text-amber-400 mt-0.5 block">
+            {reconciliations.filter((r) => r.status === 'disputed').length} Records
+          </span>
+          <span className="text-[10px] text-amber-600">Pending courier clarification</span>
+        </div>
       </div>
 
       {/* Table */}
@@ -437,6 +508,44 @@ export const CodReconciliationSection: React.FC<CodReconciliationSectionProps> =
                   />
                 </div>
               </div>
+
+              {/* 3PL Courier Deductions Breakdown */}
+              {sourceType === 'courier_provider' && (
+                <div className="p-3 rounded-xl bg-surface-sunken border border-default space-y-2.5">
+                  <div className="text-[11px] font-semibold text-muted uppercase tracking-wider flex items-center justify-between">
+                    <span>Courier Deductions & Net Bank Remittance</span>
+                    <span className="font-mono text-primary font-bold">
+                      Net: {formatCurrency(Math.max(0, Number(receivedAmount) - Number(courierFee) - Number(codFee)))}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[10px] text-muted uppercase mb-1">
+                        Shipping Fee ({currencySymbol})
+                      </label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={courierFee}
+                        onChange={(e) => setCourierFee(e.target.value)}
+                        className="w-full rounded-lg border border-default bg-surface px-2.5 py-1 text-xs font-mono"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] text-muted uppercase mb-1">
+                        COD Fee % ({currencySymbol})
+                      </label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={codFee}
+                        onChange={(e) => setCodFee(e.target.value)}
+                        className="w-full rounded-lg border border-default bg-surface px-2.5 py-1 text-xs font-mono"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div>
                 <label className="block text-xs font-bold text-default mb-1.5">
