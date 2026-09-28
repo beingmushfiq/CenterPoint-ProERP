@@ -16,6 +16,7 @@ import {
 import { api } from '../../../lib/api/client';
 import { cn } from '../../../lib/utils';
 import type { DashboardMetricsData } from '../../../types/api/dashboard';
+import { DashboardKpiCard, type DashboardKpiTheme } from './DashboardKpiCard';
 
 export interface QcItem {
   id: string;
@@ -99,11 +100,54 @@ export const QcDashboardView: React.FC<QcDashboardViewProps> = ({ qcList = [], o
   const failedCount = displayItems.filter((i) => ['FAILED', 'REJECTED'].includes((i.status || '').toUpperCase())).length;
   const reworkCount = displayItems.filter((i) => (i.status || '').toUpperCase() === 'REWORK').length;
 
-  const kpis = [
-    { label: 'QC Pass Rate', value: `${passRate}%`, sub: 'Overall quality score', icon: <TrendingUp className="size-4" />, color: passRate >= 90 ? 'text-emerald-500' : passRate >= 75 ? 'text-amber-500' : 'text-red-500' },
-    { label: 'Pending Inspections', value: `${pendingCount}`, sub: 'Awaiting QC audit', icon: <Clock className="size-4" />, color: pendingCount > 0 ? 'text-amber-500' : 'text-muted', accent: pendingCount > 0 },
-    { label: 'Passed Today', value: `${passedCount}`, sub: 'Inspection batches', icon: <CheckCircle2 className="size-4" />, color: 'text-emerald-500' },
-    { label: 'Failed / Rework', value: `${failedCount + reworkCount}`, sub: `${failedCount} rejected · ${reworkCount} rework`, icon: <AlertTriangle className="size-4" />, color: failedCount > 0 ? 'text-red-500' : 'text-amber-500' },
+  const kpis: Array<{
+    label: string;
+    value: string | number;
+    sub: string;
+    badge?: { text: string; variant?: 'positive' | 'warning' | 'negative' | 'neutral' | 'info' | undefined } | undefined;
+    icon: React.ReactNode;
+    theme: DashboardKpiTheme;
+    to?: string | undefined;
+  }> = [
+    {
+      label: 'QC Pass Rate',
+      value: `${passRate}%`,
+      sub: 'Overall quality score',
+      badge: {
+        text: passRate >= 90 ? 'PASSED' : passRate >= 75 ? 'FAIR' : 'LOW',
+        variant: passRate >= 90 ? 'positive' : passRate >= 75 ? 'warning' : 'negative',
+      },
+      icon: <TrendingUp className="size-4" />,
+      theme: 'cyan',
+      to: '/qc',
+    },
+    {
+      label: 'Pending Inspections',
+      value: `${pendingCount}`,
+      sub: 'Awaiting QC audit',
+      badge: pendingCount > 0 ? { text: 'Queue', variant: 'warning' } : { text: 'Clear', variant: 'positive' },
+      icon: <Clock className="size-4" />,
+      theme: 'amber',
+      to: '/qc',
+    },
+    {
+      label: 'Passed Today',
+      value: `${passedCount}`,
+      sub: 'Inspection batches',
+      badge: { text: 'Certified', variant: 'positive' },
+      icon: <CheckCircle2 className="size-4" />,
+      theme: 'emerald',
+      to: '/qc',
+    },
+    {
+      label: 'Failed / Rework',
+      value: `${failedCount + reworkCount}`,
+      sub: `${failedCount} rejected · ${reworkCount} rework`,
+      badge: failedCount + reworkCount > 0 ? { text: 'Action Req.', variant: 'negative' } : { text: 'None', variant: 'neutral' },
+      icon: <AlertTriangle className="size-4" />,
+      theme: 'rose',
+      to: '/qc',
+    },
   ];
 
   // Pass rate donut-like rings using CSS
@@ -114,17 +158,16 @@ export const QcDashboardView: React.FC<QcDashboardViewProps> = ({ qcList = [], o
       {/* KPI strip */}
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
         {kpis.map((kpi) => (
-          <div key={kpi.label} className={cn(
-            'rounded-2xl border bg-surface p-4 shadow-sm hover:border-primary/30 transition-all flex flex-col gap-2',
-            kpi.accent ? 'border-l-4 border-l-amber-500 border-r border-t border-b border-default' : 'border-default'
-          )}>
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted truncate">{kpi.label}</span>
-              <span className={cn('shrink-0', kpi.color)}>{kpi.icon}</span>
-            </div>
-            <div className={cn('font-extrabold font-mono text-xl leading-none', kpi.color)}>{kpi.value}</div>
-            <div className={cn('text-[10px] font-medium', kpi.accent ? 'text-amber-600 dark:text-amber-400' : 'text-muted')}>{kpi.sub}</div>
-          </div>
+          <DashboardKpiCard
+            key={kpi.label}
+            label={kpi.label}
+            value={kpi.value}
+            sub={kpi.sub}
+            badge={kpi.badge}
+            icon={kpi.icon}
+            theme={kpi.theme}
+            to={kpi.to}
+          />
         ))}
       </div>
 

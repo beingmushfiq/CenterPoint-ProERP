@@ -37,6 +37,7 @@ import type { OrderPOItem } from './DashboardModals';
 import type { DashboardMetricsData, DashboardInvoiceItem } from '../../../types/api/dashboard';
 import type { DashboardInvoice } from './SalesDashboardView';
 import type { QcItem } from './QcDashboardView';
+import { DashboardKpiCard } from './DashboardKpiCard';
 
 export interface ProductionOrderDashboardItem {
   id: string;
@@ -527,100 +528,61 @@ export const ProductionDashboardView: React.FC<ProductionDashboardViewProps> = (
 
         {/* 6 Metric KPI Strip */}
         <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-2.5 sm:gap-3.5">
-          {/* Card 1: Today's Target */}
-          <div className="rounded-2xl border border-default bg-surface p-3.5 sm:p-4 shadow-xs flex flex-col justify-between hover:border-primary/40 transition-token-colors">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold text-muted uppercase tracking-wider">
-                TODAY'S TARGET
-              </span>
-              <div className="flex size-7 items-center justify-center rounded-lg bg-blue-500/10 text-blue-500">
-                <FileText className="size-3.5" />
-              </div>
-            </div>
-            <div className="mt-2 text-xl sm:text-2xl font-extrabold font-mono text-default">
-              {currentKPIs.target}
-            </div>
-          </div>
-
-          {/* Card 2: Produced */}
-          <div className="rounded-2xl border-y border-r border-default border-l-4 border-l-emerald-500 bg-surface p-3.5 sm:p-4 shadow-xs flex flex-col justify-between hover:border-primary/40 transition-token-colors">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold text-muted uppercase tracking-wider">
-                PRODUCED
-              </span>
-              <div className="flex size-7 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-500">
-                <TrendingUp className="size-3.5" />
-              </div>
-            </div>
-            <div className="mt-2">
-              <div className="text-xl sm:text-2xl font-extrabold font-mono text-default">
-                {currentKPIs.produced}
-              </div>
-              <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
-                {currentKPIs.achievement}% of target
-              </span>
-            </div>
-          </div>
-
-          {/* Card 3: Pending Orders */}
-          <div className="rounded-2xl border border-default bg-surface p-3.5 sm:p-4 shadow-xs flex flex-col justify-between hover:border-primary/40 transition-token-colors">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold text-muted uppercase tracking-wider">
-                ACTIVE BATCHES
-              </span>
-              <div className="flex size-7 items-center justify-center rounded-lg bg-surface-sunken text-muted">
-                <Package className="size-3.5" />
-              </div>
-            </div>
-            <div className="mt-2 text-xl sm:text-2xl font-extrabold font-mono text-default">
-              {currentKPIs.pendingOrders}
-            </div>
-          </div>
-
-          {/* Card 4: QC Pending */}
-          <div className="rounded-2xl border-y border-r border-default border-l-4 border-l-amber-500 bg-surface p-3.5 sm:p-4 shadow-xs flex flex-col justify-between hover:border-primary/40 transition-token-colors">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold text-muted uppercase tracking-wider">
-                QC PENDING
-              </span>
-              <div className="flex size-7 items-center justify-center rounded-lg bg-amber-500/10 text-amber-500">
-                <ShieldCheck className="size-3.5" />
-              </div>
-            </div>
-            <div className="mt-2 text-xl sm:text-2xl font-extrabold font-mono text-default">
-              {currentKPIs.qcPending}
-            </div>
-          </div>
-
-          {/* Card 5: Rework Qty */}
-          <div className="rounded-2xl border border-default bg-surface p-3.5 sm:p-4 shadow-xs flex flex-col justify-between hover:border-primary/40 transition-token-colors">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold text-muted uppercase tracking-wider">
-                REWORK QUEUE
-              </span>
-              <div className="flex size-7 items-center justify-center rounded-lg bg-orange-500/10 text-orange-500">
-                <RotateCcw className="size-3.5" />
-              </div>
-            </div>
-            <div className="mt-2 text-xl sm:text-2xl font-extrabold font-mono text-default">
-              {currentKPIs.reworkQty}
-            </div>
-          </div>
-
-          {/* Card 6: Floor Yield Rate */}
-          <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-3.5 sm:p-4 shadow-xs flex flex-col justify-between hover:border-emerald-500 transition-token-colors">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
-                YIELD RATE
-              </span>
-              <div className="flex size-7 items-center justify-center rounded-lg bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
-                <TrendingUp className="size-3.5" />
-              </div>
-            </div>
-            <div className="mt-2 text-xl sm:text-2xl font-extrabold font-mono text-emerald-600 dark:text-emerald-400">
-              {currentKPIs.achievement > 0 ? `${currentKPIs.achievement}%` : '100%'}
-            </div>
-          </div>
+          <DashboardKpiCard
+            label="TODAY'S TARGET"
+            value={currentKPIs.target}
+            sub="Production quota"
+            icon={<FileText className="size-4" />}
+            theme="blue"
+            to="/production"
+          />
+          <DashboardKpiCard
+            label="PRODUCED"
+            value={currentKPIs.produced}
+            sub={`${currentKPIs.achievement}% of target`}
+            badge={{
+              text: `${currentKPIs.achievement}%`,
+              variant: currentKPIs.achievement >= 90 ? 'positive' : 'warning',
+            }}
+            icon={<TrendingUp className="size-4" />}
+            theme="emerald"
+            to="/production"
+          />
+          <DashboardKpiCard
+            label="ACTIVE BATCHES"
+            value={currentKPIs.pendingOrders}
+            sub="In-flight operations"
+            icon={<Package className="size-4" />}
+            theme="indigo"
+            to="/production"
+          />
+          <DashboardKpiCard
+            label="QC PENDING"
+            value={currentKPIs.qcPending}
+            sub="Inspection buffer"
+            badge={currentKPIs.qcPending > 0 ? { text: 'Audit Queue', variant: 'warning' } : undefined}
+            icon={<ShieldCheck className="size-4" />}
+            theme="amber"
+            to="/qc"
+          />
+          <DashboardKpiCard
+            label="REWORK QUEUE"
+            value={currentKPIs.reworkQty}
+            sub="Defects for rerun"
+            badge={currentKPIs.reworkQty > 0 ? { text: 'Attention', variant: 'negative' } : undefined}
+            icon={<RotateCcw className="size-4" />}
+            theme="rose"
+            to="/qc"
+          />
+          <DashboardKpiCard
+            label="YIELD RATE"
+            value={currentKPIs.achievement > 0 ? `${currentKPIs.achievement}%` : '100%'}
+            sub="Overall floor yield"
+            badge={{ text: 'Optimal', variant: 'positive' }}
+            icon={<TrendingUp className="size-4" />}
+            theme="cyan"
+            to="/production"
+          />
         </div>
       </div>
 

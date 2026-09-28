@@ -17,6 +17,7 @@ import {
 import { api } from '../../../lib/api/client';
 import { useCurrency } from '../../../lib/format/currency';
 import { cn } from '../../../lib/utils';
+import { DashboardKpiCard, type DashboardKpiTheme } from './DashboardKpiCard';
 
 interface ShipmentItem {
   id: string | number;
@@ -59,35 +60,72 @@ export const LogisticsDashboardView: React.FC = () => {
     return { totalCodPending, inTransit, delivered, failed };
   }, [shipments]);
 
-  const kpis = [
-    { label: 'COD Receivable', value: formatCurrency(stats.totalCodPending), sub: 'Cash on delivery queue', icon: <DollarSign className="size-4" />, color: 'text-amber-500', accent: stats.totalCodPending > 0 },
-    { label: 'In Transit', value: `${stats.inTransit}`, sub: 'Shipments on route', icon: <Navigation className="size-4" />, color: 'text-blue-500' },
-    { label: 'Delivered Today', value: `${stats.delivered}`, sub: 'Successful deliveries', icon: <CheckCircle2 className="size-4" />, color: 'text-emerald-500' },
-    { label: 'Failed / Returns', value: `${stats.failed}`, sub: 'Returned shipments', icon: <AlertTriangle className="size-4" />, color: stats.failed > 0 ? 'text-red-500' : 'text-muted', accent: stats.failed > 0 },
-  ];
-
   const deliveryRate = shipments.length > 0
     ? Math.round((stats.delivered / shipments.length) * 100)
     : 0;
+
+  const kpis: Array<{
+    label: string;
+    value: string | number;
+    sub: string;
+    badge?: { text: string; variant?: 'positive' | 'warning' | 'negative' | 'neutral' | 'info' | undefined } | undefined;
+    icon: React.ReactNode;
+    theme: DashboardKpiTheme;
+    to?: string | undefined;
+  }> = [
+    {
+      label: 'COD Receivable',
+      value: formatCurrency(stats.totalCodPending),
+      sub: 'Cash on delivery queue',
+      badge: stats.totalCodPending > 0 ? { text: 'To Collect', variant: 'warning' } : undefined,
+      icon: <DollarSign className="size-4" />,
+      theme: 'amber',
+      to: '/delivery',
+    },
+    {
+      label: 'In Transit',
+      value: `${stats.inTransit}`,
+      sub: 'Shipments on route',
+      badge: { text: 'Active Route', variant: 'info' },
+      icon: <Navigation className="size-4" />,
+      theme: 'blue',
+      to: '/delivery',
+    },
+    {
+      label: 'Delivered Today',
+      value: `${stats.delivered}`,
+      sub: 'Successful deliveries',
+      badge: { text: `${deliveryRate}% Rate`, variant: 'positive' },
+      icon: <CheckCircle2 className="size-4" />,
+      theme: 'emerald',
+      to: '/delivery',
+    },
+    {
+      label: 'Failed / Returns',
+      value: `${stats.failed}`,
+      sub: 'Returned shipments',
+      badge: stats.failed > 0 ? { text: 'Attention', variant: 'negative' } : { text: 'Zero', variant: 'positive' },
+      icon: <AlertTriangle className="size-4" />,
+      theme: 'rose',
+      to: '/delivery',
+    },
+  ];
 
   return (
     <div className="space-y-4 animate-in fade-in duration-200">
       {/* KPI strip */}
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
         {kpis.map((kpi) => (
-          <div key={kpi.label} className={cn(
-            'rounded-2xl border bg-surface p-4 shadow-sm hover:border-primary/30 transition-all flex flex-col gap-2',
-            kpi.accent && kpi.color === 'text-amber-500' ? 'border-l-4 border-l-amber-500 border-r border-t border-b border-default' :
-            kpi.accent && kpi.color === 'text-red-500' ? 'border-l-4 border-l-red-500 border-r border-t border-b border-default' :
-            'border-default'
-          )}>
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted truncate">{kpi.label}</span>
-              <span className={cn('shrink-0', kpi.color)}>{kpi.icon}</span>
-            </div>
-            <div className={cn('font-extrabold font-mono text-xl leading-none', kpi.accent ? kpi.color : 'text-default')}>{kpi.value}</div>
-            <div className={cn('text-[10px] font-medium', kpi.accent ? kpi.color.replace('text-', 'text-').replace('500', '600') : 'text-muted')}>{kpi.sub}</div>
-          </div>
+          <DashboardKpiCard
+            key={kpi.label}
+            label={kpi.label}
+            value={kpi.value}
+            sub={kpi.sub}
+            badge={kpi.badge}
+            icon={kpi.icon}
+            theme={kpi.theme}
+            to={kpi.to}
+          />
         ))}
       </div>
 

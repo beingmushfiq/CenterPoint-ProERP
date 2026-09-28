@@ -55,6 +55,7 @@ import { WorkforceDashboardView } from './components/WorkforceDashboardView';
 import { ProductionDashboardView } from './components/ProductionDashboardView';
 import { PurchasingDashboardView } from './components/PurchasingDashboardView';
 import { LogisticsDashboardView } from './components/LogisticsDashboardView';
+import { DashboardKpiCard, type DashboardKpiTheme } from './components/DashboardKpiCard';
 import { useCurrency } from '../../lib/format/currency';
 
 // ── Types ──────────────────────────────────────────────────────
@@ -154,10 +155,11 @@ interface ElevatedKpiCardProps {
   sub: string;
   badge?: {
     text: string;
-    variant: 'positive' | 'warning' | 'negative' | 'neutral' | 'info';
+    variant?: 'positive' | 'warning' | 'negative' | 'neutral' | 'info' | undefined;
   } | undefined;
   icon: React.ReactNode;
-  iconBg: string;
+  theme?: DashboardKpiTheme | undefined;
+  iconBg?: string | undefined;
   to?: string | undefined;
 }
 
@@ -167,49 +169,130 @@ const ElevatedKpiCard: React.FC<ElevatedKpiCardProps> = ({
   sub,
   badge,
   icon,
-  iconBg,
+  theme = 'blue',
   to,
 }) => {
-  const content = (
-    <div className="group relative flex flex-col justify-between rounded-xl border border-default bg-surface p-3.5 shadow-2xs hover:shadow-xs hover:border-primary/40 transition-all cursor-pointer overflow-hidden min-w-0">
-      <div className="flex items-center justify-between gap-1.5 mb-1.5">
-        <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted truncate">
-          {label}
-        </span>
-        <div className={cn('flex size-7 items-center justify-center rounded-lg border shrink-0 transition-transform group-hover:scale-105', iconBg)}>
-          {icon}
-        </div>
-      </div>
-
-      <div className="my-0.5">
-        <div className="text-xl font-extrabold font-mono text-default tracking-tight truncate">
-          {value}
-        </div>
-      </div>
-
-      <div className="flex items-center justify-between gap-1 mt-1 pt-1.5 border-t border-default/50 min-w-0">
-        <span className="text-[10px] text-muted truncate">
-          {sub}
-        </span>
-        {badge && (
-          <span
-            className={cn(
-              'inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider shrink-0 border',
-              badge.variant === 'positive' && 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20',
-              badge.variant === 'warning' && 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20',
-              badge.variant === 'negative' && 'bg-red-500/10 text-red-500 border-red-500/20',
-              badge.variant === 'info' && 'bg-blue-500/10 text-blue-500 border-blue-500/20',
-              badge.variant === 'neutral' && 'bg-surface-sunken text-muted border-default'
-            )}
-          >
-            {badge.text}
-          </span>
-        )}
-      </div>
-    </div>
+  return (
+    <DashboardKpiCard
+      label={label}
+      value={value}
+      sub={sub}
+      badge={badge}
+      icon={icon}
+      theme={theme}
+      to={to}
+    />
   );
+};
 
-  return to ? <Link to={to} className="block min-w-0">{content}</Link> : content;
+// ── Palette Mappings ──────────────────────────────────────────
+
+const QUICK_ACTION_THEMES: Record<
+  string,
+  {
+    card: string;
+    icon: string;
+    text: string;
+    topLine: string;
+    shortcut: string;
+  }
+> = {
+  emerald: {
+    card: 'bg-emerald-500/[0.04] hover:bg-emerald-500/[0.08] dark:bg-emerald-500/[0.06] dark:hover:bg-emerald-500/[0.12] border-emerald-500/25 hover:border-emerald-500/50 hover:shadow-[0_10px_24px_-4px_rgba(16,185,129,0.22)]',
+    icon: 'bg-gradient-to-br from-emerald-500 to-emerald-600 text-white shadow-xs shadow-emerald-500/35 border-emerald-400/30',
+    text: 'group-hover:text-emerald-600 dark:group-hover:text-emerald-400',
+    topLine: 'via-emerald-500',
+    shortcut: 'group-hover:border-emerald-500/40 group-hover:text-emerald-600 dark:group-hover:text-emerald-400',
+  },
+  blue: {
+    card: 'bg-blue-500/[0.04] hover:bg-blue-500/[0.08] dark:bg-blue-500/[0.06] dark:hover:bg-blue-500/[0.12] border-blue-500/25 hover:border-blue-500/50 hover:shadow-[0_10px_24px_-4px_rgba(59,130,246,0.22)]',
+    icon: 'bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-xs shadow-blue-500/35 border-blue-400/30',
+    text: 'group-hover:text-blue-600 dark:group-hover:text-blue-400',
+    topLine: 'via-blue-500',
+    shortcut: 'group-hover:border-blue-500/40 group-hover:text-blue-600 dark:group-hover:text-blue-400',
+  },
+  teal: {
+    card: 'bg-teal-500/[0.04] hover:bg-teal-500/[0.08] dark:bg-teal-500/[0.06] dark:hover:bg-teal-500/[0.12] border-teal-500/25 hover:border-teal-500/50 hover:shadow-[0_10px_24px_-4px_rgba(20,184,166,0.22)]',
+    icon: 'bg-gradient-to-br from-teal-500 to-teal-600 text-white shadow-xs shadow-teal-500/35 border-teal-400/30',
+    text: 'group-hover:text-teal-600 dark:group-hover:text-teal-400',
+    topLine: 'via-teal-500',
+    shortcut: 'group-hover:border-teal-500/40 group-hover:text-teal-600 dark:group-hover:text-teal-400',
+  },
+  indigo: {
+    card: 'bg-indigo-500/[0.04] hover:bg-indigo-500/[0.08] dark:bg-indigo-500/[0.06] dark:hover:bg-indigo-500/[0.12] border-indigo-500/25 hover:border-indigo-500/50 hover:shadow-[0_10px_24px_-4px_rgba(99,102,241,0.22)]',
+    icon: 'bg-gradient-to-br from-indigo-500 to-indigo-600 text-white shadow-xs shadow-indigo-500/35 border-indigo-400/30',
+    text: 'group-hover:text-indigo-600 dark:group-hover:text-indigo-400',
+    topLine: 'via-indigo-500',
+    shortcut: 'group-hover:border-indigo-500/40 group-hover:text-indigo-600 dark:group-hover:text-indigo-400',
+  },
+  amber: {
+    card: 'bg-amber-500/[0.04] hover:bg-amber-500/[0.08] dark:bg-amber-500/[0.06] dark:hover:bg-amber-500/[0.12] border-amber-500/25 hover:border-amber-500/50 hover:shadow-[0_10px_24px_-4px_rgba(245,158,11,0.22)]',
+    icon: 'bg-gradient-to-br from-amber-500 to-amber-600 text-white shadow-xs shadow-amber-500/35 border-amber-400/30',
+    text: 'group-hover:text-amber-600 dark:group-hover:text-amber-400',
+    topLine: 'via-amber-500',
+    shortcut: 'group-hover:border-amber-500/40 group-hover:text-amber-600 dark:group-hover:text-amber-400',
+  },
+  orange: {
+    card: 'bg-orange-500/[0.04] hover:bg-orange-500/[0.08] dark:bg-orange-500/[0.06] dark:hover:bg-orange-500/[0.12] border-orange-500/25 hover:border-orange-500/50 hover:shadow-[0_10px_24px_-4px_rgba(249,115,22,0.22)]',
+    icon: 'bg-gradient-to-br from-orange-500 to-orange-600 text-white shadow-xs shadow-orange-500/35 border-orange-400/30',
+    text: 'group-hover:text-orange-600 dark:group-hover:text-orange-400',
+    topLine: 'via-orange-500',
+    shortcut: 'group-hover:border-orange-500/40 group-hover:text-orange-600 dark:group-hover:text-orange-400',
+  },
+  cyan: {
+    card: 'bg-cyan-500/[0.04] hover:bg-cyan-500/[0.08] dark:bg-cyan-500/[0.06] dark:hover:bg-cyan-500/[0.12] border-cyan-500/25 hover:border-cyan-500/50 hover:shadow-[0_10px_24px_-4px_rgba(6,182,212,0.22)]',
+    icon: 'bg-gradient-to-br from-cyan-500 to-teal-600 text-white shadow-xs shadow-cyan-500/35 border-cyan-400/30',
+    text: 'group-hover:text-cyan-600 dark:group-hover:text-cyan-400',
+    topLine: 'via-cyan-500',
+    shortcut: 'group-hover:border-cyan-500/40 group-hover:text-cyan-600 dark:group-hover:text-cyan-400',
+  },
+  lime: {
+    card: 'bg-emerald-500/[0.04] hover:bg-emerald-500/[0.08] dark:bg-emerald-500/[0.06] dark:hover:bg-emerald-500/[0.12] border-emerald-500/25 hover:border-emerald-500/50 hover:shadow-[0_10px_24px_-4px_rgba(16,185,129,0.22)]',
+    icon: 'bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-xs shadow-emerald-500/35 border-emerald-400/30',
+    text: 'group-hover:text-emerald-600 dark:group-hover:text-emerald-400',
+    topLine: 'via-emerald-500',
+    shortcut: 'group-hover:border-emerald-500/40 group-hover:text-emerald-600 dark:group-hover:text-emerald-400',
+  },
+  rose: {
+    card: 'bg-rose-500/[0.04] hover:bg-rose-500/[0.08] dark:bg-rose-500/[0.06] dark:hover:bg-rose-500/[0.12] border-rose-500/25 hover:border-rose-500/50 hover:shadow-[0_10px_24px_-4px_rgba(244,63,94,0.22)]',
+    icon: 'bg-gradient-to-br from-rose-500 to-rose-600 text-white shadow-xs shadow-rose-500/35 border-rose-400/30',
+    text: 'group-hover:text-rose-600 dark:group-hover:text-rose-400',
+    topLine: 'via-rose-500',
+    shortcut: 'group-hover:border-rose-500/40 group-hover:text-rose-600 dark:group-hover:text-rose-400',
+  },
+  purple: {
+    card: 'bg-purple-500/[0.04] hover:bg-purple-500/[0.08] dark:bg-purple-500/[0.06] dark:hover:bg-purple-500/[0.12] border-purple-500/25 hover:border-purple-500/50 hover:shadow-[0_10px_24px_-4px_rgba(168,85,247,0.22)]',
+    icon: 'bg-gradient-to-br from-purple-500 to-indigo-600 text-white shadow-xs shadow-purple-500/35 border-purple-400/30',
+    text: 'group-hover:text-purple-600 dark:group-hover:text-purple-400',
+    topLine: 'via-purple-500',
+    shortcut: 'group-hover:border-purple-500/40 group-hover:text-purple-600 dark:group-hover:text-purple-400',
+  },
+};
+
+const DEFAULT_ACTION_THEME = QUICK_ACTION_THEMES.blue!;
+
+const VIEW_ICON_COLORS: Record<string, string> = {
+  overview: 'text-primary',
+  production: 'text-indigo-500',
+  inventory: 'text-violet-500',
+  quality: 'text-cyan-500',
+  sales: 'text-blue-500',
+  finance: 'text-emerald-500',
+  workforce: 'text-rose-500',
+  purchasing: 'text-orange-500',
+  logistics: 'text-teal-500',
+};
+
+const VIEW_ACTIVE_BG: Record<string, string> = {
+  overview: 'bg-primary/10 text-primary border-primary/25',
+  production: 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/25',
+  inventory: 'bg-violet-500/10 text-violet-600 dark:text-violet-400 border-violet-500/25',
+  quality: 'bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border-cyan-500/25',
+  sales: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/25',
+  finance: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/25',
+  workforce: 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/25',
+  purchasing: 'bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/25',
+  logistics: 'bg-teal-500/10 text-teal-600 dark:text-teal-400 border-teal-500/25',
 };
 
 // ── Main Dashboard Component ───────────────────────────────────
@@ -424,6 +507,7 @@ export const TenantRoleDashboard: React.FC = () => {
       label: string;
       to: string;
       icon: React.ReactNode;
+      theme: string;
       color: string;
       shortcut?: string;
       category?: string;
@@ -431,7 +515,8 @@ export const TenantRoleDashboard: React.FC = () => {
       {
         label: 'Storefront',
         to: getStorefrontExternalUrl(storeSlug),
-        icon: <Globe className="size-4.5" />,
+        icon: <Globe className="size-5" />,
+        theme: 'emerald',
         color: 'text-emerald-500',
         shortcut: '⌘1',
         category: 'Online Shop',
@@ -441,7 +526,8 @@ export const TenantRoleDashboard: React.FC = () => {
       actions.push({
         label: 'New Order',
         to: '/sales?action=new',
-        icon: <Plus className="size-4.5" />,
+        icon: <Plus className="size-5" />,
+        theme: 'blue',
         color: 'text-primary',
         shortcut: '⌘N',
         category: 'Sales',
@@ -451,8 +537,9 @@ export const TenantRoleDashboard: React.FC = () => {
       actions.push({
         label: 'POS Register',
         to: '/pos',
-        icon: <ShoppingCart className="size-4.5" />,
-        color: 'text-blue-500',
+        icon: <ShoppingCart className="size-5" />,
+        theme: 'teal',
+        color: 'text-teal-500',
         shortcut: '⌘P',
         category: 'Checkout',
       });
@@ -461,7 +548,8 @@ export const TenantRoleDashboard: React.FC = () => {
       actions.push({
         label: 'New Batch',
         to: '/production?action=new',
-        icon: <Factory className="size-4.5" />,
+        icon: <Factory className="size-5" />,
+        theme: 'indigo',
         color: 'text-indigo-500',
         shortcut: '⌘B',
         category: 'Factory',
@@ -471,7 +559,8 @@ export const TenantRoleDashboard: React.FC = () => {
       actions.push({
         label: 'Transfer Stock',
         to: '/inventory?action=transfer',
-        icon: <Warehouse className="size-4.5" />,
+        icon: <Warehouse className="size-5" />,
+        theme: 'amber',
         color: 'text-amber-500',
         shortcut: '⌘T',
         category: 'Warehouse',
@@ -481,7 +570,8 @@ export const TenantRoleDashboard: React.FC = () => {
       actions.push({
         label: 'New PO',
         to: '/purchasing?action=new',
-        icon: <FileText className="size-4.5" />,
+        icon: <FileText className="size-5" />,
+        theme: 'orange',
         color: 'text-orange-500',
         shortcut: '⌘O',
         category: 'Sourcing',
@@ -491,7 +581,8 @@ export const TenantRoleDashboard: React.FC = () => {
       actions.push({
         label: 'QC Audit',
         to: '/qc',
-        icon: <Microscope className="size-4.5" />,
+        icon: <Microscope className="size-5" />,
+        theme: 'cyan',
         color: 'text-cyan-500',
         shortcut: '⌘Q',
         category: 'Quality',
@@ -501,7 +592,8 @@ export const TenantRoleDashboard: React.FC = () => {
       actions.push({
         label: 'Due Collection',
         to: '/finance?tab=due-collection',
-        icon: <DollarSign className="size-4.5" />,
+        icon: <DollarSign className="size-5" />,
+        theme: 'lime',
         color: 'text-emerald-500',
         shortcut: '⌘D',
         category: 'Finance',
@@ -511,8 +603,9 @@ export const TenantRoleDashboard: React.FC = () => {
       actions.push({
         label: 'Attendance',
         to: '/hr?tab=attendance',
-        icon: <Clock className="size-4.5" />,
-        color: 'text-teal-500',
+        icon: <Clock className="size-5" />,
+        theme: 'rose',
+        color: 'text-rose-500',
         shortcut: '⌘A',
         category: 'Workforce',
       });
@@ -521,7 +614,8 @@ export const TenantRoleDashboard: React.FC = () => {
       actions.push({
         label: 'BI Reports',
         to: '/reports',
-        icon: <Sparkles className="size-4.5" />,
+        icon: <Sparkles className="size-5" />,
+        theme: 'purple',
         color: 'text-purple-500',
         shortcut: '⌘R',
         category: 'Analytics',
@@ -645,8 +739,8 @@ export const TenantRoleDashboard: React.FC = () => {
               value={metrics ? formatCurrency(metrics.commercial.today_revenue) : '—'}
               sub={metrics ? `Month: ${formatCurrency(metrics.commercial.month_revenue)}` : 'Loading…'}
               badge={{ text: 'Live', variant: 'positive' }}
-              icon={<DollarSign className="size-3.5" />}
-              iconBg="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
+              icon={<DollarSign className="size-4" />}
+              theme="emerald"
               to="/sales"
             />
             <ElevatedKpiCard
@@ -654,8 +748,8 @@ export const TenantRoleDashboard: React.FC = () => {
               value={metrics ? `${metrics.commercial.active_orders}` : '—'}
               sub="Fulfillment queue"
               badge={metrics && metrics.commercial.active_orders > 0 ? { text: `${metrics.commercial.active_orders} queued`, variant: 'info' } : { text: 'Optimal', variant: 'neutral' }}
-              icon={<ShoppingBag className="size-3.5" />}
-              iconBg="bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20"
+              icon={<ShoppingBag className="size-4" />}
+              theme="blue"
               to="/sales"
             />
             <ElevatedKpiCard
@@ -663,8 +757,8 @@ export const TenantRoleDashboard: React.FC = () => {
               value={metrics ? formatCurrency(metrics.commercial.total_receivable_due) : '—'}
               sub="Outstanding balance"
               badge={metrics && metrics.commercial.total_receivable_due > 0 ? { text: 'Pending', variant: 'warning' } : { text: 'Settled', variant: 'positive' }}
-              icon={<Clock className="size-3.5" />}
-              iconBg="bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20"
+              icon={<Clock className="size-4" />}
+              theme="amber"
               to="/finance"
             />
             <ElevatedKpiCard
@@ -672,8 +766,8 @@ export const TenantRoleDashboard: React.FC = () => {
               value={metrics ? `${metrics.production.achievement_rate}%` : '—'}
               sub={metrics ? `${metrics.production.today_output} pcs today` : 'Loading…'}
               badge={metrics ? (metrics.production.achievement_rate >= 80 ? { text: 'On Target', variant: 'positive' } : { text: 'Below Target', variant: 'warning' }) : undefined}
-              icon={<Factory className="size-3.5" />}
-              iconBg="bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20"
+              icon={<Factory className="size-4" />}
+              theme="indigo"
               to="/production"
             />
             <ElevatedKpiCard
@@ -681,8 +775,8 @@ export const TenantRoleDashboard: React.FC = () => {
               value={metrics ? `${metrics.quality.qc_pass_rate}%` : '—'}
               sub={metrics ? `${metrics.quality.pending_inspections} pending` : 'Loading…'}
               badge={metrics ? (metrics.quality.qc_pass_rate >= 90 ? { text: 'Passed', variant: 'positive' } : { text: 'Review', variant: 'warning' }) : undefined}
-              icon={<Microscope className="size-3.5" />}
-              iconBg="bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border-cyan-500/20"
+              icon={<Microscope className="size-4" />}
+              theme="cyan"
               to="/qc"
             />
             <ElevatedKpiCard
@@ -690,8 +784,8 @@ export const TenantRoleDashboard: React.FC = () => {
               value={metrics ? formatCurrency(metrics.inventory.total_valuation) : '—'}
               sub={metrics && metrics.inventory.low_stock_count > 0 ? `${metrics.inventory.low_stock_count} alerts` : 'All levels healthy'}
               badge={metrics && metrics.inventory.low_stock_count > 0 ? { text: 'Reorder', variant: 'warning' } : { text: 'Healthy', variant: 'positive' }}
-              icon={<Warehouse className="size-3.5" />}
-              iconBg="bg-violet-500/10 text-violet-600 dark:text-violet-400 border-violet-500/20"
+              icon={<Warehouse className="size-4" />}
+              theme="violet"
               to="/inventory"
             />
           </div>
@@ -714,27 +808,29 @@ export const TenantRoleDashboard: React.FC = () => {
           Segmented control with underline-active style. Not tabs.
       ═══════════════════════════════════════════════════════════ */}
       {availableViews.length > 1 && (
-        <div className="flex items-center gap-0 overflow-x-auto scrollbar-none bg-surface border border-default rounded-2xl px-2 py-1.5">
+        <div className="flex items-center gap-1 overflow-x-auto scrollbar-none bg-surface border border-default rounded-2xl p-1.5 shadow-2xs">
           {availableViews.map((v, idx) => {
             const Icon = v.icon;
             const isActive = activeView === v.id;
+            const iconColor = VIEW_ICON_COLORS[v.id] || 'text-primary';
+            const activeBg = VIEW_ACTIVE_BG[v.id] || 'bg-primary/10 text-primary border-primary/25';
             return (
               <button
                 key={v.id}
                 type="button"
                 onClick={() => setActiveView(v.id)}
                 className={cn(
-                  'relative flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold transition-all rounded-xl whitespace-nowrap cursor-pointer shrink-0',
+                  'relative flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold transition-all rounded-xl whitespace-nowrap cursor-pointer shrink-0 border border-transparent',
                   isActive
-                    ? 'text-default bg-surface-sunken'
-                    : 'text-muted hover:text-default hover:bg-surface-sunken/50'
+                    ? cn('font-bold shadow-2xs', activeBg)
+                    : 'text-muted hover:text-default hover:bg-surface-sunken/60'
                 )}
                 style={{ animationDelay: `${idx * 30}ms` }}
               >
-                <Icon className={cn('size-3.5 shrink-0', isActive ? 'text-primary' : 'text-muted')} />
+                <Icon className={cn('size-3.5 shrink-0 transition-colors', isActive ? iconColor : 'text-muted')} />
                 <span>{v.label}</span>
                 {isActive && (
-                  <span className="absolute bottom-0 left-3 right-3 h-0.5 rounded-full bg-primary" />
+                  <span className={cn('size-1.5 rounded-full ml-0.5', iconColor.replace('text-', 'bg-'))} />
                 )}
               </button>
             );
@@ -789,30 +885,54 @@ export const TenantRoleDashboard: React.FC = () => {
       ═══════════════════════════════════════════════════════════ */}
       {quickActions.length > 0 && (
         <div className="w-full flex flex-col items-center justify-center my-6">
-          <div className="w-full max-w-5xl rounded-2xl border border-default bg-surface p-6 shadow-sm flex flex-col items-center">
-            <div className="flex flex-col items-center text-center mb-5">
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-[11px] font-bold uppercase tracking-wider mb-2">
-                <TrendingUp className="size-3.5" />
+          <div className="w-full max-w-5xl rounded-3xl border border-default bg-surface/90 backdrop-blur-md p-6 shadow-sm flex flex-col items-center">
+            <div className="flex flex-col items-center text-center mb-6">
+              <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-linear-to-r from-primary/15 via-indigo-500/15 to-purple-500/15 border border-primary/25 text-primary text-[11px] font-bold uppercase tracking-wider mb-2 shadow-2xs">
+                <TrendingUp className="size-3.5 text-primary" />
                 <span>Operations Command Palette</span>
               </div>
-              <h3 className="text-base font-bold text-default">Quick Actions & Shortcuts</h3>
+              <h3 className="text-lg font-extrabold text-default tracking-tight">Quick Actions & Shortcuts</h3>
               <p className="text-xs text-muted mt-0.5">Rapid operational workflows and shortcut launch tiles</p>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 w-full justify-center">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3.5 w-full justify-center">
               {quickActions.map((action) => {
                 const isExternal = action.to.startsWith('http');
+                const thm = (action.theme && QUICK_ACTION_THEMES[action.theme]) ? QUICK_ACTION_THEMES[action.theme]! : DEFAULT_ACTION_THEME;
                 const inner = (
-                  <div className="group relative flex flex-col items-center justify-center p-4 rounded-xl border border-default bg-surface-sunken hover:bg-surface hover:border-primary/40 hover:shadow-md hover:-translate-y-1 transition-all duration-200 cursor-pointer text-center h-full">
+                  <div
+                    className={cn(
+                      'group relative flex flex-col items-center justify-center p-4 rounded-2xl border transition-all duration-200 cursor-pointer text-center h-full overflow-hidden hover:-translate-y-1',
+                      thm.card
+                    )}
+                  >
+                    {/* Glowing hairline top accent */}
+                    <span
+                      className={cn(
+                        'absolute inset-x-0 top-0 h-[2.5px] bg-linear-to-r from-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity',
+                        thm.topLine
+                      )}
+                    />
+
                     {action.shortcut && (
-                      <span className="absolute top-2 right-2 px-1.5 py-0.5 rounded text-[9px] font-mono font-bold bg-surface text-muted border border-default/70 group-hover:border-primary/40 group-hover:text-primary transition-colors">
+                      <span
+                        className={cn(
+                          'absolute top-2.5 right-2.5 px-1.5 py-0.5 rounded-md text-[9px] font-mono font-bold bg-surface/90 text-muted border border-default/70 shadow-2xs transition-colors',
+                          thm.shortcut
+                        )}
+                      >
                         {action.shortcut}
                       </span>
                     )}
-                    <div className={cn('size-10 rounded-xl flex items-center justify-center mb-2.5 bg-surface border border-default group-hover:border-primary/30 group-hover:scale-110 transition-all shadow-2xs', action.color)}>
+                    <div
+                      className={cn(
+                        'size-11 rounded-2xl flex items-center justify-center mb-2.5 transition-all duration-200 group-hover:scale-110',
+                        thm.icon
+                      )}
+                    >
                       {action.icon}
                     </div>
-                    <span className="text-xs font-bold text-default group-hover:text-primary transition-colors truncate w-full">
+                    <span className={cn('text-xs font-bold text-default transition-colors truncate w-full', thm.text)}>
                       {action.label}
                     </span>
                     {action.category && (

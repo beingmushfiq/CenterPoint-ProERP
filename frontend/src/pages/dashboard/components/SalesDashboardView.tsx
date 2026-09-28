@@ -18,6 +18,7 @@ import { api } from '../../../lib/api/client';
 import { useCurrency } from '../../../lib/format/currency';
 import { cn } from '../../../lib/utils';
 import type { DashboardMetricsData, DashboardInvoiceItem } from '../../../types/api/dashboard';
+import { DashboardKpiCard, type DashboardKpiTheme } from './DashboardKpiCard';
 
 interface FastProductItem {
   id: string | number;
@@ -104,11 +105,46 @@ export const SalesDashboardView: React.FC<SalesDashboardViewProps> = ({ onOpenIn
     [salesFilter, invoices]);
 
   // KPI summary stats
-  const kpis = [
-    { label: "Today's Sales", value: metrics ? formatCurrency(metrics.commercial.today_revenue) : '—', sub: `Month: ${metrics ? formatCurrency(metrics.commercial.month_revenue) : '—'}`, icon: <TrendingUp className="size-4" />, color: 'text-emerald-500' },
-    { label: 'Active Orders', value: `${metrics?.commercial.active_orders ?? 0}`, sub: 'Fulfillment queue', icon: <ShoppingBag className="size-4" />, color: 'text-blue-500' },
-    { label: 'Receivables Due', value: metrics ? formatCurrency(metrics.commercial.total_receivable_due) : '—', sub: 'Outstanding balance', icon: <DollarSign className="size-4" />, color: 'text-amber-500' },
-    { label: 'Storefront', value: '0 Orders', sub: 'Ecom sync online', icon: <Store className="size-4" />, color: 'text-teal-500' },
+  const kpis: Array<{
+    label: string;
+    value: string | number;
+    sub: string;
+    icon: React.ReactNode;
+    theme: DashboardKpiTheme;
+    to?: string | undefined;
+  }> = [
+    {
+      label: "Today's Sales",
+      value: metrics ? formatCurrency(metrics.commercial.today_revenue) : '—',
+      sub: `Month: ${metrics ? formatCurrency(metrics.commercial.month_revenue) : '—'}`,
+      icon: <TrendingUp className="size-4" />,
+      theme: 'emerald',
+      to: '/sales/invoices',
+    },
+    {
+      label: 'Active Orders',
+      value: `${metrics?.commercial.active_orders ?? 0}`,
+      sub: 'Fulfillment queue',
+      icon: <ShoppingBag className="size-4" />,
+      theme: 'blue',
+      to: '/sales/orders',
+    },
+    {
+      label: 'Receivables Due',
+      value: metrics ? formatCurrency(metrics.commercial.total_receivable_due) : '—',
+      sub: 'Outstanding balance',
+      icon: <DollarSign className="size-4" />,
+      theme: 'amber',
+      to: '/finance?tab=receivables',
+    },
+    {
+      label: 'Storefront',
+      value: '0 Orders',
+      sub: 'Ecom sync online',
+      icon: <Store className="size-4" />,
+      theme: 'teal',
+      to: '/storefront',
+    },
   ];
 
   return (
@@ -116,14 +152,15 @@ export const SalesDashboardView: React.FC<SalesDashboardViewProps> = ({ onOpenIn
       {/* KPI strip — 4 tiles */}
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
         {kpis.map((kpi) => (
-          <div key={kpi.label} className="rounded-2xl border border-default bg-surface p-4 shadow-sm hover:border-primary/30 transition-all flex flex-col gap-2">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted truncate">{kpi.label}</span>
-              <span className={cn('shrink-0', kpi.color)}>{kpi.icon}</span>
-            </div>
-            <div className="font-extrabold font-mono text-xl text-default leading-none">{kpi.value}</div>
-            <div className="text-[10px] text-muted font-medium">{kpi.sub}</div>
-          </div>
+          <DashboardKpiCard
+            key={kpi.label}
+            label={kpi.label}
+            value={kpi.value}
+            sub={kpi.sub}
+            icon={kpi.icon}
+            theme={kpi.theme}
+            to={kpi.to}
+          />
         ))}
       </div>
 

@@ -100,34 +100,67 @@ interface HealthTileProps {
   sub: string;
   icon: React.ReactNode;
   status: 'ok' | 'warn' | 'critical';
+  theme?: 'emerald' | 'indigo' | 'violet' | 'cyan';
   to: string;
 }
 
-const HealthTile: React.FC<HealthTileProps> = ({ label, value, sub, icon, status, to }) => {
-  const bar = { ok: 'bg-emerald-500', warn: 'bg-amber-500', critical: 'bg-red-500' }[status];
+const HEALTH_THEMES = {
+  emerald: {
+    bg: 'bg-gradient-to-br from-emerald-500/[0.07] via-surface to-emerald-500/[0.02] dark:from-emerald-500/[0.12] dark:via-surface dark:to-emerald-500/[0.03]',
+    border: 'border-emerald-500/25 hover:border-emerald-500/50',
+    iconBg: 'bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-xs shadow-emerald-500/30',
+    bar: 'bg-gradient-to-r from-emerald-500 to-teal-400',
+    topHairline: 'via-emerald-500',
+  },
+  indigo: {
+    bg: 'bg-gradient-to-br from-indigo-500/[0.07] via-surface to-indigo-500/[0.02] dark:from-indigo-500/[0.12] dark:via-surface dark:to-indigo-500/[0.03]',
+    border: 'border-indigo-500/25 hover:border-indigo-500/50',
+    iconBg: 'bg-gradient-to-br from-indigo-500 to-indigo-600 text-white shadow-xs shadow-indigo-500/30',
+    bar: 'bg-gradient-to-r from-indigo-500 to-blue-400',
+    topHairline: 'via-indigo-500',
+  },
+  violet: {
+    bg: 'bg-gradient-to-br from-violet-500/[0.07] via-surface to-violet-500/[0.02] dark:from-violet-500/[0.12] dark:via-surface dark:to-violet-500/[0.03]',
+    border: 'border-violet-500/25 hover:border-violet-500/50',
+    iconBg: 'bg-gradient-to-br from-violet-500 to-purple-600 text-white shadow-xs shadow-violet-500/30',
+    bar: 'bg-gradient-to-r from-violet-500 to-fuchsia-400',
+    topHairline: 'via-violet-500',
+  },
+  cyan: {
+    bg: 'bg-gradient-to-br from-cyan-500/[0.07] via-surface to-cyan-500/[0.02] dark:from-cyan-500/[0.12] dark:via-surface dark:to-cyan-500/[0.03]',
+    border: 'border-cyan-500/25 hover:border-cyan-500/50',
+    iconBg: 'bg-gradient-to-br from-cyan-500 to-teal-600 text-white shadow-xs shadow-cyan-500/30',
+    bar: 'bg-gradient-to-r from-cyan-500 to-emerald-400',
+    topHairline: 'via-cyan-500',
+  },
+};
+
+const HealthTile: React.FC<HealthTileProps> = ({ label, value, sub, icon, theme = 'emerald', to }) => {
+  const thm = HEALTH_THEMES[theme] || HEALTH_THEMES.emerald;
   return (
     <Link
       to={to}
-      className="group flex items-center gap-3 rounded-xl border border-default bg-surface hover:bg-surface-sunken p-3 transition-all hover:border-primary/30"
+      className={cn(
+        'group relative flex items-center gap-3.5 rounded-2xl border p-3.5 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md overflow-hidden',
+        thm.bg,
+        thm.border
+      )}
     >
-      <div className={cn('flex size-8 shrink-0 items-center justify-center rounded-lg border', {
-        'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20': status === 'ok',
-        'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20': status === 'warn',
-        'bg-red-500/10 text-red-500 border-red-500/20': status === 'critical',
-      })}>
+      <span className={cn('absolute inset-x-0 top-0 h-[2.5px] bg-linear-to-r from-transparent to-transparent opacity-80 group-hover:opacity-100 transition-opacity', thm.topHairline)} />
+      <div className={cn('flex size-10 shrink-0 items-center justify-center rounded-xl border border-white/20 transition-transform duration-200 group-hover:scale-110', thm.iconBg)}>
         {icon}
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between gap-1">
           <span className="text-[10px] font-bold uppercase tracking-wider text-muted truncate">{label}</span>
-          <ArrowRight className="size-3 text-muted shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
+          <ArrowRight className="size-3.5 text-muted shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
         </div>
-        <div className="text-sm font-extrabold font-mono text-default">{value}</div>
-        <div className="mt-1 flex items-center gap-1.5">
-          <div className="flex-1 h-1 rounded-full bg-surface-sunken overflow-hidden">
-            <div className={cn('h-full rounded-full transition-all', bar)} style={{ width: sub }} />
+        <div className="text-base font-extrabold font-mono text-default tracking-tight">{value}</div>
+        <div className="mt-1 flex items-center gap-2">
+          <div className="flex-1 h-1.5 rounded-full bg-surface-sunken/80 overflow-hidden">
+            <div className={cn('h-full rounded-full transition-all duration-500', thm.bar)} style={{ width: sub }} />
           </div>
-          <span className="text-[10px] text-muted font-mono shrink-0">{sub}</span>
+          <span className="text-[10px] text-muted font-mono font-bold shrink-0">{sub}</span>
         </div>
       </div>
     </Link>
@@ -310,6 +343,7 @@ export const ExecutiveDashboardView: React.FC<ExecutiveDashboardViewProps> = ({
       sub: `${metrics ? Math.min(Math.round((metrics.commercial.today_revenue / Math.max(metrics.commercial.month_revenue / 30, 1)) * 100), 100) : 0}%`,
       icon: <TrendingUp className="size-4" />,
       status: 'ok',
+      theme: 'emerald',
       to: '/sales',
     },
     {
@@ -318,6 +352,7 @@ export const ExecutiveDashboardView: React.FC<ExecutiveDashboardViewProps> = ({
       sub: `${Math.min(metrics?.production.achievement_rate ?? 0, 100)}%`,
       icon: <Factory className="size-4" />,
       status: !metrics ? 'ok' : metrics.production.achievement_rate >= 80 ? 'ok' : metrics.production.achievement_rate >= 60 ? 'warn' : 'critical',
+      theme: 'indigo',
       to: '/production',
     },
     {
@@ -326,6 +361,7 @@ export const ExecutiveDashboardView: React.FC<ExecutiveDashboardViewProps> = ({
       sub: metrics?.inventory.low_stock_count === 0 ? '100%' : `${Math.max(0, 100 - (metrics?.inventory.low_stock_count ?? 0) * 5)}%`,
       icon: <Warehouse className="size-4" />,
       status: !metrics ? 'ok' : metrics.inventory.low_stock_count === 0 ? 'ok' : metrics.inventory.low_stock_count < 5 ? 'warn' : 'critical',
+      theme: 'violet',
       to: '/inventory',
     },
     {
@@ -334,6 +370,7 @@ export const ExecutiveDashboardView: React.FC<ExecutiveDashboardViewProps> = ({
       sub: `${metrics?.quality.qc_pass_rate ?? 0}%`,
       icon: <Microscope className="size-4" />,
       status: !metrics ? 'ok' : metrics.quality.qc_pass_rate >= 90 ? 'ok' : metrics.quality.qc_pass_rate >= 75 ? 'warn' : 'critical',
+      theme: 'cyan',
       to: '/qc',
     },
   ];

@@ -17,6 +17,7 @@ import {
 import { api } from '../../../lib/api/client';
 import { useCurrency } from '../../../lib/format/currency';
 import { cn } from '../../../lib/utils';
+import { DashboardKpiCard, type DashboardKpiTheme } from './DashboardKpiCard';
 
 interface PurchaseOrderItem {
   id: string | number;
@@ -84,11 +85,51 @@ export const PurchasingDashboardView: React.FC = () => {
     return { totalValue, pending, received, pendingReqs };
   }, [purchaseOrders, requisitions]);
 
-  const kpis = [
-    { label: 'Total PO Value', value: formatCurrency(stats.totalValue), sub: 'All purchase orders', icon: <DollarSign className="size-4" />, color: 'text-blue-500' },
-    { label: 'Pending Approval', value: `${stats.pending}`, sub: 'POs awaiting', icon: <Clock className="size-4" />, color: stats.pending > 0 ? 'text-amber-500' : 'text-muted', accent: stats.pending > 0 },
-    { label: 'Goods Received', value: `${stats.received}`, sub: 'GRN completed', icon: <PackageCheck className="size-4" />, color: 'text-emerald-500' },
-    { label: 'Open Requisitions', value: `${stats.pendingReqs}`, sub: 'Pending approval', icon: <TrendingUp className="size-4" />, color: stats.pendingReqs > 0 ? 'text-purple-500' : 'text-muted' },
+  const kpis: Array<{
+    label: string;
+    value: string | number;
+    sub: string;
+    badge?: { text: string; variant?: 'positive' | 'warning' | 'negative' | 'neutral' | 'info' | undefined } | undefined;
+    icon: React.ReactNode;
+    theme: DashboardKpiTheme;
+    to?: string | undefined;
+  }> = [
+    {
+      label: 'Total PO Value',
+      value: formatCurrency(stats.totalValue),
+      sub: 'All purchase orders',
+      badge: { text: 'Procurement', variant: 'positive' },
+      icon: <DollarSign className="size-4" />,
+      theme: 'blue',
+      to: '/purchasing',
+    },
+    {
+      label: 'Pending Approval',
+      value: `${stats.pending}`,
+      sub: 'POs awaiting',
+      badge: stats.pending > 0 ? { text: 'Action Req.', variant: 'warning' } : { text: 'Clear', variant: 'neutral' },
+      icon: <Clock className="size-4" />,
+      theme: 'amber',
+      to: '/purchasing',
+    },
+    {
+      label: 'Goods Received',
+      value: `${stats.received}`,
+      sub: 'GRN completed',
+      badge: { text: 'Verified', variant: 'positive' },
+      icon: <PackageCheck className="size-4" />,
+      theme: 'emerald',
+      to: '/purchasing',
+    },
+    {
+      label: 'Open Requisitions',
+      value: `${stats.pendingReqs}`,
+      sub: 'Pending approval',
+      badge: stats.pendingReqs > 0 ? { text: 'Requisition', variant: 'info' } : undefined,
+      icon: <TrendingUp className="size-4" />,
+      theme: 'purple',
+      to: '/purchasing',
+    },
   ];
 
   return (
@@ -96,17 +137,16 @@ export const PurchasingDashboardView: React.FC = () => {
       {/* KPI strip */}
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
         {kpis.map((kpi) => (
-          <div key={kpi.label} className={cn(
-            'rounded-2xl border bg-surface p-4 shadow-sm hover:border-primary/30 transition-all flex flex-col gap-2',
-            kpi.accent ? 'border-l-4 border-l-amber-500 border-r border-t border-b border-default' : 'border-default'
-          )}>
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted truncate">{kpi.label}</span>
-              <span className={cn('shrink-0', kpi.color)}>{kpi.icon}</span>
-            </div>
-            <div className="font-extrabold font-mono text-xl text-default leading-none">{kpi.value}</div>
-            <div className={cn('text-[10px] font-medium', kpi.accent ? 'text-amber-600 dark:text-amber-400' : 'text-muted')}>{kpi.sub}</div>
-          </div>
+          <DashboardKpiCard
+            key={kpi.label}
+            label={kpi.label}
+            value={kpi.value}
+            sub={kpi.sub}
+            badge={kpi.badge}
+            icon={kpi.icon}
+            theme={kpi.theme}
+            to={kpi.to}
+          />
         ))}
       </div>
 

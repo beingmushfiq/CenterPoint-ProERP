@@ -25,6 +25,7 @@ import type { DueCustomerItem } from './DashboardModals';
 import { api } from '../../../lib/api/client';
 import { useCurrency } from '../../../lib/format/currency';
 import type { DashboardMetricsData, DashboardInvoiceItem } from '../../../types/api/dashboard';
+import { DashboardKpiCard, type DashboardKpiTheme } from './DashboardKpiCard';
 
 interface FinanceDashboardViewProps {
   onOpenDueItem?: (item: DueCustomerItem) => void;
@@ -89,13 +90,62 @@ export const FinanceDashboardView: React.FC<FinanceDashboardViewProps> = ({ onOp
     { category: 'Logistics & Shipping', amount: formatCurrency(0), percent: 0, color: 'bg-purple-500' },
   ];
 
-  const kpis = [
-    { label: 'Receivables Due', value: metrics ? formatCurrency(metrics.commercial.total_receivable_due) : '—', sub: 'Active accounts', icon: <DollarSign className="size-4" />, color: 'text-amber-500', accent: true },
-    { label: 'Today Collections', value: metrics ? formatCurrency(metrics.commercial.today_revenue) : '—', sub: 'Realtime ledger', icon: <TrendingUp className="size-4" />, color: 'text-emerald-500', accent: false },
-    { label: 'Monthly Revenue', value: metrics ? formatCurrency(metrics.commercial.month_revenue) : '—', sub: 'Current month', icon: <Receipt className="size-4" />, color: 'text-blue-500', accent: false },
-    { label: 'Supplier Payables', value: formatCurrency(0), sub: 'Vendor invoices', icon: <CreditCard className="size-4" />, color: 'text-purple-500', accent: false },
-    { label: 'Liquid Cash & Bank', value: formatCurrency(0), sub: 'Cash & bank balance', icon: <Coins className="size-4" />, color: 'text-teal-500', accent: false },
-    { label: 'Capital Assets', value: formatCurrency(0), sub: 'Asset registry', icon: <Building2 className="size-4" />, color: 'text-indigo-500', accent: false },
+  const kpis: Array<{
+    label: string;
+    value: string | number;
+    sub: string;
+    icon: React.ReactNode;
+    theme: DashboardKpiTheme;
+    to?: string | undefined;
+  }> = [
+    {
+      label: 'Receivables Due',
+      value: metrics ? formatCurrency(metrics.commercial.total_receivable_due) : '—',
+      sub: 'Active accounts',
+      icon: <DollarSign className="size-4" />,
+      theme: 'amber',
+      to: '/finance?tab=receivables',
+    },
+    {
+      label: 'Today Collections',
+      value: metrics ? formatCurrency(metrics.commercial.today_revenue) : '—',
+      sub: 'Realtime ledger',
+      icon: <TrendingUp className="size-4" />,
+      theme: 'emerald',
+      to: '/sales/invoices',
+    },
+    {
+      label: 'Monthly Revenue',
+      value: metrics ? formatCurrency(metrics.commercial.month_revenue) : '—',
+      sub: 'Current month',
+      icon: <Receipt className="size-4" />,
+      theme: 'blue',
+      to: '/sales/invoices',
+    },
+    {
+      label: 'Supplier Payables',
+      value: formatCurrency(0),
+      sub: 'Vendor invoices',
+      icon: <CreditCard className="size-4" />,
+      theme: 'purple',
+      to: '/purchasing',
+    },
+    {
+      label: 'Liquid Cash & Bank',
+      value: formatCurrency(0),
+      sub: 'Cash & bank balance',
+      icon: <Coins className="size-4" />,
+      theme: 'teal',
+      to: '/finance?tab=cash-bank',
+    },
+    {
+      label: 'Capital Assets',
+      value: formatCurrency(0),
+      sub: 'Asset registry',
+      icon: <Building2 className="size-4" />,
+      theme: 'indigo',
+      to: '/finance?tab=assets',
+    },
   ];
 
   return (
@@ -103,17 +153,15 @@ export const FinanceDashboardView: React.FC<FinanceDashboardViewProps> = ({ onOp
       {/* KPI strip */}
       <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-3">
         {kpis.map((kpi) => (
-          <div key={kpi.label} className={cn(
-            'rounded-2xl border bg-surface p-4 shadow-sm hover:border-primary/30 transition-all flex flex-col gap-2',
-            kpi.accent ? 'border-l-4 border-l-amber-500 border-r border-t border-b border-default' : 'border-default'
-          )}>
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted truncate">{kpi.label}</span>
-              <span className={cn('shrink-0', kpi.color)}>{kpi.icon}</span>
-            </div>
-            <div className="font-extrabold font-mono text-xl text-default leading-none">{kpi.value}</div>
-            <div className={cn('text-[10px] font-medium', kpi.accent ? 'text-amber-600 dark:text-amber-400' : 'text-muted')}>{kpi.sub}</div>
-          </div>
+          <DashboardKpiCard
+            key={kpi.label}
+            label={kpi.label}
+            value={kpi.value}
+            sub={kpi.sub}
+            icon={kpi.icon}
+            theme={kpi.theme}
+            to={kpi.to}
+          />
         ))}
       </div>
 

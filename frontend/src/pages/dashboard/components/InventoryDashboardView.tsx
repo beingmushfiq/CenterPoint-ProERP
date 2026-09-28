@@ -19,6 +19,7 @@ import { useCurrency } from '../../../lib/format/currency';
 import { cn } from '../../../lib/utils';
 import type { DashboardMetricsData } from '../../../types/api/dashboard';
 import type { OrderPOItem } from './DashboardModals';
+import { DashboardKpiCard, type DashboardKpiTheme } from './DashboardKpiCard';
 
 interface InventoryDashboardViewProps {
   attentionItems?: OrderPOItem[];
@@ -100,11 +101,54 @@ export const InventoryDashboardView: React.FC<InventoryDashboardViewProps> = ({
     },
   });
 
-  const kpis = [
-    { label: 'Total Valuation', value: metrics ? formatCurrency(metrics.inventory.total_valuation) : '—', sub: 'Warehouse asset value', icon: <Warehouse className="size-4" />, color: 'text-blue-500' },
-    { label: 'Reorder Alerts', value: `${metrics?.inventory.low_stock_count ?? 0}`, sub: 'SKUs below threshold', icon: <AlertTriangle className="size-4" />, color: 'text-red-500', accent: (metrics?.inventory.low_stock_count ?? 0) > 0 },
-    { label: 'Pending Counts', value: `${metrics?.inventory.pending_counts ?? 0}`, sub: 'Cycle count queue', icon: <RefreshCw className="size-4" />, color: 'text-amber-500' },
-    { label: 'Pending Adjustments', value: `${metrics?.inventory.pending_adjustments ?? 0}`, sub: 'Awaiting approval', icon: <Package className="size-4" />, color: 'text-indigo-500' },
+  const kpis: Array<{
+    label: string;
+    value: string | number;
+    sub: string;
+    badge?: { text: string; variant?: 'positive' | 'warning' | 'negative' | 'neutral' | 'info' | undefined } | undefined;
+    icon: React.ReactNode;
+    theme: DashboardKpiTheme;
+    to?: string | undefined;
+  }> = [
+    {
+      label: 'Total Valuation',
+      value: metrics ? formatCurrency(metrics.inventory.total_valuation) : '—',
+      sub: 'Warehouse asset value',
+      badge: { text: 'Audit Ready', variant: 'positive' },
+      icon: <Warehouse className="size-4" />,
+      theme: 'violet',
+      to: '/inventory',
+    },
+    {
+      label: 'Reorder Alerts',
+      value: `${metrics?.inventory.low_stock_count ?? 0}`,
+      sub: 'SKUs below threshold',
+      badge:
+        (metrics?.inventory.low_stock_count ?? 0) > 0
+          ? { text: 'Low Stock', variant: 'negative' }
+          : { text: 'Optimal', variant: 'positive' },
+      icon: <AlertTriangle className="size-4" />,
+      theme: 'rose',
+      to: '/inventory',
+    },
+    {
+      label: 'Pending Counts',
+      value: `${metrics?.inventory.pending_counts ?? 0}`,
+      sub: 'Cycle count queue',
+      badge: (metrics?.inventory.pending_counts ?? 0) > 0 ? { text: 'Queue', variant: 'warning' } : undefined,
+      icon: <RefreshCw className="size-4" />,
+      theme: 'amber',
+      to: '/inventory',
+    },
+    {
+      label: 'Pending Adjustments',
+      value: `${metrics?.inventory.pending_adjustments ?? 0}`,
+      sub: 'Awaiting approval',
+      badge: (metrics?.inventory.pending_adjustments ?? 0) > 0 ? { text: 'Pending', variant: 'info' } : undefined,
+      icon: <Package className="size-4" />,
+      theme: 'indigo',
+      to: '/inventory',
+    },
   ];
 
   return (
@@ -112,17 +156,16 @@ export const InventoryDashboardView: React.FC<InventoryDashboardViewProps> = ({
       {/* KPI strip */}
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
         {kpis.map((kpi) => (
-          <div key={kpi.label} className={cn(
-            'rounded-2xl border bg-surface p-4 shadow-sm hover:border-primary/30 transition-all flex flex-col gap-2',
-            kpi.accent ? 'border-l-4 border-l-red-500 border-r border-t border-b border-default' : 'border-default'
-          )}>
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted truncate">{kpi.label}</span>
-              <span className={cn('shrink-0', kpi.color)}>{kpi.icon}</span>
-            </div>
-            <div className="font-extrabold font-mono text-xl text-default leading-none">{kpi.value}</div>
-            <div className={cn('text-[10px] font-medium', kpi.accent ? 'text-red-500' : 'text-muted')}>{kpi.sub}</div>
-          </div>
+          <DashboardKpiCard
+            key={kpi.label}
+            label={kpi.label}
+            value={kpi.value}
+            sub={kpi.sub}
+            badge={kpi.badge}
+            icon={kpi.icon}
+            theme={kpi.theme}
+            to={kpi.to}
+          />
         ))}
       </div>
 
