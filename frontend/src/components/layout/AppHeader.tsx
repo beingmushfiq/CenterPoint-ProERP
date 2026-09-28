@@ -36,6 +36,7 @@ import {
   Brain,
   Compass,
   Layers,
+  Monitor,
 } from 'lucide-react';
 import { SliceMartBrainModal } from './SliceMartBrainModal';
 import { LanguageSwitcher } from '../ui/LanguageSwitcher';
@@ -45,7 +46,11 @@ import { useTenantCapabilityStore } from '../../lib/capabilities/tenantCapabilit
 import { PLATFORM_NAV_DEFINITIONS } from '../../lib/capabilities/navRegistry';
 import { cn } from '../../lib/utils';
 import type { NotificationItem } from '../../types/api/notifications';
-import { toggleThemeWithTransition } from '../../lib/theme/themeTransition';
+import {
+  toggleThemeWithTransition,
+  getStoredThemeMode,
+  type ThemeMode,
+} from '../../lib/theme/themeTransition';
 import { api } from '../../lib/api/client';
 
 interface AppHeaderProps {
@@ -118,9 +123,26 @@ export function AppHeader({
   }, [isModuleEnabled, hasPermission, getTerm]);
 
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
-  const [theme, setTheme] = useState<'dark' | 'light'>(() => {
-    return document.documentElement.classList.contains('dark') ? 'dark' : 'light';
-  });
+  const [themeMode, setThemeMode] = useState<ThemeMode>(() => getStoredThemeMode());
+
+  // Real-time system theme change listener when user is in 'system' mode
+  useEffect(() => {
+    const mql = window.matchMedia?.('(prefers-color-scheme: dark)');
+    if (!mql) return;
+    const handleSystemChange = (e: MediaQueryListEvent) => {
+      if (themeMode === 'system') {
+        if (e.matches) {
+          document.documentElement.classList.add('dark');
+          document.documentElement.setAttribute('data-theme', 'dark');
+        } else {
+          document.documentElement.classList.remove('dark');
+          document.documentElement.setAttribute('data-theme', 'light');
+        }
+      }
+    };
+    mql.addEventListener('change', handleSystemChange);
+    return () => mql.removeEventListener('change', handleSystemChange);
+  }, [themeMode]);
 
   // Global Keyboard Shortcuts for Omnisearch and Brain Agent
   useEffect(() => {
@@ -275,8 +297,8 @@ export function AppHeader({
   const unreadCount = notifications.filter((n) => !n.read_at).length;
 
   const toggleTheme = (e?: React.MouseEvent) => {
-    toggleThemeWithTransition(theme, e, (next) => {
-      setTheme(next);
+    toggleThemeWithTransition(themeMode, e, (next) => {
+      setThemeMode(next);
     });
   };
 
@@ -814,14 +836,33 @@ export function AppHeader({
         {/* Language Switcher (EN / বাংলা) */}
         <LanguageSwitcher />
 
-        {/* Theme Toggle */}
+        {/* Theme Toggle (3-state: Light / Dark / System) */}
         <button
           type="button"
           onClick={toggleTheme}
           className="rounded-lg p-1.5 sm:p-2 text-muted hover:bg-surface-sunken hover:text-default transition-token-colors focus-visible:ring-focus cursor-pointer shrink-0"
-          aria-label={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+          aria-label={
+            themeMode === 'light'
+              ? 'Switch to Dark Mode'
+              : themeMode === 'dark'
+                ? 'Switch to System Theme'
+                : 'Switch to Light Mode'
+          }
+          title={
+            themeMode === 'light'
+              ? 'Theme: Light (Click for Dark)'
+              : themeMode === 'dark'
+                ? 'Theme: Dark (Click for System)'
+                : 'Theme: System (Click for Light)'
+          }
         >
-          {theme === 'dark' ? <Sun className="size-4 text-amber-400" /> : <Moon className="size-4 text-slate-700" />}
+          {themeMode === 'dark' ? (
+            <Moon className="size-4 text-indigo-400" />
+          ) : themeMode === 'light' ? (
+            <Sun className="size-4 text-amber-500" />
+          ) : (
+            <Monitor className="size-4 text-primary" />
+          )}
         </button>
 
         {/* User Profile Dropdown */}

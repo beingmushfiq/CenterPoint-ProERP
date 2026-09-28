@@ -193,7 +193,22 @@ class RunReportQueryAction
 
     public function execute(string $code, array $filters = [], int $page = 1, int $perPage = 25): array
     {
-        $definition = ReportDefinition::where('code', $code)->first();
+        $aliases = [
+            'worker_piece_rate_summary' => 'worker_production',
+            'salesman_profitability' => 'salesman_profit_contribution',
+            'daily_sales' => 'sales_performance',
+            'b2c_sales' => 'product_sales',
+            'salesman_leaderboard' => 'salesman_sales',
+            'delivery_sla_history' => 'courier_performance',
+            'converted_leads' => 'lead_summary',
+            'lost_leads_analysis' => 'lead_status_distribution',
+        ];
+
+        $canonicalCode = $aliases[$code] ?? $code;
+        $definition = ReportDefinition::where('code', $canonicalCode)->first()
+            ?? ReportDefinition::where('code', $code)->first()
+            ?? ReportDefinition::withoutTenantScope()->where('code', $canonicalCode)->first()
+            ?? ReportDefinition::withoutTenantScope()->where('code', $code)->first();
 
         if (!$definition) {
             throw ValidationException::withMessages([
@@ -201,10 +216,10 @@ class RunReportQueryAction
             ]);
         }
 
-        $queryClass = $this->queryMap[$code] ?? null;
+        $queryClass = $this->queryMap[$code] ?? $this->queryMap[$canonicalCode] ?? null;
 
         if (!$queryClass || !class_exists($queryClass)) {
-            return $this->generateGenericReportData($definition, $filters, $page, $perPage);
+            return $this->generateGenericReportData($definition, $filters, $page, $perPage, $code);
         }
 
         /** @var ReportQueryInterface $runner */
@@ -216,7 +231,7 @@ class RunReportQueryAction
 
         return [
             'report' => [
-                'code' => $definition->code,
+                'code' => $code,
                 'name' => $definition->name,
                 'category' => $definition->category,
                 'module' => $definition->module,
@@ -245,7 +260,7 @@ class RunReportQueryAction
      * Generate fallback schema, summary metrics, and rows for standard RMS reports.
      * Guaranteed zero fake business data - returns clean empty structure when no rows exist.
      */
-    protected function generateGenericReportData(ReportDefinition $definition, array $filters, int $page, int $perPage): array
+    protected function generateGenericReportData(ReportDefinition $definition, array $filters, int $page, int $perPage, ?string $requestedCode = null): array
     {
         $columns = [];
         if (!empty($definition->available_columns) && is_array($definition->available_columns)) {
@@ -264,7 +279,7 @@ class RunReportQueryAction
 
         return [
             'report' => [
-                'code' => $definition->code,
+                'code' => $requestedCode ?? $definition->code,
                 'name' => $definition->name,
                 'category' => $definition->category,
                 'module' => $definition->module,

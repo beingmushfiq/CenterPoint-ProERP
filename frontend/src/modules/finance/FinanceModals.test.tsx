@@ -141,6 +141,43 @@ describe('Finance Action Modals', () => {
       expect(payload.journalEntry.total_credit).toBe('12500.0000');
       expect(onClose).toHaveBeenCalled();
     });
+
+    it('supports splitting customer due across multiple tenders and auto-balances GL', () => {
+      const onSuccess = vi.fn();
+      const onClose = vi.fn();
+
+      render(
+        <MoneyInModal
+          open={true}
+          onClose={onClose}
+          accounts={mockAccounts}
+          bankAccounts={mockBankAccounts}
+          initialCustomerName="Dhaka Garments"
+          initialDueAmount="10000"
+          initialInvoiceNumber="INV-2026-015"
+          onSuccess={onSuccess}
+        />
+      );
+
+      // Click split tender button
+      const splitBtn = screen.getByRole('button', { name: /Split Across Multiple Accounts/i });
+      fireEvent.click(splitBtn);
+
+      // Verify PaymentSplitEditor rendered
+      expect(screen.getByText(/Payment Allocation/i)).toBeInTheDocument();
+
+      const submitBtn = screen.getByRole('button', { name: /Record Money In/i });
+      fireEvent.click(submitBtn);
+
+      expect(onSuccess).toHaveBeenCalledTimes(1);
+      const payload = onSuccess.mock.calls[0]![0];
+      expect(payload.collectedCustomerName).toBe('Dhaka Garments');
+      expect(payload.collectedAmount).toBe(10000);
+      expect(payload.journalEntry.total_debit).toBe('10000.0000');
+      expect(payload.journalEntry.total_credit).toBe('10000.0000');
+      expect(payload.splits).toBeDefined();
+      expect(onClose).toHaveBeenCalled();
+    });
   });
 
   describe('TransferMoneyModal', () => {

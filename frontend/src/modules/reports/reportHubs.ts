@@ -1,7 +1,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// REPORTING HUBS ARCHITECTURE (Phase 5 & 11 Consolidation)
-// Consolidates 84 individual report codes into 20 cohesive multi-view hubs.
-// Every legacy report code is preserved as an active sub-view tab.
+// REPORTING HUBS & DOMAIN NAVIGATION ARCHITECTURE (Phase 2 Consolidation)
+// Consolidates 76 active report codes into 7 Domain Navigation Hubs
+// and 20 focused multi-view sub-hubs.
 // ═══════════════════════════════════════════════════════════════════════════
 
 export interface ReportHubView {
@@ -22,6 +22,110 @@ export interface ReportHub {
   defaultCode: string;
   views: ReportHubView[];
 }
+
+export interface DomainHub {
+  id: string; // 'operations' | 'commercial' | 'procurement' | 'finance' | 'people' | 'assets' | 'compliance'
+  titleEn: string;
+  titleBn: string;
+  descEn: string;
+  descBn: string;
+  iconName: string;
+  badgeTone: string;
+  modules: string[];
+  hubIds: string[];
+}
+
+export const DOMAIN_HUBS: DomainHub[] = [
+  {
+    id: 'operations',
+    titleEn: 'Operations Hub',
+    titleBn: 'অপারেশনস হাব',
+    descEn: 'Manufacturing output, efficiency, workforce yields, inventory levels, and stock movements.',
+    descBn: 'উৎপাদন আউটপুট, দক্ষতা, শ্রমিক ফলন, গুদাম মজুদ ও ইনভেন্টরি মুভমেন্ট।',
+    iconName: 'Factory',
+    badgeTone: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/50 dark:text-blue-300',
+    modules: ['production', 'inventory'],
+    hubIds: [
+      'hub_production_yield',
+      'hub_production_efficiency',
+      'hub_production_workers',
+      'hub_inventory_stock',
+      'hub_inventory_movements',
+      'hub_inventory_valuation',
+    ],
+  },
+  {
+    id: 'commercial',
+    titleEn: 'Commercial Hub',
+    titleBn: 'বাণিজ্যিক হাব',
+    descEn: 'Omnichannel revenue, POS registers, customer order volume, and CRM sales pipelines.',
+    descBn: 'অমনিচ্যানেল রাজস্ব, পিওএস কাউন্টার, গ্রাহক অর্ডার ও সিআরএম বিক্রয় ফানেল।',
+    iconName: 'Receipt',
+    badgeTone: 'bg-cyan-50 text-cyan-700 border-cyan-200 dark:bg-cyan-950/50 dark:text-cyan-300',
+    modules: ['sales', 'pos', 'crm'],
+    hubIds: ['hub_sales_omnichannel', 'hub_crm_pipeline'],
+  },
+  {
+    id: 'procurement',
+    titleEn: 'Procurement & Logistics Hub',
+    titleBn: 'ক্রয় ও সরবরাহ হাব',
+    descEn: 'Purchase orders, supplier relations, parcel dispatches, and courier SLA performance.',
+    descBn: 'ক্রয়াদেশ, সরবরাহকারী দেনা, পার্সেল ডেলিভারি ও কুরিয়ার পারফরম্যান্স।',
+    iconName: 'Truck',
+    badgeTone: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/50 dark:text-amber-300',
+    modules: ['purchasing', 'delivery'],
+    hubIds: [
+      'hub_procurement_pos',
+      'hub_procurement_suppliers',
+      'hub_delivery_parcels',
+      'hub_delivery_couriers',
+    ],
+  },
+  {
+    id: 'finance',
+    titleEn: 'Finance & Margins Hub',
+    titleBn: 'অর্থ ও মার্জিন হাব',
+    descEn: 'General ledger, income statement, operating expenses, and product SKU margins.',
+    descBn: 'সাধারণ খতিয়ান, লাভ-ক্ষতি বিবরণী, পরিচালন খরচ ও পণ্যভিত্তিক লাভ মার্জিন।',
+    iconName: 'DollarSign',
+    badgeTone: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300',
+    modules: ['finance', 'profit'],
+    hubIds: ['hub_finance_ledger', 'hub_profitability'],
+  },
+  {
+    id: 'people',
+    titleEn: 'People & Sales Force Hub',
+    titleBn: 'মানবসম্পদ ও সেলস টিম হাব',
+    descEn: 'Employee directory, attendance, payroll disbursements, and sales quota achievements.',
+    descBn: 'কর্মচারী ডিরেক্টরি, উপস্থিতি, বেতন বিতরণ এবং সেলস টিম কোটা অর্জন।',
+    iconName: 'Users',
+    badgeTone: 'bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/50 dark:text-purple-300',
+    modules: ['hr', 'salesmen'],
+    hubIds: ['hub_hr_workforce', 'hub_hr_payroll', 'hub_sales_force'],
+  },
+  {
+    id: 'assets',
+    titleEn: 'Fixed Assets Hub',
+    titleBn: 'স্থায়ী সম্পদ হাব',
+    descEn: 'Equipment register, net book value depreciation, custodian logs, and salvage.',
+    descBn: 'স্থায়ী সম্পদ তালিকা, অবচয় ও বুক ভ্যালু, অর্পিত সরঞ্জাম ও নিষ্পত্তি লগ।',
+    iconName: 'Cpu',
+    badgeTone: 'bg-slate-50 text-slate-700 border-slate-200 dark:bg-slate-900 dark:text-slate-300',
+    modules: ['assets'],
+    hubIds: ['hub_assets_register'],
+  },
+  {
+    id: 'compliance',
+    titleEn: 'Compliance & Quality Hub',
+    titleBn: 'কমপ্লায়েন্স ও কোয়ালিটি হাব',
+    descEn: 'AQL 2.5 inspection pass rates, defect categorization, and audit log verification.',
+    descBn: 'মান নিয়ন্ত্রণ পরিদর্শন পাস-ফেল অনুপাত, ত্রুটি বিশ্লেষণ ও সিস্টেম অডিট ট্রেইল।',
+    iconName: 'ShieldCheck',
+    badgeTone: 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/50 dark:text-rose-300',
+    modules: ['qc'],
+    hubIds: ['hub_qc_assurance'],
+  },
+];
 
 export const REPORT_HUBS: ReportHub[] = [
   // ── 1. Production & Manufacturing ────────────────────────────────────────
@@ -73,8 +177,7 @@ export const REPORT_HUBS: ReportHub[] = [
     badgeTone: 'bg-cyan-50 text-cyan-700 border-cyan-200 dark:bg-cyan-950/50 dark:text-cyan-300',
     defaultCode: 'worker_production',
     views: [
-      { code: 'worker_production', labelEn: 'Worker Output', labelBn: 'শ্রমিক উৎপাদন' },
-      { code: 'worker_piece_rate_summary', labelEn: 'Piece-Rate Summary', labelBn: 'পিস-রেট বিবরণী' },
+      { code: 'worker_production', labelEn: 'Worker Piece-Rate Log', labelBn: 'শ্রমিক উৎপাদন ও পিস-রেট' },
     ],
   },
 
@@ -178,14 +281,12 @@ export const REPORT_HUBS: ReportHub[] = [
     badgeTone: 'bg-cyan-50 text-cyan-700 border-cyan-200 dark:bg-cyan-950/50 dark:text-cyan-300',
     defaultCode: 'sales_performance',
     views: [
-      { code: 'sales_performance', labelEn: 'Overview', labelBn: 'সার্বিক চিত্র' },
-      { code: 'daily_sales', labelEn: 'Daily Revenue', labelBn: 'দৈনিক বিক্রয়' },
+      { code: 'sales_performance', labelEn: 'Overview & Daily Ledger', labelBn: 'সার্বিক ও দৈনিক খতিয়ান' },
       { code: 'monthly_sales', labelEn: 'Monthly Trend', labelBn: 'মাসিক বিক্রয়' },
       { code: 'pos_counter_sales', labelEn: 'POS Registers', labelBn: 'পিওএস কাউন্টার' },
       { code: 'b2b_sales', labelEn: 'B2B Wholesale', labelBn: 'বি২বি পাইকারি' },
-      { code: 'b2c_sales', labelEn: 'B2C Retail', labelBn: 'বি২সি খুচরা' },
-      { code: 'sales_by_product', labelEn: 'By Product', labelBn: 'পণ্যভিত্তিক বিক্রয়' },
-      { code: 'sales_by_customer', labelEn: 'By Customer', labelBn: 'গ্রাহকভিত্তিক' },
+      { code: 'product_sales', labelEn: 'By Product SKU', labelBn: 'পণ্যভিত্তিক বিক্রয়' },
+      { code: 'customer_sales', labelEn: 'By Customer', labelBn: 'গ্রাহকভিত্তিক' },
       { code: 'payment_method_summary', labelEn: 'Payment Tenders', labelBn: 'পেমেন্ট মাধ্যম' },
       { code: 'sales_return', labelEn: 'Sales Returns', labelBn: 'বিক্রয় ফেরত' },
     ],
@@ -222,11 +323,9 @@ export const REPORT_HUBS: ReportHub[] = [
     badgeTone: 'bg-pink-50 text-pink-700 border-pink-200 dark:bg-pink-950/50 dark:text-pink-300',
     defaultCode: 'lead_summary',
     views: [
-      { code: 'lead_summary', labelEn: 'Pipeline Funnel', labelBn: 'লিড ওভারভিউ' },
-      { code: 'lead_status_distribution', labelEn: 'Status Split', labelBn: 'স্ট্যাটাস বণ্টন' },
+      { code: 'lead_summary', labelEn: 'Pipeline & Conversions', labelBn: 'লিড পাইপলাইন ও রূপান্তর' },
+      { code: 'lead_status_distribution', labelEn: 'Status & Loss Analysis', labelBn: 'স্ট্যাটাস ও লস বিশ্লেষণ' },
       { code: 'conversion_rate_source', labelEn: 'Conversion Rate', labelBn: 'রূপান্তর হার' },
-      { code: 'converted_leads', labelEn: 'Converted Deals', labelBn: 'সফল গ্রাহক' },
-      { code: 'lost_leads_analysis', labelEn: 'Lost Deals', labelBn: 'ব্যর্থ লিড' },
       { code: 'salesman_leads', labelEn: 'By Sales Rep', labelBn: 'প্রতিনিধিভিত্তিক' },
       { code: 'fake_leads_audit', labelEn: 'Lead Integrity Audit', labelBn: 'লিড সত্যতা অডিট' },
     ],
@@ -242,10 +341,9 @@ export const REPORT_HUBS: ReportHub[] = [
     descBn: 'বিক্রয়কর্মীদের লিডারবোর্ড, কোটা অর্জন %, বাকি টার্গেট ও অর্জিত প্রণোদনা কমিশন।',
     iconName: 'Target',
     badgeTone: 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/50 dark:text-rose-300',
-    defaultCode: 'salesman_leaderboard',
+    defaultCode: 'salesman_sales',
     views: [
-      { code: 'salesman_leaderboard', labelEn: 'Leaderboard', labelBn: 'লিডারবোর্ড' },
-      { code: 'sales_by_salesman', labelEn: 'Revenue by Rep', labelBn: 'প্রতিনিধির বিক্রয়' },
+      { code: 'salesman_sales', labelEn: 'Rep Sales & Leaderboard', labelBn: 'প্রতিনিধির বিক্রয় ও র‍্যাংকিং' },
       { code: 'salesman_quota_achievement', labelEn: 'Quota % Achieved', labelBn: 'কোটা অর্জন %' },
       { code: 'salesman_remaining_target', labelEn: 'Remaining Target', labelBn: 'বাকি লক্ষ্যমাত্রা' },
       { code: 'salesman_profit_contribution', labelEn: 'Profit Contributed', labelBn: 'অর্জিত মুনাফা' },
@@ -283,9 +381,8 @@ export const REPORT_HUBS: ReportHub[] = [
     badgeTone: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/50 dark:text-blue-300',
     defaultCode: 'courier_performance',
     views: [
-      { code: 'courier_performance', labelEn: 'Courier Performance', labelBn: 'কুরিয়ার পারফরম্যান্স' },
+      { code: 'courier_performance', labelEn: 'Courier Performance & SLA', labelBn: 'কুরিয়ার পারফরম্যান্স ও এসএলএ' },
       { code: 'cod_reconciliation', labelEn: 'COD Reconciliation', labelBn: 'সিওডি সমাধান' },
-      { code: 'delivery_sla_history', labelEn: 'SLA History', labelBn: 'এসএলএ ইতিহাস' },
     ],
   },
 
@@ -384,4 +481,20 @@ export const REPORT_HUBS: ReportHub[] = [
  */
 export function findHubForReportCode(code: string): ReportHub | undefined {
   return REPORT_HUBS.find((h) => h.views.some((v) => v.code === code));
+}
+
+/**
+ * Finds the parent Domain Hub for any given report code.
+ */
+export function findDomainForReportCode(code: string): DomainHub | undefined {
+  const hub = findHubForReportCode(code);
+  if (!hub) return undefined;
+  return DOMAIN_HUBS.find((d) => d.hubIds.includes(hub.id));
+}
+
+/**
+ * Finds a Domain Hub by ID.
+ */
+export function findDomainById(domainId: string): DomainHub | undefined {
+  return DOMAIN_HUBS.find((d) => d.id === domainId);
 }

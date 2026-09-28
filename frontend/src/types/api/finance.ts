@@ -83,6 +83,21 @@ export interface ExpenseCategory {
 
 export type ExpenseStatus = 'draft' | 'submitted' | 'approved' | 'rejected' | 'paid' | 'cancelled';
 
+export interface ExpensePaymentSplit {
+  id: number;
+  expense_id: number;
+  method: string;
+  amount: string;
+  bank_account_id?: number | null;
+  bank_account?: { id: number; account_name: string; account_number?: string } | null;
+  mobile_provider?: string | null;
+  mobile_number?: string | null;
+  transaction_ref?: string | null;
+  cheque_number?: string | null;
+  cheque_date?: string | null;
+  notes?: string | null;
+}
+
 export interface Expense {
   id: number;
   uuid: string;
@@ -100,6 +115,7 @@ export interface Expense {
   status: ExpenseStatus;
   journal_entry_id?: number | undefined;
   created_at?: string | undefined;
+  splits?: ExpensePaymentSplit[] | undefined;
 }
 
 export interface ProductCost {

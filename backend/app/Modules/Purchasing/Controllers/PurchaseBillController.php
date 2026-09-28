@@ -9,6 +9,7 @@ use App\Modules\Purchasing\Actions\CreatePurchaseBillAction;
 use App\Modules\Purchasing\Models\PurchaseBill;
 use App\Modules\Purchasing\Requests\StorePurchaseBillRequest;
 use App\Modules\Purchasing\Resources\PurchaseBillResource;
+use App\Modules\Sales\Actions\RecordPaymentAction;
 use App\Core\Tenancy\TenantContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -17,7 +18,8 @@ use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 final class PurchaseBillController extends Controller
 {
     public function __construct(
-        private readonly CreatePurchaseBillAction $createBill
+        private readonly CreatePurchaseBillAction $createBill,
+        private readonly RecordPaymentAction $recordPayment,
     ) {}
 
     public function index(Request $request): AnonymousResourceCollection
@@ -141,15 +143,68 @@ final class PurchaseBillController extends Controller
             ->where('id', $id)
             ->firstOrFail();
 
+        $validated = $request->validate([
+            'amount' => ['required', 'numeric', 'min:0.01'],
+            'method' => ['required', 'string', 'in:cash,bank_transfer,mobile_banking,cheque,card,split'],
+            'payment_date' => ['nullable', 'date'],
+            'bank_account_id' => ['nullable', 'integer', 'exists:bank_accounts,id'],
+            'reference_number' => ['nullable', 'string', 'max:100'],
+            'notes' => ['nullable', 'string'],
+            'splits' => ['nullable', 'array', 'min:1'],
+            'splits.*.method' => ['required_with:splits', 'string', 'in:cash,bank_transfer,mobile_banking,cheque,card'],
+            'splits.*.amount' => ['required_with:splits', 'numeric', 'min:0.01'],
+            'splits.*.bank_account_id' => ['nullable', 'integer', 'exists:bank_accounts,id'],
+            'splits.*.mobile_provider' => ['nullable', 'string', 'max:50'],
+            'splits.*.mobile_number' => ['nullable', 'string', 'max:30'],
+            'splits.*.transaction_ref' => ['nullable', 'string', 'max:100'],
+            'splits.*.cheque_number' => ['nullable', 'string', 'max:100'],
+            'splits.*.cheque_date' => ['nullable', 'date'],
+            'splits.*.card_last4' => ['nullable', 'string', 'max:4'],
+            'splits.*.notes' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        /** @var numeric-string $paymentAmount */
+        $paymentAmount = (string) $validated['amount'];
+        $currentPaid = (string) ($bill->paid_amount ?? '0');
+        /** @var numeric-string $newPaid */
+        $newPaid = bcadd($currentPaid, $paymentAmount, 4);
+        /** @var numeric-string $totalAmount */
+        $totalAmount = (string) $bill->total_amount;
+
+        $newStatus = bccomp($newPaid, $totalAmount, 4) >= 0 ? 'paid' : 'partial';
+
+        $payment = $this->recordPayment->execute([
+            'tenant_id' => $tenantId,
+            'direction' => 'out',
+            'party_id' => $bill->party_id,
+            'payment_date' => $validated['payment_date'] ?? date('Y-m-d'),
+            'method' => $validated['method'],
+            'bank_account_id' => isset($validated['bank_account_id']) ? (int) $validated['bank_account_id'] : null,
+            'reference_number' => $validated['reference_number'] ?? null,
+            'amount' => $paymentAmount,
+            'currency_code' => $bill->currency_code ?? 'BDT',
+            'notes' => $validated['notes'] ?? ("Payment for bill " . $bill->bill_number),
+            'created_by' => (int) $request->user()?->id,
+            'allocations' => [
+                [
+                    'allocatable_type' => 'purchase_bill',
+                    'allocatable_id' => $bill->id,
+                    'amount' => $paymentAmount,
+                ]
+            ],
+            'splits' => $validated['splits'] ?? null,
+        ]);
+
         $bill->update([
-            'status' => 'paid',
-            'paid_amount' => $bill->total_amount,
+            'status' => $newStatus,
+            'paid_amount' => $newPaid,
         ]);
 
         return response()->json([
             'success' => true,
             'message' => 'Purchase bill payment recorded.',
-            'data' => new PurchaseBillResource($bill->fresh()),
+            'data' => new PurchaseBillResource($bill->fresh(['supplier', 'items.product'])),
+            'payment' => $payment,
             'meta' => ['correlation_id' => (string) $request->header('X-Correlation-Id', '')],
         ]);
     }

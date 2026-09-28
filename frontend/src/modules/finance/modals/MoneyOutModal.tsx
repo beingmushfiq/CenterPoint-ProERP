@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
-import { X, ArrowDownRight, ReceiptText, Building2, UserMinus } from 'lucide-react';
+import { X, ArrowDownRight, ReceiptText, Building2, UserMinus, Split } from 'lucide-react';
 import type { ChartOfAccount, BankAccount, Expense, JournalEntry } from '../../../types/api/finance';
 import { useCurrency } from '../../../hooks/useCurrency';
 import { notify } from '../../../components/ui/Toast';
 import { api } from '../../../lib/api/client';
+import { PaymentSplitEditor } from '../../../components/payment/PaymentSplitEditor';
+import type { PaymentSplitRow } from '../../../components/payment/PaymentSplitEditor';
 
 export interface MoneyOutSuccessPayload {
   expense?: Expense | undefined;
@@ -47,6 +49,11 @@ export const MoneyOutModal: React.FC<MoneyOutModalProps> = ({
   const [selectedAccountId, setSelectedAccountId] = useState<number>(
     accounts.find((a) => a.account_subtype === 'cash')?.id ?? accounts[0]?.id ?? 101
   );
+
+  // Multi-split state
+  const [isMultiPayMode, setIsMultiPayMode] = useState(false);
+  const [splits, setSplits] = useState<PaymentSplitRow[]>([]);
+  const [isSplitValid, setIsSplitValid] = useState(true);
 
   // Expense specific
   const [categoryId, setCategoryId] = useState<number>(1);
@@ -96,6 +103,18 @@ export const MoneyOutModal: React.FC<MoneyOutModalProps> = ({
       narration = `Operational Expense: ${cat?.name || 'Disbursement'} paid to ${payeeName || 'Vendor'}. ${description}`.trim();
       debitAccountId = accounts.find((a) => a.account_type === 'expense')?.id ?? 501;
 
+      const activeSplits = isMultiPayMode
+        ? splits
+        : [
+            {
+              id: '1',
+              method: sourceAccount?.account_subtype === 'cash' ? ('cash' as const) : ('bank_transfer' as const),
+              amount: numAmount,
+              ...(sourceBank?.id ? { bank_account_id: sourceBank.id } : {}),
+            },
+          ];
+      const primaryMethod = activeSplits.length > 1 ? 'split' : (activeSplits[0]?.method || 'cash');
+
       try {
         const res = await api.post('/finance/expenses', {
           company_id: 1,
@@ -106,8 +125,19 @@ export const MoneyOutModal: React.FC<MoneyOutModalProps> = ({
           payee_name: payeeName || cat?.name || 'Vendor',
           description: description || `Payment from ${sourceAccount?.name}`,
           amount: numAmount,
-          payment_method: sourceAccount?.account_subtype === 'cash' ? 'cash' : 'bank',
-          bank_account_id: sourceBank?.id,
+          payment_method: primaryMethod,
+          ...(sourceBank?.id ? { bank_account_id: sourceBank.id } : {}),
+          splits: activeSplits.map((s) => ({
+            method: s.method,
+            amount: Number(s.amount).toFixed(4),
+            ...(s.bank_account_id ? { bank_account_id: s.bank_account_id } : {}),
+            ...(s.mobile_provider ? { mobile_provider: s.mobile_provider } : {}),
+            ...(s.mobile_number ? { mobile_number: s.mobile_number } : {}),
+            ...(s.transaction_ref ? { transaction_ref: s.transaction_ref } : {}),
+            ...(s.cheque_number ? { cheque_number: s.cheque_number } : {}),
+            ...(s.cheque_date ? { cheque_date: s.cheque_date } : {}),
+            ...(s.notes ? { notes: s.notes } : {}),
+          })),
         });
         if (res.data) {
           createdExpense = (res.data as { data?: Expense }).data ?? (res.data as Expense);
@@ -131,7 +161,7 @@ export const MoneyOutModal: React.FC<MoneyOutModalProps> = ({
           },
           expense_date: date,
           amount: numAmount.toFixed(4),
-          payment_method: sourceAccount?.account_subtype === 'cash' ? 'cash' : 'bank_transfer',
+          payment_method: primaryMethod,
           bank_account_id: sourceBank?.id,
           payee_name: payeeName || cat?.name,
           description: description || `Payment from ${sourceAccount?.name}`,
@@ -152,6 +182,34 @@ export const MoneyOutModal: React.FC<MoneyOutModalProps> = ({
     // Line 1: Debit destination (Expense, Payable, or Equity)
     // Line 2: Credit source (Cash on Hand or Bank Account)
     const debitAccount = accounts.find((a) => a.id === debitAccountId);
+    const creditLines = isMultiPayMode && splits.length > 0
+      ? splits.map((s, idx) => {
+          const matchedAcc =
+            s.method === 'cash'
+              ? accounts.find((a) => a.account_subtype === 'cash')
+              : s.bank_account_id
+              ? accounts.find((a) => a.id === s.bank_account_id)
+              : accounts.find((a) => a.account_subtype === 'bank') ?? sourceAccount;
+          return {
+            id: idx + 2,
+            account_id: matchedAcc?.id ?? selectedAccountId,
+            account: matchedAcc ?? sourceAccount,
+            debit_amount: '0.0000',
+            credit_amount: Number(s.amount).toFixed(4),
+            narration: `Cr: Paid via ${s.method}${s.transaction_ref ? ` (${s.transaction_ref})` : ''}`,
+          };
+        })
+      : [
+          {
+            id: 2,
+            account_id: selectedAccountId,
+            account: sourceAccount,
+            debit_amount: '0.0000',
+            credit_amount: numAmount.toFixed(4),
+            narration: `Cr: Paid out from ${sourceAccount?.name || 'Account'}`,
+          },
+        ];
+
     const newJournalEntry: JournalEntry = {
       id: entryId,
       uuid: `je-auto-${timestamp}`,
@@ -173,14 +231,7 @@ export const MoneyOutModal: React.FC<MoneyOutModalProps> = ({
           credit_amount: '0.0000',
           narration: `Dr: ${debitAccount?.name || 'Disbursement Allocation'}`,
         },
-        {
-          id: 2,
-          account_id: selectedAccountId,
-          account: sourceAccount,
-          debit_amount: '0.0000',
-          credit_amount: numAmount.toFixed(4),
-          narration: `Cr: Paid out from ${sourceAccount?.name || 'Account'}`,
-        },
+        ...creditLines,
       ],
     };
 
@@ -311,23 +362,66 @@ export const MoneyOutModal: React.FC<MoneyOutModalProps> = ({
             </div>
           </div>
 
+          {/* Paid From Account or Split Tender */}
           <div>
-            <label className="block text-xs font-semibold text-default mb-1">
-              Paid From Account <span className="text-rose-500">*</span>
-            </label>
-            <select
-              value={selectedAccountId}
-              onChange={(e) => setSelectedAccountId(parseInt(e.target.value))}
-              className="w-full px-3 py-2 border border-default rounded-xl bg-surface-sunken text-default text-xs sm:text-sm focus:border-rose-500 focus:outline-none"
-            >
-              {accounts
-                .filter((a) => a.account_type === 'asset' && (a.account_subtype === 'cash' || a.account_subtype === 'bank'))
-                .map((acc) => (
-                  <option key={acc.id} value={acc.id}>
-                    {acc.name} — Balance: {formatCurrency(acc.current_balance || '0')}
-                  </option>
-                ))}
-            </select>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="block text-xs font-semibold text-default">
+                {isMultiPayMode ? 'Multi-Method Payment Splits' : 'Paid From Account'} <span className="text-rose-500">*</span>
+              </label>
+              <button
+                type="button"
+                onClick={() => {
+                  const next = !isMultiPayMode;
+                  setIsMultiPayMode(next);
+                  if (next && splits.length === 0) {
+                    const parsed = parseFloat(amount) || 0;
+                    setSplits([
+                      {
+                        id: '1',
+                        method: 'cash',
+                        amount: parsed > 0 ? parsed : 0,
+                      },
+                    ]);
+                  }
+                }}
+                className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-lg transition border cursor-pointer ${
+                  isMultiPayMode
+                    ? 'bg-rose-500/10 text-rose-600 border-rose-500/30'
+                    : 'bg-surface-sunken text-muted hover:text-default border-default'
+                }`}
+              >
+                <Split className="w-3.5 h-3.5" />
+                {isMultiPayMode ? 'Switch to Single Account' : 'Split Across Multiple Accounts/Methods'}
+              </button>
+            </div>
+
+            {!isMultiPayMode ? (
+              <select
+                value={selectedAccountId}
+                onChange={(e) => setSelectedAccountId(parseInt(e.target.value))}
+                className="w-full px-3 py-2 border border-default rounded-xl bg-surface-sunken text-default text-xs sm:text-sm focus:border-rose-500 focus:outline-none"
+              >
+                {accounts
+                  .filter((a) => a.account_type === 'asset' && (a.account_subtype === 'cash' || a.account_subtype === 'bank'))
+                  .map((acc) => (
+                    <option key={acc.id} value={acc.id}>
+                      {acc.name} — Balance: {formatCurrency(acc.current_balance || '0')}
+                    </option>
+                  ))}
+              </select>
+            ) : (
+              <PaymentSplitEditor
+                targetTotal={parseFloat(amount) || 0}
+                splits={splits}
+                onChange={setSplits}
+                onValidityChange={setIsSplitValid}
+                bankAccounts={bankAccounts.map((b) => ({
+                  id: b.id,
+                  name: `${b.bank_name} - ${b.account_number.slice(-4)}`,
+                  balance: b.current_balance,
+                }))}
+              />
+            )}
           </div>
 
           {/* Conditional inputs by type */}
@@ -431,7 +525,7 @@ export const MoneyOutModal: React.FC<MoneyOutModalProps> = ({
             <span className="font-semibold text-default">Double-entry:</span>
             <span>
               Dr: {outType === 'expense' ? 'Operating Expense' : outType === 'supplier' ? 'Accounts Payable' : 'Owner Drawings'}{' '}
-              | Cr: {sourceAccount?.name || 'Liquid Cash/Bank'}
+              | Cr: {isMultiPayMode ? `Multi-Split (${splits.length} tenders)` : (sourceAccount?.name || 'Liquid Cash/Bank')}
             </span>
           </div>
 
@@ -445,7 +539,8 @@ export const MoneyOutModal: React.FC<MoneyOutModalProps> = ({
             </button>
             <button
               type="submit"
-              className="px-5 py-2 text-xs font-semibold rounded-xl bg-rose-600 hover:bg-rose-700 text-white shadow-xs transition cursor-pointer flex items-center gap-1.5"
+              disabled={isMultiPayMode && (!isSplitValid || (parseFloat(amount) || 0) <= 0)}
+              className="px-5 py-2 text-xs font-semibold rounded-xl bg-rose-600 hover:bg-rose-700 disabled:opacity-50 disabled:cursor-not-allowed text-white shadow-xs transition cursor-pointer flex items-center gap-1.5"
             >
               <span>Record Money Out</span>
             </button>

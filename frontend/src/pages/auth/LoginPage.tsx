@@ -5,9 +5,9 @@ import { z } from 'zod';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { AlertCircle, CheckCircle, Download, Eye, EyeOff, Lock, Mail, Moon, Package, Sun, X } from 'lucide-react';
 import { useAuthStore } from '../../lib/auth/authStore';
-import { isApiError } from '../../lib/api/errors';
 import { api } from '../../lib/api/client';
-import { toggleThemeWithTransition } from '../../lib/theme/themeTransition';
+import { isApiError } from '../../lib/api/errors';
+import { applyThemeMode } from '../../lib/theme/themeTransition';
 import { useTenantBranding } from '../../lib/theme/useTenantBranding';
 import { LanguageSwitcher } from '../../components/ui/LanguageSwitcher';
 import { usePwaInstall } from '../../hooks/usePwaInstall';
@@ -65,7 +65,8 @@ export default function LoginPage() {
 
   // Handle circular ripple theme transition starting from the button click
   const handleToggleTheme = (e: React.MouseEvent) => {
-    toggleThemeWithTransition(theme, e, (next) => {
+    const next = theme === 'dark' ? 'light' : 'dark';
+    applyThemeMode(next, e, () => {
       setTheme(next);
     });
   };

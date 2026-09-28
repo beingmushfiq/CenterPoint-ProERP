@@ -24,7 +24,7 @@ final class PaymentController extends Controller
     {
         $tenantId = TenantContext::current()->tenantId();
 
-        $query = Payment::with(['party', 'allocations'])
+        $query = Payment::with(['party', 'allocations', 'splits'])
             ->where('tenant_id', $tenantId);
 
         if ($request->filled('status')) {
@@ -72,7 +72,7 @@ final class PaymentController extends Controller
     {
         $tenantId = TenantContext::current()->tenantId();
 
-        $payment = Payment::with(['party', 'allocations'])
+        $payment = Payment::with(['party', 'allocations', 'splits'])
             ->where('tenant_id', $tenantId)
             ->where('id', $id)
             ->firstOrFail();

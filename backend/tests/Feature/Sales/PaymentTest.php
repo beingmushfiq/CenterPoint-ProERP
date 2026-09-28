@@ -256,6 +256,77 @@ final class PaymentTest extends TestCase
         $res->assertStatus(404);
     }
 
+    public function test_record_multi_split_payment_with_invoice_allocation(): void
+    {
+        $invoice = Invoice::create([
+            'tenant_id'      => 1,
+            'party_id'       => $this->customer->id,
+            'invoice_number' => 'INV-SPLIT-001',
+            'invoice_date'   => now()->toDateString(),
+            'due_date'       => now()->addDays(30)->toDateString(),
+            'subtotal'       => '1500.0000',
+            'tax_amount'     => '0.0000',
+            'discount_amount'=> '0.0000',
+            'total_amount'   => '1500.0000',
+            'paid_amount'    => '0.0000',
+            'status'         => 'posted',
+        ]);
+
+        $res = $this->postJson('/api/v1/sales/payments', [
+            'direction'    => 'in',
+            'payment_date' => now()->toDateString(),
+            'method'       => 'split',
+            'amount'       => '1500.0000',
+            'party_id'     => $this->customer->id,
+            'allocations'  => [
+                [
+                    'allocatable_type' => 'invoice',
+                    'allocatable_id'   => $invoice->id,
+                    'amount'           => '1500.0000',
+                ],
+            ],
+            'splits' => [
+                [
+                    'method' => 'cash',
+                    'amount' => '500.0000',
+                    'notes'  => 'Cash upfront',
+                ],
+                [
+                    'method'          => 'mobile_banking',
+                    'amount'          => '1000.0000',
+                    'mobile_provider' => 'bKash',
+                    'mobile_number'   => '01700000000',
+                    'transaction_ref' => 'TRX-BKASH-789',
+                ],
+            ],
+        ], $this->headers());
+
+        $res->assertStatus(201)
+            ->assertJsonPath('data.method', 'split')
+            ->assertJsonPath('data.amount', '1500.0000')
+            ->assertJsonCount(2, 'data.splits');
+
+        $this->assertDatabaseHas('payment_splits', [
+            'tenant_id' => 1,
+            'method'    => 'cash',
+            'amount'    => '500.0000',
+        ]);
+
+        $this->assertDatabaseHas('payment_splits', [
+            'tenant_id'       => 1,
+            'method'          => 'mobile_banking',
+            'mobile_provider' => 'bKash',
+            'transaction_ref' => 'TRX-BKASH-789',
+            'amount'          => '1000.0000',
+        ]);
+
+        $this->assertDatabaseHas('invoices', [
+            'id'          => $invoice->id,
+            'paid_amount' => '1500.0000',
+            'status'      => 'paid',
+        ]);
+    }
+
     // ─── Helpers ──────────────────────────────────────────────────────────────
 
     /**

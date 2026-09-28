@@ -6,6 +6,7 @@ namespace App\Modules\Sales\Actions;
 
 use App\Modules\Sales\Models\Payment;
 use App\Modules\Sales\Models\PaymentAllocation;
+use App\Modules\Sales\Models\PaymentSplit;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -32,6 +33,18 @@ final class RecordPaymentAction
      *         allocatable_type: string,
      *         allocatable_id: int,
      *         amount: string
+     *     }>,
+     *     splits?: list<array{
+     *         method: string,
+     *         amount: numeric-string|float|int,
+     *         bank_account_id?: int|null,
+     *         mobile_provider?: string|null,
+     *         mobile_number?: string|null,
+     *         transaction_ref?: string|null,
+     *         cheque_number?: string|null,
+     *         cheque_date?: string|null,
+     *         card_last4?: string|null,
+     *         notes?: string|null
      *     }>
      * } $data
      */
@@ -54,6 +67,13 @@ final class RecordPaymentAction
             /** @var numeric-string $unallocated */
             $unallocated = bcsub($amount, $allocatedAmount, 4);
 
+            $primaryMethod = $data['method'];
+            if (!empty($data['splits']) && is_array($data['splits']) && count($data['splits']) > 1) {
+                $primaryMethod = 'split';
+            } elseif (!empty($data['splits']) && is_array($data['splits']) && count($data['splits']) === 1) {
+                $primaryMethod = (string) $data['splits'][0]['method'];
+            }
+
             $payment = Payment::create([
                 'tenant_id'          => $data['tenant_id'],
                 'payment_number'     => $paymentNumber,
@@ -62,7 +82,7 @@ final class RecordPaymentAction
                 'company_id'         => $data['company_id'] ?? null,
                 'branch_id'          => $data['branch_id'] ?? null,
                 'payment_date'       => $data['payment_date'],
-                'method'             => $data['method'],
+                'method'             => $primaryMethod,
                 'bank_account_id'    => $data['bank_account_id'] ?? null,
                 'reference_number'   => $data['reference_number'] ?? null,
                 'amount'             => $amount,
@@ -88,9 +108,58 @@ final class RecordPaymentAction
                     'amount'           => $allocAmt,
                     'created_by'       => $data['created_by'] ?? null,
                 ]);
+
+                if ($alloc['allocatable_type'] === 'invoice') {
+                    $inv = \App\Modules\Sales\Models\Invoice::where('tenant_id', $data['tenant_id'])->find($alloc['allocatable_id']);
+                    if ($inv) {
+                        $curPaid = (string) ($inv->paid_amount ?? '0');
+                        $newPaid = bcadd($curPaid, $allocAmt, 4);
+                        $newStatus = bccomp($newPaid, (string) $inv->total_amount, 4) >= 0 ? 'paid' : 'partially_paid';
+                        $inv->update(['paid_amount' => $newPaid, 'status' => $newStatus]);
+                    }
+                } elseif ($alloc['allocatable_type'] === 'purchase_bill') {
+                    $pb = \App\Modules\Purchasing\Models\PurchaseBill::where('tenant_id', $data['tenant_id'])->find($alloc['allocatable_id']);
+                    if ($pb) {
+                        $curPaid = (string) ($pb->paid_amount ?? '0');
+                        $newPaid = bcadd($curPaid, $allocAmt, 4);
+                        $newStatus = bccomp($newPaid, (string) $pb->total_amount, 4) >= 0 ? 'paid' : 'partial';
+                        $pb->update(['paid_amount' => $newPaid, 'status' => $newStatus]);
+                    }
+                }
             }
 
-            return $payment->load(['allocations', 'party']);
+            // Save splits
+            if (!empty($data['splits']) && is_array($data['splits'])) {
+                foreach ($data['splits'] as $split) {
+                    PaymentSplit::create([
+                        'tenant_id'       => $data['tenant_id'],
+                        'payment_id'      => $payment->id,
+                        'method'          => (string) $split['method'],
+                        'amount'          => (string) $split['amount'],
+                        'bank_account_id' => !empty($split['bank_account_id']) ? (int) $split['bank_account_id'] : null,
+                        'mobile_provider' => $split['mobile_provider'] ?? null,
+                        'mobile_number'   => $split['mobile_number'] ?? null,
+                        'transaction_ref' => $split['transaction_ref'] ?? null,
+                        'cheque_number'   => $split['cheque_number'] ?? null,
+                        'cheque_date'     => $split['cheque_date'] ?? null,
+                        'card_last4'      => $split['card_last4'] ?? null,
+                        'notes'           => $split['notes'] ?? null,
+                    ]);
+                }
+            } else {
+                // Ensure default 1 split record exists for consistent multi-split querying
+                PaymentSplit::create([
+                    'tenant_id'       => $data['tenant_id'],
+                    'payment_id'      => $payment->id,
+                    'method'          => $data['method'],
+                    'amount'          => $amount,
+                    'bank_account_id' => $data['bank_account_id'] ?? null,
+                    'transaction_ref' => $data['reference_number'] ?? null,
+                    'notes'           => $data['notes'] ?? null,
+                ]);
+            }
+
+            return $payment->load(['allocations', 'party', 'splits']);
         });
     }
 }

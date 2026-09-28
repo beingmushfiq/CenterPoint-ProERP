@@ -21,7 +21,7 @@ final class StorePaymentRequest extends FormRequest
         return [
             'direction'        => ['required', 'string', 'in:in,out'],
             'payment_date'     => ['required', 'date'],
-            'method'           => ['required', 'string', 'in:cash,bank_transfer,cheque,card,mobile_banking,credit_adjustment'],
+            'method'           => ['required', 'string', 'in:cash,bank_transfer,cheque,card,mobile_banking,credit_adjustment,split'],
             'amount'           => ['required', 'numeric', 'gt:0'],
             'party_id'         => ['nullable', 'integer'],
             'company_id'       => ['nullable', 'integer'],
@@ -35,6 +35,17 @@ final class StorePaymentRequest extends FormRequest
             'allocations.*.allocatable_type'      => ['required_with:allocations', 'string', 'in:invoice,purchase_bill'],
             'allocations.*.allocatable_id'        => ['required_with:allocations', 'integer'],
             'allocations.*.amount'                => ['required_with:allocations', 'numeric', 'gt:0'],
+            'splits'                              => ['nullable', 'array'],
+            'splits.*.method'                     => ['required_with:splits', 'string', 'in:cash,bank_transfer,cheque,card,mobile_banking,credit_adjustment,other'],
+            'splits.*.amount'                     => ['required_with:splits', 'numeric', 'gt:0'],
+            'splits.*.bank_account_id'            => ['nullable', 'integer'],
+            'splits.*.mobile_provider'            => ['nullable', 'string', 'max:64'],
+            'splits.*.mobile_number'              => ['nullable', 'string', 'max:64'],
+            'splits.*.transaction_ref'            => ['nullable', 'string', 'max:128'],
+            'splits.*.cheque_number'              => ['nullable', 'string', 'max:128'],
+            'splits.*.cheque_date'                => ['nullable', 'date'],
+            'splits.*.card_last4'                 => ['nullable', 'string', 'max:4'],
+            'splits.*.notes'                      => ['nullable', 'string', 'max:500'],
         ];
     }
 }

@@ -8,6 +8,7 @@ use App\Core\Exceptions\AppException;
 use App\Modules\Finance\Models\BankAccount;
 use App\Modules\Finance\Models\Expense;
 use App\Modules\Finance\Models\ExpenseCategory;
+use App\Modules\Finance\Models\ExpensePaymentSplit;
 use Illuminate\Support\Facades\DB;
 
 class CreateExpenseAction
@@ -32,6 +33,17 @@ class CreateExpenseAction
      *     bank_account_id?: int,
      *     reference_number?: string,
      *     cost_center_code?: string,
+     *     splits?: list<array{
+     *         method: string,
+     *         amount: numeric-string|float|int,
+     *         bank_account_id?: int|null,
+     *         mobile_provider?: string|null,
+     *         mobile_number?: string|null,
+     *         transaction_ref?: string|null,
+     *         cheque_number?: string|null,
+     *         cheque_date?: string|null,
+     *         notes?: string|null
+     *     }>
      * } $data
      */
     public function execute(array $data, int $userId): Expense
@@ -53,6 +65,15 @@ class CreateExpenseAction
                 $creditAccountId = $bankAccount->chart_of_account_id;
             }
 
+            $primaryMethod = $data['payment_method'];
+            if (!empty($data['splits']) && is_array($data['splits']) && count($data['splits']) > 1) {
+                $primaryMethod = 'split';
+            } elseif (!empty($data['splits']) && is_array($data['splits']) && count($data['splits']) === 1) {
+                $primaryMethod = (string) $data['splits'][0]['method'];
+            }
+
+            $tenantId = (int) ($category->tenant_id ?? 1);
+
             $expense = Expense::create([
                 'expense_number' => $expenseNumber,
                 'company_id' => $data['company_id'],
@@ -66,7 +87,7 @@ class CreateExpenseAction
                 'amount' => $amount,
                 'tax_amount' => $taxAmount,
                 'total_amount' => $totalAmount,
-                'payment_method' => $data['payment_method'],
+                'payment_method' => $primaryMethod,
                 'bank_account_id' => $bankAccountId,
                 'reference_number' => $data['reference_number'] ?? null,
                 'status' => 'approved',
@@ -76,6 +97,35 @@ class CreateExpenseAction
                 'created_by' => $userId,
                 'updated_by' => $userId,
             ]);
+
+            // Save splits
+            if (!empty($data['splits']) && is_array($data['splits'])) {
+                foreach ($data['splits'] as $split) {
+                    ExpensePaymentSplit::create([
+                        'tenant_id'       => $tenantId,
+                        'expense_id'      => $expense->id,
+                        'method'          => (string) $split['method'],
+                        'amount'          => (string) $split['amount'],
+                        'bank_account_id' => !empty($split['bank_account_id']) ? (int) $split['bank_account_id'] : null,
+                        'mobile_provider' => $split['mobile_provider'] ?? null,
+                        'mobile_number'   => $split['mobile_number'] ?? null,
+                        'transaction_ref' => $split['transaction_ref'] ?? null,
+                        'cheque_number'   => $split['cheque_number'] ?? null,
+                        'cheque_date'     => $split['cheque_date'] ?? null,
+                        'notes'           => $split['notes'] ?? null,
+                    ]);
+                }
+            } else {
+                ExpensePaymentSplit::create([
+                    'tenant_id'       => $tenantId,
+                    'expense_id'      => $expense->id,
+                    'method'          => $data['payment_method'],
+                    'amount'          => $totalAmount,
+                    'bank_account_id' => $bankAccountId,
+                    'transaction_ref' => $data['reference_number'] ?? null,
+                    'notes'           => $data['description'] ?? null,
+                ]);
+            }
 
             // Auto-post double entry if both GL accounts are configured
             if ($expenseAccountId && $creditAccountId) {
@@ -102,7 +152,7 @@ class CreateExpenseAction
                             'credit_amount' => $totalAmount,
                             'branch_id' => $data['branch_id'],
                             'cost_center_code' => $data['cost_center_code'] ?? null,
-                            'narration' => "Payment via {$data['payment_method']}",
+                            'narration' => "Payment via {$primaryMethod}",
                         ],
                     ],
                 ], $userId);
@@ -110,7 +160,7 @@ class CreateExpenseAction
                 $expense->update(['journal_entry_id' => $journal->id]);
             }
 
-            return $expense->load(['category', 'branch', 'bankAccount', 'journalEntry']);
+            return $expense->load(['category', 'branch', 'bankAccount', 'journalEntry', 'splits']);
         });
     }
 }

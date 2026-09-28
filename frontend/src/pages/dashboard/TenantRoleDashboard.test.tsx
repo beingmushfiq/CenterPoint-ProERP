@@ -90,15 +90,15 @@ describe('TenantRoleDashboard Dynamic Role Perspectives', () => {
     expect(screen.getByText('Super Administrator')).toBeInTheDocument();
 
     // Perspective switcher tabs available for Admin
-    expect(screen.getByRole('button', { name: /Executive Overview/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Factory Production/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Stock & Warehouse/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Quality Control/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^Overview$/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^Production$/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^Inventory$/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^Quality$/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Sales & POS/i })).toBeInTheDocument();
 
     // Executive overview contents
-    expect(screen.getByText('Executive Operations Overview')).toBeInTheDocument();
-    expect(screen.getByText("TODAY'S REVENUE")).toBeInTheDocument();
+    expect(screen.getByText('Revenue Trend')).toBeInTheDocument();
+    expect(screen.getByText('Today Revenue')).toBeInTheDocument();
   });
 
   it('defaults to Commercial & POS dashboard for Sales Officer', () => {
@@ -135,8 +135,8 @@ describe('TenantRoleDashboard Dynamic Role Perspectives', () => {
     renderWithProviders(<TenantRoleDashboard />);
 
     expect(screen.getByText('Sales Officer')).toBeInTheDocument();
-    expect(screen.getByText('Commercial & POS Operations')).toBeInTheDocument();
-    expect(screen.getByText('POS DRAWER')).toBeInTheDocument();
+    expect(screen.getByText('Recent Invoices & Receivables')).toBeInTheDocument();
+    expect(screen.getByText('Catalogue SKUs')).toBeInTheDocument();
   });
 
   it('defaults to Stock & Warehouse dashboard for Warehouse Storekeeper', () => {
@@ -173,8 +173,8 @@ describe('TenantRoleDashboard Dynamic Role Perspectives', () => {
     renderWithProviders(<TenantRoleDashboard />);
 
     expect(screen.getByText('Warehouse Storekeeper')).toBeInTheDocument();
-    expect(screen.getByText('Warehouse & Stock Inventory')).toBeInTheDocument();
-    expect(screen.getByText('TOTAL SKUS')).toBeInTheDocument();
+    expect(screen.getByText('Recent Stock Movements')).toBeInTheDocument();
+    expect(screen.getByText('Inventory Categories')).toBeInTheDocument();
   });
 
   it('defaults to Quality Assurance dashboard for QC Inspector', () => {
@@ -209,8 +209,8 @@ describe('TenantRoleDashboard Dynamic Role Perspectives', () => {
     renderWithProviders(<TenantRoleDashboard />);
 
     expect(screen.getByText('QC Inspector')).toBeInTheDocument();
-    expect(screen.getByText('Quality Assurance & Testing')).toBeInTheDocument();
-    expect(screen.getByText('PENDING AUDIT')).toBeInTheDocument();
+    expect(screen.getByText('Recent QC Inspections')).toBeInTheDocument();
+    expect(screen.getByText('Quality Scorecard')).toBeInTheDocument();
   });
 
   it('renders PWA banner with SliceMart ERP branding when install event fires', () => {
@@ -253,10 +253,10 @@ describe('TenantRoleDashboard Dynamic Role Perspectives', () => {
     });
 
     expect(screen.getByText(/Install SliceMart ERP/i)).toBeInTheDocument();
-    expect(screen.getByText(/Business Operations Platform PWA/i)).toBeInTheDocument();
-    expect(screen.getByText(/faster business operations/i)).toBeInTheDocument();
+    expect(screen.getByText(/Business Operations PWA/i)).toBeInTheDocument();
+    expect(screen.getByText(/faster access and offline caching/i)).toBeInTheDocument();
     expect(screen.getByText('Install App')).toBeInTheDocument();
-    expect(screen.getByText('Maybe Later')).toBeInTheDocument();
+    expect(screen.getByText('Later')).toBeInTheDocument();
   });
 
   it('defaults to Finance & Accounts dashboard for Finance Manager', () => {
@@ -290,9 +290,8 @@ describe('TenantRoleDashboard Dynamic Role Perspectives', () => {
     renderWithProviders(<TenantRoleDashboard />);
 
     expect(screen.getByText('Finance Manager')).toBeInTheDocument();
-    expect(screen.getByText('Finance & Accounts Command')).toBeInTheDocument();
-    expect(screen.getByText('RECEIVABLES DUE')).toBeInTheDocument();
-    expect(screen.getByText('COLLECTIONS TODAY')).toBeInTheDocument();
+    expect(screen.getByText('Enterprise Cash Flow Trend')).toBeInTheDocument();
+    expect(screen.getByText('Aged Receivables')).toBeInTheDocument();
   });
 
   it('defaults to Workforce & HR dashboard for HR Officer', () => {
@@ -326,9 +325,8 @@ describe('TenantRoleDashboard Dynamic Role Perspectives', () => {
     renderWithProviders(<TenantRoleDashboard />);
 
     expect(screen.getByText('HR Officer')).toBeInTheDocument();
-    expect(screen.getByText('Workforce & HR Command')).toBeInTheDocument();
-    expect(screen.getByText('TOTAL PERSONNEL')).toBeInTheDocument();
-    expect(screen.getByText('PRESENT TODAY')).toBeInTheDocument();
+    expect(screen.getByText("Today's Attendance Log")).toBeInTheDocument();
+    expect(screen.getByText('Department Headcount')).toBeInTheDocument();
   });
 
   it('renders Enterprise Subsystem Cockpit showing all wings for Super Administrator', () => {

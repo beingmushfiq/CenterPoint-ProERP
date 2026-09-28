@@ -1,5 +1,6 @@
-import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo, lazy, Suspense } from 'react';
 import { useTranslation } from 'react-i18next';
+import { SkeletonTable } from '../../components/ui/SkeletonRow';
 import {
   BookOpen,
   ReceiptText,
@@ -12,12 +13,8 @@ import {
   SlidersHorizontal,
   X,
   Copy,
-  Eye,
   Plus,
   Trash2,
-  RotateCcw,
-  FileSpreadsheet,
-  CheckSquare,
   Compass,
   Zap,
   CheckCircle2,
@@ -25,7 +22,6 @@ import {
   ArrowDownRight,
   ArrowUpRight,
   ArrowLeftRight,
-  Upload,
 } from 'lucide-react';
 import { useWorkspaceTab } from '../../hooks/useWorkspaceTab';
 import { useCurrency } from '../../hooks/useCurrency';
@@ -42,7 +38,28 @@ import type {
   Expense,
   ProductCost,
 } from '../../types/api/finance';
-import { DueCollectionSection } from './sections/DueCollectionSection';
+
+const JournalSection = lazy(() =>
+  import('./sections/JournalSection').then((m) => ({ default: m.JournalSection }))
+);
+const CoaSection = lazy(() =>
+  import('./sections/CoaSection').then((m) => ({ default: m.CoaSection }))
+);
+const BankingSection = lazy(() =>
+  import('./sections/BankingSection').then((m) => ({ default: m.BankingSection }))
+);
+const ExpensesSection = lazy(() =>
+  import('./sections/ExpensesSection').then((m) => ({ default: m.ExpensesSection }))
+);
+const CostingSection = lazy(() =>
+  import('./sections/CostingSection').then((m) => ({ default: m.CostingSection }))
+);
+const StatementsSection = lazy(() =>
+  import('./sections/StatementsSection').then((m) => ({ default: m.StatementsSection }))
+);
+const DueCollectionSection = lazy(() =>
+  import('./sections/DueCollectionSection').then((m) => ({ default: m.DueCollectionSection }))
+);
 import { notify } from '../../components/ui/Toast';
 import { MoneyOutModal } from './modals/MoneyOutModal';
 import type { MoneyOutSuccessPayload } from './modals/MoneyOutModal';
@@ -1884,1069 +1901,113 @@ export const FinanceWorkspace: React.FC = () => {
         </div>
       </div>
 
-      {/* Tab 1: General Ledger & Journals */}
-      {activeTab === 'journal' && (
-        <div className="space-y-4 pt-1">
-          {/* Discovery & Bulk Actions Toolbar */}
-          <div className="flex flex-wrap items-center justify-between gap-2.5 px-4 py-2.5 rounded-xl bg-surface-sunken/60 border border-default text-xs">
-            <div className="flex items-center gap-2">
-              <span className="text-muted font-medium">
-                Showing <strong className="text-default">{journalEntries.length}</strong> journal vouchers
-              </span>
-              {selectedJournalIds.size > 0 && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-primary text-primary-fg">
-                  <CheckSquare className="size-3" />
-                  {selectedJournalIds.size} Selected
-                </span>
-              )}
-            </div>
+      {/* Main Tab Content - Lazy Loaded with SkeletonTable Fallback */}
+      <Suspense fallback={<SkeletonTable rows={8} columns={6} />}>
+        {activeTab === 'journal' && (
+          <JournalSection
+            journalEntries={journalEntries}
+            selectedJournalIds={selectedJournalIds}
+            toggleSelectJournal={toggleSelectJournal}
+            toggleSelectAllJournals={toggleSelectAllJournals}
+            clearJournalSelection={clearJournalSelection}
+            isAllJournalsSelected={isAllJournalsSelected}
+            journalHeaderRef={journalHeaderRef}
+            exportJournalsCsv={exportJournalsCsv}
+            onOpenImportJournalModal={() => setShowImportJournalModal(true)}
+            onViewJournal={(je) => void handleViewJournal(je)}
+            onDuplicateJournal={handleDuplicateJournal}
+            onReverseJournal={handleReverseJournal}
+            onDeleteJournal={setDeleteJournalConfirm}
+            canDeleteJournal={canDeleteJournal}
+          />
+        )}
 
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setShowImportJournalModal(true)}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-default bg-surface hover:bg-surface-sunken text-default transition-all shadow-2xs cursor-pointer"
-              >
-                <Upload className="size-3.5 text-primary" />
-                <span>Import Journals</span>
-              </button>
+        {activeTab === 'coa' && (
+          <CoaSection
+            accounts={accounts}
+            exportAccountsCsv={exportAccountsCsv}
+            onOpenImportCoaModal={() => setShowImportCoaModal(true)}
+            onViewAccount={(acc) => void handleViewAccount(acc)}
+            onDuplicateAccount={handleDuplicateAccount}
+            onDeleteAccount={(acc) => setDeletingAccount(acc)}
+            canDeleteAccount={canDeleteAccount}
+          />
+        )}
 
-              <button
-                type="button"
-                onClick={() =>
-                  exportJournalsCsv(
-                    selectedJournalIds.size > 0
-                      ? journalEntries.filter((j) => selectedJournalIds.has(j.id))
-                      : journalEntries
-                  )
-                }
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-default bg-surface hover:bg-surface-sunken text-default transition-all shadow-2xs cursor-pointer"
-              >
-                <FileSpreadsheet className="size-3.5 text-primary" />
-                <span>Export {selectedJournalIds.size > 0 ? `(${selectedJournalIds.size})` : 'All'} CSV</span>
-              </button>
+        {activeTab === 'banking' && (
+          <BankingSection
+            accounts={accounts}
+            bankAccounts={bankAccounts}
+            canDeleteAccount={canDeleteAccount}
+            canDeleteBank={canDeleteBank}
+            onOpenImportBankModal={() => setShowImportBankModal(true)}
+            onOpenTransferModal={(prefill) => {
+              if (prefill) setTransferPrefill(prefill);
+              else setTransferPrefill({});
+              setShowTransferModal(true);
+            }}
+            onOpenAddAccountModal={() => {
+              resetAccountForm();
+              setShowNewAccountModal(true);
+            }}
+            onOpenAddBankModal={() => setShowNewBankModal(true)}
+            onDeleteAccount={(acc) => setDeletingAccount(acc)}
+            onDeleteBankAccount={(ba) => setDeletingBankAccount(ba)}
+          />
+        )}
 
-              <button
-                type="button"
-                onClick={toggleSelectAllJournals}
-                className="text-xs font-medium text-primary hover:underline cursor-pointer ml-1"
-              >
-                {isAllJournalsSelected ? 'Deselect All' : `Select All (${journalEntries.length})`}
-              </button>
+        {activeTab === 'expenses' && (
+          <ExpensesSection
+            expenses={expenses}
+            expenseCategoryFilter={expenseCategoryFilter}
+            setExpenseCategoryFilter={setExpenseCategoryFilter}
+            selectedExpenseIds={selectedExpenseIds}
+            setSelectedExpenseIds={setSelectedExpenseIds}
+            isAllExpensesSelected={isAllExpensesSelected}
+            toggleSelectAllExpenses={toggleSelectAllExpenses}
+            toggleSelectExpense={toggleSelectOneExpense}
+            expenseHeaderRef={expenseHeaderRef}
+            onOpenNewExpenseCatModal={() => setShowNewExpenseCatModal(true)}
+            onOpenRecordExpenseModal={() => {
+              setShowMoneyOutModal(true);
+            }}
+            onViewExpense={handleViewExpense}
+            onDuplicateExpense={handleDuplicateExpense}
+            onDeleteExpense={setDeleteExpenseConfirm}
+            canDeleteExpense={canDeleteExpense}
+          />
+        )}
 
-              {canDeleteJournal && selectedJournalIds.size > 0 && (
-                <button
-                  type="button"
-                  onClick={() => setDeleteJournalConfirm({ open: true, isBulk: true })}
-                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-destructive/10 hover:bg-destructive/20 text-destructive transition-all shadow-2xs cursor-pointer"
-                >
-                  <Trash2 className="size-3.5" />
-                  <span>Move to Bin ({selectedJournalIds.size})</span>
-                </button>
-              )}
+        {activeTab === 'costing' && (
+          <CostingSection
+            productCosts={productCosts}
+            onRollupCosting={handleRollupCosting}
+          />
+        )}
 
-              {selectedJournalIds.size > 0 && (
-                <>
-                  <span className="text-muted/40">|</span>
-                  <button
-                    type="button"
-                    onClick={clearJournalSelection}
-                    className="text-xs font-medium text-muted hover:text-default cursor-pointer"
-                  >
-                    Clear Selection
-                  </button>
-                </>
-              )}
-            </div>
-          </div>
+        {activeTab === 'statements' && (
+          <StatementsSection
+            onOpenPrintModal={() => setShowPrintStatementModal(true)}
+          />
+        )}
 
-          <div className="bg-surface rounded-2xl shadow-xs border border-default overflow-hidden">
-            <table className="w-full text-left text-xs text-default">
-              <thead className="bg-surface-sunken/70 text-muted uppercase text-[11px] font-semibold tracking-wider border-b border-default">
-                <tr>
-                  <th className="w-10 px-4 py-3.5 text-center">
-                    <input
-                      ref={journalHeaderRef}
-                      type="checkbox"
-                      checked={isAllJournalsSelected}
-                      onChange={toggleSelectAllJournals}
-                      className="size-4 rounded border-default text-primary focus:ring-primary cursor-pointer"
-                      title="Select all journal vouchers"
-                    />
-                  </th>
-                  <th className="px-5 py-3.5">Entry Number</th>
-                  <th className="px-5 py-3.5">Date</th>
-                  <th className="px-5 py-3.5">Module / Type</th>
-                  <th className="px-5 py-3.5">Narration</th>
-                  <th className="px-5 py-3.5 text-right">Debit (BDT)</th>
-                  <th className="px-5 py-3.5 text-right">Credit (BDT)</th>
-                  <th className="px-5 py-3.5 text-center">Status</th>
-                  <th className="px-5 py-3.5 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-default">
-                {journalEntries.map((je) => (
-                  <tr
-                    key={je.id}
-                    className={cn(
-                      'hover:bg-surface-sunken/40 transition-colors',
-                      selectedJournalIds.has(je.id) && 'bg-primary/5 dark:bg-primary/10'
-                    )}
-                  >
-                    <td className="w-10 px-4 py-3.5 text-center">
-                      <input
-                        type="checkbox"
-                        checked={selectedJournalIds.has(je.id)}
-                        onChange={() => toggleSelectJournal(je.id)}
-                        className="size-4 rounded border-default text-primary focus:ring-primary cursor-pointer"
-                        aria-label={`Select ${je.entry_number}`}
-                      />
-                    </td>
-                    <td className="px-5 py-3.5 font-mono font-bold text-primary">
-                      <button
-                        type="button"
-                        onClick={() => handleViewJournal(je)}
-                        className="hover:underline cursor-pointer text-left font-mono font-bold text-primary"
-                        title="Click to view breakdown"
-                      >
-                        {je.entry_number}
-                      </button>
-                    </td>
-                    <td className="px-5 py-3.5 font-mono text-muted">{je.entry_date}</td>
-                    <td className="px-5 py-3.5">
-                      <span className="capitalize px-2.5 py-0.5 text-[10px] font-semibold bg-surface-sunken rounded-full text-muted border border-default">
-                        {je.source_module} ({je.entry_type})
-                      </span>
-                    </td>
-                    <td className="px-5 py-3.5 max-w-xs truncate text-default">{je.narration}</td>
-                    <td className="px-5 py-3.5 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                      {formatCurrency(je.total_debit)}
-                    </td>
-                    <td className="px-5 py-3.5 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                      {formatCurrency(je.total_credit)}
-                    </td>
-                    <td className="px-5 py-3.5 text-center">
-                      <span className="px-2.5 py-0.5 text-[10px] font-bold rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">
-                        {je.status.toUpperCase()}
-                      </span>
-                    </td>
-                    <td className="px-5 py-3.5 text-right whitespace-nowrap">
-                      <div className="flex items-center justify-end gap-1">
-                        <button
-                          type="button"
-                          onClick={() => handleViewJournal(je)}
-                          className="p-1.5 text-muted hover:text-default hover:bg-surface-sunken rounded-lg transition-colors cursor-pointer"
-                          title="View Ledger Lines"
-                        >
-                          <Eye className="size-3.5" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleDuplicateJournal(je)}
-                          className="inline-flex items-center gap-1 px-2 py-1 text-[11px] font-medium text-primary hover:bg-primary/10 rounded-lg transition cursor-pointer"
-                          title="Duplicate / Re-post Journal Entry"
-                        >
-                          <Copy className="size-3.5" />
-                          <span>Duplicate</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleReverseJournal(je)}
-                          className="p-1.5 text-amber-600 hover:text-amber-700 hover:bg-amber-500/10 rounded-lg transition-colors cursor-pointer"
-                          title="Reverse Journal Entry (Invert Debits/Credits)"
-                        >
-                          <RotateCcw className="size-3.5" />
-                        </button>
-                        {canDeleteJournal && (
-                          <button
-                            type="button"
-                            onClick={() => setDeleteJournalConfirm({ open: true, isBulk: false, id: je.id })}
-                            className="p-1.5 text-destructive/80 hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors cursor-pointer"
-                            title="Move to Data Bin"
-                          >
-                            <Trash2 className="size-3.5" />
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Floating Bottom Docked Action Toolbar for Selected Journals */}
-          {selectedJournalIds.size > 0 && (
-            <div className="fixed bottom-6 inset-x-0 z-40 flex justify-center pointer-events-none animate-in slide-in-from-bottom-6 duration-200">
-              <div className="pointer-events-auto flex items-center gap-3 rounded-2xl border border-default/80 bg-surface/95 px-5 py-3 shadow-2xl backdrop-blur-xl ring-1 ring-black/5 dark:ring-white/10">
-                <div className="flex items-center gap-2 border-r border-default pr-3">
-                  <span className="flex size-6 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-fg">
-                    {selectedJournalIds.size}
-                  </span>
-                  <span className="text-xs font-semibold text-default">
-                    Voucher{selectedJournalIds.size > 1 ? 's' : ''} Selected
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() =>
-                      exportJournalsCsv(
-                        journalEntries.filter((j) => selectedJournalIds.has(j.id))
-                      )
-                    }
-                    className="flex h-8 items-center gap-1.5 rounded-xl bg-primary text-primary-fg px-3 text-xs font-semibold hover:opacity-90 transition-opacity cursor-pointer shadow-xs"
-                  >
-                    <FileSpreadsheet className="size-3 text-primary-fg" />
-                    Export CSV ({selectedJournalIds.size})
-                  </button>
-
-                  {canDeleteJournal && (
-                    <button
-                      type="button"
-                      onClick={() => setDeleteJournalConfirm({ open: true, isBulk: true })}
-                      className="flex h-8 items-center gap-1.5 rounded-xl bg-destructive text-destructive-fg px-3 text-xs font-semibold hover:opacity-90 transition-opacity cursor-pointer shadow-xs"
-                    >
-                      <Trash2 className="size-3 text-destructive-fg" />
-                      Move to Bin ({selectedJournalIds.size})
-                    </button>
-                  )}
-
-                  <button
-                    type="button"
-                    onClick={clearJournalSelection}
-                    className="flex size-8 items-center justify-center rounded-xl border border-default bg-surface-sunken text-muted hover:text-default transition-colors cursor-pointer ml-1"
-                    title="Deselect all (Esc)"
-                  >
-                    <X className="size-4" />
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Tab 2: Chart of Accounts */}
-      {activeTab === 'coa' && (
-        <div className="space-y-4 pt-1">
-          {/* Discovery & Bulk Actions Toolbar */}
-          <div className="flex flex-wrap items-center justify-between gap-2.5 px-4 py-2.5 rounded-xl bg-surface-sunken/60 border border-default text-xs">
-            <div className="flex items-center gap-2">
-              <span className="text-muted font-medium">
-                Showing <strong className="text-default">{accounts.length}</strong> GL ledger accounts
-              </span>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setShowImportCoaModal(true)}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-default bg-surface hover:bg-surface-sunken text-default transition-all shadow-2xs cursor-pointer"
-              >
-                <Upload className="size-3.5 text-primary" />
-                <span>Import Accounts</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={exportAccountsCsv}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-default bg-surface hover:bg-surface-sunken text-default transition-all shadow-2xs cursor-pointer"
-              >
-                <FileSpreadsheet className="size-3.5 text-primary" />
-                <span>Export CSV</span>
-              </button>
-            </div>
-          </div>
-
-          <div className="bg-surface rounded-2xl shadow-xs border border-default overflow-hidden">
-            <table className="w-full text-left text-xs text-default">
-              <thead className="bg-surface-sunken/70 text-muted uppercase text-[11px] font-semibold tracking-wider border-b border-default">
-                <tr>
-                  <th className="px-5 py-3.5">Code</th>
-                  <th className="px-5 py-3.5">Account Name</th>
-                  <th className="px-5 py-3.5">Type</th>
-                  <th className="px-5 py-3.5">Subtype</th>
-                  <th className="px-5 py-3.5">Normal Balance</th>
-                  <th className="px-5 py-3.5 text-right">Current Balance (BDT)</th>
-                  <th className="px-5 py-3.5 text-center">Status</th>
-                  <th className="px-5 py-3.5 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-default">
-                {accounts.map((acc) => (
-                  <tr key={acc.id} className="hover:bg-surface-sunken/40 transition-colors">
-                    <td className="px-5 py-3.5 font-mono font-bold text-primary">
-                      <button
-                        type="button"
-                        onClick={() => handleViewAccount(acc)}
-                        className="hover:underline cursor-pointer text-left font-mono font-bold text-primary"
-                        title="Click to view account transactions"
-                      >
-                        {acc.account_code}
-                      </button>
-                    </td>
-                    <td className="px-5 py-3.5 font-semibold text-default">{acc.name}</td>
-                    <td className="px-5 py-3.5 capitalize">
-                      <span
-                        className={`px-2.5 py-0.5 text-[10px] font-semibold rounded-full border ${
-                          acc.account_type === 'asset'
-                            ? 'bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-500/30'
-                            : acc.account_type === 'liability'
-                              ? 'bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/30'
-                              : acc.account_type === 'income'
-                                ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30'
-                                : acc.account_type === 'expense'
-                                  ? 'bg-rose-500/10 text-rose-700 dark:text-rose-300 border-rose-500/30'
-                                  : 'bg-purple-500/10 text-purple-700 dark:text-purple-300 border-purple-500/30'
-                        }`}
-                      >
-                        {acc.account_type}
-                      </span>
-                    </td>
-                    <td className="px-5 py-3.5 capitalize text-muted">
-                      {acc.account_subtype || '—'}
-                    </td>
-                    <td className="px-5 py-3.5 uppercase font-mono text-[11px] font-semibold text-muted">
-                      {acc.normal_balance}
-                    </td>
-                    <td className="px-5 py-3.5 text-right font-mono font-bold text-default">
-                      {formatCurrency(acc.current_balance || '0')}
-                    </td>
-                    <td className="px-5 py-3.5 text-center">
-                      <span className="px-2.5 py-0.5 text-[10px] font-bold rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">
-                        ACTIVE
-                      </span>
-                    </td>
-                    <td className="px-5 py-3.5 text-right whitespace-nowrap">
-                      <div className="flex items-center justify-end gap-1">
-                        <button
-                          type="button"
-                          onClick={() => handleViewAccount(acc)}
-                          className="p-1.5 text-muted hover:text-default hover:bg-surface-sunken rounded-lg transition-colors cursor-pointer"
-                          title="View Account Profile & Ledger"
-                        >
-                          <Eye className="size-3.5" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleDuplicateAccount(acc)}
-                          className="inline-flex items-center gap-1 px-2 py-1 text-[11px] font-medium text-primary hover:bg-primary/10 rounded-lg transition cursor-pointer"
-                          title="Duplicate / Clone Account Head"
-                        >
-                          <Copy className="size-3.5" />
-                          <span>Duplicate</span>
-                        </button>
-                        {canDeleteAccount && !acc.is_system && (
-                          <button
-                            type="button"
-                            onClick={() => setDeletingAccount(acc)}
-                            className="p-1.5 text-muted hover:text-rose-600 hover:bg-rose-500/10 rounded-lg transition-colors cursor-pointer"
-                            title="Move to Data Bin"
-                          >
-                            <Trash2 className="size-3.5" />
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {/* Tab 3: Banking & Treasury */}
-      {activeTab === 'banking' && (
-        <div className="space-y-5">
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-4 rounded-2xl bg-surface border border-default shadow-xs">
-            <div>
-              <h3 className="text-sm font-bold text-default flex items-center gap-2">
-                <Landmark className="size-4 text-primary" />
-                <span>Liquid Cash & Operating Bank Accounts</span>
-              </h3>
-              <p className="text-xs text-muted">
-                Active cash drawers, current accounts, and funds available for immediate business operations
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setShowImportBankModal(true)}
-                className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-xl border border-default bg-surface hover:bg-surface-sunken text-default shadow-xs transition cursor-pointer"
-              >
-                <Upload className="size-3.5 text-primary" />
-                <span>Import Statement</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setTransferPrefill({});
-                  setShowTransferModal(true);
-                }}
-                className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-xl bg-blue-600 hover:bg-blue-700 text-white shadow-xs transition cursor-pointer"
-              >
-                <ArrowLeftRight className="size-3.5" />
-                <span>+ Transfer Money</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  resetAccountForm();
-                  setShowNewAccountModal(true);
-                }}
-                className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-xl border border-default bg-surface-sunken hover:bg-surface text-default transition cursor-pointer"
-              >
-                <Plus className="size-3.5" />
-                <span>+ Add Account</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowNewBankModal(true)}
-                className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-xl bg-primary hover:bg-primary-hover text-white shadow-xs transition cursor-pointer"
-              >
-                <Plus className="size-3.5" />
-                <span>+ Add Bank Account</span>
-              </button>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Cash on Hand Card */}
-            {accounts
-              .filter((a) => a.account_subtype === 'cash')
-              .map((cashAcc) => (
-                <div
-                  key={`cash-${cashAcc.id}`}
-                  className="bg-surface rounded-2xl p-5 shadow-xs border border-emerald-500/30 dark:border-emerald-500/20 space-y-4 relative overflow-hidden"
-                >
-                  <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 rounded-full blur-2xl pointer-events-none" />
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <h4 className="font-bold text-base text-default">{cashAcc.name}</h4>
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">
-                          CASH REGISTER
-                        </span>
-                      </div>
-                      <p className="text-xs text-muted">GL Code: {cashAcc.account_code} — On-Premises Petty Cash</p>
-                    </div>
-                    {canDeleteAccount && (
-                      <button
-                        type="button"
-                        onClick={() => setDeletingAccount(cashAcc)}
-                        className="p-1.5 text-muted hover:text-rose-600 hover:bg-rose-500/10 rounded-lg transition-colors cursor-pointer"
-                        title={`Move ${cashAcc.name} to Data Bin`}
-                      >
-                        <Trash2 className="size-4" />
-                      </button>
-                    )}
-                  </div>
-
-                  <div className="p-3.5 bg-surface-sunken rounded-xl space-y-1.5 border border-default">
-                    <div className="flex justify-between text-xs">
-                      <span className="text-muted">Account Classification:</span>
-                      <span className="font-medium text-default capitalize">Current Asset (Liquid)</span>
-                    </div>
-                    <div className="flex justify-between text-xs">
-                      <span className="text-muted">Reconciliation Status:</span>
-                      <span className="font-medium text-emerald-600 dark:text-emerald-400">Balanced & Verified</span>
-                    </div>
-                  </div>
-
-                  <div className="flex justify-between items-center pt-1 border-t border-default">
-                    <div>
-                      <div className="text-[11px] text-muted">Available Cash Balance</div>
-                      <div className="text-2xl font-extrabold text-emerald-600 dark:text-emerald-400 font-mono">
-                        {formatCurrency(cashAcc.current_balance || '0')}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setTransferPrefill({ fromId: cashAcc.id });
-                          setShowTransferModal(true);
-                        }}
-                        className="px-2.5 py-1.5 text-xs font-semibold rounded-lg border border-default bg-surface hover:bg-surface-sunken text-default transition cursor-pointer"
-                        title="Deposit cash into a bank account"
-                      >
-                        Deposit to Bank
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setTransferPrefill({ toId: cashAcc.id });
-                          setShowTransferModal(true);
-                        }}
-                        className="px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white transition cursor-pointer"
-                        title="Withdraw cash from bank into cash on hand"
-                      >
-                        Add Cash
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-
-            {/* Bank Accounts Cards */}
-            {bankAccounts.map((ba) => {
-              const matchedAccount = accounts.find((a) =>
-                a.name.toLowerCase().includes(ba.bank_name.toLowerCase().split(' ')[0] || '')
-              );
-              return (
-                <div
-                  key={ba.id}
-                  className="bg-surface rounded-2xl p-5 shadow-xs border border-default space-y-4 relative overflow-hidden hover:border-primary/40 transition-colors"
-                >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <h4 className="font-bold text-base text-default">{ba.bank_name}</h4>
-                        <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-primary/10 text-primary border border-primary/20">
-                          {ba.currency_code}
-                        </span>
-                      </div>
-                      <p className="text-xs text-muted">
-                        {ba.account_name} ({ba.branch_name})
-                      </p>
-                    </div>
-                    {canDeleteBank && (
-                      <button
-                        type="button"
-                        onClick={() => setDeletingBankAccount(ba)}
-                        className="p-1.5 text-muted hover:text-rose-600 hover:bg-rose-500/10 rounded-lg transition-colors cursor-pointer"
-                        title={`Move ${ba.bank_name} to Data Bin`}
-                      >
-                        <Trash2 className="size-4" />
-                      </button>
-                    )}
-                  </div>
-
-                  <div className="p-3.5 bg-surface-sunken rounded-xl space-y-1.5 border border-default">
-                    <div className="flex justify-between text-xs">
-                      <span className="text-muted">Account Number:</span>
-                      <span className="font-mono font-semibold text-default">{ba.account_number}</span>
-                    </div>
-                    <div className="flex justify-between text-xs">
-                      <span className="text-muted">Routing Number:</span>
-                      <span className="font-mono text-default">{ba.routing_number}</span>
-                    </div>
-                    <div className="flex justify-between text-xs">
-                      <span className="text-muted">SWIFT / BIC:</span>
-                      <span className="font-mono text-default">{ba.swift_code}</span>
-                    </div>
-                  </div>
-
-                  <div className="flex justify-between items-center pt-1 border-t border-default">
-                    <div>
-                      <div className="text-[11px] text-muted">Current Ledger Balance</div>
-                      <div className="text-2xl font-extrabold text-primary font-mono">
-                        {formatCurrency(ba.current_balance)}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (matchedAccount) setTransferPrefill({ fromId: matchedAccount.id });
-                          setShowTransferModal(true);
-                        }}
-                        className="px-2.5 py-1.5 text-xs font-semibold rounded-lg border border-default bg-surface hover:bg-surface-sunken text-default transition cursor-pointer"
-                        title="Transfer money out of this account"
-                      >
-                        Transfer Out
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (matchedAccount) setTransferPrefill({ toId: matchedAccount.id });
-                          setShowTransferModal(true);
-                        }}
-                        className="px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-primary hover:bg-primary-hover text-white transition cursor-pointer"
-                        title="Transfer money into this account"
-                      >
-                        Deposit In
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-
-            {/* Quick Add Bank Account Card */}
-            <button
-              type="button"
-              onClick={() => setShowNewBankModal(true)}
-              className="rounded-2xl border-2 border-dashed border-default hover:border-primary/50 bg-surface/50 hover:bg-primary/5 p-6 flex flex-col items-center justify-center text-center gap-2 group transition-all cursor-pointer min-h-50"
-            >
-              <div className="size-11 rounded-2xl bg-primary/10 text-primary flex items-center justify-center group-hover:scale-110 group-hover:bg-primary group-hover:text-white transition-all shadow-xs">
-                <Plus className="size-5" />
-              </div>
-              <div>
-                <h5 className="font-bold text-sm text-default group-hover:text-primary transition-colors">
-                  + Add Bank Account
-                </h5>
-                <p className="text-xs text-muted mt-1 max-w-xs leading-relaxed">
-                  Register a corporate checking, savings, or payroll bank account
-                </p>
-              </div>
-            </button>
-
-            {/* Quick Add Cash Drawer Card */}
-            <button
-              type="button"
-              onClick={() => {
-                resetAccountForm();
-                setNewAccountName('');
-                setNewAccountSubtype('cash');
-                setShowNewAccountModal(true);
-              }}
-              className="rounded-2xl border-2 border-dashed border-default hover:border-emerald-500/50 bg-surface/50 hover:bg-emerald-500/5 p-6 flex flex-col items-center justify-center text-center gap-2 group transition-all cursor-pointer min-h-50"
-            >
-              <div className="size-11 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center group-hover:scale-110 group-hover:bg-emerald-600 group-hover:text-white transition-all shadow-xs">
-                <Plus className="size-5" />
-              </div>
-              <div>
-                <h5 className="font-bold text-sm text-default group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
-                  + Add Cash Drawer
-                </h5>
-                <p className="text-xs text-muted mt-1 max-w-xs leading-relaxed">
-                  Create a physical cash register, counter petty cash, or factory vault drawer
-                </p>
-              </div>
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Tab 4: Expenses & Claims */}
-      {activeTab === 'expenses' && (
-        <div className="space-y-4">
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-4 rounded-2xl bg-surface border border-default shadow-xs">
-            <div>
-              <h3 className="text-sm font-bold text-default flex items-center gap-2">
-                <ReceiptText className="size-4 text-rose-500" />
-                <span>Operating Expenses & Disbursements</span>
-              </h3>
-              <p className="text-xs text-muted">
-                Daily operational costs (power, rent, courier, factory consumables) recorded with automatic General Ledger vouchers
-              </p>
-            </div>
-            <div className="flex items-center gap-2 self-start sm:self-auto">
-              <button
-                type="button"
-                onClick={() => setShowNewExpenseCatModal(true)}
-                className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-xl border border-default bg-surface hover:bg-surface-sunken text-default shadow-xs transition cursor-pointer"
-              >
-                <Plus className="size-3.5 text-primary" />
-                <span>+ Add Category</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowMoneyOutModal(true)}
-                className="flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-xl bg-rose-600 hover:bg-rose-700 text-white shadow-xs transition cursor-pointer"
-              >
-                <ArrowDownRight className="size-3.5" />
-                <span>+ Record Expense</span>
-              </button>
-            </div>
-          </div>
-
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex flex-wrap items-center gap-1.5">
-              {['all', 'UTIL', 'LOG', 'RENT', 'SUPP'].map((catCode) => (
-                <button
-                  key={catCode}
-                  type="button"
-                  onClick={() => setExpenseCategoryFilter(catCode)}
-                  className={cn(
-                    'px-3 py-1 rounded-xl text-xs font-medium transition-colors cursor-pointer',
-                    expenseCategoryFilter === catCode
-                      ? 'bg-primary text-primary-fg font-semibold shadow-xs'
-                      : 'bg-surface-sunken text-muted hover:text-default border border-default'
-                  )}
-                >
-                  {catCode === 'all'
-                    ? 'All Categories'
-                    : catCode === 'UTIL'
-                    ? 'Power & Utilities'
-                    : catCode === 'LOG'
-                    ? 'Courier & Delivery'
-                    : catCode === 'RENT'
-                    ? 'Rent'
-                    : 'Factory Supplies'}
-                </button>
-              ))}
-            </div>
-
-            <div className="text-xs text-muted font-mono">
-              Total Recorded:{' '}
-              <strong className="text-default font-bold">
-                {formatCurrency(
-                  expenses
-                    .filter((e) => expenseCategoryFilter === 'all' || e.category?.code === expenseCategoryFilter)
-                    .reduce((sum, e) => sum + parseFloat(e.amount || '0'), 0)
-                )}
-              </strong>
-            </div>
-          </div>
-
-          {/* Selected Expenses Bulk Action Ribbon */}
-          {selectedExpenseIds.size > 0 && (
-            <div className="flex items-center justify-between gap-2.5 px-4 py-2.5 rounded-xl bg-destructive/10 border border-destructive/20 text-xs">
-              <div className="flex items-center gap-2">
-                <span className="font-semibold text-destructive">
-                  {selectedExpenseIds.size} expense voucher{selectedExpenseIds.size > 1 ? 's' : ''} selected
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                {canDeleteExpense && (
-                  <button
-                    type="button"
-                    onClick={() => setDeleteExpenseConfirm({ open: true, isBulk: true })}
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-destructive text-destructive-fg hover:opacity-90 transition shadow-2xs cursor-pointer"
-                  >
-                    <Trash2 className="size-3.5" />
-                    <span>Move to Bin ({selectedExpenseIds.size})</span>
-                  </button>
-                )}
-                <button
-                  type="button"
-                  onClick={() => setSelectedExpenseIds(new Set())}
-                  className="text-xs font-medium text-muted hover:text-default cursor-pointer"
-                >
-                  Clear Selection
-                </button>
-              </div>
-            </div>
-          )}
-
-          <div className="bg-surface rounded-2xl shadow-xs border border-default overflow-hidden">
-            <table className="w-full text-left text-xs text-default">
-              <thead className="bg-surface-sunken/70 text-muted uppercase text-[11px] font-semibold tracking-wider border-b border-default">
-                <tr>
-                  <th className="w-10 px-4 py-3.5 text-center">
-                    <input
-                      ref={expenseHeaderRef}
-                      type="checkbox"
-                      checked={isAllExpensesSelected}
-                      onChange={toggleSelectAllExpenses}
-                      className="size-4 rounded border-default text-primary focus:ring-primary cursor-pointer"
-                      title="Select all expenses"
-                    />
-                  </th>
-                  <th className="px-5 py-3.5">Expense Date</th>
-                  <th className="px-5 py-3.5">Category</th>
-                  <th className="px-5 py-3.5">Payee Name</th>
-                  <th className="px-5 py-3.5">Description</th>
-                  <th className="px-5 py-3.5">Payment Method</th>
-                  <th className="px-5 py-3.5 text-right">Amount (BDT)</th>
-                  <th className="px-5 py-3.5 text-center">Status</th>
-                  <th className="px-5 py-3.5 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-default">
-                {expenses
-                  .filter((e) => expenseCategoryFilter === 'all' || e.category?.code === expenseCategoryFilter)
-                  .map((exp) => (
-                    <tr key={exp.id} className="hover:bg-surface-sunken/40 transition">
-                      <td className="w-10 px-4 py-3.5 text-center" onClick={(e) => e.stopPropagation()}>
-                        <input
-                          type="checkbox"
-                          checked={selectedExpenseIds.has(exp.id)}
-                          onChange={() => toggleSelectOneExpense(exp.id)}
-                          className="size-4 rounded border-default text-primary focus:ring-primary cursor-pointer"
-                        />
-                      </td>
-                      <td className="px-5 py-3.5 font-mono text-muted">{exp.expense_date}</td>
-                      <td className="px-5 py-3.5 font-semibold text-default">
-                        {exp.category?.name}
-                      </td>
-                      <td className="px-5 py-3.5 text-default">{exp.payee_name || '—'}</td>
-                      <td className="px-5 py-3.5 max-w-xs truncate text-muted">{exp.description}</td>
-                      <td className="px-5 py-3.5 capitalize text-muted">
-                        {exp.payment_method.replace('_', ' ')}
-                      </td>
-                      <td className="px-5 py-3.5 text-right font-mono font-bold text-default">
-                        {formatCurrency(exp.amount)}
-                      </td>
-                      <td className="px-5 py-3.5 text-center">
-                        <span className="px-2.5 py-0.5 text-[10px] font-bold rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">
-                          {exp.status.toUpperCase()}
-                        </span>
-                      </td>
-                      <td className="px-5 py-3.5 text-right whitespace-nowrap">
-                        <div className="flex items-center justify-end gap-1">
-                          <button
-                            type="button"
-                            onClick={() => handleViewExpense(exp)}
-                            className="p-1.5 text-muted hover:text-default hover:bg-surface-sunken rounded-lg transition-colors cursor-pointer"
-                            title="View Expense Voucher Details"
-                          >
-                            <Eye className="size-3.5" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleDuplicateExpense(exp)}
-                            className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-primary hover:bg-primary/10 rounded-lg transition cursor-pointer"
-                            title="Duplicate Expense Voucher"
-                          >
-                            <Copy className="size-3.5" />
-                            <span>Duplicate</span>
-                          </button>
-                          {canDeleteExpense && (
-                            <button
-                              type="button"
-                              onClick={() => setDeleteExpenseConfirm({ open: true, isBulk: false, id: exp.id })}
-                              className="p-1.5 text-destructive/80 hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors cursor-pointer"
-                              title="Move to Data Bin"
-                            >
-                              <Trash2 className="size-3.5" />
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {/* Tab 5: Product Cost Rollup */}
-      {activeTab === 'costing' && (
-        <div className="space-y-4">
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-4 rounded-2xl bg-surface border border-default shadow-xs">
-            <div>
-              <h3 className="text-sm font-bold text-default flex items-center gap-2">
-                <Calculator className="size-4 text-primary" />
-                <span>Manufacturing Standard Unit Cost Rollup</span>
-              </h3>
-              <p className="text-xs text-muted">
-                Multi-level BOM cost aggregation combining raw materials, piece-rate labour, and factory overhead rates
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => handleRollupCosting(1)}
-              className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-xl bg-primary hover:bg-primary-hover text-white shadow-xs transition cursor-pointer self-start sm:self-auto"
-            >
-              <Calculator className="size-3.5" />
-              <span>Recalculate Cost Rollup</span>
-            </button>
-          </div>
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-            <table className="w-full text-left text-sm text-gray-600 dark:text-gray-300">
-              <thead className="bg-gray-50 dark:bg-gray-900/50 text-gray-700 dark:text-gray-200 uppercase text-xs">
-                <tr>
-                  <th className="px-6 py-3">Product / SKU</th>
-                  <th className="px-6 py-3 text-right">Material Cost</th>
-                  <th className="px-6 py-3 text-right">Piece-rate Labour</th>
-                  <th className="px-6 py-3 text-right">Factory Overhead</th>
-                  <th className="px-6 py-3 text-right">Standard Unit Cost</th>
-                  <th className="px-6 py-3">Effective Date</th>
-                  <th className="px-6 py-3 text-center">Source</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-                {productCosts.map((pc) => (
-                  <tr key={pc.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition">
-                    <td className="px-6 py-4">
-                      <div className="font-semibold text-gray-900 dark:text-gray-100">
-                        {pc.product?.name}
-                      </div>
-                      <div className="text-xs font-mono text-gray-500">{pc.product?.sku}</div>
-                    </td>
-                    <td className="px-6 py-4 text-right font-mono text-gray-700 dark:text-gray-300">
-                      {formatCurrency(pc.material_cost)}
-                    </td>
-                    <td className="px-6 py-4 text-right font-mono text-amber-600 dark:text-amber-400 font-semibold">
-                      {formatCurrency(pc.labour_cost)}
-                    </td>
-                    <td className="px-6 py-4 text-right font-mono text-gray-700 dark:text-gray-300">
-                      {formatCurrency(pc.overhead_cost)}
-                    </td>
-                    <td className="px-6 py-4 text-right font-mono font-extrabold text-emerald-600 dark:text-emerald-400">
-                      {formatCurrency(pc.total_cost)}
-                    </td>
-                    <td className="px-6 py-4 text-xs text-gray-500">{pc.effective_from}</td>
-                    <td className="px-6 py-4 text-center">
-                      <span className="px-2 py-0.5 text-xs font-semibold bg-indigo-50 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300 rounded">
-                        {pc.source.toUpperCase()}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {/* Tab: Financial Statements & P&L */}
-      {activeTab === 'statements' && (
-        <div className="space-y-6">
-          <div className="flex items-center justify-between bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
-            <div>
-              <h2 className="text-base font-bold text-gray-900 dark:text-gray-100">
-                Fiscal Period Statement of Profit & Loss (Income Statement)
-              </h2>
-              <p className="text-xs text-gray-500 dark:text-gray-400">
-                Live computed from posted general ledger transactions and inventory valuation
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => setShowPrintStatementModal(true)}
-              className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold shadow flex items-center gap-1.5 cursor-pointer transition-colors"
-            >
-              🖨️ Print Financial Statement
-            </button>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Income Statement Breakdown */}
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-5 space-y-4">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 border-b pb-2 dark:border-gray-700">
-                Revenue & Cost of Sales
-              </h3>
-              <div className="space-y-2.5 text-sm">
-                <div className="flex justify-between items-center text-gray-900 dark:text-gray-100 font-semibold">
-                  <span>Gross Sales Revenue</span>
-                  <span className="font-mono text-emerald-600 dark:text-emerald-400">
-                    {formatCurrency(950000)}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center text-gray-600 dark:text-gray-300">
-                  <span className="pl-4">Less: Cost of Goods Sold (COGS)</span>
-                  <span className="font-mono text-rose-500">({formatCurrency(480000)})</span>
-                </div>
-                <div className="flex justify-between items-center text-gray-600 dark:text-gray-300">
-                  <span className="pl-4">Less: Direct Factory Labour</span>
-                  <span className="font-mono text-rose-500">({formatCurrency(145000)})</span>
-                </div>
-                <div className="border-t pt-2 flex justify-between items-center font-bold text-gray-900 dark:text-gray-100 bg-gray-50 dark:bg-gray-900/40 p-2 rounded">
-                  <span>Gross Profit</span>
-                  <span className="font-mono text-emerald-600 dark:text-emerald-400">
-                    {formatCurrency(325000)} (34.2%)
-                  </span>
-                </div>
-              </div>
-
-              <h3 className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 border-b pb-2 pt-3 dark:border-gray-700">
-                Operating Expenses
-              </h3>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between items-center text-gray-600 dark:text-gray-300">
-                  <span>Logistics & 3PL Courier Fees</span>
-                  <span className="font-mono">{formatCurrency(38500)}</span>
-                </div>
-                <div className="flex justify-between items-center text-gray-600 dark:text-gray-300">
-                  <span>Utilities & Factory Power</span>
-                  <span className="font-mono">{formatCurrency(24000)}</span>
-                </div>
-                <div className="flex justify-between items-center text-gray-600 dark:text-gray-300">
-                  <span>Administrative & Software</span>
-                  <span className="font-mono">{formatCurrency(18200)}</span>
-                </div>
-                <div className="border-t pt-2 flex justify-between items-center font-bold text-base text-gray-900 dark:text-gray-100 bg-emerald-50 dark:bg-emerald-950/30 p-2.5 rounded-lg border border-emerald-500/20">
-                  <span className="text-emerald-700 dark:text-emerald-400">
-                    Net Operating Income
-                  </span>
-                  <span className="font-mono text-emerald-700 dark:text-emerald-400">
-                    {formatCurrency(244300)}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Balance Sheet Summary */}
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-5 space-y-4">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 border-b pb-2 dark:border-gray-700">
-                Balance Sheet Equation (Assets = Liabilities + Equity)
-              </h3>
-              <div className="space-y-3 text-sm">
-                <div className="p-3 bg-blue-50/50 dark:bg-blue-950/20 rounded-xl border border-blue-100 dark:border-blue-900/40">
-                  <div className="flex justify-between items-center font-bold text-blue-900 dark:text-blue-300 mb-1.5">
-                    <span>Total Current & Fixed Assets</span>
-                    <span className="font-mono">{formatCurrency(1310000)}</span>
-                  </div>
-                  <div className="text-xs text-blue-700 dark:text-blue-400 space-y-0.5">
-                    <div className="flex justify-between">
-                      <span>• Liquid Cash & Banks:</span>{' '}
-                      <span className="font-mono font-semibold">{formatCurrency(970000)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>• Accounts Receivable:</span>{' '}
-                      <span className="font-mono font-semibold">{formatCurrency(340000)}</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="p-3 bg-amber-50/50 dark:bg-amber-950/20 rounded-xl border border-amber-100 dark:border-amber-900/40">
-                  <div className="flex justify-between items-center font-bold text-amber-900 dark:text-amber-300 mb-1.5">
-                    <span>Total Liabilities</span>
-                    <span className="font-mono">{formatCurrency(210000)}</span>
-                  </div>
-                  <div className="text-xs text-amber-700 dark:text-amber-400 space-y-0.5">
-                    <div className="flex justify-between">
-                      <span>• Accounts Payable:</span>{' '}
-                      <span className="font-mono font-semibold">{formatCurrency(210000)}</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="p-3 bg-indigo-50/50 dark:bg-indigo-950/20 rounded-xl border border-indigo-100 dark:border-indigo-900/40">
-                  <div className="flex justify-between items-center font-bold text-indigo-900 dark:text-indigo-300 mb-1.5">
-                    <span>Owner's Equity & Retained Earnings</span>
-                    <span className="font-mono">{formatCurrency(1100000)}</span>
-                  </div>
-                  <div className="text-xs text-indigo-700 dark:text-indigo-400 space-y-0.5">
-                    <div className="flex justify-between">
-                      <span>• Contributed Capital:</span>{' '}
-                      <span className="font-mono font-semibold">{formatCurrency(500000)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>• Retained Fiscal Earnings:</span>{' '}
-                      <span className="font-mono font-semibold">{formatCurrency(600000)}</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="p-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-between text-xs font-semibold text-emerald-400">
-                  <span>
-                    Balance Check: {formatCurrency(1310000)} = {formatCurrency(210000)} +{' '}
-                    {formatCurrency(1100000)}
-                  </span>
-                  <span>✓ 100% IN BALANCE</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Tab: Due Collection & Receivables */}
-      {activeTab === 'due-collection' && (
-        <DueCollectionSection
-          onCollect={(inv) => {
-            setMoneyInPrefill({
-              customerName: inv.customer_name,
-              dueAmount: inv.due_amount,
-              invoiceNumber: inv.invoice_number,
-            });
-            setShowMoneyInModal(true);
-          }}
-          onQuickCollect={() => {
-            setMoneyInPrefill({});
-            setShowMoneyInModal(true);
-          }}
-        />
-      )}
+        {activeTab === 'due-collection' && (
+          <DueCollectionSection
+            onCollect={(inv) => {
+              setMoneyInPrefill({
+                customerName: inv.customer_name,
+                dueAmount: inv.due_amount,
+                invoiceNumber: inv.invoice_number,
+              });
+              setShowMoneyInModal(true);
+            }}
+            onQuickCollect={() => {
+              setMoneyInPrefill({});
+              setShowMoneyInModal(true);
+            }}
+          />
+        )}
+      </Suspense>
 
       {/* Post Adjusting Journal Entry Modal (for Certified Accountants) */}
       {showNewJournalModal && (

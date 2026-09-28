@@ -1,13 +1,41 @@
 /**
  * Utility for circular ripple / view-transition theme toggling.
+ * Supports 3-state themes: 'light' | 'dark' | 'system'
  * Starts an expanding circular animation from the exact coordinates of the user's click.
  */
-export function toggleThemeWithTransition(
-  currentTheme: 'light' | 'dark',
+
+export type ThemeMode = 'light' | 'dark' | 'system';
+
+export function getStoredThemeMode(): ThemeMode {
+  if (typeof window === 'undefined') return 'system';
+  try {
+    const stored = localStorage.getItem('ui.theme') || localStorage.getItem('theme');
+    if (stored === 'light' || stored === 'dark' || stored === 'system') {
+      return stored;
+    }
+  } catch {
+    // Ignore storage errors
+  }
+  return 'system';
+}
+
+export function resolveEffectiveTheme(mode: ThemeMode): 'light' | 'dark' {
+  if (mode === 'system') {
+    if (typeof window !== 'undefined' && window.matchMedia) {
+      return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    }
+    return 'light';
+  }
+  return mode;
+}
+
+export function applyThemeMode(
+  target: ThemeMode,
   event?: React.MouseEvent | MouseEvent,
-  onApplied?: (next: 'light' | 'dark') => void
-): 'light' | 'dark' {
-  const next: 'light' | 'dark' = currentTheme === 'dark' ? 'light' : 'dark';
+  onApplied?: (next: ThemeMode) => void
+): ThemeMode {
+  const next: ThemeMode = target;
+  const effective = resolveEffectiveTheme(next);
 
   const applyTheme = () => {
     try {
@@ -17,8 +45,8 @@ export function toggleThemeWithTransition(
       // Ignore localStorage write failures (e.g. storage quota exceeded or private mode)
     }
 
-    document.documentElement.setAttribute('data-theme', next);
-    if (next === 'dark') {
+    document.documentElement.setAttribute('data-theme', effective);
+    if (effective === 'dark') {
       document.documentElement.classList.add('dark');
     } else {
       document.documentElement.classList.remove('dark');
@@ -91,4 +119,20 @@ export function toggleThemeWithTransition(
   }
 
   return next;
+}
+
+export function toggleThemeWithTransition(
+  currentTheme: ThemeMode,
+  event?: React.MouseEvent | MouseEvent,
+  onApplied?: (next: ThemeMode) => void
+): ThemeMode {
+  // 3-state cycle: light -> dark -> system -> light
+  const next: ThemeMode =
+    currentTheme === 'light'
+      ? 'dark'
+      : currentTheme === 'dark'
+        ? 'system'
+        : 'light';
+
+  return applyThemeMode(next, event, onApplied);
 }

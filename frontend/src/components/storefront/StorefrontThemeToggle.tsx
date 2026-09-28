@@ -32,7 +32,7 @@ export const StorefrontThemeToggle: React.FC<StorefrontThemeToggleProps> = ({
 
   const handleToggle = (e: React.MouseEvent) => {
     toggleThemeWithTransition(theme, e, (next) => {
-      setTheme(next);
+      setTheme(next === 'dark' ? 'dark' : 'light');
     });
   };
 

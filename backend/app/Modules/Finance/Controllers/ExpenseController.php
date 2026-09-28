@@ -50,7 +50,7 @@ class ExpenseController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $query = Expense::query()->with(['category', 'branch', 'bankAccount', 'journalEntry']);
+        $query = Expense::query()->with(['category', 'branch', 'bankAccount', 'journalEntry', 'splits']);
 
         if ($request->filled('status')) {
             $query->where('status', $request->query('status'));
@@ -78,10 +78,20 @@ class ExpenseController extends Controller
             'description' => 'nullable|string',
             'amount' => 'required|numeric|min:0.01',
             'tax_amount' => 'nullable|numeric|min:0',
-            'payment_method' => 'required|string|in:cash,bank,mobile_wallet,credit,cheque',
+            'payment_method' => 'required|string|in:cash,bank,bank_transfer,mobile_wallet,mobile_banking,credit,cheque,card,split',
             'bank_account_id' => 'nullable|integer',
             'reference_number' => 'nullable|string|max:128',
             'cost_center_code' => 'nullable|string|max:64',
+            'splits' => 'nullable|array',
+            'splits.*.method' => 'required_with:splits|string|in:cash,bank,bank_transfer,mobile_wallet,mobile_banking,credit,cheque,card,other',
+            'splits.*.amount' => 'required_with:splits|numeric|gt:0',
+            'splits.*.bank_account_id' => 'nullable|integer',
+            'splits.*.mobile_provider' => 'nullable|string|max:64',
+            'splits.*.mobile_number' => 'nullable|string|max:64',
+            'splits.*.transaction_ref' => 'nullable|string|max:128',
+            'splits.*.cheque_number' => 'nullable|string|max:128',
+            'splits.*.cheque_date' => 'nullable|date',
+            'splits.*.notes' => 'nullable|string|max:500',
         ]);
 
         $userId = (int) ($request->user()?->id ?? 1);
@@ -95,7 +105,7 @@ class ExpenseController extends Controller
 
     public function show(int $id): JsonResponse
     {
-        $expense = Expense::with(['category', 'branch', 'bankAccount', 'journalEntry.lines.account'])->findOrFail($id);
+        $expense = Expense::with(['category', 'branch', 'bankAccount', 'journalEntry.lines.account', 'splits'])->findOrFail($id);
 
         return response()->json([
             'data' => $expense,

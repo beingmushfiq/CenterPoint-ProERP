@@ -74,10 +74,11 @@
   --table-selected: var(--color-primary-subtle);
 
   /* ─── Modals & Drawers ─────────────────────────────────────────────────── */
-  --modal-width-sm: 24rem;
-  --modal-width-md: 32rem;
-  --modal-width-lg: 44rem;
-  --modal-width-xl: 60rem;
+  --modal-width-sm: 25rem;  /* 400px */
+  --modal-width-md: 35rem;  /* 560px */
+  --modal-width-lg: 45rem;  /* 720px */
+  --modal-width-xl: 60rem;  /* 960px */
+  --modal-width-full: min(90rem, calc(100vw - 2rem));
   --modal-radius: var(--radius-xl);
   --modal-padding: var(--space-6);
   --modal-shadow: var(--shadow-overlay);

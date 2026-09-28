@@ -126,4 +126,12 @@ final class Payment extends Model
     {
         return $this->hasMany(PaymentAllocation::class, 'payment_id');
     }
+
+    /**
+     * @return HasMany<PaymentSplit, $this>
+     */
+    public function splits(): HasMany
+    {
+        return $this->hasMany(PaymentSplit::class, 'payment_id');
+    }
 }

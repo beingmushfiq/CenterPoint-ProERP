@@ -84,8 +84,8 @@ describe('Financial Statement Print & Preview', () => {
       </MemoryRouter>
     );
 
-    // Locate the print button
-    const printButton = screen.getByRole('button', {
+    // Locate the print button (await lazy-loaded StatementsSection)
+    const printButton = await screen.findByRole('button', {
       name: /Print Financial Statement/i,
     });
     expect(printButton).toBeInTheDocument();

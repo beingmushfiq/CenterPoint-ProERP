@@ -117,18 +117,12 @@ describe('HrWorkspace Component & Action Controls', () => {
     expect(screen.getAllByRole('button', { name: /Revoke/i }).length).toBeGreaterThanOrEqual(1);
   });
 
-  it('renders contextual actions on Daily Attendance tab and launches biometric kiosk', () => {
+  it('renders contextual actions on Daily Attendance tab', () => {
     renderWithProviders(['/hr?tab=attendance']);
 
     expect(screen.getAllByRole('button', { name: /Mark Attendance/i }).length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByRole('button', { name: /Export Log/i }).length).toBeGreaterThanOrEqual(1);
-
-    const kioskButtons = screen.getAllByRole('button', { name: /Biometric Kiosk/i });
-    expect(kioskButtons.length).toBeGreaterThanOrEqual(1);
-
-    fireEvent.click(kioskButtons[0]!);
-    expect(screen.getByText(/Biometric & NFC Attendance Punch Terminal/i)).toBeInTheDocument();
-    expect(screen.getByText(/Workforce Time Clock/i)).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: /Import/i }).length).toBeGreaterThanOrEqual(1);
   });
 
   it('renders Compensation & Salary Structures tab with interactive calculation', () => {

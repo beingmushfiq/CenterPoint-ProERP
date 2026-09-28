@@ -36,6 +36,9 @@ import {
   ChevronsUpDown,
   Maximize2,
   Minimize2,
+  Star,
+  History,
+  BarChart3,
 } from 'lucide-react';
 import { PrintPreviewModal } from '../../components/print/PrintPreviewModal';
 import { SelectDropdown } from '../../components/ui/Dropdown';
@@ -54,7 +57,26 @@ import {
   ALL_REPORT_DEFINITIONS,
   getReportFallbackData,
 } from './reportCatalogue';
-import { REPORT_HUBS } from './reportHubs';
+import {
+  REPORT_HUBS,
+  DOMAIN_HUBS,
+  findDomainForReportCode,
+} from './reportHubs';
+
+const ReportChartAnalytics = React.lazy(() =>
+  import('./components/ReportChartAnalytics').then((m) => ({ default: m.ReportChartAnalytics }))
+);
+
+const REPORT_ALIAS_MAP: Record<string, string> = {
+  worker_piece_rate_summary: 'worker_production',
+  salesman_profitability: 'salesman_profit_contribution',
+  daily_sales: 'sales_performance',
+  b2c_sales: 'product_sales',
+  salesman_leaderboard: 'salesman_sales',
+  delivery_sla_history: 'courier_performance',
+  converted_leads: 'lead_summary',
+  lost_leads_analysis: 'lead_status_distribution',
+};
 import { api, getAccessToken } from '../../lib/api/client';
 import * as XLSX from 'xlsx';
 import { notify } from '../../components/ui/Toast';
@@ -122,15 +144,82 @@ export const ReportsWorkspace: React.FC = () => {
   const { formatCurrency } = useCurrency();
   const { config: businessConfig } = useBusinessConfig();
 
-  // Selected Module & Category
+  // Selected Module, Domain & Category
   const [selectedModule, setSelectedModule] = useState<string>('all');
+  const [selectedDomain, setSelectedDomain] = useState<string>('all');
   const [selectedCategory, setSelectedCategory] = useState<ReportCategory | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
 
   // Selected active report
   const [selectedReportCode, setSelectedReportCode] = useState<string>('production_yield');
 
-  // Display Mode: Consolidated Hubs (Phase 5 & 11) vs Full Directory (84 items)
+  // Pinned Reports (localStorage sync)
+  const [pinnedReports, setPinnedReports] = useState<string[]>(() => {
+    try {
+      const raw = localStorage.getItem('reports.pinned');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (err) {
+      void err;
+    }
+    return ['sales_performance', 'stock_valuation', 'production_yield', 'current_stock'];
+  });
+
+  const togglePinReport = (code: string) => {
+    const canonical = REPORT_ALIAS_MAP[code] || code;
+    setPinnedReports((prev) => {
+      const next = prev.includes(canonical) ? prev.filter((c) => c !== canonical) : [...prev, canonical];
+      try {
+        localStorage.setItem('reports.pinned', JSON.stringify(next));
+      } catch (err) {
+        void err;
+      }
+      return next;
+    });
+  };
+
+  // Recently Viewed Reports (localStorage sync)
+  const [recentReports, setRecentReports] = useState<string[]>(() => {
+    try {
+      const raw = localStorage.getItem('reports.recent');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (err) {
+      void err;
+    }
+    return ['production_yield'];
+  });
+
+  const recordRecentReport = useCallback((canonical: string) => {
+    setRecentReports((prev) => {
+      const filtered = prev.filter((c) => c !== canonical);
+      const next = [canonical, ...filtered].slice(0, 8);
+      try {
+        localStorage.setItem('reports.recent', JSON.stringify(next));
+      } catch (err) {
+        void err;
+      }
+      return next;
+    });
+  }, []);
+
+  const changeSelectedReport = useCallback(
+    (code: string) => {
+      const canonical = REPORT_ALIAS_MAP[code] || code;
+      setSelectedReportCode(canonical);
+      recordRecentReport(canonical);
+    },
+    [recordRecentReport]
+  );
+
+  // Analytics Chart Show/Hide Toggle
+  const [showChartAnalytics, setShowChartAnalytics] = useState<boolean>(true);
+
+  // Display Mode: Consolidated Hubs vs Full Directory
   const [displayMode, setDisplayMode] = useState<'hubs' | 'directory'>('hubs');
 
   // 12-Module Navigation strip scroll & expand state
@@ -240,10 +329,18 @@ export const ReportsWorkspace: React.FC = () => {
     };
   }, []);
 
-  // Filtered definitions based on Module, Category, and Search Query
+  // Filtered definitions based on Domain, Module, Category, and Search Query
   const filteredDefinitions = useMemo(() => {
     return definitions
       .filter((def) => {
+        // Domain filter
+        if (selectedDomain !== 'all') {
+          const domain = DOMAIN_HUBS.find((d) => d.id === selectedDomain);
+          if (domain && !domain.modules.includes(def.module)) {
+            return false;
+          }
+        }
+
         // Module filter
         if (selectedModule !== 'all') {
           if (selectedModule === 'sales') {
@@ -286,11 +383,20 @@ export const ReportsWorkspace: React.FC = () => {
         }
         return a.name.localeCompare(b.name);
       });
-  }, [definitions, selectedModule, selectedCategory, searchQuery]);
+  }, [definitions, selectedDomain, selectedModule, selectedCategory, searchQuery]);
 
-  // Filtered 20 Consolidated Hubs (Phase 5 & 11) based on Module and Search
+  // Filtered 20 Consolidated Hubs based on Domain, Module and Search
   const filteredHubs = useMemo(() => {
     return REPORT_HUBS.filter((hub) => {
+      // Domain filter
+      if (selectedDomain !== 'all') {
+        const domain = DOMAIN_HUBS.find((d) => d.id === selectedDomain);
+        if (domain && !domain.hubIds.includes(hub.id)) {
+          return false;
+        }
+      }
+
+      // Module filter
       if (selectedModule !== 'all') {
         if (selectedModule === 'sales') {
           if (hub.module !== 'sales' && hub.module !== 'pos') return false;
@@ -314,7 +420,20 @@ export const ReportsWorkspace: React.FC = () => {
 
       return true;
     });
-  }, [selectedModule, searchQuery]);
+  }, [selectedDomain, selectedModule, searchQuery]);
+
+  // Visible modules based on selected Domain Hub
+  const visibleModules = useMemo(() => {
+    if (selectedDomain === 'all') return REPORT_MODULES;
+    const domain = DOMAIN_HUBS.find((d) => d.id === selectedDomain);
+    if (!domain) return REPORT_MODULES;
+    return REPORT_MODULES.filter((m) => m.id === 'all' || domain.modules.includes(m.id));
+  }, [selectedDomain]);
+
+  // Active domain metadata
+  const activeDomain = useMemo(() => {
+    return DOMAIN_HUBS.find((d) => d.id === selectedDomain);
+  }, [selectedDomain]);
 
   // Module counts
   const moduleCounts = useMemo(() => {
@@ -403,8 +522,9 @@ export const ReportsWorkspace: React.FC = () => {
   };
 
   const handleSelectReportView = (code: string) => {
-    setSelectedReportCode(code);
-    const targetHub = REPORT_HUBS.find((h) => h.views.some((v) => v.code === code));
+    const canonicalCode = REPORT_ALIAS_MAP[code] || code;
+    changeSelectedReport(canonicalCode);
+    const targetHub = REPORT_HUBS.find((h) => h.views.some((v) => v.code === canonicalCode));
     if (targetHub && collapsedHubIds[targetHub.id]) {
       setCollapsedHubIds((prev) => ({ ...prev, [targetHub.id]: false }));
     }
@@ -416,18 +536,44 @@ export const ReportsWorkspace: React.FC = () => {
     }
   };
 
+  // Domain switcher handler (Phase 2 - 7 Core Navigation Hubs)
+  const handleSelectDomain = (domainId: string) => {
+    setSelectedDomain(domainId);
+    setSelectedCategory('all');
+    setSearchQuery('');
+    if (domainId === 'all') {
+      setSelectedModule('all');
+    } else {
+      const domain = DOMAIN_HUBS.find((d) => d.id === domainId);
+      if (domain && domain.modules.length > 0) {
+        setSelectedModule(domain.modules[0] ?? 'all');
+        const firstHub = REPORT_HUBS.find((h) => domain.hubIds.includes(h.id));
+        if (firstHub) {
+          changeSelectedReport(firstHub.defaultCode);
+        }
+      }
+    }
+  };
+
   // Module switcher handler
   const handleSelectModule = (modId: string) => {
     setSelectedModule(modId);
     setSelectedCategory('all');
     setSearchQuery('');
+    // If selecting a module outside current domain, sync domain
+    if (selectedDomain !== 'all' && modId !== 'all') {
+      const parentDomain = DOMAIN_HUBS.find((d) => d.modules.includes(modId));
+      if (parentDomain && parentDomain.id !== selectedDomain) {
+        setSelectedDomain(parentDomain.id);
+      }
+    }
     const firstInMod = definitions.find((d) => {
       if (modId === 'all') return true;
       if (modId === 'sales') return d.module === 'sales' || d.module === 'pos';
       return d.module === modId;
     });
     if (firstInMod) {
-      setSelectedReportCode(firstInMod.code);
+      changeSelectedReport(firstInMod.code);
     }
   };
 
@@ -444,7 +590,7 @@ export const ReportsWorkspace: React.FC = () => {
       return matchMod && matchCat;
     });
     if (firstInCat) {
-      setSelectedReportCode(firstInCat.code);
+      changeSelectedReport(firstInCat.code);
     }
   };
 
@@ -787,7 +933,151 @@ export const ReportsWorkspace: React.FC = () => {
         </div>
       </div>
 
-      {/* 12-Module Navigation Pills (Expandable & Scrollable with sleek arrow controls) */}
+      {/* Pinned & Recently Viewed Quick-Access Bar */}
+      <div className="flex flex-wrap items-center justify-between gap-3 bg-white dark:bg-slate-900 px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs text-xs">
+        {/* Left: Pinned Reports */}
+        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
+          <div className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400 font-bold uppercase tracking-wider text-[11px] whitespace-nowrap">
+            <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
+            <span>{isBn ? 'পিনকৃত প্রতিবেদন:' : 'Pinned Reports:'}</span>
+          </div>
+          {pinnedReports.length === 0 ? (
+            <span className="text-[11px] text-slate-400 italic">
+              {isBn ? 'কোনো প্রতিবেদন পিন করা নেই' : 'No pinned reports yet'}
+            </span>
+          ) : (
+            pinnedReports.map((pCode) => {
+              const pDef = definitions.find((d) => d.code === pCode);
+              const isCurrent = selectedReportCode === pCode;
+              return (
+                <div
+                  key={pCode}
+                  className={`group inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all whitespace-nowrap ${
+                    isCurrent
+                      ? 'bg-blue-600 text-white shadow-xs font-semibold'
+                      : 'bg-slate-50 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:border-blue-400'
+                  }`}
+                >
+                  <button
+                    type="button"
+                    onClick={() => handleSelectReportView(pCode)}
+                    className="cursor-pointer"
+                  >
+                    {pDef ? getLocalizedReportName(pDef.code, pDef.name, isBn) : pCode}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      togglePinReport(pCode);
+                    }}
+                    className="opacity-40 group-hover:opacity-100 hover:text-rose-500 p-0.5 rounded text-[11px] cursor-pointer"
+                    title="Unpin"
+                  >
+                    ×
+                  </button>
+                </div>
+              );
+            })
+          )}
+        </div>
+
+        {/* Right: Recently Viewed Strip */}
+        {recentReports.length > 0 && (
+          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+            <div className="flex items-center gap-1 text-slate-400 font-medium text-[10.5px] whitespace-nowrap">
+              <History className="w-3.5 h-3.5" />
+              <span>{isBn ? 'সাম্প্রতিক:' : 'Recent:'}</span>
+            </div>
+            {recentReports.slice(0, 5).map((rCode) => {
+              const rDef = definitions.find((d) => d.code === rCode);
+              const isCurrent = selectedReportCode === rCode;
+              if (!rDef) return null;
+              return (
+                <button
+                  key={rCode}
+                  type="button"
+                  onClick={() => handleSelectReportView(rCode)}
+                  className={`px-2 py-0.5 rounded text-[11px] transition-colors whitespace-nowrap cursor-pointer ${
+                    isCurrent
+                      ? 'font-bold text-blue-600 dark:text-blue-400 underline decoration-2'
+                      : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                  }`}
+                >
+                  {getLocalizedReportName(rDef.code, rDef.name, isBn)}
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* 7 Domain Navigation Hubs Bar (Phase 2 Master Architecture) */}
+      <div className="bg-white dark:bg-slate-900 p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs">
+        <div className="flex items-center justify-between gap-2 mb-2 px-1">
+          <div className="flex items-center gap-2">
+            <div className="p-1 rounded-md bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400">
+              <Layers className="w-3.5 h-3.5" />
+            </div>
+            <span className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">
+              {isBn ? '৭টি ডোমেন নেভিগেশন হাব' : '7 Core Domain Navigation Hubs'}
+            </span>
+          </div>
+          <span className="text-[11px] text-slate-400">
+            {selectedDomain === 'all'
+              ? (isBn ? 'সকল অপারেশনাল ডোমেন' : '76 Consolidated Enterprise Reports')
+              : (isBn ? activeDomain?.titleBn : activeDomain?.titleEn)}
+          </span>
+        </div>
+
+        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1">
+          <button
+            type="button"
+            onClick={() => handleSelectDomain('all')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
+              selectedDomain === 'all'
+                ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 shadow-xs scale-[1.01]'
+                : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+            }`}
+          >
+            <Layers className="w-3.5 h-3.5" />
+            <span>{isBn ? 'সকল ডোমেন' : 'All Domains'}</span>
+            <span className="ml-1 px-1.5 py-0.2 rounded-full text-[10px] bg-slate-200/60 dark:bg-slate-700">76</span>
+          </button>
+
+          {DOMAIN_HUBS.map((domain) => {
+            const isSelected = selectedDomain === domain.id;
+            const DomainIcon = MODULE_ICONS[domain.iconName] || Layers;
+            const domainReports = definitions.filter((def) => domain.modules.includes(def.module));
+
+            return (
+              <button
+                key={domain.id}
+                type="button"
+                onClick={() => handleSelectDomain(domain.id)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
+                  isSelected
+                    ? 'bg-blue-600 text-white shadow-xs scale-[1.01] ring-2 ring-blue-500/40'
+                    : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+                }`}
+                title={isBn ? domain.descBn : domain.descEn}
+              >
+                <DomainIcon className={`w-3.5 h-3.5 ${isSelected ? 'text-white' : 'text-slate-400'}`} />
+                <span>{isBn ? domain.titleBn : domain.titleEn}</span>
+                <span
+                  className={`ml-1 px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
+                    isSelected ? 'bg-white/20 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-500'
+                  }`}
+                >
+                  {domainReports.length}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Module Navigation Pills (Filtered by Domain Hub) */}
       <div className="bg-white dark:bg-slate-900 p-2 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs relative">
         <div className="flex items-center gap-1.5">
           {/* Scroll Left Button */}
@@ -811,7 +1101,7 @@ export const ReportsWorkspace: React.FC = () => {
                 : 'flex items-center gap-1.5 overflow-x-auto no-scrollbar scroll-smooth'
             }`}
           >
-            {REPORT_MODULES.map((mod) => {
+            {visibleModules.map((mod) => {
               const Icon = MODULE_ICONS[mod.id] || Layers;
               const isSelected = selectedModule === mod.id;
               const count = moduleCounts[mod.id] || 0;
@@ -1339,6 +1629,74 @@ export const ReportsWorkspace: React.FC = () => {
 
       {/* Controls & Filter Toolbar */}
       <div id="report-telemetry-section" className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+        {/* Breadcrumb & Pin / Analytics Toggle Bar */}
+        <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-200 dark:border-slate-800">
+          <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 flex-wrap">
+            <span className="font-semibold text-slate-700 dark:text-slate-300">
+              {findDomainForReportCode(selectedReportCode)?.titleEn ?? 'Enterprise Reports'}
+            </span>
+            <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+            <span>{activeHub?.titleEn ?? activeModule?.name ?? ''}</span>
+            <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+            <span className="font-bold text-blue-600 dark:text-blue-400">
+              {getLocalizedReportName(activeDef?.code || '', activeDef?.name ?? '', isBn)}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {/* Pin / Unpin button */}
+            <button
+              type="button"
+              onClick={() => togglePinReport(selectedReportCode)}
+              className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-semibold transition-all cursor-pointer ${
+                pinnedReports.includes(selectedReportCode)
+                  ? 'bg-amber-50 dark:bg-amber-950/50 border-amber-300 dark:border-amber-800 text-amber-700 dark:text-amber-300 shadow-xs'
+                  : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-amber-300'
+              }`}
+              title={pinnedReports.includes(selectedReportCode) ? 'Unpin from quick-access' : 'Pin to quick-access bar'}
+            >
+              <Star
+                className={`w-3.5 h-3.5 ${
+                  pinnedReports.includes(selectedReportCode) ? 'fill-amber-500 text-amber-500' : 'text-slate-400'
+                }`}
+              />
+              <span>{pinnedReports.includes(selectedReportCode) ? (isBn ? 'পিনকৃত' : 'Pinned') : (isBn ? 'পিন করুন' : 'Pin')}</span>
+            </button>
+
+            {/* Chart Analytics Toggle */}
+            <button
+              type="button"
+              onClick={() => setShowChartAnalytics((prev) => !prev)}
+              className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-semibold transition-all cursor-pointer ${
+                showChartAnalytics
+                  ? 'bg-blue-50 dark:bg-blue-950/50 border-blue-300 dark:border-blue-800 text-blue-700 dark:text-blue-300 shadow-xs'
+                  : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-blue-300'
+              }`}
+            >
+              <BarChart3 className="w-3.5 h-3.5 text-blue-500" />
+              <span>{showChartAnalytics ? (isBn ? 'চার্ট লুকান' : 'Hide Chart') : (isBn ? 'চার্ট দেখুন' : 'Show Chart')}</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Lazy-Loaded Visual Analytics Chart Strip */}
+        {showChartAnalytics && (
+          <React.Suspense
+            fallback={
+              <div className="h-48 rounded-xl border border-dashed border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40 animate-pulse flex items-center justify-center text-xs text-slate-400">
+                Loading analytics visual engine...
+              </div>
+            }
+          >
+            <ReportChartAnalytics
+              reportResult={reportResult}
+              reportDefinition={activeDef}
+              currencySymbol={businessConfig.currencySymbol || '৳'}
+              isBn={isBn}
+            />
+          </React.Suspense>
+        )}
+
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex flex-wrap items-center gap-3">
             {/* Quick Presets */}

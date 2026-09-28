@@ -105,8 +105,8 @@
         }
 
         /* ── Theme ─────────────────────────────────────────────────────────── */
-        var theme = read('ui.theme') || read('theme') || 'light';
-        var dark = theme === 'dark';
+        var theme = read('ui.theme') || read('theme') || 'system';
+        var dark = theme === 'dark' || (theme === 'system' && media('(prefers-color-scheme: dark)'));
         if (dark) {
           el.classList.add('dark');
           el.setAttribute('data-theme', 'dark');
@@ -122,6 +122,25 @@
         chrome.setAttribute('name', 'theme-color');
         chrome.setAttribute('content', dark ? '#020617' : '#f8fafc');
         document.head.appendChild(chrome);
+
+        /* Real-time system theme change listener when in system mode */
+        try {
+          var mql = window.matchMedia('(prefers-color-scheme: dark)');
+          if (mql && mql.addEventListener) {
+            mql.addEventListener('change', function (e) {
+              var currentMode = read('ui.theme') || read('theme') || 'system';
+              if (currentMode === 'system') {
+                if (e.matches) {
+                  el.classList.add('dark');
+                  el.setAttribute('data-theme', 'dark');
+                } else {
+                  el.classList.remove('dark');
+                  el.setAttribute('data-theme', 'light');
+                }
+              }
+            });
+          }
+        } catch (err) {}
 
         /* ── Density ───────────────────────────────────────────────────────── */
         var density = read('ui.density');

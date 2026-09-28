@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ArrowDownLeft, ArrowUpRight, Plus, RefreshCw, Search, Printer, DollarSign, Trash2, X } from 'lucide-react';
+import { ArrowDownLeft, ArrowUpRight, Plus, RefreshCw, Search, Printer, DollarSign, Trash2, X, Split } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Payment } from '../../../types/api/sales';
 import { api } from '../../../lib/api/client';
@@ -11,6 +11,8 @@ import { PaymentReceiptDocument } from '../../../components/print/documents/Paym
 import { useBusinessConfig } from '../../../lib/document/useBusinessConfig';
 import { useCurrency } from '../../../hooks/useCurrency';
 import { SelectDropdown } from '../../../components/ui/Dropdown';
+import { PaymentSplitEditor } from '../../../components/payment/PaymentSplitEditor';
+import type { PaymentSplitRow, BankAccountOption } from '../../../components/payment/PaymentSplitEditor';
 
 export function PaymentsSection() {
   const { hasPermission } = useAuthStore();
@@ -37,6 +39,26 @@ export function PaymentsSection() {
   const [referenceNumber, setReferenceNumber] = useState('');
   const [notes, setNotes] = useState('');
 
+  // Multi-Payment Split State
+  const [isMultiPayMode, setIsMultiPayMode] = useState(false);
+  const [splits, setSplits] = useState<PaymentSplitRow[]>([
+    { id: 'split-1', method: 'cash', amount: 0 },
+  ]);
+  const [isSplitValid, setIsSplitValid] = useState(true);
+
+  // Bank accounts for selection in splits
+  const { data: bankAccounts = [] } = useQuery<BankAccountOption[]>({
+    queryKey: ['finance', 'bank-accounts'],
+    queryFn: async () => {
+      try {
+        const res = await api.get<{ data?: BankAccountOption[] } | BankAccountOption[]>('/finance/bank-accounts');
+        return Array.isArray(res.data) ? res.data : (res.data as { data?: BankAccountOption[] })?.data ?? [];
+      } catch {
+        return [];
+      }
+    },
+  });
+
   const { data: payments = [], isLoading, isFetching, refetch } = useQuery<Payment[]>({
     queryKey: ['sales', 'payments'],
     queryFn: async () => {
@@ -47,13 +69,41 @@ export function PaymentsSection() {
 
   const recordPaymentMutation = useMutation({
     mutationFn: async () => {
+      const numAmount = parseFloat(amount) || 0;
+      const activeSplits: PaymentSplitRow[] = isMultiPayMode
+        ? splits
+        : [
+            {
+              id: '1',
+              method,
+              amount: numAmount,
+              ...(referenceNumber ? { transaction_ref: referenceNumber } : {}),
+              ...(notes ? { notes } : {}),
+            },
+          ];
+
+      const splitSum = activeSplits.reduce((s, r) => s + (Number(r.amount) || 0), 0);
+      const primaryMethod = activeSplits.length > 1 ? 'split' : (activeSplits[0]?.method || method);
+
       await api.post('/sales/payments', {
         direction,
-        method,
-        amount,
+        method: primaryMethod,
+        amount: (isMultiPayMode ? splitSum : numAmount).toFixed(4),
         payment_date: paymentDate,
-        reference_number: referenceNumber || undefined,
-        notes: notes || undefined,
+        ...(referenceNumber ? { reference_number: referenceNumber } : {}),
+        ...(notes ? { notes } : {}),
+        splits: activeSplits.map((s) => ({
+          method: s.method,
+          amount: s.amount.toFixed(4),
+          ...(s.bank_account_id ? { bank_account_id: s.bank_account_id } : {}),
+          ...(s.mobile_provider ? { mobile_provider: s.mobile_provider } : {}),
+          ...(s.mobile_number ? { mobile_number: s.mobile_number } : {}),
+          ...(s.transaction_ref ? { transaction_ref: s.transaction_ref } : {}),
+          ...(s.cheque_number ? { cheque_number: s.cheque_number } : {}),
+          ...(s.cheque_date ? { cheque_date: s.cheque_date } : {}),
+          ...(s.card_last4 ? { card_last4: s.card_last4 } : {}),
+          ...(s.notes ? { notes: s.notes } : {}),
+        })),
       });
     },
     onSuccess: () => {
@@ -62,6 +112,7 @@ export function PaymentsSection() {
       setAmount('');
       setReferenceNumber('');
       setNotes('');
+      setIsMultiPayMode(false);
       queryClient.invalidateQueries({ queryKey: ['sales', 'payments'] });
     },
     onError: (err: unknown) => {
@@ -311,8 +362,14 @@ export function PaymentsSection() {
                         </span>
                       )}
                     </td>
-                    <td className="px-4 py-3.5 uppercase font-mono text-[11px] text-muted">
-                      {p.method.replace('_', ' ')}
+                    <td className="px-4 py-3.5 font-mono text-[11px] text-muted">
+                      {p.method === 'split' ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-primary/10 text-primary font-semibold text-[10px] tracking-wide border border-primary/20" title={p.splits?.map(s => `${s.method}: ${s.amount}`).join(', ')}>
+                          <Split className="h-3 w-3" /> Multi-Split {p.splits?.length ? `(${p.splits.length})` : ''}
+                        </span>
+                      ) : (
+                        <span className="uppercase">{p.method.replace('_', ' ')}</span>
+                      )}
                     </td>
                     <td className="px-4 py-3.5 text-default font-medium">
                       {p.customer_name ?? 'Counter Customer / Direct'}
@@ -367,13 +424,16 @@ export function PaymentsSection() {
       {/* Record Payment Modal */}
       {showCreateModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs animate-fade-in">
-          <div className="w-full max-w-lg rounded-2xl border border-default bg-surface p-6 shadow-2xl space-y-5">
+          <div className="w-full max-w-xl max-h-[90vh] overflow-y-auto rounded-2xl border border-default bg-surface p-6 shadow-2xl space-y-5">
             <div className="flex items-center justify-between border-b border-default pb-3">
-              <h3 className="text-base font-bold text-default">Record Payment / Receipt</h3>
+              <div>
+                <h3 className="text-base font-bold text-default">Record Payment / Receipt</h3>
+                <p className="text-xs text-muted mt-0.5">Collect customer receivables or disburse vendor settlement</p>
+              </div>
               <button
                 type="button"
                 onClick={() => setShowCreateModal(false)}
-                className="rounded-lg p-1 text-muted hover:bg-surface-sunken hover:text-default"
+                className="rounded-lg p-1 text-muted hover:bg-surface-sunken hover:text-default cursor-pointer"
               >
                 ✕
               </button>
@@ -397,62 +457,108 @@ export function PaymentsSection() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-default mb-1">Method</label>
-                  <select
-                    value={method}
-                    onChange={(e) => setMethod(e.target.value as PaymentMethod)}
-                    className="w-full rounded-xl border border-default bg-surface-sunken px-3 py-2 text-xs text-default focus:border-primary focus:outline-none"
-                  >
-                    <option value="cash">Cash</option>
-                    <option value="bank_transfer">Bank Transfer</option>
-                    <option value="card">POS Card</option>
-                    <option value="mobile_banking">Mobile Banking (bKash/Nagad)</option>
-                    <option value="cheque">Cheque</option>
-                  </select>
+                  <label className="block text-xs font-medium text-default mb-1">Payment Date</label>
+                  <input
+                    type="date"
+                    value={paymentDate}
+                    onChange={(e) => setPaymentDate(e.target.value)}
+                    className="w-full rounded-xl border border-default bg-surface-sunken px-3 py-2 text-xs text-default focus:border-primary focus:outline-none cursor-pointer"
+                  />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-default mb-1">Amount ({currencyCode})</label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-medium text-default">Total Amount ({currencyCode})</label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const next = !isMultiPayMode;
+                      setIsMultiPayMode(next);
+                      if (next && splits.length > 0 && splits[0]) {
+                        const curAmt = parseFloat(amount) || 0;
+                        setSplits([{ id: `split-${Date.now()}`, method, amount: curAmt }]);
+                      }
+                    }}
+                    className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg text-[11px] font-semibold border transition-all cursor-pointer ${
+                      isMultiPayMode
+                        ? 'bg-primary/10 text-primary border-primary/30'
+                        : 'bg-surface-sunken text-muted border-default hover:text-default'
+                    }`}
+                  >
+                    <Split className="h-3 w-3" />
+                    <span>{isMultiPayMode ? 'Multi-Split Enabled' : 'Split Tender'}</span>
+                  </button>
+                </div>
                 <input
                   type="number"
                   step="0.0001"
                   required
                   placeholder="e.g. 5000.00"
                   value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setAmount(val);
+                    if (isMultiPayMode && splits.length === 1 && splits[0]) {
+                      setSplits([{ ...splits[0], amount: parseFloat(val) || 0 }]);
+                    }
+                  }}
                   className="w-full rounded-xl border border-default bg-surface-sunken px-3 py-2 text-xs text-default placeholder:text-muted focus:border-primary focus:outline-none font-mono"
                 />
               </div>
 
-              <div>
-                <label className="block text-xs font-medium text-default mb-1">Payment Date</label>
-                <input
-                  type="date"
-                  value={paymentDate}
-                  onChange={(e) => setPaymentDate(e.target.value)}
-                  className="w-full rounded-xl border border-default bg-surface-sunken px-3 py-2 text-xs text-default focus:border-primary focus:outline-none cursor-pointer"
-                />
-              </div>
+              {/* Method selection (Single Mode vs Multi-Split Editor) */}
+              {!isMultiPayMode ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-medium text-default mb-1">Primary Method</label>
+                    <select
+                      value={method}
+                      onChange={(e) => setMethod(e.target.value as PaymentMethod)}
+                      className="w-full rounded-xl border border-default bg-surface-sunken px-3 py-2 text-xs text-default focus:border-primary focus:outline-none"
+                    >
+                      <option value="cash">Cash Tender</option>
+                      <option value="bank_transfer">Bank Transfer</option>
+                      <option value="card">POS Card</option>
+                      <option value="mobile_banking">Mobile Banking (bKash/Nagad)</option>
+                      <option value="cheque">Cheque</option>
+                      <option value="credit_adjustment">Credit Adjustment</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-default mb-1">
+                      Transaction / Cheque Reference #
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. TRX-9823412 or Cheque #0012"
+                      value={referenceNumber}
+                      onChange={(e) => setReferenceNumber(e.target.value)}
+                      className="w-full rounded-xl border border-default bg-surface-sunken px-3 py-2 text-xs text-default placeholder:text-muted focus:border-primary focus:outline-none font-mono"
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-1.5 pt-1">
+                  <PaymentSplitEditor
+                    totalAmount={parseFloat(amount) || 0}
+                    currencySymbol={currencyCode}
+                    bankAccounts={bankAccounts}
+                    splits={splits}
+                    onChange={(newSplits, valid) => {
+                      setSplits(newSplits);
+                      setIsSplitValid(valid);
+                    }}
+                  />
+                </div>
+              )}
 
               <div>
-                <label className="block text-xs font-medium text-default mb-1">
-                  Transaction / Cheque Reference #
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. TRX-9823412 or Cheque #0012"
-                  value={referenceNumber}
-                  onChange={(e) => setReferenceNumber(e.target.value)}
-                  className="w-full rounded-xl border border-default bg-surface-sunken px-3 py-2 text-xs text-default placeholder:text-muted focus:border-primary focus:outline-none font-mono"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-default mb-1">Notes</label>
+                <label className="block text-xs font-medium text-default mb-1">Notes & Memo</label>
                 <textarea
                   rows={2}
-                  placeholder="Optional memo..."
+                  placeholder="Optional internal remark or customer reference..."
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   className="w-full rounded-xl border border-default bg-surface-sunken px-3 py-2 text-xs text-default placeholder:text-muted focus:border-primary focus:outline-none"
@@ -463,14 +569,14 @@ export function PaymentsSection() {
                 <button
                   type="button"
                   onClick={() => setShowCreateModal(false)}
-                  className="rounded-xl border border-default px-3 py-1.5 text-xs font-medium text-muted hover:bg-surface-sunken hover:text-default transition-colors cursor-pointer"
+                  className="rounded-xl border border-default px-3.5 py-2 text-xs font-medium text-muted hover:bg-surface-sunken hover:text-default transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  disabled={recordPaymentMutation.isPending}
-                  className="rounded-xl bg-primary px-4 py-1.5 text-xs font-medium text-primary-fg hover:opacity-90 disabled:opacity-50 transition-all cursor-pointer shadow-xs"
+                  disabled={recordPaymentMutation.isPending || (isMultiPayMode && !isSplitValid)}
+                  className="rounded-xl bg-primary px-4 py-2 text-xs font-medium text-primary-fg hover:opacity-90 disabled:opacity-50 transition-all cursor-pointer shadow-xs"
                 >
                   {recordPaymentMutation.isPending ? 'Recording...' : 'Record Payment'}
                 </button>

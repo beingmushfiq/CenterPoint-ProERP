@@ -20,7 +20,6 @@ import {
   CreditCard,
   Check,
   DollarSign,
-  Scan,
   RefreshCw,
   Trash2,
   CheckSquare,
@@ -60,7 +59,6 @@ import { WorkerPerformanceSection } from './sections/WorkerPerformanceSection';
 import { DepartmentsSetupSection } from './sections/DepartmentsSetupSection';
 import { SalaryStructuresSection } from './sections/SalaryStructuresSection';
 import { SalaryAdvancesSection } from './sections/SalaryAdvancesSection';
-import { BadgePunchTerminalModal } from './components/BadgePunchTerminalModal';
 import { CreatePayslipModal } from './components/CreatePayslipModal';
 import { useDocumentPrint, EmployeeIdBadgeDocument, PayslipDocument } from '../../components/print';
 import { useBusinessConfig } from '../../lib/document/useBusinessConfig';
@@ -237,7 +235,6 @@ export const HrWorkspace: React.FC = () => {
   );
   const [quickJumpOpen, setQuickJumpOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [isKioskModalOpen, setIsKioskModalOpen] = useState(false);
   const quickJumpRef = useRef<HTMLDivElement>(null);
 
   const activeCategory = categories.find((cat) => cat.tabs.includes(activeTab))?.id ?? 'people';
@@ -1794,15 +1791,6 @@ export const HrWorkspace: React.FC = () => {
             </>
           ) : activeTab === 'attendance' ? (
             <>
-              <button
-                type="button"
-                onClick={() => setIsKioskModalOpen(true)}
-                className="px-3 py-2 bg-slate-950 hover:bg-slate-900 text-emerald-400 font-semibold rounded-xl shadow-2xs transition flex items-center gap-1.5 text-xs cursor-pointer border border-slate-800"
-                title={t('hr.biometricKioskTitle')}
-              >
-                <Scan className="size-3.5 text-emerald-400" />
-                <span>{t('hr.biometricKiosk')}</span>
-              </button>
               <button
                 type="button"
                 onClick={() => setShowImportAttendanceModal(true)}
@@ -4908,36 +4896,6 @@ export const HrWorkspace: React.FC = () => {
           </div>
         )}
       </Modal>
-
-      {/* ─────────────────────────────────────────────────────────────────────────────
-          Modal 8: Biometric & NFC Kiosk Punch Terminal
-          ───────────────────────────────────────────────────────────────────────────── */}
-      <BadgePunchTerminalModal
-        isOpen={isKioskModalOpen}
-        onClose={() => setIsKioskModalOpen(false)}
-        onPunchSuccess={(punch) => {
-          const targetEmp =
-            employees.find((e) => e.employee_code === punch.employee.employee_code) ?? employees[0];
-          if (!targetEmp) return;
-          const todayDate = new Date().toISOString().slice(0, 10);
-          const newAtt: Attendance = {
-            id: attendances.length + 1,
-            uuid: `att-kiosk-${Date.now()}`,
-            employee_id: targetEmp.id,
-            employee: targetEmp,
-            attendance_date: todayDate,
-            shift_id: 1,
-            shift: shifts[0],
-            check_in_at: new Date().toISOString().replace('T', ' ').slice(0, 19),
-            worked_minutes: 480,
-            late_minutes: punch.status === 'late' ? 15 : 0,
-            overtime_minutes: 0,
-            status: punch.status === 'late' ? 'late' : 'present',
-            remarks: 'Biometric / RFID Kiosk Punch',
-          };
-          setAttendances([newAtt, ...attendances]);
-        }}
-      />
 
       {/* ─────────────────────────────────────────────────────────────────────────────
           Modal 9: Employee ERP Access & Security Roles

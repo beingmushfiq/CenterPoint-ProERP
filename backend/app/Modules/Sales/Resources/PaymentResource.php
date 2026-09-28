@@ -36,6 +36,7 @@ final class PaymentResource extends JsonResource
             'notes'              => $this->notes,
             'posted_at'          => $this->posted_at?->toIso8601String(),
             'allocations'        => PaymentAllocationResource::collection($this->whenLoaded('allocations')),
+            'splits'             => PaymentSplitResource::collection($this->whenLoaded('splits')),
             'created_at'         => $this->created_at?->toIso8601String(),
         ];
     }

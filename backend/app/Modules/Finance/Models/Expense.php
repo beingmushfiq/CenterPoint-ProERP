@@ -9,6 +9,7 @@ use App\Models\Branch;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
 
@@ -111,5 +112,13 @@ class Expense extends Model
     public function approver(): BelongsTo
     {
         return $this->belongsTo(User::class, 'approved_by');
+    }
+
+    /**
+     * @return HasMany<ExpensePaymentSplit, $this>
+     */
+    public function splits(): HasMany
+    {
+        return $this->hasMany(ExpensePaymentSplit::class, 'expense_id');
     }
 }

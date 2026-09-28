@@ -7,6 +7,7 @@ import { useAuthStore } from '../../lib/auth/authStore';
 
 const STORAGE_SKIP_KEY = 'erp_onboarding_skipped';
 const STORAGE_COMPLETED_KEY = 'erp_onboarding_completed';
+const STORAGE_DISMISSED_AT_KEY = 'onboarding_dismissed_at';
 
 export interface CompletionMilestones {
   percentage: number;
@@ -63,7 +64,14 @@ export function useOnboardingProgress() {
 
   const [isSkipped, setIsSkipped] = useState<boolean>(() => {
     try {
-      return sessionStorage.getItem(STORAGE_SKIP_KEY) === 'true';
+      if (typeof window === 'undefined') return false;
+      if (sessionStorage.getItem(STORAGE_SKIP_KEY) === 'true') return true;
+      const dismissedAt = localStorage.getItem(STORAGE_DISMISSED_AT_KEY);
+      if (dismissedAt) {
+        const diffHours = (Date.now() - new Date(dismissedAt).getTime()) / (1000 * 60 * 60);
+        if (diffHours < 24) return true;
+      }
+      return false;
     } catch {
       return false;
     }
@@ -130,6 +138,7 @@ export function useOnboardingProgress() {
   const skipOnboarding = useCallback(() => {
     try {
       sessionStorage.setItem(STORAGE_SKIP_KEY, 'true');
+      localStorage.setItem(STORAGE_DISMISSED_AT_KEY, new Date().toISOString());
     } catch {
       // Ignore storage errors
     }
@@ -139,6 +148,7 @@ export function useOnboardingProgress() {
   const resetSkip = useCallback(() => {
     try {
       sessionStorage.removeItem(STORAGE_SKIP_KEY);
+      localStorage.removeItem(STORAGE_DISMISSED_AT_KEY);
     } catch {
       // Ignore storage errors
     }

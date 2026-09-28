@@ -169,6 +169,72 @@ final class PurchaseBillTest extends TestCase
         $this->assertEquals('500.0000', $this->po->items->first()?->billed_quantity);
     }
 
+    public function test_pay_purchase_bill_with_split_payments(): void
+    {
+        $poItem = $this->po->items->first();
+        $this->assertNotNull($poItem);
+
+        $createRes = $this->postJson('/api/v1/purchasing/bills', [
+            'purchase_order_id' => $this->po->id,
+            'party_id' => $this->supplier->id,
+            'bill_date' => now()->toDateString(),
+            'due_date' => now()->addDays(30)->toDateString(),
+            'supplier_invoice_number' => 'INV-SPLIT-99',
+            'items' => [
+                [
+                    'purchase_order_item_id' => $poItem->id,
+                    'product_id' => $this->product->id,
+                    'quantity' => '200.0000',
+                    'unit_id' => $this->unit->id,
+                    'unit_price' => '1.5000',
+                    'discount_amount' => '0.0000',
+                    'tax_rate' => '0.0000',
+                ],
+            ],
+        ], $this->headers());
+
+        $createRes->assertStatus(201);
+        $billId = (int) $createRes->json('data.id');
+
+        $payRes = $this->postJson("/api/v1/purchasing/bills/{$billId}/pay", [
+            'amount' => '300.0000',
+            'method' => 'split',
+            'splits' => [
+                [
+                    'method' => 'cash',
+                    'amount' => '100.0000',
+                    'notes' => 'Petty cash payment',
+                ],
+                [
+                    'method' => 'mobile_banking',
+                    'amount' => '200.0000',
+                    'mobile_provider' => 'Nagad',
+                    'mobile_number' => '01800000000',
+                    'transaction_ref' => 'NAGAD-PO-88',
+                ],
+            ],
+        ], $this->headers());
+
+        $payRes->assertStatus(200)
+            ->assertJsonPath('data.status', 'paid')
+            ->assertJsonPath('payment.direction', 'out')
+            ->assertJsonPath('payment.method', 'split');
+
+        $this->assertDatabaseHas('purchase_bills', [
+            'id' => $billId,
+            'status' => 'paid',
+            'paid_amount' => '300.0000',
+        ]);
+
+        $this->assertDatabaseHas('payment_splits', [
+            'tenant_id' => 1,
+            'method' => 'mobile_banking',
+            'mobile_provider' => 'Nagad',
+            'transaction_ref' => 'NAGAD-PO-88',
+            'amount' => '200.0000',
+        ]);
+    }
+
     /**
      * @return array<string, string>
      */

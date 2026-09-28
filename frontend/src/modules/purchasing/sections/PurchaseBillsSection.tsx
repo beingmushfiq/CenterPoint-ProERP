@@ -25,6 +25,8 @@ import { useCurrency } from '../../../hooks/useCurrency';
 import { SelectDropdown } from '../../../components/ui/Dropdown';
 import { ActionMenuPortal } from '../../../components/ui/ActionMenuPortal';
 import { cn } from '../../../lib/utils';
+import { PaymentSplitEditor } from '../../../components/payment/PaymentSplitEditor';
+import type { PaymentSplitRow, BankAccountOption } from '../../../components/payment/PaymentSplitEditor';
 
 interface BillFormItem {
   product_name: string;
@@ -53,6 +55,23 @@ export function PurchaseBillsSection() {
   const [activeBill, setActiveBill] = useState<PurchaseBill | null>(null);
   const [openActionMenuId, setOpenActionMenuId] = useState<number | null>(null);
   const [actionMenuAnchor, setActionMenuAnchor] = useState<HTMLElement | null>(null);
+
+  // Payment Settlement Splits
+  const [paySplits, setPaySplits] = useState<PaymentSplitRow[]>([]);
+  const [isPayValid, setIsPayValid] = useState(true);
+
+  // Bank Accounts query for splits
+  const { data: bankAccounts = [] } = useQuery<BankAccountOption[]>({
+    queryKey: ['finance', 'bank-accounts'],
+    queryFn: async () => {
+      try {
+        const res = await api.get<{ data?: BankAccountOption[] } | BankAccountOption[]>('/finance/bank-accounts');
+        return Array.isArray(res.data) ? res.data : (res.data as { data?: BankAccountOption[] })?.data ?? [];
+      } catch {
+        return [];
+      }
+    },
+  });
 
   // Form State
   const [formData, setFormData] = useState<{
@@ -159,18 +178,54 @@ export function PurchaseBillsSection() {
     },
   });
 
+  const handleOpenPayModal = (bill: PurchaseBill) => {
+    setActiveBill(bill);
+    const total = parseFloat(bill.grand_total || '0') || 0;
+    const paid = parseFloat(bill.paid_amount || '0') || 0;
+    const remaining = Math.max(0, Math.round((total - paid) * 100) / 100);
+    setPaySplits([
+      {
+        id: `split-${Date.now()}`,
+        method: 'bank_transfer',
+        amount: remaining,
+        ...(bankAccounts[0] ? { bank_account_id: bankAccounts[0].id } : {}),
+      },
+    ]);
+    setIsPayValid(remaining > 0);
+    setShowPayModal(true);
+  };
+
   const payMutation = useMutation({
-    mutationFn: async (billId: number) => {
-      await api.post(`/purchasing/bills/${billId}/pay`, {});
+    mutationFn: async ({ billId, splits }: { billId: number; splits: PaymentSplitRow[] }) => {
+      const activeSplits = splits.filter((s) => Number(s.amount) > 0);
+      const splitSum = activeSplits.reduce((s, r) => s + (Number(r.amount) || 0), 0);
+      const primaryMethod = activeSplits.length > 1 ? 'split' : (activeSplits[0]?.method || 'bank_transfer');
+
+      await api.post(`/purchasing/bills/${billId}/pay`, {
+        amount: splitSum.toFixed(4),
+        method: primaryMethod,
+        splits: activeSplits.map((s) => ({
+          method: s.method,
+          amount: s.amount.toFixed(4),
+          ...(s.bank_account_id ? { bank_account_id: s.bank_account_id } : {}),
+          ...(s.mobile_provider ? { mobile_provider: s.mobile_provider } : {}),
+          ...(s.mobile_number ? { mobile_number: s.mobile_number } : {}),
+          ...(s.transaction_ref ? { transaction_ref: s.transaction_ref } : {}),
+          ...(s.cheque_number ? { cheque_number: s.cheque_number } : {}),
+          ...(s.cheque_date ? { cheque_date: s.cheque_date } : {}),
+          ...(s.card_last4 ? { card_last4: s.card_last4 } : {}),
+          ...(s.notes ? { notes: s.notes } : {}),
+        })),
+      });
     },
     onSuccess: () => {
       toast.success('Payment recorded for purchase bill.');
       setShowPayModal(false);
       queryClient.invalidateQueries({ queryKey: ['purchasing', 'bills'] });
+      queryClient.invalidateQueries({ queryKey: ['sales', 'payments'] });
     },
-    onError: () => {
-      toast.info('Payment recorded in local session.');
-      setShowPayModal(false);
+    onError: (err: unknown) => {
+      toast.error(err instanceof Error ? err.message : 'Failed to record bill payment');
     },
   });
 
@@ -199,7 +254,7 @@ export function PurchaseBillsSection() {
   const handleRecordPayment = async (billId: number) => {
     setActionLoading(billId);
     try {
-      await payMutation.mutateAsync(billId);
+      await payMutation.mutateAsync({ billId, splits: paySplits });
     } finally {
       setActionLoading(null);
     }
@@ -724,8 +779,7 @@ export function PurchaseBillsSection() {
                       onClick={() => {
                         setOpenActionMenuId(null);
                         setActionMenuAnchor(null);
-                        setActiveBill(bill);
-                        setShowPayModal(true);
+                        handleOpenPayModal(bill);
                       }}
                       className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left text-primary hover:bg-primary/10 transition-colors cursor-pointer font-medium"
                     >
@@ -1040,16 +1094,19 @@ export function PurchaseBillsSection() {
 
       {/* RECORD PAYMENT MODAL */}
       {showPayModal && activeBill && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs">
-          <div className="w-full max-w-md rounded-2xl border border-default bg-surface p-6 shadow-xl space-y-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs animate-fade-in">
+          <div className="w-full max-w-xl max-h-[90vh] overflow-y-auto rounded-2xl border border-default bg-surface p-6 shadow-2xl space-y-4">
             <div className="flex items-center justify-between border-b border-default pb-3">
-              <h3 className="text-base font-bold text-default">Record Vendor Payment</h3>
-              <button onClick={() => setShowPayModal(false)} className="text-muted hover:text-default cursor-pointer">
+              <div>
+                <h3 className="text-base font-bold text-default">Record Vendor Payment</h3>
+                <p className="text-xs text-muted mt-0.5">Disburse payment settlement for supplier bill</p>
+              </div>
+              <button onClick={() => setShowPayModal(false)} className="rounded-lg p-1 text-muted hover:bg-surface-sunken hover:text-default cursor-pointer">
                 ✕
               </button>
             </div>
 
-            <div className="bg-surface-sunken p-3 rounded-xl border border-default text-xs space-y-1.5 font-mono">
+            <div className="bg-surface-sunken p-3.5 rounded-xl border border-default text-xs space-y-1.5 font-mono">
               <div className="flex justify-between">
                 <span className="text-muted">Vendor:</span>
                 <span className="text-default font-semibold">{activeBill.supplier_name}</span>
@@ -1059,47 +1116,59 @@ export function PurchaseBillsSection() {
                 <span className="text-default">{activeBill.bill_number}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted">Net Payable Amount:</span>
+                <span className="text-muted">Net Bill Total:</span>
+                <span className="text-default">{formatCurrency(activeBill.grand_total)}</span>
+              </div>
+              <div className="flex justify-between pt-1 border-t border-default/40">
+                <span className="text-muted">Outstanding Balance:</span>
                 <span className="text-emerald-600 dark:text-emerald-400 font-bold text-sm">
-                  {formatCurrency(activeBill.grand_total)}
+                  {formatCurrency(
+                    Math.max(
+                      0,
+                      (parseFloat(activeBill.grand_total || '0') || 0) -
+                        (parseFloat(activeBill.paid_amount || '0') || 0)
+                    )
+                  )}
                 </span>
               </div>
             </div>
 
-            <div className="space-y-3 text-xs">
-              <div>
-                <label className="block font-semibold text-muted mb-1">Payment Method</label>
-                <select className="w-full rounded-xl border border-default bg-surface-sunken px-3 py-2 text-default">
-                  <option>City Bank Corporate Account (Acct: ...9021)</option>
-                  <option>BRAC Bank Treasury Account (Acct: ...4410)</option>
-                  <option>Petty Cash Drawer</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block font-semibold text-muted mb-1">Bank Reference / Transaction ID</label>
-                <input
-                  type="text"
-                  placeholder="e.g. TXN-BEFTN-9984102"
-                  className="w-full rounded-xl border border-default bg-surface-sunken px-3 py-2 text-default font-mono"
-                />
-              </div>
+            <div className="space-y-2">
+              <label className="block text-xs font-semibold text-default">Payment Method Allocation</label>
+              <PaymentSplitEditor
+                totalAmount={
+                  Math.max(
+                    0,
+                    (parseFloat(activeBill.grand_total || '0') || 0) -
+                      (parseFloat(activeBill.paid_amount || '0') || 0)
+                  )
+                }
+                currencySymbol={currencyCode}
+                bankAccounts={bankAccounts}
+                splits={paySplits}
+                onChange={(newSplits, valid) => {
+                  setPaySplits(newSplits);
+                  setIsPayValid(valid);
+                }}
+                allowPartial={true}
+              />
             </div>
 
-            <div className="flex items-center justify-end gap-2 pt-2 border-t border-default">
+            <div className="flex items-center justify-end gap-2 pt-3 border-t border-default">
               <button
                 type="button"
                 onClick={() => setShowPayModal(false)}
-                className="px-4 py-2 rounded-xl border border-default text-muted hover:text-default cursor-pointer"
+                className="px-4 py-2 rounded-xl border border-default text-xs font-medium text-muted hover:bg-surface-sunken hover:text-default cursor-pointer transition-colors"
               >
                 Cancel
               </button>
               <button
                 type="button"
+                disabled={payMutation.isPending || !isPayValid}
                 onClick={() => handleRecordPayment(activeBill.id)}
-                className="px-4 py-2 rounded-xl bg-emerald-600 text-white font-semibold hover:bg-emerald-700 cursor-pointer"
+                className="px-4 py-2 rounded-xl bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 disabled:opacity-50 cursor-pointer shadow-xs transition-all"
               >
-                Confirm Settlement
+                {payMutation.isPending ? 'Recording Settlement...' : 'Confirm Settlement'}
               </button>
             </div>
           </div>

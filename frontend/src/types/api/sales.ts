@@ -187,6 +187,22 @@ export interface PaymentAllocation {
   amount: string;
 }
 
+export interface PaymentSplit {
+  id: number;
+  payment_id: number;
+  method: string;
+  amount: string;
+  bank_account_id?: number | null;
+  bank_account?: { id: number; account_name: string; account_number?: string } | null;
+  mobile_provider?: string | null;
+  mobile_number?: string | null;
+  transaction_ref?: string | null;
+  cheque_number?: string | null;
+  cheque_date?: string | null;
+  card_last4?: string | null;
+  notes?: string | null;
+}
+
 export interface Payment {
   id: number;
   uuid: string;
@@ -209,6 +225,7 @@ export interface Payment {
   posted_at?: string | null;
   created_at?: string;
   allocations?: PaymentAllocation[];
+  splits?: PaymentSplit[];
 }
 
 export interface SalesReturnItem {

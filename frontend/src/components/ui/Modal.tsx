@@ -77,6 +77,7 @@ const sizeMap = {
   md: 'max-w-(--modal-width-md)',
   lg: 'max-w-(--modal-width-lg)',
   xl: 'max-w-(--modal-width-xl)',
+  full: 'max-w-(--modal-width-full)',
 } as const;
 
 // ── Drawer widths ───────────────────────────────────────────────────────────
@@ -100,7 +101,7 @@ interface ModalProps {
   icon?: React.ReactNode;
   children: React.ReactNode;
   footer?: React.ReactNode;
-  size?: 'sm' | 'md' | 'lg' | 'xl';
+  size?: 'sm' | 'md' | 'lg' | 'xl' | 'full';
   className?: string;
   /** §4.2 defect 9 — suppresses scrim click when the form has unsaved changes. */
   isDirty?: boolean;
@@ -234,8 +235,8 @@ export function Modal({
               className={cn(
                 'relative z-(--z-modal) max-h-[90vh] sm:max-h-[92vh] overflow-y-auto w-full',
                 'rounded-t-3xl sm:rounded-2xl p-4 sm:p-6 pb-6 sm:pb-6',
-                'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100',
-                'border-t sm:border border-slate-200 dark:border-slate-800 shadow-2xl',
+                'bg-surface text-default',
+                'border-t sm:border border-default shadow-2xl',
                 'outline-none transition-all',
                 sizeMap[size],
                 className
@@ -246,7 +247,7 @@ export function Modal({
               exit="hidden"
             >
               {/* Mobile Drag Indicator */}
-              <div className="sm:hidden w-12 h-1.5 rounded-full bg-slate-300 dark:bg-slate-700 mx-auto mb-3 shrink-0" aria-hidden="true" />
+              <div className="sm:hidden w-12 h-1.5 rounded-full bg-surface-sunken mx-auto mb-3 shrink-0" aria-hidden="true" />
 
               {/* Top Linear Gradient Glow Accent */}
               <div
@@ -256,26 +257,26 @@ export function Modal({
 
               {/* Header */}
               {!hideHeader && (
-                <div className="mb-5 flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3.5">
+                <div className="mb-5 flex items-center justify-between border-b border-default pb-3.5">
                   <div className="flex items-center gap-2.5 min-w-0">
                     {icon && (
-                      <div className="size-8.5 rounded-xl bg-primary/10 border border-primary/20 text-primary flex items-center justify-center shrink-0 shadow-xs">
+                      <div className="size-8.5 rounded-xl bg-primary-subtle border border-primary/20 text-primary flex items-center justify-center shrink-0 shadow-xs">
                         {icon}
                       </div>
                     )}
                     <div className="min-w-0">
-                      <h2 id={titleId} className="text-base font-bold text-slate-900 dark:text-white tracking-tight truncate">
+                      <h2 id={titleId} className="text-base font-bold text-default tracking-tight truncate">
                         {title}
                       </h2>
                       {subtitle && (
-                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 truncate">{subtitle}</p>
+                        <p className="text-xs text-muted mt-0.5 truncate">{subtitle}</p>
                       )}
                     </div>
                   </div>
                   <button
                     type="button"
                     onClick={onClose}
-                    className="inline-flex size-8 shrink-0 items-center justify-center rounded-xl text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer border border-transparent hover:border-slate-200 dark:hover:border-slate-700"
+                    className="inline-flex size-8 shrink-0 items-center justify-center rounded-xl text-muted hover:text-default hover:bg-surface-sunken transition-all cursor-pointer border border-transparent hover:border-default"
                     aria-label="Close modal"
                   >
                     <X className="size-4" aria-hidden="true" />
