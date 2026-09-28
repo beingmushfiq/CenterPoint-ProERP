@@ -65,7 +65,7 @@ final class TenantPersonaService
             'slug' => 'storekeeper',
             'description' => 'Inventory ledger, transfers, and Goods Receipts',
             'is_system' => false,
-            'email_prefixes' => ['store', 'warehouse'],
+            'email_prefixes' => ['store'],
             'default_user_name' => 'Rafiq Store In-Charge',
             'phone' => '+8801700000004',
         ],
@@ -361,16 +361,11 @@ final class TenantPersonaService
         foreach ($prefixes as $prefix) {
             $prefix = strtolower($prefix);
 
-            // Primary standard email: prefix@slug.com
-            $emails[] = "{$prefix}@{$slug}.com";
-
-            // Tenant 1 (SliceMart / DCP flagship) special aliases
+            // Canonical standard email for each tenant
             if ($tenant->id === 1 || $slug === 'slicemart') {
-                $emails[] = "{$prefix}@dcp.com";
                 $emails[] = "{$prefix}@slicemart.test";
-            } elseif ($slug === 'demoerp') {
-                // demoerp canonical
-                $emails[] = "{$prefix}@demoerp.com";
+            } else {
+                $emails[] = "{$prefix}@{$slug}.com";
             }
         }
 

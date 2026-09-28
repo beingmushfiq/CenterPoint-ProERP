@@ -1142,40 +1142,60 @@ export const TenantDetailWorkspace: React.FC = () => {
       {/* Tab: Scoped Users */}
       {activeTab === 'users' && (
         <div className="p-6 rounded-2xl bg-surface border border-default shadow-xl">
-          <h2 className="text-sm font-bold text-default uppercase tracking-wider font-mono mb-4">
-            Users Enrolled in Tenant #{tenant.id}
-          </h2>
+          <div className="flex items-center justify-between border-b border-default pb-4 mb-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <Users className="size-4 text-amber-500" />
+                <h2 className="text-sm font-bold text-default uppercase tracking-wider font-sans">
+                  Users Enrolled in Tenant #{tenant.id}
+                </h2>
+              </div>
+              <p className="text-muted text-[11px] mt-0.5 font-sans">
+                Active tenant workspace members and enterprise administrators.
+              </p>
+            </div>
+            <span className="px-2.5 py-1 rounded-lg bg-surface-sunken border border-default text-xs font-semibold text-muted">
+              Total: {users.length}
+            </span>
+          </div>
+
           {users.length > 0 ? (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs font-mono">
-                <thead className="border-b border-default text-muted uppercase text-[10px]">
+            <div className="overflow-x-auto rounded-xl border border-default">
+              <table className="w-full text-left text-xs font-sans">
+                <thead className="bg-surface-sunken border-b border-default text-muted uppercase text-[10px] tracking-wider">
                   <tr>
-                    <th className="pb-3">User ID</th>
-                    <th className="pb-3">Name</th>
-                    <th className="pb-3">Email</th>
-                    <th className="pb-3">Status</th>
-                    <th className="pb-3">Last Active</th>
-                    <th className="pb-3 text-right">Actions</th>
+                    <th className="py-3 px-4 font-semibold">User ID</th>
+                    <th className="py-3 px-4 font-semibold">Name</th>
+                    <th className="py-3 px-4 font-semibold">Email</th>
+                    <th className="py-3 px-4 font-semibold">Status</th>
+                    <th className="py-3 px-4 font-semibold">Last Active</th>
+                    <th className="py-3 px-4 font-semibold text-right">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-default">
+                <tbody className="divide-y divide-default bg-surface">
                   {users.map((u) => (
-                    <tr key={u.id} className="hover:bg-surface-sunken">
-                      <td className="py-3 text-muted">#{u.id}</td>
-                      <td className="py-3 text-default font-bold">{u.name}</td>
-                      <td className="py-3 text-default">{u.email}</td>
-                      <td className="py-3 text-emerald-600 dark:text-emerald-400 uppercase font-bold">{u.status}</td>
-                      <td className="py-3 text-muted">
+                    <tr key={u.id} className="hover:bg-surface-sunken/60 transition-colors">
+                      <td className="py-3.5 px-4 text-muted font-mono text-[11px]">#{u.id}</td>
+                      <td className="py-3.5 px-4 text-default font-semibold">{u.name}</td>
+                      <td className="py-3.5 px-4 text-muted font-mono text-[11px]">{u.email}</td>
+                      <td className="py-3.5 px-4">
+                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                          <span className="size-1.5 rounded-full bg-emerald-500" />
+                          {u.status}
+                        </span>
+                      </td>
+                      <td className="py-3.5 px-4 text-muted text-[11px]">
                         {u.last_login_at ? new Date(u.last_login_at).toLocaleString() : 'Never'}
                       </td>
-                      <td className="py-3 text-right">
+                      <td className="py-3.5 px-4 text-right">
                         <button
                           type="button"
                           onClick={() => setDeleteUserModal({ id: u.id, name: u.name, email: u.email })}
-                          className="p-1.5 rounded-lg hover:bg-rose-500/10 text-muted hover:text-rose-500 transition-colors cursor-pointer"
+                          className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-rose-500/30 bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 text-xs font-semibold transition-all cursor-pointer shadow-2xs"
                           title="Remove user from tenant"
                         >
                           <Trash2 className="size-3.5" />
+                          <span>Remove</span>
                         </button>
                       </td>
                     </tr>
@@ -1184,8 +1204,8 @@ export const TenantDetailWorkspace: React.FC = () => {
               </table>
             </div>
           ) : (
-            <div className="py-8 text-center text-muted text-xs font-mono">
-              No users loaded for this tenant.
+            <div className="py-12 text-center text-muted text-xs font-sans">
+              No users enrolled in this tenant.
             </div>
           )}
         </div>
