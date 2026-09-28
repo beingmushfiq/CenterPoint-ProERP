@@ -442,6 +442,66 @@ class PlatformTenantController extends Controller
     }
 
     /**
+     * Remove / soft-delete a specific user from a tenant by platform administrator.
+     */
+    public function deleteUser(int|string $id, int $userId, Request $request): JsonResponse
+    {
+        $tenant = $this->resolvePlatformTenant($id, true);
+
+        /** @var User $user */
+        $user = User::withoutTenantScope()
+            ->where('tenant_id', $tenant->id)
+            ->findOrFail($userId);
+
+        if ($user->is_platform_user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Platform super administrator accounts cannot be deleted from tenant context.',
+            ], 422);
+        }
+
+        $userName = $user->name;
+        $userEmail = $user->email;
+
+        \Illuminate\Support\Facades\DB::transaction(function () use ($user, $tenant, $request, $userName, $userEmail): void {
+            if ($user->employee) {
+                $user->employee->update(['user_id' => null]);
+            }
+
+            $user->refreshTokens()->delete();
+            $user->token_version = ($user->token_version ?? 1) + 1;
+            $user->status = 'suspended';
+            $user->save();
+            $user->delete();
+
+            $auditLog = new AuditLog([
+                'uuid' => (string) \Illuminate\Support\Str::uuid(),
+                'user_id' => $request->user()?->id,
+                'action' => \App\Core\Audit\AuditAction::Deleted,
+                'auditable_type' => 'User',
+                'auditable_id' => $user->id,
+                'before' => ['name' => $userName, 'email' => $userEmail, 'tenant_id' => $tenant->id],
+                'after' => ['status' => 'deleted', 'deleted_at' => Carbon::now()->toIso8601String()],
+                'context' => ['target_tenant_id' => $tenant->id],
+                'ip' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+                'created_at' => Carbon::now(),
+            ]);
+            $auditLog->tenant_id = null;
+            $auditLog->save();
+        });
+
+        return response()->json([
+            'success' => true,
+            'message' => "User '{$userName}' was successfully removed from Tenant #{$tenant->id}.",
+            'meta' => [
+                'correlation_id' => (string) $request->header('X-Correlation-Id', ''),
+                'timestamp' => Carbon::now()->toIso8601String(),
+            ],
+        ]);
+    }
+
+    /**
      * Format tenant details for profile response.
      *
      * @return array<string, mixed>

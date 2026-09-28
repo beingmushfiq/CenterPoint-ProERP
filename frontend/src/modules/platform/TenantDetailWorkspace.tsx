@@ -7,6 +7,7 @@ import { api, setAccessToken } from '../../lib/api/client';
 import type { PlatformTenant, PlatformPlan, PlatformPayment } from '../../types/api/platform';
 import { PlatformPulseLoader } from '../../components/platform/PlatformPulseLoader';
 import { Button } from '../../components/ui/Button';
+import { notify } from '../../components/ui/Toast';
 import {
   Building2,
   CreditCard,
@@ -98,6 +99,8 @@ export const TenantDetailWorkspace: React.FC = () => {
   const [actionLoading, setActionLoading] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [deleteConfirmation, setDeleteConfirmation] = useState('');
+  const [deleteUserModal, setDeleteUserModal] = useState<{ id: number; name: string; email: string } | null>(null);
+  const [deletingUser, setDeletingUser] = useState(false);
 
   // Tenant Metadata Edit State
   const [editName, setEditName] = useState('');
@@ -478,6 +481,22 @@ export const TenantDetailWorkspace: React.FC = () => {
       toast.error(msg);
     } finally {
       setActionLoading(false);
+    }
+  };
+
+  const handleDeleteTenantUser = async () => {
+    if (!deleteUserModal || !tenant?.id) return;
+    setDeletingUser(true);
+    try {
+      await api.delete(`/platform/tenants/${tenant.id}/users/${deleteUserModal.id}`);
+      notify.success(`User '${deleteUserModal.name}' was removed from Tenant #${tenant.id}.`);
+      setDeleteUserModal(null);
+      await refetch();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to delete user';
+      notify.error(msg);
+    } finally {
+      setDeletingUser(false);
     }
   };
 
@@ -1136,6 +1155,7 @@ export const TenantDetailWorkspace: React.FC = () => {
                     <th className="pb-3">Email</th>
                     <th className="pb-3">Status</th>
                     <th className="pb-3">Last Active</th>
+                    <th className="pb-3 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-default">
@@ -1147,6 +1167,16 @@ export const TenantDetailWorkspace: React.FC = () => {
                       <td className="py-3 text-emerald-600 dark:text-emerald-400 uppercase font-bold">{u.status}</td>
                       <td className="py-3 text-muted">
                         {u.last_login_at ? new Date(u.last_login_at).toLocaleString() : 'Never'}
+                      </td>
+                      <td className="py-3 text-right">
+                        <button
+                          type="button"
+                          onClick={() => setDeleteUserModal({ id: u.id, name: u.name, email: u.email })}
+                          className="p-1.5 rounded-lg hover:bg-rose-500/10 text-muted hover:text-rose-500 transition-colors cursor-pointer"
+                          title="Remove user from tenant"
+                        >
+                          <Trash2 className="size-3.5" />
+                        </button>
                       </td>
                     </tr>
                   ))}
@@ -1653,6 +1683,45 @@ export const TenantDetailWorkspace: React.FC = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Delete Tenant User */}
+      {deleteUserModal && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="w-full max-w-md p-6 rounded-2xl bg-surface border border-default shadow-2xl space-y-4 font-mono">
+            <div className="flex items-center gap-3 text-rose-500">
+              <AlertTriangle className="size-5" />
+              <h3 className="font-bold text-sm uppercase tracking-wider text-default">
+                Remove User from Tenant #{tenant.id}
+              </h3>
+            </div>
+            <p className="text-xs text-muted leading-relaxed">
+              Are you sure you want to remove user <strong>{deleteUserModal.name}</strong> ({deleteUserModal.email}) from Tenant #{tenant.id}?
+            </p>
+            <div className="p-3 rounded-xl bg-surface-sunken border border-default text-[11px] text-muted space-y-1">
+              <p>• User login sessions and refresh tokens will be revoked immediately.</p>
+              <p>• User row will be soft-deleted to maintain relational and audit integrity.</p>
+            </div>
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setDeleteUserModal(null)}
+                disabled={deletingUser}
+                className="px-4 py-2 rounded-xl bg-surface-sunken hover:bg-surface border border-default text-xs font-semibold text-default cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteTenantUser}
+                disabled={deletingUser}
+                className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold flex items-center gap-2 cursor-pointer disabled:opacity-50"
+              >
+                {deletingUser ? 'Removing...' : 'Confirm Removal'}
+              </button>
+            </div>
           </div>
         </div>
       )}

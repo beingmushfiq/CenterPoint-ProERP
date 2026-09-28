@@ -510,6 +510,66 @@ class UserController extends Controller
         ]);
     }
 
+    /**
+     * Remove / soft-delete a user account within the current tenant.
+     */
+    public function destroy(int $id, Request $request, AuditLogger $auditLogger): JsonResponse
+    {
+        $tenantId = $this->resolveTenantId($request);
+
+        $user = User::query()
+            ->when($tenantId, fn ($q) => $q->where('tenant_id', $tenantId), fn ($q) => $q->whereNull('tenant_id'))
+            ->findOrFail($id);
+
+        // Cannot delete self
+        if ($request->user() && $request->user()->id === $user->id) {
+            throw ValidationException::withMessages([
+                'user' => ['You cannot delete your own user account.'],
+            ]);
+        }
+
+        // Cannot delete platform admin
+        if ($user->is_platform_admin || $user->is_platform_user) {
+            throw ValidationException::withMessages([
+                'user' => ['Platform super administrator accounts cannot be deleted here.'],
+            ]);
+        }
+
+        $userName = $user->name;
+        $userEmail = $user->email;
+
+        DB::transaction(function () use ($user, $tenantId, $request, $auditLogger, $userName, $userEmail): void {
+            // Unlink from employee if linked
+            if ($user->employee) {
+                $user->employee->update(['user_id' => null]);
+            }
+
+            // Invalidate all tokens and sessions
+            $user->refreshTokens()->delete();
+            $user->token_version = ($user->token_version ?? 1) + 1;
+            $user->status = 'suspended';
+            $user->save();
+
+            // Soft-delete user row
+            $user->delete();
+
+            $auditLogger->record(
+                action: AuditAction::Deleted,
+                auditable: $user,
+                before: ['name' => $userName, 'email' => $userEmail, 'status' => $user->status],
+                after: ['deleted_at' => \Carbon\Carbon::now()->toIso8601String()],
+                actor: $request->user(),
+                context: ['tenant_id' => $tenantId, 'action' => 'delete_user'],
+                ip: $request->ip(),
+                userAgent: $request->userAgent()
+            );
+        });
+
+        return response()->json([
+            'message' => "User '{$userName}' has been deleted successfully.",
+        ]);
+    }
+
     private function resolveTenantId(Request $request): ?int
     {
         if (TenantContext::isBound()) {

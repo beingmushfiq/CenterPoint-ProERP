@@ -61,6 +61,7 @@ Route::prefix('v1/platform')
             Route::post('tenants/{id}/override-quotas', [PlatformTenantController::class, 'overrideQuotas'])->name('tenants.override-quotas');
             Route::post('tenants/{id}/reset-password', [PlatformTenantController::class, 'resetOwnerPassword'])->name('tenants.reset-password');
             Route::post('tenants/{id}/impersonate', [PlatformImpersonationController::class, 'impersonate'])->name('tenants.impersonate');
+            Route::delete('tenants/{id}/users/{userId}', [PlatformTenantController::class, 'deleteUser'])->name('tenants.users.destroy');
 
             // Tenant Payments
             Route::get('tenants/{id}/payments', [PlatformSubscriptionPaymentController::class, 'index'])->name('tenants.payments');

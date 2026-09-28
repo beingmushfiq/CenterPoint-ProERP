@@ -1217,6 +1217,8 @@ Route::middleware(['auth.jwt', 'tenant.resolve', 'tenant.active'])
                 ->middleware('permission:core.user.update')->name('toggle-status');
             Route::post('{id}/reset-password', [App\Modules\Auth\Controllers\UserController::class, 'resetPassword'])
                 ->middleware('permission:core.user.update')->name('reset-password');
+            Route::delete('{id}', [App\Modules\Auth\Controllers\UserController::class, 'destroy'])
+                ->middleware('permission:core.user.delete')->name('destroy');
         });
 
         // ── RBAC & Role Management ──────────────────────────────────

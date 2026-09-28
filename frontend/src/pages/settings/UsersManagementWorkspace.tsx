@@ -15,6 +15,8 @@ import {
   ChevronRight,
   Filter,
   Edit,
+  Trash2,
+  AlertTriangle,
 } from 'lucide-react';
 import { api } from '../../lib/api/client';
 import { extractList } from '../../lib/api/apiData';
@@ -83,10 +85,11 @@ export interface UnlinkedEmployeeOption {
 }
 
 export const UsersManagementWorkspace: React.FC = () => {
-  const { hasPermission } = useAuthStore();
+  const { hasPermission, user: currentUser } = useAuthStore();
   const canManageRoles = hasPermission('core.role.manage') || hasPermission('core.role.update');
   const canCreateUser = hasPermission('core.user.create') || hasPermission('core.role.manage');
   const canUpdateUser = hasPermission('core.user.update') || hasPermission('core.role.manage');
+  const canDeleteUser = hasPermission('core.user.delete') || hasPermission('core.role.manage') || hasPermission('core.user.manage') || !!currentUser?.is_platform_admin;
 
   const [users, setUsers] = useState<UserData[]>([]);
   const [availableRoles, setAvailableRoles] = useState<RoleOption[]>([]);
@@ -105,6 +108,8 @@ export const UsersManagementWorkspace: React.FC = () => {
   const [rolesModalUser, setRolesModalUser] = useState<UserData | null>(null);
   const [passwordModalUser, setPasswordModalUser] = useState<UserData | null>(null);
   const [toggleStatusUser, setToggleStatusUser] = useState<UserData | null>(null);
+  const [deleteModalUser, setDeleteModalUser] = useState<UserData | null>(null);
+  const [deletingUser, setDeletingUser] = useState(false);
   const [editUserModalOpen, setEditUserModalOpen] = useState(false);
   const [editingUserData, setEditingUserData] = useState<UserData | null>(null);
   const [editLoading, setEditLoading] = useState(false);
@@ -408,6 +413,22 @@ export const UsersManagementWorkspace: React.FC = () => {
       notify.error(msg);
     } finally {
       setEditSubmitting(false);
+    }
+  };
+
+  const handleDeleteUser = async () => {
+    if (!deleteModalUser) return;
+    setDeletingUser(true);
+    try {
+      await api.delete(`/users/${deleteModalUser.id}`);
+      notify.success(`User '${deleteModalUser.name}' was deleted successfully.`);
+      setDeleteModalUser(null);
+      await loadData(true);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to delete user account';
+      notify.error(msg);
+    } finally {
+      setDeletingUser(false);
     }
   };
 
@@ -824,6 +845,18 @@ export const UsersManagementWorkspace: React.FC = () => {
                               title="Reset password"
                             >
                               <KeyRound className="w-3.5 h-3.5 text-muted-foreground hover:text-foreground" />
+                            </Button>
+                          )}
+
+                          {canDeleteUser && String(user.id) !== String(currentUser?.id) && !user.is_platform_admin && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setDeleteModalUser(user)}
+                              className="h-8 w-8 p-0 text-muted-foreground hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30"
+                              title="Delete user account"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
                             </Button>
                           )}
                         </div>
@@ -1296,6 +1329,61 @@ export const UsersManagementWorkspace: React.FC = () => {
             </div>
           </form>
         ) : null}
+      </Modal>
+
+      {/* ═══════════════════════════════════════════════════════════════ */}
+      {/* MODAL: CONFIRM DELETE USER                                    */}
+      {/* ═══════════════════════════════════════════════════════════════ */}
+      <Modal
+        open={!!deleteModalUser}
+        onClose={() => !deletingUser && setDeleteModalUser(null)}
+        title="Delete User Account"
+        subtitle={`Permanently revoke access and remove ${deleteModalUser?.name}`}
+        size="md"
+        footer={
+          <div className="flex items-center justify-end gap-3 w-full">
+            <Button
+              variant="secondary"
+              onClick={() => setDeleteModalUser(null)}
+              disabled={deletingUser}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="danger"
+              onClick={handleDeleteUser}
+              disabled={deletingUser}
+              className="gap-2 bg-rose-600 hover:bg-rose-700 text-white"
+            >
+              {deletingUser ? (
+                <>
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                  <span>Deleting...</span>
+                </>
+              ) : (
+                <>
+                  <Trash2 className="w-4 h-4" />
+                  <span>Delete User</span>
+                </>
+              )}
+            </Button>
+          </div>
+        }
+      >
+        <div className="space-y-4 py-2">
+          <div className="p-4 rounded-xl bg-rose-50 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-900/40 text-rose-900 dark:text-rose-200 text-xs space-y-2">
+            <div className="font-bold flex items-center gap-2 text-sm text-rose-700 dark:text-rose-400">
+              <AlertTriangle className="w-4 h-4" />
+              <span>Confirm Account Deletion</span>
+            </div>
+            <p>
+              Are you sure you want to delete user account <strong>{deleteModalUser?.name}</strong> ({deleteModalUser?.email})?
+            </p>
+            <p className="text-[11px] text-rose-800/80 dark:text-rose-300/80">
+              This action will revoke active JWT sessions, unlink any associated employee profile, and disable login credentials. Historic audit logs and created records will preserve data integrity.
+            </p>
+          </div>
+        </div>
       </Modal>
     </div>
   );

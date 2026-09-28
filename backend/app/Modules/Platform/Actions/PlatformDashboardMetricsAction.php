@@ -8,7 +8,6 @@ use App\Core\Actions\Action;
 use App\Models\AuditLog;
 use App\Models\Plan;
 use App\Models\Tenant;
-use App\Models\TenantSubscription;
 use App\Models\User;
 use Carbon\Carbon;
 use DateTimeInterface;
@@ -32,10 +31,17 @@ class PlatformDashboardMetricsAction extends Action
         $suspendedTenants = Tenant::where('status', 'suspended')->count();
         $pastDueTenants = Tenant::where('status', 'past_due')->count();
 
-        // Expiring subscriptions in next 30 days
-        $expiringSubscriptions = TenantSubscription::whereIn('status', ['active', 'trial'])
-            ->whereNotNull('ends_at')
-            ->whereBetween('ends_at', [$now, $thirtyDaysAhead])
+        // Expiring subscriptions in next 30 days (scoped to existing valid tenants)
+        $expiringSubscriptions = Tenant::whereIn('status', ['active', 'trial', 'past_due'])
+            ->where(function ($q) use ($now, $thirtyDaysAhead): void {
+                $q->whereBetween('trial_ends_at', [$now, $thirtyDaysAhead])
+                    ->orWhereHas('subscriptions', function ($subQ) use ($now, $thirtyDaysAhead): void {
+                        $subQ->whereIn('status', ['active', 'trial'])
+                            ->whereNotNull('ends_at')
+                            ->whereBetween('ends_at', [$now, $thirtyDaysAhead]);
+                    });
+            })
+            ->distinct()
             ->count();
 
         // Monthly Recurring Revenue (MRR) approximation from active plan prices
@@ -43,8 +49,10 @@ class PlatformDashboardMetricsAction extends Action
             ->join('plans', 'tenants.plan_id', '=', 'plans.id')
             ->sum('plans.price');
 
-        // Total platform registered users across all tenants
-        $totalUsers = User::count();
+        // Total platform registered users across all valid tenant workspaces (excluding platform admins)
+        $totalUsers = User::where('is_platform_user', false)
+            ->whereHas('tenant')
+            ->count();
 
         // Recent tenant activities from AuditLog
         $recentActivity = AuditLog::withoutTenantScope()

@@ -254,5 +254,29 @@ class PlatformAdministrationTest extends TestCase
         $bySlug->assertJsonPath('success', true);
         $bySlug->assertJsonPath('data.tenant.id', $tenant->id);
     }
+
+    public function test_platform_admin_can_delete_tenant_user(): void
+    {
+        $token = $this->getPlatformToken();
+        $tenant = Tenant::firstOrFail();
+
+        // Create a test user within this tenant
+        $targetUser = User::create([
+            'tenant_id' => $tenant->id,
+            'uuid' => (string) \Illuminate\Support\Str::uuid(),
+            'name' => 'Ephemeral Worker',
+            'email' => 'ephemeral@tenant.test',
+            'password' => \Illuminate\Support\Facades\Hash::make('Secret123!'),
+            'status' => 'active',
+        ]);
+
+        $response = $this->withToken($token)->deleteJson("/api/v1/platform/tenants/{$tenant->id}/users/{$targetUser->id}");
+
+        $response->assertStatus(200);
+        $response->assertJsonPath('success', true);
+
+        // Verify soft-deleted
+        $this->assertSoftDeleted('users', ['id' => $targetUser->id]);
+    }
 }
 
