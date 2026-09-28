@@ -1,5 +1,4 @@
-import React from 'react';
-import { useTranslation } from 'react-i18next';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
@@ -8,24 +7,24 @@ import {
   Factory,
   Warehouse,
   Microscope,
-  Cpu,
   ArrowRight,
   FileText,
   ShoppingCart,
-  CheckCircle2,
+  AlertTriangle,
   Inbox,
+  CheckCircle2,
+  Clock,
 } from 'lucide-react';
 import {
   ResponsiveContainer,
   AreaChart,
   Area,
   XAxis,
-  YAxis,
-  CartesianGrid,
   Tooltip,
 } from 'recharts';
 import { useCurrency } from '../../../lib/format/currency';
 import { api } from '../../../lib/api/client';
+import { cn } from '../../../lib/utils';
 import type { DashboardMetricsData, DashboardInvoiceItem } from '../../../types/api/dashboard';
 import type { DashboardInvoice } from './SalesDashboardView';
 
@@ -57,570 +56,397 @@ const REVENUE_DATA = [
   { day: 'Sun', revenue: 0, production: 0 },
 ];
 
-export const ExecutiveDashboardView: React.FC<ExecutiveDashboardViewProps> = ({
-  onOpenInvoice,
-  trends,
+// ── Custom Tooltip ─────────────────────────────────────────────
+
+const ChartTooltip: React.FC<{ active?: boolean; payload?: Array<{ value: number; dataKey: string }>; label?: string; formatCurrency: (v: number) => string }> = ({
+  active, payload, label, formatCurrency
 }) => {
+  if (!active || !payload?.length) return null;
+  return (
+    <div className="rounded-xl border border-default bg-surface-raised px-3 py-2 shadow-lg text-xs">
+      <p className="font-bold text-default mb-1">{label}</p>
+      {payload.map((p) => (
+        <p key={p.dataKey} className="text-muted font-mono">
+          {p.dataKey === 'revenue' ? 'Revenue: ' : 'Production: '}
+          <span className="text-default font-bold">
+            {p.dataKey === 'revenue' ? formatCurrency(p.value) : `${p.value} pcs`}
+          </span>
+        </p>
+      ))}
+    </div>
+  );
+};
+
+// ── Status badge ───────────────────────────────────────────────
+
+const statusStyle = (status: string) => {
+  const s = status.toUpperCase();
+  if (s === 'PAID' || s === 'DELIVERED' || s === 'COMPLETE') return 'bg-emerald-500/12 text-emerald-600 dark:text-emerald-400 border-emerald-500/20';
+  if (s === 'PARTIAL') return 'bg-amber-500/12 text-amber-600 dark:text-amber-400 border-amber-500/20';
+  if (s === 'UNPAID' || s === 'OVERDUE') return 'bg-red-500/12 text-red-500 border-red-500/20';
+  return 'bg-surface-sunken text-muted border-default';
+};
+
+// ── Health tile ────────────────────────────────────────────────
+
+interface HealthTileProps {
+  label: string;
+  value: string;
+  sub: string;
+  icon: React.ReactNode;
+  status: 'ok' | 'warn' | 'critical';
+  to: string;
+}
+
+const HealthTile: React.FC<HealthTileProps> = ({ label, value, sub, icon, status, to }) => {
+  const bar = { ok: 'bg-emerald-500', warn: 'bg-amber-500', critical: 'bg-red-500' }[status];
+  return (
+    <Link
+      to={to}
+      className="group flex items-center gap-3 rounded-xl border border-default bg-surface hover:bg-surface-sunken p-3 transition-all hover:border-primary/30"
+    >
+      <div className={cn('flex size-8 shrink-0 items-center justify-center rounded-lg border', {
+        'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20': status === 'ok',
+        'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20': status === 'warn',
+        'bg-red-500/10 text-red-500 border-red-500/20': status === 'critical',
+      })}>
+        {icon}
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center justify-between gap-1">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-muted truncate">{label}</span>
+          <ArrowRight className="size-3 text-muted shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
+        </div>
+        <div className="text-sm font-extrabold font-mono text-default">{value}</div>
+        <div className="mt-1 flex items-center gap-1.5">
+          <div className="flex-1 h-1 rounded-full bg-surface-sunken overflow-hidden">
+            <div className={cn('h-full rounded-full transition-all', bar)} style={{ width: sub }} />
+          </div>
+          <span className="text-[10px] text-muted font-mono shrink-0">{sub}</span>
+        </div>
+      </div>
+    </Link>
+  );
+};
+
+// ── Main View ─────────────────────────────────────────────────
+
+export const ExecutiveDashboardView: React.FC<ExecutiveDashboardViewProps> = ({ onOpenInvoice, trends }) => {
   const { formatCurrency, currencySymbol } = useCurrency();
-  const { t } = useTranslation(['dashboard', 'common']);
+  const [chartPeriod, setChartPeriod] = useState<'weekly' | 'monthly'>('weekly');
 
   const { data: metrics } = useQuery<DashboardMetricsData | null>({
     queryKey: ['tenant', 'dashboard', 'metrics'],
     queryFn: async () => {
       try {
-        const res = await api.get<DashboardMetricsData | { data: DashboardMetricsData }>(
-          '/dashboard/metrics'
-        );
+        const res = await api.get<DashboardMetricsData | { data: DashboardMetricsData }>('/dashboard/metrics');
         const raw = res.data;
         if (raw && typeof raw === 'object') {
           if ('commercial' in raw) return raw as DashboardMetricsData;
-          if (
-            'data' in raw &&
-            raw.data &&
-            typeof raw.data === 'object' &&
-            'commercial' in raw.data
-          ) {
-            return raw.data as DashboardMetricsData;
-          }
+          if ('data' in raw && raw.data && typeof raw.data === 'object' && 'commercial' in raw.data) return raw.data as DashboardMetricsData;
         }
         return null;
-      } catch {
-        return null;
-      }
+      } catch { return null; }
     },
     refetchInterval: 10000,
     staleTime: 4000,
   });
 
+  const { data: recentInvoices = [] } = useQuery<DashboardInvoiceItem[]>({
+    queryKey: ['sales', 'recent-invoices-dashboard'],
+    queryFn: async () => {
+      try {
+        const res = await api.get<DashboardInvoiceItem[] | { data: DashboardInvoiceItem[] }>('/sales/invoices?per_page=5');
+        const d = Array.isArray(res.data) ? res.data : (res.data?.data ?? []);
+        return Array.isArray(d) ? d : [];
+      } catch { return []; }
+    },
+  });
+
   const chartData = React.useMemo(() => {
-    const raw =
-      trends && trends.length > 0
-        ? trends
-        : metrics?.trends?.weekly && metrics.trends.weekly.length > 0
-          ? (metrics.trends.weekly as TrendDataPoint[])
-          : null;
+    const raw = trends && trends.length > 0
+      ? trends
+      : metrics?.trends?.weekly && metrics.trends.weekly.length > 0
+        ? (metrics.trends.weekly as TrendDataPoint[])
+        : null;
     if (!raw) return REVENUE_DATA;
     return raw.map((d: TrendDataPoint) => ({
       day: d.day || d.time || 'Day',
       revenue: Number(d.revenue) || 0,
       production: Number(d.production ?? d.produced ?? 0),
-      target: Number(d.target ?? 50),
     }));
   }, [trends, metrics?.trends?.weekly]);
 
-  const { data: recentInvoices = [] } = useQuery<DashboardInvoiceItem[]>({
-    queryKey: ['sales', 'recent-invoices-dashboard'],
-    queryFn: async () => {
-      try {
-        const res = await api.get<DashboardInvoiceItem[] | { data: DashboardInvoiceItem[] }>(
-          '/sales/invoices?per_page=4'
-        );
-        const d = Array.isArray(res.data) ? res.data : (res.data?.data ?? []);
-        return Array.isArray(d) ? d : [];
-      } catch {
-        return [];
-      }
+  const invoices: DashboardInvoice[] = React.useMemo(() =>
+    recentInvoices.map((inv) => ({
+      id: inv.invoice_number,
+      customer: inv.customer?.name || 'Commercial Customer',
+      type: 'B2B' as const,
+      amount: formatCurrency(Number(inv.total_amount) || 0),
+      status: inv.status,
+      payment: inv.payment_status || 'UNPAID',
+      date: inv.invoice_date || (inv.created_at ? new Date(inv.created_at).toLocaleDateString() : 'Recent'),
+    })), [recentInvoices, formatCurrency]);
+
+  // Health tiles data
+  const healthTiles: HealthTileProps[] = [
+    {
+      label: 'Sales & Revenue',
+      value: metrics ? formatCurrency(metrics.commercial.today_revenue) : '—',
+      sub: `${metrics ? Math.min(Math.round((metrics.commercial.today_revenue / Math.max(metrics.commercial.month_revenue / 30, 1)) * 100), 100) : 0}%`,
+      icon: <TrendingUp className="size-4" />,
+      status: 'ok',
+      to: '/sales',
     },
-  });
+    {
+      label: 'Factory Production',
+      value: metrics ? `${metrics.production.achievement_rate}%` : '—',
+      sub: `${Math.min(metrics?.production.achievement_rate ?? 0, 100)}%`,
+      icon: <Factory className="size-4" />,
+      status: !metrics ? 'ok' : metrics.production.achievement_rate >= 80 ? 'ok' : metrics.production.achievement_rate >= 60 ? 'warn' : 'critical',
+      to: '/production',
+    },
+    {
+      label: 'Stock & Warehouse',
+      value: metrics ? `${metrics.inventory.low_stock_count} alerts` : '—',
+      sub: metrics?.inventory.low_stock_count === 0 ? '100%' : `${Math.max(0, 100 - (metrics?.inventory.low_stock_count ?? 0) * 5)}%`,
+      icon: <Warehouse className="size-4" />,
+      status: !metrics ? 'ok' : metrics.inventory.low_stock_count === 0 ? 'ok' : metrics.inventory.low_stock_count < 5 ? 'warn' : 'critical',
+      to: '/inventory',
+    },
+    {
+      label: 'Quality Control',
+      value: metrics ? `${metrics.quality.qc_pass_rate}%` : '—',
+      sub: `${metrics?.quality.qc_pass_rate ?? 0}%`,
+      icon: <Microscope className="size-4" />,
+      status: !metrics ? 'ok' : metrics.quality.qc_pass_rate >= 90 ? 'ok' : metrics.quality.qc_pass_rate >= 75 ? 'warn' : 'critical',
+      to: '/qc',
+    },
+  ];
+
   return (
-    <div className="space-y-6 animate-in fade-in duration-200">
-      {/* ─────────────────────────────────────────────────────────────
-          1. HEADER & EXECUTIVE GREETING
-      ───────────────────────────────────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-default pb-4">
-        <div>
-          <div className="flex items-center gap-2 flex-wrap">
-            <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-default font-sans">
-              {t('controls.operationsOverview', { defaultValue: 'Executive Operations Overview' })}
-            </h2>
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 shrink-0">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              {t('controls.allSystemsOperational')}
-            </span>
-          </div>
-          <p className="text-xs text-muted mt-0.5">
-            {t('controls.enterpriseSummary')}
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2 flex-wrap">
-          <Link
-            to="/reports"
-            className="flex items-center gap-1.5 rounded-xl border border-default bg-surface px-3 py-2 text-xs font-semibold text-default hover:bg-surface-sunken transition-all shadow-2xs"
-          >
-            <FileText className="size-3.5 text-muted" />
-            <span>{t('controls.rmsReports')}</span>
-          </Link>
-          <Link
-            to="/pos"
-            className="flex items-center gap-1.5 rounded-xl bg-linear-to-r from-blue-600 to-indigo-600 px-3.5 py-2 text-xs font-semibold text-white shadow-xs hover:from-blue-500 hover:to-indigo-500 transition-all"
-          >
-            <ShoppingCart className="size-3.5" />
-            <span>{t('controls.posTerminal')}</span>
-          </Link>
-        </div>
-      </div>
-
-      {/* ─────────────────────────────────────────────────────────────
-          2. 6-KPI EXECUTIVE STRIP
-      ───────────────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-3">
-        {/* KPI 1: Total Revenue */}
-        <div className="rounded-2xl border border-default bg-surface p-3.5 sm:p-4 shadow-xs flex flex-col justify-between hover:border-primary/40 transition-all">
+    <div className="space-y-4">
+      {/* ─────────────────────────────────────────────────────────
+          HERO: 60/40 Split — Chart + Critical Feed
+      ───────────────────────────────────────────────────────── */}
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+        {/* LEFT 60% — Revenue Trend Chart */}
+        <div className="lg:col-span-3 rounded-2xl border border-default bg-surface p-5 shadow-sm flex flex-col gap-4">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold text-muted uppercase tracking-wider truncate">
-              {t('kpi.todayRevenue', { defaultValue: "TODAY'S REVENUE" })}
-            </span>
-            <div className="flex size-7 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 shrink-0 ml-1">
-              <TrendingUp className="size-3.5" />
-            </div>
-          </div>
-          <div className="mt-2 min-w-0">
-            <div className="text-lg sm:text-2xl font-extrabold font-mono text-default truncate" title={metrics ? formatCurrency(metrics.commercial.today_revenue) : formatCurrency(0)}>
-              {metrics ? formatCurrency(metrics.commercial.today_revenue) : formatCurrency(0)}
-            </div>
-            <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 truncate block">
-              {t('kpi.month')}:{' '}
-              {metrics ? formatCurrency(metrics.commercial.month_revenue) : formatCurrency(0)}
-            </span>
-          </div>
-        </div>
-
-        {/* KPI 2: Active Orders */}
-        <div className="rounded-2xl border border-default bg-surface p-3.5 sm:p-4 shadow-xs flex flex-col justify-between hover:border-primary/40 transition-all">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold text-muted uppercase tracking-wider truncate">
-              {t('kpi.activeOrders')}
-            </span>
-            <div className="flex size-7 items-center justify-center rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 shrink-0 ml-1">
-              <ShoppingBag className="size-3.5" />
-            </div>
-          </div>
-          <div className="mt-2 min-w-0">
-            <div className="text-lg sm:text-2xl font-extrabold font-mono text-default truncate">
-              {metrics ? t('kpi.ordersCount', { count: metrics.commercial.active_orders }) : t('kpi.ordersCount', { count: 0 })}
-            </div>
-            <span className="text-[10px] font-semibold text-muted truncate block">
-              {t('kpi.due')}:{' '}
-              {metrics
-                ? formatCurrency(metrics.commercial.total_receivable_due)
-                : formatCurrency(0)}
-            </span>
-          </div>
-        </div>
-
-        {/* KPI 3: Factory Production */}
-        <div className="rounded-2xl border border-default bg-surface p-3.5 sm:p-4 shadow-xs flex flex-col justify-between hover:border-primary/40 transition-all">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold text-muted uppercase tracking-wider truncate">
-              {t('kpi.todayOutput')}
-            </span>
-            <div className="flex size-7 items-center justify-center rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 shrink-0 ml-1">
-              <Factory className="size-3.5" />
-            </div>
-          </div>
-          <div className="mt-2 min-w-0">
-            <div className="text-lg sm:text-2xl font-extrabold font-mono text-default truncate">
-              {metrics ? t('kpi.pcsCount', { count: metrics.production.today_output }) : t('kpi.pcsCount', { count: 0 })}
-            </div>
-            <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 truncate block">
-              {metrics
-                ? t('kpi.targetAchieved', { percent: metrics.production.achievement_rate })
-                : t('kpi.targetAchieved', { percent: 0 })}
-            </span>
-          </div>
-        </div>
-
-        {/* KPI 4: Inventory Valuation */}
-        <div className="rounded-2xl border border-default bg-surface p-3.5 sm:p-4 shadow-xs flex flex-col justify-between hover:border-primary/40 transition-all">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold text-muted uppercase tracking-wider truncate">
-              {t('kpi.stockValuation')}
-            </span>
-            <div className="flex size-7 items-center justify-center rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 shrink-0 ml-1">
-              <Warehouse className="size-3.5" />
-            </div>
-          </div>
-          <div className="mt-2 min-w-0">
-            <div className="text-lg sm:text-2xl font-extrabold font-mono text-default truncate" title={metrics ? formatCurrency(metrics.inventory.total_valuation) : formatCurrency(0)}>
-              {metrics ? formatCurrency(metrics.inventory.total_valuation) : formatCurrency(0)}
-            </div>
-            <span className="text-[10px] font-semibold text-amber-600 dark:text-amber-400 truncate block">
-              {metrics
-                ? t('kpi.reorderWarnings', { count: metrics.inventory.low_stock_count })
-                : t('kpi.reorderWarnings', { count: 0 })}
-            </span>
-          </div>
-        </div>
-
-        {/* KPI 5: QC Pass Rate */}
-        <div className="rounded-2xl border border-default bg-surface p-3.5 sm:p-4 shadow-xs flex flex-col justify-between hover:border-primary/40 transition-all">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold text-muted uppercase tracking-wider truncate">
-              {t('kpi.qcPassRateTitle')}
-            </span>
-            <div className="flex size-7 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 shrink-0 ml-1">
-              <Microscope className="size-3.5" />
-            </div>
-          </div>
-          <div className="mt-2 min-w-0">
-            <div className="text-lg sm:text-2xl font-extrabold font-mono text-default truncate">
-              {metrics ? `${metrics.quality.qc_pass_rate}%` : '100%'}
-            </div>
-            <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 truncate block">
-              {metrics ? t('kpi.pendingTests', { count: metrics.quality.pending_inspections }) : t('kpi.pendingTests', { count: 0 })}
-            </span>
-          </div>
-        </div>
-
-        {/* KPI 6: Line Capacity */}
-        <div className="rounded-2xl border border-default bg-surface p-3.5 sm:p-4 shadow-xs flex flex-col justify-between hover:border-primary/40 transition-all">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold text-muted uppercase tracking-wider truncate">
-              {t('kpi.facilityCapacity')}
-            </span>
-            <div className="flex size-7 items-center justify-center rounded-lg bg-purple-500/10 text-purple-600 dark:text-purple-400">
-              <Cpu className="size-3.5" />
-            </div>
-          </div>
-          <div className="mt-2">
-            <div className="text-xl sm:text-2xl font-extrabold font-mono text-default">
-              {metrics ? `${metrics.production.achievement_rate}%` : '0%'}
-            </div>
-            <span className="text-[10px] font-semibold text-muted">
-              {metrics ? t('kpi.activeBatches', { count: metrics.production.active_batches }) : t('kpi.activeBatches', { count: 0 })}
-            </span>
-          </div>
-        </div>
-      </div>
-
-
-
-      {/* ─────────────────────────────────────────────────────────────
-          4. CROSS-DEPARTMENT OPERATIONAL HEALTH MATRIX
-      ───────────────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Commercial Department */}
-        <div className="rounded-2xl border border-default bg-surface p-4 shadow-xs flex flex-col justify-between hover:border-primary/40 transition-all">
-          <div>
-            <div className="flex items-center justify-between border-b border-default pb-2.5">
-              <div className="flex items-center gap-2">
-                <ShoppingBag className="size-4 text-blue-500" />
-                <span className="text-xs font-bold text-default">{t('cards.commercialPos')}</span>
-              </div>
-              <span className="rounded-full bg-blue-500/10 px-2 py-0.5 text-[10px] font-bold text-blue-600 dark:text-blue-400">
-                {metrics ? t('kpi.ordersCount', { count: metrics.commercial.active_orders }) : t('kpi.ordersCount', { count: 0 })}
-              </span>
-            </div>
-            <div className="mt-3 space-y-2">
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-muted">{t('cards.todayRevenue')}:</span>
-                <strong className="text-default font-mono">
-                  {metrics ? formatCurrency(metrics.commercial.today_revenue) : formatCurrency(0)}
-                </strong>
-              </div>
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-muted">{t('cards.invoicesPending')}:</span>
-                <strong className="text-amber-500 font-mono">
-                  {metrics
-                    ? formatCurrency(metrics.commercial.total_receivable_due)
-                    : formatCurrency(0)}
-                </strong>
-              </div>
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-muted">{t('cards.posRegister')}:</span>
-                <span className="text-emerald-500 font-semibold flex items-center gap-1">
-                  <span className="size-1.5 rounded-full bg-emerald-500" />
-                  {t('cards.terminalOnline')}
-                </span>
-              </div>
-            </div>
-          </div>
-          <Link
-            to="/sales"
-            className="mt-4 flex items-center justify-between text-xs font-semibold text-primary hover:underline pt-2 border-t border-default"
-          >
-            <span>Open Commercial Hub</span>
-            <ArrowRight className="size-3" />
-          </Link>
-        </div>
-
-        {/* Factory Production */}
-        <div className="rounded-2xl border border-default bg-surface p-4 shadow-xs flex flex-col justify-between hover:border-primary/40 transition-all">
-          <div>
-            <div className="flex items-center justify-between border-b border-default pb-2.5">
-              <div className="flex items-center gap-2">
-                <Factory className="size-4 text-indigo-500" />
-                <span className="text-xs font-bold text-default">{t('cards.factoryFloor')}</span>
-              </div>
-              <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
-                {metrics ? `${metrics.production.achievement_rate}% Output` : '0% Output'}
-              </span>
-            </div>
-            <div className="mt-3 space-y-2">
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-muted">{t('cards.unitsProduced')}:</span>
-                <strong className="text-default font-mono">
-                  {metrics
-                    ? `${metrics.production.today_output} / ${metrics.production.target_output || 0} pcs`
-                    : '0 pcs'}
-                </strong>
-              </div>
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-muted">{t('cards.activeBatches')}:</span>
-                <strong className="text-default font-mono">
-                  {metrics ? `${metrics.production.active_batches} ${t('cards.inProgress')}` : `0 ${t('cards.inProgress')}`}
-                </strong>
-              </div>
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-muted">{t('cards.shiftStatus')}:</span>
-                <span className="text-emerald-500 font-semibold flex items-center gap-1">
-                  <span className="size-1.5 rounded-full bg-emerald-500" />
-                  {t('cards.activeShift')}
-                </span>
-              </div>
-            </div>
-          </div>
-          <Link
-            to="/production"
-            className="mt-4 flex items-center justify-between text-xs font-semibold text-primary hover:underline pt-2 border-t border-default"
-          >
-            <span>View Factory Floor</span>
-            <ArrowRight className="size-3" />
-          </Link>
-        </div>
-
-        {/* Warehouse & Inventory */}
-        <div className="rounded-2xl border border-default bg-surface p-4 shadow-xs flex flex-col justify-between hover:border-primary/40 transition-all">
-          <div>
-            <div className="flex items-center justify-between border-b border-default pb-2.5">
-              <div className="flex items-center gap-2">
-                <Warehouse className="size-4 text-amber-500" />
-                <span className="text-xs font-bold text-default">{t('cards.warehouseStock')}</span>
-              </div>
-              <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-bold text-amber-600 dark:text-amber-400">
-                {metrics ? t('cards.lowItems', { count: metrics.inventory.low_stock_count }) : t('cards.lowItems', { count: 0 })}
-              </span>
-            </div>
-            <div className="mt-3 space-y-2">
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-muted">{t('cards.valuation')}:</span>
-                <strong className="text-default font-mono">
-                  {metrics ? formatCurrency(metrics.inventory.total_valuation) : formatCurrency(0)}
-                </strong>
-              </div>
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-muted">{t('cards.stockStatus')}:</span>
-                <strong className="text-default font-mono">
-                  {metrics && metrics.inventory.low_stock_count > 0 ? t('kpi.reorderWarnings', { count: metrics.inventory.low_stock_count }) : t('cards.normal')}
-                </strong>
-              </div>
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-muted">{t('cards.ledgerTracking')}:</span>
-                <span className="text-blue-500 font-semibold">{t('cards.activeRealtime')}</span>
-              </div>
-            </div>
-          </div>
-          <Link
-            to="/inventory"
-            className="mt-4 flex items-center justify-between text-xs font-semibold text-primary hover:underline pt-2 border-t border-default"
-          >
-            <span>Open Warehouse Ledger</span>
-            <ArrowRight className="size-3" />
-          </Link>
-        </div>
-
-        {/* Quality Assurance */}
-        <div className="rounded-2xl border border-default bg-surface p-4 shadow-xs flex flex-col justify-between hover:border-primary/40 transition-all">
-          <div>
-            <div className="flex items-center justify-between border-b border-default pb-2.5">
-              <div className="flex items-center gap-2">
-                <Microscope className="size-4 text-cyan-500" />
-                <span className="text-xs font-bold text-default">{t('cards.qualityAssurance')}</span>
-              </div>
-              <span className="rounded-full bg-cyan-500/10 px-2 py-0.5 text-[10px] font-bold text-cyan-600 dark:text-cyan-400">
-                {metrics ? `${metrics.quality.qc_pass_rate}% Pass` : '100% Pass'}
-              </span>
-            </div>
-            <div className="mt-3 space-y-2">
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-muted">Compliance:</span>
-                <strong className="text-default font-mono">ISO Standard</strong>
-              </div>
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-muted">Queue Pending:</span>
-                <strong className="text-amber-500 font-mono">
-                  {metrics ? `${metrics.quality.pending_inspections} Inspections` : '0 Pending'}
-                </strong>
-              </div>
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-muted">Audits:</span>
-                <span className="text-muted font-semibold">Live Monitored</span>
-              </div>
-            </div>
-          </div>
-          <Link
-            to="/qc"
-            className="mt-4 flex items-center justify-between text-xs font-semibold text-primary hover:underline pt-2 border-t border-default"
-          >
-            <span>Audit QA Queue</span>
-            <ArrowRight className="size-3" />
-          </Link>
-        </div>
-      </div>
-
-      {/* ─────────────────────────────────────────────────────────────
-          5. DUAL PERFORMANCE TRENDS & RECENT TRANSACTIONS
-      ───────────────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-        {/* Weekly Revenue & Production Output Chart */}
-        <div className="lg:col-span-2 rounded-2xl border border-default bg-surface p-5 shadow-xs">
-          <div className="flex items-center justify-between mb-4">
             <div>
-              <h3 className="text-sm font-bold text-default">Commercial & Production Trends</h3>
-              <p className="text-[11px] text-muted">
-                Weekly revenue correlation with manufacturing output
+              <h3 className="text-sm font-bold text-default">Revenue Trend</h3>
+              <p className="text-[11px] text-muted mt-0.5">
+                {currencySymbol} weekly performance · auto-refreshing
               </p>
             </div>
-            <div className="flex items-center gap-3 text-xs">
-              <span className="flex items-center gap-1.5 text-muted">
-                <span className="h-2.5 w-2.5 rounded-full bg-blue-500" />
-                Revenue ({currencySymbol})
-              </span>
-              <span className="flex items-center gap-1.5 text-muted">
-                <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
-                Output (pcs)
-              </span>
+            <div className="flex items-center gap-1 rounded-xl border border-default bg-surface-sunken p-1">
+              <button
+                type="button"
+                onClick={() => setChartPeriod('weekly')}
+                className={cn('rounded-lg px-2.5 py-1 text-[11px] font-semibold transition-all', chartPeriod === 'weekly' ? 'bg-surface text-default shadow-xs' : 'text-muted hover:text-default')}
+              >
+                Week
+              </button>
+              <button
+                type="button"
+                onClick={() => setChartPeriod('monthly')}
+                className={cn('rounded-lg px-2.5 py-1 text-[11px] font-semibold transition-all', chartPeriod === 'monthly' ? 'bg-surface text-default shadow-xs' : 'text-muted hover:text-default')}
+              >
+                Month
+              </button>
             </div>
           </div>
 
-          <div className="h-64 w-full">
+          {/* Full-height chart with gradient fill */}
+          <div className="flex-1 h-56 w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+              <AreaChart data={chartData} margin={{ top: 10, right: 0, left: 0, bottom: 0 }}>
                 <defs>
                   <linearGradient id="execRevenueGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.25} />
-                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                    <stop offset="0%" stopColor="#6366f1" stopOpacity={0.35} />
+                    <stop offset="100%" stopColor="#6366f1" stopOpacity={0} />
                   </linearGradient>
                   <linearGradient id="execProdGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.25} />
-                    <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                    <stop offset="0%" stopColor="#10b981" stopOpacity={0.2} />
+                    <stop offset="100%" stopColor="#10b981" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  vertical={false}
-                  stroke="currentColor"
-                  opacity={0.07}
-                />
                 <XAxis
                   dataKey="day"
                   tickLine={false}
                   axisLine={false}
-                  tick={{ fill: 'currentColor', fontSize: 11, opacity: 0.6 }}
+                  tick={{ fill: 'currentColor', fontSize: 10, opacity: 0.5 }}
                 />
-                <YAxis
-                  tickLine={false}
-                  axisLine={false}
-                  tick={{ fill: 'currentColor', fontSize: 11, opacity: 0.6 }}
-                />
-                <Tooltip
-                  formatter={(value: unknown, name: unknown) => [
-                    String(name) === 'revenue'
-                      ? formatCurrency(Number(value) || 0)
-                      : `${String(value)} pcs`,
-                    String(name) === 'revenue' ? 'Revenue' : 'Production Output',
-                  ]}
-                  contentStyle={{
-                    backgroundColor: 'var(--surface-raised, #18181b)',
-                    borderColor: 'var(--border-default, #27272a)',
-                    borderRadius: '12px',
-                    fontSize: '11px',
-                  }}
-                />
+                <Tooltip content={<ChartTooltip formatCurrency={formatCurrency} />} />
                 <Area
                   type="monotone"
                   dataKey="revenue"
-                  stroke="#3b82f6"
-                  strokeWidth={2.5}
-                  fillOpacity={1}
+                  stroke="#6366f1"
+                  strokeWidth={2}
                   fill="url(#execRevenueGrad)"
-                  name="revenue"
+                  dot={false}
+                  activeDot={{ r: 4, fill: '#6366f1' }}
                 />
                 <Area
                   type="monotone"
                   dataKey="production"
                   stroke="#10b981"
-                  strokeWidth={2.5}
-                  fillOpacity={1}
+                  strokeWidth={1.5}
+                  strokeDasharray="4 3"
                   fill="url(#execProdGrad)"
-                  name="production"
+                  dot={false}
+                  activeDot={{ r: 3, fill: '#10b981' }}
                 />
               </AreaChart>
             </ResponsiveContainer>
           </div>
+
+          {/* Chart legend */}
+          <div className="flex items-center gap-4 pt-1 border-t border-default">
+            <span className="flex items-center gap-1.5 text-[11px] text-muted">
+              <span className="h-2 w-4 rounded-full bg-indigo-500/70" />
+              Revenue ({currencySymbol})
+            </span>
+            <span className="flex items-center gap-1.5 text-[11px] text-muted">
+              <span className="h-px w-4 border-t-2 border-dashed border-emerald-500/70" />
+              Production (pcs)
+            </span>
+          </div>
         </div>
 
-        {/* Recent High-Priority Transactions */}
-        <div className="rounded-2xl border border-default bg-surface p-5 shadow-xs flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between mb-3 border-b border-default pb-2">
-              <h3 className="text-sm font-bold text-default">Executive Activity</h3>
-              <span className="text-[10px] text-muted uppercase font-semibold">Live Audit</span>
+        {/* RIGHT 40% — Critical Feed */}
+        <div className="lg:col-span-2 flex flex-col gap-4">
+          {/* Active Orders + Receivables */}
+          <div className="rounded-2xl border border-default bg-surface p-4 shadow-sm">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-bold text-default">Recent Invoices</h3>
+              <Link to="/sales" className="text-[11px] font-semibold text-primary hover:underline flex items-center gap-0.5">
+                All <ArrowRight className="size-3" />
+              </Link>
             </div>
-            <div className="space-y-3">
-              {recentInvoices.length > 0 ? (
-                recentInvoices.map((inv) => (
+
+            <div className="space-y-1">
+              {invoices.length > 0 ? (
+                invoices.slice(0, 5).map((inv) => (
                   <button
                     key={inv.id}
                     type="button"
-                    onClick={() =>
-                      onOpenInvoice?.({
-                        id: inv.invoice_number,
-                        customer: inv.customer?.name || 'Commercial Customer',
-                        type: 'B2B',
-                        amount: formatCurrency(Number(inv.total_amount) || 0),
-                        status: inv.status,
-                        payment: inv.payment_status || 'UNPAID',
-                      })
-                    }
-                    className="w-full text-left flex items-start gap-2.5 p-2 rounded-xl hover:bg-surface-sunken transition-colors cursor-pointer"
+                    onClick={() => onOpenInvoice?.(inv)}
+                    className="w-full flex items-center justify-between gap-2 px-2 py-2 rounded-xl hover:bg-surface-sunken transition-colors group text-left"
                   >
-                    <div className="flex size-7 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600 shrink-0 mt-0.5">
-                      <CheckCircle2 className="size-3.5" />
-                    </div>
                     <div className="min-w-0 flex-1">
-                      <div className="text-xs font-bold text-default truncate">
-                        {inv.customer?.name || 'Direct Customer'}
-                      </div>
-                      <div className="text-[10px] text-muted">
-                        Invoice {inv.invoice_number} •{' '}
-                        {formatCurrency(Number(inv.total_amount) || 0)}
-                      </div>
+                      <div className="text-xs font-semibold text-default truncate">{inv.customer}</div>
+                      <div className="text-[10px] text-muted font-mono truncate">{inv.id} · {inv.date}</div>
                     </div>
-                    <span className="text-[10px] font-mono text-muted uppercase">{inv.status}</span>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="text-xs font-extrabold font-mono text-default">{inv.amount}</span>
+                      <span className={cn('text-[9px] font-bold uppercase rounded-md px-1.5 py-0.5 border', statusStyle(inv.payment))}>
+                        {inv.payment}
+                      </span>
+                    </div>
                   </button>
                 ))
               ) : (
-                <div className="p-6 text-center text-muted text-xs flex flex-col items-center justify-center gap-2">
-                  <Inbox className="size-8 text-muted/50" />
-                  <p>No recent transactions recorded.</p>
-                  <Link to="/sales" className="text-xs text-primary font-semibold hover:underline">
-                    Create Commercial Order
-                  </Link>
+                <div className="py-6 text-center text-muted text-xs flex flex-col items-center gap-2">
+                  <Inbox className="size-7 text-muted/40" />
+                  <span>No invoices recorded</span>
+                  <Link to="/sales" className="text-primary font-semibold hover:underline">Create Invoice</Link>
                 </div>
               )}
             </div>
           </div>
 
-          <Link
-            to="/activity-logs"
-            className="mt-4 flex items-center justify-between text-xs font-semibold text-primary hover:underline pt-2 border-t border-default"
-          >
-            <span>View Full Audit Trail</span>
-            <ArrowRight className="size-3" />
+          {/* Active batches / production snapshot */}
+          <div className="rounded-2xl border border-default bg-surface p-4 shadow-sm flex-1">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-bold text-default">Operations Pulse</h3>
+              <Link to="/production" className="text-[11px] font-semibold text-primary hover:underline flex items-center gap-0.5">
+                View <ArrowRight className="size-3" />
+              </Link>
+            </div>
+            <div className="space-y-2.5">
+              <div className="flex items-center justify-between text-xs">
+                <span className="flex items-center gap-1.5 text-muted font-medium">
+                  <ShoppingBag className="size-3.5 text-blue-500" /> Active Orders
+                </span>
+                <span className="font-extrabold font-mono text-default">{metrics?.commercial.active_orders ?? 0}</span>
+              </div>
+              <div className="flex items-center justify-between text-xs">
+                <span className="flex items-center gap-1.5 text-muted font-medium">
+                  <Factory className="size-3.5 text-indigo-500" /> Active Batches
+                </span>
+                <span className="font-extrabold font-mono text-default">{metrics?.production.active_batches ?? 0}</span>
+              </div>
+              <div className="flex items-center justify-between text-xs">
+                <span className="flex items-center gap-1.5 text-muted font-medium">
+                  <Microscope className="size-3.5 text-cyan-500" /> Pending QC
+                </span>
+                <span className={cn('font-extrabold font-mono', (metrics?.quality.pending_inspections ?? 0) > 0 ? 'text-amber-500' : 'text-default')}>
+                  {metrics?.quality.pending_inspections ?? 0}
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-xs">
+                <span className="flex items-center gap-1.5 text-muted font-medium">
+                  <AlertTriangle className="size-3.5 text-red-500" /> Reorder Alerts
+                </span>
+                <span className={cn('font-extrabold font-mono', (metrics?.inventory.low_stock_count ?? 0) > 0 ? 'text-red-500' : 'text-default')}>
+                  {metrics?.inventory.low_stock_count ?? 0} SKUs
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-xs">
+                <span className="flex items-center gap-1.5 text-muted font-medium">
+                  <CheckCircle2 className="size-3.5 text-emerald-500" /> Today Output
+                </span>
+                <span className="font-extrabold font-mono text-default">{metrics?.production.today_output ?? 0} pcs</span>
+              </div>
+              <div className="flex items-center justify-between text-xs">
+                <span className="flex items-center gap-1.5 text-muted font-medium">
+                  <Clock className="size-3.5 text-muted" /> Receivable Due
+                </span>
+                <span className={cn('font-extrabold font-mono', (metrics?.commercial.total_receivable_due ?? 0) > 0 ? 'text-amber-500' : 'text-default')}>
+                  {metrics ? formatCurrency(metrics.commercial.total_receivable_due) : '—'}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ─────────────────────────────────────────────────────────
+          ZONE 5 — Department Health Pulse
+          Horizontal status tiles with fill-bar health indicators
+      ───────────────────────────────────────────────────────── */}
+      <div>
+        <div className="flex items-center gap-2 mb-3">
+          <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted">Department Health</span>
+          <div className="flex-1 h-px bg-border" />
+          <Link to="/reports" className="flex items-center gap-1 text-[11px] font-semibold text-primary hover:underline">
+            <FileText className="size-3" /> Full Report
           </Link>
         </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+          {healthTiles.map((tile) => (
+            <HealthTile key={tile.label} {...tile} />
+          ))}
+        </div>
+      </div>
+
+      {/* CTA row */}
+      <div className="flex flex-wrap items-center gap-2 pt-1">
+        <Link
+          to="/reports"
+          className="flex items-center gap-1.5 rounded-xl border border-default bg-surface px-3 py-2 text-xs font-semibold text-default hover:bg-surface-sunken transition-all shadow-2xs"
+        >
+          <FileText className="size-3.5 text-muted" />
+          <span>BI & Reports</span>
+        </Link>
+        <Link
+          to="/pos"
+          className="flex items-center gap-1.5 rounded-xl bg-linear-to-r from-blue-600 to-indigo-600 px-3.5 py-2 text-xs font-semibold text-white shadow-xs hover:from-blue-500 hover:to-indigo-500 transition-all"
+        >
+          <ShoppingCart className="size-3.5" />
+          <span>Launch POS Terminal</span>
+        </Link>
       </div>
     </div>
   );

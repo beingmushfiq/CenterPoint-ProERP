@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { api, setAccessToken } from '../../lib/api/client';
 import { useAuthStore } from '../../lib/auth/authStore';
 import type { PlatformTenant } from '../../types/api/platform';
+import type { User, TenantInfo } from '../../types/api/auth';
 import { PlatformPulseLoader } from '../../components/platform/PlatformPulseLoader';
 import { SelectDropdown } from '../../components/ui/Dropdown';
 import { ResponsiveDataTable, type ResponsiveColumn } from '../../components/ui/ResponsiveDataTable';
@@ -197,8 +198,8 @@ export const TenantDirectoryWorkspace: React.FC = () => {
       localStorage.setItem('auth_permissions', JSON.stringify(permissions));
 
       useAuthStore.setState({
-        user: targetUser as any,
-        tenant: targetTenant as any,
+        user: (targetUser as unknown as User) ?? null,
+        tenant: (targetTenant as unknown as TenantInfo) ?? null,
         permissions: new Set(permissions),
         status: 'authenticated',
         error: null,

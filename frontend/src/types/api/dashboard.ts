@@ -17,10 +17,10 @@ export interface DashboardMetricsData {
     today_orders_count?: number;
     total_receivable_due: number;
     aging_breakdown?: {
-      current: number;
-      overdue_30: number;
-      overdue_60: number;
-      overdue_90: number;
+      current?: number;
+      overdue_30?: number;
+      overdue_60?: number;
+      overdue_90?: number;
     };
   };
   production: {

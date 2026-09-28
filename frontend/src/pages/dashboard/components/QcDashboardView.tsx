@@ -1,18 +1,20 @@
-import React, { useState } from 'react';
+import React, { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
   Microscope,
-  ClipboardCheck,
-  ShieldCheck,
   CheckCircle2,
-  ArrowRight,
-  RotateCcw,
-  Sliders,
-  Trash2,
+  XCircle,
+  Clock,
+  Eye,
+  Plus,
+  Inbox,
+  AlertTriangle,
+  RefreshCw,
+  TrendingUp,
 } from 'lucide-react';
 import { api } from '../../../lib/api/client';
-import { useCurrency } from '../../../lib/format/currency';
+import { cn } from '../../../lib/utils';
 import type { DashboardMetricsData } from '../../../types/api/dashboard';
 
 export interface QcItem {
@@ -26,581 +28,225 @@ export interface QcItem {
 }
 
 interface QcDashboardViewProps {
-  qcList: QcItem[];
-  onOpenQC: (item: QcItem) => void;
+  qcList?: QcItem[];
+  onOpenQC?: (item: QcItem) => void;
 }
 
-interface ParameterItem {
-  id?: number | string | undefined;
-  name: string;
-  spec: string;
-  category?: string | undefined;
-  passRate: number;
-  samples: number;
-}
+const qcStatusBadge = (status: string) => {
+  const s = status.toUpperCase();
+  if (s === 'PASSED' || s === 'APPROVED') return 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20';
+  if (s === 'REWORK') return 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20';
+  if (s === 'FAILED' || s === 'REJECTED') return 'bg-red-500/10 text-red-500 border-red-500/20';
+  return 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20';
+};
 
-interface RawParameterItem {
-  id?: number | string | undefined;
-  name?: string | undefined;
-  standard_specification?: string | undefined;
-  spec?: string | undefined;
-  category?: string | undefined;
-  target_pass_rate?: number | undefined;
-  sample_count?: number | undefined;
-}
-
-interface ReworkOrderSummary {
-  id: number | string;
-  rework_number: string;
-  product?: { name: string; sku?: string | undefined } | undefined;
-  quantity: number;
+interface InspectionApiItem {
+  id: string | number;
+  batch_id?: string | number;
+  inspection_number?: string;
   status: string;
-  created_at?: string | undefined;
+  product?: { name: string };
+  quantity?: number;
+  reject_qty?: number;
+  rework_qty?: number;
 }
 
-interface WastageRecordSummary {
-  id: number | string;
-  wastage_number: string;
-  product?: { name: string; sku?: string | undefined } | undefined;
-  quantity: number;
-  estimated_cost?: number | undefined;
-  stage?: string | undefined;
-  created_at?: string | undefined;
-}
-
-export const QcDashboardView: React.FC<QcDashboardViewProps> = ({ qcList, onOpenQC }) => {
-  const { formatCurrency } = useCurrency();
-  const [activeTab, setActiveTab] = useState<'inspections' | 'rework' | 'scrap'>('inspections');
-
+export const QcDashboardView: React.FC<QcDashboardViewProps> = ({ qcList = [], onOpenQC }) => {
   const { data: metrics } = useQuery<DashboardMetricsData | null>({
     queryKey: ['tenant', 'dashboard', 'metrics'],
     queryFn: async () => {
       try {
-        const res = await api.get<DashboardMetricsData | { data: DashboardMetricsData }>(
-          '/dashboard/metrics'
-        );
+        const res = await api.get<DashboardMetricsData | { data: DashboardMetricsData }>('/dashboard/metrics');
         const raw = res.data;
         if (raw && typeof raw === 'object') {
-          if ('quality' in raw) return raw as DashboardMetricsData;
-          if ('data' in raw && raw.data && typeof raw.data === 'object' && 'quality' in raw.data) {
-            return raw.data as DashboardMetricsData;
-          }
+          if ('commercial' in raw) return raw as DashboardMetricsData;
+          if ('data' in raw && raw.data && typeof raw.data === 'object' && 'commercial' in raw.data) return raw.data as DashboardMetricsData;
         }
         return null;
-      } catch {
-        return null;
-      }
+      } catch { return null; }
     },
   });
 
-  // Fetch live parameters
-  const { data: liveParameters = [] } = useQuery<ParameterItem[]>({
-    queryKey: ['qc', 'parameters', 'summary'],
-    queryFn: async (): Promise<ParameterItem[]> => {
+  const { data: recentInspections = [] } = useQuery<InspectionApiItem[]>({
+    queryKey: ['qc', 'dashboard-recent-inspections'],
+    queryFn: async () => {
       try {
-        const res = await api.get<RawParameterItem[] | { data: RawParameterItem[] }>('/qc/parameters');
-        const items = Array.isArray(res.data) ? res.data : (res.data?.data ?? []);
-        if (items.length > 0) {
-          return items.slice(0, 5).map((p: RawParameterItem): ParameterItem => ({
-            ...(p.id !== undefined ? { id: p.id } : {}),
-            name: p.name || 'QC Test Parameter',
-            spec: p.standard_specification || p.spec || 'Standard Tolerance',
-            ...(p.category !== undefined ? { category: p.category } : {}),
-            passRate: p.target_pass_rate ?? 98,
-            samples: p.sample_count ?? 12,
-          }));
-        }
-      } catch {
-        // Fallback below
-      }
-      return [
-        {
-          name: 'Electrical Insulation & Earth Resistance',
-          spec: '> 10 MΩ @ 500V',
-          passRate: 100,
-          samples: 24,
-        },
-        {
-          name: 'Thermal Cutoff & Heat Regulation',
-          spec: '320°C ± 5°C',
-          passRate: 98,
-          samples: 18,
-        },
-        {
-          name: 'Drop Test & Impact Resistance',
-          spec: 'Standard Drop Spec',
-          passRate: 100,
-          samples: 15,
-        },
-        {
-          name: 'Chassis Dimension & Fastener Torque',
-          spec: 'Factory Tolerance Specs',
-          passRate: 99,
-          samples: 30,
-        },
-        {
-          name: 'Packaging & Barcode Scannability',
-          spec: 'GS1 Standard Spec',
-          passRate: 100,
-          samples: 40,
-        },
-      ];
+        const res = await api.get<InspectionApiItem[] | { data: InspectionApiItem[] }>('/qc/inspections?per_page=10');
+        const d = Array.isArray(res.data) ? res.data : (res.data?.data ?? []);
+        return Array.isArray(d) ? d : [];
+      } catch { return []; }
     },
   });
 
-  // Fetch live rework orders
-  const { data: reworkOrders = [] } = useQuery<ReworkOrderSummary[]>({
-    queryKey: ['qc', 'rework-orders', 'dashboard'],
-    queryFn: async (): Promise<ReworkOrderSummary[]> => {
-      try {
-        const res = await api.get<ReworkOrderSummary[] | { data: ReworkOrderSummary[] }>('/qc/rework-orders');
-        const items = Array.isArray(res.data) ? res.data : (res.data?.data ?? []);
-        return items.slice(0, 5);
-      } catch {
-        return [];
-      }
-    },
-  });
+  const displayItems: QcItem[] = useMemo(() => {
+    if (qcList.length > 0) return qcList;
+    return recentInspections.map((insp) => ({
+      id: String(insp.id),
+      orderNo: insp.inspection_number || `INSP-${insp.batch_id || insp.id}`,
+      product: insp.product?.name || 'Unknown Product',
+      qty: insp.quantity ?? 0,
+      status: insp.status,
+      failed: insp.reject_qty ?? 0,
+      rework: insp.rework_qty ?? 0,
+    }));
+  }, [qcList, recentInspections]);
 
-  // Fetch live wastage records
-  const { data: wastageRecords = [] } = useQuery<WastageRecordSummary[]>({
-    queryKey: ['qc', 'wastage-records', 'dashboard'],
-    queryFn: async (): Promise<WastageRecordSummary[]> => {
-      try {
-        const res = await api.get<WastageRecordSummary[] | { data: WastageRecordSummary[] }>('/qc/wastage-records');
-        const items = Array.isArray(res.data) ? res.data : (res.data?.data ?? []);
-        return items.slice(0, 5);
-      } catch {
-        return [];
-      }
-    },
-  });
+  const passRate = metrics?.quality.qc_pass_rate ?? 0;
+  const pendingCount = metrics?.quality.pending_inspections ?? 0;
+  const totalInspections = metrics?.quality.total_inspections ?? displayItems.length;
 
-  const pendingInspectionsCount = metrics?.quality?.pending_inspections ?? qcList.length;
-  const reworkCount = metrics?.quality?.rework_pending_count ?? reworkOrders.length;
-  const scrapCost = metrics?.quality?.scrap_cost_month ?? 0;
-  const passRate = metrics?.quality?.qc_pass_rate ?? 100;
-  const defectRate = Math.max(0, 100 - Math.round(passRate));
+  const passedCount = displayItems.filter((i) => ['PASSED', 'APPROVED'].includes(i.status.toUpperCase())).length;
+  const failedCount = displayItems.filter((i) => ['FAILED', 'REJECTED'].includes(i.status.toUpperCase())).length;
+  const reworkCount = displayItems.filter((i) => i.status.toUpperCase() === 'REWORK').length;
+
+  const kpis = [
+    { label: 'QC Pass Rate', value: `${passRate}%`, sub: 'Overall quality score', icon: <TrendingUp className="size-4" />, color: passRate >= 90 ? 'text-emerald-500' : passRate >= 75 ? 'text-amber-500' : 'text-red-500' },
+    { label: 'Pending Inspections', value: `${pendingCount}`, sub: 'Awaiting QC audit', icon: <Clock className="size-4" />, color: pendingCount > 0 ? 'text-amber-500' : 'text-muted', accent: pendingCount > 0 },
+    { label: 'Passed Today', value: `${passedCount}`, sub: 'Inspection batches', icon: <CheckCircle2 className="size-4" />, color: 'text-emerald-500' },
+    { label: 'Failed / Rework', value: `${failedCount + reworkCount}`, sub: `${failedCount} rejected · ${reworkCount} rework`, icon: <AlertTriangle className="size-4" />, color: failedCount > 0 ? 'text-red-500' : 'text-amber-500' },
+  ];
+
+  // Pass rate donut-like rings using CSS
+  const ringPct = Math.min(passRate, 100);
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-200">
-      {/* ─────────────────────────────────────────────────────────────
-          1. HEADER & QC GREETING
-      ───────────────────────────────────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-default pb-4">
-        <div>
-          <div className="flex items-center gap-2 flex-wrap">
-            <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-default font-sans">
-              Quality Assurance & Testing
-            </h2>
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-cyan-500/10 px-2.5 py-0.5 text-[10px] font-bold text-cyan-600 dark:text-cyan-400 border border-cyan-500/20">
-              <span className="h-1.5 w-1.5 rounded-full bg-cyan-500" />
-              Standards ISO-9001
-            </span>
+    <div className="space-y-4 animate-in fade-in duration-200">
+      {/* KPI strip */}
+      <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
+        {kpis.map((kpi) => (
+          <div key={kpi.label} className={cn(
+            'rounded-2xl border bg-surface p-4 shadow-sm hover:border-primary/30 transition-all flex flex-col gap-2',
+            kpi.accent ? 'border-l-4 border-l-amber-500 border-r border-t border-b border-default' : 'border-default'
+          )}>
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted truncate">{kpi.label}</span>
+              <span className={cn('shrink-0', kpi.color)}>{kpi.icon}</span>
+            </div>
+            <div className={cn('font-extrabold font-mono text-xl leading-none', kpi.color)}>{kpi.value}</div>
+            <div className={cn('text-[10px] font-medium', kpi.accent ? 'text-amber-600 dark:text-amber-400' : 'text-muted')}>{kpi.sub}</div>
           </div>
-          <p className="text-xs text-muted mt-0.5">
-            Incoming material testing, in-process inspection & final batch quality sign-off
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2 flex-wrap">
-          <Link
-            to="/qc?tab=parameters"
-            className="flex items-center gap-1.5 rounded-xl border border-default bg-surface px-3 py-2 text-xs font-semibold text-default hover:bg-surface-sunken transition-all shadow-2xs"
-          >
-            <Sliders className="size-3.5 text-muted" />
-            <span>Parameters</span>
-          </Link>
-          <Link
-            to="/qc?action=new-inspection"
-            className="flex items-center gap-1.5 rounded-xl bg-linear-to-r from-cyan-600 to-blue-600 px-3.5 py-2 text-xs font-semibold text-white shadow-xs hover:from-cyan-500 hover:to-blue-500 transition-all"
-          >
-            <Microscope className="size-3.5" />
-            <span>New Inspection</span>
-          </Link>
-        </div>
+        ))}
       </div>
 
-      {/* ─────────────────────────────────────────────────────────────
-          2. CORE QC KPI CARDS (RESPONSIVE GRID 2/3/6)
-      ───────────────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-3">
-        {/* KPI 1: Inspections Pending */}
-        <div className="rounded-2xl border border-default bg-surface p-4 shadow-xs flex flex-col justify-between hover:border-primary/40 transition-all min-w-0">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold text-muted uppercase tracking-wider truncate">
-              PENDING AUDIT
-            </span>
-            <div className="flex size-7 items-center justify-center rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 shrink-0">
-              <ClipboardCheck className="size-3.5" />
-            </div>
-          </div>
-          <div className="mt-2">
-            <div className="text-xl sm:text-2xl font-extrabold font-mono text-amber-500 truncate">
-              {pendingInspectionsCount} Batches
-            </div>
-            <span className="text-[10px] font-semibold text-muted block truncate">Inspection Queue</span>
-          </div>
-        </div>
-
-        {/* KPI 2: Passed Today */}
-        <div className="rounded-2xl border border-default bg-surface p-4 shadow-xs flex flex-col justify-between hover:border-primary/40 transition-all min-w-0">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold text-muted uppercase tracking-wider truncate">
-              PASS RATE
-            </span>
-            <div className="flex size-7 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 shrink-0">
-              <CheckCircle2 className="size-3.5" />
-            </div>
-          </div>
-          <div className="mt-2">
-            <div className="text-xl sm:text-2xl font-extrabold font-mono text-emerald-600 dark:text-emerald-400 truncate">
-              {Math.round(passRate)}%
-            </div>
-            <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 block truncate">
-              Approved Units
-            </span>
-          </div>
-        </div>
-
-        {/* KPI 3: Defect Rate */}
-        <div className="rounded-2xl border border-default bg-surface p-4 shadow-xs flex flex-col justify-between hover:border-primary/40 transition-all min-w-0">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold text-muted uppercase tracking-wider truncate">
-              DEFECT RATE
-            </span>
-            <div className="flex size-7 items-center justify-center rounded-lg bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 shrink-0">
-              <Microscope className="size-3.5" />
-            </div>
-          </div>
-          <div className="mt-2">
-            <div className="text-xl sm:text-2xl font-extrabold font-mono text-default truncate">
-              {defectRate}%
-            </div>
-            <span className="text-[10px] font-semibold text-muted block truncate">
-              Safety Target &lt; 2%
-            </span>
-          </div>
-        </div>
-
-        {/* KPI 4: Rework in Queue */}
-        <div className="rounded-2xl border border-default bg-surface p-4 shadow-xs flex flex-col justify-between hover:border-primary/40 transition-all min-w-0">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold text-muted uppercase tracking-wider truncate">
-              REWORK QUEUE
-            </span>
-            <div className="flex size-7 items-center justify-center rounded-lg bg-orange-500/10 text-orange-600 dark:text-orange-400 shrink-0">
-              <RotateCcw className="size-3.5" />
-            </div>
-          </div>
-          <div className="mt-2">
-            <div className="text-xl sm:text-2xl font-extrabold font-mono text-default truncate">
-              {reworkCount} Orders
-            </div>
-            <span className="text-[10px] font-semibold text-muted block truncate">Correction Station</span>
-          </div>
-        </div>
-
-        {/* KPI 5: Wastage Recorded */}
-        <div className="rounded-2xl border border-default bg-surface p-4 shadow-xs flex flex-col justify-between hover:border-primary/40 transition-all min-w-0">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold text-muted uppercase tracking-wider truncate">
-              SCRAP COST
-            </span>
-            <div className="flex size-7 items-center justify-center rounded-lg bg-red-500/10 text-red-600 dark:text-red-400 shrink-0">
-              <Trash2 className="size-3.5" />
-            </div>
-          </div>
-          <div className="mt-2">
-            <div className="text-xl sm:text-2xl font-extrabold font-mono text-default truncate">
-              {formatCurrency(scrapCost)}
-            </div>
-            <span className="text-[10px] font-semibold text-muted block truncate">
-              {scrapCost > 0 ? 'Monthly Scrap Cost' : 'Zero Scrap Logged'}
-            </span>
-          </div>
-        </div>
-
-        {/* KPI 6: Overall Quality Compliance */}
-        <div className="rounded-2xl border border-default bg-surface p-4 shadow-xs flex flex-col justify-between hover:border-primary/40 transition-all min-w-0">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold text-muted uppercase tracking-wider truncate">
-              COMPLIANCE
-            </span>
-            <div className="flex size-7 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 shrink-0">
-              <ShieldCheck className="size-3.5" />
-            </div>
-          </div>
-          <div className="mt-2">
-            <div className="text-xl sm:text-2xl font-extrabold font-mono text-emerald-600 dark:text-emerald-400 truncate">
-              {passRate >= 95 ? 'A-GRADE' : 'MONITOR'}
-            </div>
-            <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 block truncate">
-              Factory Standard
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* ─────────────────────────────────────────────────────────────
-          3. INSPECTION QUEUE & PARAMETER COMPLIANCE MATRIX
-      ───────────────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-        {/* Left 2 Cols: Tabbed Inspection / Rework / Scrap Station */}
-        <div className="lg:col-span-2 rounded-2xl border border-default bg-surface p-4 sm:p-5 shadow-xs min-w-0">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+      {/* Main grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {/* Inspection table — 2/3 */}
+        <div className="lg:col-span-2 rounded-2xl border border-default bg-surface shadow-sm overflow-hidden">
+          <div className="flex items-center justify-between px-5 py-3.5 border-b border-default">
             <div>
-              <h3 className="text-sm font-bold text-default">Quality Work Center</h3>
-              <p className="text-[11px] text-muted">
-                Inspection sign-off, rework assignment, and scrap tracking
-              </p>
+              <h3 className="text-sm font-bold text-default">Recent QC Inspections</h3>
+              <p className="text-[11px] text-muted">Batch audit results and status</p>
             </div>
-
-            {/* Responsive Tab Bar */}
-            <div className="flex items-center gap-1 rounded-xl bg-surface-sunken p-1 border border-default self-start sm:self-auto overflow-x-auto max-w-full">
-              <button
-                type="button"
-                onClick={() => setActiveTab('inspections')}
-                className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition-all whitespace-nowrap ${
-                  activeTab === 'inspections'
-                    ? 'bg-surface text-default shadow-xs'
-                    : 'text-muted hover:text-default'
-                }`}
-              >
-                Inspections ({qcList.length})
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveTab('rework')}
-                className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition-all whitespace-nowrap ${
-                  activeTab === 'rework'
-                    ? 'bg-surface text-default shadow-xs'
-                    : 'text-muted hover:text-default'
-                }`}
-              >
-                Rework ({reworkCount})
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveTab('scrap')}
-                className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition-all whitespace-nowrap ${
-                  activeTab === 'scrap'
-                    ? 'bg-surface text-default shadow-xs'
-                    : 'text-muted hover:text-default'
-                }`}
-              >
-                Scrap Log ({wastageRecords.length})
-              </button>
+            <div className="flex items-center gap-2">
+              <Link to="/qc?action=new" className="flex items-center gap-1 rounded-lg bg-linear-to-r from-cyan-600 to-blue-600 px-3 py-1.5 text-[11px] font-semibold text-white shadow-xs hover:from-cyan-500 hover:to-blue-500 transition-all">
+                <Plus className="size-3" /> New Audit
+              </Link>
             </div>
           </div>
 
-          {/* Tab 1: Inspections Queue */}
-          {activeTab === 'inspections' && (
-            <div className="divide-y divide-default">
-              {qcList.length === 0 ? (
-                <div className="text-center py-8 text-xs text-muted">
-                  No batches currently pending quality inspection
-                </div>
-              ) : (
-                qcList.map((item) => {
-                  const isPending = item.status === 'PENDING';
-                  return (
-                    <div
-                      key={item.id}
-                      className="py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-surface-sunken/40 px-2 rounded-xl transition-colors"
-                    >
-                      <div className="space-y-0.5 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-xs font-bold text-default">{item.product}</span>
-                          <span
-                            className={`rounded-md px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider ${
-                              isPending
-                                ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30'
-                                : 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
-                            }`}
-                          >
-                            {item.status}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2 text-[11px] text-muted font-mono flex-wrap">
-                          <span>Ref: {item.id}</span>
-                          <span>•</span>
-                          <span>Batch: {item.orderNo}</span>
-                          <span>•</span>
-                          <span>
-                            Qty: <strong>{item.qty} pcs</strong>
-                          </span>
-                          {item.failed ? (
-                            <span className="text-red-500">({item.failed} failed)</span>
-                          ) : null}
-                        </div>
-                      </div>
-
-                      <div className="shrink-0 self-start sm:self-auto">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead className="bg-surface-sunken text-[10px] uppercase font-bold text-muted border-b border-default">
+                <tr>
+                  <th className="px-4 py-2.5">Reference</th>
+                  <th className="px-4 py-2.5">Product</th>
+                  <th className="px-4 py-2.5 text-right">Qty</th>
+                  <th className="px-4 py-2.5 text-right">Failed</th>
+                  <th className="px-4 py-2.5 text-right">Rework</th>
+                  <th className="px-4 py-2.5">Status</th>
+                  <th className="px-4 py-2.5 text-right">Action</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-default">
+                {displayItems.length > 0 ? (
+                  displayItems.map((item) => (
+                    <tr key={item.id} className="hover:bg-surface-sunken/50 transition-colors cursor-pointer" onClick={() => onOpenQC?.(item)}>
+                      <td className="px-4 py-2.5 font-mono text-muted text-[10px]">{item.orderNo}</td>
+                      <td className="px-4 py-2.5 font-semibold text-default">{item.product}</td>
+                      <td className="px-4 py-2.5 font-mono font-bold text-default text-right">{item.qty}</td>
+                      <td className="px-4 py-2.5 font-mono text-right">{item.failed ? <span className="text-red-500 font-bold">{item.failed}</span> : <span className="text-muted">0</span>}</td>
+                      <td className="px-4 py-2.5 font-mono text-right">{item.rework ? <span className="text-amber-500 font-bold">{item.rework}</span> : <span className="text-muted">0</span>}</td>
+                      <td className="px-4 py-2.5">
+                        <span className={cn('inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-bold', qcStatusBadge(item.status))}>
+                          {item.status}
+                        </span>
+                      </td>
+                      <td className="px-4 py-2.5 text-right">
                         <button
                           type="button"
-                          onClick={() => onOpenQC(item)}
-                          className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition-colors cursor-pointer shadow-2xs ${
-                            isPending
-                              ? 'bg-cyan-600 text-white hover:bg-cyan-700 shadow-cyan-500/20'
-                              : 'border border-default bg-surface text-default hover:bg-surface-sunken'
-                          }`}
+                          onClick={(e) => { e.stopPropagation(); onOpenQC?.(item); }}
+                          className="inline-flex items-center gap-1 rounded-lg border border-default bg-surface px-2.5 py-1 text-[11px] font-semibold text-primary hover:bg-surface-sunken transition-colors cursor-pointer"
                         >
-                          <ClipboardCheck className="size-3.5" />
-                          <span>{isPending ? 'Audit Now' : 'View Audit'}</span>
+                          <Eye className="size-3" /> Audit
                         </button>
-                      </div>
-                    </div>
-                  );
-                })
-              )}
-            </div>
-          )}
-
-          {/* Tab 2: Rework Orders */}
-          {activeTab === 'rework' && (
-            <div className="divide-y divide-default">
-              {reworkOrders.length === 0 ? (
-                <div className="text-center py-8 text-xs text-muted">
-                  No active rework orders. All production lines are clear of defect hold.
-                </div>
-              ) : (
-                reworkOrders.map((rw) => (
-                  <div
-                    key={rw.id}
-                    className="py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-surface-sunken/40 px-2 rounded-xl transition-colors"
-                  >
-                    <div className="space-y-0.5 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-xs font-bold text-default">
-                          {rw.rework_number}
-                        </span>
-                        <span className="text-xs text-muted truncate">
-                          {rw.product?.name ?? 'Assigned Product'}
-                        </span>
-                        <span className="rounded-md bg-orange-500/15 text-orange-600 dark:text-orange-400 border border-orange-500/30 px-1.5 py-0.5 text-[9px] font-bold uppercase">
-                          {rw.status}
-                        </span>
-                      </div>
-                      <div className="text-[11px] text-muted font-mono">
-                        Quantity: <strong>{rw.quantity} pcs</strong>
-                      </div>
-                    </div>
-                    <Link
-                      to="/qc?tab=rework"
-                      className="shrink-0 self-start sm:self-auto rounded-lg border border-default bg-surface px-2.5 py-1 text-xs font-semibold text-default hover:bg-surface-sunken transition-all"
-                    >
-                      Manage Rework
-                    </Link>
-                  </div>
-                ))
-              )}
-            </div>
-          )}
-
-          {/* Tab 3: Scrap & Wastage */}
-          {activeTab === 'scrap' && (
-            <div className="divide-y divide-default">
-              {wastageRecords.length === 0 ? (
-                <div className="text-center py-8 text-xs text-muted">
-                  No unrecoverable scrap recorded for this period.
-                </div>
-              ) : (
-                wastageRecords.map((scrap) => (
-                  <div
-                    key={scrap.id}
-                    className="py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-surface-sunken/40 px-2 rounded-xl transition-colors"
-                  >
-                    <div className="space-y-0.5 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-xs font-bold text-default">
-                          {scrap.wastage_number}
-                        </span>
-                        <span className="text-xs text-muted truncate">
-                          {scrap.product?.name ?? 'Material Item'}
-                        </span>
-                        {scrap.stage && (
-                          <span className="rounded-md bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20 px-1.5 py-0.5 text-[9px] font-bold">
-                            Stage: {scrap.stage}
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-2 text-[11px] text-muted font-mono">
-                        <span>Scrap Qty: <strong>{scrap.quantity} pcs</strong></span>
-                        {scrap.estimated_cost ? (
-                          <>
-                            <span>•</span>
-                            <span className="text-red-500 font-bold">
-                              Cost: {formatCurrency(scrap.estimated_cost)}
-                            </span>
-                          </>
-                        ) : null}
-                      </div>
-                    </div>
-                    <Link
-                      to="/qc?tab=wastage"
-                      className="shrink-0 self-start sm:self-auto rounded-lg border border-default bg-surface px-2.5 py-1 text-xs font-semibold text-default hover:bg-surface-sunken transition-all"
-                    >
-                      View Log
-                    </Link>
-                  </div>
-                ))
-              )}
-            </div>
-          )}
-
-          <Link
-            to="/qc"
-            className="mt-4 flex items-center justify-between text-xs font-semibold text-primary hover:underline pt-3 border-t border-default"
-          >
-            <span>Open Complete Quality Control Workspace</span>
-            <ArrowRight className="size-3" />
-          </Link>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr><td colSpan={7} className="py-10 text-center text-muted">
+                    <Inbox className="mx-auto size-8 text-muted/40 mb-2" />
+                    No inspection records. Start a new QC audit.
+                  </td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
 
-        {/* Parameter Testing Compliance Matrix */}
-        <div className="rounded-2xl border border-default bg-surface p-4 sm:p-5 shadow-xs flex flex-col justify-between min-w-0">
+        {/* Quality radar — 1/3 */}
+        <div className="rounded-2xl border border-default bg-surface shadow-sm p-5 space-y-5">
           <div>
-            <div className="flex items-center justify-between mb-3 border-b border-default pb-2">
-              <h3 className="text-sm font-bold text-default">Testing Standards</h3>
-              <span className="text-[10px] text-muted uppercase font-semibold">Active Matrix</span>
-            </div>
+            <h3 className="text-sm font-bold text-default">Quality Scorecard</h3>
+            <p className="text-[11px] text-muted">Session performance summary</p>
+          </div>
 
-            <div className="space-y-3.5">
-              {liveParameters.map((param) => (
-                <div key={param.name} className="space-y-1">
-                  <div className="flex items-center justify-between text-xs gap-2">
-                    <span className="font-semibold text-default truncate">
-                      {param.name}
-                    </span>
-                    <span className="font-mono text-emerald-500 font-bold shrink-0">
-                      {param.passRate}%
-                    </span>
+          {/* Pass rate ring (pure CSS) */}
+          <div className="flex items-center justify-center">
+            <div className="relative flex h-32 w-32 items-center justify-center">
+              <svg className="size-32 -rotate-90" viewBox="0 0 120 120">
+                <circle cx="60" cy="60" r="52" fill="none" stroke="currentColor" strokeWidth="8" className="text-surface-sunken" />
+                <circle
+                  cx="60" cy="60" r="52" fill="none"
+                  stroke={passRate >= 90 ? '#10b981' : passRate >= 75 ? '#f59e0b' : '#ef4444'}
+                  strokeWidth="8"
+                  strokeLinecap="round"
+                  strokeDasharray={`${2 * Math.PI * 52}`}
+                  strokeDashoffset={`${2 * Math.PI * 52 * (1 - ringPct / 100)}`}
+                  style={{ transition: 'stroke-dashoffset 1s ease' }}
+                />
+              </svg>
+              <div className="absolute inset-0 flex flex-col items-center justify-center">
+                <span className={cn('text-3xl font-black font-mono', passRate >= 90 ? 'text-emerald-500' : passRate >= 75 ? 'text-amber-500' : 'text-red-500')}>{passRate}%</span>
+                <span className="text-[10px] font-bold text-muted uppercase tracking-wide">Pass Rate</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Breakdown rows */}
+          <div className="space-y-2.5 pt-2 border-t border-default">
+            {[
+              { label: 'Passed', count: passedCount, color: 'bg-emerald-500', icon: <CheckCircle2 className="size-3.5 text-emerald-500" /> },
+              { label: 'Rework', count: reworkCount, color: 'bg-amber-500', icon: <RefreshCw className="size-3.5 text-amber-500" /> },
+              { label: 'Rejected', count: failedCount, color: 'bg-red-500', icon: <XCircle className="size-3.5 text-red-500" /> },
+            ].map((row) => (
+              <div key={row.label} className="flex items-center gap-2">
+                {row.icon}
+                <div className="flex-1">
+                  <div className="flex justify-between text-[11px] mb-0.5">
+                    <span className="font-medium text-muted">{row.label}</span>
+                    <span className="font-bold font-mono text-default">{row.count}</span>
                   </div>
-                  <div className="flex items-center justify-between text-[10px] text-muted">
-                    <span className="truncate max-w-[70%]">Spec: {param.spec}</span>
-                    <span className="shrink-0">{param.samples} samples</span>
-                  </div>
-                  <div className="h-1.5 w-full rounded-full bg-surface-sunken overflow-hidden">
-                    <div
-                      className="h-full rounded-full bg-emerald-500 transition-all duration-300"
-                      style={{ width: `${param.passRate}%` }}
-                    />
+                  <div className="h-1 w-full rounded-full bg-surface-sunken overflow-hidden">
+                    <div className={cn('h-full rounded-full', row.color)} style={{ width: `${totalInspections > 0 ? (row.count / totalInspections) * 100 : 0}%` }} />
                   </div>
                 </div>
-              ))}
-            </div>
+              </div>
+            ))}
           </div>
 
-          <div className="mt-5 pt-3 border-t border-default flex items-center justify-between">
-            <span className="text-xs text-muted">Configured Testing Rules</span>
-            <Link
-              to="/qc?tab=parameters"
-              className="text-xs font-bold text-cyan-600 dark:text-cyan-400 hover:underline"
-            >
-              Configure Matrix →
-            </Link>
-          </div>
+          <Link to="/qc" className="flex items-center gap-1 text-xs font-semibold text-primary hover:underline">
+            <Microscope className="size-3.5" /> Full QC Dashboard
+          </Link>
         </div>
       </div>
     </div>

@@ -8,9 +8,15 @@ import {
   Plus,
   Coins,
   CheckCircle2,
+  AlertTriangle,
+  ArrowRight,
+  Inbox,
+  Navigation,
+  DollarSign,
 } from 'lucide-react';
 import { api } from '../../../lib/api/client';
 import { useCurrency } from '../../../lib/format/currency';
+import { cn } from '../../../lib/utils';
 
 interface ShipmentItem {
   id: string | number;
@@ -22,203 +28,204 @@ interface ShipmentItem {
   status: string;
 }
 
+const shipmentBadge = (status: string) => {
+  const s = status.toUpperCase();
+  if (s === 'DELIVERED') return 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20';
+  if (s === 'IN_TRANSIT' || s === 'IN TRANSIT' || s === 'DISPATCHED') return 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20';
+  if (s === 'FAILED' || s === 'RETURNED') return 'bg-red-500/10 text-red-500 border-red-500/20';
+  if (s === 'PENDING' || s === 'BOOKED') return 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20';
+  return 'bg-surface-sunken text-muted border-default';
+};
+
 export const LogisticsDashboardView: React.FC = () => {
   const { formatCurrency } = useCurrency();
 
-  // Query Recent Courier Shipments
   const { data: shipments = [] } = useQuery<ShipmentItem[]>({
     queryKey: ['delivery', 'dashboard-shipments'],
     queryFn: async () => {
       try {
-        const res = await api.get<ShipmentItem[] | { data: ShipmentItem[] }>(
-          '/delivery/shipments?per_page=6'
-        );
+        const res = await api.get<ShipmentItem[] | { data: ShipmentItem[] }>('/delivery/shipments?per_page=10');
         const d = Array.isArray(res.data) ? res.data : (res.data?.data ?? []);
         return Array.isArray(d) ? d : [];
-      } catch {
-        return [];
-      }
+      } catch { return []; }
     },
   });
 
-  const totalCodPending = useMemo(() => {
-    return shipments.reduce((acc, s) => acc + (Number(s.cod_amount) || 0), 0);
+  const stats = useMemo(() => {
+    const totalCodPending = shipments.reduce((acc, s) => acc + (Number(s.cod_amount) || 0), 0);
+    const inTransit = shipments.filter((s) => ['IN_TRANSIT', 'DISPATCHED', 'IN TRANSIT'].includes(s.status.toUpperCase())).length;
+    const delivered = shipments.filter((s) => s.status.toUpperCase() === 'DELIVERED').length;
+    const failed = shipments.filter((s) => ['FAILED', 'RETURNED'].includes(s.status.toUpperCase())).length;
+    return { totalCodPending, inTransit, delivered, failed };
   }, [shipments]);
 
+  const kpis = [
+    { label: 'COD Receivable', value: formatCurrency(stats.totalCodPending), sub: 'Cash on delivery queue', icon: <DollarSign className="size-4" />, color: 'text-amber-500', accent: stats.totalCodPending > 0 },
+    { label: 'In Transit', value: `${stats.inTransit}`, sub: 'Shipments on route', icon: <Navigation className="size-4" />, color: 'text-blue-500' },
+    { label: 'Delivered Today', value: `${stats.delivered}`, sub: 'Successful deliveries', icon: <CheckCircle2 className="size-4" />, color: 'text-emerald-500' },
+    { label: 'Failed / Returns', value: `${stats.failed}`, sub: 'Returned shipments', icon: <AlertTriangle className="size-4" />, color: stats.failed > 0 ? 'text-red-500' : 'text-muted', accent: stats.failed > 0 },
+  ];
+
+  const deliveryRate = shipments.length > 0
+    ? Math.round((stats.delivered / shipments.length) * 100)
+    : 0;
+
   return (
-    <div className="space-y-6 animate-in fade-in duration-200">
-      {/* ─────────────────────────────────────────────────────────────
-          1. HEADER & GREETING
-      ───────────────────────────────────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-default pb-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-default font-sans">
-              Logistics & Courier Dispatch
-            </h2>
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-              Courier APIs Connected
-            </span>
+    <div className="space-y-4 animate-in fade-in duration-200">
+      {/* KPI strip */}
+      <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
+        {kpis.map((kpi) => (
+          <div key={kpi.label} className={cn(
+            'rounded-2xl border bg-surface p-4 shadow-sm hover:border-primary/30 transition-all flex flex-col gap-2',
+            kpi.accent && kpi.color === 'text-amber-500' ? 'border-l-4 border-l-amber-500 border-r border-t border-b border-default' :
+            kpi.accent && kpi.color === 'text-red-500' ? 'border-l-4 border-l-red-500 border-r border-t border-b border-default' :
+            'border-default'
+          )}>
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted truncate">{kpi.label}</span>
+              <span className={cn('shrink-0', kpi.color)}>{kpi.icon}</span>
+            </div>
+            <div className={cn('font-extrabold font-mono text-xl leading-none', kpi.accent ? kpi.color : 'text-default')}>{kpi.value}</div>
+            <div className={cn('text-[10px] font-medium', kpi.accent ? kpi.color.replace('text-', 'text-').replace('500', '600') : 'text-muted')}>{kpi.sub}</div>
           </div>
-          <p className="text-xs text-muted mt-0.5">
-            Steadfast, Pathao, REDX courier shipments, delivery run sheets & Cash on Delivery (COD) collection
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2 flex-wrap">
-          <Link
-            to="/delivery"
-            className="flex items-center gap-1.5 rounded-xl border border-default bg-surface px-3 py-2 text-xs font-semibold text-default hover:bg-surface-sunken transition-all shadow-2xs"
-          >
-            <MapPin className="size-3.5 text-muted" />
-            <span>Run Sheets</span>
-          </Link>
-          <Link
-            to="/delivery"
-            className="flex items-center gap-1.5 rounded-xl bg-primary px-3.5 py-2 text-xs font-semibold text-primary-fg shadow-xs hover:bg-primary/90 transition-all"
-          >
-            <Plus className="size-3.5" />
-            <span>Book Courier</span>
-          </Link>
-        </div>
+        ))}
       </div>
 
-      {/* ─────────────────────────────────────────────────────────────
-          2. 4-CARD METRIC STRIP (RESPONSIVE)
-      ───────────────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        <div className="rounded-2xl border border-default bg-surface p-4 shadow-xs flex flex-col justify-between hover:border-primary/40 transition-token-colors">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold text-muted uppercase tracking-wider">
-              ACTIVE SHIPMENTS
-            </span>
-            <div className="flex size-7 items-center justify-center rounded-lg bg-blue-500/10 text-blue-500">
-              <Truck className="size-3.5" />
+      {/* Main: shipments table + sidebar */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {/* Shipments table — 2/3 */}
+        <div className="lg:col-span-2 rounded-2xl border border-default bg-surface shadow-sm overflow-hidden">
+          <div className="flex items-center justify-between px-5 py-3.5 border-b border-default">
+            <div>
+              <h3 className="text-sm font-bold text-default">Active Shipment Register</h3>
+              <p className="text-[11px] text-muted">Courier dispatch, COD, and delivery tracking</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Link to="/delivery?action=new" className="flex items-center gap-1 rounded-lg bg-linear-to-r from-teal-600 to-emerald-600 px-3 py-1.5 text-[11px] font-semibold text-white shadow-xs hover:from-teal-500 hover:to-emerald-500 transition-all">
+                <Plus className="size-3" /> Book Shipment
+              </Link>
             </div>
           </div>
-          <div className="mt-3">
-            <div className="text-2xl sm:text-3xl font-extrabold font-mono text-default">
-              {shipments.length}
-            </div>
-            <span className="text-[10px] text-muted">In transit with couriers</span>
-          </div>
-        </div>
 
-        <div className="rounded-2xl border border-default bg-surface p-4 shadow-xs flex flex-col justify-between hover:border-primary/40 transition-token-colors">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold text-muted uppercase tracking-wider">
-              RUN SHEETS TODAY
-            </span>
-            <div className="flex size-7 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-500">
-              <Package className="size-3.5" />
-            </div>
-          </div>
-          <div className="mt-3">
-            <div className="text-2xl sm:text-3xl font-extrabold font-mono text-default">
-              0
-            </div>
-            <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">
-              Dispatched to hubs
-            </span>
-          </div>
-        </div>
-
-        <div className="rounded-2xl border border-default bg-surface p-4 shadow-xs flex flex-col justify-between hover:border-primary/40 transition-token-colors">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold text-muted uppercase tracking-wider">
-              PENDING COD COLLECTION
-            </span>
-            <div className="flex size-7 items-center justify-center rounded-lg bg-amber-500/10 text-amber-500">
-              <Coins className="size-3.5" />
-            </div>
-          </div>
-          <div className="mt-3">
-            <div className="text-2xl sm:text-3xl font-extrabold font-mono text-default truncate">
-              {formatCurrency(totalCodPending)}
-            </div>
-            <span className="text-[10px] text-muted">Awaiting courier settlement</span>
-          </div>
-        </div>
-
-        <div className="rounded-2xl border border-default bg-surface p-4 shadow-xs flex flex-col justify-between hover:border-primary/40 transition-token-colors">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold text-muted uppercase tracking-wider">
-              DELIVERY SUCCESS RATE
-            </span>
-            <div className="flex size-7 items-center justify-center rounded-lg bg-purple-500/10 text-purple-500">
-              <CheckCircle2 className="size-3.5" />
-            </div>
-          </div>
-          <div className="mt-3">
-            <div className="text-2xl sm:text-3xl font-extrabold font-mono text-default">
-              98.2%
-            </div>
-            <span className="text-[10px] text-muted">Across Steadfast & Pathao</span>
-          </div>
-        </div>
-      </div>
-
-      {/* ─────────────────────────────────────────────────────────────
-          3. ACTIVE COURIER SHIPMENTS TABLE (RESPONSIVE)
-      ───────────────────────────────────────────────────────────── */}
-      <div className="rounded-2xl border border-default bg-surface p-4 sm:p-5 shadow-xs space-y-4">
-        <div className="flex items-center justify-between border-b border-default pb-3">
-          <div>
-            <h3 className="text-sm font-bold text-default">Active Outbound Consignments</h3>
-            <p className="text-[11px] text-muted">Real-time parcel status across Steadfast, Pathao & REDX</p>
-          </div>
-          <Link to="/delivery" className="text-xs font-semibold text-primary hover:underline">
-            View all shipments
-          </Link>
-        </div>
-
-        <div className="overflow-x-auto rounded-xl border border-default w-full">
-          <table className="w-full text-left text-xs min-w-[500px]">
-            <thead className="bg-surface-sunken text-[10px] uppercase font-bold text-muted border-b border-default">
-              <tr>
-                <th className="px-3.5 py-2.5">TRACKING #</th>
-                <th className="px-3.5 py-2.5">COURIER</th>
-                <th className="px-3.5 py-2.5">RECIPIENT</th>
-                <th className="px-3.5 py-2.5">DESTINATION</th>
-                <th className="px-3.5 py-2.5 text-right">COD AMOUNT</th>
-                <th className="px-3.5 py-2.5">STATUS</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-default">
-              {shipments.length === 0 ? (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead className="bg-surface-sunken text-[10px] uppercase font-bold text-muted border-b border-default">
                 <tr>
-                  <td colSpan={6} className="text-center py-8 text-muted text-xs">
-                    No active outbound shipments today.
-                  </td>
+                  <th className="px-4 py-2.5">Tracking</th>
+                  <th className="px-4 py-2.5">Customer</th>
+                  <th className="px-4 py-2.5">Courier</th>
+                  <th className="px-4 py-2.5">City</th>
+                  <th className="px-4 py-2.5 text-right">COD</th>
+                  <th className="px-4 py-2.5">Status</th>
                 </tr>
-              ) : (
-                shipments.map((s) => (
-                  <tr key={s.id} className="hover:bg-surface-sunken/60 transition-colors">
-                    <td className="px-3.5 py-2.5 font-mono font-bold text-primary">
-                      {s.tracking_code}
-                    </td>
-                    <td className="px-3.5 py-2.5 font-medium text-default">
-                      <span className="rounded-md bg-surface-sunken border border-default px-1.5 py-0.5 text-[10px] font-bold">
-                        {s.courier}
-                      </span>
-                    </td>
-                    <td className="px-3.5 py-2.5 text-default">{s.customer_name}</td>
-                    <td className="px-3.5 py-2.5 text-muted">{s.city}</td>
-                    <td className="px-3.5 py-2.5 font-mono font-semibold text-default text-right">
-                      {formatCurrency(Number(s.cod_amount) || 0)}
-                    </td>
-                    <td className="px-3.5 py-2.5">
-                      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 px-2 py-0.5 text-[10px] font-bold uppercase">
-                        <span className="size-1 rounded-full bg-current" />
-                        {s.status}
-                      </span>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-default">
+                {shipments.length > 0 ? (
+                  shipments.map((s) => (
+                    <tr key={s.id} className="hover:bg-surface-sunken/50 transition-colors">
+                      <td className="px-4 py-2.5 font-mono text-[11px] font-bold text-default">{s.tracking_code}</td>
+                      <td className="px-4 py-2.5 font-medium text-default truncate max-w-30">{s.customer_name}</td>
+                      <td className="px-4 py-2.5 text-muted">{s.courier}</td>
+                      <td className="px-4 py-2.5">
+                        <span className="flex items-center gap-1 text-muted">
+                          <MapPin className="size-3 text-blue-500 shrink-0" />
+                          {s.city}
+                        </span>
+                      </td>
+                      <td className="px-4 py-2.5 font-mono font-bold text-right text-default">{formatCurrency(Number(s.cod_amount) || 0)}</td>
+                      <td className="px-4 py-2.5">
+                        <span className={cn('inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-bold', shipmentBadge(s.status))}>
+                          {s.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr><td colSpan={6} className="py-10 text-center text-muted">
+                    <Inbox className="mx-auto size-8 text-muted/40 mb-2" />
+                    No shipments recorded. Book your first delivery.
+                  </td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Delivery performance sidebar — 1/3 */}
+        <div className="flex flex-col gap-4">
+          {/* Delivery rate gauge */}
+          <div className="rounded-2xl border border-default bg-surface shadow-sm p-5 space-y-4">
+            <div>
+              <h3 className="text-sm font-bold text-default">Delivery Performance</h3>
+              <p className="text-[11px] text-muted">Success rate · {shipments.length} total shipments</p>
+            </div>
+
+            {/* SVG ring gauge */}
+            <div className="flex items-center justify-center">
+              <div className="relative flex h-28 w-28 items-center justify-center">
+                <svg className="size-28 -rotate-90" viewBox="0 0 120 120">
+                  <circle cx="60" cy="60" r="52" fill="none" stroke="currentColor" strokeWidth="8" className="text-surface-sunken" />
+                  <circle
+                    cx="60" cy="60" r="52" fill="none"
+                    stroke={deliveryRate >= 80 ? '#10b981' : deliveryRate >= 60 ? '#f59e0b' : '#ef4444'}
+                    strokeWidth="8"
+                    strokeLinecap="round"
+                    strokeDasharray={`${2 * Math.PI * 52}`}
+                    strokeDashoffset={`${2 * Math.PI * 52 * (1 - deliveryRate / 100)}`}
+                    style={{ transition: 'stroke-dashoffset 1s ease' }}
+                  />
+                </svg>
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                  <span className={cn('text-2xl font-black font-mono', deliveryRate >= 80 ? 'text-emerald-500' : deliveryRate >= 60 ? 'text-amber-500' : 'text-red-500')}>
+                    {deliveryRate}%
+                  </span>
+                  <span className="text-[9px] font-bold text-muted uppercase tracking-wide">Success</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Breakdown */}
+            <div className="space-y-2 border-t border-default pt-3">
+              {[
+                { label: 'In Transit', count: stats.inTransit, color: 'bg-blue-500' },
+                { label: 'Delivered', count: stats.delivered, color: 'bg-emerald-500' },
+                { label: 'Failed/Return', count: stats.failed, color: 'bg-red-500' },
+              ].map((row) => (
+                <div key={row.label} className="flex items-center gap-2">
+                  <div className={cn('size-2 rounded-full shrink-0', row.color)} />
+                  <div className="flex-1 flex items-center justify-between text-xs">
+                    <span className="text-muted">{row.label}</span>
+                    <span className="font-bold font-mono text-default">{row.count}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Run sheets */}
+          <div className="rounded-2xl border border-default bg-surface shadow-sm p-4 space-y-3">
+            <h3 className="text-sm font-bold text-default">Dispatch Tools</h3>
+            <div className="space-y-2">
+              <Link to="/delivery/run-sheets" className="flex items-center justify-between rounded-xl border border-default bg-surface-sunken px-3 py-2.5 hover:border-primary/30 hover:bg-surface transition-all">
+                <span className="flex items-center gap-2 text-xs font-semibold text-default">
+                  <Truck className="size-3.5 text-teal-500" /> Run Sheets
+                </span>
+                <ArrowRight className="size-3 text-muted" />
+              </Link>
+              <Link to="/delivery" className="flex items-center justify-between rounded-xl border border-default bg-surface-sunken px-3 py-2.5 hover:border-primary/30 hover:bg-surface transition-all">
+                <span className="flex items-center gap-2 text-xs font-semibold text-default">
+                  <Package className="size-3.5 text-blue-500" /> All Shipments
+                </span>
+                <ArrowRight className="size-3 text-muted" />
+              </Link>
+              <Link to="/delivery?tab=cod-collection" className="flex items-center justify-between rounded-xl border border-default bg-surface-sunken px-3 py-2.5 hover:border-primary/30 hover:bg-surface transition-all">
+                <span className="flex items-center gap-2 text-xs font-semibold text-default">
+                  <Coins className="size-3.5 text-amber-500" /> COD Collection
+                </span>
+                <ArrowRight className="size-3 text-muted" />
+              </Link>
+            </div>
+          </div>
         </div>
       </div>
     </div>

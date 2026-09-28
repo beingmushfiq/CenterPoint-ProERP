@@ -17,11 +17,12 @@ import {
   DollarSign,
   Clock,
   Plus,
-  Compass,
   RefreshCw,
   Truck,
   Globe,
   ExternalLink,
+  TrendingUp,
+  Activity,
 } from 'lucide-react';
 import {
   OrderPOModal,
@@ -45,7 +46,6 @@ import { api } from '../../lib/api/client';
 import { cn } from '../../lib/utils';
 import { getStorefrontExternalUrl } from '../../lib/storefront/storefrontUrl';
 import { OnboardingStartupModal } from '../../modules/platform/OnboardingStartupModal';
-import { OnboardingProgressCard } from '../../modules/platform/OnboardingProgressCard';
 import { ExecutiveDashboardView } from './components/ExecutiveDashboardView';
 import { SalesDashboardView } from './components/SalesDashboardView';
 import { InventoryDashboardView } from './components/InventoryDashboardView';
@@ -55,9 +55,9 @@ import { WorkforceDashboardView } from './components/WorkforceDashboardView';
 import { ProductionDashboardView } from './components/ProductionDashboardView';
 import { PurchasingDashboardView } from './components/PurchasingDashboardView';
 import { LogisticsDashboardView } from './components/LogisticsDashboardView';
-import { EnterpriseSystemNavigator } from './components/EnterpriseSystemNavigator';
+import { useCurrency } from '../../lib/format/currency';
 
-// ── Types & Datasets ──────────────────────────────────────────
+// ── Types ──────────────────────────────────────────────────────
 
 export type DashboardRoleView =
   | 'executive'
@@ -88,6 +88,11 @@ interface DashboardMetricsData {
     active_orders: number;
     today_orders_count?: number;
     total_receivable_due: number;
+    aging_breakdown?: {
+      current?: number;
+      overdue_60?: number;
+      overdue_90?: number;
+    };
   };
   production: {
     today_output: number;
@@ -99,6 +104,8 @@ interface DashboardMetricsData {
   inventory: {
     total_valuation: number;
     low_stock_count: number;
+    pending_counts?: number;
+    pending_adjustments?: number;
   };
   quality: {
     qc_pass_rate: number;
@@ -139,13 +146,53 @@ interface DashboardMetricsData {
   attention_items?: OrderPOItem[];
 }
 
+// ── Inline KPI Cell (Command Bar) ─────────────────────────────
+
+interface KpiCellProps {
+  label: string;
+  value: string;
+  sub?: string;
+  accent?: 'green' | 'amber' | 'blue' | 'red' | 'indigo' | 'default';
+  delay?: number;
+}
+
+const KpiCell: React.FC<KpiCellProps> = ({ label, value, sub, accent = 'default', delay = 0 }) => {
+  const accentMap = {
+    green: 'text-emerald-500 dark:text-emerald-400',
+    amber: 'text-amber-500 dark:text-amber-400',
+    blue: 'text-blue-500 dark:text-blue-400',
+    red: 'text-red-500 dark:text-red-400',
+    indigo: 'text-indigo-500 dark:text-indigo-400',
+    default: 'text-muted',
+  };
+  return (
+    <div
+      className="flex flex-col gap-0.5 px-3 py-2 rounded-xl hover:bg-surface-sunken transition-colors cursor-default min-w-0"
+      style={{ animationDelay: `${delay}ms` }}
+    >
+      <span className="text-[9px] font-bold uppercase tracking-[0.12em] text-muted truncate leading-none">
+        {label}
+      </span>
+      <span className="text-sm font-extrabold font-mono text-default leading-tight truncate">
+        {value}
+      </span>
+      {sub && (
+        <span className={cn('text-[10px] font-semibold leading-none truncate', accentMap[accent])}>
+          {sub}
+        </span>
+      )}
+    </div>
+  );
+};
+
+// ── Main Dashboard Component ───────────────────────────────────
 
 export const TenantRoleDashboard: React.FC = () => {
-  // ── Auth & Role Resolution ───────────────────────────────────
   const user = useAuthStore((state) => state.user);
   const tenant = useAuthStore((state) => state.tenant);
   const hasPermission = useAuthStore((state) => state.hasPermission);
   const { companyName, logoUrl } = useTenantBranding();
+  const { formatCurrency } = useCurrency();
   const queryClient = useQueryClient();
 
   const erpInstallName = useMemo(() => {
@@ -155,10 +202,9 @@ export const TenantRoleDashboard: React.FC = () => {
     const cleanBase = sanitizeTenantBusinessName(raw, 'Operations Platform').replace(/\s+ERP$/i, '').trim();
     return `${cleanBase} ERP`;
   }, [companyName, tenant]);
+
   const { t } = useTranslation(['dashboard', 'common', 'navigation']);
-
   const storeSlug = tenant?.subdomain || tenant?.slug || 'store';
-
   const [isLiveTelemetry, setIsLiveTelemetry] = useState(true);
 
   const {
@@ -175,12 +221,7 @@ export const TenantRoleDashboard: React.FC = () => {
         const raw = res.data;
         if (raw && typeof raw === 'object') {
           if ('commercial' in raw) return raw as DashboardMetricsData;
-          if (
-            'data' in raw &&
-            raw.data &&
-            typeof raw.data === 'object' &&
-            'commercial' in raw.data
-          ) {
+          if ('data' in raw && raw.data && typeof raw.data === 'object' && 'commercial' in raw.data) {
             return raw.data as DashboardMetricsData;
           }
         }
@@ -195,65 +236,29 @@ export const TenantRoleDashboard: React.FC = () => {
 
   const roleName = user?.role || (user?.is_platform_admin ? 'Super Administrator' : '');
 
+  // ── Permission Gates ─────────────────────────────────────────
   const canAccessExecutive = Boolean(
     user?.is_platform_admin ||
     hasPermission('*') ||
-    (hasPermission('core.setting.view') &&
-      hasPermission('sales.order.view') &&
-      hasPermission('production.batch.view'))
+    (hasPermission('core.setting.view') && hasPermission('sales.order.view') && hasPermission('production.batch.view'))
   );
-  const canAccessProduction = hasPermission([
-    'production.batch.view',
-    'production.plan.view',
-    'production.worker_entry.view',
-  ]);
-  const canAccessInventory = hasPermission([
-    'inventory.stock.view',
-    'inventory.warehouse.view',
-    'inventory.movement.view',
-  ]);
+  const canAccessProduction = hasPermission(['production.batch.view', 'production.plan.view', 'production.worker_entry.view']);
+  const canAccessInventory = hasPermission(['inventory.stock.view', 'inventory.warehouse.view', 'inventory.movement.view']);
   const canAccessQC = hasPermission(['qc.inspection.view', 'qc.parameter.view', 'qc.wastage.view']);
-  const canAccessSales = hasPermission([
-    'sales.order.view',
-    'pos.terminal.view',
-    'pos.sale.create',
-    'sales.invoice.view',
-  ]);
-  const canAccessFinance = hasPermission([
-    'finance.account.view',
-    'finance.journal.view',
-    'finance.expense.view',
-    'sales.invoice.view',
-  ]);
-  const canAccessWorkforce = hasPermission([
-    'hr.employee.view',
-    'hr.attendance.view',
-    'hr.payroll.view',
-    'production.worker_entry.view',
-  ]);
-  const canAccessPurchasing = hasPermission([
-    'purchasing.order.view',
-    'purchasing.requisition.view',
-    'purchasing.grn.view',
-  ]);
-  const canAccessLogistics = hasPermission([
-    'logistics.shipment.view',
-    'logistics.run_sheet.view',
-    'logistics.delivery_order.view',
-  ]);
+  const canAccessSales = hasPermission(['sales.order.view', 'pos.terminal.view', 'pos.sale.create', 'sales.invoice.view']);
+  const canAccessFinance = hasPermission(['finance.account.view', 'finance.journal.view', 'finance.expense.view', 'sales.invoice.view']);
+  const canAccessWorkforce = hasPermission(['hr.employee.view', 'hr.attendance.view', 'hr.payroll.view', 'production.worker_entry.view']);
+  const canAccessPurchasing = hasPermission(['purchasing.order.view', 'purchasing.requisition.view', 'purchasing.grn.view']);
+  const canAccessLogistics = hasPermission(['logistics.shipment.view', 'logistics.run_sheet.view', 'logistics.delivery_order.view']);
 
   const initialView: DashboardRoleView = useMemo(() => {
     const slug = roleName.toLowerCase();
     if (slug.includes('finance') || slug.includes('account')) return 'finance';
-    if (slug.includes('hr') || slug.includes('workforce') || slug.includes('payroll'))
-      return 'workforce';
+    if (slug.includes('hr') || slug.includes('workforce') || slug.includes('payroll')) return 'workforce';
     if (slug.includes('purchase') || slug.includes('procurement')) return 'purchasing';
-    if (slug.includes('delivery') || slug.includes('logistics') || slug.includes('dispatch'))
-      return 'logistics';
-    if (slug.includes('sales') || slug.includes('commercial') || slug.includes('pos'))
-      return 'sales';
-    if (slug.includes('store') || slug.includes('warehouse') || slug.includes('inventory'))
-      return 'inventory';
+    if (slug.includes('delivery') || slug.includes('logistics') || slug.includes('dispatch')) return 'logistics';
+    if (slug.includes('sales') || slug.includes('commercial') || slug.includes('pos')) return 'sales';
+    if (slug.includes('store') || slug.includes('warehouse') || slug.includes('inventory')) return 'inventory';
     if (slug.includes('qc') || slug.includes('quality')) return 'qc';
     if (slug.includes('production') || slug.includes('factory')) return 'production';
     if (canAccessExecutive) return 'executive';
@@ -266,149 +271,63 @@ export const TenantRoleDashboard: React.FC = () => {
     if (canAccessPurchasing) return 'purchasing';
     if (canAccessLogistics) return 'logistics';
     return 'executive';
-  }, [
-    roleName,
-    canAccessExecutive,
-    canAccessProduction,
-    canAccessQC,
-    canAccessInventory,
-    canAccessSales,
-    canAccessFinance,
-    canAccessWorkforce,
-    canAccessPurchasing,
-    canAccessLogistics,
-  ]);
+  }, [roleName, canAccessExecutive, canAccessProduction, canAccessQC, canAccessInventory, canAccessSales, canAccessFinance, canAccessWorkforce, canAccessPurchasing, canAccessLogistics]);
 
   const availableViews = useMemo(() => {
-    const views: Array<{
-      id: DashboardRoleView;
-      label: string;
-      icon: React.ComponentType<{ className?: string }>;
-    }> = [];
-    if (canAccessExecutive) {
-      views.push({ id: 'executive', label: t('perspectives.executive', { defaultValue: 'Executive Overview' }), icon: LayoutDashboard });
-    }
-    if (canAccessProduction) {
-      views.push({ id: 'production', label: t('perspectives.production', { defaultValue: 'Factory Production' }), icon: Factory });
-    }
-    if (canAccessInventory) {
-      views.push({ id: 'inventory', label: t('perspectives.inventory', { defaultValue: 'Stock & Warehouse' }), icon: Warehouse });
-    }
-    if (canAccessQC) {
-      views.push({ id: 'qc', label: t('perspectives.qc', { defaultValue: 'Quality Control' }), icon: Microscope });
-    }
-    if (canAccessSales) {
-      views.push({ id: 'sales', label: t('perspectives.sales', { defaultValue: 'Sales & POS' }), icon: ShoppingBag });
-    }
-    if (canAccessFinance) {
-      views.push({ id: 'finance', label: t('perspectives.finance', { defaultValue: 'Finance & Accounts' }), icon: Coins });
-    }
-    if (canAccessWorkforce) {
-      views.push({ id: 'workforce', label: t('perspectives.workforce', { defaultValue: 'Floor Workforce' }), icon: Users });
-    }
-    if (canAccessPurchasing) {
-      views.push({ id: 'purchasing', label: t('perspectives.purchasing', { defaultValue: 'Supply Purchasing' }), icon: ShoppingCart });
-    }
-    if (canAccessLogistics) {
-      views.push({ id: 'logistics', label: t('perspectives.logistics', { defaultValue: 'Delivery Logistics' }), icon: Truck });
-    }
+    const views: Array<{ id: DashboardRoleView; label: string; icon: React.ComponentType<{ className?: string }> }> = [];
+    if (canAccessExecutive) views.push({ id: 'executive', label: 'Overview', icon: LayoutDashboard });
+    if (canAccessProduction) views.push({ id: 'production', label: 'Production', icon: Factory });
+    if (canAccessInventory) views.push({ id: 'inventory', label: 'Inventory', icon: Warehouse });
+    if (canAccessQC) views.push({ id: 'qc', label: 'Quality', icon: Microscope });
+    if (canAccessSales) views.push({ id: 'sales', label: 'Sales & POS', icon: ShoppingBag });
+    if (canAccessFinance) views.push({ id: 'finance', label: 'Finance', icon: Coins });
+    if (canAccessWorkforce) views.push({ id: 'workforce', label: 'Workforce', icon: Users });
+    if (canAccessPurchasing) views.push({ id: 'purchasing', label: 'Purchasing', icon: ShoppingCart });
+    if (canAccessLogistics) views.push({ id: 'logistics', label: 'Logistics', icon: Truck });
     return views;
-  }, [
-    t,
-    canAccessExecutive,
-    canAccessProduction,
-    canAccessInventory,
-    canAccessQC,
-    canAccessSales,
-    canAccessFinance,
-    canAccessWorkforce,
-    canAccessPurchasing,
-    canAccessLogistics,
-  ]);
+  }, [canAccessExecutive, canAccessProduction, canAccessInventory, canAccessQC, canAccessSales, canAccessFinance, canAccessWorkforce, canAccessPurchasing, canAccessLogistics]);
 
   const [userSelectedView, setUserSelectedView] = useState<DashboardRoleView | null>(() => {
-    try {
-      const saved = localStorage.getItem('tenant_dashboard_role_perspective');
-      return (saved as DashboardRoleView) || null;
-    } catch {
-      return null;
-    }
+    try { return (localStorage.getItem('tenant_dashboard_role_perspective') as DashboardRoleView) || null; }
+    catch { return null; }
   });
 
   const activeView: DashboardRoleView = useMemo(() => {
-    if (userSelectedView && availableViews.some((v) => v.id === userSelectedView)) {
-      return userSelectedView;
-    }
+    if (userSelectedView && availableViews.some((v) => v.id === userSelectedView)) return userSelectedView;
     return initialView;
   }, [userSelectedView, availableViews, initialView]);
 
   const setActiveView = (view: DashboardRoleView) => {
     setUserSelectedView(view);
-    try {
-      localStorage.setItem('tenant_dashboard_role_perspective', view);
-    } catch {
-      // Ignore localStorage errors
-    }
+    try { localStorage.setItem('tenant_dashboard_role_perspective', view); } catch { /* ignore */ }
   };
 
-  // ── State variables ──────────────────────────────────────────
-
-  // Helper to check whether PWA prompt is allowed to show
+  // ── PWA State ────────────────────────────────────────────────
   const isPwaEligible = (): boolean => {
-    if (
-      typeof window === 'undefined' ||
-      typeof localStorage === 'undefined' ||
-      typeof localStorage.getItem !== 'function'
-    )
-      return false;
-    const isInstalled =
-      localStorage.getItem('erp_pwa_installed') === 'true' ||
-      localStorage.getItem('pwa_installed') === 'true' ||
-      localStorage.getItem('slicemart_pwa_installed') === 'true';
-    const isDismissed =
-      localStorage.getItem('erp_pwa_dismissed') === 'true' ||
-      localStorage.getItem('pwa_dismissed') === 'true' ||
-      localStorage.getItem('slicemart_pwa_dismissed') === 'true';
-    const isStandalone =
-      (typeof window.matchMedia === 'function' && Boolean(window.matchMedia('(display-mode: standalone)')?.matches)) ||
-      (window.navigator as unknown as { standalone?: boolean })?.standalone === true;
-
+    if (typeof window === 'undefined' || typeof localStorage === 'undefined' || typeof localStorage.getItem !== 'function') return false;
+    const isInstalled = localStorage.getItem('erp_pwa_installed') === 'true' || localStorage.getItem('pwa_installed') === 'true';
+    const isDismissed = localStorage.getItem('erp_pwa_dismissed') === 'true' || localStorage.getItem('pwa_dismissed') === 'true';
+    const isStandalone = (typeof window.matchMedia === 'function' && Boolean(window.matchMedia('(display-mode: standalone)')?.matches)) || (window.navigator as unknown as { standalone?: boolean })?.standalone === true;
     return !isInstalled && !isDismissed && !isStandalone;
   };
 
-  // Only show if eligible AND native browser install prompt is operational
-  const [showPwaPrompt, setShowPwaPrompt] = useState(() => {
-    return isPwaEligible() && isPWAInstallable();
-  });
+  const [showPwaPrompt, setShowPwaPrompt] = useState(() => isPwaEligible() && isPWAInstallable());
 
   React.useEffect(() => {
-    const handleInstallAvailable = () => {
-      if (isPwaEligible()) {
-        setShowPwaPrompt(true);
-      }
-    };
-
-    const handleBeforeInstall = () => {
-      if (isPwaEligible()) {
-        setShowPwaPrompt(true);
-      }
-    };
-
+    const handleInstallAvailable = () => { if (isPwaEligible()) setShowPwaPrompt(true); };
     const handleAppInstalled = () => {
       localStorage.setItem('erp_pwa_installed', 'true');
-      localStorage.setItem('erp_pwa_dismissed', 'true');
       localStorage.setItem('pwa_installed', 'true');
+      localStorage.setItem('erp_pwa_dismissed', 'true');
       localStorage.setItem('pwa_dismissed', 'true');
       setShowPwaPrompt(false);
     };
-
     window.addEventListener('pwa-install-available', handleInstallAvailable);
-    window.addEventListener('beforeinstallprompt', handleBeforeInstall);
+    window.addEventListener('beforeinstallprompt', handleInstallAvailable);
     window.addEventListener('appinstalled', handleAppInstalled);
-
     return () => {
       window.removeEventListener('pwa-install-available', handleInstallAvailable);
-      window.removeEventListener('beforeinstallprompt', handleBeforeInstall);
+      window.removeEventListener('beforeinstallprompt', handleInstallAvailable);
       window.removeEventListener('appinstalled', handleAppInstalled);
     };
   }, []);
@@ -416,105 +335,39 @@ export const TenantRoleDashboard: React.FC = () => {
   const handleInstallPwa = async () => {
     try {
       const accepted = await promptPWAInstall();
-      if (accepted) {
-        toast.success(`${companyName || 'Enterprise Cloud'} Installed`, {
-          description: 'Application successfully added to your home screen.',
-        });
-      }
-    } catch (err) {
-      console.warn('PWA install prompt error:', err);
-    } finally {
-      localStorage.setItem('erp_pwa_installed', 'true');
-      localStorage.setItem('erp_pwa_dismissed', 'true');
-      localStorage.setItem('pwa_installed', 'true');
-      localStorage.setItem('pwa_dismissed', 'true');
+      if (accepted) toast.success(`${companyName || 'Enterprise Cloud'} Installed`, { description: 'Added to home screen.' });
+    } catch (err) { console.warn('PWA install error:', err); }
+    finally {
+      ['erp_pwa_installed', 'pwa_installed', 'erp_pwa_dismissed', 'pwa_dismissed'].forEach(k => localStorage.setItem(k, 'true'));
       setShowPwaPrompt(false);
     }
   };
 
   const handleDismissPwa = () => {
-    localStorage.setItem('erp_pwa_dismissed', 'true');
-    localStorage.setItem('pwa_dismissed', 'true');
+    ['erp_pwa_dismissed', 'pwa_dismissed'].forEach(k => localStorage.setItem(k, 'true'));
     setShowPwaPrompt(false);
   };
 
-  // Modals state
+  // ── Modal State ──────────────────────────────────────────────
   const [orderPoItem, setOrderPoItem] = useState<OrderPOItem | null>(null);
   const [reviewStockItem, setReviewStockItem] = useState<OrderPOItem | null>(null);
   const [selectedQCItem, setSelectedQCItem] = useState<QcItem | null>(null);
-  const [selectedInvoice, setSelectedInvoice] = useState<{
-    id: string;
-    customer: string;
-    type: 'B2B' | 'B2C';
-    amount: string;
-    status: string;
-    payment: string;
-  } | null>(null);
+  const [selectedInvoice, setSelectedInvoice] = useState<{ id: string; customer: string; type: 'B2B' | 'B2C'; amount: string; status: string; payment: string } | null>(null);
   const [selectedDueItem, setSelectedDueItem] = useState<DueCustomerItem | null>(null);
-  const [selectedWorker, setSelectedWorker] = useState<{
-    initials: string;
-    name: string;
-    output: string;
-    rate: number;
-    badge: string;
-    color: string;
-  } | null>(null);
-  const [selectedOrder, setSelectedOrder] = useState<{
-    id: string;
-    product: string;
-    target: number;
-    produced: number;
-    progress: number;
-    status: string;
-  } | null>(null);
+  const [selectedWorker, setSelectedWorker] = useState<{ initials: string; name: string; output: string; rate: number; badge: string; color: string } | null>(null);
+  const [selectedOrder, setSelectedOrder] = useState<{ id: string; product: string; target: number; produced: number; progress: number; status: string } | null>(null);
   const [isCustomDateOpen, setIsCustomDateOpen] = useState(false);
   const [customRangeLabel, setCustomRangeLabel] = useState<string | null>(null);
 
-
-
-
-
-  const { data: rawLowStock = [] } = useQuery<
-    Array<{
-      id: string | number;
-      name: string;
-      sku: string;
-      warehouse?: { name: string };
-      current_stock?: number;
-      min_stock_alert?: number;
-      unit?: string;
-    }>
-  >({
+  // ── Live data ────────────────────────────────────────────────
+  const { data: rawLowStock = [] } = useQuery<Array<{ id: string | number; name: string; sku: string; warehouse?: { name: string }; current_stock?: number; min_stock_alert?: number; unit?: string }>>({
     queryKey: ['inventory', 'low-stock-attention'],
     queryFn: async () => {
       try {
-        const res = await api.get<
-          | Array<{
-              id: string | number;
-              name: string;
-              sku: string;
-              warehouse?: { name: string };
-              current_stock?: number;
-              min_stock_alert?: number;
-              unit?: string;
-            }>
-          | {
-              data: Array<{
-                id: string | number;
-                name: string;
-                sku: string;
-                warehouse?: { name: string };
-                current_stock?: number;
-                min_stock_alert?: number;
-                unit?: string;
-              }>;
-            }
-        >('/inventory/stock?low_stock=true&per_page=5');
+        const res = await api.get<Array<{ id: string | number; name: string; sku: string; warehouse?: { name: string }; current_stock?: number; min_stock_alert?: number; unit?: string }> | { data: Array<{ id: string | number; name: string; sku: string; warehouse?: { name: string }; current_stock?: number; min_stock_alert?: number; unit?: string }> }>('/inventory/stock?low_stock=true&per_page=5');
         const d = Array.isArray(res.data) ? res.data : (res.data?.data ?? []);
         return Array.isArray(d) ? d : [];
-      } catch {
-        return [];
-      }
+      } catch { return []; }
     },
   });
 
@@ -531,74 +384,75 @@ export const TenantRoleDashboard: React.FC = () => {
         suggestedQty: Math.max((item.min_stock_alert ?? 0) - (item.current_stock ?? 0), 10),
       }));
     }
-    if (metrics?.attention_items && metrics.attention_items.length > 0) {
-      return metrics.attention_items;
-    }
+    if (metrics?.attention_items && metrics.attention_items.length > 0) return metrics.attention_items;
     return [];
   }, [rawLowStock, metrics?.attention_items]);
 
-  // QC Items - dynamic from live operational metrics
-  const qcList: Array<{
-    id: string;
-    orderNo: string;
-    product: string;
-    qty: number;
-    status: string;
-    failed?: number;
-    rework?: number;
-  }> = useMemo(() => {
-    return metrics?.recent_qc || [];
-  }, [metrics?.recent_qc]);
+  const qcList = useMemo(() => metrics?.recent_qc || [], [metrics?.recent_qc]);
+  const workers = useMemo(() => metrics?.active_workers || [], [metrics?.active_workers]);
 
-  // Workers - dynamic from live operational metrics
-  const workers: Array<{
-    initials: string;
-    name: string;
-    output: string;
-    rate: number;
-    badge: string;
-    color: string;
-  }> = useMemo(() => {
-    return metrics?.active_workers || [];
-  }, [metrics?.active_workers]);
+  // ── Quick actions ────────────────────────────────────────────
+  const quickActions = useMemo(() => {
+    const actions: Array<{ label: string; to: string; icon: React.ReactNode; color: string }> = [
+      { label: 'Storefront', to: getStorefrontExternalUrl(storeSlug), icon: <Globe className="size-3.5" />, color: 'text-emerald-500' },
+    ];
+    if (hasPermission(['sales.order.view', 'sales.order.create'])) actions.push({ label: 'New Order', to: '/sales?action=new', icon: <Plus className="size-3.5" />, color: 'text-primary' });
+    if (hasPermission(['pos.terminal.view', 'pos.sale.create'])) actions.push({ label: 'POS Register', to: '/pos', icon: <ShoppingCart className="size-3.5" />, color: 'text-blue-500' });
+    if (hasPermission(['production.batch.view', 'production.plan.view'])) actions.push({ label: 'New Batch', to: '/production?action=new', icon: <Factory className="size-3.5" />, color: 'text-indigo-500' });
+    if (hasPermission(['inventory.stock.view', 'inventory.movement.view'])) actions.push({ label: 'Transfer Stock', to: '/inventory?action=transfer', icon: <Warehouse className="size-3.5" />, color: 'text-amber-500' });
+    if (hasPermission(['purchasing.order.view', 'purchasing.requisition.view'])) actions.push({ label: 'New PO', to: '/purchasing?action=new', icon: <FileText className="size-3.5" />, color: 'text-orange-500' });
+    if (hasPermission(['qc.inspection.view'])) actions.push({ label: 'QC Audit', to: '/qc', icon: <Microscope className="size-3.5" />, color: 'text-cyan-500' });
+    if (hasPermission(['finance.account.view'])) actions.push({ label: 'Due Collection', to: '/finance?tab=due-collection', icon: <DollarSign className="size-3.5" />, color: 'text-emerald-500' });
+    if (hasPermission(['hr.attendance.view'])) actions.push({ label: 'Attendance', to: '/hr?tab=attendance', icon: <Clock className="size-3.5" />, color: 'text-teal-500' });
+    if (hasPermission(['reports.report.view', 'reports.dashboard.view'])) actions.push({ label: 'BI Reports', to: '/reports', icon: <Sparkles className="size-3.5" />, color: 'text-purple-500' });
+    return actions;
+  }, [hasPermission, storeSlug]);
 
   return (
-    <div className="space-y-5 pb-16 max-w-[1600px] mx-auto transition-token-colors">
+    <div className="space-y-4 pb-16 max-w-[1600px] mx-auto">
       <OnboardingStartupModal />
-      <OnboardingProgressCard />
-      {/* ─────────────────────────────────────────────────────────────
-          0. DYNAMIC ROLE PERSPECTIVE SELECTOR
-      ───────────────────────────────────────────────────────────── */}
-      <div className="bg-surface border border-default p-2.5 rounded-2xl shadow-2xs space-y-2.5">
-        {/* Top Control Bar: Role Identifier & Telemetry Actions */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-          <div className="flex items-center gap-2.5 min-w-0 pl-1">
-            <div className="flex size-8 items-center justify-center rounded-xl bg-primary/10 text-primary border border-primary/20 shrink-0">
-              <LayoutDashboard className="size-4" />
+
+      {/* ══════════════════════════════════════════════════════════
+          ZONE 1 — OBSIDIAN COMMAND BAR
+          Full-width mission control strip. Inline KPIs, no card chrome.
+      ═══════════════════════════════════════════════════════════ */}
+      <div className="rounded-2xl border border-default bg-surface shadow-sm overflow-hidden">
+        {/* Top row: identity + controls */}
+        <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-default">
+          {/* Left: role identity */}
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="relative shrink-0">
+              <div className="flex size-7 items-center justify-center rounded-lg bg-primary/10 border border-primary/20">
+                <Activity className="size-3.5 text-primary" />
+              </div>
+              {isLiveTelemetry && (
+                <span className="absolute -top-0.5 -right-0.5 size-2 rounded-full bg-emerald-500 ring-1 ring-surface animate-pulse" />
+              )}
             </div>
-            <div className="flex items-center gap-2 min-w-0">
-              <span className="text-xs font-bold text-default">
-                {user?.role ??
-                  (user?.is_platform_admin ? t('controls.superAdmin') : t('controls.operationsMember'))}
-              </span>
-              <span className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-medium bg-surface-sunken text-muted border border-default">
-                {t('controls.perspective')}
-              </span>
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="text-xs font-bold text-default truncate">
+                  {user?.role ?? (user?.is_platform_admin ? t('controls.superAdmin') : t('controls.operationsMember'))}
+                </span>
+                <span className="inline-flex items-center px-1.5 py-px rounded text-[9px] font-bold uppercase tracking-wider bg-surface-sunken text-muted border border-default leading-none">
+                  {t('controls.perspective')}
+                </span>
+              </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+          {/* Right: telemetry controls */}
+          <div className="flex items-center gap-1.5 shrink-0">
             <a
               href={getStorefrontExternalUrl(storeSlug)}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-1.5 rounded-xl border border-default bg-surface px-2.5 py-1 text-xs font-semibold text-default hover:text-primary hover:border-primary/40 hover:bg-surface-sunken transition-all shadow-2xs group cursor-pointer"
-              title="Open public customer storefront in a new tab"
+              className="flex items-center gap-1 rounded-lg border border-default bg-surface-sunken px-2 py-1 text-[11px] font-semibold text-muted hover:text-default hover:border-default transition-all group"
+              title="Open storefront"
             >
-              <Globe className="size-3.5 text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition-transform" />
-              <span className="hidden sm:inline">{t('controls.viewWebsiteStorefront')}</span>
-              <span className="sm:hidden">{t('controls.storefront')}</span>
-              <ExternalLink className="size-3 text-muted group-hover:text-primary transition-colors" />
+              <Globe className="size-3 text-emerald-500 group-hover:scale-110 transition-transform" />
+              <span className="hidden sm:inline">Storefront</span>
+              <ExternalLink className="size-2.5 text-muted/60" />
             </a>
 
             <button
@@ -606,25 +460,17 @@ export const TenantRoleDashboard: React.FC = () => {
               onClick={() => {
                 const next = !isLiveTelemetry;
                 setIsLiveTelemetry(next);
-                toast.info(next ? (t('controls.liveSyncActive', 'Live telemetry active (auto-updating)')) : t('controls.liveSyncPaused', 'Live telemetry paused'));
+                toast.info(next ? 'Live telemetry active' : 'Telemetry paused');
               }}
               className={cn(
-                'flex items-center gap-1.5 rounded-xl border px-2.5 py-1 text-xs font-semibold transition-all cursor-pointer',
+                'flex items-center gap-1 rounded-lg border px-2 py-1 text-[11px] font-semibold transition-all',
                 isLiveTelemetry
-                  ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                  ? 'border-emerald-500/30 bg-emerald-500/8 text-emerald-600 dark:text-emerald-400'
                   : 'border-default bg-surface-sunken text-muted hover:text-default'
               )}
-              title="Toggle live telemetry auto-refresh"
             >
-              <span
-                className={cn(
-                  'size-2 rounded-full',
-                  isLiveTelemetry ? 'bg-emerald-500 animate-pulse' : 'bg-muted'
-                )}
-              />
-              <span className="inline">
-                {isLiveTelemetry ? t('controls.liveSync') : t('controls.syncPaused')}
-              </span>
+              <span className={cn('size-1.5 rounded-full', isLiveTelemetry ? 'bg-emerald-500 animate-pulse' : 'bg-muted')} />
+              <span>{isLiveTelemetry ? 'Live' : 'Paused'}</span>
             </button>
 
             <button
@@ -636,334 +482,233 @@ export const TenantRoleDashboard: React.FC = () => {
                   queryClient.invalidateQueries({ queryKey: ['sales'] }),
                   queryClient.invalidateQueries({ queryKey: ['inventory'] }),
                 ]);
-                toast.success(t('controls.metricsRefreshed', 'Dashboard metrics refreshed'));
+                toast.success('Dashboard refreshed');
               }}
               disabled={isRefreshingMetrics}
-              className="flex items-center gap-1.5 rounded-xl border border-default bg-surface px-2.5 py-1 text-xs font-semibold text-muted hover:text-default hover:bg-surface-sunken transition-all cursor-pointer disabled:opacity-50"
-              title="Refresh dashboard metrics"
+              className="flex items-center gap-1 rounded-lg border border-default bg-surface-sunken px-2 py-1 text-[11px] font-semibold text-muted hover:text-default transition-all disabled:opacity-50"
             >
-              <RefreshCw
-                className={cn('size-3.5', isRefreshingMetrics && 'animate-spin text-primary')}
-              />
-              <span className="inline">{t('controls.refresh')}</span>
+              <RefreshCw className={cn('size-3', isRefreshingMetrics && 'animate-spin text-primary')} />
+              <span className="hidden sm:inline">Refresh</span>
             </button>
           </div>
         </div>
 
-        {/* Perspective Switcher Track */}
-        {availableViews.length > 1 && (
-          <div className="pt-1.5 border-t border-default/60">
-            <div className="flex items-center gap-1 overflow-x-auto rounded-xl border border-default bg-surface-sunken p-1 scrollbar-none max-w-full touch-pan-x snap-x scroll-smooth">
-              {availableViews.map((v) => {
-                const Icon = v.icon;
-                const isActive = activeView === v.id;
-                return (
-                  <button
-                    key={v.id}
-                    type="button"
-                    onClick={() => setActiveView(v.id)}
-                    className={cn(
-                      'flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-semibold transition-all cursor-pointer whitespace-nowrap snap-start shrink-0',
-                      isActive
-                        ? 'bg-surface text-default shadow-xs border border-default font-bold'
-                        : 'text-muted hover:text-default hover:bg-surface/50'
-                    )}
-                  >
-                    <Icon className={cn('size-3.5', isActive ? 'text-primary' : 'text-muted')} />
-                    <span>{v.label}</span>
-                  </button>
-                );
-              })}
-            </div>
+        {/* Inline KPI strip — data is the hero */}
+        <div className="flex items-stretch divide-x divide-default overflow-x-auto scrollbar-none">
+          <KpiCell
+            label="Today Revenue"
+            value={metrics ? formatCurrency(metrics.commercial.today_revenue) : '—'}
+            sub={metrics ? `Month: ${formatCurrency(metrics.commercial.month_revenue)}` : 'Loading…'}
+            accent="green"
+            delay={0}
+          />
+          <KpiCell
+            label="Active Orders"
+            value={metrics ? `${metrics.commercial.active_orders}` : '—'}
+            sub="Fulfillment queue"
+            accent="blue"
+            delay={60}
+          />
+          <KpiCell
+            label="Receivables Due"
+            value={metrics ? formatCurrency(metrics.commercial.total_receivable_due) : '—'}
+            sub="Outstanding balance"
+            accent="amber"
+            delay={120}
+          />
+          <KpiCell
+            label="Production Rate"
+            value={metrics ? `${metrics.production.achievement_rate}%` : '—'}
+            sub={metrics ? `${metrics.production.today_output} pcs today` : 'Loading…'}
+            accent={metrics && metrics.production.achievement_rate < 70 ? 'red' : 'green'}
+            delay={180}
+          />
+          <KpiCell
+            label="QC Pass Rate"
+            value={metrics ? `${metrics.quality.qc_pass_rate}%` : '—'}
+            sub={metrics ? `${metrics.quality.pending_inspections} pending` : 'Loading…'}
+            accent={metrics && metrics.quality.qc_pass_rate < 85 ? 'amber' : 'green'}
+            delay={240}
+          />
+          <KpiCell
+            label="Stock Valuation"
+            value={metrics ? formatCurrency(metrics.inventory.total_valuation) : '—'}
+            sub={metrics && metrics.inventory.low_stock_count > 0 ? `⚠ ${metrics.inventory.low_stock_count} reorder alerts` : 'All levels healthy'}
+            accent={metrics && metrics.inventory.low_stock_count > 0 ? 'amber' : 'default'}
+            delay={300}
+          />
+          {attentionItems.length > 0 && (
+            <KpiCell
+              label="Attention Required"
+              value={`${attentionItems.length} items`}
+              sub="Low stock alerts"
+              accent="red"
+              delay={360}
+            />
+          )}
+        </div>
+      </div>
+
+      {/* ══════════════════════════════════════════════════════════
+          ZONE 2 — PRECISION PERSPECTIVE SELECTOR
+          Segmented control with underline-active style. Not tabs.
+      ═══════════════════════════════════════════════════════════ */}
+      {availableViews.length > 1 && (
+        <div className="flex items-center gap-0 overflow-x-auto scrollbar-none bg-surface border border-default rounded-2xl px-2 py-1.5">
+          {availableViews.map((v, idx) => {
+            const Icon = v.icon;
+            const isActive = activeView === v.id;
+            return (
+              <button
+                key={v.id}
+                type="button"
+                onClick={() => setActiveView(v.id)}
+                className={cn(
+                  'relative flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold transition-all rounded-xl whitespace-nowrap cursor-pointer shrink-0',
+                  isActive
+                    ? 'text-default bg-surface-sunken'
+                    : 'text-muted hover:text-default hover:bg-surface-sunken/50'
+                )}
+                style={{ animationDelay: `${idx * 30}ms` }}
+              >
+                <Icon className={cn('size-3.5 shrink-0', isActive ? 'text-primary' : 'text-muted')} />
+                <span>{v.label}</span>
+                {isActive && (
+                  <span className="absolute bottom-0 left-3 right-3 h-0.5 rounded-full bg-primary" />
+                )}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════════════
+          ZONE 3 — ROLE VIEW CONTENT
+      ═══════════════════════════════════════════════════════════ */}
+      <div className="animate-in fade-in duration-200">
+        {activeView === 'executive' && (
+          <ExecutiveDashboardView
+            onOpenInvoice={setSelectedInvoice}
+            trends={metrics?.trends?.weekly}
+          />
+        )}
+        {activeView === 'sales' && <SalesDashboardView onOpenInvoice={setSelectedInvoice} />}
+        {activeView === 'inventory' && (
+          <InventoryDashboardView
+            attentionItems={attentionItems}
+            onOpenOrderPO={setOrderPoItem}
+            onOpenReviewStock={setReviewStockItem}
+          />
+        )}
+        {activeView === 'qc' && <QcDashboardView qcList={qcList} onOpenQC={setSelectedQCItem} />}
+        {activeView === 'finance' && (
+          <FinanceDashboardView onOpenDueItem={setSelectedDueItem} onOpenInvoice={setSelectedInvoice} />
+        )}
+        {activeView === 'workforce' && <WorkforceDashboardView onOpenWorker={setSelectedWorker} workers={workers} />}
+        {activeView === 'purchasing' && <PurchasingDashboardView />}
+        {activeView === 'logistics' && <LogisticsDashboardView />}
+        {activeView === 'production' && (
+          <ProductionDashboardView
+            attentionItems={attentionItems}
+            onOpenOrderPO={setOrderPoItem}
+            onOpenReviewStock={setReviewStockItem}
+            onOpenInvoice={setSelectedInvoice}
+            onOpenQC={setSelectedQCItem}
+            onOpenWorker={setSelectedWorker}
+            onOpenOrder={setSelectedOrder}
+            onOpenCustomDate={() => setIsCustomDateOpen(true)}
+            customRangeLabel={customRangeLabel}
+          />
+        )}
+      </div>
+
+      {/* ══════════════════════════════════════════════════════════
+          ZONE 4 — QUICK ACTIONS GRID
+          Compact icon+label grid. Permission-aware. No label clutter.
+      ═══════════════════════════════════════════════════════════ */}
+      {quickActions.length > 0 && (
+        <div className="rounded-2xl border border-default bg-surface p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <TrendingUp className="size-3.5 text-primary" />
+            <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted">Quick Actions</span>
           </div>
-        )}
-      </div>
-
-      {/* ─────────────────────────────────────────────────────────────
-          0.1 UNIVERSAL QUICK-ACTION WORKFLOW LAUNCHER
-      ───────────────────────────────────────────────────────────── */}
-      <div className="flex items-center gap-2 overflow-x-auto scrollbar-none py-1 -mt-2">
-        <span className="text-[11px] font-bold uppercase tracking-wider text-muted shrink-0 flex items-center gap-1.5 pl-1">
-          <Compass className="size-3.5 text-primary" />
-          <span>{t('controls.quickActions')}</span>
-        </span>
-        <a
-          href={getStorefrontExternalUrl(storeSlug)}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-1.5 rounded-xl border border-default bg-surface px-2.5 py-1 text-xs font-semibold text-default hover:border-primary/40 hover:bg-surface-sunken transition-all shrink-0 shadow-2xs group"
-          title="Open customer storefront in a new tab"
-        >
-          <Globe className="size-3 text-emerald-500 group-hover:scale-110 transition-transform" />
-          <span>{t('controls.viewWebsite')}</span>
-          <ExternalLink className="size-2.5 text-muted group-hover:text-default transition-colors" />
-        </a>
-        {hasPermission(['sales.order.view', 'sales.order.create']) && (
-          <Link
-            to="/sales?action=new"
-            className="inline-flex items-center gap-1.5 rounded-xl border border-default bg-surface px-2.5 py-1 text-xs font-semibold text-default hover:border-primary/40 hover:bg-surface-sunken transition-all shrink-0 shadow-2xs"
-          >
-            <Plus className="size-3 text-primary" />
-            <span>{t('actions.salesOrder')}</span>
-          </Link>
-        )}
-        {hasPermission(['pos.terminal.view', 'pos.sale.create']) && (
-          <Link
-            to="/pos"
-            className="inline-flex items-center gap-1.5 rounded-xl border border-default bg-surface px-2.5 py-1 text-xs font-semibold text-default hover:border-primary/40 hover:bg-surface-sunken transition-all shrink-0 shadow-2xs"
-          >
-            <ShoppingCart className="size-3 text-blue-500" />
-            <span>{t('actions.posRegister')}</span>
-          </Link>
-        )}
-        {hasPermission(['production.batch.view', 'production.plan.view']) && (
-          <Link
-            to="/production?action=new"
-            className="inline-flex items-center gap-1.5 rounded-xl border border-default bg-surface px-2.5 py-1 text-xs font-semibold text-default hover:border-primary/40 hover:bg-surface-sunken transition-all shrink-0 shadow-2xs"
-          >
-            <Factory className="size-3 text-indigo-500" />
-            <span>{t('actions.batchPlan')}</span>
-          </Link>
-        )}
-        {hasPermission(['inventory.stock.view', 'inventory.movement.view']) && (
-          <Link
-            to="/inventory?action=transfer"
-            className="inline-flex items-center gap-1.5 rounded-xl border border-default bg-surface px-2.5 py-1 text-xs font-semibold text-default hover:border-primary/40 hover:bg-surface-sunken transition-all shrink-0 shadow-2xs"
-          >
-            <Warehouse className="size-3 text-amber-500" />
-            <span>{t('actions.transferStock')}</span>
-          </Link>
-        )}
-        {hasPermission(['purchasing.order.view', 'purchasing.requisition.view']) && (
-          <Link
-            to="/purchasing?action=new"
-            className="inline-flex items-center gap-1.5 rounded-xl border border-default bg-surface px-2.5 py-1 text-xs font-semibold text-default hover:border-primary/40 hover:bg-surface-sunken transition-all shrink-0 shadow-2xs"
-          >
-            <FileText className="size-3 text-amber-600" />
-            <span>{t('actions.purchasePo')}</span>
-          </Link>
-        )}
-        {hasPermission(['qc.inspection.view']) && (
-          <Link
-            to="/qc"
-            className="inline-flex items-center gap-1.5 rounded-xl border border-default bg-surface px-2.5 py-1 text-xs font-semibold text-default hover:border-primary/40 hover:bg-surface-sunken transition-all shrink-0 shadow-2xs"
-          >
-            <Microscope className="size-3 text-cyan-500" />
-            <span>{t('actions.qcAudit')}</span>
-          </Link>
-        )}
-        {hasPermission(['finance.account.view']) && (
-          <Link
-            to="/finance?tab=due-collection"
-            className="inline-flex items-center gap-1.5 rounded-xl border border-default bg-surface px-2.5 py-1 text-xs font-semibold text-default hover:border-primary/40 hover:bg-surface-sunken transition-all shrink-0 shadow-2xs"
-          >
-            <DollarSign className="size-3 text-emerald-500" />
-            <span>{t('actions.dueCollection')}</span>
-          </Link>
-        )}
-        {hasPermission(['hr.attendance.view']) && (
-          <Link
-            to="/hr?tab=attendance"
-            className="inline-flex items-center gap-1.5 rounded-xl border border-default bg-surface px-2.5 py-1 text-xs font-semibold text-default hover:border-primary/40 hover:bg-surface-sunken transition-all shrink-0 shadow-2xs"
-          >
-            <Clock className="size-3 text-teal-500" />
-            <span>{t('actions.attendance')}</span>
-          </Link>
-        )}
-        {hasPermission(['reports.report.view', 'reports.dashboard.view']) && (
-          <Link
-            to="/reports"
-            className="inline-flex items-center gap-1.5 rounded-xl border border-default bg-surface px-2.5 py-1 text-xs font-semibold text-default hover:border-primary/40 hover:bg-surface-sunken transition-all shrink-0 shadow-2xs"
-          >
-            <Sparkles className="size-3 text-purple-500" />
-            <span>{t('actions.rmsBi')}</span>
-          </Link>
-        )}
-      </div>
-
-            {/* ─────────────────────────────────────────────────────────────
-          DYNAMIC ROLE VIEWS
-      ───────────────────────────────────────────────────────────── */}
-      {activeView === 'executive' && (
-        <ExecutiveDashboardView
-          onOpenInvoice={setSelectedInvoice}
-          trends={metrics?.trends?.weekly}
-        />
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-2">
+            {quickActions.map((action) => {
+              const isExternal = action.to.startsWith('http');
+              const inner = (
+                <div className="flex flex-col items-center gap-1.5 p-2.5 rounded-xl border border-default bg-surface-sunken hover:bg-surface hover:border-primary/30 hover:shadow-sm transition-all group cursor-pointer text-center">
+                  <span className={cn('transition-transform group-hover:-translate-y-px group-hover:scale-110', action.color)}>
+                    {action.icon}
+                  </span>
+                  <span className="text-[10px] font-semibold text-muted group-hover:text-default leading-tight">
+                    {action.label}
+                  </span>
+                </div>
+              );
+              return isExternal ? (
+                <a key={action.label} href={action.to} target="_blank" rel="noopener noreferrer">
+                  {inner}
+                </a>
+              ) : (
+                <Link key={action.label} to={action.to}>
+                  {inner}
+                </Link>
+              );
+            })}
+          </div>
+        </div>
       )}
 
-      {activeView === 'sales' && (
-        <SalesDashboardView
-          onOpenInvoice={setSelectedInvoice}
-        />
-      )}
-
-      {activeView === 'inventory' && (
-        <InventoryDashboardView
-          attentionItems={attentionItems}
-          onOpenOrderPO={setOrderPoItem}
-          onOpenReviewStock={setReviewStockItem}
-        />
-      )}
-
-      {activeView === 'qc' && (
-        <QcDashboardView
-          qcList={qcList}
-          onOpenQC={setSelectedQCItem}
-        />
-      )}
-
-      {activeView === 'finance' && (
-        <FinanceDashboardView
-          onOpenDueItem={setSelectedDueItem}
-          onOpenInvoice={setSelectedInvoice}
-        />
-      )}
-
-      {activeView === 'workforce' && (
-        <WorkforceDashboardView
-          onOpenWorker={setSelectedWorker}
-          workers={workers}
-        />
-      )}
-
-      {activeView === 'purchasing' && <PurchasingDashboardView />}
-
-      {activeView === 'logistics' && <LogisticsDashboardView />}
-
-      {activeView === 'production' && (
-        <ProductionDashboardView
-          attentionItems={attentionItems}
-          onOpenOrderPO={setOrderPoItem}
-          onOpenReviewStock={setReviewStockItem}
-          onOpenInvoice={setSelectedInvoice}
-          onOpenQC={setSelectedQCItem}
-          onOpenWorker={setSelectedWorker}
-          onOpenOrder={setSelectedOrder}
-          onOpenCustomDate={() => setIsCustomDateOpen(true)}
-          customRangeLabel={customRangeLabel}
-        />
-      )}
-
-      {/* ─────────────────────────────────────────────────────────────
-          6. ENTERPRISE SUBSYSTEM COCKPIT & NAVIGATOR
-      ───────────────────────────────────────────────────────────── */}
-      <EnterpriseSystemNavigator />
-
-      {/* ─────────────────────────────────────────────────────────────
-          7. FLOATING PWA INSTALL PROMPT (CONDITIONAL & THEMED)
-      ───────────────────────────────────────────────────────────── */}
+      {/* ══════════════════════════════════════════════════════════
+          PWA INSTALL PROMPT
+      ═══════════════════════════════════════════════════════════ */}
       {showPwaPrompt && (
         <aside
           aria-label="PWA Installation Prompt"
-          className="fixed bottom-5 right-5 z-40 w-80 sm:w-88 rounded-2xl border border-default bg-surface-raised p-4 shadow-xl shadow-slate-900/10 backdrop-blur-md transition-token-colors animate-in slide-in-from-bottom-5 duration-300"
+          className="fixed bottom-5 right-5 z-40 w-80 rounded-2xl border border-default bg-surface-raised p-4 shadow-xl backdrop-blur-md animate-in slide-in-from-bottom-5 duration-300"
         >
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-center gap-2.5">
               <div className="flex size-8 items-center justify-center rounded-xl bg-primary/10 text-primary border border-primary/20 overflow-hidden shrink-0">
-                {logoUrl ? (
-                  <img
-                    src={logoUrl}
-                    alt={companyName || 'Enterprise Cloud'}
-                    className="size-5 object-contain"
-                  />
-                ) : (
-                  <Sparkles className="size-4" />
-                )}
+                {logoUrl ? <img src={logoUrl} alt={companyName || 'ERP'} className="size-5 object-contain" /> : <Sparkles className="size-4" />}
               </div>
               <div className="min-w-0">
-                <h4 className="font-bold text-xs text-default truncate">
-                  {t('pwa.installTitle', { name: erpInstallName, defaultValue: `Install ${erpInstallName}` })}
-                </h4>
-                <span className="text-[10px] text-muted">{t('pwa.platformPwa', { defaultValue: 'Business Operations Platform PWA' })}</span>
+                <h4 className="font-bold text-xs text-default truncate">Install {erpInstallName}</h4>
+                <span className="text-[10px] text-muted">Business Operations PWA</span>
               </div>
             </div>
-            <button
-              type="button"
-              onClick={handleDismissPwa}
-              className="rounded-lg p-1 text-muted hover:text-default hover:bg-surface-sunken transition-colors cursor-pointer"
-              aria-label="Dismiss prompt"
-            >
+            <button type="button" onClick={handleDismissPwa} className="rounded-lg p-1 text-muted hover:text-default hover:bg-surface-sunken transition-colors cursor-pointer">
               <X className="size-4" />
             </button>
           </div>
           <p className="mt-2 text-xs text-muted leading-relaxed">
-            {t('pwa.description', { defaultValue: 'Install the operational dashboard on your desktop or mobile device for direct offline caching and faster business operations.' })}
+            Install on your device for faster access and offline caching.
           </p>
           <div className="mt-3.5 flex items-center gap-2">
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={handleInstallPwa}
-              leftIcon={<Download className="size-3.5" />}
-            >
-              {t('pwa.installApp', { defaultValue: 'Install App' })}
+            <Button variant="primary" size="sm" onClick={handleInstallPwa} leftIcon={<Download className="size-3.5" />}>
+              Install App
             </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleDismissPwa}
-              className="text-muted hover:text-default"
-            >
-              {t('pwa.maybeLater', { defaultValue: 'Maybe Later' })}
+            <Button variant="ghost" size="sm" onClick={handleDismissPwa} className="text-muted hover:text-default">
+              Later
             </Button>
           </div>
         </aside>
       )}
 
-      {/* ─────────────────────────────────────────────────────────────
-          8. INTERACTIVE DRILL-DOWN MODALS
-      ───────────────────────────────────────────────────────────── */}
-      <OrderPOModal
-        isOpen={Boolean(orderPoItem)}
-        onClose={() => setOrderPoItem(null)}
-        item={orderPoItem}
-      />
-
-      <StockReviewModal
-        isOpen={Boolean(reviewStockItem)}
-        onClose={() => setReviewStockItem(null)}
-        item={reviewStockItem}
-      />
-
-      <QCAuditModal
-        isOpen={Boolean(selectedQCItem)}
-        onClose={() => setSelectedQCItem(null)}
-        qcItem={selectedQCItem}
-        onInspectDone={() => {
-          // Closed and processed
-        }}
-      />
-
-      <InvoiceQuickViewModal
-        isOpen={Boolean(selectedInvoice)}
-        onClose={() => setSelectedInvoice(null)}
-        invoice={selectedInvoice}
-      />
-
-      <FinancialDueModal
-        isOpen={Boolean(selectedDueItem)}
-        onClose={() => setSelectedDueItem(null)}
-        dueItem={selectedDueItem}
-      />
-
-      <WorkerDetailModal
-        isOpen={Boolean(selectedWorker)}
-        onClose={() => setSelectedWorker(null)}
-        worker={selectedWorker}
-      />
-
-      <ProductionOrderDetailModal
-        isOpen={Boolean(selectedOrder)}
-        onClose={() => setSelectedOrder(null)}
-        order={selectedOrder}
-      />
-
+      {/* ══════════════════════════════════════════════════════════
+          MODALS
+      ═══════════════════════════════════════════════════════════ */}
+      <OrderPOModal isOpen={Boolean(orderPoItem)} onClose={() => setOrderPoItem(null)} item={orderPoItem} />
+      <StockReviewModal isOpen={Boolean(reviewStockItem)} onClose={() => setReviewStockItem(null)} item={reviewStockItem} />
+      <QCAuditModal isOpen={Boolean(selectedQCItem)} onClose={() => setSelectedQCItem(null)} qcItem={selectedQCItem} onInspectDone={() => {}} />
+      <InvoiceQuickViewModal isOpen={Boolean(selectedInvoice)} onClose={() => setSelectedInvoice(null)} invoice={selectedInvoice} />
+      <FinancialDueModal isOpen={Boolean(selectedDueItem)} onClose={() => setSelectedDueItem(null)} dueItem={selectedDueItem} />
+      <WorkerDetailModal isOpen={Boolean(selectedWorker)} onClose={() => setSelectedWorker(null)} worker={selectedWorker} />
+      <ProductionOrderDetailModal isOpen={Boolean(selectedOrder)} onClose={() => setSelectedOrder(null)} order={selectedOrder} />
       <CustomDateRangeModal
         isOpen={isCustomDateOpen}
         onClose={() => setIsCustomDateOpen(false)}
-        onApply={(start, end) => {
-          setCustomRangeLabel(`${start.slice(5)} - ${end.slice(5)}`);
-        }}
+        onApply={(start, end) => setCustomRangeLabel(`${start.slice(5)} - ${end.slice(5)}`)}
       />
     </div>
   );
