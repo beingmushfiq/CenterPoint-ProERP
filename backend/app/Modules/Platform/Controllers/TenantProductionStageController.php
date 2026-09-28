@@ -47,13 +47,13 @@ final class TenantProductionStageController extends Controller
             'requires_machine_tracking' => 'nullable|boolean',
         ]);
 
-        $key = !empty($validated['key'])
+        $key = ! empty($validated['key'])
             ? Str::slug($validated['key'], '_')
             : Str::slug($validated['label'], '_');
 
         // Check if key already exists for tenant
         if (TenantProductionStage::where('tenant_id', $tenantId)->where('key', $key)->exists()) {
-            $key = $key . '_' . time();
+            $key = $key.'_'.time();
         }
 
         $maxOrder = TenantProductionStage::where('tenant_id', $tenantId)->max('sort_order') ?? 0;

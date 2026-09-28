@@ -100,7 +100,7 @@ class PlatformPlanController extends Controller
 
         $validated = $request->validate([
             'name' => 'nullable|string|max:191',
-            'code' => 'nullable|string|max:64|unique:plans,code,' . $id,
+            'code' => 'nullable|string|max:64|unique:plans,code,'.$id,
             'price' => 'nullable|numeric|min:0',
             'billing_period' => 'nullable|string|in:monthly,yearly',
             'limits' => 'nullable|array',

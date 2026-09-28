@@ -11,6 +11,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Throwable;
 
 class PlatformSystemHealthController extends Controller
 {
@@ -32,7 +33,7 @@ class PlatformSystemHealthController extends Controller
                 'latency_ms' => $dbLatency,
                 'driver' => config('database.default'),
             ];
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             $isDegraded = true;
             $checks['database'] = [
                 'status' => 'critical',
@@ -43,7 +44,7 @@ class PlatformSystemHealthController extends Controller
         // 2. Storage Writable Check
         $storageStart = microtime(true);
         try {
-            $testFile = 'health_check_' . time() . '.tmp';
+            $testFile = 'health_check_'.time().'.tmp';
             Storage::disk('local')->put($testFile, 'ok');
             Storage::disk('local')->delete($testFile);
             $storageLatency = round((microtime(true) - $storageStart) * 1000, 2);
@@ -52,7 +53,7 @@ class PlatformSystemHealthController extends Controller
                 'latency_ms' => $storageLatency,
                 'disk' => 'local',
             ];
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             $isDegraded = true;
             $checks['storage'] = [
                 'status' => 'critical',
@@ -63,7 +64,7 @@ class PlatformSystemHealthController extends Controller
         // 3. Cache Ping
         $cacheStart = microtime(true);
         try {
-            $cacheKey = 'platform_health_ping_' . time();
+            $cacheKey = 'platform_health_ping_'.time();
             Cache::put($cacheKey, 'ok', 10);
             $val = Cache::get($cacheKey);
             Cache::forget($cacheKey);
@@ -73,7 +74,7 @@ class PlatformSystemHealthController extends Controller
                 'latency_ms' => $cacheLatency,
                 'store' => config('cache.default'),
             ];
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             $isDegraded = true;
             $checks['cache'] = [
                 'status' => 'degraded',
@@ -92,7 +93,7 @@ class PlatformSystemHealthController extends Controller
                 'failed_jobs' => $failedCount,
                 'connection' => config('queue.default'),
             ];
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             $checks['queue'] = [
                 'status' => 'unknown',
                 'error' => $e->getMessage(),

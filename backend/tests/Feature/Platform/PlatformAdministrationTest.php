@@ -230,4 +230,29 @@ class PlatformAdministrationTest extends TestCase
         $response->assertJsonPath('success', true);
         $response->assertJsonStructure(['data', 'meta' => ['pagination']]);
     }
+
+    public function test_platform_admin_can_view_tenant_details_by_id_uuid_or_slug(): void
+    {
+        $token = $this->getPlatformToken();
+        $tenant = Tenant::firstOrFail();
+
+        // 1. By ID (numeric)
+        $byId = $this->withToken($token)->getJson("/api/v1/platform/tenants/{$tenant->id}");
+        $byId->assertStatus(200);
+        $byId->assertJsonPath('success', true);
+        $byId->assertJsonPath('data.tenant.id', $tenant->id);
+
+        // 2. By UUID
+        $byUuid = $this->withToken($token)->getJson("/api/v1/platform/tenants/{$tenant->uuid}");
+        $byUuid->assertStatus(200);
+        $byUuid->assertJsonPath('success', true);
+        $byUuid->assertJsonPath('data.tenant.id', $tenant->id);
+
+        // 3. By Slug
+        $bySlug = $this->withToken($token)->getJson("/api/v1/platform/tenants/{$tenant->slug}");
+        $bySlug->assertStatus(200);
+        $bySlug->assertJsonPath('success', true);
+        $bySlug->assertJsonPath('data.tenant.id', $tenant->id);
+    }
 }
+

@@ -9,6 +9,7 @@ use App\Models\AuditLog;
 use App\Models\PlatformSubscriptionPayment;
 use App\Models\Tenant;
 use App\Models\TenantSubscription;
+use App\Modules\Platform\Traits\ResolvesPlatformTenant;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -16,6 +17,8 @@ use Illuminate\Support\Str;
 
 class PlatformSubscriptionPaymentController extends Controller
 {
+    use ResolvesPlatformTenant;
+
     /**
      * List all platform subscription payments cross-tenant with search and filters.
      */
@@ -36,7 +39,7 @@ class PlatformSubscriptionPaymentController extends Controller
         }
 
         if ($request->filled('search')) {
-            $search = '%' . trim((string) $request->input('search')) . '%';
+            $search = '%'.trim((string) $request->input('search')).'%';
             $query->where(function ($q) use ($search): void {
                 $q->where('invoice_reference', 'like', $search)
                     ->orWhere('transaction_reference', 'like', $search)
@@ -84,7 +87,7 @@ class PlatformSubscriptionPaymentController extends Controller
      */
     public function index(Request $request, int|string $tenantId): JsonResponse
     {
-        $tenant = Tenant::findOrFail($tenantId);
+        $tenant = $this->resolvePlatformTenant($tenantId);
 
         $payments = PlatformSubscriptionPayment::where('tenant_id', $tenant->id)
             ->with(['subscription.plan:id,name,code', 'creator:id,name,email'])
@@ -113,7 +116,7 @@ class PlatformSubscriptionPaymentController extends Controller
      */
     public function store(Request $request, int|string $tenantId): JsonResponse
     {
-        $tenant = Tenant::findOrFail($tenantId);
+        $tenant = $this->resolvePlatformTenant($tenantId);
 
         $validated = $request->validate([
             'amount' => 'required|numeric|min:0.01',
@@ -129,7 +132,7 @@ class PlatformSubscriptionPaymentController extends Controller
             'notes' => 'nullable|string',
         ]);
 
-        $invoiceRef = $validated['invoice_reference'] ?? ('INV-' . Carbon::now()->format('Ym') . '-' . strtoupper(Str::random(6)));
+        $invoiceRef = $validated['invoice_reference'] ?? ('INV-'.Carbon::now()->format('Ym').'-'.strtoupper(Str::random(6)));
 
         // Resolve subscription
         $subscriptionId = $validated['subscription_id'] ?? null;

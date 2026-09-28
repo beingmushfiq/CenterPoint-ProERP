@@ -10,6 +10,8 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use RuntimeException;
+use Throwable;
 
 final class DataBinController extends Controller
 {
@@ -401,26 +403,6 @@ final class DataBinController extends Controller
     ];
 
     /**
-     * Resolve active tenant ID from context or request user fallback.
-     */
-    private function resolveTenantId(?Request $request = null): int
-    {
-        try {
-            return TenantContext::current()->tenantId();
-        } catch (\Throwable) {
-            $user = $request?->user() ?? \Illuminate\Support\Facades\Auth::user();
-            if ($user && !empty($user->tenant_id)) {
-                return (int) $user->tenant_id;
-            }
-            $tenant = \App\Models\Tenant::first();
-            if ($tenant) {
-                return (int) $tenant->id;
-            }
-            throw new \RuntimeException('Tenant context could not be resolved.');
-        }
-    }
-
-    /**
      * Get statistics of deleted items across all types and grouped by domain.
      */
     public function stats(Request $request): JsonResponse
@@ -440,8 +422,9 @@ final class DataBinController extends Controller
 
         foreach (self::TYPE_CONFIG as $key => $config) {
             $modelClass = $config['model'];
-            if (!class_exists($modelClass)) {
+            if (! class_exists($modelClass)) {
                 $counts[$key] = 0;
+
                 continue;
             }
 
@@ -454,7 +437,7 @@ final class DataBinController extends Controller
                 if (isset($domainCounts[$domain])) {
                     $domainCounts[$domain] += $count;
                 }
-            } catch (\Throwable) {
+            } catch (Throwable) {
                 $counts[$key] = 0;
             }
         }
@@ -465,7 +448,7 @@ final class DataBinController extends Controller
                 'total' => $total,
                 'counts' => $counts,
                 'domains' => $domainCounts,
-                'types' => array_map(fn($k, $v) => [
+                'types' => array_map(fn ($k, $v) => [
                     'key' => $k,
                     'label' => $v['label'],
                     'domain' => $v['domain'] ?? 'system',
@@ -495,7 +478,7 @@ final class DataBinController extends Controller
             // Filter by domain group
             $typesToQuery = array_filter(
                 self::TYPE_CONFIG,
-                fn($cfg) => ($cfg['domain'] ?? '') === $requestedDomain
+                fn ($cfg) => ($cfg['domain'] ?? '') === $requestedDomain
             );
         }
 
@@ -503,7 +486,7 @@ final class DataBinController extends Controller
 
         foreach ($typesToQuery as $typeKey => $config) {
             $modelClass = $config['model'];
-            if (!class_exists($modelClass)) {
+            if (! class_exists($modelClass)) {
                 continue;
             }
 
@@ -512,7 +495,7 @@ final class DataBinController extends Controller
 
                 // Filter search if provided
                 if ($search !== '') {
-                    $query->where(function ($q) use ($config, $search, $modelClass) {
+                    $query->where(function ($q) use ($config, $search, $modelClass): void {
                         $table = (new $modelClass)->getTable();
                         $first = true;
                         foreach ($config['search_fields'] as $field) {
@@ -546,7 +529,7 @@ final class DataBinController extends Controller
                         'created_at' => $record->created_at?->toISOString() ?? (string) $record->created_at,
                     ];
                 }
-            } catch (\Throwable) {
+            } catch (Throwable) {
                 // Silently skip if table or model not accessible
                 continue;
             }
@@ -582,7 +565,7 @@ final class DataBinController extends Controller
     {
         $tenantId = $this->resolveTenantId($request);
 
-        if (!isset(self::TYPE_CONFIG[$type])) {
+        if (! isset(self::TYPE_CONFIG[$type])) {
             return response()->json([
                 'success' => false,
                 'message' => "Unsupported resource type: {$type}",
@@ -594,10 +577,10 @@ final class DataBinController extends Controller
 
         $record = $this->findTrashedRecord($modelClass, $tenantId, $id);
 
-        if (!$record) {
+        if (! $record) {
             return response()->json([
                 'success' => false,
-                'message' => "Record not found or already restored.",
+                'message' => 'Record not found or already restored.',
             ], 404);
         }
 
@@ -626,7 +609,7 @@ final class DataBinController extends Controller
     {
         $tenantId = $this->resolveTenantId($request);
 
-        if (!isset(self::TYPE_CONFIG[$type])) {
+        if (! isset(self::TYPE_CONFIG[$type])) {
             return response()->json([
                 'success' => false,
                 'message' => "Unsupported resource type: {$type}",
@@ -638,10 +621,10 @@ final class DataBinController extends Controller
 
         $record = $this->findTrashedRecord($modelClass, $tenantId, $id);
 
-        if (!$record) {
+        if (! $record) {
             return response()->json([
                 'success' => false,
-                'message' => "Record not found or already permanently deleted.",
+                'message' => 'Record not found or already permanently deleted.',
             ], 404);
         }
 
@@ -682,7 +665,7 @@ final class DataBinController extends Controller
         $tenantId = $this->resolveTenantId($request);
         $items = $request->input('items', []);
 
-        if (!is_array($items) || empty($items)) {
+        if (! is_array($items) || empty($items)) {
             return response()->json([
                 'success' => false,
                 'message' => 'No items provided for bulk restoration.',
@@ -696,8 +679,9 @@ final class DataBinController extends Controller
             $type = (string) ($item['type'] ?? '');
             $id = (string) ($item['id'] ?? '');
 
-            if (!isset(self::TYPE_CONFIG[$type]) || empty($id)) {
+            if (! isset(self::TYPE_CONFIG[$type]) || empty($id)) {
                 $failed[] = ['type' => $type, 'id' => $id, 'reason' => 'Invalid type or ID'];
+
                 continue;
             }
 
@@ -715,7 +699,7 @@ final class DataBinController extends Controller
                 } else {
                     $failed[] = ['type' => $type, 'id' => $id, 'reason' => 'Record not found'];
                 }
-            } catch (\Throwable $e) {
+            } catch (Throwable $e) {
                 $failed[] = ['type' => $type, 'id' => $id, 'reason' => $e->getMessage()];
             }
         }
@@ -739,7 +723,7 @@ final class DataBinController extends Controller
         $tenantId = $this->resolveTenantId($request);
         $items = $request->input('items', []);
 
-        if (!is_array($items) || empty($items)) {
+        if (! is_array($items) || empty($items)) {
             return response()->json([
                 'success' => false,
                 'message' => 'No items provided for bulk purge.',
@@ -753,8 +737,9 @@ final class DataBinController extends Controller
             $type = (string) ($item['type'] ?? '');
             $id = (string) ($item['id'] ?? '');
 
-            if (!isset(self::TYPE_CONFIG[$type]) || empty($id)) {
+            if (! isset(self::TYPE_CONFIG[$type]) || empty($id)) {
                 $failed[] = ['type' => $type, 'id' => $id, 'reason' => 'Invalid type or ID'];
+
                 continue;
             }
 
@@ -774,7 +759,7 @@ final class DataBinController extends Controller
                 }
             } catch (\Illuminate\Database\QueryException $e) {
                 $failed[] = ['type' => $type, 'id' => $id, 'reason' => 'Referenced by other records'];
-            } catch (\Throwable $e) {
+            } catch (Throwable $e) {
                 $failed[] = ['type' => $type, 'id' => $id, 'reason' => $e->getMessage()];
             }
         }
@@ -806,7 +791,7 @@ final class DataBinController extends Controller
         } elseif ($domain && $domain !== 'all') {
             $typesToPurge = array_filter(
                 self::TYPE_CONFIG,
-                fn($cfg) => ($cfg['domain'] ?? '') === $domain
+                fn ($cfg) => ($cfg['domain'] ?? '') === $domain
             );
         }
 
@@ -814,7 +799,7 @@ final class DataBinController extends Controller
 
         foreach ($typesToPurge as $key => $config) {
             $modelClass = $config['model'];
-            if (!class_exists($modelClass)) {
+            if (! class_exists($modelClass)) {
                 continue;
             }
 
@@ -828,12 +813,12 @@ final class DataBinController extends Controller
                             $record->forceDelete();
                         });
                         $purgedCount++;
-                    } catch (\Throwable) {
+                    } catch (Throwable) {
                         // If one record is protected by active foreign keys, safely continue with remaining
                         continue;
                     }
                 }
-            } catch (\Throwable) {
+            } catch (Throwable) {
                 continue;
             }
         }
@@ -845,6 +830,26 @@ final class DataBinController extends Controller
                 'purged_count' => $purgedCount,
             ],
         ]);
+    }
+
+    /**
+     * Resolve active tenant ID from context or request user fallback.
+     */
+    private function resolveTenantId(?Request $request = null): int
+    {
+        try {
+            return TenantContext::current()->tenantId();
+        } catch (Throwable) {
+            $user = $request?->user() ?? \Illuminate\Support\Facades\Auth::user();
+            if ($user && ! empty($user->tenant_id)) {
+                return (int) $user->tenant_id;
+            }
+            $tenant = \App\Models\Tenant::first();
+            if ($tenant) {
+                return (int) $tenant->id;
+            }
+            throw new RuntimeException('Tenant context could not be resolved.');
+        }
     }
 
     /**
@@ -872,7 +877,7 @@ final class DataBinController extends Controller
         $query = $this->scopedTrashedQuery($modelClass, $tenantId);
         $table = (new $modelClass)->getTable();
 
-        return $query->where(function ($q) use ($table, $id) {
+        return $query->where(function ($q) use ($table, $id): void {
             if (is_numeric($id)) {
                 $q->where("{$table}.id", (int) $id);
             } elseif (Schema::hasColumn($table, 'uuid')) {
@@ -907,7 +912,7 @@ final class DataBinController extends Controller
                     $rel = $record->{$relation}();
                     try {
                         $children = $rel->withTrashed()->get();
-                    } catch (\Throwable) {
+                    } catch (Throwable) {
                         $children = $rel->get();
                     }
 
@@ -916,7 +921,7 @@ final class DataBinController extends Controller
                             $child->restore();
                         }
                     }
-                } catch (\Throwable) {
+                } catch (Throwable) {
                     // Ignore relations that do not support SoftDeletes
                 }
             }
@@ -947,7 +952,7 @@ final class DataBinController extends Controller
                     $rel = $record->{$relation}();
                     try {
                         $children = $rel->withTrashed()->get();
-                    } catch (\Throwable) {
+                    } catch (Throwable) {
                         $children = $rel->get();
                     }
 
@@ -956,7 +961,7 @@ final class DataBinController extends Controller
                             $child->forceDelete();
                         }
                     }
-                } catch (\Throwable) {
+                } catch (Throwable) {
                     // Ignore relations that do not support forceDelete
                 }
             }
@@ -966,25 +971,25 @@ final class DataBinController extends Controller
     /**
      * Resolve human-readable identifier from candidate fields.
      *
-     * @param list<string> $candidateFields
+     * @param  list<string>  $candidateFields
      */
     private function resolveIdentifier(object $record, array $candidateFields): string
     {
         // Special case for employees
         if (isset($record->first_name) || isset($record->last_name)) {
-            $name = trim(($record->first_name ?? '') . ' ' . ($record->last_name ?? ''));
+            $name = trim(($record->first_name ?? '').' '.($record->last_name ?? ''));
             if ($name !== '') {
-                return $name . (!empty($record->employee_code) ? " ({$record->employee_code})" : '');
+                return $name.(! empty($record->employee_code) ? " ({$record->employee_code})" : '');
             }
         }
 
         foreach ($candidateFields as $field) {
-            if (!empty($record->{$field})) {
+            if (! empty($record->{$field})) {
                 return (string) $record->{$field};
             }
         }
 
-        return '#' . ($record->id ?? $record->uuid ?? 'Unknown');
+        return '#'.($record->id ?? $record->uuid ?? 'Unknown');
     }
 
     /**

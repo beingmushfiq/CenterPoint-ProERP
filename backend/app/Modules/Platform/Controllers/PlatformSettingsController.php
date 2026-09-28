@@ -95,7 +95,7 @@ class PlatformSettingsController extends Controller
         if (! array_key_exists($group, self::DEFAULTS)) {
             return response()->json([
                 'success' => false,
-                'message' => "Unknown settings group '{$group}'. Allowed: " . implode(', ', array_keys(self::DEFAULTS)),
+                'message' => "Unknown settings group '{$group}'. Allowed: ".implode(', ', array_keys(self::DEFAULTS)),
             ], 422);
         }
 

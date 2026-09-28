@@ -229,8 +229,10 @@ if [ "${CAN_RUN_ARTISAN}" = "true" ]; then
             echo "--- Running Full Database Seeders (--seed requested) ---"
             ${PHP_BIN} -d display_errors=1 artisan db:seed --force --no-interaction
         else
-            echo "--- Ensuring System Permissions & Report Definitions are Up-to-Date ---"
+            echo "--- Ensuring System Permissions, Flagship Tenants & Report Definitions are Up-to-Date ---"
             ${PHP_BIN} artisan db:seed --class=SystemPermissionsSeeder --force --no-interaction 2>/dev/null || true
+            ${PHP_BIN} artisan db:seed --class=PlansAndTenantsSeeder --force --no-interaction 2>/dev/null || true
+            ${PHP_BIN} artisan db:seed --class=RolesAndPermissionsSeeder --force --no-interaction 2>/dev/null || true
             ${PHP_BIN} artisan db:seed --class=ReportDefinitionsTableSeeder --force --no-interaction 2>/dev/null || true
         fi
 

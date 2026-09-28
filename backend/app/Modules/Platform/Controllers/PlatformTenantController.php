@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Modules\Platform\Controllers;
 
-use App\Core\Http\Responses\ErrorResponse;
 use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
 use App\Models\Tenant;
@@ -15,16 +14,21 @@ use App\Models\User;
 use App\Modules\Platform\Actions\ManageSubscriptionAction;
 use App\Modules\Platform\Actions\RegisterTenantAction;
 use App\Modules\Platform\Actions\UpdateTenantStatusAction;
+use App\Modules\Platform\Traits\ResolvesPlatformTenant;
+use BackedEnum;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Throwable;
 
 /**
  * Controller for Master SaaS Admin Tenant Lifecycle & Management.
  */
 class PlatformTenantController extends Controller
 {
+    use ResolvesPlatformTenant;
+
     /**
      * List all tenants with filtering, search, and pagination.
      */
@@ -135,15 +139,15 @@ class PlatformTenantController extends Controller
             $result = $action->execute($validated);
         } catch (\Illuminate\Validation\ValidationException $e) {
             throw $e;
-        } catch (\Throwable $e) {
-            \Illuminate\Support\Facades\Log::error('Tenant provisioning failed: ' . $e->getMessage(), [
+        } catch (Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('Tenant provisioning failed: '.$e->getMessage(), [
                 'exception' => $e,
                 'input' => array_diff_key($validated, ['password' => '']),
             ]);
 
             return response()->json([
                 'success' => false,
-                'message' => 'Tenant provisioning failed: ' . $e->getMessage(),
+                'message' => 'Tenant provisioning failed: '.$e->getMessage(),
                 'error' => [
                     'message' => $e->getMessage(),
                     'code' => 'TENANT_PROVISIONING_FAILED',
@@ -168,13 +172,9 @@ class PlatformTenantController extends Controller
     /**
      * Show full tenant profile and subscription history.
      */
-    public function show(int $id, Request $request): JsonResponse
+    public function show(int|string $id, Request $request): JsonResponse
     {
-        $tenant = Tenant::with([
-            'plan',
-            'modules',
-            'users' => fn ($q) => $q->where('is_platform_user', false),
-        ])->findOrFail($id);
+        $tenant = $this->resolvePlatformTenant($id, true);
 
         $subscriptions = TenantSubscription::where('tenant_id', $tenant->id)
             ->with(['plan:id,name,code', 'renewedBy:id,name,email'])
@@ -207,9 +207,9 @@ class PlatformTenantController extends Controller
     /**
      * Update tenant metadata, settings, or branding.
      */
-    public function update(int $id, Request $request): JsonResponse
+    public function update(int|string $id, Request $request): JsonResponse
     {
-        $tenant = Tenant::findOrFail($id);
+        $tenant = $this->resolvePlatformTenant($id);
 
         $validated = $request->validate([
             'name' => 'nullable|string|max:191',
@@ -245,15 +245,17 @@ class PlatformTenantController extends Controller
     /**
      * Update tenant status (active, suspended, past_due, etc.).
      */
-    public function updateStatus(int $id, Request $request, UpdateTenantStatusAction $action): JsonResponse
+    public function updateStatus(int|string $id, Request $request, UpdateTenantStatusAction $action): JsonResponse
     {
+        $tenant = $this->resolvePlatformTenant($id);
+
         $validated = $request->validate([
             'status' => 'required|string|in:active,trial,past_due,suspended,cancelled',
             'reason' => 'nullable|string|max:500',
         ]);
 
         $result = $action->execute([
-            'tenant_id' => $id,
+            'tenant_id' => $tenant->id,
             'status' => $validated['status'],
             'reason' => $validated['reason'] ?? null,
         ]);
@@ -271,8 +273,10 @@ class PlatformTenantController extends Controller
     /**
      * Extend subscription validity or switch plan.
      */
-    public function manageSubscription(int $id, Request $request, ManageSubscriptionAction $action): JsonResponse
+    public function manageSubscription(int|string $id, Request $request, ManageSubscriptionAction $action): JsonResponse
     {
+        $tenant = $this->resolvePlatformTenant($id);
+
         $validated = $request->validate([
             'action' => 'required|string|in:extend,change_plan,renew,set_expiry,set_grace_period',
             'days' => 'nullable|integer|min:1|max:3650',
@@ -287,7 +291,7 @@ class PlatformTenantController extends Controller
             'currency_code' => 'nullable|string|max:10',
         ]);
 
-        $result = $action->execute(array_merge($validated, ['tenant_id' => $id]));
+        $result = $action->execute(array_merge($validated, ['tenant_id' => $tenant->id]));
 
         return response()->json([
             'success' => true,
@@ -302,9 +306,9 @@ class PlatformTenantController extends Controller
     /**
      * Master Authority Override: Force-enable/disable modules and feature flags for a tenant.
      */
-    public function overrideCapabilities(int $id, Request $request): JsonResponse
+    public function overrideCapabilities(int|string $id, Request $request): JsonResponse
     {
-        $tenant = Tenant::findOrFail($id);
+        $tenant = $this->resolvePlatformTenant($id);
 
         $validated = $request->validate([
             'modules' => 'nullable|array',
@@ -348,9 +352,9 @@ class PlatformTenantController extends Controller
     /**
      * Master Authority Override: Set custom quota and resource limits for a tenant.
      */
-    public function overrideQuotas(int $id, Request $request): JsonResponse
+    public function overrideQuotas(int|string $id, Request $request): JsonResponse
     {
-        $tenant = Tenant::findOrFail($id);
+        $tenant = $this->resolvePlatformTenant($id);
 
         $validated = $request->validate([
             'custom_limits' => 'required|array',
@@ -377,9 +381,9 @@ class PlatformTenantController extends Controller
     /**
      * Master Authority Override: Reset the password of a tenant's owner account.
      */
-    public function resetOwnerPassword(int $id, Request $request): JsonResponse
+    public function resetOwnerPassword(int|string $id, Request $request): JsonResponse
     {
-        $tenant = Tenant::findOrFail($id);
+        $tenant = $this->resolvePlatformTenant($id);
 
         $validated = $request->validate([
             'password' => 'required|string|min:8',
@@ -411,9 +415,9 @@ class PlatformTenantController extends Controller
     /**
      * Soft delete a tenant from platform control plane.
      */
-    public function destroy(int $id, Request $request): JsonResponse
+    public function destroy(int|string $id, Request $request): JsonResponse
     {
-        $tenant = Tenant::findOrFail($id);
+        $tenant = $this->resolvePlatformTenant($id);
         $name = $tenant->name;
         $slug = $tenant->slug;
 
@@ -425,7 +429,7 @@ class PlatformTenantController extends Controller
         return response()->json([
             'success' => true,
             'data' => [
-                'id' => $id,
+                'id' => $tenant->id,
                 'name' => $name,
                 'slug' => $slug,
                 'deleted' => true,
@@ -587,7 +591,7 @@ class PlatformTenantController extends Controller
     {
         return $recentAudit->map(fn (AuditLog $a): array => [
             'id' => $a->id,
-            'action' => $a->action instanceof \BackedEnum ? $a->action->value : (string) $a->action,
+            'action' => $a->action instanceof BackedEnum ? $a->action->value : (string) $a->action,
             'actor_name' => $a->user?->name ?? 'System',
             'actor_email' => $a->user?->email,
             'created_at' => $a->created_at?->toIso8601String(),

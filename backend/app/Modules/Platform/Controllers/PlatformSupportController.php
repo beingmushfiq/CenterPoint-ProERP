@@ -44,7 +44,7 @@ class PlatformSupportController extends Controller
         }
 
         if ($request->filled('search')) {
-            $search = '%' . trim((string) $request->input('search')) . '%';
+            $search = '%'.trim((string) $request->input('search')).'%';
             $query->where(function ($q) use ($search): void {
                 $q->where('ticket_number', 'like', $search)
                     ->orWhere('title', 'like', $search)
@@ -97,7 +97,7 @@ class PlatformSupportController extends Controller
             'assigned_to' => 'nullable|integer|exists:users,id',
         ]);
 
-        $ticketNumber = 'TKT-' . Carbon::now()->format('Ym') . '-' . strtoupper(Str::random(5));
+        $ticketNumber = 'TKT-'.Carbon::now()->format('Ym').'-'.strtoupper(Str::random(5));
 
         $ticket = PlatformSupportTicket::create([
             'uuid' => (string) Str::uuid(),

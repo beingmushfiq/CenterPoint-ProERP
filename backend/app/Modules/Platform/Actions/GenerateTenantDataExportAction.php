@@ -4,17 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Platform\Actions;
 
-use App\Models\Branch;
-use App\Models\Category;
-use App\Models\Company;
-use App\Models\Parties;
-use App\Models\Party;
-use App\Models\Product;
-use App\Models\SalesOrder;
 use App\Models\Tenant;
-use App\Models\Unit;
-use App\Models\Warehouse;
-use App\Modules\HR\Models\Employee;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -24,7 +14,6 @@ class GenerateTenantDataExportAction
     /**
      * Generate a complete, compliant JSON data export archive for a tenant.
      *
-     * @param int $tenantId
      * @return array{
      *     uuid: string,
      *     file_name: string,

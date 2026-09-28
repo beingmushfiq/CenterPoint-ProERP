@@ -30,7 +30,7 @@ class UpdateTenantStatusAction extends Action
         $allowed = ['active', 'trial', 'past_due', 'suspended', 'cancelled', 'pending', 'archived'];
         if (! in_array($newStatus, $allowed, true)) {
             throw ValidationException::withMessages([
-                'status' => ["Status must be one of: ".implode(', ', $allowed)],
+                'status' => ['Status must be one of: '.implode(', ', $allowed)],
             ]);
         }
 

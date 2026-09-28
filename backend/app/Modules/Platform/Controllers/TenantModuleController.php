@@ -26,14 +26,14 @@ final class TenantModuleController extends Controller
             'system',     // 8. Intelligence & System — RBAC, audit, settings
         ],
         'items' => [
-            'overview'   => ['dashboard', 'reports'],
-            'crm'        => ['crm-leads'],
-            'sales'      => ['sales', 'pos', 'ecommerce'],
-            'supply'     => ['catalogue', 'purchasing', 'inventory', 'delivery'],
+            'overview' => ['dashboard', 'reports'],
+            'crm' => ['crm-leads'],
+            'sales' => ['sales', 'pos', 'ecommerce'],
+            'supply' => ['catalogue', 'purchasing', 'inventory', 'delivery'],
             'production' => ['production', 'qc'],
-            'finance'    => ['finance', 'assets'],
-            'hr'         => ['hr'],
-            'system'     => ['roles', 'audit', 'settings'],
+            'finance' => ['finance', 'assets'],
+            'hr' => ['hr'],
+            'system' => ['roles', 'audit', 'settings'],
         ],
     ];
 
@@ -138,7 +138,7 @@ final class TenantModuleController extends Controller
 
         $tenantId = TenantContext::current()->tenantId();
 
-        if (!array_key_exists($moduleKey, TenantCapabilityManifest::ALL_MODULE_KEYS)) {
+        if (! array_key_exists($moduleKey, TenantCapabilityManifest::ALL_MODULE_KEYS)) {
             return response()->json([
                 'success' => false,
                 'message' => "Invalid module key '{$moduleKey}'.",
@@ -185,7 +185,7 @@ final class TenantModuleController extends Controller
 
         foreach ($validated['modules'] as $mod) {
             $key = $mod['module_key'];
-            if (!array_key_exists($key, TenantCapabilityManifest::ALL_MODULE_KEYS)) {
+            if (! array_key_exists($key, TenantCapabilityManifest::ALL_MODULE_KEYS)) {
                 continue;
             }
 

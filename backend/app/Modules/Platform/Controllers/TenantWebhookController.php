@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Modules\Platform\Controllers;
 
-use App\Http\Controllers\Controller;
 use App\Core\Tenancy\TenantContext;
+use App\Http\Controllers\Controller;
 use App\Jobs\DeliverWebhookPayloadJob;
 use App\Models\WebhookDelivery;
 use App\Models\WebhookEndpoint;
@@ -48,7 +48,7 @@ class TenantWebhookController extends Controller
             'is_active' => 'sometimes|boolean',
         ]);
 
-        $secret = 'whsec_' . bin2hex(random_bytes(24));
+        $secret = 'whsec_'.bin2hex(random_bytes(24));
 
         $endpoint = WebhookEndpoint::create([
             'tenant_id' => $tenantId,
@@ -75,7 +75,7 @@ class TenantWebhookController extends Controller
 
         $endpoint = WebhookEndpoint::query()
             ->where('tenant_id', $tenantId)
-            ->where(function ($q) use ($identifier) {
+            ->where(function ($q) use ($identifier): void {
                 $q->where('uuid', $identifier);
                 if (is_numeric($identifier)) {
                     $q->orWhere('id', (int) $identifier);
@@ -105,7 +105,7 @@ class TenantWebhookController extends Controller
 
         $endpoint = WebhookEndpoint::query()
             ->where('tenant_id', $tenantId)
-            ->where(function ($q) use ($identifier) {
+            ->where(function ($q) use ($identifier): void {
                 $q->where('uuid', $identifier);
                 if (is_numeric($identifier)) {
                     $q->orWhere('id', (int) $identifier);
@@ -142,7 +142,7 @@ class TenantWebhookController extends Controller
 
         $endpoint = WebhookEndpoint::query()
             ->where('tenant_id', $tenantId)
-            ->where(function ($q) use ($identifier) {
+            ->where(function ($q) use ($identifier): void {
                 $q->where('uuid', $identifier);
                 if (is_numeric($identifier)) {
                     $q->orWhere('id', (int) $identifier);
@@ -164,7 +164,7 @@ class TenantWebhookController extends Controller
 
         $endpoint = WebhookEndpoint::query()
             ->where('tenant_id', $tenantId)
-            ->where(function ($q) use ($identifier) {
+            ->where(function ($q) use ($identifier): void {
                 $q->where('uuid', $identifier);
                 if (is_numeric($identifier)) {
                     $q->orWhere('id', (int) $identifier);

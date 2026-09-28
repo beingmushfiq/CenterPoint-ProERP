@@ -145,7 +145,7 @@ class TenantSettingsController extends Controller
         $file = $request->file('file');
         $tenantId = TenantContext::current()->tenantId() ?? 'default';
         $ext = $file->getClientOriginalExtension() ?: 'png';
-        $filename = ($request->input('type') ?? 'asset') . '_' . time() . '_' . substr(md5(uniqid()), 0, 8) . '.' . $ext;
+        $filename = ($request->input('type') ?? 'asset').'_'.time().'_'.substr(md5(uniqid()), 0, 8).'.'.$ext;
 
         $path = $file->storeAs("branding/{$tenantId}", $filename, 'public');
         /** @var FilesystemAdapter $disk */

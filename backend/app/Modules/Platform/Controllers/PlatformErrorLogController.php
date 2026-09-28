@@ -34,7 +34,7 @@ class PlatformErrorLogController extends Controller
         }
 
         if ($request->filled('search')) {
-            $search = '%' . trim((string) $request->input('search')) . '%';
+            $search = '%'.trim((string) $request->input('search')).'%';
             $query->where(function ($q) use ($search): void {
                 $q->where('message', 'like', $search)
                     ->orWhere('error_type', 'like', $search)
@@ -96,7 +96,7 @@ class PlatformErrorLogController extends Controller
         $tenantId = $validated['tenant_id'] ?? null;
 
         // Deduplication signature fingerprint
-        $fingerprint = hash('sha256', "{$errorType}|{$route}|" . substr($message, 0, 100) . '|' . ($tenantId ?? '0'));
+        $fingerprint = hash('sha256', "{$errorType}|{$route}|".substr($message, 0, 100).'|'.($tenantId ?? '0'));
 
         $existing = PlatformErrorLog::where('fingerprint', $fingerprint)->first();
 

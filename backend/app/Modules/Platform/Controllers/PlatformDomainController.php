@@ -9,6 +9,7 @@ use App\Models\TenantDomain;
 use App\Modules\Ecommerce\Services\TenantDomainService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use InvalidArgumentException;
 
 class PlatformDomainController extends Controller
 {
@@ -34,7 +35,7 @@ class PlatformDomainController extends Controller
         }
 
         if ($request->filled('search')) {
-            $search = '%' . trim((string) $request->query('search')) . '%';
+            $search = '%'.trim((string) $request->query('search')).'%';
             $query->where(function ($q) use ($search): void {
                 $q->where('domain', 'like', $search)
                     ->orWhereHas('tenant', function ($tq) use ($search): void {
@@ -129,9 +130,9 @@ class PlatformDomainController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => "Custom domain removed successfully.",
+                'message' => 'Custom domain removed successfully.',
             ]);
-        } catch (\InvalidArgumentException $e) {
+        } catch (InvalidArgumentException $e) {
             return response()->json([
                 'success' => false,
                 'error' => [

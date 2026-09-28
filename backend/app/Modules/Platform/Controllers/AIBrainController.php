@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Modules\Platform\Services\AIBrainService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Throwable;
 
 class AIBrainController extends Controller
 {
@@ -23,15 +24,15 @@ class AIBrainController extends Controller
 
         try {
             $result = $this->brainService->processQuery($validated['query']);
-        } catch (\Throwable $e) {
-            \Illuminate\Support\Facades\Log::error('AIBrain processing error: ' . $e->getMessage(), [
+        } catch (Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('AIBrain processing error: '.$e->getMessage(), [
                 'trace' => $e->getTraceAsString(),
                 'query' => $validated['query'],
             ]);
 
             $result = [
-                'thought' => "Encountered a processing exception in local evaluation ➔ Activated resilient fallback agent.",
-                'answer' => "I encountered an obstacle executing that query: " . $e->getMessage() . ".\n\nYou can rephrase or use the shortcuts below to navigate directly to the desired module.",
+                'thought' => 'Encountered a processing exception in local evaluation ➔ Activated resilient fallback agent.',
+                'answer' => 'I encountered an obstacle executing that query: '.$e->getMessage().".\n\nYou can rephrase or use the shortcuts below to navigate directly to the desired module.",
                 'metrics' => [
                     ['label' => 'Brain Status', 'value' => 'Online (Fallback)', 'tone' => 'amber'],
                     ['label' => 'Execution Mode', 'value' => '100% Local', 'tone' => 'success'],

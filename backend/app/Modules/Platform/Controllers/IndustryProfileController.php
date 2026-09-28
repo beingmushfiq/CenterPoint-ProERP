@@ -79,19 +79,19 @@ final class IndustryProfileController extends Controller
 
         // 1. Update tenant profile reference & business types
         $tenant->industry_profile_key = $profile->key;
-        if (!empty($profile->business_type_keys)) {
+        if (! empty($profile->business_type_keys)) {
             $tenant->business_type_keys = $profile->business_type_keys;
         }
 
         // 2. Terminology
-        if (($validated['override_terminology'] ?? true) && !empty($profile->default_terminology)) {
+        if (($validated['override_terminology'] ?? true) && ! empty($profile->default_terminology)) {
             $currentTerm = $tenant->terminology ?? [];
             $tenant->terminology = array_merge($currentTerm, $profile->default_terminology);
         }
         $tenant->save();
 
         // 3. Recommended Modules
-        if (($validated['enable_recommended_modules'] ?? true) && !empty($profile->recommended_modules)) {
+        if (($validated['enable_recommended_modules'] ?? true) && ! empty($profile->recommended_modules)) {
             $rec = $profile->recommended_modules;
             foreach (TenantCapabilityManifest::ALL_MODULE_KEYS as $key => $meta) {
                 $shouldEnable = in_array($key, $rec, true);
@@ -103,7 +103,7 @@ final class IndustryProfileController extends Controller
         }
 
         // 4. Production Stages
-        if (($validated['override_stages'] ?? false) && !empty($profile->default_production_stages)) {
+        if (($validated['override_stages'] ?? false) && ! empty($profile->default_production_stages)) {
             TenantProductionStage::where('tenant_id', $tenantId)->delete();
             foreach ($profile->default_production_stages as $stage) {
                 TenantProductionStage::create([
@@ -120,7 +120,7 @@ final class IndustryProfileController extends Controller
         }
 
         // 5. Default custom fields (if any)
-        if (!empty($profile->default_custom_fields)) {
+        if (! empty($profile->default_custom_fields)) {
             foreach ($profile->default_custom_fields as $cf) {
                 CustomFieldDefinition::firstOrCreate(
                     [

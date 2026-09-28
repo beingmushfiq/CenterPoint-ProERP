@@ -32,10 +32,10 @@ class PlatformAnnouncementController extends Controller
         if ($request->boolean('active_only')) {
             $now = Carbon::now();
             $query->where('is_active', true)
-                ->where(function ($q) use ($now) {
+                ->where(function ($q) use ($now): void {
                     $q->whereNull('publish_at')->orWhere('publish_at', '<=', $now);
                 })
-                ->where(function ($q) use ($now) {
+                ->where(function ($q) use ($now): void {
                     $q->whereNull('expires_at')->orWhere('expires_at', '>=', $now);
                 });
         }
@@ -135,7 +135,7 @@ class PlatformAnnouncementController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => "Announcement updated.",
+            'message' => 'Announcement updated.',
             'data' => $announcement->fresh()->load('creator:id,name,email'),
         ]);
     }

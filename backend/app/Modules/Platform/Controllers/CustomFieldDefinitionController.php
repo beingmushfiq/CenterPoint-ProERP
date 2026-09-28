@@ -62,7 +62,7 @@ final class CustomFieldDefinitionController extends Controller
             'sort_order' => 'nullable|integer',
         ]);
 
-        $key = !empty($validated['internal_key'])
+        $key = ! empty($validated['internal_key'])
             ? Str::slug($validated['internal_key'], '_')
             : Str::slug($validated['label'], '_');
 
@@ -72,7 +72,7 @@ final class CustomFieldDefinitionController extends Controller
             ->where('entity', $validated['entity'])
             ->where('internal_key', $key)
             ->exists()) {
-            $key = $key . '_' . time();
+            $key = $key.'_'.time();
         }
 
         $maxOrder = CustomFieldDefinition::where('tenant_id', $tenantId)

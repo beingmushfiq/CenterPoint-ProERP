@@ -8,12 +8,16 @@ use App\Core\Auth\JwtService;
 use App\Http\Controllers\Controller;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Modules\Platform\Traits\ResolvesPlatformTenant;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Throwable;
 
 final class PlatformImpersonationController extends Controller
 {
+    use ResolvesPlatformTenant;
+
     public function __construct(
         private readonly JwtService $jwtService,
     ) {}
@@ -25,13 +29,7 @@ final class PlatformImpersonationController extends Controller
     {
         $superAdmin = $request->user();
 
-        $tenant = Tenant::find($id);
-        if (! $tenant) {
-            return response()->json([
-                'success' => false,
-                'message' => "Tenant with identifier {$id} not found.",
-            ], Response::HTTP_NOT_FOUND);
-        }
+        $tenant = $this->resolvePlatformTenant($id);
 
         if ($tenant->status === 'suspended' || $tenant->status === 'cancelled') {
             return response()->json([
@@ -51,11 +49,11 @@ final class PlatformImpersonationController extends Controller
 
         if (! $tenantUser) {
             // Auto-provision a default active administrator for this tenant if none exists
-            $tenantUser = new User();
+            $tenantUser = new User;
             $tenantUser->uuid = (string) \Illuminate\Support\Str::uuid();
             $tenantUser->tenant_id = $tenant->id;
-            $tenantUser->name = $tenant->name . ' Admin';
-            $tenantUser->email = 'admin@' . ($tenant->slug ?: 'tenant') . '.devcenterpoint.com';
+            $tenantUser->name = $tenant->name.' Admin';
+            $tenantUser->email = 'admin@'.($tenant->slug ?: 'tenant').'.devcenterpoint.com';
             $tenantUser->password = \Illuminate\Support\Facades\Hash::make(\Illuminate\Support\Str::random(32));
             $tenantUser->status = 'active';
             $tenantUser->locale = $tenant->locale ?? 'en';
@@ -85,7 +83,7 @@ final class PlatformImpersonationController extends Controller
 
         // Audit log entry (safe fallback)
         try {
-            $auditLog = new \App\Models\AuditLog();
+            $auditLog = new \App\Models\AuditLog;
             $auditLog->tenant_id = $tenant->id;
             $auditLog->uuid = (string) \Illuminate\Support\Str::uuid();
             $auditLog->user_id = $tenantUser->id;
@@ -106,8 +104,8 @@ final class PlatformImpersonationController extends Controller
             $auditLog->user_agent = $request->userAgent();
             $auditLog->created_at = now();
             $auditLog->save();
-        } catch (\Throwable $e) {
-            \Illuminate\Support\Facades\Log::warning('Impersonation audit log write deferred: ' . $e->getMessage());
+        } catch (Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('Impersonation audit log write deferred: '.$e->getMessage());
         }
 
         return response()->json([

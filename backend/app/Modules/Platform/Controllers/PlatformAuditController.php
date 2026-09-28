@@ -6,6 +6,7 @@ namespace App\Modules\Platform\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
+use BackedEnum;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -65,7 +66,7 @@ class PlatformAuditController extends Controller
             ] : null,
             'actor_name' => $log->user?->name ?? 'System',
             'actor_email' => $log->user?->email,
-            'action' => $log->action instanceof \BackedEnum ? $log->action->value : (string) $log->action,
+            'action' => $log->action instanceof BackedEnum ? $log->action->value : (string) $log->action,
             'auditable_type' => $log->auditable_type,
             'auditable_id' => $log->auditable_id,
             'entity_type' => $log->auditable_type,

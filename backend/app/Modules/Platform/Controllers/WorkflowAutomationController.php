@@ -10,19 +10,180 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Throwable;
 
 class WorkflowAutomationController extends Controller
 {
+    public function index(Request $request): JsonResponse
+    {
+        $tenantId = $this->resolveTenantId($request);
+        $workflows = $this->loadWorkflows($tenantId);
+        $logs = $this->loadLogs($tenantId);
+
+        $stats = [
+            'total' => count($workflows),
+            'active' => count(array_filter($workflows, fn ($w) => ! empty($w['enabled']))),
+            'total_executions' => array_sum(array_column($workflows, 'executions_count')),
+            'success_rate' => '99.4%',
+        ];
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'workflows' => $workflows,
+                'logs' => $logs,
+                'stats' => $stats,
+            ],
+        ]);
+    }
+
+    public function store(Request $request): JsonResponse
+    {
+        $tenantId = $this->resolveTenantId($request);
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'description' => 'nullable|string|max:500',
+            'category' => 'required|string',
+            'trigger' => 'required|array',
+            'conditions' => 'nullable|array',
+            'actions' => 'required|array|min:1',
+        ]);
+
+        $workflows = $this->loadWorkflows($tenantId);
+
+        $newWorkflow = [
+            'id' => 'flow-'.Str::slug($validated['name']).'-'.Str::random(4),
+            'name' => $validated['name'],
+            'description' => $validated['description'] ?? '',
+            'category' => $validated['category'],
+            'trigger' => $validated['trigger'],
+            'conditions' => $validated['conditions'] ?? [],
+            'actions' => $validated['actions'],
+            'enabled' => true,
+            'executions_count' => 0,
+            'last_triggered_at' => null,
+            'created_at' => now()->toIso8601String(),
+        ];
+
+        $workflows[] = $newWorkflow;
+        $this->saveWorkflows($tenantId, $workflows);
+
+        return response()->json([
+            'success' => true,
+            'message' => "Workflow '{$newWorkflow['name']}' created successfully.",
+            'data' => $newWorkflow,
+        ], 201);
+    }
+
+    public function toggle(Request $request, string $id): JsonResponse
+    {
+        $tenantId = $this->resolveTenantId($request);
+        $workflows = $this->loadWorkflows($tenantId);
+        $target = null;
+
+        foreach ($workflows as &$w) {
+            if ($w['id'] === $id) {
+                $w['enabled'] = ! $w['enabled'];
+                $target = $w;
+                break;
+            }
+        }
+
+        if (! $target) {
+            return response()->json(['success' => false, 'message' => 'Workflow not found.'], 404);
+        }
+
+        $this->saveWorkflows($tenantId, $workflows);
+
+        $statusText = $target['enabled'] ? 'activated' : 'paused';
+
+        return response()->json([
+            'success' => true,
+            'message' => "Workflow '{$target['name']}' has been {$statusText}.",
+            'data' => $target,
+        ]);
+    }
+
+    public function testRun(Request $request, string $id): JsonResponse
+    {
+        $tenantId = $this->resolveTenantId($request);
+        $workflows = $this->loadWorkflows($tenantId);
+        $target = null;
+
+        foreach ($workflows as &$w) {
+            if ($w['id'] === $id) {
+                $w['executions_count']++;
+                $w['last_triggered_at'] = now()->toIso8601String();
+                $target = $w;
+                break;
+            }
+        }
+
+        if (! $target) {
+            return response()->json(['success' => false, 'message' => 'Workflow not found.'], 404);
+        }
+
+        $this->saveWorkflows($tenantId, $workflows);
+
+        // Build simulated evaluation steps
+        $steps = [
+            [
+                'step' => 1,
+                'name' => 'Trigger Intercepted',
+                'detail' => "Event '{$target['trigger']['event']}' matched inbound system pipeline.",
+                'status' => 'pass',
+            ],
+            [
+                'step' => 2,
+                'name' => 'Conditional Evaluation',
+                'detail' => 'All '.count($target['conditions']).' conditional gates evaluated to TRUE against mock tenant context.',
+                'status' => 'pass',
+            ],
+        ];
+
+        foreach ($target['actions'] as $idx => $act) {
+            $steps[] = [
+                'step' => 3 + $idx,
+                'name' => "Executed Action: {$act['action']}",
+                'detail' => $act['label'],
+                'status' => 'success',
+            ];
+        }
+
+        $logEntry = [
+            'id' => 'log-'.Str::random(8),
+            'workflow_name' => $target['name'],
+            'event' => $target['trigger']['event'],
+            'status' => 'success',
+            'execution_time_ms' => rand(25, 65),
+            'details' => 'Simulation dry-run completed. All actions triggered cleanly.',
+            'timestamp' => now()->toIso8601String(),
+        ];
+
+        $this->recordLog($tenantId, $logEntry);
+
+        return response()->json([
+            'success' => true,
+            'message' => "Dry-run execution for '{$target['name']}' completed successfully in {$logEntry['execution_time_ms']}ms.",
+            'data' => [
+                'workflow' => $target,
+                'steps' => $steps,
+                'log' => $logEntry,
+            ],
+        ]);
+    }
+
     private function resolveTenantId(Request $request): int
     {
         try {
             return TenantContext::current()->tenantId();
-        } catch (\Throwable) {
+        } catch (Throwable) {
             $user = $request->user() ?? auth()->user();
-            if ($user && !empty($user->tenant_id)) {
+            if ($user && ! empty($user->tenant_id)) {
                 return (int) $user->tenant_id;
             }
             $tenant = \App\Models\Tenant::first();
+
             return $tenant ? (int) $tenant->id : 1;
         }
     }
@@ -164,16 +325,17 @@ class WorkflowAutomationController extends Controller
         if (Storage::disk('local')->exists($path)) {
             try {
                 $decoded = json_decode(Storage::disk('local')->get($path), true);
-                if (is_array($decoded) && !empty($decoded)) {
+                if (is_array($decoded) && ! empty($decoded)) {
                     return $decoded;
                 }
-            } catch (\Throwable) {
+            } catch (Throwable) {
                 // fallback to default
             }
         }
 
         $defaults = $this->getDefaultWorkflows();
         $this->saveWorkflows($tenantId, $defaults);
+
         return $defaults;
     }
 
@@ -192,14 +354,14 @@ class WorkflowAutomationController extends Controller
                 if (is_array($decoded)) {
                     return $decoded;
                 }
-            } catch (\Throwable) {
+            } catch (Throwable) {
                 // fallback
             }
         }
 
         return [
             [
-                'id' => 'log-' . Str::random(8),
+                'id' => 'log-'.Str::random(8),
                 'workflow_name' => 'Auto-Draft Purchase Requisition on Low Stock',
                 'event' => 'stock.threshold_breached',
                 'status' => 'success',
@@ -208,7 +370,7 @@ class WorkflowAutomationController extends Controller
                 'timestamp' => now()->subHours(3)->toIso8601String(),
             ],
             [
-                'id' => 'log-' . Str::random(8),
+                'id' => 'log-'.Str::random(8),
                 'workflow_name' => 'Overdue Invoice Multi-Channel Payment Reminder',
                 'event' => 'invoice.due_date_exceeded',
                 'status' => 'success',
@@ -217,7 +379,7 @@ class WorkflowAutomationController extends Controller
                 'timestamp' => now()->subHours(5)->toIso8601String(),
             ],
             [
-                'id' => 'log-' . Str::random(8),
+                'id' => 'log-'.Str::random(8),
                 'workflow_name' => 'Shopfloor QC Defect Batch Quarantine Interlock',
                 'event' => 'qc.inspection_failed',
                 'status' => 'success',
@@ -235,163 +397,5 @@ class WorkflowAutomationController extends Controller
         $logs = array_slice($logs, 0, 50); // Keep latest 50 logs
         $path = $this->getLogsStoragePath($tenantId);
         Storage::disk('local')->put($path, json_encode($logs, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
-    }
-
-    public function index(Request $request): JsonResponse
-    {
-        $tenantId = $this->resolveTenantId($request);
-        $workflows = $this->loadWorkflows($tenantId);
-        $logs = $this->loadLogs($tenantId);
-
-        $stats = [
-            'total' => count($workflows),
-            'active' => count(array_filter($workflows, fn($w) => !empty($w['enabled']))),
-            'total_executions' => array_sum(array_column($workflows, 'executions_count')),
-            'success_rate' => '99.4%',
-        ];
-
-        return response()->json([
-            'success' => true,
-            'data' => [
-                'workflows' => $workflows,
-                'logs' => $logs,
-                'stats' => $stats,
-            ],
-        ]);
-    }
-
-    public function store(Request $request): JsonResponse
-    {
-        $tenantId = $this->resolveTenantId($request);
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'description' => 'nullable|string|max:500',
-            'category' => 'required|string',
-            'trigger' => 'required|array',
-            'conditions' => 'nullable|array',
-            'actions' => 'required|array|min:1',
-        ]);
-
-        $workflows = $this->loadWorkflows($tenantId);
-
-        $newWorkflow = [
-            'id' => 'flow-' . Str::slug($validated['name']) . '-' . Str::random(4),
-            'name' => $validated['name'],
-            'description' => $validated['description'] ?? '',
-            'category' => $validated['category'],
-            'trigger' => $validated['trigger'],
-            'conditions' => $validated['conditions'] ?? [],
-            'actions' => $validated['actions'],
-            'enabled' => true,
-            'executions_count' => 0,
-            'last_triggered_at' => null,
-            'created_at' => now()->toIso8601String(),
-        ];
-
-        $workflows[] = $newWorkflow;
-        $this->saveWorkflows($tenantId, $workflows);
-
-        return response()->json([
-            'success' => true,
-            'message' => "Workflow '{$newWorkflow['name']}' created successfully.",
-            'data' => $newWorkflow,
-        ], 201);
-    }
-
-    public function toggle(Request $request, string $id): JsonResponse
-    {
-        $tenantId = $this->resolveTenantId($request);
-        $workflows = $this->loadWorkflows($tenantId);
-        $target = null;
-
-        foreach ($workflows as &$w) {
-            if ($w['id'] === $id) {
-                $w['enabled'] = !$w['enabled'];
-                $target = $w;
-                break;
-            }
-        }
-
-        if (!$target) {
-            return response()->json(['success' => false, 'message' => 'Workflow not found.'], 404);
-        }
-
-        $this->saveWorkflows($tenantId, $workflows);
-
-        $statusText = $target['enabled'] ? 'activated' : 'paused';
-        return response()->json([
-            'success' => true,
-            'message' => "Workflow '{$target['name']}' has been {$statusText}.",
-            'data' => $target,
-        ]);
-    }
-
-    public function testRun(Request $request, string $id): JsonResponse
-    {
-        $tenantId = $this->resolveTenantId($request);
-        $workflows = $this->loadWorkflows($tenantId);
-        $target = null;
-
-        foreach ($workflows as &$w) {
-            if ($w['id'] === $id) {
-                $w['executions_count']++;
-                $w['last_triggered_at'] = now()->toIso8601String();
-                $target = $w;
-                break;
-            }
-        }
-
-        if (!$target) {
-            return response()->json(['success' => false, 'message' => 'Workflow not found.'], 404);
-        }
-
-        $this->saveWorkflows($tenantId, $workflows);
-
-        // Build simulated evaluation steps
-        $steps = [
-            [
-                'step' => 1,
-                'name' => 'Trigger Intercepted',
-                'detail' => "Event '{$target['trigger']['event']}' matched inbound system pipeline.",
-                'status' => 'pass',
-            ],
-            [
-                'step' => 2,
-                'name' => 'Conditional Evaluation',
-                'detail' => 'All ' . count($target['conditions']) . ' conditional gates evaluated to TRUE against mock tenant context.',
-                'status' => 'pass',
-            ],
-        ];
-
-        foreach ($target['actions'] as $idx => $act) {
-            $steps[] = [
-                'step' => 3 + $idx,
-                'name' => "Executed Action: {$act['action']}",
-                'detail' => $act['label'],
-                'status' => 'success',
-            ];
-        }
-
-        $logEntry = [
-            'id' => 'log-' . Str::random(8),
-            'workflow_name' => $target['name'],
-            'event' => $target['trigger']['event'],
-            'status' => 'success',
-            'execution_time_ms' => rand(25, 65),
-            'details' => 'Simulation dry-run completed. All actions triggered cleanly.',
-            'timestamp' => now()->toIso8601String(),
-        ];
-
-        $this->recordLog($tenantId, $logEntry);
-
-        return response()->json([
-            'success' => true,
-            'message' => "Dry-run execution for '{$target['name']}' completed successfully in {$logEntry['execution_time_ms']}ms.",
-            'data' => [
-                'workflow' => $target,
-                'steps' => $steps,
-                'log' => $logEntry,
-            ],
-        ]);
     }
 }

@@ -124,13 +124,13 @@ final class ErpManifestController extends Controller
                     'purpose' => 'any',
                 ],
                 [
-                    'src' => "/api/v1/pwa/icon/erp?size=192&v=" . md5($resolvedLogo),
+                    'src' => '/api/v1/pwa/icon/erp?size=192&v='.md5($resolvedLogo),
                     'sizes' => '192x192',
                     'type' => 'image/svg+xml',
                     'purpose' => 'any',
                 ],
                 [
-                    'src' => "/api/v1/pwa/icon/erp?size=512&maskable=1&v=" . md5($resolvedLogo),
+                    'src' => '/api/v1/pwa/icon/erp?size=512&maskable=1&v='.md5($resolvedLogo),
                     'sizes' => '512x512',
                     'type' => 'image/svg+xml',
                     'purpose' => 'maskable',

@@ -35,7 +35,7 @@ class PlatformFeatureFlagController extends Controller
         }
 
         if ($request->filled('search')) {
-            $search = '%' . trim((string) $request->input('search')) . '%';
+            $search = '%'.trim((string) $request->input('search')).'%';
             $query->where(function ($q) use ($search): void {
                 $q->where('key', 'like', $search)
                     ->orWhere('description', 'like', $search);
@@ -76,7 +76,7 @@ class PlatformFeatureFlagController extends Controller
 
         // Ensure uniqueness
         $existing = FeatureFlag::where('key', $key)
-            ->where(function ($q) use ($tenantId) {
+            ->where(function ($q) use ($tenantId): void {
                 if ($tenantId === null) {
                     $q->whereNull('tenant_id');
                 } else {

@@ -11,6 +11,7 @@ use App\Models\Tenant;
 use App\Models\TenantSubscription;
 use App\Models\User;
 use Carbon\Carbon;
+use DateTimeInterface;
 
 /**
  * Action to compute high-performance Master SaaS Admin KPIs.
@@ -60,7 +61,7 @@ class PlatformDashboardMetricsAction extends Action
                 'entity_id' => $log->auditable_id,
                 'tenant_id' => $log->tenant_id,
                 'actor_name' => $log->user?->name ?? 'System',
-                'created_at' => $log->created_at instanceof \DateTimeInterface ? $log->created_at->format('c') : (string) $log->created_at,
+                'created_at' => $log->created_at instanceof DateTimeInterface ? $log->created_at->format('c') : (string) $log->created_at,
                 'details' => $log->after,
             ])
             ->values();

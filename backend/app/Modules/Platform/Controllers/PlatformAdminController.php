@@ -123,7 +123,9 @@ class PlatformAdminController extends Controller
         ]);
 
         $updates = [];
-        if (isset($validated['name'])) $updates['name'] = $validated['name'];
+        if (isset($validated['name'])) {
+            $updates['name'] = $validated['name'];
+        }
         if (isset($validated['status'])) {
             $updates['status'] = $validated['status'];
             $updates['is_active'] = $validated['status'] === 'active';

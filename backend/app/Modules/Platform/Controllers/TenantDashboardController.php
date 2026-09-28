@@ -439,7 +439,7 @@ final class TenantDashboardController extends Controller
                 return [
                     'id' => (string) $q->id,
                     'orderNo' => $q->inspection_number,
-                    'product' => 'Batch #' . ($q->production_batch_id ?? '1'),
+                    'product' => 'Batch #'.($q->production_batch_id ?? '1'),
                     'qty' => (float) $q->inspected_quantity,
                     'status' => strtoupper($q->result ?? $q->status),
                     'failed' => (float) $q->failed_quantity,
@@ -464,7 +464,7 @@ final class TenantDashboardController extends Controller
 
         $activeWorkers = $topWorkerStats->map(static function ($stat) use ($employees): array {
             $emp = $employees->get($stat->employee_id);
-            $name = $emp ? $emp->display_name : 'Worker ' . $stat->employee_id;
+            $name = $emp ? $emp->display_name : 'Worker '.$stat->employee_id;
             $initials = collect(explode(' ', $name))
                 ->map(static fn ($p): string => strtoupper(substr((string) $p, 0, 1)))
                 ->take(2)
@@ -477,7 +477,7 @@ final class TenantDashboardController extends Controller
                 'name' => $name,
                 'output' => "{$totalOutput} pcs",
                 'rate' => $rate,
-                'badge' => $stat->shift_count . ' shifts',
+                'badge' => $stat->shift_count.' shifts',
                 'color' => 'bg-indigo-500',
             ];
         })->values();
@@ -508,6 +508,7 @@ final class TenantDashboardController extends Controller
             'attention_items' => $attentionItems,
         ];
     }
+
     /**
      * @return array{total_headcount: int, present_today: int, pending_advances_count: int, pending_advances_amount: float}
      */

@@ -7,23 +7,11 @@ namespace App\Modules\Platform\Services;
 use App\Core\Tenancy\TenantContext;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use InvalidArgumentException;
+use Throwable;
 
 class SliceMartBrainService
 {
-    private function resolveTenantId(): int
-    {
-        try {
-            return TenantContext::current()->tenantId();
-        } catch (\Throwable) {
-            $user = \Illuminate\Support\Facades\Auth::user();
-            if ($user && !empty($user->tenant_id)) {
-                return (int) $user->tenant_id;
-            }
-            $tenant = \App\Models\Tenant::first();
-            return $tenant ? (int) $tenant->id : 1;
-        }
-    }
-
     public function processQuery(string $input): array
     {
         $tenantId = $this->resolveTenantId();
@@ -129,6 +117,535 @@ class SliceMartBrainService
         return $this->handleDefaultOverview($tenantId, $q);
     }
 
+    public function executeAction(string $action, array $payload): array
+    {
+        $tenantId = $this->resolveTenantId();
+        $companyId = DB::table('companies')->where('tenant_id', $tenantId)->value('id') ?? 1;
+        $branchId = DB::table('branches')->where('tenant_id', $tenantId)->value('id') ?? 1;
+        $factoryId = DB::table('factories')->where('tenant_id', $tenantId)->value('id') ?? 1;
+
+        // 1. Create Product
+        if ($action === 'create_product') {
+            $sku = trim((string) ($payload['sku'] ?? 'PRD-'.strtoupper(Str::random(6))));
+            $name = trim((string) ($payload['name'] ?? 'New Product'));
+            $type = (string) ($payload['type'] ?? 'finished');
+            $standardCost = (float) ($payload['standard_cost'] ?? 0);
+            $salePrice = (float) ($payload['default_sale_price'] ?? 0);
+            $openingStock = (float) ($payload['opening_stock'] ?? 0);
+
+            $unitId = DB::table('units')->where('tenant_id', $tenantId)->value('id') ?? 1;
+
+            if (DB::table('products')->where('tenant_id', $tenantId)->where('sku', $sku)->whereNull('deleted_at')->exists()) {
+                $sku = $sku.'-'.strtoupper(Str::random(3));
+            }
+
+            $uuid = (string) Str::uuid();
+            $productId = DB::table('products')->insertGetId([
+                'tenant_id' => $tenantId,
+                'uuid' => $uuid,
+                'sku' => $sku,
+                'name' => $name,
+                'type' => $type,
+                'base_unit_id' => $unitId,
+                'standard_cost' => $standardCost,
+                'default_sale_price' => $salePrice,
+                'is_stock_tracked' => true,
+                'is_sold' => true,
+                'is_purchased' => true,
+                'status' => 'active',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            if ($openingStock > 0) {
+                $warehouseId = DB::table('warehouses')->where('tenant_id', $tenantId)->value('id');
+                if ($warehouseId) {
+                    DB::table('stock_balances')->insert([
+                        'tenant_id' => $tenantId,
+                        'uuid' => (string) Str::uuid(),
+                        'product_id' => $productId,
+                        'warehouse_id' => $warehouseId,
+                        'stock_state' => 'available',
+                        'quantity' => $openingStock,
+                        'average_cost' => $standardCost,
+                        'total_value' => $openingStock * $standardCost,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+                }
+            }
+
+            return [
+                'success' => true,
+                'message' => "Product '{$name}' (SKU: {$sku}) created successfully!",
+                'navigation_url' => '/products',
+                'navigation_label' => 'View in Catalogue',
+                'record' => [
+                    'Name' => $name,
+                    'SKU' => $sku,
+                    'Type' => ucfirst($type),
+                    'Standard Cost' => '৳'.number_format($standardCost, 2),
+                    'Sale Price' => '৳'.number_format($salePrice, 2),
+                    'Opening Stock' => $openingStock.' Pcs',
+                ],
+            ];
+        }
+
+        // 2. Create Customer
+        if ($action === 'create_customer') {
+            $name = trim((string) ($payload['name'] ?? 'New Customer'));
+            $code = trim((string) ($payload['code'] ?? 'CUST-'.strtoupper(Str::random(5))));
+            $phone = trim((string) ($payload['phone'] ?? ''));
+            $email = trim((string) ($payload['email'] ?? ''));
+            $creditLimit = (float) ($payload['credit_limit'] ?? 0);
+            $address = trim((string) ($payload['address'] ?? ''));
+
+            if (DB::table('parties')->where('tenant_id', $tenantId)->where('code', $code)->whereNull('deleted_at')->exists()) {
+                $code = $code.'-'.strtoupper(Str::random(2));
+            }
+
+            $partyId = DB::table('parties')->insertGetId([
+                'tenant_id' => $tenantId,
+                'uuid' => (string) Str::uuid(),
+                'code' => $code,
+                'name' => $name,
+                'is_customer' => 1,
+                'is_supplier' => 0,
+                'type' => 'business',
+                'phone' => $phone,
+                'email' => $email,
+                'credit_limit' => $creditLimit,
+                'credit_days' => 30,
+                'status' => 'active',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            if ($address) {
+                DB::table('party_addresses')->insert([
+                    'tenant_id' => $tenantId,
+                    'uuid' => (string) Str::uuid(),
+                    'party_id' => $partyId,
+                    'type' => 'billing',
+                    'line1' => $address,
+                    'city' => 'Dhaka',
+                    'country_code' => 'BD',
+                    'is_default' => 1,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+
+            return [
+                'success' => true,
+                'message' => "Customer '{$name}' (Code: {$code}) registered successfully!",
+                'navigation_url' => '/sales',
+                'navigation_label' => 'View in Sales Directory',
+                'record' => [
+                    'Name' => $name,
+                    'Code' => $code,
+                    'Phone' => $phone,
+                    'Credit Limit' => '৳'.number_format($creditLimit, 2),
+                ],
+            ];
+        }
+
+        // 3. Create Supplier
+        if ($action === 'create_supplier') {
+            $name = trim((string) ($payload['name'] ?? 'New Supplier'));
+            $code = trim((string) ($payload['code'] ?? 'SUP-'.strtoupper(Str::random(5))));
+            $phone = trim((string) ($payload['phone'] ?? ''));
+            $email = trim((string) ($payload['email'] ?? ''));
+            $address = trim((string) ($payload['address'] ?? ''));
+
+            if (DB::table('parties')->where('tenant_id', $tenantId)->where('code', $code)->whereNull('deleted_at')->exists()) {
+                $code = $code.'-'.strtoupper(Str::random(2));
+            }
+
+            $partyId = DB::table('parties')->insertGetId([
+                'tenant_id' => $tenantId,
+                'uuid' => (string) Str::uuid(),
+                'code' => $code,
+                'name' => $name,
+                'is_customer' => 0,
+                'is_supplier' => 1,
+                'type' => 'business',
+                'phone' => $phone,
+                'email' => $email,
+                'status' => 'active',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            if ($address) {
+                DB::table('party_addresses')->insert([
+                    'tenant_id' => $tenantId,
+                    'uuid' => (string) Str::uuid(),
+                    'party_id' => $partyId,
+                    'type' => 'shipping',
+                    'line1' => $address,
+                    'city' => 'Dhaka',
+                    'country_code' => 'BD',
+                    'is_default' => 1,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+
+            return [
+                'success' => true,
+                'message' => "Supplier '{$name}' (Code: {$code}) registered successfully!",
+                'navigation_url' => '/purchasing',
+                'navigation_label' => 'View in Purchasing',
+                'record' => [
+                    'Supplier Name' => $name,
+                    'Code' => $code,
+                    'Contact Phone' => $phone,
+                    'Email' => $email,
+                ],
+            ];
+        }
+
+        // 4. Create Employee
+        if ($action === 'create_employee') {
+            $firstName = trim((string) ($payload['first_name'] ?? 'Employee'));
+            $lastName = trim((string) ($payload['last_name'] ?? ''));
+            $code = trim((string) ($payload['employee_code'] ?? 'EMP-'.strtoupper(Str::random(5))));
+            $phone = trim((string) ($payload['phone'] ?? '+880 1700-000000'));
+            $email = trim((string) ($payload['email'] ?? 'staff@company.local'));
+            $salary = (float) ($payload['salary_amount'] ?? 25000);
+            $displayName = trim($firstName.' '.$lastName);
+
+            $deptId = DB::table('departments')->where('tenant_id', $tenantId)->value('id');
+
+            if (DB::table('employees')->where('tenant_id', $tenantId)->where('employee_code', $code)->whereNull('deleted_at')->exists()) {
+                $code = $code.'-'.strtoupper(Str::random(2));
+            }
+
+            DB::table('employees')->insertGetId([
+                'tenant_id' => $tenantId,
+                'uuid' => (string) Str::uuid(),
+                'employee_code' => $code,
+                'company_id' => $companyId,
+                'branch_id' => $branchId,
+                'factory_id' => $factoryId,
+                'department_id' => $deptId,
+                'first_name' => $firstName,
+                'last_name' => $lastName,
+                'display_name' => $displayName,
+                'phone' => $phone,
+                'email' => $email,
+                'date_of_joining' => now()->toDateString(),
+                'employment_type' => 'permanent',
+                'employment_status' => 'active',
+                'is_active' => 1,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            return [
+                'success' => true,
+                'message' => "Employee '{$displayName}' ({$code}) enrolled successfully!",
+                'navigation_url' => '/hr',
+                'navigation_label' => 'View in HR Directory',
+                'record' => [
+                    'Staff Name' => $displayName,
+                    'Employee Code' => $code,
+                    'Phone' => $phone,
+                    'Status' => 'Active',
+                ],
+            ];
+        }
+
+        // 5. Create Warehouse
+        if ($action === 'create_warehouse') {
+            $name = trim((string) ($payload['name'] ?? 'New Warehouse'));
+            $code = trim((string) ($payload['code'] ?? 'WH-'.strtoupper(Str::random(4))));
+            $type = (string) ($payload['type'] ?? 'general');
+            $address = trim((string) ($payload['address'] ?? ''));
+
+            if (DB::table('warehouses')->where('tenant_id', $tenantId)->where('code', $code)->whereNull('deleted_at')->exists()) {
+                $code = $code.'-'.strtoupper(Str::random(2));
+            }
+
+            DB::table('warehouses')->insertGetId([
+                'tenant_id' => $tenantId,
+                'uuid' => (string) Str::uuid(),
+                'company_id' => $companyId,
+                'branch_id' => $branchId,
+                'factory_id' => $factoryId,
+                'code' => $code,
+                'name' => $name,
+                'type' => $type,
+                'address' => $address,
+                'is_active' => 1,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            return [
+                'success' => true,
+                'message' => "Warehouse '{$name}' ({$code}) established successfully!",
+                'navigation_url' => '/inventory',
+                'navigation_label' => 'View in Inventory',
+                'record' => [
+                    'Warehouse' => $name,
+                    'Code' => $code,
+                    'Type' => ucfirst($type),
+                ],
+            ];
+        }
+
+        // 6. Create Expense
+        if ($action === 'create_expense') {
+            $number = trim((string) ($payload['expense_number'] ?? 'EXP-'.strtoupper(Str::random(5))));
+            $payee = trim((string) ($payload['payee_name'] ?? 'General Vendor'));
+            $amount = (float) ($payload['amount'] ?? 0);
+            $method = (string) ($payload['payment_method'] ?? 'cash');
+            $description = trim((string) ($payload['description'] ?? 'Operating expense logged via Brain'));
+
+            $categoryId = DB::table('expense_categories')->where('tenant_id', $tenantId)->value('id') ?? 1;
+
+            if (DB::table('expenses')->where('tenant_id', $tenantId)->where('expense_number', $number)->whereNull('deleted_at')->exists()) {
+                $number = $number.'-'.strtoupper(Str::random(2));
+            }
+
+            DB::table('expenses')->insertGetId([
+                'tenant_id' => $tenantId,
+                'uuid' => (string) Str::uuid(),
+                'expense_number' => $number,
+                'company_id' => $companyId,
+                'branch_id' => $branchId,
+                'expense_category_id' => $categoryId,
+                'expense_date' => now()->toDateString(),
+                'payee_type' => 'vendor',
+                'payee_name' => $payee,
+                'description' => $description,
+                'amount' => $amount,
+                'tax_amount' => 0,
+                'total_amount' => $amount,
+                'payment_method' => $method,
+                'status' => 'approved',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            return [
+                'success' => true,
+                'message' => "Expense '{$number}' for ৳".number_format($amount, 2).' recorded successfully!',
+                'navigation_url' => '/finance',
+                'navigation_label' => 'View in Finance Cockpit',
+                'record' => [
+                    'Voucher' => $number,
+                    'Payee' => $payee,
+                    'Amount' => '৳'.number_format($amount, 2),
+                    'Method' => ucfirst($method),
+                ],
+            ];
+        }
+
+        // 7. Create Production Batch
+        if ($action === 'create_production_batch') {
+            $number = trim((string) ($payload['batch_number'] ?? 'BAT-'.strtoupper(Str::random(6))));
+            $qty = (float) ($payload['planned_quantity'] ?? 100);
+            $notes = trim((string) ($payload['notes'] ?? ''));
+
+            $productId = DB::table('products')->where('tenant_id', $tenantId)->value('id') ?? 1;
+            $bomId = DB::table('bill_of_materials')->where('tenant_id', $tenantId)->value('id') ?? 1;
+            $unitId = DB::table('units')->where('tenant_id', $tenantId)->value('id') ?? 1;
+
+            if (DB::table('production_batches')->where('tenant_id', $tenantId)->where('batch_number', $number)->whereNull('deleted_at')->exists()) {
+                $number = $number.'-'.strtoupper(Str::random(2));
+            }
+
+            DB::table('production_batches')->insertGetId([
+                'tenant_id' => $tenantId,
+                'uuid' => (string) Str::uuid(),
+                'batch_number' => $number,
+                'factory_id' => $factoryId,
+                'product_id' => $productId,
+                'bill_of_material_id' => $bomId,
+                'batch_date' => now()->toDateString(),
+                'planned_quantity' => $qty,
+                'output_unit_id' => $unitId,
+                'status' => 'draft',
+                'context_completeness' => 'draft',
+                'total_input_quantity' => $qty,
+                'total_output_quantity' => 0,
+                'worker_reported_quantity' => 0,
+                'analysis' => $notes,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            return [
+                'success' => true,
+                'message' => "Production batch '{$number}' ({$qty} Pcs) created successfully!",
+                'navigation_url' => '/production',
+                'navigation_label' => 'View in Production Batches',
+                'record' => [
+                    'Batch Number' => $number,
+                    'Planned Quantity' => $qty.' Pcs',
+                    'Factory' => 'Primary Plant',
+                ],
+            ];
+        }
+
+        // 8. Create CRM Lead
+        if ($action === 'create_crm_lead') {
+            $number = trim((string) ($payload['lead_number'] ?? 'LEAD-'.strtoupper(Str::random(5))));
+            $name = trim((string) ($payload['name'] ?? 'New Opportunity'));
+            $companyName = trim((string) ($payload['company_name'] ?? ''));
+            $phone = trim((string) ($payload['phone'] ?? ''));
+            $email = trim((string) ($payload['email'] ?? ''));
+            $expectedValue = (float) ($payload['expected_value'] ?? 0);
+
+            if (DB::table('crm_leads')->where('tenant_id', $tenantId)->where('lead_number', $number)->whereNull('deleted_at')->exists()) {
+                $number = $number.'-'.strtoupper(Str::random(2));
+            }
+
+            DB::table('crm_leads')->insertGetId([
+                'tenant_id' => $tenantId,
+                'uuid' => (string) Str::uuid(),
+                'lead_number' => $number,
+                'name' => $name,
+                'company_name' => $companyName,
+                'phone' => $phone,
+                'email' => $email,
+                'source' => 'agentic_copilot',
+                'stage' => 'new',
+                'expected_value' => $expectedValue,
+                'expected_close_date' => now()->addDays(14)->toDateString(),
+                'is_fake' => 0,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            return [
+                'success' => true,
+                'message' => "Sales Lead '{$name}' ({$number}) registered successfully!",
+                'navigation_url' => '/sales',
+                'navigation_label' => 'View in Sales CRM',
+                'record' => [
+                    'Contact' => $name,
+                    'Company' => $companyName,
+                    'Opportunity Value' => '৳'.number_format($expectedValue, 2),
+                ],
+            ];
+        }
+
+        // 9. Create Category
+        if ($action === 'create_category') {
+            $name = trim((string) ($payload['name'] ?? 'New Category'));
+            $code = trim((string) ($payload['code'] ?? 'CAT-'.strtoupper(Str::random(4))));
+
+            if (DB::table('categories')->where('tenant_id', $tenantId)->where('code', $code)->whereNull('deleted_at')->exists()) {
+                $code = $code.'-'.strtoupper(Str::random(2));
+            }
+
+            DB::table('categories')->insertGetId([
+                'tenant_id' => $tenantId,
+                'uuid' => (string) Str::uuid(),
+                'code' => $code,
+                'name' => $name,
+                'is_active' => 1,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            return [
+                'success' => true,
+                'message' => "Product category '{$name}' created successfully!",
+                'navigation_url' => '/products',
+                'navigation_label' => 'View in Products',
+                'record' => [
+                    'Category Name' => $name,
+                    'Code' => $code,
+                ],
+            ];
+        }
+
+        // 10. Create Brand
+        if ($action === 'create_brand') {
+            $name = trim((string) ($payload['name'] ?? 'New Brand'));
+            $code = trim((string) ($payload['code'] ?? 'BRD-'.strtoupper(Str::random(4))));
+
+            if (DB::table('brands')->where('tenant_id', $tenantId)->where('code', $code)->whereNull('deleted_at')->exists()) {
+                $code = $code.'-'.strtoupper(Str::random(2));
+            }
+
+            DB::table('brands')->insertGetId([
+                'tenant_id' => $tenantId,
+                'uuid' => (string) Str::uuid(),
+                'code' => $code,
+                'name' => $name,
+                'is_active' => 1,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            return [
+                'success' => true,
+                'message' => "Brand '{$name}' created successfully!",
+                'navigation_url' => '/products',
+                'navigation_label' => 'View in Products',
+                'record' => [
+                    'Brand Name' => $name,
+                    'Code' => $code,
+                ],
+            ];
+        }
+
+        // 11. Create Department
+        if ($action === 'create_department') {
+            $name = trim((string) ($payload['name'] ?? 'New Department'));
+            $code = trim((string) ($payload['code'] ?? 'DEP-'.strtoupper(Str::random(4))));
+
+            if (DB::table('departments')->where('tenant_id', $tenantId)->where('code', $code)->whereNull('deleted_at')->exists()) {
+                $code = $code.'-'.strtoupper(Str::random(2));
+            }
+
+            DB::table('departments')->insertGetId([
+                'tenant_id' => $tenantId,
+                'uuid' => (string) Str::uuid(),
+                'company_id' => $companyId,
+                'code' => $code,
+                'name' => $name,
+                'is_active' => 1,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            return [
+                'success' => true,
+                'message' => "Department '{$name}' created successfully!",
+                'navigation_url' => '/hr',
+                'navigation_label' => 'View in HR & Workforce',
+                'record' => [
+                    'Department' => $name,
+                    'Code' => $code,
+                ],
+            ];
+        }
+
+        throw new InvalidArgumentException("Unknown action: {$action}");
+    }
+
+    private function resolveTenantId(): int
+    {
+        try {
+            return TenantContext::current()->tenantId();
+        } catch (Throwable) {
+            $user = \Illuminate\Support\Facades\Auth::user();
+            if ($user && ! empty($user->tenant_id)) {
+                return (int) $user->tenant_id;
+            }
+            $tenant = \App\Models\Tenant::first();
+
+            return $tenant ? (int) $tenant->id : 1;
+        }
+    }
+
     private function handleFinanceQuery(int $tenantId, string $q): array
     {
         $bankAccounts = DB::table('bank_accounts')
@@ -147,16 +664,16 @@ class SliceMartBrainService
         $accountDetails = [];
         foreach ($bankAccounts as $acc) {
             $name = $acc->name ?? $acc->bank_name ?? 'Bank Account';
-            $accountDetails[] = "{$name} ({$acc->bank_name}): ৳" . number_format((float) ($acc->current_balance ?? 0), 2);
+            $accountDetails[] = "{$name} ({$acc->bank_name}): ৳".number_format((float) ($acc->current_balance ?? 0), 2);
         }
 
         return [
             'thought' => "Parsed query for treasury metrics ➔ Identified domain: Finance & Banking ➔ Dispatched internal tool: 'QueryBankAccounts' ➔ Aggregated balances across {$accountsCount} live tenant accounts.",
-            'answer' => "Your enterprise liquid treasury balance currently stands at **৳" . number_format((float) $totalCash, 2) . "** across {$accountsCount} registered accounts. Total approved operating expenses recorded stand at **৳" . number_format((float) $expenses, 2) . "**.\n\n" . implode("\n", array_map(fn($d) => "• " . $d, $accountDetails)),
+            'answer' => 'Your enterprise liquid treasury balance currently stands at **৳'.number_format((float) $totalCash, 2)."** across {$accountsCount} registered accounts. Total approved operating expenses recorded stand at **৳".number_format((float) $expenses, 2)."**.\n\n".implode("\n", array_map(fn ($d) => '• '.$d, $accountDetails)),
             'metrics' => [
-                ['label' => 'Total Liquid Funds', 'value' => '৳' . number_format((float) $totalCash, 0), 'tone' => 'success'],
+                ['label' => 'Total Liquid Funds', 'value' => '৳'.number_format((float) $totalCash, 0), 'tone' => 'success'],
                 ['label' => 'Active Bank Accounts', 'value' => (string) $accountsCount, 'tone' => 'primary'],
-                ['label' => 'Operating Expenses', 'value' => '৳' . number_format((float) $expenses, 0), 'tone' => 'amber'],
+                ['label' => 'Operating Expenses', 'value' => '৳'.number_format((float) $expenses, 0), 'tone' => 'amber'],
             ],
             'actions' => [
                 ['label' => 'Open Finance Cockpit', 'type' => 'navigate', 'url' => '/finance'],
@@ -193,10 +710,10 @@ class SliceMartBrainService
 
         return [
             'thought' => "Parsed query for warehouse inventory ➔ Dispatched internal tool: 'QueryStockLedger' ➔ Calculated total on-hand units and absorbed standard cost valuation across all warehouses.",
-            'answer' => "The warehouse network currently holds **" . number_format($totalUnits, 0) . " physical units** across **{$totalSkus} SKUs**, with a total inventory valuation of **৳" . number_format($totalValuation, 2) . "**.\n\n" .
-                (!empty($lowStockSummary) ? "**Low Stock Alerts (< 50 units):**\n" . implode("\n", array_map(fn($s) => "• " . $s, $lowStockSummary)) : "All stocked items are currently operating above minimum safety thresholds."),
+            'answer' => 'The warehouse network currently holds **'.number_format($totalUnits, 0)." physical units** across **{$totalSkus} SKUs**, with a total inventory valuation of **৳".number_format($totalValuation, 2)."**.\n\n".
+                (! empty($lowStockSummary) ? "**Low Stock Alerts (< 50 units):**\n".implode("\n", array_map(fn ($s) => '• '.$s, $lowStockSummary)) : 'All stocked items are currently operating above minimum safety thresholds.'),
             'metrics' => [
-                ['label' => 'Inventory Valuation', 'value' => '৳' . number_format($totalValuation, 0), 'tone' => 'success'],
+                ['label' => 'Inventory Valuation', 'value' => '৳'.number_format($totalValuation, 0), 'tone' => 'success'],
                 ['label' => 'Total SKUs Tracked', 'value' => (string) $totalSkus, 'tone' => 'primary'],
                 ['label' => 'Total Physical Units', 'value' => number_format($totalUnits, 0), 'tone' => 'neutral'],
             ],
@@ -249,10 +766,10 @@ class SliceMartBrainService
 
         return [
             'thought' => "Parsed query for commercial sales and receivables ➔ Dispatched internal tool: 'QueryInvoices' ➔ Calculated revenue billed, paid transactions, and outstanding AR aging balances.",
-            'answer' => "Total commercial revenue billed stands at **৳" . number_format((float) $totalBilled, 2) . "** across {$invoices->count()} invoices. Outstanding receivables currently total **৳" . number_format((float) $unpaidAmount, 2) . "** across {$unpaidInvoices->count()} open orders.",
+            'answer' => 'Total commercial revenue billed stands at **৳'.number_format((float) $totalBilled, 2)."** across {$invoices->count()} invoices. Outstanding receivables currently total **৳".number_format((float) $unpaidAmount, 2)."** across {$unpaidInvoices->count()} open orders.",
             'metrics' => [
-                ['label' => 'Total Billed Revenue', 'value' => '৳' . number_format((float) $totalBilled, 0), 'tone' => 'success'],
-                ['label' => 'Open Receivables (AR)', 'value' => '৳' . number_format((float) $unpaidAmount, 0), 'tone' => $unpaidAmount > 0 ? 'amber' : 'neutral'],
+                ['label' => 'Total Billed Revenue', 'value' => '৳'.number_format((float) $totalBilled, 0), 'tone' => 'success'],
+                ['label' => 'Open Receivables (AR)', 'value' => '৳'.number_format((float) $unpaidAmount, 0), 'tone' => $unpaidAmount > 0 ? 'amber' : 'neutral'],
                 ['label' => 'Total Invoices', 'value' => (string) $invoices->count(), 'tone' => 'primary'],
             ],
             'actions' => [
@@ -310,21 +827,21 @@ class SliceMartBrainService
 
     private function handleKnowledgeBaseQuery(string $q): array
     {
-        $topic = "Enterprise SOP & Architecture";
-        $explanation = "";
+        $topic = 'Enterprise SOP & Architecture';
+        $explanation = '';
 
         if (str_contains($q, 'fifo') || str_contains($q, 'avco') || str_contains($q, 'valuation')) {
-            $topic = "Inventory Valuation Policy (FIFO vs AVCO)";
-            $explanation = "The ERP supports both **FIFO (First-In, First-Out)** and **AVCO (Weighted Average Cost)** valuation. Under FIFO, materials consumed in manufacturing batches absorb the unit cost of the oldest inbound PO batch first, giving precise gross margin recognition during inflation periods.";
+            $topic = 'Inventory Valuation Policy (FIFO vs AVCO)';
+            $explanation = 'The ERP supports both **FIFO (First-In, First-Out)** and **AVCO (Weighted Average Cost)** valuation. Under FIFO, materials consumed in manufacturing batches absorb the unit cost of the oldest inbound PO batch first, giving precise gross margin recognition during inflation periods.';
         } elseif (str_contains($q, 'matching') || str_contains($q, '3-way')) {
-            $topic = "3-Way Procurement Matching Interlock";
-            $explanation = "To eliminate duplicate or inflated vendor charges, the system validates: (1) Purchase Order authorized price and terms, (2) Goods Receipt Note warehouse physical received count, and (3) Vendor Invoice line item charges. If quantity discrepancy exceeds ±0.5%, the bill is held for manager override.";
+            $topic = '3-Way Procurement Matching Interlock';
+            $explanation = 'To eliminate duplicate or inflated vendor charges, the system validates: (1) Purchase Order authorized price and terms, (2) Goods Receipt Note warehouse physical received count, and (3) Vendor Invoice line item charges. If quantity discrepancy exceeds ±0.5%, the bill is held for manager override.';
         } elseif (str_contains($q, 'rbac') || str_contains($q, 'permission') || str_contains($q, 'role')) {
-            $topic = "Multi-Tenant Granular RBAC Permissions";
-            $explanation = "Access control is governed by tenant-isolated role matrices. Users are assigned roles (e.g. Super Admin, Factory Operator, QC Inspector, Cashier, Warehouse Keeper), mapping to 120+ granular atomic permissions scoped to specific branches and companies.";
+            $topic = 'Multi-Tenant Granular RBAC Permissions';
+            $explanation = 'Access control is governed by tenant-isolated role matrices. Users are assigned roles (e.g. Super Admin, Factory Operator, QC Inspector, Cashier, Warehouse Keeper), mapping to 120+ granular atomic permissions scoped to specific branches and companies.';
         } else {
-            $topic = "Event Automation & Operations Flow Engine";
-            $explanation = "The Operations Flow engine connects triggers (e.g. low stock, failed QC, overdue invoice) with configurable business condition matrices and multi-channel actions (SMS, WhatsApp, batch locking, draft POs).";
+            $topic = 'Event Automation & Operations Flow Engine';
+            $explanation = 'The Operations Flow engine connects triggers (e.g. low stock, failed QC, overdue invoice) with configurable business condition matrices and multi-channel actions (SMS, WhatsApp, batch locking, draft POs).';
         }
 
         return [
@@ -360,16 +877,16 @@ class SliceMartBrainService
 
         $batchLines = [];
         foreach ($recentBatches as $b) {
-            $batchLines[] = "• **{$b->batch_number}**: Status: `{$b->status}` | Planned: {$b->planned_quantity} pcs | Actual: " . ($b->actual_output ?? 0) . " pcs";
+            $batchLines[] = "• **{$b->batch_number}**: Status: `{$b->status}` | Planned: {$b->planned_quantity} pcs | Actual: ".($b->actual_output ?? 0).' pcs';
         }
 
         return [
             'thought' => "Parsed manufacturing inquiry ➔ Dispatched internal tool: 'QueryProductionShopFloor' ➔ Aggregated batch execution states and factory output metrics.",
-            'answer' => "Shop floor manufacturing status across **{$totalBatches} recorded batches**:\n\n• **{$inProgress} Batches** currently in progress on shop floor lines\n• **{$completed} Batches** completed and released to stock\n• **{$totalOutput} Units** produced with an overall yield rate of **{$yieldRate}%**\n\n**Recent Manufacturing Runs:**\n" . implode("\n", $batchLines),
+            'answer' => "Shop floor manufacturing status across **{$totalBatches} recorded batches**:\n\n• **{$inProgress} Batches** currently in progress on shop floor lines\n• **{$completed} Batches** completed and released to stock\n• **{$totalOutput} Units** produced with an overall yield rate of **{$yieldRate}%**\n\n**Recent Manufacturing Runs:**\n".implode("\n", $batchLines),
             'metrics' => [
                 ['label' => 'In-Progress Batches', 'value' => (string) $inProgress, 'tone' => 'primary'],
                 ['label' => 'Completed Runs', 'value' => (string) $completed, 'tone' => 'success'],
-                ['label' => 'Shop Floor Output', 'value' => number_format((float) $totalOutput) . ' pcs', 'tone' => 'neutral'],
+                ['label' => 'Shop Floor Output', 'value' => number_format((float) $totalOutput).' pcs', 'tone' => 'neutral'],
                 ['label' => 'Overall Yield Rate', 'value' => "{$yieldRate}%", 'tone' => $yieldRate >= 90 ? 'success' : 'amber'],
             ],
             'actions' => [
@@ -398,11 +915,11 @@ class SliceMartBrainService
                 ->whereNull('deleted_at')
                 ->sum('net_amount') ?: 0);
 
-            if ($totalPayroll == 0) {
+            if ($totalPayroll === 0) {
                 $totalPayroll = (float) (DB::table('employees as e')
-                    ->join('salary_structure_components as ssc', function ($join) {
+                    ->join('salary_structure_components as ssc', function ($join): void {
                         $join->on('ssc.salary_structure_id', '=', 'e.salary_structure_id')
-                             ->on('ssc.tenant_id', '=', 'e.tenant_id');
+                            ->on('ssc.tenant_id', '=', 'e.tenant_id');
                     })
                     ->where('e.tenant_id', $tenantId)
                     ->where('e.employment_status', 'active')
@@ -422,7 +939,7 @@ class SliceMartBrainService
             ->get();
 
         $empIds = $recentEmployees->pluck('id')->toArray();
-        $latestPayslips = !empty($empIds)
+        $latestPayslips = ! empty($empIds)
             ? DB::table('payslips')
                 ->where('tenant_id', $tenantId)
                 ->whereIn('employee_id', $empIds)
@@ -436,18 +953,18 @@ class SliceMartBrainService
         foreach ($recentEmployees as $e) {
             $netSalary = isset($latestPayslips[$e->id]) ? (float) $latestPayslips[$e->id]->net_amount : 0.0;
             $salaryDisplay = $netSalary > 0
-                ? 'Base: ৳' . number_format($netSalary, 0)
-                : 'Role: ' . ucfirst(str_replace('_', ' ', $e->employment_type ?? 'Permanent'));
+                ? 'Base: ৳'.number_format($netSalary, 0)
+                : 'Role: '.ucfirst(str_replace('_', ' ', $e->employment_type ?? 'Permanent'));
             $staffLines[] = "• **{$e->first_name} {$e->last_name}**: Status: `{$e->employment_status}` | {$salaryDisplay}";
         }
 
         return [
             'thought' => "Parsed workforce query ➔ Dispatched internal tool: 'QueryHrPayrollLedger' ➔ Aggregated headcount, departmental mapping, and payroll commitments.",
-            'answer' => "Enterprise workforce summary:\n\n• **{$activeStaff} Active Staff** across **{$departments} Departments**\n• Monthly base salary commitment: **৳" . number_format((float) $totalPayroll, 2) . "**\n\n**Staff Directory Highlights:**\n" . implode("\n", $staffLines),
+            'answer' => "Enterprise workforce summary:\n\n• **{$activeStaff} Active Staff** across **{$departments} Departments**\n• Monthly base salary commitment: **৳".number_format((float) $totalPayroll, 2)."**\n\n**Staff Directory Highlights:**\n".implode("\n", $staffLines),
             'metrics' => [
                 ['label' => 'Active Employees', 'value' => (string) $activeStaff, 'tone' => 'success'],
                 ['label' => 'Departments', 'value' => (string) $departments, 'tone' => 'primary'],
-                ['label' => 'Monthly Payroll', 'value' => '৳' . number_format((float) $totalPayroll, 0), 'tone' => 'amber'],
+                ['label' => 'Monthly Payroll', 'value' => '৳'.number_format((float) $totalPayroll, 0), 'tone' => 'amber'],
             ],
             'actions' => [
                 ['label' => 'Workforce & HR Center', 'type' => 'navigate', 'url' => '/hr'],
@@ -474,16 +991,16 @@ class SliceMartBrainService
         $assetLines = [];
         foreach ($assetItems as $a) {
             $cost = $a->book_value ?? $a->purchase_cost ?? 0;
-            $assetLines[] = "• **{$a->name}** (`{$a->asset_code}`): Value: ৳" . number_format((float) $cost, 0) . " | Status: `{$a->status}`";
+            $assetLines[] = "• **{$a->name}** (`{$a->asset_code}`): Value: ৳".number_format((float) $cost, 0)." | Status: `{$a->status}`";
         }
 
         return [
             'thought' => "Parsed equipment query ➔ Dispatched internal tool: 'QueryFixedAssetRegister' ➔ Evaluated physical plant equipment, capitalization, and book value.",
-            'answer' => "Fixed assets and capital equipment ledger:\n\n• **{$totalAssets} Registered Assets** ({$activeAssets} operational/active)\n• Historical Purchase Value: **৳" . number_format((float) $totalCost, 2) . "**\n• Current Net Book Value: **৳" . number_format((float) $currentValue, 2) . "**\n\n**Tracked Equipment:**\n" . implode("\n", $assetLines),
+            'answer' => "Fixed assets and capital equipment ledger:\n\n• **{$totalAssets} Registered Assets** ({$activeAssets} operational/active)\n• Historical Purchase Value: **৳".number_format((float) $totalCost, 2)."**\n• Current Net Book Value: **৳".number_format((float) $currentValue, 2)."**\n\n**Tracked Equipment:**\n".implode("\n", $assetLines),
             'metrics' => [
                 ['label' => 'Total Fixed Assets', 'value' => (string) $totalAssets, 'tone' => 'primary'],
                 ['label' => 'Active Machinery', 'value' => (string) $activeAssets, 'tone' => 'success'],
-                ['label' => 'Net Book Value', 'value' => '৳' . number_format((float) $currentValue, 0), 'tone' => 'neutral'],
+                ['label' => 'Net Book Value', 'value' => '৳'.number_format((float) $currentValue, 0), 'tone' => 'neutral'],
             ],
             'actions' => [
                 ['label' => 'Fixed Assets Register', 'type' => 'navigate', 'url' => '/assets'],
@@ -500,7 +1017,7 @@ class SliceMartBrainService
         $bankAccounts = DB::table('bank_accounts')->where('tenant_id', $tenantId)->whereNull('deleted_at')->count();
 
         return [
-            'thought' => "Interpreting general operational query ➔ Executed comprehensive tenant telemetry scanner across Products, Workforce, Production, and Treasury.",
+            'thought' => 'Interpreting general operational query ➔ Executed comprehensive tenant telemetry scanner across Products, Workforce, Production, and Treasury.',
             'answer' => "I am your **Operations AI Brain**, a self-contained operational ERP assistant. I execute actions, navigate modules, and query live data directly on your local system without any external cloud APIs.\n\n**Current System Health Summary:**\n• **{$products} SKUs** active in product catalog\n• **{$employees} Employees** on active payroll\n• **{$batches} Production Batches** recorded\n• **{$bankAccounts} Bank Accounts** active in treasury",
             'metrics' => [
                 ['label' => 'Active SKUs', 'value' => (string) $products, 'tone' => 'primary'],
@@ -524,7 +1041,7 @@ class SliceMartBrainService
 
         if (preg_match('/(?:add|create|new)\s+(?:a\s+)?product\s+(?:named\s+)?([^with|price|cost|\n]+)/i', $input, $m)) {
             $candidate = trim($m[1]);
-            if ($candidate && !in_array(strtolower($candidate), ['item', 'please', 'now', 'button', 'card', 'fast', 'quick'])) {
+            if ($candidate && ! in_array(strtolower($candidate), ['item', 'please', 'now', 'button', 'card', 'fast', 'quick'], true)) {
                 $name = ucwords($candidate);
             }
         }
@@ -535,7 +1052,7 @@ class SliceMartBrainService
             $cost = (float) $m[1];
         }
 
-        $sku = 'PRD-' . strtoupper(Str::random(6));
+        $sku = 'PRD-'.strtoupper(Str::random(6));
 
         return [
             'thought' => "Detected actionable intent: 'Catalog.CreateProduct' ➔ Pre-assembled draft product parameters with tenant defaults ➔ Dispatched interactive form for immediate 1-click execution.",
@@ -573,7 +1090,7 @@ class SliceMartBrainService
 
         if (preg_match('/(?:add|create|new)\s+(?:a\s+)?customer\s+(?:named\s+)?([^with|phone|email|\n]+)/i', $input, $m)) {
             $candidate = trim($m[1]);
-            if ($candidate && !in_array(strtolower($candidate), ['client', 'please', 'now', 'button', 'card'])) {
+            if ($candidate && ! in_array(strtolower($candidate), ['client', 'please', 'now', 'button', 'card'], true)) {
                 $name = ucwords($candidate);
             }
         }
@@ -581,7 +1098,7 @@ class SliceMartBrainService
             $phone = trim($m[1]);
         }
 
-        $code = 'CUST-' . strtoupper(Str::random(5));
+        $code = 'CUST-'.strtoupper(Str::random(5));
 
         return [
             'thought' => "Detected actionable intent: 'Sales.CreateCustomer' ➔ Formulated customer account parameters ➔ Dispatched interactive form for immediate 1-click execution.",
@@ -618,12 +1135,12 @@ class SliceMartBrainService
 
         if (preg_match('/(?:add|create|new)\s+(?:a\s+)?(?:supplier|vendor)\s+(?:named\s+)?([^with|phone|email|\n]+)/i', $input, $m)) {
             $candidate = trim($m[1]);
-            if ($candidate && !in_array(strtolower($candidate), ['vendor', 'please', 'now', 'button'])) {
+            if ($candidate && ! in_array(strtolower($candidate), ['vendor', 'please', 'now', 'button'], true)) {
                 $name = ucwords($candidate);
             }
         }
 
-        $code = 'SUP-' . strtoupper(Str::random(5));
+        $code = 'SUP-'.strtoupper(Str::random(5));
 
         return [
             'thought' => "Detected actionable intent: 'Procurement.CreateSupplier' ➔ Generated vendor onboarding record ➔ Dispatched interactive form for 1-click execution.",
@@ -659,15 +1176,15 @@ class SliceMartBrainService
         $salary = 28000.0;
 
         if (preg_match('/(?:add|create|new)\s+(?:an?\s+)?(?:employee|staff|worker)\s+(?:named\s+)?([A-Za-z]+)(?:\s+([A-Za-z]+))?/i', $input, $m)) {
-            if (!empty($m[1]) && !in_array(strtolower($m[1]), ['employee', 'staff', 'worker', 'please', 'now'])) {
+            if (! empty($m[1]) && ! in_array(strtolower($m[1]), ['employee', 'staff', 'worker', 'please', 'now'], true)) {
                 $firstName = ucfirst(trim($m[1]));
-                if (!empty($m[2])) {
+                if (! empty($m[2])) {
                     $lastName = ucfirst(trim($m[2]));
                 }
             }
         }
 
-        $code = 'EMP-' . strtoupper(Str::random(5));
+        $code = 'EMP-'.strtoupper(Str::random(5));
 
         return [
             'thought' => "Detected actionable intent: 'HR.CreateEmployee' ➔ Assembled payroll & personnel parameters ➔ Dispatched interactive form for 1-click execution.",
@@ -700,12 +1217,12 @@ class SliceMartBrainService
         $name = 'Central Depot Hub';
         if (preg_match('/(?:add|create|new)\s+(?:a\s+)?(?:warehouse|store|godown)\s+(?:named\s+)?([^with|\n]+)/i', $input, $m)) {
             $candidate = trim($m[1]);
-            if ($candidate && !in_array(strtolower($candidate), ['store', 'warehouse', 'please', 'now'])) {
+            if ($candidate && ! in_array(strtolower($candidate), ['store', 'warehouse', 'please', 'now'], true)) {
                 $name = ucwords($candidate);
             }
         }
 
-        $code = 'WH-' . strtoupper(Str::random(4));
+        $code = 'WH-'.strtoupper(Str::random(4));
 
         return [
             'thought' => "Detected actionable intent: 'Inventory.CreateWarehouse' ➔ Structured storage node attributes ➔ Dispatched interactive form for 1-click execution.",
@@ -742,12 +1259,12 @@ class SliceMartBrainService
         }
         if (preg_match('/(?:to|payee|for)\s+([^0-9\n,]+)/i', $input, $m)) {
             $candidate = trim($m[1]);
-            if ($candidate && !in_array(strtolower($candidate), ['expense', 'please', 'now', 'fast'])) {
+            if ($candidate && ! in_array(strtolower($candidate), ['expense', 'please', 'now', 'fast'], true)) {
                 $payee = ucwords($candidate);
             }
         }
 
-        $code = 'EXP-' . strtoupper(Str::random(5));
+        $code = 'EXP-'.strtoupper(Str::random(5));
 
         return [
             'thought' => "Detected actionable intent: 'Finance.CreateExpense' ➔ Drafted expenditure journal record ➔ Dispatched interactive form for 1-click execution.",
@@ -781,7 +1298,7 @@ class SliceMartBrainService
             $qty = (int) $m[1];
         }
 
-        $code = 'BAT-' . strtoupper(Str::random(6));
+        $code = 'BAT-'.strtoupper(Str::random(6));
 
         return [
             'thought' => "Detected actionable intent: 'Production.CreateBatch' ➔ Synthesized factory work order ➔ Dispatched interactive form for 1-click execution.",
@@ -814,12 +1331,12 @@ class SliceMartBrainService
 
         if (preg_match('/(?:add|create|new)\s+(?:a\s+)?lead\s+(?:named\s+)?([^with|\n]+)/i', $input, $m)) {
             $candidate = trim($m[1]);
-            if ($candidate && !in_array(strtolower($candidate), ['lead', 'please', 'now'])) {
+            if ($candidate && ! in_array(strtolower($candidate), ['lead', 'please', 'now'], true)) {
                 $name = ucwords($candidate);
             }
         }
 
-        $code = 'LEAD-' . strtoupper(Str::random(5));
+        $code = 'LEAD-'.strtoupper(Str::random(5));
 
         return [
             'thought' => "Detected actionable intent: 'Sales.CreateLead' ➔ Initialized sales prospect pipeline record ➔ Dispatched interactive form for 1-click execution.",
@@ -852,12 +1369,12 @@ class SliceMartBrainService
         $name = 'New Product Category';
         if (preg_match('/(?:add|create|new)\s+(?:a\s+)?category\s+(?:named\s+)?([^with|\n]+)/i', $input, $m)) {
             $candidate = trim($m[1]);
-            if ($candidate && !in_array(strtolower($candidate), ['category', 'please', 'now'])) {
+            if ($candidate && ! in_array(strtolower($candidate), ['category', 'please', 'now'], true)) {
                 $name = ucwords($candidate);
             }
         }
 
-        $code = 'CAT-' . strtoupper(Str::random(4));
+        $code = 'CAT-'.strtoupper(Str::random(4));
 
         return [
             'thought' => "Detected actionable intent: 'Catalog.CreateCategory' ➔ Generated catalog classification node ➔ Dispatched interactive form for 1-click execution.",
@@ -885,12 +1402,12 @@ class SliceMartBrainService
         $name = 'New Trademark Brand';
         if (preg_match('/(?:add|create|new)\s+(?:a\s+)?brand\s+(?:named\s+)?([^with|\n]+)/i', $input, $m)) {
             $candidate = trim($m[1]);
-            if ($candidate && !in_array(strtolower($candidate), ['brand', 'please', 'now'])) {
+            if ($candidate && ! in_array(strtolower($candidate), ['brand', 'please', 'now'], true)) {
                 $name = ucwords($candidate);
             }
         }
 
-        $code = 'BRD-' . strtoupper(Str::random(4));
+        $code = 'BRD-'.strtoupper(Str::random(4));
 
         return [
             'thought' => "Detected actionable intent: 'Catalog.CreateBrand' ➔ Structured brand registry entity ➔ Dispatched interactive form for 1-click execution.",
@@ -918,12 +1435,12 @@ class SliceMartBrainService
         $name = 'Operations & Quality';
         if (preg_match('/(?:add|create|new)\s+(?:a\s+)?department\s+(?:named\s+)?([^with|\n]+)/i', $input, $m)) {
             $candidate = trim($m[1]);
-            if ($candidate && !in_array(strtolower($candidate), ['department', 'please', 'now'])) {
+            if ($candidate && ! in_array(strtolower($candidate), ['department', 'please', 'now'], true)) {
                 $name = ucwords($candidate);
             }
         }
 
-        $code = 'DEP-' . strtoupper(Str::random(4));
+        $code = 'DEP-'.strtoupper(Str::random(4));
 
         return [
             'thought' => "Detected actionable intent: 'HR.CreateDepartment' ➔ Configured organizational branch unit ➔ Dispatched interactive form for 1-click execution.",
@@ -949,7 +1466,7 @@ class SliceMartBrainService
     private function handleActionHelpOverview(int $tenantId): array
     {
         return [
-            'thought' => "Audited full system capability register ➔ Identified 11 foundational business entities ready for immediate interactive creation.",
+            'thought' => 'Audited full system capability register ➔ Identified 11 foundational business entities ready for immediate interactive creation.',
             'answer' => "You can create and manage **any entity** in the system directly through this assistant without leaving this dialog!\n\n**Everything that can be added in the system:**\n\n• **Product**: Add finished goods, raw materials, or services with pricing & opening stock\n• **Customer**: Register business or retail client accounts with credit limits\n• **Supplier**: Onboard material vendors with contact details\n• **Employee**: Enroll workforce staff on active payroll with salary structure\n• **Warehouse**: Set up distribution hubs, storage rooms, or factory godowns\n• **Expense**: Record operational utility or travel expenditures into finance\n• **Production Batch**: Launch manufacturing shopfloor work orders\n• **CRM Lead**: Capture high-value sales pipeline opportunities\n• **Category**: Organize catalogue product taxonomies\n• **Brand**: Register product brand lines and trademarks\n• **Department**: Define corporate divisions and workforce units\n\nSimply click one of the quick buttons below or ask me (e.g. *\"Add product Laptop\"*, *\"Create customer Acme Corp\"*, *\"Record expense 4500\"*).",
             'metrics' => [
                 ['label' => 'Addable Entities', 'value' => '11 Core Types', 'tone' => 'success'],
@@ -972,530 +1489,16 @@ class SliceMartBrainService
         ];
     }
 
-    public function executeAction(string $action, array $payload): array
-    {
-        $tenantId = $this->resolveTenantId();
-        $companyId = DB::table('companies')->where('tenant_id', $tenantId)->value('id') ?? 1;
-        $branchId = DB::table('branches')->where('tenant_id', $tenantId)->value('id') ?? 1;
-        $factoryId = DB::table('factories')->where('tenant_id', $tenantId)->value('id') ?? 1;
-
-        // 1. Create Product
-        if ($action === 'create_product') {
-            $sku = trim((string) ($payload['sku'] ?? 'PRD-' . strtoupper(Str::random(6))));
-            $name = trim((string) ($payload['name'] ?? 'New Product'));
-            $type = (string) ($payload['type'] ?? 'finished');
-            $standardCost = (float) ($payload['standard_cost'] ?? 0);
-            $salePrice = (float) ($payload['default_sale_price'] ?? 0);
-            $openingStock = (float) ($payload['opening_stock'] ?? 0);
-
-            $unitId = DB::table('units')->where('tenant_id', $tenantId)->value('id') ?? 1;
-
-            if (DB::table('products')->where('tenant_id', $tenantId)->where('sku', $sku)->whereNull('deleted_at')->exists()) {
-                $sku = $sku . '-' . strtoupper(Str::random(3));
-            }
-
-            $uuid = (string) Str::uuid();
-            $productId = DB::table('products')->insertGetId([
-                'tenant_id' => $tenantId,
-                'uuid' => $uuid,
-                'sku' => $sku,
-                'name' => $name,
-                'type' => $type,
-                'base_unit_id' => $unitId,
-                'standard_cost' => $standardCost,
-                'default_sale_price' => $salePrice,
-                'is_stock_tracked' => true,
-                'is_sold' => true,
-                'is_purchased' => true,
-                'status' => 'active',
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
-
-            if ($openingStock > 0) {
-                $warehouseId = DB::table('warehouses')->where('tenant_id', $tenantId)->value('id');
-                if ($warehouseId) {
-                    DB::table('stock_balances')->insert([
-                        'tenant_id' => $tenantId,
-                        'uuid' => (string) Str::uuid(),
-                        'product_id' => $productId,
-                        'warehouse_id' => $warehouseId,
-                        'stock_state' => 'available',
-                        'quantity' => $openingStock,
-                        'average_cost' => $standardCost,
-                        'total_value' => $openingStock * $standardCost,
-                        'created_at' => now(),
-                        'updated_at' => now(),
-                    ]);
-                }
-            }
-
-            return [
-                'success' => true,
-                'message' => "Product '{$name}' (SKU: {$sku}) created successfully!",
-                'navigation_url' => '/products',
-                'navigation_label' => 'View in Catalogue',
-                'record' => [
-                    'Name' => $name,
-                    'SKU' => $sku,
-                    'Type' => ucfirst($type),
-                    'Standard Cost' => '৳' . number_format($standardCost, 2),
-                    'Sale Price' => '৳' . number_format($salePrice, 2),
-                    'Opening Stock' => $openingStock . ' Pcs',
-                ],
-            ];
-        }
-
-        // 2. Create Customer
-        if ($action === 'create_customer') {
-            $name = trim((string) ($payload['name'] ?? 'New Customer'));
-            $code = trim((string) ($payload['code'] ?? 'CUST-' . strtoupper(Str::random(5))));
-            $phone = trim((string) ($payload['phone'] ?? ''));
-            $email = trim((string) ($payload['email'] ?? ''));
-            $creditLimit = (float) ($payload['credit_limit'] ?? 0);
-            $address = trim((string) ($payload['address'] ?? ''));
-
-            if (DB::table('parties')->where('tenant_id', $tenantId)->where('code', $code)->whereNull('deleted_at')->exists()) {
-                $code = $code . '-' . strtoupper(Str::random(2));
-            }
-
-            $partyId = DB::table('parties')->insertGetId([
-                'tenant_id' => $tenantId,
-                'uuid' => (string) Str::uuid(),
-                'code' => $code,
-                'name' => $name,
-                'is_customer' => 1,
-                'is_supplier' => 0,
-                'type' => 'business',
-                'phone' => $phone,
-                'email' => $email,
-                'credit_limit' => $creditLimit,
-                'credit_days' => 30,
-                'status' => 'active',
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
-
-            if ($address) {
-                DB::table('party_addresses')->insert([
-                    'tenant_id' => $tenantId,
-                    'uuid' => (string) Str::uuid(),
-                    'party_id' => $partyId,
-                    'type' => 'billing',
-                    'line1' => $address,
-                    'city' => 'Dhaka',
-                    'country_code' => 'BD',
-                    'is_default' => 1,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ]);
-            }
-
-            return [
-                'success' => true,
-                'message' => "Customer '{$name}' (Code: {$code}) registered successfully!",
-                'navigation_url' => '/sales',
-                'navigation_label' => 'View in Sales Directory',
-                'record' => [
-                    'Name' => $name,
-                    'Code' => $code,
-                    'Phone' => $phone,
-                    'Credit Limit' => '৳' . number_format($creditLimit, 2),
-                ],
-            ];
-        }
-
-        // 3. Create Supplier
-        if ($action === 'create_supplier') {
-            $name = trim((string) ($payload['name'] ?? 'New Supplier'));
-            $code = trim((string) ($payload['code'] ?? 'SUP-' . strtoupper(Str::random(5))));
-            $phone = trim((string) ($payload['phone'] ?? ''));
-            $email = trim((string) ($payload['email'] ?? ''));
-            $address = trim((string) ($payload['address'] ?? ''));
-
-            if (DB::table('parties')->where('tenant_id', $tenantId)->where('code', $code)->whereNull('deleted_at')->exists()) {
-                $code = $code . '-' . strtoupper(Str::random(2));
-            }
-
-            $partyId = DB::table('parties')->insertGetId([
-                'tenant_id' => $tenantId,
-                'uuid' => (string) Str::uuid(),
-                'code' => $code,
-                'name' => $name,
-                'is_customer' => 0,
-                'is_supplier' => 1,
-                'type' => 'business',
-                'phone' => $phone,
-                'email' => $email,
-                'status' => 'active',
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
-
-            if ($address) {
-                DB::table('party_addresses')->insert([
-                    'tenant_id' => $tenantId,
-                    'uuid' => (string) Str::uuid(),
-                    'party_id' => $partyId,
-                    'type' => 'shipping',
-                    'line1' => $address,
-                    'city' => 'Dhaka',
-                    'country_code' => 'BD',
-                    'is_default' => 1,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ]);
-            }
-
-            return [
-                'success' => true,
-                'message' => "Supplier '{$name}' (Code: {$code}) registered successfully!",
-                'navigation_url' => '/purchasing',
-                'navigation_label' => 'View in Purchasing',
-                'record' => [
-                    'Supplier Name' => $name,
-                    'Code' => $code,
-                    'Contact Phone' => $phone,
-                    'Email' => $email,
-                ],
-            ];
-        }
-
-        // 4. Create Employee
-        if ($action === 'create_employee') {
-            $firstName = trim((string) ($payload['first_name'] ?? 'Employee'));
-            $lastName = trim((string) ($payload['last_name'] ?? ''));
-            $code = trim((string) ($payload['employee_code'] ?? 'EMP-' . strtoupper(Str::random(5))));
-            $phone = trim((string) ($payload['phone'] ?? '+880 1700-000000'));
-            $email = trim((string) ($payload['email'] ?? 'staff@company.local'));
-            $salary = (float) ($payload['salary_amount'] ?? 25000);
-            $displayName = trim($firstName . ' ' . $lastName);
-
-            $deptId = DB::table('departments')->where('tenant_id', $tenantId)->value('id');
-
-            if (DB::table('employees')->where('tenant_id', $tenantId)->where('employee_code', $code)->whereNull('deleted_at')->exists()) {
-                $code = $code . '-' . strtoupper(Str::random(2));
-            }
-
-            DB::table('employees')->insertGetId([
-                'tenant_id' => $tenantId,
-                'uuid' => (string) Str::uuid(),
-                'employee_code' => $code,
-                'company_id' => $companyId,
-                'branch_id' => $branchId,
-                'factory_id' => $factoryId,
-                'department_id' => $deptId,
-                'first_name' => $firstName,
-                'last_name' => $lastName,
-                'display_name' => $displayName,
-                'phone' => $phone,
-                'email' => $email,
-                'date_of_joining' => now()->toDateString(),
-                'employment_type' => 'permanent',
-                'employment_status' => 'active',
-                'is_active' => 1,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
-
-            return [
-                'success' => true,
-                'message' => "Employee '{$displayName}' ({$code}) enrolled successfully!",
-                'navigation_url' => '/hr',
-                'navigation_label' => 'View in HR Directory',
-                'record' => [
-                    'Staff Name' => $displayName,
-                    'Employee Code' => $code,
-                    'Phone' => $phone,
-                    'Status' => 'Active',
-                ],
-            ];
-        }
-
-        // 5. Create Warehouse
-        if ($action === 'create_warehouse') {
-            $name = trim((string) ($payload['name'] ?? 'New Warehouse'));
-            $code = trim((string) ($payload['code'] ?? 'WH-' . strtoupper(Str::random(4))));
-            $type = (string) ($payload['type'] ?? 'general');
-            $address = trim((string) ($payload['address'] ?? ''));
-
-            if (DB::table('warehouses')->where('tenant_id', $tenantId)->where('code', $code)->whereNull('deleted_at')->exists()) {
-                $code = $code . '-' . strtoupper(Str::random(2));
-            }
-
-            DB::table('warehouses')->insertGetId([
-                'tenant_id' => $tenantId,
-                'uuid' => (string) Str::uuid(),
-                'company_id' => $companyId,
-                'branch_id' => $branchId,
-                'factory_id' => $factoryId,
-                'code' => $code,
-                'name' => $name,
-                'type' => $type,
-                'address' => $address,
-                'is_active' => 1,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
-
-            return [
-                'success' => true,
-                'message' => "Warehouse '{$name}' ({$code}) established successfully!",
-                'navigation_url' => '/inventory',
-                'navigation_label' => 'View in Inventory',
-                'record' => [
-                    'Warehouse' => $name,
-                    'Code' => $code,
-                    'Type' => ucfirst($type),
-                ],
-            ];
-        }
-
-        // 6. Create Expense
-        if ($action === 'create_expense') {
-            $number = trim((string) ($payload['expense_number'] ?? 'EXP-' . strtoupper(Str::random(5))));
-            $payee = trim((string) ($payload['payee_name'] ?? 'General Vendor'));
-            $amount = (float) ($payload['amount'] ?? 0);
-            $method = (string) ($payload['payment_method'] ?? 'cash');
-            $description = trim((string) ($payload['description'] ?? 'Operating expense logged via Brain'));
-
-            $categoryId = DB::table('expense_categories')->where('tenant_id', $tenantId)->value('id') ?? 1;
-
-            if (DB::table('expenses')->where('tenant_id', $tenantId)->where('expense_number', $number)->whereNull('deleted_at')->exists()) {
-                $number = $number . '-' . strtoupper(Str::random(2));
-            }
-
-            DB::table('expenses')->insertGetId([
-                'tenant_id' => $tenantId,
-                'uuid' => (string) Str::uuid(),
-                'expense_number' => $number,
-                'company_id' => $companyId,
-                'branch_id' => $branchId,
-                'expense_category_id' => $categoryId,
-                'expense_date' => now()->toDateString(),
-                'payee_type' => 'vendor',
-                'payee_name' => $payee,
-                'description' => $description,
-                'amount' => $amount,
-                'tax_amount' => 0,
-                'total_amount' => $amount,
-                'payment_method' => $method,
-                'status' => 'approved',
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
-
-            return [
-                'success' => true,
-                'message' => "Expense '{$number}' for ৳" . number_format($amount, 2) . " recorded successfully!",
-                'navigation_url' => '/finance',
-                'navigation_label' => 'View in Finance Cockpit',
-                'record' => [
-                    'Voucher' => $number,
-                    'Payee' => $payee,
-                    'Amount' => '৳' . number_format($amount, 2),
-                    'Method' => ucfirst($method),
-                ],
-            ];
-        }
-
-        // 7. Create Production Batch
-        if ($action === 'create_production_batch') {
-            $number = trim((string) ($payload['batch_number'] ?? 'BAT-' . strtoupper(Str::random(6))));
-            $qty = (float) ($payload['planned_quantity'] ?? 100);
-            $notes = trim((string) ($payload['notes'] ?? ''));
-
-            $productId = DB::table('products')->where('tenant_id', $tenantId)->value('id') ?? 1;
-            $bomId = DB::table('bill_of_materials')->where('tenant_id', $tenantId)->value('id') ?? 1;
-            $unitId = DB::table('units')->where('tenant_id', $tenantId)->value('id') ?? 1;
-
-            if (DB::table('production_batches')->where('tenant_id', $tenantId)->where('batch_number', $number)->whereNull('deleted_at')->exists()) {
-                $number = $number . '-' . strtoupper(Str::random(2));
-            }
-
-            DB::table('production_batches')->insertGetId([
-                'tenant_id' => $tenantId,
-                'uuid' => (string) Str::uuid(),
-                'batch_number' => $number,
-                'factory_id' => $factoryId,
-                'product_id' => $productId,
-                'bill_of_material_id' => $bomId,
-                'batch_date' => now()->toDateString(),
-                'planned_quantity' => $qty,
-                'output_unit_id' => $unitId,
-                'status' => 'draft',
-                'context_completeness' => 'draft',
-                'total_input_quantity' => $qty,
-                'total_output_quantity' => 0,
-                'worker_reported_quantity' => 0,
-                'analysis' => $notes,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
-
-            return [
-                'success' => true,
-                'message' => "Production batch '{$number}' ({$qty} Pcs) created successfully!",
-                'navigation_url' => '/production',
-                'navigation_label' => 'View in Production Batches',
-                'record' => [
-                    'Batch Number' => $number,
-                    'Planned Quantity' => $qty . ' Pcs',
-                    'Factory' => 'Primary Plant',
-                ],
-            ];
-        }
-
-        // 8. Create CRM Lead
-        if ($action === 'create_crm_lead') {
-            $number = trim((string) ($payload['lead_number'] ?? 'LEAD-' . strtoupper(Str::random(5))));
-            $name = trim((string) ($payload['name'] ?? 'New Opportunity'));
-            $companyName = trim((string) ($payload['company_name'] ?? ''));
-            $phone = trim((string) ($payload['phone'] ?? ''));
-            $email = trim((string) ($payload['email'] ?? ''));
-            $expectedValue = (float) ($payload['expected_value'] ?? 0);
-
-            if (DB::table('crm_leads')->where('tenant_id', $tenantId)->where('lead_number', $number)->whereNull('deleted_at')->exists()) {
-                $number = $number . '-' . strtoupper(Str::random(2));
-            }
-
-            DB::table('crm_leads')->insertGetId([
-                'tenant_id' => $tenantId,
-                'uuid' => (string) Str::uuid(),
-                'lead_number' => $number,
-                'name' => $name,
-                'company_name' => $companyName,
-                'phone' => $phone,
-                'email' => $email,
-                'source' => 'agentic_copilot',
-                'stage' => 'new',
-                'expected_value' => $expectedValue,
-                'expected_close_date' => now()->addDays(14)->toDateString(),
-                'is_fake' => 0,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
-
-            return [
-                'success' => true,
-                'message' => "Sales Lead '{$name}' ({$number}) registered successfully!",
-                'navigation_url' => '/sales',
-                'navigation_label' => 'View in Sales CRM',
-                'record' => [
-                    'Contact' => $name,
-                    'Company' => $companyName,
-                    'Opportunity Value' => '৳' . number_format($expectedValue, 2),
-                ],
-            ];
-        }
-
-        // 9. Create Category
-        if ($action === 'create_category') {
-            $name = trim((string) ($payload['name'] ?? 'New Category'));
-            $code = trim((string) ($payload['code'] ?? 'CAT-' . strtoupper(Str::random(4))));
-
-            if (DB::table('categories')->where('tenant_id', $tenantId)->where('code', $code)->whereNull('deleted_at')->exists()) {
-                $code = $code . '-' . strtoupper(Str::random(2));
-            }
-
-            DB::table('categories')->insertGetId([
-                'tenant_id' => $tenantId,
-                'uuid' => (string) Str::uuid(),
-                'code' => $code,
-                'name' => $name,
-                'is_active' => 1,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
-
-            return [
-                'success' => true,
-                'message' => "Product category '{$name}' created successfully!",
-                'navigation_url' => '/products',
-                'navigation_label' => 'View in Products',
-                'record' => [
-                    'Category Name' => $name,
-                    'Code' => $code,
-                ],
-            ];
-        }
-
-        // 10. Create Brand
-        if ($action === 'create_brand') {
-            $name = trim((string) ($payload['name'] ?? 'New Brand'));
-            $code = trim((string) ($payload['code'] ?? 'BRD-' . strtoupper(Str::random(4))));
-
-            if (DB::table('brands')->where('tenant_id', $tenantId)->where('code', $code)->whereNull('deleted_at')->exists()) {
-                $code = $code . '-' . strtoupper(Str::random(2));
-            }
-
-            DB::table('brands')->insertGetId([
-                'tenant_id' => $tenantId,
-                'uuid' => (string) Str::uuid(),
-                'code' => $code,
-                'name' => $name,
-                'is_active' => 1,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
-
-            return [
-                'success' => true,
-                'message' => "Brand '{$name}' created successfully!",
-                'navigation_url' => '/products',
-                'navigation_label' => 'View in Products',
-                'record' => [
-                    'Brand Name' => $name,
-                    'Code' => $code,
-                ],
-            ];
-        }
-
-        // 11. Create Department
-        if ($action === 'create_department') {
-            $name = trim((string) ($payload['name'] ?? 'New Department'));
-            $code = trim((string) ($payload['code'] ?? 'DEP-' . strtoupper(Str::random(4))));
-
-            if (DB::table('departments')->where('tenant_id', $tenantId)->where('code', $code)->whereNull('deleted_at')->exists()) {
-                $code = $code . '-' . strtoupper(Str::random(2));
-            }
-
-            DB::table('departments')->insertGetId([
-                'tenant_id' => $tenantId,
-                'uuid' => (string) Str::uuid(),
-                'company_id' => $companyId,
-                'code' => $code,
-                'name' => $name,
-                'is_active' => 1,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
-
-            return [
-                'success' => true,
-                'message' => "Department '{$name}' created successfully!",
-                'navigation_url' => '/hr',
-                'navigation_label' => 'View in HR & Workforce',
-                'record' => [
-                    'Department' => $name,
-                    'Code' => $code,
-                ],
-            ];
-        }
-
-        throw new \InvalidArgumentException("Unknown action: {$action}");
-    }
-
     private function handleNavigateExchange(): array
     {
         return [
             'answer' => "I'll take you to **Product Exchanges** — where you can create, approve, and manage swap transactions between returned and replacement items.\n\nThe Exchange module supports:\n• **Like-for-like** replacements (same product, defective swap)\n• **Upgrades** — customer pays the price difference (top-up)\n• **Downgrades** — system flags a refund owed to customer\n• Atomic stock movements (return stock IN + replacement OUT in one transaction)\n• POS session-linked exchanges",
-            'thought' => "User wants to navigate to the Exchanges section. Returning a navigate action to /sales?tab=exchanges.",
+            'thought' => 'User wants to navigate to the Exchanges section. Returning a navigate action to /sales?tab=exchanges.',
             'actions' => [
                 [
                     'label' => 'Open Exchanges',
-                    'type'  => 'navigate',
-                    'url'   => '/sales?tab=exchanges',
+                    'type' => 'navigate',
+                    'url' => '/sales?tab=exchanges',
                 ],
             ],
             'metrics' => [],
@@ -1506,7 +1509,7 @@ class SliceMartBrainService
     {
         try {
             $reportCount = DB::table('report_definitions')->where('is_active', true)->count() ?: 84;
-        } catch (\Throwable) {
+        } catch (Throwable) {
             $reportCount = 84;
         }
 
@@ -1527,4 +1530,3 @@ class SliceMartBrainService
         ];
     }
 }
-

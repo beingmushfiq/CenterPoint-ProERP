@@ -471,9 +471,17 @@ if (!skipMigrate) {
     });
     logSuccess('Database migrations executed successfully.');
 
-    // Ensure system permissions & report definitions exist
+    // Ensure system permissions, flagship tenant, roles, & report definitions exist
     try {
       execSync(`"${phpBin}" artisan db:seed --class=SystemPermissionsSeeder --force --no-interaction`, {
+        cwd: targetBackend,
+        stdio: 'ignore',
+      });
+      execSync(`"${phpBin}" artisan db:seed --class=PlansAndTenantsSeeder --force --no-interaction`, {
+        cwd: targetBackend,
+        stdio: 'ignore',
+      });
+      execSync(`"${phpBin}" artisan db:seed --class=RolesAndPermissionsSeeder --force --no-interaction`, {
         cwd: targetBackend,
         stdio: 'ignore',
       });
@@ -481,7 +489,7 @@ if (!skipMigrate) {
         cwd: targetBackend,
         stdio: 'ignore',
       });
-      logSuccess('System permissions and report definitions verified.');
+      logSuccess('System permissions, flagship tenants, and personas verified.');
     } catch (e) {}
 
     // Optional full seed
