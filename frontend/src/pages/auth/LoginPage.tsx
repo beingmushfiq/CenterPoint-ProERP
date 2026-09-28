@@ -70,7 +70,7 @@ export default function LoginPage() {
     });
   };
 
-  const login = useAuthStore((state) => state.login);
+  const setAuthSession = useAuthStore((state) => state.setAuthSession);
   const selectTenant = useAuthStore((state) => state.selectTenant);
   const navigate = useNavigate();
   const location = useLocation();
@@ -194,10 +194,7 @@ export default function LoginPage() {
         setIsLoading(false);
         return;
       }
-      await login({
-        email: values.email,
-        password: values.password,
-      });
+      setAuthSession(data as unknown as import('../../types/api/auth').LoginResponseData);
       navigate(from, { replace: true });
     } catch (err: unknown) {
       if (isApiError(err)) {

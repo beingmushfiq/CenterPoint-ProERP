@@ -56,11 +56,13 @@ class AppServiceProvider extends ServiceProvider
         });
 
         RateLimiter::for('login', function (Request $request) {
-            $email = $request->string('email')->value();
+            $email = strtolower(trim($request->string('email')->value()));
+            $maxAttempts = app()->environment('testing') ? 5 : (int) env('AUTH_LOGIN_RATE_LIMIT', 30);
+            $decayMinutes = app()->environment('testing') ? 5 : (int) env('AUTH_LOGIN_DECAY_MINUTES', 2);
 
             return [
-                Limit::perMinutes(5, 5)->by($email),
-                Limit::perMinutes(5, 20)->by($request->ip()),
+                Limit::perMinutes($decayMinutes, $maxAttempts)->by($email),
+                Limit::perMinutes($decayMinutes, $maxAttempts * 2)->by($request->ip()),
             ];
         });
 
@@ -69,11 +71,13 @@ class AppServiceProvider extends ServiceProvider
         });
 
         RateLimiter::for('platform_login', function (Request $request) {
-            $email = $request->string('email')->value();
+            $email = strtolower(trim($request->string('email')->value()));
+            $maxAttempts = app()->environment('testing') ? 5 : (int) env('AUTH_LOGIN_RATE_LIMIT', 30);
+            $decayMinutes = app()->environment('testing') ? 5 : (int) env('AUTH_LOGIN_DECAY_MINUTES', 2);
 
             return [
-                Limit::perMinutes(5, 5)->by($email),
-                Limit::perMinutes(5, 10)->by($request->ip()),
+                Limit::perMinutes($decayMinutes, $maxAttempts)->by($email),
+                Limit::perMinutes($decayMinutes, $maxAttempts * 2)->by($request->ip()),
             ];
         });
 

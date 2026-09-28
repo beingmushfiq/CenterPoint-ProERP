@@ -19,6 +19,7 @@ export interface AuthState {
   error: string | null;
 
   login: (credentials: { email: string; password: string; tenant_id?: string }) => Promise<void>;
+  setAuthSession: (data: LoginResponseData) => void;
   selectTenant: (params: { email: string; tenant_id: number }) => Promise<void>;
   logout: () => Promise<void>;
   bootstrap: () => Promise<void>;
@@ -97,6 +98,31 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       });
       throw err;
     }
+  },
+
+  setAuthSession: (data) => {
+    setAccessToken(data.access_token);
+    localStorage.setItem('auth_user', JSON.stringify(data.user));
+    localStorage.setItem('auth_tenant', JSON.stringify(data.tenant));
+    localStorage.setItem('auth_permissions', JSON.stringify(data.permissions ?? []));
+
+    set({
+      user: data.user,
+      tenant: data.tenant,
+      branches: [],
+      activeBranch: null,
+      permissions: new Set(data.permissions ?? []),
+      status: 'authenticated',
+      error: null,
+    });
+
+    try {
+      useTenantCapabilityStore.getState().bootstrap();
+    } catch {
+      // Ignore background bootstrap failure
+    }
+
+    get().bootstrap().catch(() => {});
   },
 
   selectTenant: async (params) => {

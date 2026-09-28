@@ -81,6 +81,13 @@ class LoginAction extends Action
             ]);
         }
 
+        // Reset rate limiter upon successful credentials verification so legitimate users are never locked out
+        $cleanEmail = strtolower(trim($identifier));
+        \Illuminate\Support\Facades\RateLimiter::clear(md5('login'.$cleanEmail));
+        \Illuminate\Support\Facades\RateLimiter::clear(md5('login'.$ipAddress));
+        \Illuminate\Support\Facades\RateLimiter::clear('login:'.$cleanEmail);
+        \Illuminate\Support\Facades\RateLimiter::clear('login:'.$ipAddress);
+
         $sortedUsers = $this->sortUsersByRelevance($validUsers, $identifier);
 
         // Multi-tenant membership: if user belongs to multiple active distinct tenants and no tenant was requested
