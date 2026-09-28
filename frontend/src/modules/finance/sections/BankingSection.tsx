@@ -131,7 +131,7 @@ export const BankingSection: React.FC<BankingSectionProps> = ({
                 </div>
                 <div className="flex justify-between text-xs">
                   <span className="text-muted">Reconciliation Status:</span>
-                  <span className="font-medium text-success font-semibold">Balanced & Verified</span>
+                  <span className="text-success font-semibold">Balanced & Verified</span>
                 </div>
               </div>
 

@@ -45,25 +45,35 @@ class PlatformPerformanceAndReliabilityTest extends TestCase
     private function getTenantUser(Tenant $tenant, string $email = 'admin@slicemart.test'): User
     {
         /** @var User|null $user */
-        $user = User::withoutTenantScope()->where('email', $email)->first()
-            ?? User::withoutTenantScope()->where('email', 'admin@dcp.com')->first()
-            ?? User::withoutTenantScope()->first();
+        $user = User::withoutTenantScope()->where('tenant_id', $tenant->id)->where('email', $email)->first();
 
         if (! $user) {
+            $user = User::withoutTenantScope()->where('tenant_id', $tenant->id)->first();
+        }
+
+        if (! $user) {
+            $company = \App\Models\Company::withoutTenantScope()->where('tenant_id', $tenant->id)->first();
+            if (! $company) {
+                $company = \App\Models\Company::create([
+                    'tenant_id' => $tenant->id,
+                    'name' => $tenant->name.' Co',
+                    'code' => strtoupper(substr((string) $tenant->slug, 0, 4)),
+                    'is_active' => true,
+                ]);
+            }
+
             $user = User::create([
                 'uuid' => (string) \Illuminate\Support\Str::uuid(),
-                'email' => $email,
+                'email' => $email === 'admin@slicemart.test' ? "admin-{$tenant->id}@slicemart.test" : "{$tenant->slug}-{$email}",
                 'name' => 'Performance Test User',
                 'password' => \Illuminate\Support\Facades\Hash::make('12345678'),
                 'tenant_id' => $tenant->id,
+                'default_company_id' => $company->id,
                 'status' => 'active',
                 'token_version' => 1,
                 'perm_version' => 1,
             ]);
         }
-
-        $user->tenant_id = $tenant->id;
-        $user->save();
 
         return $user;
     }

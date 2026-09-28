@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
+import Chart from 'react-apexcharts';
+import type { ApexOptions } from 'apexcharts';
 import {
   TrendingUp,
   ShoppingBag,
@@ -11,18 +13,12 @@ import {
   ArrowRight,
   FileText,
   AlertTriangle,
-  Inbox,
   CheckCircle2,
   Clock,
   Calendar,
+  Layers,
+  Plus,
 } from 'lucide-react';
-import {
-  ResponsiveContainer,
-  AreaChart,
-  Area,
-  XAxis,
-  Tooltip,
-} from 'recharts';
 import { useCurrency } from '../../../lib/format/currency';
 import { api } from '../../../lib/api/client';
 import { cn } from '../../../lib/utils';
@@ -61,43 +57,13 @@ const REVENUE_DATA = [
   { day: 'Sun', revenue: 0, production: 0 },
 ];
 
-// ── Custom Tooltip ─────────────────────────────────────────────
-
-const ChartTooltip: React.FC<{ active?: boolean; payload?: Array<{ value: number; dataKey: string }>; label?: string; formatCurrency: (v: number) => string }> = ({
-  active, payload, label, formatCurrency
-}) => {
-  if (!active || !payload?.length) return null;
-  return (
-    <div className="rounded-xl border border-default bg-surface-raised px-3 py-2 shadow-lg text-xs">
-      <p className="font-bold text-default mb-1">{label}</p>
-      {payload.map((p) => (
-        <p key={p.dataKey} className="text-muted font-mono">
-          {p.dataKey === 'revenue' ? 'Revenue: ' : 'Production: '}
-          <span className="text-default font-bold">
-            {p.dataKey === 'revenue' ? formatCurrency(p.value) : `${p.value} pcs`}
-          </span>
-        </p>
-      ))}
-    </div>
-  );
-};
-
-// ── Status badge ───────────────────────────────────────────────
-
-const statusStyle = (status?: string) => {
-  const s = (status || '').toUpperCase();
-  if (s === 'PAID' || s === 'DELIVERED' || s === 'COMPLETE') return 'bg-emerald-500/12 text-emerald-600 dark:text-emerald-400 border-emerald-500/20';
-  if (s === 'PARTIAL') return 'bg-amber-500/12 text-amber-600 dark:text-amber-400 border-amber-500/20';
-  if (s === 'UNPAID' || s === 'OVERDUE') return 'bg-red-500/12 text-red-500 border-red-500/20';
-  return 'bg-surface-sunken text-muted border-default';
-};
-
 // ── Health tile ────────────────────────────────────────────────
 
 interface HealthTileProps {
   label: string;
   value: string;
   sub: string;
+  progressPercent: number;
   icon: React.ReactNode;
   status: 'ok' | 'warn' | 'critical';
   theme?: 'emerald' | 'indigo' | 'violet' | 'cyan';
@@ -135,8 +101,18 @@ const HEALTH_THEMES = {
   },
 };
 
-const HealthTile: React.FC<HealthTileProps> = ({ label, value, sub, icon, theme = 'emerald', to }) => {
+const HealthTile: React.FC<HealthTileProps> = ({
+  label,
+  value,
+  sub,
+  progressPercent,
+  icon,
+  theme = 'emerald',
+  to,
+}) => {
   const thm = HEALTH_THEMES[theme] || HEALTH_THEMES.emerald;
+  const clampedProgress = Math.max(0, Math.min(100, progressPercent));
+
   return (
     <Link
       to={to}
@@ -146,8 +122,18 @@ const HealthTile: React.FC<HealthTileProps> = ({ label, value, sub, icon, theme 
         thm.border
       )}
     >
-      <span className={cn('absolute inset-x-0 top-0 h-[2.5px] bg-linear-to-r from-transparent to-transparent opacity-80 group-hover:opacity-100 transition-opacity', thm.topHairline)} />
-      <div className={cn('flex size-10 shrink-0 items-center justify-center rounded-xl border border-white/20 transition-transform duration-200 group-hover:scale-110', thm.iconBg)}>
+      <span
+        className={cn(
+          'absolute inset-x-0 top-0 h-[2.5px] bg-linear-to-r from-transparent to-transparent opacity-80 group-hover:opacity-100 transition-opacity',
+          thm.topHairline
+        )}
+      />
+      <div
+        className={cn(
+          'flex size-10 shrink-0 items-center justify-center rounded-xl border border-white/20 transition-transform duration-200 group-hover:scale-110',
+          thm.iconBg
+        )}
+      >
         {icon}
       </div>
       <div className="flex-1 min-w-0">
@@ -158,7 +144,10 @@ const HealthTile: React.FC<HealthTileProps> = ({ label, value, sub, icon, theme 
         <div className="text-base font-extrabold font-mono text-default tracking-tight">{value}</div>
         <div className="mt-1 flex items-center gap-2">
           <div className="flex-1 h-1.5 rounded-full bg-surface-sunken/80 overflow-hidden">
-            <div className={cn('h-full rounded-full transition-all duration-500', thm.bar)} style={{ width: sub }} />
+            <div
+              className={cn('h-full rounded-full transition-all duration-500', thm.bar)}
+              style={{ width: `${clampedProgress}%` }}
+            />
           </div>
           <span className="text-[10px] text-muted font-mono font-bold shrink-0">{sub}</span>
         </div>
@@ -177,6 +166,7 @@ export const ExecutiveDashboardView: React.FC<ExecutiveDashboardViewProps> = ({
 }) => {
   const { formatCurrency, currencySymbol } = useCurrency();
   const [chartPeriod, setChartPeriod] = useState<ChartRange>('7d');
+  const [showProductionOverlay, setShowProductionOverlay] = useState(true);
 
   const { data: metrics } = useQuery<DashboardMetricsData | null>({
     queryKey: ['tenant', 'dashboard', 'metrics'],
@@ -186,10 +176,14 @@ export const ExecutiveDashboardView: React.FC<ExecutiveDashboardViewProps> = ({
         const raw = res.data;
         if (raw && typeof raw === 'object') {
           if ('commercial' in raw) return raw as DashboardMetricsData;
-          if ('data' in raw && raw.data && typeof raw.data === 'object' && 'commercial' in raw.data) return raw.data as DashboardMetricsData;
+          if ('data' in raw && raw.data && typeof raw.data === 'object' && 'commercial' in raw.data) {
+            return raw.data as DashboardMetricsData;
+          }
         }
         return null;
-      } catch { return null; }
+      } catch {
+        return null;
+      }
     },
     refetchInterval: 10000,
     staleTime: 4000,
@@ -202,7 +196,9 @@ export const ExecutiveDashboardView: React.FC<ExecutiveDashboardViewProps> = ({
         const res = await api.get<DashboardInvoiceItem[] | { data: DashboardInvoiceItem[] }>('/sales/invoices?per_page=5');
         const d = Array.isArray(res.data) ? res.data : (res.data?.data ?? []);
         return Array.isArray(d) ? d : [];
-      } catch { return []; }
+      } catch {
+        return [];
+      }
     },
   });
 
@@ -216,7 +212,7 @@ export const ExecutiveDashboardView: React.FC<ExecutiveDashboardViewProps> = ({
     custom: customRangeLabel ? `custom range (${customRangeLabel})` : 'custom range performance',
   };
 
-  const chartData = React.useMemo(() => {
+  const chartData = useMemo(() => {
     if (chartPeriod === 'today') {
       const todayTrend = metrics?.trends?.today;
       if (todayTrend && todayTrend.length > 0) {
@@ -241,41 +237,44 @@ export const ExecutiveDashboardView: React.FC<ExecutiveDashboardViewProps> = ({
     }
 
     if (chartPeriod === 'yesterday') {
-      const todayRev = metrics?.commercial?.today_revenue ?? 0;
-      const todayProd = metrics?.production?.today_output ?? 0;
+      const todayRev = metrics?.commercial?.yesterday_revenue ?? (metrics?.commercial?.today_revenue ?? 0) * 0.95;
+      const todayProd = metrics?.production?.yesterday_output ?? (metrics?.production?.today_output ?? 0) * 0.9;
       const hours = ['08:00', '10:00', '12:00', '14:00', '16:00', '18:00', '20:00'];
       const weights = [0.07, 0.16, 0.21, 0.19, 0.17, 0.13, 0.07];
       return hours.map((h, i) => {
         const w = weights[i] ?? 0.1;
         return {
           day: h,
-          revenue: Math.round(todayRev * 0.95 * w),
-          production: Math.round(todayProd * 0.98 * w),
+          revenue: Math.round(todayRev * w),
+          production: Math.round(todayProd * w),
         };
       });
     }
 
     if (chartPeriod === '7d') {
-      const raw = trends && trends.length > 0
-        ? trends
-        : metrics?.trends?.weekly && metrics.trends.weekly.length > 0
-          ? (metrics.trends.weekly as TrendDataPoint[])
-          : null;
-      if (raw) {
-        return raw.map((d: TrendDataPoint) => ({
+      const weeklyTrend = metrics?.trends?.weekly;
+      if (weeklyTrend && weeklyTrend.length > 0) {
+        return weeklyTrend.map((d) => ({
           day: d.day || d.time || 'Day',
           revenue: Number(d.revenue) || 0,
           production: Number(d.production ?? d.produced ?? 0),
+        }));
+      }
+      if (trends && trends.length > 0) {
+        return trends.map((t) => ({
+          day: t.day || t.time || 'Day',
+          revenue: Number(t.revenue) || 0,
+          production: Number(t.production ?? t.produced ?? 0),
         }));
       }
       return REVENUE_DATA;
     }
 
     if (chartPeriod === '30d') {
-      const raw = metrics?.trends?.monthly;
-      if (raw && raw.length > 0) {
-        return raw.map((d) => ({
-          day: d.day || d.date || d.time || 'Day',
+      const monthlyTrend = metrics?.trends?.monthly;
+      if (monthlyTrend && monthlyTrend.length > 0) {
+        return monthlyTrend.map((d) => ({
+          day: d.time || d.day || 'Week',
           revenue: Number(d.revenue) || 0,
           production: Number(d.production ?? d.produced ?? 0),
         }));
@@ -284,19 +283,9 @@ export const ExecutiveDashboardView: React.FC<ExecutiveDashboardViewProps> = ({
       const monthProd = (metrics?.production?.today_output ?? 0) * 26;
       return [
         { day: 'Week 1', revenue: Math.round(monthRev * 0.22), production: Math.round(monthProd * 0.24) },
-        { day: 'Week 2', revenue: Math.round(monthRev * 0.26), production: Math.round(monthProd * 0.25) },
-        { day: 'Week 3', revenue: Math.round(monthRev * 0.28), production: Math.round(monthProd * 0.27) },
-        { day: 'Week 4', revenue: Math.round(monthRev * 0.24), production: Math.round(monthProd * 0.24) },
-      ];
-    }
-
-    if (chartPeriod === '90d') {
-      const monthRev = metrics?.commercial?.month_revenue ?? 0;
-      const monthProd = (metrics?.production?.today_output ?? 0) * 26;
-      return [
-        { day: 'Month -2', revenue: Math.round(monthRev * 0.88), production: Math.round(monthProd * 0.9) },
-        { day: 'Month -1', revenue: Math.round(monthRev * 0.94), production: Math.round(monthProd * 0.95) },
-        { day: 'Current Month', revenue: Math.round(monthRev), production: Math.round(monthProd) },
+        { day: 'Week 2', revenue: Math.round(monthRev * 0.26), production: Math.round(monthProd * 0.27) },
+        { day: 'Week 3', revenue: Math.round(monthRev * 0.28), production: Math.round(monthProd * 0.26) },
+        { day: 'Week 4', revenue: Math.round(monthRev * 0.24), production: Math.round(monthProd * 0.23) },
       ];
     }
 
@@ -324,8 +313,118 @@ export const ExecutiveDashboardView: React.FC<ExecutiveDashboardViewProps> = ({
     return REVENUE_DATA;
   }, [chartPeriod, metrics, trends, customRangeLabel]);
 
-  const invoices: DashboardInvoice[] = React.useMemo(() =>
-    recentInvoices.map((inv) => ({
+  // Multi-series ApexCharts definition
+  const apexSeries = useMemo(() => {
+    const series: Array<{ name: string; type: string; data: number[] }> = [
+      {
+        name: 'Revenue',
+        type: 'area',
+        data: chartData.map((d) => d.revenue),
+      },
+    ];
+    if (showProductionOverlay) {
+      series.push({
+        name: 'Factory Output',
+        type: 'line',
+        data: chartData.map((d) => d.production ?? 0),
+      });
+    }
+    return series;
+  }, [chartData, showProductionOverlay]);
+
+  const apexOptions = useMemo<ApexOptions>(() => {
+    return {
+      chart: {
+        id: 'executive-revenue-chart',
+        toolbar: { show: false },
+        zoom: { enabled: false },
+        animations: {
+          enabled: true,
+          easing: 'easeinout',
+          speed: 400,
+        },
+        background: 'transparent',
+      },
+      colors: showProductionOverlay ? ['#6366f1', '#10b981'] : ['#6366f1'],
+      stroke: {
+        curve: 'smooth',
+        width: showProductionOverlay ? [2.5, 2] : [2.5],
+        dashArray: showProductionOverlay ? [0, 4] : [0],
+      },
+      fill: {
+        type: showProductionOverlay ? ['gradient', 'solid'] : ['gradient'],
+        gradient: {
+          shadeIntensity: 1,
+          opacityFrom: 0.35,
+          opacityTo: 0.02,
+          stops: [0, 95, 100],
+        },
+      },
+      dataLabels: { enabled: false },
+      markers: {
+        size: [0, showProductionOverlay ? 3 : 0],
+        strokeWidth: 2,
+        hover: { size: 6 },
+      },
+      xaxis: {
+        categories: chartData.map((d) => d.day),
+        labels: {
+          style: {
+            colors: '#94a3b8',
+            fontSize: '11px',
+            fontFamily: 'inherit',
+          },
+        },
+        axisBorder: { show: false },
+        axisTicks: { show: false },
+      },
+      yaxis: showProductionOverlay
+        ? [
+            {
+              labels: {
+                style: { colors: '#94a3b8', fontSize: '10px' },
+                formatter: (val: number) => formatCurrency(val),
+              },
+            },
+            {
+              opposite: true,
+              labels: {
+                style: { colors: '#10b981', fontSize: '10px' },
+                formatter: (val: number) => `${Math.round(val)} pcs`,
+              },
+            },
+          ]
+        : [
+            {
+              labels: {
+                style: { colors: '#94a3b8', fontSize: '10px' },
+                formatter: (val: number) => formatCurrency(val),
+              },
+            },
+          ],
+      tooltip: {
+        theme: 'dark',
+        shared: true,
+        intersect: false,
+        y: {
+          formatter: (val: number, opts?: { seriesIndex?: number }) => {
+            const seriesIdx = opts?.seriesIndex ?? 0;
+            if (seriesIdx === 0) return formatCurrency(val);
+            return `${val} pcs`;
+          },
+        },
+      },
+      legend: { show: false },
+      grid: {
+        borderColor: 'rgba(156, 163, 175, 0.15)',
+        strokeDashArray: 4,
+        yaxis: { lines: { show: true } },
+      },
+    };
+  }, [chartData, showProductionOverlay, formatCurrency]);
+
+  const invoices: DashboardInvoice[] = useMemo(() => {
+    return recentInvoices.map((inv) => ({
       id: inv.invoice_number,
       customer: inv.customer?.name || 'Commercial Customer',
       type: 'B2B' as const,
@@ -333,23 +432,49 @@ export const ExecutiveDashboardView: React.FC<ExecutiveDashboardViewProps> = ({
       status: inv.status,
       payment: inv.payment_status || 'UNPAID',
       date: inv.invoice_date || (inv.created_at ? new Date(inv.created_at).toLocaleDateString() : 'Recent'),
-    })), [recentInvoices, formatCurrency]);
+    }));
+  }, [recentInvoices, formatCurrency]);
 
-  // Health tiles data
+  // Real Department Health calculations
+  const commercialPacing = useMemo(() => {
+    if (!metrics) return 0;
+    const dailyTarget = metrics.commercial.month_revenue > 0 ? metrics.commercial.month_revenue / 30 : 50000;
+    return Math.min(100, Math.round((metrics.commercial.today_revenue / Math.max(dailyTarget, 1)) * 100));
+  }, [metrics]);
+
+  const productionAchievement = useMemo(() => {
+    if (!metrics) return 0;
+    return Math.min(100, Math.round(metrics.production.achievement_rate || 0));
+  }, [metrics]);
+
+  const inventoryHealth = useMemo(() => {
+    if (!metrics) return 100;
+    const lowCount = metrics.inventory.low_stock_count || 0;
+    if (lowCount === 0) return 100;
+    return Math.max(0, 100 - lowCount * 10);
+  }, [metrics]);
+
+  const qualityRate = useMemo(() => {
+    if (!metrics) return 100;
+    return Math.min(100, Math.round(metrics.quality.qc_pass_rate || 0));
+  }, [metrics]);
+
   const healthTiles: HealthTileProps[] = [
     {
       label: 'Sales & Revenue',
       value: metrics ? formatCurrency(metrics.commercial.today_revenue) : '—',
-      sub: `${metrics ? Math.min(Math.round((metrics.commercial.today_revenue / Math.max(metrics.commercial.month_revenue / 30, 1)) * 100), 100) : 0}%`,
+      sub: `${commercialPacing}% pacing`,
+      progressPercent: commercialPacing,
       icon: <TrendingUp className="size-4" />,
-      status: 'ok',
+      status: commercialPacing >= 80 ? 'ok' : commercialPacing >= 50 ? 'warn' : 'critical',
       theme: 'emerald',
       to: '/sales',
     },
     {
       label: 'Factory Production',
       value: metrics ? `${metrics.production.achievement_rate}%` : '—',
-      sub: `${Math.min(metrics?.production.achievement_rate ?? 0, 100)}%`,
+      sub: `${productionAchievement}% achievement`,
+      progressPercent: productionAchievement,
       icon: <Factory className="size-4" />,
       status: !metrics ? 'ok' : metrics.production.achievement_rate >= 80 ? 'ok' : metrics.production.achievement_rate >= 60 ? 'warn' : 'critical',
       theme: 'indigo',
@@ -358,7 +483,8 @@ export const ExecutiveDashboardView: React.FC<ExecutiveDashboardViewProps> = ({
     {
       label: 'Stock & Warehouse',
       value: metrics ? `${metrics.inventory.low_stock_count} alerts` : '—',
-      sub: metrics?.inventory.low_stock_count === 0 ? '100%' : `${Math.max(0, 100 - (metrics?.inventory.low_stock_count ?? 0) * 5)}%`,
+      sub: `${inventoryHealth}% health`,
+      progressPercent: inventoryHealth,
       icon: <Warehouse className="size-4" />,
       status: !metrics ? 'ok' : metrics.inventory.low_stock_count === 0 ? 'ok' : metrics.inventory.low_stock_count < 5 ? 'warn' : 'critical',
       theme: 'violet',
@@ -367,7 +493,8 @@ export const ExecutiveDashboardView: React.FC<ExecutiveDashboardViewProps> = ({
     {
       label: 'Quality Control',
       value: metrics ? `${metrics.quality.qc_pass_rate}%` : '—',
-      sub: `${metrics?.quality.qc_pass_rate ?? 0}%`,
+      sub: `${qualityRate}% pass rate`,
+      progressPercent: qualityRate,
       icon: <Microscope className="size-4" />,
       status: !metrics ? 'ok' : metrics.quality.qc_pass_rate >= 90 ? 'ok' : metrics.quality.qc_pass_rate >= 75 ? 'warn' : 'critical',
       theme: 'cyan',
@@ -387,7 +514,7 @@ export const ExecutiveDashboardView: React.FC<ExecutiveDashboardViewProps> = ({
             <div>
               <h3 className="text-sm font-bold text-default">Revenue Trend</h3>
               <p className="text-[11px] text-muted mt-0.5">
-                {currencySymbol} {periodSubtitles[chartPeriod]} · auto-refreshing
+                {currencySymbol} {periodSubtitles[chartPeriod]} · multi-series interactive analytics
               </p>
             </div>
             <div className="flex items-center gap-0.5 rounded-xl border border-default bg-surface-sunken p-1 overflow-x-auto scrollbar-none">
@@ -397,7 +524,6 @@ export const ExecutiveDashboardView: React.FC<ExecutiveDashboardViewProps> = ({
                   { id: 'yesterday', label: 'Yesterday' },
                   { id: '7d', label: '7D' },
                   { id: '30d', label: '30D' },
-                  { id: '90d', label: '90D' },
                   { id: 'year', label: 'Year' },
                   { id: 'custom', label: customRangeLabel ? `Custom (${customRangeLabel})` : 'Custom' },
                 ] as const
@@ -435,66 +561,51 @@ export const ExecutiveDashboardView: React.FC<ExecutiveDashboardViewProps> = ({
             </div>
           </div>
 
-          {/* Full-height chart with gradient fill */}
-          <div className="flex-1 h-56 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={chartData} margin={{ top: 10, right: 0, left: 0, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="execRevenueGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#6366f1" stopOpacity={0.35} />
-                    <stop offset="100%" stopColor="#6366f1" stopOpacity={0} />
-                  </linearGradient>
-                  <linearGradient id="execProdGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#10b981" stopOpacity={0.2} />
-                    <stop offset="100%" stopColor="#10b981" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <XAxis
-                  dataKey="day"
-                  tickLine={false}
-                  axisLine={false}
-                  tick={{ fill: 'currentColor', fontSize: 10, opacity: 0.5 }}
-                />
-                <Tooltip content={<ChartTooltip formatCurrency={formatCurrency} />} />
-                <Area
-                  type="monotone"
-                  dataKey="revenue"
-                  stroke="#6366f1"
-                  strokeWidth={2}
-                  fill="url(#execRevenueGrad)"
-                  dot={false}
-                  activeDot={{ r: 4, fill: '#6366f1' }}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="production"
-                  stroke="#10b981"
-                  strokeWidth={1.5}
-                  strokeDasharray="4 3"
-                  fill="url(#execProdGrad)"
-                  dot={false}
-                  activeDot={{ r: 3, fill: '#10b981' }}
-                />
-              </AreaChart>
-            </ResponsiveContainer>
+          {/* Interactive Multi-Series ApexChart */}
+          <div className="flex-1 min-h-[220px] w-full">
+            <Chart
+              options={apexOptions}
+              series={apexSeries}
+              type="area"
+              height={220}
+            />
           </div>
 
-          {/* Chart legend */}
-          <div className="flex items-center gap-4 pt-1 border-t border-default">
-            <span className="flex items-center gap-1.5 text-[11px] text-muted">
-              <span className="h-2 w-4 rounded-full bg-indigo-500/70" />
-              Revenue ({currencySymbol})
-            </span>
-            <span className="flex items-center gap-1.5 text-[11px] text-muted">
-              <span className="h-px w-4 border-t-2 border-dashed border-emerald-500/70" />
-              Production (pcs)
-            </span>
+          {/* Chart Controls & Legend */}
+          <div className="flex items-center justify-between pt-2 border-t border-default flex-wrap gap-2">
+            <div className="flex items-center gap-4">
+              <span className="flex items-center gap-1.5 text-[11px] text-muted font-medium">
+                <span className="h-2 w-4 rounded-full bg-indigo-500" />
+                Revenue ({currencySymbol})
+              </span>
+              {showProductionOverlay && (
+                <span className="flex items-center gap-1.5 text-[11px] text-muted font-medium">
+                  <span className="h-px w-4 border-t-2 border-dashed border-emerald-500" />
+                  Production (pcs)
+                </span>
+              )}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setShowProductionOverlay((prev) => !prev)}
+              className={cn(
+                'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-bold border transition-all cursor-pointer',
+                showProductionOverlay
+                  ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                  : 'border-default bg-surface-sunken text-muted hover:text-default'
+              )}
+              title="Toggle factory output curve"
+            >
+              <Layers className="size-3" />
+              <span>{showProductionOverlay ? 'Production Overlay ON' : 'Production Overlay OFF'}</span>
+            </button>
           </div>
         </div>
 
-        {/* RIGHT 40% — Critical Feed */}
+        {/* RIGHT 40% — Critical Feed & Operations Pulse */}
         <div className="lg:col-span-2 flex flex-col gap-4">
-          {/* Active Orders + Receivables */}
+          {/* Recent Invoices Feed */}
           <div className="rounded-2xl border border-default bg-surface p-4 shadow-sm">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-sm font-bold text-default">Recent Invoices</h3>
@@ -510,7 +621,7 @@ export const ExecutiveDashboardView: React.FC<ExecutiveDashboardViewProps> = ({
                     key={inv.id}
                     type="button"
                     onClick={() => onOpenInvoice?.(inv)}
-                    className="w-full flex items-center justify-between gap-2 px-2 py-2 rounded-xl hover:bg-surface-sunken transition-colors group text-left"
+                    className="w-full flex items-center justify-between gap-2 px-2 py-2 rounded-xl hover:bg-surface-sunken transition-colors group text-left cursor-pointer"
                   >
                     <div className="min-w-0 flex-1">
                       <div className="text-xs font-semibold text-default truncate">{inv.customer}</div>
@@ -518,24 +629,44 @@ export const ExecutiveDashboardView: React.FC<ExecutiveDashboardViewProps> = ({
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
                       <span className="text-xs font-extrabold font-mono text-default">{inv.amount}</span>
-                      <span className={cn('text-[9px] font-bold uppercase rounded-md px-1.5 py-0.5 border', statusStyle(inv.payment))}>
-                        {inv.payment}
+                      <span
+                        className={cn(
+                          'inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider border',
+                          inv.status === 'paid'
+                            ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
+                            : inv.status === 'partially_paid'
+                            ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30'
+                            : 'bg-rose-500/15 text-rose-500 border-rose-500/30'
+                        )}
+                      >
+                        {inv.status}
                       </span>
                     </div>
                   </button>
                 ))
               ) : (
-                <div className="py-6 text-center text-muted text-xs flex flex-col items-center gap-2">
-                  <Inbox className="size-7 text-muted/40" />
-                  <span>No invoices recorded</span>
-                  <Link to="/sales" className="text-primary font-semibold hover:underline">Create Invoice</Link>
+                <div className="flex flex-col items-center justify-center p-5 text-center rounded-xl border border-dashed border-default bg-surface-sunken/40">
+                  <div className="flex size-9 items-center justify-center rounded-xl bg-primary/10 text-primary mb-2">
+                    <FileText className="size-4" />
+                  </div>
+                  <p className="text-xs font-bold text-default">No Recent Invoices</p>
+                  <p className="text-[11px] text-muted max-w-[200px] mt-0.5">
+                    Commercial invoices will populate here automatically.
+                  </p>
+                  <Link
+                    to="/sales?action=new"
+                    className="mt-2.5 inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold bg-primary text-white hover:bg-primary/90 transition-colors"
+                  >
+                    <Plus className="size-3" />
+                    <span>Create Invoice</span>
+                  </Link>
                 </div>
               )}
             </div>
           </div>
 
-          {/* Active batches / production snapshot */}
-          <div className="rounded-2xl border border-default bg-surface p-4 shadow-sm flex-1">
+          {/* Operations Pulse */}
+          <div className="rounded-2xl border border-default bg-surface p-4 shadow-sm">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-sm font-bold text-default">Operations Pulse</h3>
               <Link to="/production" className="text-[11px] font-semibold text-primary hover:underline flex items-center gap-0.5">

@@ -54,9 +54,31 @@ final class TenantDashboardController extends Controller
     {
         $today = Carbon::today();
         $startOfMonth = Carbon::now()->startOfMonth();
+        $sevenDaysAgo = Carbon::today()->subDays(6)->toDateString();
+        $validInvoiceStatuses = ['paid', 'posted', 'partially_paid', 'completed'];
 
-        $commercial = $this->computeCommercialMetrics($tenantId, $today, $startOfMonth);
-        $production = $this->computeProductionMetrics($tenantId, $today);
+        $revByDate = Invoice::where('tenant_id', $tenantId)
+            ->whereIn('status', $validInvoiceStatuses)
+            ->where('invoice_date', '>=', $sevenDaysAgo)
+            ->selectRaw('DATE(invoice_date) as d, SUM(total_amount) as total')
+            ->groupBy('d')
+            ->pluck('total', 'd');
+
+        $prodByDate = WorkerProductionEntry::where('tenant_id', $tenantId)
+            ->where('work_date', '>=', $sevenDaysAgo)
+            ->selectRaw('DATE(work_date) as d, SUM(quantity) as total')
+            ->groupBy('d')
+            ->pluck('total', 'd');
+
+        $qcByDate = QcInspection::where('tenant_id', $tenantId)
+            ->where('inspection_date', '>=', $sevenDaysAgo)
+            ->whereIn('result', ['pass', 'conditional'])
+            ->selectRaw('DATE(inspection_date) as d, SUM(passed_quantity) as total')
+            ->groupBy('d')
+            ->pluck('total', 'd');
+
+        $commercial = $this->computeCommercialMetrics($tenantId, $today, $startOfMonth, $validInvoiceStatuses, $revByDate);
+        $production = $this->computeProductionMetrics($tenantId, $today, $prodByDate);
         $inventoryData = $this->computeInventoryMetrics($tenantId);
         $quality = $this->computeQualityMetrics($tenantId, $startOfMonth);
         $trends = $this->computeTrendMetrics(
@@ -64,10 +86,64 @@ final class TenantDashboardController extends Controller
             $startOfMonth,
             $commercial['today_revenue'],
             $production['today_output'],
-            $commercial['month_revenue']
+            $commercial['month_revenue'],
+            $revByDate,
+            $prodByDate,
+            $qcByDate
         );
         $workforce = $this->computeWorkforceMetrics($tenantId);
         $ops = $this->computeOperationalEntities($tenantId, $inventoryData['product_stock'], $inventoryData['low_stock_product_ids']);
+
+        $alerts = [];
+        if (!empty($inventoryData['low_stock_product_ids'])) {
+            $count = count($inventoryData['low_stock_product_ids']);
+            $alerts[] = [
+                'type' => 'low_stock',
+                'severity' => 'warning',
+                'title' => 'Low Stock Warning',
+                'message' => "{$count} items below safety reorder threshold",
+                'count' => $count,
+                'link' => '/inventory?low_stock=true',
+                'action_label' => 'Reorder Stock',
+            ];
+        }
+        if (($commercial['overdue_invoices_count'] ?? 0) > 0) {
+            $dueAmt = number_format((float) ($commercial['overdue_invoices_amount'] ?? 0), 2);
+            $alerts[] = [
+                'type' => 'overdue_invoices',
+                'severity' => 'critical',
+                'title' => 'Overdue Receivables',
+                'message' => "{$commercial['overdue_invoices_count']} invoices totaling {$dueAmt} overdue",
+                'count' => $commercial['overdue_invoices_count'],
+                'amount' => $commercial['overdue_invoices_amount'],
+                'link' => '/finance?tab=due-collection',
+                'action_label' => 'Collect Dues',
+            ];
+        }
+        if (($quality['rework_pending_count'] ?? 0) > 0 || ($quality['pending_inspections'] ?? 0) > 0) {
+            $qcCount = ($quality['rework_pending_count'] ?? 0) + ($quality['pending_inspections'] ?? 0);
+            $alerts[] = [
+                'type' => 'qc_pending',
+                'severity' => 'info',
+                'title' => 'Quality Control Attention',
+                'message' => "{$quality['pending_inspections']} pending audits, {$quality['rework_pending_count']} rework orders",
+                'count' => $qcCount,
+                'link' => '/qc',
+                'action_label' => 'Open QC Hub',
+            ];
+        }
+        if (($inventoryData['metrics']['pending_adjustments'] ?? 0) > 0 || ($workforce['pending_advances_count'] ?? 0) > 0) {
+            $pendingApprovals = ($inventoryData['metrics']['pending_adjustments'] ?? 0) + ($workforce['pending_advances_count'] ?? 0);
+            $alerts[] = [
+                'type' => 'pending_approvals',
+                'severity' => 'warning',
+                'title' => 'Pending Approvals',
+                'message' => "{$inventoryData['metrics']['pending_adjustments']} inventory adjustments, {$workforce['pending_advances_count']} salary advances",
+                'count' => $pendingApprovals,
+                'link' => '/inventory',
+                'action_label' => 'Review',
+            ];
+        }
 
         return [
             'commercial' => $commercial,
@@ -80,58 +156,72 @@ final class TenantDashboardController extends Controller
             'recent_qc' => $ops['recent_qc'],
             'active_workers' => $ops['active_workers'],
             'attention_items' => $ops['attention_items'],
+            'alerts' => $alerts,
         ];
     }
 
     /**
-     * @return array{today_revenue: float, month_revenue: float, active_orders: int, today_orders_count: int, total_receivable_due: float}
+     * @param array<string> $validInvoiceStatuses
+     * @param \Illuminate\Support\Collection<string, mixed> $revByDate
+     * @return array{today_revenue: float, yesterday_revenue: float, revenue_delta_percent: float, month_revenue: float, active_orders: int, today_orders_count: int, yesterday_orders_count: int, orders_delta_percent: float, total_receivable_due: float, overdue_invoices_count: int, overdue_invoices_amount: float, aging_breakdown: array<string, float>}
      */
-    private function computeCommercialMetrics(int $tenantId, Carbon $today, Carbon $startOfMonth): array
+    private function computeCommercialMetrics(int $tenantId, Carbon $today, Carbon $startOfMonth, array $validInvoiceStatuses, $revByDate): array
     {
-        $validInvoiceStatuses = ['paid', 'posted', 'partially_paid', 'completed'];
+        $todayStr = $today->toDateString();
+        $yesterday = Carbon::yesterday();
+        $yesterdayStr = $yesterday->toDateString();
 
-        $todayRevenue = (float) Invoice::where('tenant_id', $tenantId)
-            ->whereIn('status', $validInvoiceStatuses)
-            ->whereDate('invoice_date', $today)
-            ->sum('total_amount');
+        $todayRevenue = (float) ($revByDate[$todayStr] ?? 0.0);
+        $yesterdayRevenue = (float) ($revByDate[$yesterdayStr] ?? 0.0);
+
+        $revenueDeltaPercent = $yesterdayRevenue > 0
+            ? round((($todayRevenue - $yesterdayRevenue) / $yesterdayRevenue) * 100, 1)
+            : ($todayRevenue > 0 ? 100.0 : 0.0);
 
         $monthRevenue = (float) Invoice::where('tenant_id', $tenantId)
             ->whereIn('status', $validInvoiceStatuses)
             ->where('invoice_date', '>=', $startOfMonth)
             ->sum('total_amount');
 
-        $activeOrdersCount = SalesOrder::where('tenant_id', $tenantId)
-            ->whereIn('status', ['draft', 'confirmed', 'processing', 'partially_delivered', 'ready_for_delivery'])
-            ->count();
+        $ordersSummary = SalesOrder::where('tenant_id', $tenantId)
+            ->selectRaw("
+                COUNT(CASE WHEN status IN ('draft', 'confirmed', 'processing', 'partially_delivered', 'ready_for_delivery') THEN 1 END) as active_orders,
+                COUNT(CASE WHEN DATE(order_date) = ? THEN 1 END) as today_orders,
+                COUNT(CASE WHEN DATE(order_date) = ? THEN 1 END) as yesterday_orders
+            ", [$todayStr, $yesterdayStr])
+            ->first();
 
-        $todayOrdersCount = SalesOrder::where('tenant_id', $tenantId)
-            ->whereDate('order_date', $today)
-            ->count();
+        $activeOrdersCount = (int) ($ordersSummary->active_orders ?? 0);
+        $todayOrdersCount = (int) ($ordersSummary->today_orders ?? 0);
+        $yesterdayOrdersCount = (int) ($ordersSummary->yesterday_orders ?? 0);
 
-        $totalReceivableDue = (float) (Invoice::where('tenant_id', $tenantId)
-            ->whereIn('status', ['posted', 'partially_paid', 'issued', 'pending'])
-            ->selectRaw('SUM(total_amount - paid_amount) as total_due')
-            ->value('total_due') ?? 0.0);
+        $ordersDeltaPercent = $yesterdayOrdersCount > 0
+            ? round((($todayOrdersCount - $yesterdayOrdersCount) / $yesterdayOrdersCount) * 100, 1)
+            : ($todayOrdersCount > 0 ? 100.0 : 0.0);
 
         $unpaidInvoices = Invoice::where('tenant_id', $tenantId)
             ->whereIn('status', ['posted', 'partially_paid', 'issued', 'pending'])
             ->whereRaw('(total_amount - paid_amount) > 0')
             ->get(['due_date', 'total_amount', 'paid_amount']);
 
+        $totalReceivableDue = 0.0;
         $agingBreakdown = [
             'current' => 0.0,
             'overdue_30' => 0.0,
             'overdue_60' => 0.0,
             'overdue_90' => 0.0,
         ];
+        $overdueCount = 0;
         foreach ($unpaidInvoices as $inv) {
             $due = (float) $inv->total_amount - (float) $inv->paid_amount;
             if ($due <= 0) {
                 continue;
             }
+            $totalReceivableDue += $due;
             if (! $inv->due_date || Carbon::parse($inv->due_date)->isFuture()) {
                 $agingBreakdown['current'] += $due;
             } else {
+                $overdueCount++;
                 $daysOverdue = Carbon::parse($inv->due_date)->diffInDays($today);
                 if ($daysOverdue <= 30) {
                     $agingBreakdown['current'] += $due;
@@ -145,24 +235,35 @@ final class TenantDashboardController extends Controller
             }
         }
 
+        $overdueAmount = $agingBreakdown['overdue_30'] + $agingBreakdown['overdue_60'] + $agingBreakdown['overdue_90'];
+
         return [
             'today_revenue' => $todayRevenue,
+            'yesterday_revenue' => $yesterdayRevenue,
+            'revenue_delta_percent' => $revenueDeltaPercent,
             'month_revenue' => $monthRevenue,
             'active_orders' => $activeOrdersCount,
             'today_orders_count' => $todayOrdersCount,
-            'total_receivable_due' => $totalReceivableDue,
+            'yesterday_orders_count' => $yesterdayOrdersCount,
+            'orders_delta_percent' => $ordersDeltaPercent,
+            'total_receivable_due' => round($totalReceivableDue, 2),
+            'overdue_invoices_count' => $overdueCount,
+            'overdue_invoices_amount' => round($overdueAmount, 2),
             'aging_breakdown' => $agingBreakdown,
         ];
     }
 
     /**
-     * @return array{today_output: float, target_output: float, achievement_rate: float, active_batches: int, total_batches: int}
+     * @param \Illuminate\Support\Collection<string, mixed> $prodByDate
+     * @return array{today_output: float, yesterday_output: float, output_delta_percent: float, target_output: float, achievement_rate: float, active_batches: int, total_batches: int}
      */
-    private function computeProductionMetrics(int $tenantId, Carbon $today): array
+    private function computeProductionMetrics(int $tenantId, Carbon $today, $prodByDate): array
     {
-        $todayOutput = (float) WorkerProductionEntry::where('tenant_id', $tenantId)
-            ->whereDate('work_date', $today)
-            ->sum('quantity');
+        $todayStr = $today->toDateString();
+        $yesterday = Carbon::yesterday();
+        $yesterdayStr = $yesterday->toDateString();
+
+        $todayOutput = (float) ($prodByDate[$todayStr] ?? 0.0);
 
         if ($todayOutput === 0.0) {
             $latestEntryDate = WorkerProductionEntry::where('tenant_id', $tenantId)->latest('work_date')->value('work_date');
@@ -173,21 +274,31 @@ final class TenantDashboardController extends Controller
             }
         }
 
-        $activeBatchesCount = ProductionBatch::where('tenant_id', $tenantId)
-            ->whereIn('status', ['planned', 'in_progress'])
-            ->count();
+        $yesterdayOutput = (float) ($prodByDate[$yesterdayStr] ?? 0.0);
 
-        $totalBatchesCount = ProductionBatch::where('tenant_id', $tenantId)->count();
+        $outputDeltaPercent = $yesterdayOutput > 0
+            ? round((($todayOutput - $yesterdayOutput) / $yesterdayOutput) * 100, 1)
+            : ($todayOutput > 0 ? 100.0 : 0.0);
 
-        $activeBatchTarget = (float) ProductionBatch::where('tenant_id', $tenantId)
-            ->whereIn('status', ['planned', 'in_progress'])
-            ->sum('planned_quantity');
+        $batchSummary = ProductionBatch::where('tenant_id', $tenantId)
+            ->selectRaw("
+                COUNT(*) as total_batches,
+                COUNT(CASE WHEN status IN ('planned', 'in_progress') THEN 1 END) as active_batches,
+                COALESCE(SUM(CASE WHEN status IN ('planned', 'in_progress') THEN planned_quantity ELSE 0 END), 0) as active_target
+            ")
+            ->first();
+
+        $totalBatchesCount = (int) ($batchSummary->total_batches ?? 0);
+        $activeBatchesCount = (int) ($batchSummary->active_batches ?? 0);
+        $activeBatchTarget = (float) ($batchSummary->active_target ?? 0.0);
 
         $targetOutput = $activeBatchTarget > 0 ? $activeBatchTarget : 50.0;
         $achievementRate = $targetOutput > 0 ? round(($todayOutput / $targetOutput) * 100, 1) : 0.0;
 
         return [
             'today_output' => $todayOutput,
+            'yesterday_output' => $yesterdayOutput,
+            'output_delta_percent' => $outputDeltaPercent,
             'target_output' => $targetOutput,
             'achievement_rate' => $achievementRate,
             'active_batches' => $activeBatchesCount,
@@ -264,27 +375,22 @@ final class TenantDashboardController extends Controller
     }
 
     /**
-     * @return array{qc_pass_rate: float, pending_inspections: int, total_inspections: int}
+     * @return array{qc_pass_rate: float, pending_inspections: int, total_inspections: int, rework_pending_count: int, scrap_cost_month: float}
      */
     private function computeQualityMetrics(int $tenantId, Carbon $startOfMonth): array
     {
-        $totalInspections = QcInspection::where('tenant_id', $tenantId)
-            ->where('created_at', '>=', $startOfMonth)
-            ->count();
+        $qcSummary = QcInspection::where('tenant_id', $tenantId)
+            ->selectRaw("
+                COUNT(CASE WHEN created_at >= ? THEN 1 END) as month_total,
+                COUNT(CASE WHEN created_at >= ? AND result IN ('pass', 'conditional') THEN 1 END) as month_passed,
+                COUNT(CASE WHEN status IN ('pending', 'draft', 'in_progress') THEN 1 END) as pending_qc
+            ", [$startOfMonth, $startOfMonth])
+            ->first();
 
-        if ($totalInspections > 0) {
-            $passedInspections = QcInspection::where('tenant_id', $tenantId)
-                ->where('created_at', '>=', $startOfMonth)
-                ->whereIn('result', ['pass', 'conditional'])
-                ->count();
-            $qcPassRate = round(($passedInspections / $totalInspections) * 100, 1);
-        } else {
-            $qcPassRate = 100.0;
-        }
-
-        $pendingQcCount = QcInspection::where('tenant_id', $tenantId)
-            ->whereIn('status', ['pending', 'draft', 'in_progress'])
-            ->count();
+        $totalInspections = (int) ($qcSummary->month_total ?? 0);
+        $passedInspections = (int) ($qcSummary->month_passed ?? 0);
+        $qcPassRate = $totalInspections > 0 ? round(($passedInspections / $totalInspections) * 100, 1) : 100.0;
+        $pendingQcCount = (int) ($qcSummary->pending_qc ?? 0);
 
         $reworkPendingCount = ReworkOrder::where('tenant_id', $tenantId)
             ->whereIn('status', ['pending', 'in_progress'])
@@ -304,32 +410,21 @@ final class TenantDashboardController extends Controller
     }
 
     /**
+     * @param \Illuminate\Support\Collection<string, mixed> $revByDate
+     * @param \Illuminate\Support\Collection<string, mixed> $prodByDate
+     * @param \Illuminate\Support\Collection<string, mixed> $qcByDate
      * @return array{weekly: array<int, array<string, mixed>>, today: array<int, array<string, mixed>>, monthly: array<int, array<string, mixed>>}
      */
-    private function computeTrendMetrics(int $tenantId, Carbon $startOfMonth, float $todayRevenue, float $todayOutput, float $monthRevenue): array
-    {
-        $validInvoiceStatuses = ['paid', 'posted', 'partially_paid', 'completed'];
-        $sevenDaysAgo = Carbon::today()->subDays(6)->toDateString();
-
-        $revByDate = Invoice::where('tenant_id', $tenantId)
-            ->whereIn('status', $validInvoiceStatuses)
-            ->where('invoice_date', '>=', $sevenDaysAgo)
-            ->selectRaw('DATE(invoice_date) as d, SUM(total_amount) as total')
-            ->groupBy('d')
-            ->pluck('total', 'd');
-
-        $prodByDate = WorkerProductionEntry::where('tenant_id', $tenantId)
-            ->where('work_date', '>=', $sevenDaysAgo)
-            ->selectRaw('DATE(work_date) as d, SUM(quantity) as total')
-            ->groupBy('d')
-            ->pluck('total', 'd');
-
-        $qcByDate = QcInspection::where('tenant_id', $tenantId)
-            ->where('inspection_date', '>=', $sevenDaysAgo)
-            ->whereIn('result', ['pass', 'conditional'])
-            ->selectRaw('DATE(inspection_date) as d, SUM(passed_quantity) as total')
-            ->groupBy('d')
-            ->pluck('total', 'd');
+    private function computeTrendMetrics(
+        int $tenantId,
+        Carbon $startOfMonth,
+        float $todayRevenue,
+        float $todayOutput,
+        float $monthRevenue,
+        $revByDate,
+        $prodByDate,
+        $qcByDate
+    ): array {
 
         $weeklyTrend = [];
         for ($i = 6; $i >= 0; $i--) {

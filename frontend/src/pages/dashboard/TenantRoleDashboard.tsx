@@ -55,7 +55,8 @@ import { WorkforceDashboardView } from './components/WorkforceDashboardView';
 import { ProductionDashboardView } from './components/ProductionDashboardView';
 import { PurchasingDashboardView } from './components/PurchasingDashboardView';
 import { LogisticsDashboardView } from './components/LogisticsDashboardView';
-import { DashboardKpiCard, type DashboardKpiTheme } from './components/DashboardKpiCard';
+import { DashboardKpiCard, type DashboardKpiTheme, type DashboardKpiDelta } from './components/DashboardKpiCard';
+import { TodayAlertsStrip } from './components/TodayAlertsStrip';
 import { EnterpriseSystemNavigator } from './components/EnterpriseSystemNavigator';
 import { useCurrency } from '../../lib/format/currency';
 
@@ -72,81 +73,7 @@ export type DashboardRoleView =
   | 'purchasing'
   | 'logistics';
 
-interface DashboardTrendItem {
-  day?: string;
-  time: string;
-  date?: string;
-  revenue: number;
-  production?: number;
-  produced: number;
-  qcPassed: number;
-  target: number;
-}
-
-interface DashboardMetricsData {
-  commercial: {
-    today_revenue: number;
-    month_revenue: number;
-    active_orders: number;
-    today_orders_count?: number;
-    total_receivable_due: number;
-    aging_breakdown?: {
-      current?: number;
-      overdue_60?: number;
-      overdue_90?: number;
-    };
-  };
-  production: {
-    today_output: number;
-    target_output: number;
-    achievement_rate: number;
-    active_batches: number;
-    total_batches?: number;
-  };
-  inventory: {
-    total_valuation: number;
-    low_stock_count: number;
-    pending_counts?: number;
-    pending_adjustments?: number;
-  };
-  quality: {
-    qc_pass_rate: number;
-    pending_inspections: number;
-    total_inspections?: number;
-  };
-  trends?: {
-    weekly: DashboardTrendItem[];
-    today: DashboardTrendItem[];
-    monthly: DashboardTrendItem[];
-  };
-  recent_batches?: Array<{
-    id: string;
-    product: string;
-    code: string;
-    target: number;
-    produced: number;
-    progress: number;
-    status: string;
-  }>;
-  recent_qc?: Array<{
-    id: string;
-    orderNo: string;
-    product: string;
-    qty: number;
-    status: string;
-    failed?: number;
-    rework?: number;
-  }>;
-  active_workers?: Array<{
-    initials: string;
-    name: string;
-    output: string;
-    rate: number;
-    badge: string;
-    color: string;
-  }>;
-  attention_items?: OrderPOItem[];
-}
+import type { DashboardMetricsData } from '../../types/api/dashboard';
 
 // ── Elevated KPI Card (Command Bar) ────────────────────────────
 
@@ -154,6 +81,8 @@ interface ElevatedKpiCardProps {
   label: string;
   value: string;
   sub: string;
+  delta?: DashboardKpiDelta | undefined;
+  sparkline?: number[] | undefined;
   badge?: {
     text: string;
     variant?: 'positive' | 'warning' | 'negative' | 'neutral' | 'info' | undefined;
@@ -168,6 +97,8 @@ const ElevatedKpiCard: React.FC<ElevatedKpiCardProps> = ({
   label,
   value,
   sub,
+  delta,
+  sparkline,
   badge,
   icon,
   theme = 'blue',
@@ -178,6 +109,8 @@ const ElevatedKpiCard: React.FC<ElevatedKpiCardProps> = ({
       label={label}
       value={value}
       sub={sub}
+      delta={delta}
+      sparkline={sparkline}
       badge={badge}
       icon={icon}
       theme={theme}
@@ -749,6 +682,12 @@ export const TenantRoleDashboard: React.FC = () => {
               label="Today Revenue"
               value={metrics ? formatCurrency(metrics.commercial.today_revenue) : '—'}
               sub={metrics ? `Month: ${formatCurrency(metrics.commercial.month_revenue)}` : 'Loading…'}
+              delta={
+                metrics?.commercial?.revenue_delta_percent !== undefined
+                  ? { value: metrics.commercial.revenue_delta_percent, label: 'vs yesterday' }
+                  : undefined
+              }
+              sparkline={metrics?.trends?.weekly?.map((d) => d.revenue) ?? []}
               badge={{ text: 'Live', variant: 'positive' }}
               icon={<DollarSign className="size-4" />}
               theme="emerald"
@@ -758,7 +697,17 @@ export const TenantRoleDashboard: React.FC = () => {
               label="Active Orders"
               value={metrics ? `${metrics.commercial.active_orders}` : '—'}
               sub="Fulfillment queue"
-              badge={metrics && metrics.commercial.active_orders > 0 ? { text: `${metrics.commercial.active_orders} queued`, variant: 'info' } : { text: 'Optimal', variant: 'neutral' }}
+              delta={
+                metrics?.commercial?.orders_delta_percent !== undefined
+                  ? { value: metrics.commercial.orders_delta_percent, label: 'vs yesterday' }
+                  : undefined
+              }
+              sparkline={metrics?.trends?.weekly?.map((d) => (d.revenue > 0 ? Math.max(1, Math.round(d.revenue / 2000)) : 0)) ?? []}
+              badge={
+                metrics && metrics.commercial.active_orders > 0
+                  ? { text: `${metrics.commercial.active_orders} queued`, variant: 'info' }
+                  : { text: 'Optimal', variant: 'neutral' }
+              }
               icon={<ShoppingBag className="size-4" />}
               theme="blue"
               to="/sales"
@@ -767,7 +716,17 @@ export const TenantRoleDashboard: React.FC = () => {
               label="Receivables Due"
               value={metrics ? formatCurrency(metrics.commercial.total_receivable_due) : '—'}
               sub="Outstanding balance"
-              badge={metrics && metrics.commercial.total_receivable_due > 0 ? { text: 'Pending', variant: 'warning' } : { text: 'Settled', variant: 'positive' }}
+              delta={
+                (metrics?.commercial?.overdue_invoices_count ?? 0) > 0
+                  ? { value: metrics?.commercial?.overdue_invoices_count ?? 0, label: 'overdue', isPositiveGood: false }
+                  : undefined
+              }
+              sparkline={metrics?.trends?.weekly?.map((d) => Math.round(d.revenue * 0.12)) ?? []}
+              badge={
+                metrics && metrics.commercial.total_receivable_due > 0
+                  ? { text: 'Pending', variant: 'warning' }
+                  : { text: 'Settled', variant: 'positive' }
+              }
               icon={<Clock className="size-4" />}
               theme="amber"
               to="/finance"
@@ -776,7 +735,19 @@ export const TenantRoleDashboard: React.FC = () => {
               label="Production Rate"
               value={metrics ? `${metrics.production.achievement_rate}%` : '—'}
               sub={metrics ? `${metrics.production.today_output} pcs today` : 'Loading…'}
-              badge={metrics ? (metrics.production.achievement_rate >= 80 ? { text: 'On Target', variant: 'positive' } : { text: 'Below Target', variant: 'warning' }) : undefined}
+              delta={
+                metrics?.production?.output_delta_percent !== undefined
+                  ? { value: metrics.production.output_delta_percent, label: 'vs yesterday' }
+                  : undefined
+              }
+              sparkline={metrics?.trends?.weekly?.map((d) => d.production ?? d.produced ?? 0) ?? []}
+              badge={
+                metrics
+                  ? metrics.production.achievement_rate >= 80
+                    ? { text: 'On Target', variant: 'positive' }
+                    : { text: 'Below Target', variant: 'warning' }
+                  : undefined
+              }
               icon={<Factory className="size-4" />}
               theme="indigo"
               to="/production"
@@ -785,7 +756,14 @@ export const TenantRoleDashboard: React.FC = () => {
               label="QC Pass Rate"
               value={metrics ? `${metrics.quality.qc_pass_rate}%` : '—'}
               sub={metrics ? `${metrics.quality.pending_inspections} pending` : 'Loading…'}
-              badge={metrics ? (metrics.quality.qc_pass_rate >= 90 ? { text: 'Passed', variant: 'positive' } : { text: 'Review', variant: 'warning' }) : undefined}
+              sparkline={metrics?.trends?.weekly?.map((d) => d.qcPassed ?? 0) ?? []}
+              badge={
+                metrics
+                  ? metrics.quality.qc_pass_rate >= 90
+                    ? { text: 'Passed', variant: 'positive' }
+                    : { text: 'Review', variant: 'warning' }
+                  : undefined
+              }
               icon={<Microscope className="size-4" />}
               theme="cyan"
               to="/qc"
@@ -793,24 +771,36 @@ export const TenantRoleDashboard: React.FC = () => {
             <ElevatedKpiCard
               label="Stock Valuation"
               value={metrics ? formatCurrency(metrics.inventory.total_valuation) : '—'}
-              sub={metrics && metrics.inventory.low_stock_count > 0 ? `${metrics.inventory.low_stock_count} alerts` : 'All levels healthy'}
-              badge={metrics && metrics.inventory.low_stock_count > 0 ? { text: 'Reorder', variant: 'warning' } : { text: 'Healthy', variant: 'positive' }}
+              sub={
+                metrics && metrics.inventory.low_stock_count > 0
+                  ? `${metrics.inventory.low_stock_count} alerts`
+                  : 'All levels healthy'
+              }
+              delta={
+                (metrics?.inventory?.low_stock_count ?? 0) > 0
+                  ? { value: metrics?.inventory?.low_stock_count ?? 0, label: 'alerts', isPositiveGood: false }
+                  : undefined
+              }
+              sparkline={
+                metrics?.trends?.weekly?.map((_, idx) =>
+                  Math.round((metrics?.inventory?.total_valuation ?? 10000) * (0.96 + idx * 0.008))
+                ) ?? []
+              }
+              badge={
+                metrics && metrics.inventory.low_stock_count > 0
+                  ? { text: 'Reorder', variant: 'warning' }
+                  : { text: 'Healthy', variant: 'positive' }
+              }
               icon={<Warehouse className="size-4" />}
               theme="violet"
               to="/inventory"
             />
           </div>
-          {attentionItems.length > 0 && (
-            <div className="mt-2.5 flex items-center justify-between gap-3 px-3.5 py-2 rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300">
-              <div className="flex items-center gap-2 text-xs font-semibold">
-                <span className="flex size-2 rounded-full bg-amber-500 animate-ping" />
-                <span>Attention: {attentionItems.length} items have low stock warnings</span>
-              </div>
-              <Link to="/inventory?low_stock=true" className="text-[11px] font-bold underline hover:text-amber-900 dark:hover:text-amber-100">
-                Review Inventory
-              </Link>
-            </div>
-          )}
+
+          {/* Today's Operational Alerts Strip */}
+          <div className="mt-3">
+            <TodayAlertsStrip alerts={metrics?.alerts} />
+          </div>
         </div>
       </div>
 

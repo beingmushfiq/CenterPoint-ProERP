@@ -36,6 +36,11 @@ vi.mock('recharts', async () => {
   };
 });
 
+// Mock react-apexcharts for JSDOM
+vi.mock('react-apexcharts', () => ({
+  default: () => <div data-testid="mock-apexchart">ApexChart Mock</div>,
+}));
+
 describe('TenantRoleDashboard Dynamic Role Perspectives', () => {
   const storage = new Map<string, string>();
 

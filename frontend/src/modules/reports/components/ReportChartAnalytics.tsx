@@ -412,7 +412,7 @@ export const ReportChartAnalytics: React.FC<ReportChartAnalyticsProps> = ({
 
   if (numericColumns.length === 0 || rows.length === 0) {
     return (
-      <div className="p-4 mb-4 rounded-xl border border-dashed border-[var(--border)] bg-[var(--surface)] text-center text-xs text-[var(--text-secondary)] flex items-center justify-center gap-2">
+      <div className="p-4 mb-4 rounded-xl border border-dashed border-(--border) bg-(--surface) text-center text-xs text-(--text-secondary) flex items-center justify-center gap-2">
         <Sparkles className="w-4 h-4 text-amber-500 opacity-60" />
         <span>
           {isBn
@@ -428,8 +428,8 @@ export const ReportChartAnalytics: React.FC<ReportChartAnalyticsProps> = ({
       {/* 4-Card Dynamic KPI Summary Strip */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {/* Card 1: Aggregate Total */}
-        <div className="p-3.5 rounded-xl border border-[var(--border)] bg-[var(--surface-card)] shadow-xs transition-all hover:border-blue-300 dark:hover:border-blue-700">
-          <div className="flex items-center justify-between text-xs text-[var(--text-secondary)] mb-1">
+        <div className="p-3.5 rounded-xl border border-(--border) bg-(--surface-card) shadow-xs transition-all hover:border-blue-300 dark:hover:border-blue-700">
+          <div className="flex items-center justify-between text-xs text-(--text-secondary) mb-1">
             <span className="font-medium flex items-center gap-1.5">
               <Calculator className="w-3.5 h-3.5 text-blue-500" />
               {isBn ? 'মোট সমষ্টি' : 'Aggregate Total'}
@@ -438,17 +438,17 @@ export const ReportChartAnalytics: React.FC<ReportChartAnalyticsProps> = ({
               {activeMetricCol?.label || activeMetricKey}
             </span>
           </div>
-          <div className="text-lg font-bold tracking-tight text-[var(--text-primary)]">
+          <div className="text-lg font-bold tracking-tight text-(--text-primary)">
             {formatValue(kpis.total)}
           </div>
-          <div className="text-[11px] text-[var(--text-secondary)] mt-0.5">
+          <div className="text-[11px] text-(--text-secondary) mt-0.5">
             {isBn ? 'ফিল্টারকৃত সকল রেকর্ডের মোট' : 'Sum of filtered ledger items'}
           </div>
         </div>
 
         {/* Card 2: Record Count */}
-        <div className="p-3.5 rounded-xl border border-[var(--border)] bg-[var(--surface-card)] shadow-xs transition-all hover:border-emerald-300 dark:hover:border-emerald-700">
-          <div className="flex items-center justify-between text-xs text-[var(--text-secondary)] mb-1">
+        <div className="p-3.5 rounded-xl border border-(--border) bg-(--surface-card) shadow-xs transition-all hover:border-emerald-300 dark:hover:border-emerald-700">
+          <div className="flex items-center justify-between text-xs text-(--text-secondary) mb-1">
             <span className="font-medium flex items-center gap-1.5">
               <Hash className="w-3.5 h-3.5 text-emerald-500" />
               {isBn ? 'মোট রেকর্ড সংখ্যা' : 'Record Entries'}
@@ -457,17 +457,17 @@ export const ReportChartAnalytics: React.FC<ReportChartAnalyticsProps> = ({
               Live
             </span>
           </div>
-          <div className="text-lg font-bold tracking-tight text-[var(--text-primary)]">
+          <div className="text-lg font-bold tracking-tight text-(--text-primary)">
             {kpis.count.toLocaleString()}
           </div>
-          <div className="text-[11px] text-[var(--text-secondary)] mt-0.5">
+          <div className="text-[11px] text-(--text-secondary) mt-0.5">
             {isBn ? 'বর্তমান ভিউতে দৃশ্যমান সারি' : 'Rows in active dataset'}
           </div>
         </div>
 
         {/* Card 3: Average Metric */}
-        <div className="p-3.5 rounded-xl border border-[var(--border)] bg-[var(--surface-card)] shadow-xs transition-all hover:border-amber-300 dark:hover:border-amber-700">
-          <div className="flex items-center justify-between text-xs text-[var(--text-secondary)] mb-1">
+        <div className="p-3.5 rounded-xl border border-(--border) bg-(--surface-card) shadow-xs transition-all hover:border-amber-300 dark:hover:border-amber-700">
+          <div className="flex items-center justify-between text-xs text-(--text-secondary) mb-1">
             <span className="font-medium flex items-center gap-1.5">
               <ArrowUpRight className="w-3.5 h-3.5 text-amber-500" />
               {isBn ? 'গড় মান' : 'Mean Average'}
@@ -476,46 +476,46 @@ export const ReportChartAnalytics: React.FC<ReportChartAnalyticsProps> = ({
               Avg
             </span>
           </div>
-          <div className="text-lg font-bold tracking-tight text-[var(--text-primary)]">
+          <div className="text-lg font-bold tracking-tight text-(--text-primary)">
             {formatValue(kpis.average)}
           </div>
-          <div className="text-[11px] text-[var(--text-secondary)] mt-0.5">
+          <div className="text-[11px] text-(--text-secondary) mt-0.5">
             {isBn ? 'প্রতি সারির সাধারণ গড়' : 'Normalized per row'}
           </div>
         </div>
 
         {/* Card 4: Peak / Max */}
-        <div className="p-3.5 rounded-xl border border-[var(--border)] bg-[var(--surface-card)] shadow-xs transition-all hover:border-rose-300 dark:hover:border-rose-700">
-          <div className="flex items-center justify-between text-xs text-[var(--text-secondary)] mb-1">
+        <div className="p-3.5 rounded-xl border border-(--border) bg-(--surface-card) shadow-xs transition-all hover:border-rose-300 dark:hover:border-rose-700">
+          <div className="flex items-center justify-between text-xs text-(--text-secondary) mb-1">
             <span className="font-medium flex items-center gap-1.5">
               <Flame className="w-3.5 h-3.5 text-rose-500" />
               {isBn ? 'সর্বোচ্চ শিখর' : 'Peak Maximum'}
             </span>
-            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 font-semibold truncate max-w-[90px]">
+            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 font-semibold truncate max-w-22.5">
               {kpis.peakLabel}
             </span>
           </div>
-          <div className="text-lg font-bold tracking-tight text-[var(--text-primary)]">
+          <div className="text-lg font-bold tracking-tight text-(--text-primary)">
             {formatValue(kpis.peak)}
           </div>
-          <div className="text-[11px] text-[var(--text-secondary)] mt-0.5 truncate">
+          <div className="text-[11px] text-(--text-secondary) mt-0.5 truncate">
             {isBn ? `শীর্ষ: ${kpis.peakLabel}` : `Peak item: ${kpis.peakLabel}`}
           </div>
         </div>
       </div>
 
       {/* Chart Canvas & Controls Panel */}
-      <div className="p-4 rounded-xl border border-[var(--border)] bg-[var(--surface-card)] shadow-xs">
-        <div className="flex flex-wrap items-center justify-between gap-3 pb-3 mb-3 border-b border-[var(--border)]">
+      <div className="p-4 rounded-xl border border-(--border) bg-(--surface-card) shadow-xs">
+        <div className="flex flex-wrap items-center justify-between gap-3 pb-3 mb-3 border-b border-(--border)">
           <div className="flex items-center gap-2">
             <div className="p-1.5 rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-950 dark:text-blue-300">
               <BarChart3 className="w-4 h-4" />
             </div>
             <div>
-              <h4 className="text-xs font-semibold text-[var(--text-primary)] uppercase tracking-wider">
+              <h4 className="text-xs font-semibold text-(--text-primary) uppercase tracking-wider">
                 {isBn ? 'ভিজ্যুয়াল বিশ্লেষণ' : 'Visual Trend Analytics'}
               </h4>
-              <p className="text-[11px] text-[var(--text-secondary)]">
+              <p className="text-[11px] text-(--text-secondary)">
                 {reportDefinition?.name ?? 'Report Analytics'}
               </p>
             </div>
@@ -527,7 +527,7 @@ export const ReportChartAnalytics: React.FC<ReportChartAnalyticsProps> = ({
               <select
                 value={activeMetricKey}
                 onChange={(e) => setSelectedMetricKey(e.target.value)}
-                className="text-xs py-1 px-2.5 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-[var(--text-primary)] focus:outline-hidden focus:ring-1 focus:ring-blue-500"
+                className="text-xs py-1 px-2.5 rounded-lg border border-(--border) bg-(--surface) text-(--text-primary) focus:outline-hidden focus:ring-1 focus:ring-blue-500"
               >
                 {numericColumns.map((colKey) => (
                   <option key={colKey} value={colKey}>
@@ -538,14 +538,14 @@ export const ReportChartAnalytics: React.FC<ReportChartAnalyticsProps> = ({
             )}
 
             {/* Chart Type Selector */}
-            <div className="flex items-center p-0.5 rounded-lg bg-[var(--surface-hover)] border border-[var(--border)] text-xs">
+            <div className="flex items-center p-0.5 rounded-lg bg-(--surface-hover) border border-(--border) text-xs">
               <button
                 type="button"
                 onClick={() => setChartType('area')}
                 className={`flex items-center gap-1 px-2 py-1 rounded-md transition-colors ${
                   chartType === 'area'
                     ? 'bg-blue-600 text-white font-medium shadow-xs'
-                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                    : 'text-(--text-secondary) hover:text-(--text-primary)'
                 }`}
                 title="Area Trend"
               >
@@ -558,7 +558,7 @@ export const ReportChartAnalytics: React.FC<ReportChartAnalyticsProps> = ({
                 className={`flex items-center gap-1 px-2 py-1 rounded-md transition-colors ${
                   chartType === 'bar'
                     ? 'bg-blue-600 text-white font-medium shadow-xs'
-                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                    : 'text-(--text-secondary) hover:text-(--text-primary)'
                 }`}
                 title="Bar Comparison"
               >
@@ -571,7 +571,7 @@ export const ReportChartAnalytics: React.FC<ReportChartAnalyticsProps> = ({
                 className={`flex items-center gap-1 px-2 py-1 rounded-md transition-colors ${
                   chartType === 'donut'
                     ? 'bg-blue-600 text-white font-medium shadow-xs'
-                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                    : 'text-(--text-secondary) hover:text-(--text-primary)'
                 }`}
                 title="Donut Composition"
               >
@@ -581,14 +581,14 @@ export const ReportChartAnalytics: React.FC<ReportChartAnalyticsProps> = ({
             </div>
 
             {/* Engine Switcher Toggle (ApexCharts vs Chart.js) */}
-            <div className="flex items-center p-0.5 rounded-lg bg-[var(--surface-hover)] border border-[var(--border)] text-xs">
+            <div className="flex items-center p-0.5 rounded-lg bg-(--surface-hover) border border-(--border) text-xs">
               <button
                 type="button"
                 onClick={() => setEngine('apex')}
                 className={`flex items-center gap-1 px-2.5 py-1 rounded-md transition-colors ${
                   engine === 'apex'
-                    ? 'bg-[var(--surface-card)] text-blue-600 dark:text-blue-400 font-semibold shadow-xs'
-                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                    ? 'bg-(--surface-card) text-blue-600 dark:text-blue-400 font-semibold shadow-xs'
+                    : 'text-(--text-secondary) hover:text-(--text-primary)'
                 }`}
               >
                 <Layers className="w-3 h-3" />
@@ -599,8 +599,8 @@ export const ReportChartAnalytics: React.FC<ReportChartAnalyticsProps> = ({
                 onClick={() => setEngine('chartjs')}
                 className={`flex items-center gap-1 px-2.5 py-1 rounded-md transition-colors ${
                   engine === 'chartjs'
-                    ? 'bg-[var(--surface-card)] text-blue-600 dark:text-blue-400 font-semibold shadow-xs'
-                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                    ? 'bg-(--surface-card) text-blue-600 dark:text-blue-400 font-semibold shadow-xs'
+                    : 'text-(--text-secondary) hover:text-(--text-primary)'
                 }`}
               >
                 <span>Chart.js</span>

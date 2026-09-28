@@ -9,6 +9,7 @@ use App\Core\Tenancy\TenantContext;
 use App\Models\Tenant;
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -53,17 +54,18 @@ final class EnsureTenantActive
         }
 
         // 2. Real-time subscription & grace period check
-        /** @var Tenant|null $tenant */
-        $tenant = Tenant::find($tenantId);
-        if ($tenant !== null) {
-            if ($tenant->isSubscriptionExpiredPastGrace()) {
+        $isExpired = (bool) Cache::remember("t{$tenantId}:tenant:subscription_expired", 300, static function () use ($tenantId): bool {
+            /** @var Tenant|null $tenant */
+            $tenant = Tenant::find($tenantId);
+            if ($tenant !== null && $tenant->isSubscriptionExpiredPastGrace()) {
                 $tenant->syncSuspensionStateIfNeeded();
-                throw new TenantSuspended($context->tenantSlug(), 'suspended');
+                return true;
             }
+            return false;
+        });
 
-            if ($tenant->status === 'past_due' || $status === 'past_due') {
-                return $next($request);
-            }
+        if ($isExpired) {
+            throw new TenantSuspended($context->tenantSlug(), 'suspended');
         }
 
         if (in_array($status, self::ACTIVE_STATUSES, true)) {

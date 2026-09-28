@@ -9,13 +9,30 @@ export interface DashboardTrendItem {
   target: number;
 }
 
+export interface DashboardAlertItem {
+  type: 'low_stock' | 'overdue_invoices' | 'qc_pending' | 'pending_approvals' | string;
+  severity: 'critical' | 'warning' | 'info';
+  title: string;
+  message: string;
+  count: number;
+  amount?: number;
+  link: string;
+  action_label: string;
+}
+
 export interface DashboardMetricsData {
   commercial: {
     today_revenue: number;
+    yesterday_revenue?: number;
+    revenue_delta_percent?: number;
     month_revenue: number;
     active_orders: number;
     today_orders_count?: number;
+    yesterday_orders_count?: number;
+    orders_delta_percent?: number;
     total_receivable_due: number;
+    overdue_invoices_count?: number;
+    overdue_invoices_amount?: number;
     aging_breakdown?: {
       current?: number;
       overdue_30?: number;
@@ -25,6 +42,8 @@ export interface DashboardMetricsData {
   };
   production: {
     today_output: number;
+    yesterday_output?: number;
+    output_delta_percent?: number;
     target_output: number;
     achievement_rate: number;
     active_batches: number;
@@ -90,6 +109,7 @@ export interface DashboardMetricsData {
     unit: string;
     suggestedQty: number;
   }>;
+  alerts?: DashboardAlertItem[];
 }
 
 export interface DashboardInvoiceItem {

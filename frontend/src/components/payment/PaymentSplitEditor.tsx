@@ -290,7 +290,7 @@ export const PaymentSplitEditor: React.FC<PaymentSplitEditorProps> = ({
                 </div>
 
                 {/* Method Selector */}
-                <div className="flex-1 min-w-[130px] max-w-[200px]">
+                <div className="flex-1 min-w-32.5 max-w-50">
                   <div className="relative">
                     <select
                       disabled={readOnly}
@@ -326,7 +326,7 @@ export const PaymentSplitEditor: React.FC<PaymentSplitEditorProps> = ({
                 </div>
 
                 {/* Amount Input */}
-                <div className="flex-1 min-w-[140px] relative">
+                <div className="flex-1 min-w-35 relative">
                   <div className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-muted pointer-events-none">
                     {currencySymbol}
                   </div>

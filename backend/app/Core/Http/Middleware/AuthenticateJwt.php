@@ -15,6 +15,8 @@ use App\Models\User;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -135,18 +137,15 @@ class AuthenticateJwt
         $rawTenantId = $claims['tenant_id'] ?? null;
         $tenantId = is_numeric($rawTenantId) ? (int) $rawTenantId : null;
         if ($tenantId !== null) {
-            /** @var Tenant|null $tenant */
-            $tenant = Tenant::find($tenantId);
-            if ($tenant !== null) {
-                // If not platform admin, enforce tenant active status and grace period in real-time
-                if (! $user->is_platform_admin && ($tenant->isSuspended() || $tenant->status === 'suspended' || $tenant->isSubscriptionExpiredPastGrace())) {
-                    $tenant->syncSuspensionStateIfNeeded();
-                    throw new TenantSuspended($tenant->slug, 'suspended');
-                }
+            $tenantCacheKey = "t{$tenantId}:tenant:profile";
+            $tenantArray = Cache::remember($tenantCacheKey, 300, static function () use ($tenantId): ?array {
+                $row = DB::table('tenants')->where('id', $tenantId)->first();
+                return $row !== null ? (array) $row : null;
+            });
 
+            if ($tenantArray !== null) {
+                $tenantArray['id'] = (int) $tenantArray['id'];
                 if (! TenantContext::isBound() || TenantContext::current()->tenantId() !== $tenantId) {
-                    $tenantArray = $tenant->toArray();
-                    $tenantArray['id'] = (int) $tenant->id;
                     TenantContext::bind($tenantArray);
                 }
             }

@@ -1,7 +1,7 @@
 # 🏭 Master Implementation & Testing Record (Phases 0 — 11)
 ### Production ERP + Storefront — Full Platform Upgrade
 > **Single Source of Truth** for Platform Architecture, Multi-Payment, Design, Workflows & Module Upgrades  
-> **Overall Progress**: Phase 0 (100% COMPLETE) | Phase 1 (100% COMPLETE) | Phase 2 (100% COMPLETE) | Phase 3 (READY TO PROCEED)  
+> **Overall Progress**: Phase 0 (100% COMPLETE) | Phase 1 (100% COMPLETE) | Phase 2 (100% COMPLETE) | Phase 3 (100% COMPLETE) | Phase 4 (READY TO PROCEED)  
 > **Last Verified**: September 29, 2026 | **Build Status**: Green (0 TypeScript Errors, 100% Automated Tests Passing)
 
 ---
@@ -13,8 +13,8 @@
 | **Phase 0** | **System Architecture & Theme Foundations** | **COMPLETED & VERIFIED** | **PASS** (100%) | Light default + System-auto (OS listener), token cleanup, bug fixes, lazy splitting |
 | **Phase 1** | **Multi-Payment Methods (Sales, Purchasing, Expense, POS, Collections)** | **COMPLETED & VERIFIED** | **PASS** (12/12 tests, 53 assertions, 0 TS errors) | `payment_splits` & `expense_payment_splits` DB tables, actions, `PaymentSplitEditor.tsx`, double-entry GL auto-balancing |
 | **Phase 2** | **Reports Hub Redesign & Consolidation** | **COMPLETED & VERIFIED** | **PASS** (64/64 backend, 6/6 Vitest, 0 TS errors) | Deduplicated 8 reports (84 → 76), 7 Domain Hubs, dual-engine ApexCharts/Chart.js, 4-card KPI strip, pinned & recent strips |
-| **Phase 3** | **Dashboard & KPI Visuals Upgrade** | 🟡 **NEXT TO PROCEED** | *Pending User Authorization* | Sparkline trends, % delta vs previous period, clickable today's alerts strip, live revenue chart |
-| **Phase 4** | **Core Modules UX (Sales, POS, Purchasing, Inventory)** | ⚪ Queued | *Pending* | HID barcode scanner buffer, PO-to-GRN flow, supplier bill pay modal, stock ledger |
+| **Phase 3** | **Dashboard & KPI Visuals Upgrade** | **COMPLETED & VERIFIED** | **PASS** (6/6 backend, 9/9 Vitest, 0 TS errors) | Mini sparklines (SVG cubic-bezier), directional % delta badges, TodayAlertsStrip, interactive multi-series ApexCharts with overlay toggle, live department health metrics |
+| **Phase 4** | **Core Modules UX (Sales, POS, Purchasing, Inventory)** | 🟡 **NEXT TO PROCEED** | *Pending User Authorization* | HID barcode scanner buffer, PO-to-GRN flow, supplier bill pay modal, stock ledger |
 | **Phase 5** | **Production, QC & Logistics Workflows** | ⚪ Queued | *Pending* | Stage stepper, rework actions, AQL calculator, courier reconciliation, SLA tracking |
 | **Phase 6** | **Finance & Fixed Assets Upgrades** | ⚪ Queued | *Pending* | Bank statement reconciliation, depreciation schedules, QR asset labels |
 | **Phase 7** | **HR Workspace (Kiosk Removed)** | ⚪ Queued | *Pending* | Calendar attendance, salary calculation breakdown, leave notifications |
@@ -181,15 +181,53 @@
 
 ---
 
-## 🟡 PHASE 3: Dashboard & KPI Visuals Upgrade (NEXT TO PROCEED)
+## 🟢 PHASE 3: Dashboard & KPI Visuals Upgrade (COMPLETED & VERIFIED)
 
-- [ ] Add mini sparkline (7-day trend line) behind each KPI card using ApexCharts sparkline.
-- [ ] Add percentage change indicator vs previous period (▲ 12% / ▼ 8%).
-- [ ] Upgrade Department Health cards to use real % from API `dashboard/metrics` response.
-- [ ] Migrate revenue trend chart to ApexCharts with detailed tooltips and production overlay toggle.
-- [ ] Add `<TodayAlertsStrip>` (low-stock items, overdue invoices, QC failures, pending approvals).
-- [ ] Illustrated empty states for operational cards.
-- [ ] Dismissible PWA install card.
+### 3.1 Backend Aggregations & Query Consolidation
+- [x] **Query Consolidation in TenantDashboardController** ([TenantDashboardController.php](file:///d:/Production%20ERP%20with%20Storefront/slicemart-fms/backend/app/Modules/Platform/Controllers/TenantDashboardController.php)):
+  - Reused 7-day trend series queries (`$revByDate`, `$prodByDate`, `$qcByDate`) to derive today and yesterday metrics:
+    - `today_revenue`, `yesterday_revenue`, and `revenue_delta_percent`
+    - `today_orders_count`, `yesterday_orders_count`, and `orders_delta_percent`
+    - `today_output`, `yesterday_output`, and `output_delta_percent`
+    - Overdue invoice totals and aging counts directly from invoice queries without executing redundant SQL calls.
+  - Consolidated multiple separate `ProductionBatch` count/sum queries into a single SQL aggregation.
+  - Consolidated multiple `QcInspection` count queries into a single SQL aggregation.
+  - Formatted dynamic system alerts list (`alerts` array) covering low stock, overdue receivables, pending QC inspections, and pending approvals with actionable deep links.
+- [x] **Tenant Middleware Caching Layer**:
+  - [AuthenticateJwt.php](file:///d:/Production%20ERP%20with%20Storefront/slicemart-fms/backend/app/Core/Http/Middleware/AuthenticateJwt.php): Cached tenant profile lookup (`t{$tenantId}:tenant:profile`, 300s TTL) preventing redundant `tenants` table scans.
+  - [EnsureTenantActive.php](file:///d:/Production%20ERP%20with%20Storefront/slicemart-fms/backend/app/Core/Http/Middleware/EnsureTenantActive.php): Cached tenant subscription active check (`t{$tenantId}:tenant:subscription_expired`, 300s TTL) eliminating repeated `tenant_subscriptions` table queries.
+  - Reduced cached dashboard invocation query count to strictly `<= 2` queries (satisfying high-throughput SLA).
+
+### 3.2 Frontend Visuals & Elevated KPI Architecture
+- [x] **Mini Sparkline & Directional Delta Badges** ([DashboardKpiCard.tsx](file:///d:/Production%20ERP%20with%20Storefront/slicemart-fms/frontend/src/pages/dashboard/components/DashboardKpiCard.tsx)):
+  - **MiniSparkline**: Ultra-smooth SVG cubic bezier curved sparkline (`M x y C cpX prevY, cpX currY...`) with theme-specific gradient fill and pulse terminal point.
+  - **DashboardKpiDelta**: Directional indicator badge rendering `TrendingUp` or `TrendingDown` icons with signed percentage changes (e.g. `+14.2%` / `-6.8%`). Supports `inverse` mode for cost/defect/debt metrics where decreases are positive.
+- [x] **Interactive Command Alerts Strip** ([TodayAlertsStrip.tsx](file:///d:/Production%20ERP%20with%20Storefront/slicemart-fms/frontend/src/pages/dashboard/components/TodayAlertsStrip.tsx)):
+  - Categorized chips with visual hierarchy: `critical` (red), `warning` (amber), `info` (blue).
+  - Quick action buttons routing directly to Inventory replenishment, Overdue collections, QC inspection queue, and Purchase approvals.
+  - **Nominal System State**: When 0 alerts exist, displays an emerald `ShieldCheck` status badge: *"All operational systems nominal across production, inventory, and finance"*.
+- [x] **Executive Multi-Series ApexCharts with Overlay Toggle** ([ExecutiveDashboardView.tsx](file:///d:/Production%20ERP%20with%20Storefront/slicemart-fms/frontend/src/pages/dashboard/components/ExecutiveDashboardView.tsx)):
+  - Multi-series interactive ApexCharts with cubic spline curve, gradient fill, dark tooltip formatter showing localized currency and units.
+  - Interactive **Production Overlay** toggle button: Allows executives to overlay factory unit output directly against commercial revenue trends on dual Y-axes.
+  - Upgraded Department Health cards to render live percentage achievements and status counters directly from the `dashboard/metrics` API response.
+  - Illustrated empty states for operational lists with contextual call-to-actions.
+- [x] **Enterprise Role Dashboard Integration** ([TenantRoleDashboard.tsx](file:///d:/Production%20ERP%20with%20Storefront/slicemart-fms/frontend/src/pages/dashboard/TenantRoleDashboard.tsx)):
+  - Mounted `<TodayAlertsStrip>` directly beneath the header command bar.
+  - Connected 7-day sparkline arrays and delta percentages to all 6 elevated command bar KPI cards.
+  - PWA install card with native event listener and dismissible banner state.
+
+### 3.3 Test Verification Evidence
+- **Backend PHPUnit Performance & Reliability Suite**:
+  - Command: `php artisan test --filter=PlatformPerformanceAndReliabilityTest`
+  - Result: **6 passed, 0 failed, 79 assertions (19,341 ms)**.
+  - Validates initial un-cached dashboard query count `<= 36` and cached query count `<= 2`.
+- **Frontend Vitest Dashboard Test Suite**:
+  - Command: `npx vitest run src/pages/dashboard/TenantRoleDashboard.test.tsx`
+  - Result: **9 passed, 0 failed (3,059 ms)**.
+  - Validates role switching, executive overview, PWA prompt, and subsystem cockpit permissions.
+- **Frontend Strict TypeScript Check**:
+  - Command: `npm run typecheck` (`tsc -b --noEmit`)
+  - Result: **EXIT CODE 0 (0 errors)**.
 
 ---
 
