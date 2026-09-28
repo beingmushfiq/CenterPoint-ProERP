@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Sales\Models;
 
+use App\Core\Tenancy\Concerns\BelongsToTenant;
 use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Models\Unit;
@@ -33,6 +34,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 final class ExchangeReplacementItem extends Model
 {
+    use BelongsToTenant;
+
     protected $table = 'exchange_replacement_items';
 
     /** @var list<string> */
@@ -52,7 +55,7 @@ final class ExchangeReplacementItem extends Model
 
     /** @var array<string, string> */
     protected $casts = [
-        'quantity'   => 'decimal:4',
+        'quantity' => 'decimal:4',
         'unit_price' => 'decimal:4',
         'line_total' => 'decimal:4',
         'created_at' => 'datetime',
