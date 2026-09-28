@@ -28,11 +28,16 @@ interface InventoryDashboardViewProps {
 
 interface MovementItem {
   id: string | number;
+  movement_number?: string;
   reference_code?: string;
-  type: string;
+  movement_type?: string;
+  type?: string;
   quantity: number;
-  created_at: string;
-  item?: { name: string; sku: string };
+  created_at?: string;
+  moved_at?: string;
+  product_name?: string;
+  product_sku?: string;
+  item?: { name?: string; sku?: string };
 }
 
 interface CategoryItem {
@@ -42,11 +47,13 @@ interface CategoryItem {
   total_value?: number;
 }
 
-const movementAccent = (type: string) => {
-  const t = type.toUpperCase();
-  if (t === 'RECEIPT' || t === 'PRODUCTION' || t === 'PURCHASE') return 'text-emerald-600 dark:text-emerald-400 bg-emerald-500/10';
+const movementAccent = (type?: string) => {
+  const t = (type || '').toUpperCase();
+  if (t === 'RECEIPT' || t === 'PRODUCTION' || t === 'PURCHASE' || t === 'OPENING_BALANCE') {
+    return 'text-emerald-600 dark:text-emerald-400 bg-emerald-500/10';
+  }
   if (t === 'TRANSFER') return 'text-blue-600 dark:text-blue-400 bg-blue-500/10';
-  return 'text-red-500 bg-red-500/10';
+  return 'text-amber-600 dark:text-amber-400 bg-amber-500/10';
 };
 
 export const InventoryDashboardView: React.FC<InventoryDashboardViewProps> = ({
@@ -151,24 +158,32 @@ export const InventoryDashboardView: React.FC<InventoryDashboardViewProps> = ({
               </thead>
               <tbody className="divide-y divide-default">
                 {recentMovements.length > 0 ? (
-                  recentMovements.map((mv) => (
-                    <tr key={mv.id} className="hover:bg-surface-sunken/50 transition-colors">
-                      <td className="px-4 py-2.5">
-                        <div className="font-semibold text-default">{mv.item?.name || 'Unknown Item'}</div>
-                        <div className="font-mono text-[10px] text-muted">{mv.item?.sku || '—'}</div>
-                      </td>
-                      <td className="px-4 py-2.5 font-mono text-muted">{mv.reference_code || '—'}</td>
-                      <td className="px-4 py-2.5">
-                        <span className={cn('inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold', movementAccent(mv.type))}>
-                          {mv.type}
-                        </span>
-                      </td>
-                      <td className="px-4 py-2.5 font-mono font-bold text-right text-default">{mv.quantity}</td>
-                      <td className="px-4 py-2.5 text-muted text-[10px]">
-                        {new Date(mv.created_at).toLocaleDateString()}
-                      </td>
-                    </tr>
-                  ))
+                  recentMovements.map((mv) => {
+                    const movType = mv.type || mv.movement_type || 'movement';
+                    const refCode = mv.movement_number || mv.reference_code || `MOV-${mv.id}`;
+                    const itemName = mv.item?.name || mv.product_name || 'Stock Item';
+                    const itemSku = mv.item?.sku || mv.product_sku || '—';
+                    const movDate = mv.created_at || mv.moved_at;
+
+                    return (
+                      <tr key={mv.id} className="hover:bg-surface-sunken/50 transition-colors">
+                        <td className="px-4 py-2.5">
+                          <div className="font-semibold text-default">{itemName}</div>
+                          <div className="font-mono text-[10px] text-muted">{itemSku}</div>
+                        </td>
+                        <td className="px-4 py-2.5 font-mono text-muted">{refCode}</td>
+                        <td className="px-4 py-2.5">
+                          <span className={cn('inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold capitalize', movementAccent(movType))}>
+                            {movType.replace('_', ' ')}
+                          </span>
+                        </td>
+                        <td className="px-4 py-2.5 font-mono font-bold text-right text-default">{mv.quantity}</td>
+                        <td className="px-4 py-2.5 text-muted text-[10px]">
+                          {movDate ? new Date(movDate).toLocaleDateString() : '—'}
+                        </td>
+                      </tr>
+                    );
+                  })
                 ) : (
                   <tr><td colSpan={5} className="py-10 text-center text-muted">
                     <Inbox className="mx-auto size-8 text-muted/40 mb-2" />

@@ -79,8 +79,8 @@ const ChartTooltip: React.FC<{ active?: boolean; payload?: Array<{ value: number
 
 // ── Status badge ───────────────────────────────────────────────
 
-const statusStyle = (status: string) => {
-  const s = status.toUpperCase();
+const statusStyle = (status?: string) => {
+  const s = (status || '').toUpperCase();
   if (s === 'PAID' || s === 'DELIVERED' || s === 'COMPLETE') return 'bg-emerald-500/12 text-emerald-600 dark:text-emerald-400 border-emerald-500/20';
   if (s === 'PARTIAL') return 'bg-amber-500/12 text-amber-600 dark:text-amber-400 border-amber-500/20';
   if (s === 'UNPAID' || s === 'OVERDUE') return 'bg-red-500/12 text-red-500 border-red-500/20';

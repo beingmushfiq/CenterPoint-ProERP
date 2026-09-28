@@ -36,16 +36,16 @@ interface RequisitionItem {
   required_date?: string;
 }
 
-const poStatusBadge = (status: string) => {
-  const s = status.toUpperCase();
+const poStatusBadge = (status?: string) => {
+  const s = (status || '').toUpperCase();
   if (s === 'APPROVED' || s === 'COMPLETED' || s === 'RECEIVED') return 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20';
   if (s === 'DRAFT' || s === 'PENDING') return 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20';
   if (s === 'REJECTED' || s === 'CANCELLED') return 'bg-red-500/10 text-red-500 border-red-500/20';
   return 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20';
 };
 
-const reqStatusBadge = (status: string) => {
-  const s = status.toUpperCase();
+const reqStatusBadge = (status?: string) => {
+  const s = (status || '').toUpperCase();
   if (s === 'APPROVED') return 'text-emerald-600 dark:text-emerald-400';
   if (s === 'PENDING') return 'text-amber-600 dark:text-amber-400';
   return 'text-muted';
@@ -78,9 +78,9 @@ export const PurchasingDashboardView: React.FC = () => {
 
   const stats = useMemo(() => {
     const totalValue = purchaseOrders.reduce((sum, po) => sum + (Number(po.total_amount) || 0), 0);
-    const pending = purchaseOrders.filter((po) => ['DRAFT', 'PENDING'].includes(po.status.toUpperCase())).length;
-    const received = purchaseOrders.filter((po) => ['RECEIVED', 'COMPLETED'].includes(po.status.toUpperCase())).length;
-    const pendingReqs = requisitions.filter((r) => r.status.toUpperCase() === 'PENDING').length;
+    const pending = purchaseOrders.filter((po) => ['DRAFT', 'PENDING'].includes((po.status || '').toUpperCase())).length;
+    const received = purchaseOrders.filter((po) => ['RECEIVED', 'COMPLETED'].includes((po.status || '').toUpperCase())).length;
+    const pendingReqs = requisitions.filter((r) => (r.status || '').toUpperCase() === 'PENDING').length;
     return { totalValue, pending, received, pendingReqs };
   }, [purchaseOrders, requisitions]);
 
@@ -193,9 +193,9 @@ export const PurchasingDashboardView: React.FC = () => {
                     )}
                   </div>
                   <div className="flex flex-col items-end gap-1 shrink-0">
-                    <span className={cn('text-[10px] font-bold', reqStatusBadge(req.status))}>{req.status}</span>
-                    {req.status.toUpperCase() === 'APPROVED' && <CheckCircle2 className="size-3.5 text-emerald-500" />}
-                    {req.status.toUpperCase() === 'PENDING' && <AlertTriangle className="size-3.5 text-amber-500" />}
+                    <span className={cn('text-[10px] font-bold', reqStatusBadge(req.status))}>{req.status || 'PENDING'}</span>
+                    {(req.status || '').toUpperCase() === 'APPROVED' && <CheckCircle2 className="size-3.5 text-emerald-500" />}
+                    {(req.status || '').toUpperCase() === 'PENDING' && <AlertTriangle className="size-3.5 text-amber-500" />}
                   </div>
                 </div>
               ))

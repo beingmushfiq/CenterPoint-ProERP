@@ -32,8 +32,8 @@ interface QcDashboardViewProps {
   onOpenQC?: (item: QcItem) => void;
 }
 
-const qcStatusBadge = (status: string) => {
-  const s = status.toUpperCase();
+const qcStatusBadge = (status?: string) => {
+  const s = (status || '').toUpperCase();
   if (s === 'PASSED' || s === 'APPROVED') return 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20';
   if (s === 'REWORK') return 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20';
   if (s === 'FAILED' || s === 'REJECTED') return 'bg-red-500/10 text-red-500 border-red-500/20';
@@ -85,7 +85,7 @@ export const QcDashboardView: React.FC<QcDashboardViewProps> = ({ qcList = [], o
       orderNo: insp.inspection_number || `INSP-${insp.batch_id || insp.id}`,
       product: insp.product?.name || 'Unknown Product',
       qty: insp.quantity ?? 0,
-      status: insp.status,
+      status: insp.status || 'PENDING',
       failed: insp.reject_qty ?? 0,
       rework: insp.rework_qty ?? 0,
     }));
@@ -95,9 +95,9 @@ export const QcDashboardView: React.FC<QcDashboardViewProps> = ({ qcList = [], o
   const pendingCount = metrics?.quality.pending_inspections ?? 0;
   const totalInspections = metrics?.quality.total_inspections ?? displayItems.length;
 
-  const passedCount = displayItems.filter((i) => ['PASSED', 'APPROVED'].includes(i.status.toUpperCase())).length;
-  const failedCount = displayItems.filter((i) => ['FAILED', 'REJECTED'].includes(i.status.toUpperCase())).length;
-  const reworkCount = displayItems.filter((i) => i.status.toUpperCase() === 'REWORK').length;
+  const passedCount = displayItems.filter((i) => ['PASSED', 'APPROVED'].includes((i.status || '').toUpperCase())).length;
+  const failedCount = displayItems.filter((i) => ['FAILED', 'REJECTED'].includes((i.status || '').toUpperCase())).length;
+  const reworkCount = displayItems.filter((i) => (i.status || '').toUpperCase() === 'REWORK').length;
 
   const kpis = [
     { label: 'QC Pass Rate', value: `${passRate}%`, sub: 'Overall quality score', icon: <TrendingUp className="size-4" />, color: passRate >= 90 ? 'text-emerald-500' : passRate >= 75 ? 'text-amber-500' : 'text-red-500' },

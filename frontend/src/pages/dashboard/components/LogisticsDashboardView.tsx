@@ -28,8 +28,8 @@ interface ShipmentItem {
   status: string;
 }
 
-const shipmentBadge = (status: string) => {
-  const s = status.toUpperCase();
+const shipmentBadge = (status?: string) => {
+  const s = (status || '').toUpperCase();
   if (s === 'DELIVERED') return 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20';
   if (s === 'IN_TRANSIT' || s === 'IN TRANSIT' || s === 'DISPATCHED') return 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20';
   if (s === 'FAILED' || s === 'RETURNED') return 'bg-red-500/10 text-red-500 border-red-500/20';
@@ -53,9 +53,9 @@ export const LogisticsDashboardView: React.FC = () => {
 
   const stats = useMemo(() => {
     const totalCodPending = shipments.reduce((acc, s) => acc + (Number(s.cod_amount) || 0), 0);
-    const inTransit = shipments.filter((s) => ['IN_TRANSIT', 'DISPATCHED', 'IN TRANSIT'].includes(s.status.toUpperCase())).length;
-    const delivered = shipments.filter((s) => s.status.toUpperCase() === 'DELIVERED').length;
-    const failed = shipments.filter((s) => ['FAILED', 'RETURNED'].includes(s.status.toUpperCase())).length;
+    const inTransit = shipments.filter((s) => ['IN_TRANSIT', 'DISPATCHED', 'IN TRANSIT'].includes((s.status || '').toUpperCase())).length;
+    const delivered = shipments.filter((s) => (s.status || '').toUpperCase() === 'DELIVERED').length;
+    const failed = shipments.filter((s) => ['FAILED', 'RETURNED'].includes((s.status || '').toUpperCase())).length;
     return { totalCodPending, inTransit, delivered, failed };
   }, [shipments]);
 

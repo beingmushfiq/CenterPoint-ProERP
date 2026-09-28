@@ -40,8 +40,8 @@ interface SalesDashboardViewProps {
   onOpenInvoice?: (invoice: DashboardInvoice) => void;
 }
 
-const paymentBadge = (payment: string) => {
-  const p = payment.toUpperCase();
+const paymentBadge = (payment?: string) => {
+  const p = (payment || '').toUpperCase();
   if (p === 'PAID') return 'text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border-emerald-500/20';
   if (p === 'PARTIAL') return 'text-amber-600 dark:text-amber-400 bg-amber-500/10 border-amber-500/20';
   return 'text-red-500 bg-red-500/10 border-red-500/20';
