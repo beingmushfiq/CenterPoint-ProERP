@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import {
   FileSpreadsheet,
@@ -13,7 +14,10 @@ import {
   Compass,
   ArrowRight,
   Zap,
+  AlertTriangle,
+  CheckCircle2,
 } from 'lucide-react';
+import { api } from '../../lib/api/client';
 import { PurchaseOrdersSection } from './sections/PurchaseOrdersSection';
 import { GoodsReceiptsSection } from './sections/GoodsReceiptsSection';
 import { PurchaseRequisitionsSection } from './sections/PurchaseRequisitionsSection';
@@ -67,6 +71,20 @@ export default function PurchasingWorkspace() {
   const [showFastGrnModal, setShowFastGrnModal] = useState(false);
   const [showFastBillModal, setShowFastBillModal] = useState(false);
   const [selectedPoForAction, setSelectedPoForAction] = useState<PurchaseOrder | null>(null);
+
+  // Low-Stock Threshold Alerts
+  const { data: stockAlerts = [] } = useQuery<Array<{ product_id: number; product_name?: string; sku?: string; current_stock: number; min_stock_alert: number }>>({
+    queryKey: ['inventory', 'thresholds', 'alerts'],
+    queryFn: async () => {
+      try {
+        const res = await api.get<{ data?: Array<{ product_id: number; product_name?: string; sku?: string; current_stock: number; min_stock_alert: number }> }>('/inventory/thresholds/alerts');
+        return res.data?.data ?? [];
+      } catch {
+        return [];
+      }
+    },
+    staleTime: 60_000,
+  });
 
   const categories: CategoryConfig[] = useMemo(() => [
     {
@@ -402,7 +420,47 @@ export default function PurchasingWorkspace() {
         </button>
       </div>
 
-      {/* 5-Stage Procurement Pipeline Execution Ribbon */}
+      {/* Low-Stock Alert Replenishment Banner */}
+      {stockAlerts.length > 0 && (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-2xl border border-amber-500/30 bg-amber-500/10 text-amber-800 dark:text-amber-200 animate-in fade-in duration-150">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="size-9 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center shrink-0">
+              <AlertTriangle className="size-4.5 text-amber-600 dark:text-amber-400" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs font-bold leading-tight flex items-center gap-2">
+                <span>Low Stock Replenishment Alert</span>
+                <span className="px-1.5 py-0.5 rounded-full bg-amber-500/20 text-[10px] font-mono font-bold">
+                  {stockAlerts.length} SKU(s) Critical
+                </span>
+              </p>
+              <p className="text-[11px] text-amber-700 dark:text-amber-300 mt-0.5 truncate">
+                {stockAlerts.slice(0, 3).map((a) => a.product_name || a.sku).join(', ')}
+                {stockAlerts.length > 3 ? ` and ${stockAlerts.length - 3} more items below minimum reorder buffer` : ' breached minimum reorder buffer'}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={() => setActiveTab('requisitions')}
+              className="px-3 py-1.5 rounded-xl border border-amber-500/40 bg-surface text-xs font-semibold text-default hover:bg-surface-sunken transition-colors cursor-pointer"
+            >
+              Create Requisition
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowFastPoModal(true)}
+              className="px-3 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold transition-colors cursor-pointer shadow-xs flex items-center gap-1"
+            >
+              <ShoppingCart className="size-3" />
+              <span>Create PO Now</span>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* 5-Stage Procurement Pipeline Execution Stepper */}
       <div className="bg-surface rounded-2xl border border-default p-4 shadow-xs">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
           <div className="flex items-center gap-2">
@@ -412,7 +470,7 @@ export default function PurchasingWorkspace() {
             <div>
               <span className="text-xs font-bold text-default">{t('purchasing.p2pPipelineTitle')}</span>
               <span className="text-[11px] text-muted ml-2 hidden sm:inline">
-                {t('purchasing.p2pPipelineDesc')}
+                Requisition (1) &rarr; PO (2) &rarr; GRN (3) &rarr; Bill (4) &rarr; Paid (5)
               </span>
             </div>
           </div>
@@ -422,9 +480,10 @@ export default function PurchasingWorkspace() {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2">
-          {tabs.map((tab) => {
+          {tabs.map((tab, idx) => {
             const isTabActive = activeTab === tab.id;
             const TabIcon = tab.icon;
+            const isPast = (currentTab.step ?? 1) > (tab.step ?? 1);
             return (
               <button
                 key={tab.id}
@@ -434,6 +493,8 @@ export default function PurchasingWorkspace() {
                   'group relative flex items-center gap-2.5 p-2.5 rounded-xl border text-left transition-all cursor-pointer min-w-0',
                   isTabActive
                     ? 'bg-primary/10 border-primary text-primary shadow-xs ring-1 ring-primary/20'
+                    : isPast
+                    ? 'bg-emerald-500/5 hover:bg-emerald-500/10 border-emerald-500/20 text-default'
                     : 'bg-surface-sunken hover:bg-surface border-default text-muted hover:text-default'
                 )}
               >
@@ -442,10 +503,12 @@ export default function PurchasingWorkspace() {
                     'size-6 rounded-full flex items-center justify-center text-[10px] font-bold font-mono shrink-0 transition-colors',
                     isTabActive
                       ? 'bg-primary text-primary-fg'
+                      : isPast
+                      ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
                       : 'bg-surface border border-default text-muted group-hover:text-default'
                   )}
                 >
-                  {tab.step}
+                  {isPast ? <CheckCircle2 className="size-3.5 text-emerald-500" /> : tab.step}
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="text-xs font-semibold truncate flex items-center gap-1.5">
@@ -453,6 +516,9 @@ export default function PurchasingWorkspace() {
                     <span className="truncate">{tab.shortLabel}</span>
                   </div>
                 </div>
+                {idx < tabs.length - 1 && (
+                  <ChevronRight className="size-3 text-muted/40 hidden lg:block shrink-0 -mr-1" />
+                )}
               </button>
             );
           })}

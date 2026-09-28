@@ -22,6 +22,8 @@ import {
   Upload,
   Download,
   Trash2,
+  LayoutGrid,
+  List,
 } from 'lucide-react';
 import type { Lead, LeadStatus, LeadSource } from '../../../types/api/sales';
 import { api } from '../../../lib/api/client';
@@ -55,6 +57,7 @@ export function LeadsSection() {
 
   const [search, setSearch] = useState('');
   const [stageFilter, setStageFilter] = useState<string>('all');
+  const [viewMode, setViewMode] = useState<'table' | 'kanban'>('table');
   const [showCreateModal, setShowCreateModal] = useState(false);
 
   // Bulk Selection States
@@ -623,6 +626,34 @@ type ApiError = { response?: { data?: { message?: string } } };
             <RefreshCw className={`size-3.5 ${isFetching ? 'animate-spin' : ''}`} />
           </button>
         </div>
+
+        {/* View Mode Toggle: Table vs Kanban */}
+        <div className="flex items-center self-end sm:self-center rounded-xl border border-default bg-surface p-1 shadow-2xs">
+          <button
+            type="button"
+            onClick={() => setViewMode('table')}
+            className={cn(
+              "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer",
+              viewMode === 'table' ? "bg-primary text-white shadow-xs" : "text-muted hover:text-default"
+            )}
+            title="Table View"
+          >
+            <List className="size-3.5" />
+            <span>Table</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setViewMode('kanban')}
+            className={cn(
+              "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer",
+              viewMode === 'kanban' ? "bg-primary text-white shadow-xs" : "text-muted hover:text-default"
+            )}
+            title="Kanban Board View"
+          >
+            <LayoutGrid className="size-3.5" />
+            <span>Kanban</span>
+          </button>
+        </div>
       </div>
 
       {/* Bulk Action Ribbon */}
@@ -659,8 +690,123 @@ type ApiError = { response?: { data?: { message?: string } } };
         </div>
       )}
 
-      {/* Table View */}
-      <div className="overflow-hidden rounded-2xl border border-default bg-surface shadow-2xs">
+      {/* View Content: Kanban vs Table */}
+      {viewMode === 'kanban' ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3.5 overflow-x-auto pb-4 items-start">
+          {STAGES.filter((s) => s.id !== 'fake').map((stage, sIdx, allStages) => {
+            const stageLeads = filteredLeads.filter((l) => l.status === stage.id && !l.is_fake);
+            const stageVal = stageLeads.reduce((sum, l) => sum + parseFloat(l.deal_value || '0'), 0);
+            const nextStage = allStages[sIdx + 1];
+
+            return (
+              <div
+                key={stage.id}
+                className="flex flex-col rounded-2xl border border-default bg-surface-sunken/40 min-h-[500px] p-3 shadow-2xs"
+              >
+                {/* Column Header */}
+                <div className="flex items-center justify-between pb-2.5 mb-2.5 border-b border-default">
+                  <div className="flex items-center gap-2">
+                    <span className={cn("size-2.5 rounded-full shrink-0", stage.dotBg)} />
+                    <span className="text-xs font-bold text-default">{stage.label}</span>
+                  </div>
+                  <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-surface border border-default text-muted">
+                    {stageLeads.length}
+                  </span>
+                </div>
+
+                <div className="mb-2.5 text-[10px] font-mono text-muted flex justify-between items-center px-1">
+                  <span>Stage Value:</span>
+                  <span className="font-bold text-default">{formatCurrency(stageVal)}</span>
+                </div>
+
+                {/* Cards Container */}
+                <div className="flex-1 space-y-2.5 overflow-y-auto max-h-[620px] pr-0.5">
+                  {stageLeads.length === 0 ? (
+                    <div className="h-32 flex flex-col items-center justify-center rounded-xl border border-dashed border-default/70 text-muted text-center p-3">
+                      <p className="text-[11px]">No leads in this stage</p>
+                    </div>
+                  ) : (
+                    stageLeads.map((l) => {
+                      const isWon = l.status === 'won';
+                      const isLost = l.status === 'lost';
+
+                      return (
+                        <div
+                          key={l.id}
+                          className="p-3 rounded-xl border border-default bg-surface hover:border-primary/40 hover:shadow-xs transition-all space-y-2 group"
+                        >
+                          <div className="flex items-start justify-between gap-1.5">
+                            <div className="min-w-0 flex-1">
+                              <div className="text-xs font-bold text-default group-hover:text-primary transition-colors truncate">
+                                {l.name}
+                              </div>
+                              {l.company_name && (
+                                <div className="text-[10px] text-muted font-medium truncate">
+                                  {l.company_name}
+                                </div>
+                              )}
+                            </div>
+                            <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-surface-sunken border border-default text-muted shrink-0">
+                              {l.lead_number || `LD-${l.id}`}
+                            </span>
+                          </div>
+
+                          <div className="text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                            {formatCurrency(l.deal_value || '0')}
+                          </div>
+
+                          <div className="text-[10px] text-muted flex items-center justify-between border-t border-default/60 pt-1.5">
+                            <span className="capitalize px-1.5 py-0.5 rounded bg-surface-sunken border border-default/50">
+                              {l.source.replace('_', ' ')}
+                            </span>
+                            <span className="truncate max-w-[90px]" title={l.assigned_to ? String(l.assigned_to) : undefined}>
+                              {l.assigned_to}
+                            </span>
+                          </div>
+
+                          {/* Quick Actions & Stage Transition */}
+                          <div className="pt-1 flex items-center justify-between gap-1 border-t border-default/60">
+                            <button
+                              type="button"
+                              onClick={() => handleViewLeadDetails(l)}
+                              className="text-[10px] font-medium text-muted hover:text-primary transition-colors cursor-pointer"
+                            >
+                              Details
+                            </button>
+
+                            {isWon ? (
+                              <button
+                                type="button"
+                                onClick={() => convertMutation.mutate(l.id)}
+                                disabled={convertMutation.isPending}
+                                className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer"
+                              >
+                                Convert →
+                              </button>
+                            ) : !isLost && nextStage ? (
+                              <button
+                                type="button"
+                                onClick={() => updateStageMutation.mutate({ id: l.id, stage: nextStage.id })}
+                                disabled={updateStageMutation.isPending}
+                                className="text-[10px] font-bold text-primary hover:underline cursor-pointer flex items-center gap-0.5"
+                              >
+                                <span>Advance</span>
+                                <span>→</span>
+                              </button>
+                            ) : null}
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        /* Table View */
+        <div className="overflow-hidden rounded-2xl border border-default bg-surface shadow-2xs">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs text-default">
               <thead className="border-b border-default bg-surface-sunken text-[11px] font-semibold uppercase tracking-wider text-muted">
@@ -941,6 +1087,7 @@ type ApiError = { response?: { data?: { message?: string } } };
             </table>
           </div>
         </div>
+      )}
 
       {/* Fake Lead Audit Modal */}
       {auditModalOpen && activeLeadForAudit && (

@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
   FileText,
@@ -100,12 +100,20 @@ interface CategoryConfig {
 
 export default function SalesWorkspace() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useWorkspaceTab<SalesTab>('orders', VALID_TABS);
   const [selectedSalesmanId, setSelectedSalesmanId] = useState<number | null>(null);
   const [quickJumpOpen, setQuickJumpOpen] = useState(false);
   const [isGuideOpen, setIsGuideOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const quickJumpRef = useRef<HTMLDivElement>(null);
+
+  // Redirect duplicate dashboard tab to canonical executive sales dashboard perspective
+  useEffect(() => {
+    if (activeTab === 'dashboard') {
+      navigate('/dashboard?view=sales', { replace: true });
+    }
+  }, [activeTab, navigate]);
 
   const categories: CategoryConfig[] = useMemo(
     () => [
@@ -134,7 +142,7 @@ export default function SalesWorkspace() {
         label: t('sales.categories.performance.label'),
         tagline: t('sales.categories.performance.tagline'),
         icon: TrendingUp,
-        tabs: ['salesmen', 'targets', 'incentives', 'dashboard'],
+        tabs: ['salesmen', 'targets', 'incentives'],
         defaultTab: 'salesmen',
         shortcut: '3',
         badge: t('sales.categories.performance.badge'),
@@ -409,6 +417,15 @@ export default function SalesWorkspace() {
             <Compass className="size-3.5 text-primary" />
             <span>{t('sales.exploreCapabilities')}</span>
           </button>
+
+          <Link
+            to="/dashboard?view=sales"
+            className="flex items-center gap-1.5 px-3.5 py-2 bg-primary/10 hover:bg-primary/20 text-primary text-xs font-semibold rounded-xl border border-primary/30 shadow-2xs transition-colors"
+            title="Open Executive Sales Cockpit in Dashboard"
+          >
+            <TrendingUp className="size-3.5" />
+            <span>Sales Cockpit</span>
+          </Link>
 
           <Link
             to="/pos"

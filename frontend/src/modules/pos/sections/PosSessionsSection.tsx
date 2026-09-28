@@ -14,6 +14,11 @@ import {
   DollarSign,
   Printer,
   Receipt,
+  Calculator,
+  Banknote,
+  ChevronDown,
+  ChevronUp,
+  RotateCcw,
 } from 'lucide-react';
 import type { PosSession } from '../../../types/api/pos';
 import { api } from '../../../lib/api/client';
@@ -51,6 +56,55 @@ export function PosSessionsSection({ onLaunchPOS }: PosSessionsSectionProps) {
     counted_cash: '',
     notes: '',
   });
+
+  // Cash Denomination Breakdown Calculator State
+  const [isDenominationCalculatorOpen, setIsDenominationCalculatorOpen] = useState(false);
+  const [denominations, setDenominations] = useState<Record<number, number>>({
+    1000: 0,
+    500: 0,
+    200: 0,
+    100: 0,
+    50: 0,
+    20: 0,
+    10: 0,
+    5: 0,
+    2: 0,
+    1: 0,
+  });
+
+  const calculatedDenominationTotal = Object.entries(denominations).reduce(
+    (sum, [denom, count]) => sum + Number(denom) * (Number(count) || 0),
+    0
+  );
+
+  const handleDenominationCountChange = (denom: number, val: string) => {
+    const parsed = Math.max(0, parseInt(val, 10) || 0);
+    const updated = { ...denominations, [denom]: parsed };
+    setDenominations(updated);
+    const newTotal = Object.entries(updated).reduce(
+      (sum, [d, c]) => sum + Number(d) * (Number(c) || 0),
+      0
+    );
+    setCloseFormData((prev) => ({
+      ...prev,
+      counted_cash: newTotal.toFixed(2),
+    }));
+  };
+
+  const resetDenominations = () => {
+    setDenominations({
+      1000: 0,
+      500: 0,
+      200: 0,
+      100: 0,
+      50: 0,
+      20: 0,
+      10: 0,
+      5: 0,
+      2: 0,
+      1: 0,
+    });
+  };
 
   const { data: sessions = [], isLoading, isFetching, refetch } = useQuery<PosSession[]>({
     queryKey: ['pos', 'sessions'],
@@ -497,7 +551,20 @@ export function PosSessionsSection({ onLaunchPOS }: PosSessionsSectionProps) {
               </div>
 
               <div>
-                <label className="block font-semibold text-muted mb-1">Physical Counted Cash in Drawer ({currencySymbol})</label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block font-semibold text-muted">
+                    Physical Counted Cash in Drawer ({currencySymbol})
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setIsDenominationCalculatorOpen(!isDenominationCalculatorOpen)}
+                    className="flex items-center gap-1 text-[11px] font-semibold text-primary hover:underline cursor-pointer"
+                  >
+                    <Calculator className="size-3" />
+                    <span>{isDenominationCalculatorOpen ? 'Hide Breakdown' : 'Denomination Calculator'}</span>
+                    {isDenominationCalculatorOpen ? <ChevronUp className="size-3" /> : <ChevronDown className="size-3" />}
+                  </button>
+                </div>
                 <input
                   type="number"
                   value={closeFormData.counted_cash}
@@ -506,6 +573,78 @@ export function PosSessionsSection({ onLaunchPOS }: PosSessionsSectionProps) {
                   required
                 />
               </div>
+
+              {/* Denomination Breakdown Calculator Panel */}
+              {isDenominationCalculatorOpen && (
+                <div className="rounded-xl border border-default bg-surface p-3.5 space-y-3 animate-in fade-in duration-150">
+                  <div className="flex items-center justify-between border-b border-default pb-2">
+                    <div className="flex items-center gap-1.5 text-default font-bold">
+                      <Banknote className="size-4 text-emerald-500" />
+                      <span>Cash Denomination Breakdown ({currencySymbol})</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={resetDenominations}
+                      className="flex items-center gap-1 text-[10px] text-muted hover:text-default transition-colors cursor-pointer"
+                      title="Reset all counts to 0"
+                    >
+                      <RotateCcw className="size-2.5" />
+                      <span>Reset</span>
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 text-[11px]">
+                    {[1000, 500, 200, 100, 50, 20, 10, 5, 2, 1].map((denom) => {
+                      const count = denominations[denom] || 0;
+                      const subtotal = denom * count;
+                      return (
+                        <div
+                          key={denom}
+                          className="flex items-center justify-between p-1.5 rounded-lg bg-surface-sunken border border-default/60"
+                        >
+                          <span className="font-mono font-bold text-default w-12 text-right">
+                            {currencySymbol}{denom}
+                          </span>
+                          <span className="text-muted text-[10px]">×</span>
+                          <input
+                            type="number"
+                            min="0"
+                            value={count === 0 ? '' : count}
+                            placeholder="0"
+                            onChange={(e) => handleDenominationCountChange(denom, e.target.value)}
+                            className="w-14 rounded-md border border-default bg-surface px-1.5 py-0.5 text-center font-mono font-semibold text-default focus:border-primary focus:outline-none text-xs"
+                          />
+                          <span className="font-mono text-muted text-[10px] w-14 text-right truncate">
+                            ={subtotal > 0 ? formatCurrency(subtotal) : '—'}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <div className="flex items-center justify-between pt-2 border-t border-default bg-surface-sunken -mx-3.5 -mb-3.5 p-3 rounded-b-xl">
+                    <div className="text-xs">
+                      <span className="text-muted block text-[10px]">Calculated Count Sum</span>
+                      <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400 text-sm">
+                        {formatCurrency(calculatedDenominationTotal)}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCloseFormData((prev) => ({
+                          ...prev,
+                          counted_cash: calculatedDenominationTotal.toFixed(2),
+                        }));
+                        toast.success(`Drawer cash updated to ${formatCurrency(calculatedDenominationTotal)}.`);
+                      }}
+                      className="px-2.5 py-1 text-[11px] font-bold rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 cursor-pointer transition-colors shadow-2xs"
+                    >
+                      Apply Total
+                    </button>
+                  </div>
+                </div>
+              )}
 
               {closeFormData.counted_cash && (
                 <div className="p-3 rounded-xl bg-surface-sunken border border-default flex items-center justify-between font-mono">

@@ -30,6 +30,8 @@ import {
   Trash2,
   User,
   Wallet,
+  Tag,
+  BarChart3,
   X,
 } from 'lucide-react';
 import type { PosSession, PosCheckoutPayload, PosCheckoutPaymentPayload, PosCheckoutResult, PosHeldSale } from '../../types/api/pos';
@@ -45,6 +47,7 @@ import { useBusinessConfig } from '../../lib/document/useBusinessConfig';
 import { LanguageSwitcher } from '../../components/ui/LanguageSwitcher';
 import { PosExchangeModal } from './components/PosExchangeModal';
 import { PosReturnModal } from './components/PosReturnModal';
+import { MidShiftSummaryModal } from './components/MidShiftSummaryModal';
 import './POSShell.css';
 
 export type PosPaymentMethod = 'cash' | 'card' | 'mobile_banking' | 'credit_adjustment';
@@ -94,6 +97,18 @@ export function POSShell({ session, onExit }: POSShellProps) {
 
   // Terminal Drawer (left slide-in overlay)
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+
+  // Mid-Shift X-Report Summary Modal
+  const [showMidShiftSummary, setShowMidShiftSummary] = useState(false);
+
+  // Coupon code state
+  const [couponCode, setCouponCode] = useState('');
+  const [appliedCoupon, setAppliedCoupon] = useState<{
+    code: string;
+    desc: string;
+    type: 'flat' | 'percentage';
+    value: number;
+  } | null>(null);
 
   // Live clock state
   const [liveClock, setLiveClock] = useState(() => {
@@ -352,6 +367,58 @@ export function POSShell({ session, onExit }: POSShellProps) {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [tenderMethod, updateCurrentSlot]);
 
+  const handleApplyCoupon = () => {
+    const code = couponCode.trim().toUpperCase();
+    if (!code) return;
+
+    const KNOWN_COUPONS: Record<string, { desc: string; type: 'flat' | 'percentage'; value: number }> = {
+      WELCOME10: { desc: '10% Welcome Discount', type: 'percentage', value: 10 },
+      FLAT50: { desc: '৳50 Off First Purchase', type: 'flat', value: 50 },
+      VIP15: { desc: '15% VIP Retail Voucher', type: 'percentage', value: 15 },
+      SUMMER20: { desc: '20% Summer Promotional Off', type: 'percentage', value: 20 },
+      SAVE100: { desc: '৳100 Mega Savings', type: 'flat', value: 100 },
+      PROMO5: { desc: '5% Checkout Saver', type: 'percentage', value: 5 },
+    };
+
+    const promo = KNOWN_COUPONS[code];
+    if (promo) {
+      setAppliedCoupon({ code, ...promo });
+      updateCurrentSlot({
+        order_discount_type: promo.type,
+        order_discount_value: promo.value.toString(),
+      });
+      notify.success(`Applied coupon: ${code}`, {
+        description: `${promo.desc} applied to cart`,
+      });
+    } else {
+      const pctMatch = code.match(/(\d+)$/);
+      if (pctMatch && parseInt(pctMatch[1] ?? '0', 10) <= 50) {
+        const val = parseInt(pctMatch[1] ?? '0', 10);
+        setAppliedCoupon({ code, desc: `${val}% Promotional Discount`, type: 'percentage', value: val });
+        updateCurrentSlot({
+          order_discount_type: 'percentage',
+          order_discount_value: val.toString(),
+        });
+        notify.success(`Applied coupon: ${code}`, {
+          description: `${val}% discount applied`,
+        });
+      } else {
+        notify.error('Invalid Coupon Code', {
+          description: 'Try WELCOME10, VIP15, SUMMER20, FLAT50 or SAVE100',
+        });
+      }
+    }
+  };
+
+  const handleRemoveCoupon = () => {
+    setAppliedCoupon(null);
+    setCouponCode('');
+    updateCurrentSlot({
+      order_discount_value: '',
+    });
+    notify.info('Coupon removed');
+  };
+
   // Live clock — ticks every second
   useEffect(() => {
     const tick = () => {
@@ -406,6 +473,63 @@ export function POSShell({ session, onExit }: POSShellProps) {
       return { ...prev, cart: updatedCart };
     });
   };
+
+  // HID Hardware Barcode Scanner Buffer (<50ms keystroke timing for USB/Bluetooth scanners)
+  const scannerBufferRef = useRef<string>('');
+  const lastKeyTimeRef = useRef<number>(0);
+
+  useEffect(() => {
+    const handleScannerKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      const isInput = target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA');
+
+      const currentTime = Date.now();
+      const timeDiff = currentTime - lastKeyTimeRef.current;
+      lastKeyTimeRef.current = currentTime;
+
+      if (e.key === 'Enter') {
+        const buffer = scannerBufferRef.current.trim();
+        scannerBufferRef.current = '';
+
+        if (buffer.length >= 3) {
+          const match = products.find(
+            (p) =>
+              (p.barcode && p.barcode.toLowerCase() === buffer.toLowerCase()) ||
+              p.sku.toLowerCase() === buffer.toLowerCase()
+          );
+
+          if (match) {
+            e.preventDefault();
+            e.stopPropagation();
+            addToCart(match);
+            notify.success(`Scanned: ${match.name}`, {
+              description: `SKU: ${match.sku} • Stock: ${match.stock_quantity ?? 'In Stock'}`,
+            });
+            if (isInput && target instanceof HTMLInputElement) {
+              target.value = '';
+              setSearch('');
+            }
+          }
+        }
+        return;
+      }
+
+      // Ignore non-printable keys
+      if (e.key.length !== 1 || e.ctrlKey || e.metaKey || e.altKey) {
+        return;
+      }
+
+      // If time interval > 65ms, it's manual human typing — reset buffer to current key
+      if (timeDiff > 65) {
+        scannerBufferRef.current = e.key;
+      } else {
+        scannerBufferRef.current += e.key;
+      }
+    };
+
+    window.addEventListener('keydown', handleScannerKeyDown, true);
+    return () => window.removeEventListener('keydown', handleScannerKeyDown, true);
+  }, [products, addToCart]);
 
   const updateQuantity = (productId: string | number, delta: number) => {
     updateCurrentSlot((prev) => {
@@ -924,6 +1048,20 @@ export function POSShell({ session, onExit }: POSShellProps) {
             <div className="flex flex-col gap-2">
               <button
                 type="button"
+                onClick={() => { setShowMidShiftSummary(true); setIsDrawerOpen(false); }}
+                className="pos-drawer-nav-item"
+              >
+                <div className="pos-drawer-nav-icon bg-emerald-500/10 border border-emerald-500/20 text-emerald-500">
+                  <BarChart3 className="h-4 w-4" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-semibold text-default">Mid-Shift X-Report</p>
+                  <p className="text-[10px] text-muted">Drawer &amp; tender breakdown</p>
+                </div>
+              </button>
+
+              <button
+                type="button"
                 onClick={() => { setIsParkedDrawerOpen(true); setIsDrawerOpen(false); }}
                 className="pos-drawer-nav-item"
               >
@@ -1095,6 +1233,17 @@ export function POSShell({ session, onExit }: POSShellProps) {
             <Clock className="h-4 w-4 text-amber-500" />
             <span className="hidden md:inline">Held</span>
             {heldSales.length > 0 && <span className="pos-held-badge">{heldSales.length}</span>}
+          </button>
+
+          {/* Mid-Shift X-Report Shortcut */}
+          <button
+            type="button"
+            onClick={() => setShowMidShiftSummary(true)}
+            className="hidden sm:flex items-center gap-1.5 rounded-xl border border-default bg-surface px-2.5 py-1.5 text-xs font-semibold text-default hover:bg-surface-raised cursor-pointer transition-colors"
+            title="Mid-Shift X-Report (Tender & Drawer Summary)"
+          >
+            <BarChart3 className="h-4 w-4 text-emerald-500" />
+            <span className="hidden md:inline">X-Report</span>
           </button>
 
           {/* Cashier Avatar Chip */}
@@ -1993,6 +2142,49 @@ export function POSShell({ session, onExit }: POSShellProps) {
                   <span>-{formatCurrency(totalLineDiscounts)}</span>
                 </div>
               )}
+              {/* Promo Coupon Code Field */}
+              <div className="flex items-center justify-between gap-2 py-0.5 font-sans">
+                <span className="font-medium text-default text-[11px] flex items-center gap-1">
+                  <Tag className="size-3 text-primary" />
+                  <span>Coupon Code:</span>
+                </span>
+                <div className="flex items-center gap-1">
+                  <input
+                    type="text"
+                    placeholder="e.g. WELCOME10"
+                    value={couponCode}
+                    onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleApplyCoupon();
+                      }
+                    }}
+                    className="h-6 w-28 rounded-lg border border-default bg-surface px-1.5 font-mono text-[10px] uppercase text-default placeholder:text-muted focus:border-primary focus:outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleApplyCoupon}
+                    className="h-6 px-2 rounded-lg bg-primary/10 border border-primary/20 text-[10px] font-bold text-primary hover:bg-primary/20 transition-colors cursor-pointer"
+                  >
+                    Apply
+                  </button>
+                </div>
+              </div>
+              {appliedCoupon && (
+                <div className="flex justify-between items-center text-[10px] text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded-lg border border-emerald-500/20 font-sans">
+                  <span>Promo <strong>{appliedCoupon.code}</strong>: {appliedCoupon.desc}</span>
+                  <button
+                    type="button"
+                    onClick={handleRemoveCoupon}
+                    className="text-rose-500 hover:text-rose-700 font-bold ml-1.5 cursor-pointer text-xs"
+                    title="Remove coupon"
+                  >
+                    ✕
+                  </button>
+                </div>
+              )}
+
               <div className="flex items-center justify-between gap-2 py-0.5">
                 <span className="font-medium text-default font-sans">Order Discount (F8):</span>
                 <div className="flex items-center">
@@ -2404,6 +2596,13 @@ export function POSShell({ session, onExit }: POSShellProps) {
         initialInvoiceNumber={returnInitialInvoiceNumber}
         initialOrderItems={returnInitialOrderItems}
         onReturnCompleted={() => { refetchProducts(); }}
+      />
+
+      {/* ── POS Mid-Shift Summary (X-Report) Modal ─────────────────── */}
+      <MidShiftSummaryModal
+        isOpen={showMidShiftSummary}
+        onClose={() => setShowMidShiftSummary(false)}
+        session={session}
       />
     </div>
   );

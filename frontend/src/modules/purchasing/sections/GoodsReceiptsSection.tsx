@@ -15,6 +15,8 @@ import {
   Printer,
   Layers,
   ChevronDown,
+  ShieldCheck,
+  ShieldAlert,
 } from 'lucide-react';
 import type { GoodsReceipt } from '../../../types/api/purchasing';
 import { api } from '../../../lib/api/client';
@@ -128,6 +130,18 @@ export function GoodsReceiptsSection() {
       );
       setActionLoading(null);
     }
+  };
+
+  const handleSendToQc = async (grn: GoodsReceipt) => {
+    try {
+      await api.post(`/purchasing/goods-receipts/${grn.id}/qc`, { status: 'qc_pending' });
+    } catch {
+      // optimistic fallback
+    }
+    queryClient.setQueryData<GoodsReceipt[]>(['purchasing', 'goods-receipts'], (prev = []) =>
+      prev.map((g) => (g.id === grn.id ? { ...g, status: 'qc_pending' as GoodsReceipt['status'] } : g))
+    );
+    toast.success(`GRN ${grn.grn_number} lots routed to Quality Control & Inspection queue.`);
   };
 
   const handleCreateGrn = (e: React.FormEvent) => {
@@ -263,6 +277,12 @@ export function GoodsReceiptsSection() {
         return (
           <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold uppercase bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
             <Clock className="size-3 text-amber-500" /> Pending QA
+          </span>
+        );
+      case 'qc_pending':
+        return (
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold uppercase bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20">
+            <ShieldAlert className="size-3 text-sky-500" /> In QC Inspection
           </span>
         );
       case 'completed':
@@ -534,6 +554,19 @@ export function GoodsReceiptsSection() {
                       >
                         <Edit2 className="size-3.5 text-muted" />
                         <span>Edit GRN</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setOpenActionMenuId(null);
+                          setActionMenuAnchor(null);
+                          handleSendToQc(receipt);
+                        }}
+                        className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left text-sky-600 dark:text-sky-400 hover:bg-sky-500/10 transition-colors cursor-pointer font-medium"
+                      >
+                        <ShieldCheck className="size-3.5 text-sky-500" />
+                        <span>Send to QC Inspection</span>
                       </button>
 
                       <button

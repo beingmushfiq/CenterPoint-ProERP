@@ -347,29 +347,44 @@ export function StockCountsSection() {
     URL.revokeObjectURL(url);
   };
 
-  const getStatusBadge = (status: StockCount['status']) => {
+  const getStatusBadge = (status: StockCount['status'], items?: StockCount['items']) => {
+    const hasDiscrepancy = (items ?? []).some(
+      (it) => Math.abs(parseFloat(it.variance_quantity || '0')) > 0.0001
+    );
+    const totalVariance = (items ?? []).reduce(
+      (acc, it) => acc + Math.abs(parseFloat(it.variance_quantity || '0')),
+      0
+    );
+
     switch (status) {
       case 'draft':
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold uppercase bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
-            <Clock className="size-3 text-amber-500" /> Audit Prepared
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold uppercase bg-zinc-500/10 text-zinc-600 dark:text-zinc-400 border border-zinc-500/20">
+            <Clock className="size-3 text-zinc-400" /> Pending Audit (Draft)
           </span>
         );
       case 'counting':
+        if (hasDiscrepancy) {
+          return (
+            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/30">
+              <AlertTriangle className="size-3 text-amber-500" /> Discrepancy Flagged ({totalVariance.toFixed(1)})
+            </span>
+          );
+        }
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold uppercase bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
-            <ClipboardList className="size-3 text-blue-500 animate-pulse" /> Physical Counting
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold uppercase bg-sky-500/10 text-sky-700 dark:text-sky-300 border border-sky-500/30">
+            <ClipboardList className="size-3 text-sky-500 animate-pulse" /> Pending Audit / Counting
           </span>
         );
       case 'completed':
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold uppercase bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-            <CheckCircle2 className="size-3 text-emerald-500" /> Reconciled
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">
+            <CheckCircle2 className="size-3 text-emerald-500" /> Approved &amp; Reconciled
           </span>
         );
       case 'cancelled':
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold uppercase bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20">
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold uppercase bg-rose-500/10 text-rose-700 dark:text-rose-300 border border-rose-500/20">
             <XCircle className="size-3 text-rose-500" /> Cancelled
           </span>
         );
@@ -600,24 +615,20 @@ export function StockCountsSection() {
                       <div className="text-[10px] text-muted truncate max-w-xs">{c.items?.[0]?.product_name}</div>
                     </td>
                     <td className="px-4 py-3.5">
-                      <select
-                        value={c.status}
-                        onChange={(e) => handleStatusChange(c.id, e.target.value as StockCount['status'])}
-                        className={`rounded-lg border px-2 py-1 text-[11px] font-bold focus:outline-none transition-colors cursor-pointer ${
-                          c.status === 'completed'
-                            ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30'
-                            : c.status === 'counting'
-                            ? 'bg-sky-500/10 text-sky-700 dark:text-sky-300 border-sky-500/30'
-                            : c.status === 'cancelled'
-                            ? 'bg-rose-500/10 text-rose-700 dark:text-rose-300 border-rose-500/30'
-                            : 'bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/30'
-                        }`}
-                      >
-                        <option value="draft">Draft</option>
-                        <option value="counting">Counting</option>
-                        <option value="completed">Completed</option>
-                        <option value="cancelled">Cancelled</option>
-                      </select>
+                      <div className="flex items-center gap-2">
+                        {getStatusBadge(c.status, c.items)}
+                        <select
+                          value={c.status}
+                          onChange={(e) => handleStatusChange(c.id, e.target.value as StockCount['status'])}
+                          className="text-[10px] bg-transparent text-muted hover:text-default border-0 focus:ring-0 cursor-pointer"
+                          title="Change audit state"
+                        >
+                          <option value="draft">Draft</option>
+                          <option value="counting">Counting</option>
+                          <option value="completed">Approved &amp; Reconciled</option>
+                          <option value="cancelled">Cancelled</option>
+                        </select>
+                      </div>
                     </td>
                     <td className="px-4 py-3.5 text-right">
                       <div className="flex items-center justify-end gap-1.5">
@@ -909,7 +920,7 @@ export function StockCountsSection() {
               <div>
                 <div className="flex items-center gap-2">
                   <h3 className="text-base font-bold text-default">{activeCount.count_number}</h3>
-                  {getStatusBadge(activeCount.status)}
+                  {getStatusBadge(activeCount.status, activeCount.items)}
                 </div>
                 <p className="text-xs text-muted mt-0.5">Warehouse: {activeCount.warehouse_name} &bull; Type: {activeCount.count_type} check</p>
               </div>

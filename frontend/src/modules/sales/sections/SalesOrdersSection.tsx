@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   CheckCircle2,
@@ -23,15 +23,20 @@ import {
   FileSpreadsheet,
   TrendingUp,
   Truck,
+  Package,
   FileText,
   DollarSign,
   AlertTriangle,
+  Printer,
 } from 'lucide-react';
-import type { SalesOrder, SalesOrderStatus, SalesOrderPaymentStatus } from '../../../types/api/sales';
+import type { SalesOrder, SalesOrderStatus, SalesOrderPaymentStatus, Invoice } from '../../../types/api/sales';
 import type { Product } from '../../../types/api/catalog';
 import { api } from '../../../lib/api/client';
 import { useCurrency } from '../../../hooks/useCurrency';
 import { OrderProcessingModal } from '../components/OrderProcessingModal';
+import { PrintPreviewModal } from '../../../components/print/PrintPreviewModal';
+import { SalesInvoiceDocument } from '../../../components/print/documents/SalesInvoiceDocument';
+import { useBusinessConfig } from '../../../lib/document/useBusinessConfig';
 import { CustomerSearchCombobox } from '../components/CustomerSearchCombobox';
 import { SelectDropdown } from '../../../components/ui/Dropdown';
 import { ConfirmDialog } from '../../../components/ui/Modal';
@@ -110,10 +115,15 @@ export function SalesOrdersSection({ onNavigateToTab }: SalesOrdersSectionProps 
   const [orderToDelete, setOrderToDelete] = useState<SalesOrder | null>(null);
   const [activeStatusMenuId, setActiveStatusMenuId] = useState<number | null>(null);
   const [activePaymentMenuId, setActivePaymentMenuId] = useState<number | null>(null);
+  const [printInvoice, setPrintInvoice] = useState<Invoice | null>(null);
+  const { config: businessConfig } = useBusinessConfig();
 
   // Multi-Record Selection State
   const [selectedOrderIds, setSelectedOrderIds] = useState<Set<number>>(new Set());
   const [isBulkProcessing, setIsBulkProcessing] = useState(false);
+  const [showAssignAgentModal, setShowAssignAgentModal] = useState(false);
+  const [selectedAgent, setSelectedAgent] = useState('In-House Logistics Fleet');
+  const [trackingNote, setTrackingNote] = useState('');
   const headerCheckboxRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -512,6 +522,63 @@ export function SalesOrdersSection({ onNavigateToTab }: SalesOrdersSectionProps 
     }
   };
 
+  const handleBulkMarkPacked = async () => {
+    if (selectedOrderIds.size === 0) return;
+    setIsBulkProcessing(true);
+    try {
+      const targets = filteredOrders.filter(
+        (o) => selectedOrderIds.has(o.id) && o.status !== 'packed' && o.status !== 'cancelled'
+      );
+      if (targets.length === 0) {
+        notify.info('Selected orders are already packed or cancelled.');
+        return;
+      }
+      let count = 0;
+      for (const order of targets) {
+        try {
+          await api.patch(`/sales/orders/${order.id}/status`, { status: 'packed' });
+          count++;
+        } catch {
+          // ignore individual item failures
+        }
+      }
+      notify.success(`Marked ${count} order(s) as Packed.`);
+      queryClient.invalidateQueries({ queryKey: ['sales', 'orders'] });
+      clearSelection();
+    } finally {
+      setIsBulkProcessing(false);
+    }
+  };
+
+  const handleBulkAssignDeliveryAgent = async () => {
+    if (selectedOrderIds.size === 0) return;
+    setIsBulkProcessing(true);
+    try {
+      const targets = filteredOrders.filter((o) => selectedOrderIds.has(o.id) && o.status !== 'cancelled');
+      let count = 0;
+      for (const order of targets) {
+        try {
+          await api.patch(`/sales/orders/${order.id}/status`, {
+            status: 'dispatched',
+            delivery_agent: selectedAgent,
+            notes: trackingNote ? `${order.notes ? order.notes + ' | ' : ''}Courier: ${selectedAgent} (${trackingNote})` : order.notes,
+          });
+          count++;
+        } catch {
+          // ignore
+        }
+      }
+      notify.success(`Assigned ${selectedAgent} to ${count} order(s) and dispatched.`);
+      queryClient.invalidateQueries({ queryKey: ['sales', 'orders'] });
+      queryClient.invalidateQueries({ queryKey: ['sales', 'deliveries'] });
+      setShowAssignAgentModal(false);
+      setTrackingNote('');
+      clearSelection();
+    } finally {
+      setIsBulkProcessing(false);
+    }
+  };
+
   const exportOrdersCsv = (ordersToExport: SalesOrder[]) => {
     if (ordersToExport.length === 0) {
       notify.warning('No orders available to export.');
@@ -536,6 +603,44 @@ export function SalesOrdersSection({ onNavigateToTab }: SalesOrdersSectionProps 
     link.click();
     URL.revokeObjectURL(url);
     notify.success(`Exported ${ordersToExport.length} orders to CSV.`);
+  };
+
+  const handlePrintOrderInvoice = (order: SalesOrder) => {
+    const inv: Invoice = {
+      id: order.id,
+      uuid: order.uuid,
+      invoice_number: `INV-${order.order_number}`,
+      invoice_date: order.order_date || new Date().toISOString().slice(0, 10),
+      sales_order_id: order.id,
+      sales_order_number: order.order_number,
+      party_id: order.party_id ?? 1,
+      customer_name: order.customer_name || 'Walk-in / Direct Customer',
+      status: 'posted',
+      subtotal: order.subtotal || order.total_amount,
+      discount_amount: order.discount_amount || '0',
+      tax_amount: order.tax_amount || '0',
+      shipping_amount: order.shipping_amount || '0',
+      round_off: order.round_off || '0',
+      total_amount: order.total_amount,
+      paid_amount: order.payment_status === 'paid' ? order.total_amount : (order.paid_amount || '0'),
+      due_amount: order.payment_status === 'paid' ? '0' : (order.due_amount || order.total_amount),
+      printed_count: 1,
+      items: (order.items || []).map((it, idx) => ({
+        id: it.id || idx + 1,
+        uuid: it.uuid || `item-${idx + 1}`,
+        invoice_id: order.id,
+        product_id: it.product_id,
+        product_name: it.product_name || `Product #${it.product_id}`,
+        description: it.description || null,
+        quantity: it.quantity,
+        unit_id: it.unit_id || 1,
+        unit_price: it.unit_price,
+        discount_amount: it.discount_amount || '0',
+        tax_amount: it.tax_amount || '0',
+        line_total: it.line_total || (parseFloat(it.quantity || '1') * parseFloat(it.unit_price || '0')).toFixed(2),
+      })),
+    };
+    setPrintInvoice(inv);
   };
 
   const getStatusBadge = (status: SalesOrder['status']) => {
@@ -1121,6 +1226,15 @@ export function SalesOrdersSection({ onNavigateToTab }: SalesOrdersSectionProps 
                         )}
                         <button
                           type="button"
+                          onClick={() => handlePrintOrderInvoice(order)}
+                          className="rounded-lg bg-surface-sunken border border-default px-2.5 py-1 text-[11px] font-semibold text-default hover:bg-surface cursor-pointer transition-colors flex items-center gap-1"
+                          title="Print tenant-branded invoice PDF slip"
+                        >
+                          <Printer className="size-3 text-primary" />
+                          <span>Print Slip</span>
+                        </button>
+                        <button
+                          type="button"
                           onClick={() => handleDuplicateOrder(order)}
                           className="rounded-lg bg-amber-500/10 border border-amber-500/20 px-2.5 py-1 text-[11px] font-semibold text-amber-600 dark:text-amber-400 hover:bg-amber-500/20 cursor-pointer transition-colors flex items-center gap-1"
                           title="Duplicate this order into a new draft"
@@ -1183,6 +1297,28 @@ export function SalesOrdersSection({ onNavigateToTab }: SalesOrdersSectionProps 
               >
                 <FileSpreadsheet className="size-3 text-primary" />
                 Export CSV
+              </button>
+
+              <button
+                type="button"
+                onClick={handleBulkMarkPacked}
+                disabled={isBulkProcessing}
+                className="flex h-8 items-center gap-1.5 rounded-xl bg-teal-500/10 border border-teal-500/20 px-3 text-xs font-semibold text-teal-600 dark:text-teal-400 hover:bg-teal-500/20 disabled:opacity-50 transition-colors cursor-pointer"
+                title="Mark selected orders as Packed"
+              >
+                <Package className="size-3 text-teal-500" />
+                <span>Mark Packed</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setShowAssignAgentModal(true)}
+                disabled={isBulkProcessing}
+                className="flex h-8 items-center gap-1.5 rounded-xl bg-blue-500/10 border border-blue-500/20 px-3 text-xs font-semibold text-blue-600 dark:text-blue-400 hover:bg-blue-500/20 disabled:opacity-50 transition-colors cursor-pointer"
+                title="Assign delivery agent or courier"
+              >
+                <Truck className="size-3 text-blue-500" />
+                <span>Assign Courier</span>
               </button>
 
               <button
@@ -1558,6 +1694,95 @@ export function SalesOrdersSection({ onNavigateToTab }: SalesOrdersSectionProps 
         variant="danger"
         loading={deleteMutation.isPending}
       />
+      {/* Assign Delivery Agent Bulk Modal */}
+      {showAssignAgentModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs">
+          <div className="w-full max-w-md rounded-2xl border border-default bg-surface p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between border-b border-default pb-3">
+              <div className="flex items-center gap-2">
+                <Truck className="size-4 text-blue-500" />
+                <h3 className="text-base font-bold text-default">Assign Delivery Agent / Courier</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowAssignAgentModal(false)}
+                className="text-muted hover:text-default cursor-pointer text-sm"
+              >
+                ✕
+              </button>
+            </div>
+
+            <p className="text-xs text-muted">
+              Dispatching <span className="font-bold text-default">{selectedOrderIds.size}</span> selected sales order(s). Select the courier partner or in-house logistics fleet agent:
+            </p>
+
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-semibold text-muted mb-1.5">
+                  Courier / Fleet Partner
+                </label>
+                <select
+                  value={selectedAgent}
+                  onChange={(e) => setSelectedAgent(e.target.value)}
+                  className="w-full rounded-xl border border-default bg-surface-sunken px-3 py-2 text-xs text-default focus:border-primary focus:outline-none"
+                >
+                  <option value="In-House Logistics Fleet">In-House Logistics Fleet</option>
+                  <option value="RedX Express">RedX Express Logistics</option>
+                  <option value="Pathao Courier">Pathao Courier Service</option>
+                  <option value="Steadfast Courier">Steadfast Courier (Cash-on-Delivery)</option>
+                  <option value="Sundarban Courier Service">Sundarban Courier Service</option>
+                  <option value="eCourier Express">eCourier Express</option>
+                  <option value="Paperfly Go">Paperfly Go Express</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-muted mb-1.5">
+                  Consignment Ref / Dispatch Note (Optional)
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Bulk Dispatch Batch #B-402 or Manifest Tracking ID"
+                  value={trackingNote}
+                  onChange={(e) => setTrackingNote(e.target.value)}
+                  className="w-full rounded-xl border border-default bg-surface-sunken px-3 py-2 text-xs text-default placeholder:text-muted focus:border-primary focus:outline-none"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-3 border-t border-default">
+              <button
+                type="button"
+                onClick={() => setShowAssignAgentModal(false)}
+                className="px-3.5 py-2 rounded-xl border border-default text-xs font-medium text-muted hover:text-default transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleBulkAssignDeliveryAgent}
+                disabled={isBulkProcessing}
+                className="px-4 py-2 rounded-xl bg-blue-600 text-white text-xs font-bold hover:bg-blue-500 disabled:opacity-50 transition-colors shadow-xs cursor-pointer"
+              >
+                {isBulkProcessing ? 'Dispatching...' : `Dispatch & Assign (${selectedOrderIds.size})`}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Tenant-Branded Invoice Print Preview Modal */}
+      {printInvoice && (
+        <PrintPreviewModal
+          isOpen={Boolean(printInvoice)}
+          onClose={() => setPrintInvoice(null)}
+          title={`Sales Invoice: ${printInvoice.invoice_number}`}
+          documentNumber={printInvoice.invoice_number}
+          pageClass="print-page-a4"
+        >
+          <SalesInvoiceDocument invoice={printInvoice} businessConfig={businessConfig} copyType="ORIGINAL" />
+        </PrintPreviewModal>
+      )}
     </div>
   );
 }

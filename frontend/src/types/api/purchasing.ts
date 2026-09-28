@@ -6,7 +6,7 @@
 export type PurchaseOrderStatus =
   'draft' | 'approved' | 'partially_received' | 'received' | 'cancelled' | 'closed';
 
-export type GoodsReceiptStatus = 'draft' | 'completed' | 'cancelled';
+export type GoodsReceiptStatus = 'draft' | 'completed' | 'cancelled' | 'qc_pending';
 
 export type PurchaseBillStatus = 'draft' | 'pending' | 'approved' | 'paid' | 'cancelled';
 
@@ -103,6 +103,7 @@ export interface GoodsReceipt {
   receipt_date: string;
   supplier_document_number?: string | null;
   status: GoodsReceiptStatus;
+  qc_status?: 'pending' | 'passed' | 'rejected' | null;
   received_by?: number | null;
   notes?: string | null;
   items?: GoodsReceiptItem[];
