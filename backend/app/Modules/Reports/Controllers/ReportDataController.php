@@ -26,15 +26,26 @@ class ReportDataController extends Controller
             ->firstOrFail();
 
         if ($user && method_exists($user, 'hasPermission')) {
-            $isSuperAdmin = $user->hasRole('Super Administrator') || !empty($user->is_platform_admin);
+            $isSuperAdmin = !empty($user->is_platform_admin)
+                || $user->hasRole('Super Administrator')
+                || $user->hasRole('super_admin')
+                || $user->hasRole('Administrator')
+                || $user->hasRole('System Administrator')
+                || $user->hasRole('admin');
             if (!$isSuperAdmin) {
                 $effective = method_exists($user, 'getEffectivePermissions') ? $user->getEffectivePermissions() : [];
                 if (!empty($effective) && !in_array('*', $effective, true)) {
                     if (!empty($definition->required_permission)) {
                         $prefix = explode('.', $definition->required_permission)[0];
                         $allowed = $user->hasPermission($definition->required_permission)
+                            || $user->hasPermission('reports.report.view')
                             || $user->hasPermission('reports.view')
-                            || $user->hasPermission("{$prefix}.view");
+                            || $user->hasPermission("{$prefix}.view")
+                            || $user->hasPermission("{$prefix}.order.view")
+                            || $user->hasPermission("{$prefix}.stock.view")
+                            || $user->hasPermission("{$prefix}.run.view")
+                            || $user->hasPermission("{$prefix}.lead.view")
+                            || $user->hasPermission("{$prefix}.invoice.view");
                         if (!$allowed) {
                             abort(403, 'Unauthorized to access this report.');
                         }
@@ -75,6 +86,8 @@ class ReportDataController extends Controller
 
         $result = $action->execute($code, $filters, $page, $perPage);
 
-        return response()->json($result);
+        return response()->json([
+            'data' => $result,
+        ]);
     }
 }

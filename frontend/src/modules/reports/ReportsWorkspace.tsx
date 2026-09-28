@@ -529,6 +529,44 @@ export const ReportsWorkspace: React.FC = () => {
     }
   };
 
+  // Helper to safely unwrap any report API response structure
+  const unwrapReportData = useCallback(
+    (raw: unknown, code: string): ReportDataResponse => {
+      if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
+        const obj = raw as Record<string, unknown>;
+        // Shape 1: Direct ReportDataResponse { columns: {...}, data: [...] }
+        if ('columns' in obj && obj.columns && 'data' in obj && Array.isArray(obj.data)) {
+          return obj as unknown as ReportDataResponse;
+        }
+        // Shape 2: Wrapped in { data: { columns: {...}, data: [...] } }
+        if (
+          'data' in obj &&
+          typeof obj.data === 'object' &&
+          obj.data !== null &&
+          'columns' in obj.data &&
+          'data' in obj.data &&
+          Array.isArray((obj.data as Record<string, unknown>).data)
+        ) {
+          return obj.data as unknown as ReportDataResponse;
+        }
+      }
+      // Shape 3: Direct array of rows [{...}]
+      if (Array.isArray(raw)) {
+        const fallback = getReportFallbackData(code, activeDef);
+        return {
+          ...fallback,
+          data: raw as ReportDataResponse['data'],
+          pagination: {
+            ...fallback.pagination,
+            total: raw.length,
+          },
+        };
+      }
+      return getReportFallbackData(code, activeDef);
+    },
+    [activeDef]
+  );
+
   // Fetch or resolve report data
   const fetchReportData = useCallback(
     async (code: string) => {
@@ -540,21 +578,15 @@ export const ReportsWorkspace: React.FC = () => {
             end_date: endDate,
           },
         });
-        const respData = res.data;
-        if (respData && 'columns' in respData && respData.columns && respData.data) {
-          setReportResult(respData as ReportDataResponse);
-        } else if (respData && 'data' in respData && (respData as { data: ReportDataResponse }).data?.columns) {
-          setReportResult((respData as { data: ReportDataResponse }).data);
-        } else {
-          setReportResult(getReportFallbackData(code, activeDef));
-        }
-      } catch {
+        setReportResult(unwrapReportData(res.data, code));
+      } catch (err) {
+        console.error('[ReportsWorkspace] Failed to fetch report data for code:', code, err);
         setReportResult(getReportFallbackData(code, activeDef));
       } finally {
         setLoading(false);
       }
     },
-    [startDate, endDate, activeDef]
+    [startDate, endDate, activeDef, unwrapReportData]
   );
 
   useEffect(() => {
@@ -565,14 +597,7 @@ export const ReportsWorkspace: React.FC = () => {
           params: { start_date: startDate, end_date: endDate },
         });
         if (isSubscribed) {
-          const respData = res.data;
-          if (respData && 'columns' in respData && respData.columns && respData.data) {
-            setReportResult(respData as ReportDataResponse);
-          } else if (respData && 'data' in respData && (respData as { data: ReportDataResponse }).data?.columns) {
-            setReportResult((respData as { data: ReportDataResponse }).data);
-          } else {
-            setReportResult(getReportFallbackData(selectedReportCode, activeDef));
-          }
+          setReportResult(unwrapReportData(res.data, selectedReportCode));
         }
         // Also load schema and saved views for this report definition
         api.get(`/reports/${selectedReportCode}/schema`).catch(() => {});
@@ -585,7 +610,8 @@ export const ReportsWorkspace: React.FC = () => {
             setSavedViews(views);
           }
         }).catch(() => {});
-      } catch {
+      } catch (err) {
+        console.error('[ReportsWorkspace] Error loading selected report:', selectedReportCode, err);
         if (isSubscribed) {
           setReportResult(getReportFallbackData(selectedReportCode, activeDef));
         }
@@ -596,7 +622,8 @@ export const ReportsWorkspace: React.FC = () => {
     return () => {
       isSubscribed = false;
     };
-  }, [selectedReportCode, startDate, endDate, activeDef]);
+  }, [selectedReportCode, startDate, endDate, activeDef, unwrapReportData]);
+
 
   const handleSaveCustomView = async (e: React.FormEvent) => {
     e.preventDefault();

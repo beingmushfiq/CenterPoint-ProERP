@@ -195,6 +195,35 @@ return Application::configure(basePath: dirname(__DIR__))
             );
         });
 
+        $exceptions->render(function (\Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException $e, Request $request) {
+            return ErrorResponse::make(
+                request: $request,
+                code: 'FORBIDDEN',
+                message: $e->getMessage() ?: 'You do not have permission to perform this action.',
+                httpStatus: 403,
+                retryable: false,
+            );
+        });
+
+        $exceptions->render(function (\Symfony\Component\HttpKernel\Exception\HttpException $e, Request $request) {
+            $status = $e->getStatusCode();
+            $code = match ($status) {
+                401 => 'UNAUTHENTICATED',
+                403 => 'FORBIDDEN',
+                404 => 'NOT_FOUND',
+                409 => 'INVALID_STATE',
+                422 => 'VALIDATION_FAILED',
+                default => 'HTTP_ERROR',
+            };
+            return ErrorResponse::make(
+                request: $request,
+                code: $code,
+                message: $e->getMessage() ?: 'Request failed.',
+                httpStatus: $status,
+                retryable: false,
+            );
+        });
+
         // 404 NOT_FOUND — Laravel's Handler.prepareException() converts
         // ModelNotFoundException → NotFoundHttpException before renderCallbacks
         // run, so we must match NotFoundHttpException here.

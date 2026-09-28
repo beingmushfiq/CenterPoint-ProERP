@@ -34,7 +34,12 @@ class ReportRegistryController extends Controller
 
         // Filter definitions by user permissions if authenticated with RBAC
         if ($user && method_exists($user, 'hasPermission')) {
-            $isSuperAdmin = $user->hasRole('Super Administrator') || !empty($user->is_platform_admin);
+            $isSuperAdmin = !empty($user->is_platform_admin)
+                || $user->hasRole('Super Administrator')
+                || $user->hasRole('super_admin')
+                || $user->hasRole('Administrator')
+                || $user->hasRole('System Administrator')
+                || $user->hasRole('admin');
             if (!$isSuperAdmin) {
                 $effective = method_exists($user, 'getEffectivePermissions') ? $user->getEffectivePermissions() : [];
                 if (!empty($effective) && !in_array('*', $effective, true)) {
@@ -44,8 +49,14 @@ class ReportRegistryController extends Controller
                         }
                         $prefix = explode('.', $def->required_permission)[0];
                         return $user->hasPermission($def->required_permission)
+                            || $user->hasPermission('reports.report.view')
                             || $user->hasPermission('reports.view')
-                            || $user->hasPermission("{$prefix}.view");
+                            || $user->hasPermission("{$prefix}.view")
+                            || $user->hasPermission("{$prefix}.order.view")
+                            || $user->hasPermission("{$prefix}.stock.view")
+                            || $user->hasPermission("{$prefix}.run.view")
+                            || $user->hasPermission("{$prefix}.lead.view")
+                            || $user->hasPermission("{$prefix}.invoice.view");
                     })->values();
                 }
             }
