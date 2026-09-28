@@ -39,12 +39,38 @@ final class RolesAndPermissionsSeeder extends Seeder
         // 3. Seed / Update Platform Super Administrator (DevCenterPoint Staff - tenant_id = null)
         TenantContext::flush();
 
-        $platformAdmin = User::withoutTenantScope()->where('email', 'admin@devcenterpoint.com')->first();
+        $platformAdminEmail = 'admin@devcenterpoint.com';
+        $platformAdmin = User::withoutTenantScope()
+            ->withTrashed()
+            ->where(function ($q) use ($platformAdminEmail): void {
+                $q->where('email', $platformAdminEmail)
+                    ->orWhereRaw('LOWER(TRIM(email)) = ?', [strtolower($platformAdminEmail)]);
+            })
+            ->first();
+
         if (! $platformAdmin) {
+            $rawAdminId = DB::table('users')
+                ->where(function ($q) use ($platformAdminEmail): void {
+                    $q->where('email', $platformAdminEmail)
+                        ->orWhereRaw('LOWER(TRIM(email)) = ?', [strtolower($platformAdminEmail)]);
+                })
+                ->value('id');
+
+            if ($rawAdminId) {
+                $platformAdmin = User::withoutTenantScope()->withTrashed()->find($rawAdminId);
+            }
+        }
+
+        if ($platformAdmin) {
+            if ($platformAdmin->trashed()) {
+                $platformAdmin->restore();
+            }
+        } else {
             $platformAdmin = new User;
             $platformAdmin->uuid = (string) Str::uuid();
-            $platformAdmin->email = 'admin@devcenterpoint.com';
+            $platformAdmin->email = $platformAdminEmail;
         }
+
         $platformAdmin->name = 'Platform Super Admin';
         $platformAdmin->password = Hash::make('PlatformAdmin123!');
         $platformAdmin->phone = '+18005550199';

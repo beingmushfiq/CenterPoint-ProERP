@@ -107,27 +107,27 @@ final class PersonaRoleTenancyTest extends TestCase
     {
         $testCases = [
             [
-                'email' => 'admin@slicemart.com',
+                'email' => 'admin@slicemart.test',
                 'expected_role' => 'Administrator',
                 'expected_designation' => 'Enterprise Administrator',
             ],
             [
-                'email' => 'production@slicemart.com',
+                'email' => 'production@slicemart.test',
                 'expected_role' => 'Production Manager',
                 'expected_designation' => 'Plant Production Manager',
             ],
             [
-                'email' => 'qc@slicemart.com',
+                'email' => 'qc@slicemart.test',
                 'expected_role' => 'Quality Inspector',
                 'expected_designation' => 'Quality Assurance Inspector',
             ],
             [
-                'email' => 'store@slicemart.com',
+                'email' => 'store@slicemart.test',
                 'expected_role' => 'Warehouse Storekeeper',
                 'expected_designation' => 'Inventory Controller & Storekeeper',
             ],
             [
-                'email' => 'sales@slicemart.com',
+                'email' => 'sales@slicemart.test',
                 'expected_role' => 'Sales Officer',
                 'expected_designation' => 'Commercial & Sales Operations Officer',
             ],
@@ -166,7 +166,7 @@ final class PersonaRoleTenancyTest extends TestCase
     {
         // 1. Log in as tenant Admin
         $loginRes = $this->postJson('/api/v1/auth/login', [
-            'email' => 'admin@slicemart.com',
+            'email' => 'admin@slicemart.test',
             'password' => '12345678',
             'tenant_id' => $this->tenant1->id,
         ]);
@@ -194,7 +194,7 @@ final class PersonaRoleTenancyTest extends TestCase
 
         // 4. Log in as Production Manager and verify updated designation
         $prodLoginRes = $this->postJson('/api/v1/auth/login', [
-            'email' => 'production@slicemart.com',
+            'email' => 'production@slicemart.test',
             'password' => '12345678',
             'tenant_id' => $this->tenant1->id,
         ]);
@@ -208,7 +208,7 @@ final class PersonaRoleTenancyTest extends TestCase
         // Production Manager permissions
         $prodUser = User::withoutTenantScope()
             ->where('tenant_id', $this->tenant1->id)
-            ->where('email', 'production@slicemart.com')
+            ->where('email', 'production@slicemart.test')
             ->firstOrFail();
         $prodPerms = $prodUser->getEffectivePermissions();
 
@@ -220,7 +220,7 @@ final class PersonaRoleTenancyTest extends TestCase
         // Quality Inspector permissions
         $qcUser = User::withoutTenantScope()
             ->where('tenant_id', $this->tenant1->id)
-            ->where('email', 'qc@slicemart.com')
+            ->where('email', 'qc@slicemart.test')
             ->firstOrFail();
         $qcPerms = $qcUser->getEffectivePermissions();
 
@@ -232,7 +232,7 @@ final class PersonaRoleTenancyTest extends TestCase
         // Warehouse Storekeeper permissions
         $storeUser = User::withoutTenantScope()
             ->where('tenant_id', $this->tenant1->id)
-            ->where('email', 'store@slicemart.com')
+            ->where('email', 'store@slicemart.test')
             ->firstOrFail();
         $storePerms = $storeUser->getEffectivePermissions();
 
@@ -244,7 +244,7 @@ final class PersonaRoleTenancyTest extends TestCase
         // Sales Officer permissions
         $salesUser = User::withoutTenantScope()
             ->where('tenant_id', $this->tenant1->id)
-            ->where('email', 'sales@slicemart.com')
+            ->where('email', 'sales@slicemart.test')
             ->firstOrFail();
         $salesPerms = $salesUser->getEffectivePermissions();
 

@@ -183,13 +183,25 @@ final class TenantPersonaService
         // 1. Provision / Sync Roles with Proper Designations & RBAC
         foreach (self::PERSONAS as $key => $meta) {
             /** @var Role|null $role */
-            $role = Role::withoutTenantScope()->where('tenant_id', $tenant->id)->where('slug', $meta['slug'])->first();
+            $role = Role::withoutTenantScope()
+                ->withTrashed()
+                ->where('tenant_id', $tenant->id)
+                ->where('slug', $meta['slug'])
+                ->first();
 
             if (! $role) {
                 // Check if an alias slug exists (e.g. 'admin' vs 'super_admin')
                 if ($meta['slug'] === 'super_admin') {
-                    $role = Role::withoutTenantScope()->where('tenant_id', $tenant->id)->where('slug', 'admin')->first();
+                    $role = Role::withoutTenantScope()
+                        ->withTrashed()
+                        ->where('tenant_id', $tenant->id)
+                        ->where('slug', 'admin')
+                        ->first();
                 }
+            }
+
+            if ($role && $role->trashed()) {
+                $role->restore();
             }
 
             if (! $role) {
@@ -223,9 +235,14 @@ final class TenantPersonaService
 
         // Also ensure an 'admin' alias role exists if 'super_admin' is the slug, so both resolve seamlessly
         $adminAlias = Role::withoutTenantScope()
+            ->withTrashed()
             ->where('tenant_id', $tenant->id)
             ->where('slug', 'admin')
             ->first();
+
+        if ($adminAlias && $adminAlias->trashed()) {
+            $adminAlias->restore();
+        }
 
         if (! $adminAlias) {
             $adminAlias = new Role;
@@ -258,17 +275,41 @@ final class TenantPersonaService
             $targetEmails = self::resolveEmailsForTenant($tenant, $meta['email_prefixes']);
 
             foreach ($targetEmails as $email) {
+                $normalizedEmail = strtolower(trim($email));
+
                 /** @var User|null $user */
                 $user = User::withoutTenantScope()
+                    ->withTrashed()
                     ->where('tenant_id', $tenant->id)
-                    ->where('email', $email)
+                    ->where(function ($q) use ($normalizedEmail): void {
+                        $q->where('email', $normalizedEmail)
+                            ->orWhereRaw('LOWER(TRIM(email)) = ?', [$normalizedEmail]);
+                    })
                     ->first();
 
                 if (! $user) {
+                    $rawId = DB::table('users')
+                        ->where('tenant_id', $tenant->id)
+                        ->where(function ($q) use ($normalizedEmail): void {
+                            $q->where('email', $normalizedEmail)
+                                ->orWhereRaw('LOWER(TRIM(email)) = ?', [$normalizedEmail]);
+                        })
+                        ->value('id');
+
+                    if ($rawId) {
+                        $user = User::withoutTenantScope()->withTrashed()->find($rawId);
+                    }
+                }
+
+                if ($user) {
+                    if ($user->trashed()) {
+                        $user->restore();
+                    }
+                } else {
                     $user = new User;
                     $user->uuid = (string) Str::uuid();
                     $user->tenant_id = $tenant->id;
-                    $user->email = $email;
+                    $user->email = $normalizedEmail;
                 }
 
                 $user->name = $meta['default_user_name'];
@@ -277,7 +318,7 @@ final class TenantPersonaService
                 $user->status = 'active';
                 $user->locale = $tenant->locale ?? 'en';
                 $user->token_version = 1;
-                $user->perm_version = '1';
+                $user->perm_version = 1;
                 $user->save();
 
                 // Attach Role
@@ -359,7 +400,7 @@ final class TenantPersonaService
         $slug = strtolower($tenant->slug);
 
         foreach ($prefixes as $prefix) {
-            $prefix = strtolower($prefix);
+            $prefix = strtolower(trim($prefix));
 
             // Canonical standard email for each tenant
             if ($tenant->id === 1 || $slug === 'slicemart') {
@@ -390,15 +431,30 @@ final class TenantPersonaService
         ];
 
         foreach ($hrDesignations as $d) {
-            Designation::firstOrCreate([
-                'tenant_id' => $tenant->id,
-                'code' => $d['code'],
-            ], [
-                'uuid' => (string) Str::uuid(),
-                'name' => $d['name'],
-                'grade' => $d['grade'],
-                'is_active' => true,
-            ]);
+            $designation = Designation::withoutTenantScope()
+                ->withTrashed()
+                ->where('tenant_id', $tenant->id)
+                ->where('code', $d['code'])
+                ->first();
+
+            if ($designation) {
+                if ($designation->trashed()) {
+                    $designation->restore();
+                }
+                $designation->name = $d['name'];
+                $designation->grade = $d['grade'];
+                $designation->is_active = true;
+                $designation->save();
+            } else {
+                Designation::create([
+                    'tenant_id' => $tenant->id,
+                    'code' => $d['code'],
+                    'uuid' => (string) Str::uuid(),
+                    'name' => $d['name'],
+                    'grade' => $d['grade'],
+                    'is_active' => true,
+                ]);
+            }
         }
     }
 }
