@@ -166,25 +166,73 @@ export function AppHeader({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Notification loader
+  // Notification & Operational Attention loader
   useEffect(() => {
     let ignore = false;
-    api.get<{ data: NotificationItem[] } | NotificationItem[]>('/notifications')
-      .then((res) => {
-        if (!ignore) {
-          const raw = res.data as unknown;
-          const list = Array.isArray(raw)
+
+    const loadNotificationsAndNotices = async () => {
+      try {
+        const notifPromise = api.get<{ data: NotificationItem[] } | NotificationItem[]>('/notifications');
+        const metricsPromise = api.get<{ data?: { attention_items?: Array<{ id: string; name: string; sku: string; currentStock: number; minThreshold: number }> } } | { attention_items?: Array<{ id: string; name: string; sku: string; currentStock: number; minThreshold: number }> }>('/dashboard/metrics');
+
+        const [notifRes, metricsRes] = await Promise.allSettled([notifPromise, metricsPromise]);
+
+        if (ignore) return;
+
+        let list: NotificationItem[] = [];
+        if (notifRes.status === 'fulfilled') {
+          const raw = notifRes.value.data as unknown;
+          list = Array.isArray(raw)
             ? (raw as NotificationItem[])
             : (((raw as Record<string, unknown>)?.data as NotificationItem[]) ?? []);
-          if (list.length > 0) {
-            setNotifications(list);
+        }
+
+        // Incorporate Attention Notices (e.g. verified low stock items)
+        if (metricsRes.status === 'fulfilled') {
+          const rawMetrics = metricsRes.value.data as unknown;
+          const dataObj = (rawMetrics && typeof rawMetrics === 'object' && 'data' in (rawMetrics as Record<string, unknown>))
+            ? (rawMetrics as { data: { attention_items?: Array<{ id: string; name: string; sku: string; currentStock: number; minThreshold: number }> } }).data
+            : (rawMetrics as { attention_items?: Array<{ id: string; name: string; sku: string; currentStock: number; minThreshold: number }> });
+
+          const attentionItems = dataObj?.attention_items || [];
+          const validAttention = attentionItems.filter(
+            (i) => (i.minThreshold ?? 0) > 0 && (i.currentStock ?? 0) <= (i.minThreshold ?? 0)
+          );
+
+          if (validAttention.length > 0) {
+            const attentionNotice: NotificationItem = {
+              id: -999,
+              uuid: 'operational-attention-notice',
+              user_id: 0,
+              channel: 'in_app',
+              type: 'inventory.low_stock.attention',
+              title_key: `${validAttention.length} ${validAttention.length === 1 ? 'item has' : 'items have'} low stock warnings`,
+              body_key: validAttention
+                .map((i) => `${i.name} (${i.sku}): ${i.currentStock} left (reorder threshold: ${i.minThreshold})`)
+                .join('; '),
+              severity: 'warning',
+              read_at: null,
+              created_at: new Date().toISOString(),
+              action_url: '/inventory?low_stock=true',
+            };
+
+            // Prepend attention notice so it's immediately visible at the top of the feed
+            list = [attentionNotice, ...list.filter((n) => n.type !== 'inventory.low_stock.attention')];
           }
         }
-      })
-      .catch(() => {});
 
+        setNotifications(list);
+      } catch {
+        // fail silently
+      }
+    };
+
+    loadNotificationsAndNotices();
+
+    const interval = setInterval(loadNotificationsAndNotices, 30000);
     return () => {
       ignore = true;
+      clearInterval(interval);
     };
   }, []);
 
@@ -241,7 +289,9 @@ export function AppHeader({
   const markSingleRead = (id: number) => {
     const now = new Date().toISOString();
     setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read_at: now } : n)));
-    api.post(`/notifications/${id}/read`).catch(() => {});
+    if (id > 0) {
+      api.post(`/notifications/${id}/read`).catch(() => {});
+    }
   };
 
   const handleNotificationClick = (notif: NotificationItem) => {
@@ -644,14 +694,25 @@ export function AppHeader({
           <button
             type="button"
             onClick={() => setIsNotifMenuOpen(!isNotifMenuOpen)}
-            className="relative rounded-lg p-1.5 sm:p-2 text-muted hover:bg-surface-sunken hover:text-default transition-token-colors focus-visible:ring-focus cursor-pointer"
+            className={cn(
+              'relative flex items-center justify-center size-8 sm:size-8.5 rounded-xl border transition-all duration-200 cursor-pointer focus-visible:ring-focus group',
+              isNotifMenuOpen
+                ? 'bg-surface-sunken border-primary/50 text-primary shadow-xs'
+                : 'bg-surface-sunken/60 hover:bg-surface border-default/80 hover:border-primary/40 text-muted hover:text-default shadow-2xs hover:shadow-xs'
+            )}
             aria-label="Notifications"
+            title={unreadCount > 0 ? `${unreadCount} unread alert${unreadCount > 1 ? 's' : ''}` : 'Factory Telemetry & Notifications'}
           >
-            <Bell className="size-4" />
-            {unreadCount > 0 && (
-              <span className="absolute top-1.5 right-1.5 flex size-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75"></span>
-                <span className="relative inline-flex rounded-full size-2 bg-red-500"></span>
+            <Bell className={cn('size-4 transition-transform duration-200 group-hover:rotate-12', unreadCount > 0 && 'text-amber-500')} />
+            {unreadCount > 0 ? (
+              <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[9px] font-black text-white shadow-xs ring-2 ring-surface animate-pulse">
+                {unreadCount > 9 ? '9+' : unreadCount}
+              </span>
+            ) : (
+              /* Subtle alive indicator beacon — confirms factory telemetry is active */
+              <span className="absolute top-1.5 right-1.5 flex size-1.5" title="Telemetry Live">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60"></span>
+                <span className="relative inline-flex rounded-full size-1.5 bg-emerald-500/80"></span>
               </span>
             )}
           </button>
@@ -698,13 +759,27 @@ export function AppHeader({
                       <div className="flex items-start gap-2.5">
                         <div className="mt-0.5">{getSeverityIcon(notif.severity)}</div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-xs font-semibold text-default">{notif.title_key}</p>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <p className="text-xs font-semibold text-default">{notif.title_key}</p>
+                            {notif.type.includes('attention') && (
+                              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30">
+                                Attention Notice
+                              </span>
+                            )}
+                          </div>
                           <p className="text-[11px] text-muted mt-0.5 line-clamp-2 leading-relaxed">
                             {notif.body_key}
                           </p>
-                          <span className="text-[10px] text-muted mt-1 block font-mono">
-                            {new Date(notif.created_at).toLocaleTimeString()}
-                          </span>
+                          <div className="flex items-center justify-between gap-2 mt-1.5">
+                            <span className="text-[10px] text-muted block font-mono">
+                              {new Date(notif.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                            {notif.action_url && (
+                              <span className="text-[10px] font-bold text-primary hover:underline">
+                                Review &rarr;
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </button>

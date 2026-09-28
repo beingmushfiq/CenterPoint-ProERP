@@ -481,25 +481,35 @@ export const TenantRoleDashboard: React.FC = () => {
     },
   });
 
+  const metricsAttentionItems = metrics?.attention_items;
+  const recentQc = metrics?.recent_qc;
+  const activeWorkers = metrics?.active_workers;
+
   const attentionItems: OrderPOItem[] = useMemo(() => {
     if (rawLowStock.length > 0) {
-      return rawLowStock.map((item) => ({
-        id: String(item.id),
-        name: item.name,
-        sku: item.sku,
-        warehouse: item.warehouse?.name || 'Main Facility',
-        currentStock: item.current_stock ?? 0,
-        minThreshold: item.min_stock_alert ?? 0,
-        unit: item.unit || 'pcs',
-        suggestedQty: Math.max((item.min_stock_alert ?? 0) - (item.current_stock ?? 0), 10),
-      }));
+      return rawLowStock
+        .filter((item) => (item.min_stock_alert ?? 0) > 0 && (item.current_stock ?? 0) <= (item.min_stock_alert ?? 0))
+        .map((item) => ({
+          id: String(item.id),
+          name: item.name,
+          sku: item.sku,
+          warehouse: item.warehouse?.name || 'Main Facility',
+          currentStock: item.current_stock ?? 0,
+          minThreshold: item.min_stock_alert ?? 0,
+          unit: item.unit || 'pcs',
+          suggestedQty: Math.max((item.min_stock_alert ?? 0) - (item.current_stock ?? 0), 10),
+        }));
     }
-    if (metrics?.attention_items && metrics.attention_items.length > 0) return metrics.attention_items;
+    if (metricsAttentionItems && metricsAttentionItems.length > 0) {
+      return metricsAttentionItems.filter(
+        (item) => (item.minThreshold ?? 0) > 0 && (item.currentStock ?? 0) <= (item.minThreshold ?? 0)
+      );
+    }
     return [];
-  }, [rawLowStock, metrics?.attention_items]);
+  }, [rawLowStock, metricsAttentionItems]);
 
-  const qcList = useMemo(() => metrics?.recent_qc || [], [metrics?.recent_qc]);
-  const workers = useMemo(() => metrics?.active_workers || [], [metrics?.active_workers]);
+  const qcList = useMemo(() => recentQc || [], [recentQc]);
+  const workers = useMemo(() => activeWorkers || [], [activeWorkers]);
 
   // ── Quick actions ────────────────────────────────────────────
   const quickActions = useMemo(() => {

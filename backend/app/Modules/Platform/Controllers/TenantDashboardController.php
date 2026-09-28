@@ -67,7 +67,7 @@ final class TenantDashboardController extends Controller
             $commercial['month_revenue']
         );
         $workforce = $this->computeWorkforceMetrics($tenantId);
-        $ops = $this->computeOperationalEntities($tenantId, $inventoryData['product_stock']);
+        $ops = $this->computeOperationalEntities($tenantId, $inventoryData['product_stock'], $inventoryData['low_stock_product_ids']);
 
         return [
             'commercial' => $commercial,
@@ -259,6 +259,7 @@ final class TenantDashboardController extends Controller
                 'pending_adjustments' => $pendingAdjustments,
             ],
             'product_stock' => $productStock,
+            'low_stock_product_ids' => array_keys($lowStockProductIds),
         ];
     }
 
@@ -391,9 +392,10 @@ final class TenantDashboardController extends Controller
 
     /**
      * @param  \Illuminate\Support\Collection  $productStock
+     * @param  list<int>  $lowStockProductIds
      * @return array<string, mixed>
      */
-    private function computeOperationalEntities(int $tenantId, $productStock): array
+    private function computeOperationalEntities(int $tenantId, $productStock, array $lowStockProductIds = []): array
     {
         $recentBatchesModels = ProductionBatch::where('tenant_id', $tenantId)
             ->with('product:id,name')
@@ -482,24 +484,28 @@ final class TenantDashboardController extends Controller
             ];
         })->values();
 
-        $attentionItems = Product::where('tenant_id', $tenantId)
-            ->take(5)
-            ->get(['id', 'name', 'sku', 'reorder_level'])
-            ->map(static function ($p) use ($productStock): array {
-                $stock = (float) ($productStock[$p->id] ?? 0.0);
-                $minStock = (float) ($p->reorder_level ?? 20.0);
+        $attentionItems = empty($lowStockProductIds)
+            ? []
+            : Product::where('tenant_id', $tenantId)
+                ->whereIn('id', $lowStockProductIds)
+                ->take(5)
+                ->get(['id', 'name', 'sku', 'reorder_level'])
+                ->map(static function ($p) use ($productStock): array {
+                    $stock = (float) ($productStock[$p->id] ?? 0.0);
+                    $minStock = (float) ($p->reorder_level ?? 20.0);
 
-                return [
-                    'id' => (string) $p->id,
-                    'name' => $p->name,
-                    'sku' => $p->sku,
-                    'warehouse' => 'Main Warehouse',
-                    'currentStock' => $stock,
-                    'minThreshold' => $minStock,
-                    'unit' => 'pcs',
-                    'suggestedQty' => max((int) ($minStock - $stock), 10),
-                ];
-            });
+                    return [
+                        'id' => (string) $p->id,
+                        'name' => $p->name,
+                        'sku' => $p->sku,
+                        'warehouse' => 'Main Warehouse',
+                        'currentStock' => $stock,
+                        'minThreshold' => $minStock,
+                        'unit' => 'pcs',
+                        'suggestedQty' => max((int) ($minStock - $stock), 10),
+                    ];
+                })
+                ->values();
 
         return [
             'recent_batches' => $recentBatches,
