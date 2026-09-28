@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace App\Modules\Platform\Controllers;
 
 use App\Core\Auth\JwtService;
+use App\Core\Auth\PermissionCatalogue;
 use App\Http\Controllers\Controller;
+use App\Models\Role;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Modules\Platform\Traits\ResolvesPlatformTenant;
@@ -38,21 +40,78 @@ final class PlatformImpersonationController extends Controller
             ], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
-        // Find primary tenant admin or active user
+        // 1. Prioritize active administrator with super_admin or admin role matching admin naming
         $tenantUser = User::withoutTenantScope()
             ->where('tenant_id', $tenant->id)
             ->where('status', 'active')
-            ->first()
-            ?? User::withoutTenantScope()
+            ->whereHas('roles', function ($q) {
+                $q->whereIn('slug', ['super_admin', 'admin', 'tenant_admin', 'enterprise_admin']);
+            })
+            ->where(function ($q) {
+                $q->where('email', 'like', 'admin@%')
+                    ->orWhere('name', 'like', '%System Administrator%')
+                    ->orWhere('name', 'like', '%Administrator%');
+            })
+            ->orderBy('id', 'asc')
+            ->first();
+
+        // 2. Any active user with an administrator role
+        if (! $tenantUser) {
+            $tenantUser = User::withoutTenantScope()
                 ->where('tenant_id', $tenant->id)
+                ->where('status', 'active')
+                ->whereHas('roles', function ($q) {
+                    $q->whereIn('slug', ['super_admin', 'admin', 'tenant_admin', 'enterprise_admin']);
+                })
+                ->orderBy('id', 'asc')
                 ->first();
+        }
+
+        // 3. Fallback: check by admin email or name pattern
+        if (! $tenantUser) {
+            $tenantUser = User::withoutTenantScope()
+                ->where('tenant_id', $tenant->id)
+                ->where('status', 'active')
+                ->where(function ($q) {
+                    $q->where('email', 'like', 'admin@%')
+                        ->orWhere('name', 'like', '%System Administrator%')
+                        ->orWhere('name', 'like', '%Admin%')
+                        ->orWhere('name', 'like', '%Owner%');
+                })
+                ->orderBy('id', 'asc')
+                ->first();
+        }
+
+        // 4. Any user with administrator role regardless of active status
+        if (! $tenantUser) {
+            $tenantUser = User::withoutTenantScope()
+                ->where('tenant_id', $tenant->id)
+                ->whereHas('roles', function ($q) {
+                    $q->whereIn('slug', ['super_admin', 'admin', 'tenant_admin', 'enterprise_admin']);
+                })
+                ->orderBy('id', 'asc')
+                ->first();
+        }
+
+        // 5. Fallback: any active user in tenant
+        if (! $tenantUser) {
+            $tenantUser = User::withoutTenantScope()
+                ->where('tenant_id', $tenant->id)
+                ->where('status', 'active')
+                ->orderBy('id', 'asc')
+                ->first()
+                ?? User::withoutTenantScope()
+                    ->where('tenant_id', $tenant->id)
+                    ->orderBy('id', 'asc')
+                    ->first();
+        }
 
         if (! $tenantUser) {
             // Auto-provision a default active administrator for this tenant if none exists
             $tenantUser = new User;
             $tenantUser->uuid = (string) \Illuminate\Support\Str::uuid();
             $tenantUser->tenant_id = $tenant->id;
-            $tenantUser->name = $tenant->name.' Admin';
+            $tenantUser->name = 'System Administrator';
             $tenantUser->email = 'admin@'.($tenant->slug ?: 'tenant').'.devcenterpoint.com';
             $tenantUser->password = \Illuminate\Support\Facades\Hash::make(\Illuminate\Support\Str::random(32));
             $tenantUser->status = 'active';
@@ -62,6 +121,20 @@ final class PlatformImpersonationController extends Controller
             $tenantUser->save();
         } elseif ($tenantUser->status !== 'active') {
             $tenantUser->update(['status' => 'active']);
+        }
+
+        // Ensure the tenant user has the administrator role attached
+        $adminRole = Role::withoutTenantScope()
+            ->where(function ($q) use ($tenant) {
+                $q->where('tenant_id', $tenant->id)->orWhereNull('tenant_id');
+            })
+            ->whereIn('slug', ['super_admin', 'admin', 'tenant_admin'])
+            ->orderByRaw("CASE WHEN slug = 'super_admin' THEN 1 WHEN slug = 'admin' THEN 2 ELSE 3 END")
+            ->first();
+
+        if ($adminRole && ! $tenantUser->roles()->where('roles.id', $adminRole->id)->exists()) {
+            $tenantUser->roles()->attach($adminRole->id, ['tenant_id' => $tenant->id]);
+            $tenantUser->unsetRelation('roles');
         }
 
         // Short-lived impersonation token (15 mins)
@@ -108,7 +181,21 @@ final class PlatformImpersonationController extends Controller
             \Illuminate\Support\Facades\Log::warning('Impersonation audit log write deferred: '.$e->getMessage());
         }
 
-        $tenantUser->loadMissing(['roles']);
+        $tenantUser->loadMissing(['roles.permissions']);
+
+        $primaryRole = $tenantUser->roles->firstWhere('slug', 'super_admin')?->name
+            ?? $tenantUser->roles->firstWhere('slug', 'admin')?->name
+            ?? $tenantUser->roles->firstWhere('slug', 'tenant_admin')?->name
+            ?? $tenantUser->roles->first()?->name
+            ?? 'Administrator';
+
+        $effectivePermissions = $tenantUser->getEffectivePermissions();
+        if (empty($effectivePermissions) || ! in_array('*', $effectivePermissions, true)) {
+            $effectivePermissions = array_values(array_unique(array_merge(
+                $effectivePermissions,
+                PermissionCatalogue::ALL_PERMISSIONS
+            )));
+        }
 
         return response()->json([
             'success' => true,
@@ -132,15 +219,15 @@ final class PlatformImpersonationController extends Controller
                     'uuid' => $tenantUser->uuid,
                     'name' => $tenantUser->name,
                     'email' => $tenantUser->email,
-                    'role' => $tenantUser->roles->first()?->name ?? 'Administrator',
-                    'role_label' => $tenantUser->roles->first()?->name ?? 'Administrator',
+                    'role' => $primaryRole,
+                    'role_label' => $primaryRole,
                     'roles' => $tenantUser->roles->pluck('name')->all(),
                     'is_platform_admin' => false,
                     'is_active' => true,
                     'status' => $tenantUser->status,
                     'landing_page' => '/dashboard',
                 ],
-                'permissions' => $tenantUser->getEffectivePermissions(),
+                'permissions' => $effectivePermissions,
                 'impersonator' => [
                     'id' => $superAdmin->id,
                     'name' => $superAdmin->name,

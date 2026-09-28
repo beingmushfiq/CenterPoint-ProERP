@@ -38,6 +38,14 @@ class GetAuthMeAction extends Action
         }
 
         $effectivePermissions = $user->getEffectivePermissions();
+        $hasAdminRole = $user->roles->contains(fn ($r) => in_array($r->slug, ['super_admin', 'admin', 'tenant_admin', 'enterprise_admin'], true));
+        if ($hasAdminRole && ! in_array('*', $effectivePermissions, true)) {
+            $effectivePermissions = array_values(array_unique(array_merge(
+                $effectivePermissions,
+                PermissionCatalogue::ALL_PERMISSIONS
+            )));
+        }
+
         $permVersion = PermissionCatalogue::computePermVersion($effectivePermissions);
 
         if ($user->perm_version !== $permVersion) {
@@ -49,7 +57,11 @@ class GetAuthMeAction extends Action
             'id' => $s->scope_id,
         ])->all();
 
-        $primaryRoleObj = $user->roles->first();
+        $primaryRoleObj = $user->roles->firstWhere('slug', 'super_admin')
+            ?? $user->roles->firstWhere('slug', 'admin')
+            ?? $user->roles->firstWhere('slug', 'tenant_admin')
+            ?? $user->roles->firstWhere('slug', 'enterprise_admin')
+            ?? $user->roles->first();
         $primaryRole = $primaryRoleObj?->name ?? ($user->is_platform_admin ? 'Platform Admin' : 'User');
         $roleNames = $user->roles->pluck('name')->all();
         $designation = $user->employee?->designation?->name

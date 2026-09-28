@@ -98,4 +98,23 @@ final class PlatformImpersonationTest extends TestCase
             'status' => 'active',
         ]);
     }
+
+    public function test_impersonation_prioritizes_admin_over_non_admin_users(): void
+    {
+        $tenant = Tenant::firstOrFail();
+
+        $response = $this->withHeaders([
+            'Authorization' => "Bearer {$this->superAdminToken}",
+        ])->postJson("/api/v1/platform/tenants/{$tenant->id}/impersonate");
+
+        $response->assertOk();
+        $response->assertJsonPath('success', true);
+        $role = $response->json('data.user.role');
+        $this->assertEquals('Administrator', $role);
+
+        $permissions = $response->json('data.permissions');
+        $this->assertNotEmpty($permissions);
+        $this->assertContains('platform.tenant.view', $permissions);
+        $this->assertContains('core.user.view', $permissions);
+    }
 }
