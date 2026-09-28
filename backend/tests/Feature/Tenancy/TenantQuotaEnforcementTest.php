@@ -24,27 +24,6 @@ class TenantQuotaEnforcementTest extends TestCase
         $this->seed();
     }
 
-    /**
-     * @return array<string, string>
-     */
-    private function getTenantAuthHeader(Tenant $tenant, User $user): array
-    {
-        $jwtService = app(JwtService::class);
-        $token = $jwtService->issueToken(
-            userId: $user->id,
-            tenantId: $tenant->id,
-            tokenVersion: $user->token_version ?? 1,
-            permVersion: '1',
-            scopes: [],
-            customClaims: ['email' => $user->email, 'is_platform_user' => false]
-        );
-
-        return [
-            'Authorization' => "Bearer {$token}",
-            'X-Tenant' => $tenant->slug,
-        ];
-    }
-
     public function test_tenant_quota_blocks_product_creation_when_plan_limit_reached(): void
     {
         /** @var Plan $restrictedPlan */
@@ -77,9 +56,16 @@ class TenantQuotaEnforcementTest extends TestCase
         ]);
 
         /** @var User $user */
-        $user = User::withoutTenantScope()->where('is_platform_user', false)->firstOrFail();
-        $user->tenant_id = $tenant->id;
-        $user->save();
+        $user = User::create([
+            'uuid' => (string) \Illuminate\Support\Str::uuid(),
+            'tenant_id' => $tenant->id,
+            'name' => 'Quota Test Admin',
+            'email' => "admin@{$tenant->slug}.com",
+            'password' => \Illuminate\Support\Facades\Hash::make('password'),
+            'status' => 'active',
+            'token_version' => 1,
+            'perm_version' => '1',
+        ]);
 
         $superRole = \App\Models\Role::firstOrCreate(
             ['tenant_id' => $tenant->id, 'name' => 'Super Administrator'],
@@ -172,9 +158,22 @@ class TenantQuotaEnforcementTest extends TestCase
         ]);
 
         /** @var User $user */
-        $user = User::withoutTenantScope()->where('is_platform_user', false)->firstOrFail();
-        $user->tenant_id = $tenant->id;
-        $user->save();
+        $user = User::create([
+            'uuid' => (string) \Illuminate\Support\Str::uuid(),
+            'tenant_id' => $tenant->id,
+            'name' => 'Override Test Admin',
+            'email' => "admin@{$tenant->slug}.com",
+            'password' => \Illuminate\Support\Facades\Hash::make('password'),
+            'status' => 'active',
+            'token_version' => 1,
+            'perm_version' => '1',
+        ]);
+
+        $superRole = \App\Models\Role::firstOrCreate(
+            ['tenant_id' => $tenant->id, 'name' => 'Super Administrator'],
+            ['uuid' => 'role-sa-2', 'slug' => 'super-admin']
+        );
+        $user->roles()->syncWithoutDetaching([$superRole->id]);
 
         TenantContext::bind($tenant->toArray());
         /** @var Unit $unit */
@@ -252,9 +251,16 @@ class TenantQuotaEnforcementTest extends TestCase
         ]);
 
         /** @var User $user */
-        $user = User::withoutTenantScope()->where('is_platform_user', false)->firstOrFail();
-        $user->tenant_id = $tenant->id;
-        $user->save();
+        $user = User::create([
+            'uuid' => (string) \Illuminate\Support\Str::uuid(),
+            'tenant_id' => $tenant->id,
+            'name' => 'WH Test Admin',
+            'email' => "admin@{$tenant->slug}.com",
+            'password' => \Illuminate\Support\Facades\Hash::make('password'),
+            'status' => 'active',
+            'token_version' => 1,
+            'perm_version' => '1',
+        ]);
 
         $superRole = \App\Models\Role::firstOrCreate(
             ['tenant_id' => $tenant->id, 'name' => 'Super Administrator'],
@@ -293,5 +299,26 @@ class TenantQuotaEnforcementTest extends TestCase
         $response->assertJsonPath('error.details.quota.resource', 'warehouses');
         $response->assertJsonPath('error.details.quota.limit', 1);
         $response->assertJsonPath('error.details.quota.current', 1);
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function getTenantAuthHeader(Tenant $tenant, User $user): array
+    {
+        $jwtService = app(JwtService::class);
+        $token = $jwtService->issueToken(
+            userId: $user->id,
+            tenantId: $tenant->id,
+            tokenVersion: $user->token_version ?? 1,
+            permVersion: '1',
+            scopes: [],
+            customClaims: ['email' => $user->email, 'is_platform_user' => false]
+        );
+
+        return [
+            'Authorization' => "Bearer {$token}",
+            'X-Tenant' => $tenant->slug,
+        ];
     }
 }
