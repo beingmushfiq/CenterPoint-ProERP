@@ -32,7 +32,7 @@ export const ProfileSettingsWorkspace: React.FC = () => {
   const [name, setName] = useState(user?.name || '');
   const [email, setEmail] = useState(user?.email || '');
   const [phone, setPhone] = useState(user?.phone || '');
-  const [designation, setDesignation] = useState(user?.role_label || user?.role || 'Staff Member');
+  const [designation, setDesignation] = useState(user?.designation || user?.role_label || user?.role || 'Staff Member');
   const [department, setDepartment] = useState(user?.department || 'Operations');
 
   // Security state
@@ -157,11 +157,11 @@ export const ProfileSettingsWorkspace: React.FC = () => {
             <div className="space-y-1">
               <div className="flex items-center gap-2 flex-wrap">
                 <h1 className="text-xl sm:text-2xl font-bold text-default tracking-tight">
-                  {user?.name || 'Operator Profile'}
+                  {user?.name || 'User Profile'}
                 </h1>
                 <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
                   <Sparkles className="size-3" />
-                  {user?.is_platform_admin ? 'Platform Superadmin' : 'Factory Operator'}
+                  {user?.designation || user?.role_label || user?.role || (user?.is_platform_admin ? 'Platform Superadmin' : 'Operations Member')}
                 </span>
                 <span className="inline-flex items-center rounded-full bg-surface-sunken px-2.5 py-0.5 text-xs font-medium text-muted border border-default">
                   Active

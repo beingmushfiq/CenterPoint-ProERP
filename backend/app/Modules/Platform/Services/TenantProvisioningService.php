@@ -7,7 +7,6 @@ namespace App\Modules\Platform\Services;
 use App\Models\AuditLog;
 use App\Models\Branch;
 use App\Models\Company;
-use App\Models\Permission;
 use App\Models\Plan;
 use App\Models\ReasonCode;
 use App\Models\Role;
@@ -25,6 +24,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Throwable;
 
 /**
  * Transactional Provisioning Engine for New Tenants (ADR-002, ADR-004, ADR-005).
@@ -70,7 +70,7 @@ class TenantProvisioningService
         }
 
         $baseDomain = (string) config('platform.tenant_base_domain', 'devcenterpoint.com');
-        $fullDomain = $slug . '.' . $baseDomain;
+        $fullDomain = $slug.'.'.$baseDomain;
 
         if (TenantDomain::where('domain', $fullDomain)->exists()) {
             throw ValidationException::withMessages([
@@ -335,26 +335,17 @@ class TenantProvisioningService
                 'scope_id' => $company->id,
             ]);
 
-            // 6. Create Default Tenant Admin Role & Attach All Tenant Permissions
-            $adminRole = Role::create([
-                'tenant_id' => $tenant->id,
-                'uuid' => (string) Str::uuid(),
-                'name' => 'Administrator',
-                'slug' => 'admin',
-                'is_system' => true,
-            ]);
+            // 6. Provision the 5 Canonical Enterprise Personas & Roles (Admin, Production, QC, Warehouse, Sales)
+            $roles = \App\Core\Auth\TenantPersonaService::provisionPersonasForTenant($tenant, $ownerPassword);
+            $adminRole = $roles['super_admin'] ?? Role::withoutTenantScope()->where('tenant_id', $tenant->id)->whereIn('slug', ['super_admin', 'admin'])->first();
 
-            // Attach all tenant-scope permissions (exclude platform management)
-            $tenantPermissions = Permission::where('module', '!=', 'platform')->pluck('id');
-            if ($tenantPermissions->isNotEmpty()) {
-                $adminRole->permissions()->sync($tenantPermissions);
+            if ($adminRole) {
+                $owner->roles()->syncWithPivotValues([$adminRole->id], [
+                    'tenant_id' => $tenant->id,
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ]);
             }
-
-            $owner->roles()->syncWithPivotValues([$adminRole->id], [
-                'tenant_id' => $tenant->id,
-                'created_at' => $now,
-                'updated_at' => $now,
-            ]);
 
             // 7. Seed Default System Reason Codes
             $defaultReasons = [
@@ -424,8 +415,8 @@ class TenantProvisioningService
                         'status' => $tenant->status,
                     ],
                 ]);
-            } catch (\Throwable $e) {
-                \Illuminate\Support\Facades\Log::warning('Tenant provisioning audit log skipped: ' . $e->getMessage());
+            } catch (Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning('Tenant provisioning audit log skipped: '.$e->getMessage());
             }
 
             return [

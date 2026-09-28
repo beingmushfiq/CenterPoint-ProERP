@@ -26,7 +26,7 @@ class GetAuthMeAction extends Action
     {
         /** @var User $user */
         $user = $input['user'];
-        $user->loadMissing(['tenant', 'scopes', 'roles']);
+        $user->loadMissing(['tenant', 'scopes', 'roles', 'employee.designation', 'employee.department']);
 
         $effectivePermissions = $user->getEffectivePermissions();
         $permVersion = PermissionCatalogue::computePermVersion($effectivePermissions);
@@ -40,8 +40,12 @@ class GetAuthMeAction extends Action
             'id' => $s->scope_id,
         ])->all();
 
-        $primaryRole = $user->roles->first()?->name ?? ($user->is_platform_admin ? 'Platform Admin' : 'User');
+        $primaryRoleObj = $user->roles->first();
+        $primaryRole = $primaryRoleObj?->name ?? ($user->is_platform_admin ? 'Platform Admin' : 'User');
         $roleNames = $user->roles->pluck('name')->all();
+        $designation = $user->employee?->designation?->name
+            ?? $primaryRoleObj?->designation
+            ?? ($user->is_platform_admin ? 'Platform Superadmin' : 'Operations Member');
 
         $tenantData = null;
         if ($user->tenant !== null) {
@@ -96,7 +100,10 @@ class GetAuthMeAction extends Action
                 'density' => 'comfortable',
                 'landing_page' => '/dashboard',
                 'role' => $primaryRole,
+                'role_label' => $primaryRole,
                 'roles' => $roleNames,
+                'designation' => $designation,
+                'department' => $user->employee?->department?->name,
             ],
             'tenant' => $tenantData,
             'permissions' => $effectivePermissions,

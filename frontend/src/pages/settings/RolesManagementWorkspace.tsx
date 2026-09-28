@@ -20,6 +20,7 @@ import {
   Layers,
   UserPlus,
   UserMinus,
+  Briefcase,
 } from 'lucide-react';
 import { api } from '../../lib/api/client';
 import { extractList } from '../../lib/api/apiData';
@@ -51,6 +52,7 @@ export interface RoleData {
   id: number;
   uuid: string;
   name: string;
+  designation?: string | null;
   slug: string;
   description?: string | null;
   is_system: boolean;
@@ -80,6 +82,7 @@ export const RolesManagementWorkspace: React.FC = () => {
   const [editingRole, setEditingRole] = useState<RoleData | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [roleName, setRoleName] = useState('');
+  const [roleDesignation, setRoleDesignation] = useState('');
   const [roleSlug, setRoleSlug] = useState('');
   const [roleDescription, setRoleDescription] = useState('');
   const [selectedPermIds, setSelectedPermIds] = useState<Set<number>>(new Set());
@@ -159,6 +162,7 @@ interface RoleMemberUser {
   const handleOpenCreate = () => {
     setEditingRole(null);
     setRoleName('');
+    setRoleDesignation('');
     setRoleSlug('');
     setRoleDescription('');
     setSelectedPermIds(new Set());
@@ -175,6 +179,7 @@ interface RoleMemberUser {
       const target = (payload as RoleData) || role;
       setEditingRole(target);
       setRoleName(target.name);
+      setRoleDesignation(target.designation || '');
       setRoleSlug(target.slug);
       setRoleDescription(target.description || '');
       const ids = new Set<number>((target.permissions || []).map((p: PermissionItem | { id: number | string }) => Number(p.id)));
@@ -183,6 +188,7 @@ interface RoleMemberUser {
     } catch {
       setEditingRole(role);
       setRoleName(role.name);
+      setRoleDesignation(role.designation || '');
       setRoleSlug(role.slug);
       setRoleDescription(role.description || '');
       const ids = new Set<number>((role.permissions || []).map((p) => Number(p.id)));
@@ -195,6 +201,7 @@ interface RoleMemberUser {
   const handleCloneRole = (role: RoleData) => {
     setEditingRole(null);
     setRoleName(`${role.name} (Copy)`);
+    setRoleDesignation(`${role.designation || role.name} (Copy)`);
     setRoleSlug(`${role.slug}_copy`);
     setRoleDescription(`Cloned from ${role.name}. ${role.description || ''}`);
     const ids = new Set((role.permissions || []).map((p) => p.id));
@@ -302,6 +309,7 @@ interface RoleMemberUser {
     try {
       const payload = {
         name: roleName.trim(),
+        designation: roleDesignation.trim() || undefined,
         slug: roleSlug.trim() || undefined,
         description: roleDescription.trim() || undefined,
         permission_ids: Array.from(selectedPermIds),
@@ -542,6 +550,12 @@ interface RoleMemberUser {
                           </span>
                         )}
                       </div>
+                      {role.designation && (
+                        <div className="text-xs font-semibold text-primary mt-1 flex items-center gap-1">
+                          <Briefcase className="size-3 text-primary/70 shrink-0" />
+                          <span>{role.designation}</span>
+                        </div>
+                      )}
                       <span className="font-mono text-[11px] text-muted block mt-0.5">{role.slug}</span>
                     </div>
 
@@ -638,7 +652,7 @@ interface RoleMemberUser {
         >
           <div className="space-y-6 max-h-[80vh] overflow-y-auto pr-1">
             {/* Basic Information */}
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 bg-surface-sunken p-4 rounded-xl border border-default">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 bg-surface-sunken p-4 rounded-xl border border-default">
               <div>
                 <label className="text-[11px] font-bold uppercase tracking-wider text-muted block mb-1">
                   Role Title *
@@ -646,7 +660,7 @@ interface RoleMemberUser {
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Assistant QC Inspector"
+                  placeholder="e.g. Production Manager"
                   value={roleName}
                   onChange={(e) => {
                     setRoleName(e.target.value);
@@ -660,11 +674,24 @@ interface RoleMemberUser {
 
               <div>
                 <label className="text-[11px] font-bold uppercase tracking-wider text-muted block mb-1">
+                  Official Role Designation *
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Plant Production Manager"
+                  value={roleDesignation}
+                  onChange={(e) => setRoleDesignation(e.target.value)}
+                  className="w-full rounded-lg border border-default bg-surface px-3 py-1.5 text-xs text-default placeholder-muted focus:border-primary focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="text-[11px] font-bold uppercase tracking-wider text-muted block mb-1">
                   Role Key / Code
                 </label>
                 <input
                   type="text"
-                  placeholder="e.g. assistant_qc"
+                  placeholder="e.g. production_manager"
                   value={roleSlug}
                   disabled={editingRole?.is_system}
                   onChange={(e) => setRoleSlug(e.target.value)}
@@ -674,7 +701,7 @@ interface RoleMemberUser {
 
               <div>
                 <label className="text-[11px] font-bold uppercase tracking-wider text-muted block mb-1">
-                  Description
+                  Primary Domain / Scope
                 </label>
                 <input
                   type="text"

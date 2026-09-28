@@ -97,7 +97,7 @@ function SingleEmployeeBadge({
                 {employee.display_name}
               </div>
               <div className="text-[7.5pt] font-bold text-indigo-600 leading-tight mt-0.5">
-                {employee.designation?.name || 'Factory Operator'}
+                {employee.designation?.name || 'Staff Member'}
               </div>
               <div className="text-[6.5pt] font-medium text-slate-500 leading-tight">
                 {employee.department?.name || 'Production Floor'}

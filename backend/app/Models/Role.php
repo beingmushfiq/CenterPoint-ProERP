@@ -18,6 +18,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property string $uuid
  * @property int|null $tenant_id
  * @property string $name
+ * @property string|null $designation
  * @property string $guard_name
  * @property string|null $description
  * @property bool $is_system
@@ -40,6 +41,7 @@ class Role extends Model
         'uuid',
         'tenant_id',
         'name',
+        'designation',
         'slug',
         'description',
         'is_system',

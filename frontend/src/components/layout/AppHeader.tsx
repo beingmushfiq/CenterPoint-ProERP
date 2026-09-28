@@ -761,8 +761,8 @@ export function AppHeader({
             </div>
             <div className="hidden text-left sm:block">
               <div className="text-xs font-semibold text-default leading-tight">{user?.name ?? 'System User'}</div>
-              <div className="text-[10px] text-muted truncate max-w-30">
-                {user?.role ?? (user?.is_platform_admin ? 'Platform Administrator' : 'Operations Member')}
+              <div className="text-[10px] text-muted truncate max-w-36">
+                {user?.designation || user?.role_label || user?.role || (user?.is_platform_admin ? 'Platform Administrator' : 'Operations Member')}
               </div>
             </div>
             <ChevronDown className="hidden size-3 text-muted sm:block" />
@@ -773,9 +773,9 @@ export function AppHeader({
               <div className="border-b border-default px-3 py-2.5">
                 <p className="text-xs font-bold text-default">{user?.name ?? 'Operations User'}</p>
                 <p className="text-[11px] text-muted truncate">{user?.email ?? 'operations@company.com'}</p>
-                <div className="mt-1.5 inline-flex items-center gap-1 rounded-full bg-blue-500/10 px-2 py-0.5 text-[9px] font-semibold text-blue-600 dark:text-blue-400 border border-blue-500/20">
+                <div className="mt-1.5 inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-0.5 text-[10px] font-semibold text-primary border border-primary/20">
                   <Zap className="size-2.5" />
-                  <span>Factory Operator</span>
+                  <span>{user?.designation || user?.role_label || user?.role || (user?.is_platform_admin ? 'Platform Superadmin' : 'Operations Member')}</span>
                 </div>
               </div>
 

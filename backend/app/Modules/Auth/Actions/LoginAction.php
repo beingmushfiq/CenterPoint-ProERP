@@ -177,8 +177,12 @@ class LoginAction extends Action
             ];
         }
 
-        $primaryRole = $user->roles->first()?->name ?? ($user->is_platform_admin ? 'Platform Admin' : 'User');
+        $primaryRoleObj = $user->roles->first();
+        $primaryRole = $primaryRoleObj?->name ?? ($user->is_platform_admin ? 'Platform Admin' : 'User');
         $roleNames = $user->roles->pluck('name')->all();
+        $designation = $user->employee?->designation?->name
+            ?? $primaryRoleObj?->designation
+            ?? ($user->is_platform_admin ? 'Platform Superadmin' : 'Operations Member');
 
         return [
             'access_token' => $accessToken,
@@ -196,7 +200,10 @@ class LoginAction extends Action
                 'density' => 'comfortable',
                 'landing_page' => '/dashboard',
                 'role' => $primaryRole,
+                'role_label' => $primaryRole,
                 'roles' => $roleNames,
+                'designation' => $designation,
+                'department' => $user->employee?->department?->name,
             ],
             'tenant' => $tenantData,
             'permissions' => $effectivePermissions,
@@ -224,21 +231,21 @@ class LoginAction extends Action
         $query->where(static function ($q) use ($identifier, $clean): void {
             $q->whereRaw('LOWER(email) = ?', [$clean])
                 ->orWhereRaw('LOWER(name) = ?', [$clean])
-                ->orWhere('name', 'LIKE', '%' . $identifier . '%')
+                ->orWhere('name', 'LIKE', '%'.$identifier.'%')
                 ->orWhereHas('roles', static function ($rq) use ($identifier, $clean): void {
                     $rq->whereRaw('LOWER(name) = ?', [$clean])
                         ->orWhereRaw('LOWER(slug) = ?', [$clean])
-                        ->orWhere('name', 'LIKE', '%' . $identifier . '%')
-                        ->orWhere('slug', 'LIKE', '%' . $identifier . '%');
+                        ->orWhere('name', 'LIKE', '%'.$identifier.'%')
+                        ->orWhere('slug', 'LIKE', '%'.$identifier.'%');
                 })
                 ->orWhereHas('employee.designation', static function ($dq) use ($identifier, $clean): void {
                     $dq->whereRaw('LOWER(name) = ?', [$clean])
-                        ->orWhere('name', 'LIKE', '%' . $identifier . '%');
+                        ->orWhere('name', 'LIKE', '%'.$identifier.'%');
                 })
                 ->orWhereHas('tenant', static function ($tq) use ($identifier, $clean): void {
                     $tq->whereRaw('LOWER(slug) = ?', [$clean])
                         ->orWhereRaw('LOWER(name) = ?', [$clean])
-                        ->orWhere('slug', 'LIKE', '%' . $identifier . '%');
+                        ->orWhere('slug', 'LIKE', '%'.$identifier.'%');
                 });
         });
 
@@ -268,6 +275,7 @@ class LoginAction extends Action
             if (strtolower($u->tenant?->slug ?? '') === $clean) {
                 return 55;
             }
+
             return 10;
         })->values();
     }

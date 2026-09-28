@@ -18,6 +18,7 @@ export interface User {
   phone?: string;
   role_label?: string;
   department?: string;
+  designation?: string;
 }
 
 export interface TenantInfo {

@@ -4734,7 +4734,7 @@ export const HrWorkspace: React.FC = () => {
                   {selectedEmployeeForBadge.display_name}
                 </div>
                 <div className="text-xs font-semibold text-primary">
-                  {selectedEmployeeForBadge.designation?.name ?? 'Factory Operator'}
+                  {selectedEmployeeForBadge.designation?.name ?? 'Staff Member'}
                 </div>
                 <div className="text-[11px] text-muted">
                   {selectedEmployeeForBadge.department?.name ?? 'Production Floor'}

@@ -20,34 +20,15 @@ use Symfony\Component\HttpFoundation\Response;
 
 class RoleController extends Controller
 {
-    private function resolveTenantId(Request $request): ?int
-    {
-        if (TenantContext::isBound()) {
-            return TenantContext::current()->tenantId();
-        }
-
-        $user = $request->user();
-        if ($user && $user->tenant_id) {
-            return (int) $user->tenant_id;
-        }
-
-        $attr = $request->attributes->get('tenant_id');
-        if ($attr) {
-            return (int) $attr;
-        }
-
-        return null;
-    }
-
     public function index(Request $request): JsonResponse
     {
         $tenantId = $this->resolveTenantId($request);
 
         $roles = Role::query()
-            ->where(function ($query) use ($tenantId) {
+            ->where(function ($query) use ($tenantId): void {
                 if ($tenantId) {
                     $query->where('tenant_id', $tenantId)
-                          ->orWhereNull('tenant_id');
+                        ->orWhereNull('tenant_id');
                 } else {
                     $query->whereNull('tenant_id');
                 }
@@ -77,14 +58,14 @@ class RoleController extends Controller
             $mod = $perm->module ?: 'General';
             $res = $perm->resource ?: 'Global';
 
-            if (!isset($grouped[$mod])) {
+            if (! isset($grouped[$mod])) {
                 $grouped[$mod] = [
                     'module' => $mod,
                     'resources' => [],
                 ];
             }
 
-            if (!isset($grouped[$mod]['resources'][$res])) {
+            if (! isset($grouped[$mod]['resources'][$res])) {
                 $grouped[$mod]['resources'][$res] = [
                     'resource' => $res,
                     'permissions' => [],
@@ -104,6 +85,7 @@ class RoleController extends Controller
         // Convert associative arrays to lists
         $groupedList = array_values(array_map(function ($modData) {
             $modData['resources'] = array_values($modData['resources']);
+
             return $modData;
         }, $grouped));
 
@@ -120,10 +102,10 @@ class RoleController extends Controller
         $tenantId = $this->resolveTenantId($request);
 
         $role = Role::query()
-            ->where(function ($query) use ($tenantId) {
+            ->where(function ($query) use ($tenantId): void {
                 if ($tenantId) {
                     $query->where('tenant_id', $tenantId)
-                          ->orWhereNull('tenant_id');
+                        ->orWhereNull('tenant_id');
                 } else {
                     $query->whereNull('tenant_id');
                 }
@@ -143,13 +125,14 @@ class RoleController extends Controller
 
         $validated = $request->validate([
             'name' => 'required|string|max:100',
+            'designation' => 'nullable|string|max:191',
             'slug' => 'nullable|string|max:100',
             'description' => 'nullable|string|max:255',
             'permission_ids' => 'nullable|array',
             'permission_ids.*' => 'integer|exists:permissions,id',
         ]);
 
-        if (!empty($validated['permission_ids'])) {
+        if (! empty($validated['permission_ids'])) {
             $catalogueNames = PermissionCatalogue::ALL_PERMISSIONS;
             $invalidIds = Permission::whereIn('id', $validated['permission_ids'])
                 ->whereNotIn('name', $catalogueNames)
@@ -162,7 +145,7 @@ class RoleController extends Controller
             }
         }
 
-        $slug = !empty($validated['slug'])
+        $slug = ! empty($validated['slug'])
             ? Str::slug($validated['slug'], '_')
             : Str::slug($validated['name'], '_');
 
@@ -173,7 +156,7 @@ class RoleController extends Controller
             ->first();
 
         if ($existing) {
-            $slug .= '_' . Str::lower(Str::random(4));
+            $slug .= '_'.Str::lower(Str::random(4));
         }
 
         $role = DB::transaction(function () use ($tenantId, $validated, $slug, $auditLogger, $request) {
@@ -181,12 +164,13 @@ class RoleController extends Controller
                 'uuid' => (string) Str::uuid(),
                 'tenant_id' => $tenantId,
                 'name' => $validated['name'],
+                'designation' => $validated['designation'] ?? null,
                 'slug' => $slug,
                 'description' => $validated['description'] ?? null,
                 'is_system' => false,
             ]);
 
-            if (!empty($validated['permission_ids'])) {
+            if (! empty($validated['permission_ids'])) {
                 $role->permissions()->sync($validated['permission_ids']);
             }
 
@@ -196,6 +180,7 @@ class RoleController extends Controller
                 before: null,
                 after: [
                     'name' => $role->name,
+                    'designation' => $role->designation,
                     'slug' => $role->slug,
                     'permission_ids' => $validated['permission_ids'] ?? [],
                 ],
@@ -221,10 +206,10 @@ class RoleController extends Controller
         $tenantId = $this->resolveTenantId($request);
 
         $role = Role::query()
-            ->where(function ($query) use ($tenantId) {
+            ->where(function ($query) use ($tenantId): void {
                 if ($tenantId) {
                     $query->where('tenant_id', $tenantId)
-                          ->orWhereNull('tenant_id');
+                        ->orWhereNull('tenant_id');
                 } else {
                     $query->whereNull('tenant_id');
                 }
@@ -233,13 +218,14 @@ class RoleController extends Controller
 
         $validated = $request->validate([
             'name' => 'sometimes|required|string|max:100',
+            'designation' => 'nullable|string|max:191',
             'slug' => 'nullable|string|max:100',
             'description' => 'nullable|string|max:255',
             'permission_ids' => 'nullable|array',
             'permission_ids.*' => 'integer|exists:permissions,id',
         ]);
 
-        if (!empty($validated['permission_ids'])) {
+        if (! empty($validated['permission_ids'])) {
             $catalogueNames = PermissionCatalogue::ALL_PERMISSIONS;
             $invalidIds = Permission::whereIn('id', $validated['permission_ids'])
                 ->whereNotIn('name', $catalogueNames)
@@ -254,18 +240,20 @@ class RoleController extends Controller
 
         $beforeState = [
             'name' => $role->name,
+            'designation' => $role->designation,
             'description' => $role->description,
             'permission_ids' => $role->permissions()->pluck('permissions.id')->toArray(),
         ];
 
-        DB::transaction(function () use ($role, $validated, $beforeState, $auditLogger, $tenantId, $request) {
-            // Update metadata for tenant-created roles
-            if (!$role->is_system && ($tenantId === null || $role->tenant_id === $tenantId)) {
+        DB::transaction(function () use ($role, $validated, $beforeState, $auditLogger, $tenantId, $request): void {
+            // Update metadata for tenant-created and system roles
+            if ($tenantId === null || $role->tenant_id === $tenantId) {
                 $role->fill(array_filter([
                     'name' => $validated['name'] ?? null,
-                    'slug' => !empty($validated['slug']) ? Str::slug($validated['slug'], '_') : null,
-                    'description' => $validated['description'] ?? null,
-                ]));
+                    'designation' => array_key_exists('designation', $validated) ? $validated['designation'] : null,
+                    'slug' => (! empty($validated['slug']) && ! $role->is_system) ? Str::slug($validated['slug'], '_') : null,
+                    'description' => array_key_exists('description', $validated) ? $validated['description'] : null,
+                ], fn ($val) => $val !== null));
                 $role->save();
             }
 
@@ -275,6 +263,7 @@ class RoleController extends Controller
 
             $afterState = [
                 'name' => $role->name,
+                'designation' => $role->designation,
                 'description' => $role->description,
                 'permission_ids' => $validated['permission_ids'] ?? $beforeState['permission_ids'],
             ];
@@ -304,7 +293,7 @@ class RoleController extends Controller
         $tenantId = $this->resolveTenantId($request);
 
         $role = Role::query()
-            ->where(function ($query) use ($tenantId) {
+            ->where(function ($query) use ($tenantId): void {
                 if ($tenantId) {
                     $query->where('tenant_id', $tenantId);
                 } else {
@@ -326,7 +315,7 @@ class RoleController extends Controller
             ], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
-        DB::transaction(function () use ($role, $auditLogger, $tenantId, $request) {
+        DB::transaction(function () use ($role, $auditLogger, $tenantId, $request): void {
             $role->permissions()->detach();
             $role->delete();
 
@@ -358,10 +347,10 @@ class RoleController extends Controller
         $tenantId = $this->resolveTenantId($request);
 
         $role = Role::query()
-            ->where(function ($query) use ($tenantId) {
+            ->where(function ($query) use ($tenantId): void {
                 if ($tenantId) {
                     $query->where('tenant_id', $tenantId)
-                          ->orWhereNull('tenant_id');
+                        ->orWhereNull('tenant_id');
                 } else {
                     $query->whereNull('tenant_id');
                 }
@@ -377,8 +366,8 @@ class RoleController extends Controller
             ]);
 
         if ($request->filled('search')) {
-            $search = '%' . $request->query('search') . '%';
-            $query->where(function ($q) use ($search) {
+            $search = '%'.$request->query('search').'%';
+            $query->where(function ($q) use ($search): void {
                 $q->where('name', 'like', $search)
                     ->orWhere('email', 'like', $search);
             });
@@ -425,10 +414,10 @@ class RoleController extends Controller
         $tenantId = $this->resolveTenantId($request);
 
         $role = Role::query()
-            ->where(function ($query) use ($tenantId) {
+            ->where(function ($query) use ($tenantId): void {
                 if ($tenantId) {
                     $query->where('tenant_id', $tenantId)
-                          ->orWhereNull('tenant_id');
+                        ->orWhereNull('tenant_id');
                 } else {
                     $query->whereNull('tenant_id');
                 }
@@ -449,7 +438,7 @@ class RoleController extends Controller
             ], Response::HTTP_CONFLICT);
         }
 
-        DB::transaction(function () use ($role, $user, $tenantId, $auditLogger, $request) {
+        DB::transaction(function () use ($role, $user, $tenantId, $auditLogger, $request): void {
             $user->roles()->attach($role->id, ['tenant_id' => $tenantId]);
             $user->perm_version = ($user->perm_version ?? 1) + 1;
             $user->save();
@@ -488,10 +477,10 @@ class RoleController extends Controller
         $tenantId = $this->resolveTenantId($request);
 
         $role = Role::query()
-            ->where(function ($query) use ($tenantId) {
+            ->where(function ($query) use ($tenantId): void {
                 if ($tenantId) {
                     $query->where('tenant_id', $tenantId)
-                          ->orWhereNull('tenant_id');
+                        ->orWhereNull('tenant_id');
                 } else {
                     $query->whereNull('tenant_id');
                 }
@@ -502,7 +491,7 @@ class RoleController extends Controller
             ->when($tenantId, fn ($q) => $q->where('tenant_id', $tenantId), fn ($q) => $q->whereNull('tenant_id'))
             ->findOrFail($userId);
 
-        DB::transaction(function () use ($role, $user, $tenantId, $auditLogger, $request) {
+        DB::transaction(function () use ($role, $user, $tenantId, $auditLogger, $request): void {
             $user->roles()->detach($role->id);
             $user->perm_version = ($user->perm_version ?? 1) + 1;
             $user->save();
@@ -527,5 +516,24 @@ class RoleController extends Controller
         return response()->json([
             'message' => "User '{$user->name}' removed from '{$role->name}' role.",
         ]);
+    }
+
+    private function resolveTenantId(Request $request): ?int
+    {
+        if (TenantContext::isBound()) {
+            return TenantContext::current()->tenantId();
+        }
+
+        $user = $request->user();
+        if ($user && $user->tenant_id) {
+            return (int) $user->tenant_id;
+        }
+
+        $attr = $request->attributes->get('tenant_id');
+        if ($attr) {
+            return (int) $attr;
+        }
+
+        return null;
     }
 }

@@ -27,6 +27,7 @@ export interface UserRole {
   id: number;
   uuid: string;
   name: string;
+  designation?: string | null;
   slug: string;
   is_system?: boolean;
 }
@@ -64,6 +65,7 @@ export interface UserData {
 export interface RoleOption {
   id: number;
   name: string;
+  designation?: string | null;
   slug: string;
   description?: string | null;
   is_system?: boolean;
@@ -718,9 +720,13 @@ export const UsersManagementWorkspace: React.FC = () => {
                                 className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium border ${getRoleBadgeStyle(
                                   r.slug
                                 )}`}
+                                title={r.designation ? `Designation: ${r.designation}` : undefined}
                               >
                                 <Shield className="w-3 h-3 mr-1 opacity-70" />
-                                {r.name}
+                                <span>{r.name}</span>
+                                {r.designation && (
+                                  <span className="opacity-75 font-normal ml-1">({r.designation})</span>
+                                )}
                               </span>
                             ))
                           ) : (
@@ -912,6 +918,9 @@ export const UsersManagementWorkspace: React.FC = () => {
                           </span>
                         )}
                       </div>
+                      {role.designation && (
+                        <div className="text-xs font-semibold text-primary mt-0.5">{role.designation}</div>
+                      )}
                       <div className="text-xs text-muted-foreground font-mono mt-0.5">{role.slug}</div>
                       {role.description && (
                         <p className="text-xs text-muted-foreground/90 mt-1 line-clamp-2">{role.description}</p>

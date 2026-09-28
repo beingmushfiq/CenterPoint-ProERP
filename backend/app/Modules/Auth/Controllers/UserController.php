@@ -8,9 +8,9 @@ use App\Core\Audit\AuditAction;
 use App\Core\Audit\AuditLogger;
 use App\Core\Tenancy\TenantContext;
 use App\Http\Controllers\Controller;
-use App\Modules\HR\Models\Employee;
 use App\Models\Role;
 use App\Models\User;
+use App\Modules\HR\Models\Employee;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -22,25 +22,6 @@ use Symfony\Component\HttpFoundation\Response;
 
 class UserController extends Controller
 {
-    private function resolveTenantId(Request $request): ?int
-    {
-        if (TenantContext::isBound()) {
-            return TenantContext::current()->tenantId();
-        }
-
-        $user = $request->user();
-        if ($user && $user->tenant_id) {
-            return (int) $user->tenant_id;
-        }
-
-        $attr = $request->attributes->get('tenant_id');
-        if ($attr) {
-            return (int) $attr;
-        }
-
-        return null;
-    }
-
     /**
      * List all users for the current tenant.
      */
@@ -51,7 +32,7 @@ class UserController extends Controller
         $query = User::query()
             ->when($tenantId, fn ($q) => $q->where('tenant_id', $tenantId), fn ($q) => $q->whereNull('tenant_id'))
             ->with([
-                'roles:id,uuid,name,slug,is_system',
+                'roles:id,uuid,name,designation,slug,is_system',
                 'employee:id,uuid,employee_code,first_name,last_name,display_name,department_id,designation_id,phone,email,employment_status,user_id',
                 'employee.department:id,name,code',
                 'employee.designation:id,name,code',
@@ -59,12 +40,12 @@ class UserController extends Controller
             ]);
 
         if ($request->filled('search')) {
-            $search = '%' . $request->query('search') . '%';
-            $query->where(function ($q) use ($search) {
+            $search = '%'.$request->query('search').'%';
+            $query->where(function ($q) use ($search): void {
                 $q->where('name', 'like', $search)
                     ->orWhere('email', 'like', $search)
                     ->orWhere('phone', 'like', $search)
-                    ->orWhereHas('employee', function ($eq) use ($search) {
+                    ->orWhereHas('employee', function ($eq) use ($search): void {
                         $eq->where('display_name', 'like', $search)
                             ->orWhere('employee_code', 'like', $search);
                     });
@@ -107,6 +88,7 @@ class UserController extends Controller
                     'id' => $r->id,
                     'uuid' => $r->uuid,
                     'name' => $r->name,
+                    'designation' => $r->designation,
                     'slug' => $r->slug,
                     'is_system' => (bool) $r->is_system,
                 ]),
@@ -185,7 +167,7 @@ class UserController extends Controller
             ]);
 
             // Attach Roles with tenant_id in pivot
-            if (!empty($validated['role_ids'])) {
+            if (! empty($validated['role_ids'])) {
                 $pivotData = [];
                 foreach ($validated['role_ids'] as $roleId) {
                     $pivotData[$roleId] = ['tenant_id' => $tenantId];
@@ -194,7 +176,7 @@ class UserController extends Controller
             }
 
             // Link Employee if specified
-            if (!empty($validated['employee_id'])) {
+            if (! empty($validated['employee_id'])) {
                 $employee = Employee::query()
                     ->when($tenantId, fn ($q) => $q->where('tenant_id', $tenantId))
                     ->findOrFail($validated['employee_id']);
@@ -225,7 +207,7 @@ class UserController extends Controller
         });
 
         $user->load([
-            'roles:id,uuid,name,slug,is_system',
+            'roles:id,uuid,name,designation,slug,is_system',
             'employee:id,uuid,employee_code,first_name,last_name,display_name,department_id,designation_id',
             'employee.department:id,name',
             'employee.designation:id,name',
@@ -247,7 +229,7 @@ class UserController extends Controller
         $user = User::query()
             ->when($tenantId, fn ($q) => $q->where('tenant_id', $tenantId), fn ($q) => $q->whereNull('tenant_id'))
             ->with([
-                'roles:id,uuid,name,slug,is_system,description',
+                'roles:id,uuid,name,designation,slug,is_system,description',
                 'roles.permissions:id,name,module,resource,action',
                 'employee',
                 'employee.department',
@@ -323,10 +305,10 @@ class UserController extends Controller
             'employee_id' => $user->employee?->id,
         ];
 
-        DB::transaction(function () use ($user, $validated, $tenantId, $beforeState, $auditLogger, $request) {
+        DB::transaction(function () use ($user, $validated, $tenantId, $beforeState, $auditLogger, $request): void {
             $user->fill(array_filter([
                 'name' => $validated['name'] ?? null,
-                'email' => !empty($validated['email']) ? strtolower(trim($validated['email'])) : null,
+                'email' => ! empty($validated['email']) ? strtolower(trim($validated['email'])) : null,
                 'phone' => array_key_exists('phone', $validated) ? $validated['phone'] : null,
                 'status' => $validated['status'] ?? null,
                 'default_company_id' => $validated['default_company_id'] ?? null,
@@ -414,7 +396,7 @@ class UserController extends Controller
 
         $beforeRoles = $user->roles()->pluck('roles.id')->toArray();
 
-        DB::transaction(function () use ($user, $validated, $tenantId, $beforeRoles, $auditLogger, $request) {
+        DB::transaction(function () use ($user, $validated, $tenantId, $beforeRoles, $auditLogger, $request): void {
             $pivotData = [];
             foreach ($validated['role_ids'] as $roleId) {
                 $pivotData[$roleId] = ['tenant_id' => $tenantId];
@@ -526,5 +508,24 @@ class UserController extends Controller
         return response()->json([
             'message' => "Password for '{$user->name}' reset successfully.",
         ]);
+    }
+
+    private function resolveTenantId(Request $request): ?int
+    {
+        if (TenantContext::isBound()) {
+            return TenantContext::current()->tenantId();
+        }
+
+        $user = $request->user();
+        if ($user && $user->tenant_id) {
+            return (int) $user->tenant_id;
+        }
+
+        $attr = $request->attributes->get('tenant_id');
+        if ($attr) {
+            return (int) $attr;
+        }
+
+        return null;
     }
 }
