@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Cache;
 
 /**
  * App\Models\Tenant
@@ -168,11 +170,107 @@ class Tenant extends Model
     }
 
     /**
+     * Check if tenant's subscription and grace period have lapsed.
+     */
+    public function isSubscriptionExpiredPastGrace(): bool
+    {
+        if (in_array($this->status, ['suspended', 'cancelled', 'archived'], true)) {
+            return true;
+        }
+
+        // 1. Check paid subscription expiries
+        /** @var TenantSubscription|null $latestSub */
+        $latestSub = $this->subscriptions()->latest('id')->first();
+        if ($latestSub !== null && $latestSub->ends_at !== null) {
+            if ($latestSub->ends_at->isPast()) {
+                $graceDays = (int) ($latestSub->grace_period_days ?? 7);
+                $graceCutoff = $latestSub->grace_period_ends_at ?? $latestSub->ends_at->copy()->addDays($graceDays);
+                if ($graceCutoff->isPast()) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        // 2. Check trial expiries (without paid subscription)
+        if ($this->trial_ends_at !== null && $this->trial_ends_at->isPast()) {
+            $trialGraceCutoff = $this->trial_ends_at->copy()->addDays(7);
+            if ($trialGraceCutoff->isPast()) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Determine if tenant is suspended (explicitly or via lapsed grace period).
+     */
+    public function isSuspended(): bool
+    {
+        return in_array($this->status, ['suspended', 'cancelled', 'archived'], true)
+            || $this->isSubscriptionExpiredPastGrace();
+    }
+
+    /**
+     * Resolve the effective operational status in real-time.
+     */
+    public function resolveEffectiveStatus(): string
+    {
+        if (in_array($this->status, ['suspended', 'cancelled', 'archived'], true)) {
+            return $this->status;
+        }
+
+        if ($this->isSubscriptionExpiredPastGrace()) {
+            return 'suspended';
+        }
+
+        // Check if in grace period (past_due)
+        $latestSub = $this->subscriptions()->latest('id')->first();
+        if ($latestSub !== null && $latestSub->ends_at !== null && $latestSub->ends_at->isPast()) {
+            return 'past_due';
+        }
+
+        if ($this->trial_ends_at !== null && $this->trial_ends_at->isPast()) {
+            return 'past_due';
+        }
+
+        return $this->status;
+    }
+
+    /**
+     * Automatically synchronize suspension state to database and flush caches if lapsed.
+     */
+    public function syncSuspensionStateIfNeeded(): bool
+    {
+        if ($this->isSubscriptionExpiredPastGrace() && $this->status !== 'suspended') {
+            $this->update([
+                'status' => 'suspended',
+                'suspended_at' => $this->suspended_at ?? Carbon::now(),
+            ]);
+
+            /** @var TenantSubscription|null $latestSub */
+            $latestSub = $this->subscriptions()->latest('id')->first();
+            if ($latestSub !== null && in_array($latestSub->status, ['active', 'past_due', 'trial'], true)) {
+                $latestSub->update(['status' => 'expired']);
+            }
+
+            Cache::forget("t{$this->id}:tenant:profile");
+            Cache::forget("tenant:{$this->id}:profile");
+
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
      * Check if tenant is in an active state.
      */
     public function isActive(): bool
     {
-        return $this->status === 'active' || $this->status === 'trialing';
+        return ! $this->isSuspended() && ($this->status === 'active' || $this->status === 'trial' || $this->status === 'trialing');
     }
 
     /**

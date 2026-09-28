@@ -8,6 +8,7 @@ use App\Core\Actions\Action;
 use App\Core\Auth\JwtService;
 use App\Core\Auth\PermissionCatalogue;
 use App\Core\Auth\RefreshTokenService;
+use App\Core\Tenancy\Exceptions\TenantSuspended;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Validation\ValidationException;
@@ -59,6 +60,14 @@ class SelectTenantAction extends Action
             throw ValidationException::withMessages([
                 'tenant_id' => ['User does not have an active account in the selected tenant.'],
             ]);
+        }
+
+        // Security & Lifecycle: block selection if tenant is suspended or grace period lapsed
+        if (! $user->is_platform_admin && $user->tenant !== null) {
+            if ($user->tenant->isSuspended() || $user->tenant->status === 'suspended' || $user->tenant->isSubscriptionExpiredPastGrace()) {
+                $user->tenant->syncSuspensionStateIfNeeded();
+                throw new TenantSuspended($user->tenant->slug, 'suspended');
+            }
         }
 
         $user->update([

@@ -33,8 +33,13 @@ class ResolveStorefrontTenant
         }
 
         // Verify associated tenant exists and is not suspended
+        /** @var Tenant|null $tenant */
         $tenant = Tenant::find($storefront->tenant_id);
-        if (! $tenant || $tenant->status === 'suspended') {
+        if (! $tenant || $tenant->isSuspended() || $tenant->status === 'suspended' || $tenant->isSubscriptionExpiredPastGrace()) {
+            if ($tenant) {
+                $tenant->syncSuspensionStateIfNeeded();
+            }
+
             return ErrorResponse::make(
                 request: $request,
                 code: 'TENANT_SUSPENDED',

@@ -6,6 +6,7 @@ namespace App\Core\Http\Middleware;
 
 use App\Core\Tenancy\Exceptions\TenantSuspended;
 use App\Core\Tenancy\TenantContext;
+use App\Models\Tenant;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -32,7 +33,7 @@ use Symfony\Component\HttpFoundation\Response;
 final class EnsureTenantActive
 {
     /** Statuses that allow full read-write access. */
-    private const ACTIVE_STATUSES = ['active', 'trial'];
+    private const ACTIVE_STATUSES = ['active', 'trial', 'trialing'];
 
     /** Statuses that allow read-only access (writes blocked in Actions). */
     private const READ_ONLY_STATUSES = ['past_due'];
@@ -44,6 +45,26 @@ final class EnsureTenantActive
     {
         $context = TenantContext::current();
         $status = $context->tenantStatus();
+        $tenantId = $context->tenantId();
+
+        // 1. Direct status check: suspended, cancelled, archived are blocked entirely
+        if (in_array($status, ['suspended', 'cancelled', 'archived'], true)) {
+            throw new TenantSuspended($context->tenantSlug(), $status);
+        }
+
+        // 2. Real-time subscription & grace period check
+        /** @var Tenant|null $tenant */
+        $tenant = Tenant::find($tenantId);
+        if ($tenant !== null) {
+            if ($tenant->isSubscriptionExpiredPastGrace()) {
+                $tenant->syncSuspensionStateIfNeeded();
+                throw new TenantSuspended($context->tenantSlug(), 'suspended');
+            }
+
+            if ($tenant->status === 'past_due' || $status === 'past_due') {
+                return $next($request);
+            }
+        }
 
         if (in_array($status, self::ACTIVE_STATUSES, true)) {
             return $next($request);

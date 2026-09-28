@@ -6,6 +6,7 @@ namespace App\Modules\Auth\Actions;
 
 use App\Core\Actions\Action;
 use App\Core\Auth\PermissionCatalogue;
+use App\Core\Tenancy\Exceptions\TenantSuspended;
 use App\Models\User;
 
 /**
@@ -27,6 +28,14 @@ class GetAuthMeAction extends Action
         /** @var User $user */
         $user = $input['user'];
         $user->loadMissing(['tenant', 'scopes', 'roles', 'employee.designation', 'employee.department']);
+
+        // Security & Lifecycle: refuse identity resolution if organization account is suspended or lapsed past grace period
+        if (! $user->is_platform_admin && $user->tenant !== null) {
+            if ($user->tenant->isSuspended() || $user->tenant->status === 'suspended' || $user->tenant->isSubscriptionExpiredPastGrace()) {
+                $user->tenant->syncSuspensionStateIfNeeded();
+                throw new TenantSuspended($user->tenant->slug, 'suspended');
+            }
+        }
 
         $effectivePermissions = $user->getEffectivePermissions();
         $permVersion = PermissionCatalogue::computePermVersion($effectivePermissions);

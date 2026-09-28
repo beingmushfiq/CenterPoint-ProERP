@@ -12,6 +12,7 @@ import { cn } from '../../lib/utils';
 import { useTenantBranding, isStaleEngineName } from '../../lib/theme/useTenantBranding';
 import { useAuthStore } from '../../lib/auth/authStore';
 import { InteractiveTutorialModal } from '../../modules/tutorial/InteractiveTutorialModal';
+import { TenantSuspendedScreen } from './TenantSuspendedScreen';
 
 function getRouteTitle(pathname: string): string {
   if (pathname === '/dashboard' || pathname === '/') return 'Executive Operations';
@@ -70,6 +71,19 @@ export function AppShell() {
       return next;
     });
   };
+
+  const tenant = useAuthStore((s) => s.tenant);
+  const user = useAuthStore((s) => s.user);
+
+  // Hard barrier: if tenant workspace is suspended/cancelled/archived and not platform-impersonated, lock access
+  const isSuspended =
+    !user?.is_platform_admin &&
+    tenant !== null &&
+    (tenant.status === 'suspended' || tenant.status === 'cancelled' || tenant.status === 'archived');
+
+  if (isSuspended) {
+    return <TenantSuspendedScreen />;
+  }
 
   return (
     <div className="flex min-h-dvh bg-base text-default font-sans antialiased flex-col w-full max-w-full overflow-x-hidden">

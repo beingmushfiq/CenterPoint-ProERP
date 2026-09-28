@@ -8,6 +8,7 @@ use App\Core\Actions\Action;
 use App\Core\Auth\JwtService;
 use App\Core\Auth\PermissionCatalogue;
 use App\Core\Auth\RefreshTokenService;
+use App\Core\Tenancy\Exceptions\TenantSuspended;
 use App\Models\Tenant;
 use App\Models\User;
 use Carbon\Carbon;
@@ -106,6 +107,14 @@ class LoginAction extends Action
         $user = $requestedTenantId !== null
             ? ($sortedUsers->firstWhere('tenant_id', $requestedTenantId) ?? $sortedUsers->first())
             : $sortedUsers->first();
+
+        // Security & Lifecycle: block login if organization account is suspended or lapsed past grace period
+        if (! $user->is_platform_admin && $user->tenant !== null) {
+            if ($user->tenant->isSuspended() || $user->tenant->status === 'suspended' || $user->tenant->isSubscriptionExpiredPastGrace()) {
+                $user->tenant->syncSuspensionStateIfNeeded();
+                throw new TenantSuspended($user->tenant->slug, 'suspended');
+            }
+        }
 
         // Update last login timestamp
         $user->update([

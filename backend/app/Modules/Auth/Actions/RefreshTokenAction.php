@@ -8,6 +8,7 @@ use App\Core\Actions\Action;
 use App\Core\Auth\JwtService;
 use App\Core\Auth\PermissionCatalogue;
 use App\Core\Auth\RefreshTokenService;
+use App\Core\Tenancy\Exceptions\TenantSuspended;
 use Symfony\Component\HttpFoundation\Cookie;
 
 /**
@@ -46,7 +47,15 @@ class RefreshTokenAction extends Action
         $rotationResult = $this->refreshTokenService->rotateRefreshToken($plainToken, $ipAddress, $userAgent);
 
         $user = $rotationResult['user'];
-        $user->loadMissing(['scopes']);
+        $user->loadMissing(['scopes', 'tenant']);
+
+        // Security & Lifecycle: block refresh if organization account is suspended or lapsed past grace period
+        if (! $user->is_platform_admin && $user->tenant !== null) {
+            if ($user->tenant->isSuspended() || $user->tenant->status === 'suspended' || $user->tenant->isSubscriptionExpiredPastGrace()) {
+                $user->tenant->syncSuspensionStateIfNeeded();
+                throw new TenantSuspended($user->tenant->slug, 'suspended');
+            }
+        }
 
         /** @var list<array<string, mixed>> $scopes */
         $scopes = array_values($user->scopes->map(fn ($s) => [

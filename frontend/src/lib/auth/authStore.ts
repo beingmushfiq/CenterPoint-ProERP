@@ -201,12 +201,19 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         // Ignore background bootstrap failure
       }
     } catch (err: unknown) {
-      // If token is explicitly rejected (401/403) or no cached user exists, cleanly transition to unauthenticated
+      // If token is explicitly rejected (401/402/403/TENANT_INACTIVE) or no cached user exists, cleanly transition to unauthenticated
       const isUnauth =
         typeof err === 'object' &&
         err !== null &&
-        (('status' in err && ((err as { status?: number }).status === 401 || (err as { status?: number }).status === 403)) ||
-          ('code' in err && (err as { code?: string }).code === 'UNAUTHENTICATED'));
+        (('status' in err && (
+          (err as { status?: number }).status === 401 ||
+          (err as { status?: number }).status === 402 ||
+          (err as { status?: number }).status === 403
+        )) ||
+        ('code' in err && (
+          (err as { code?: string }).code === 'UNAUTHENTICATED' ||
+          (err as { code?: string }).code === 'TENANT_INACTIVE'
+        )));
 
       if (isUnauth || !get().user) {
         setAccessToken(null);
@@ -216,6 +223,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         localStorage.removeItem('auth_branches');
         localStorage.removeItem('auth_active_branch');
 
+        const errorMessage =
+          typeof err === 'object' && err !== null && 'code' in err && (err as { code?: string }).code === 'TENANT_INACTIVE'
+            ? 'Your organization account is suspended.'
+            : (err instanceof Error ? err.message : 'Session verification failed.');
+
         set({
           user: null,
           tenant: null,
@@ -223,7 +235,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           activeBranch: null,
           permissions: new Set(),
           status: 'unauthenticated',
-          error: err instanceof Error ? err.message : 'Session verification failed.',
+          error: errorMessage,
         });
       } else {
         // Keep existing cached user session active so network blips don't log out user

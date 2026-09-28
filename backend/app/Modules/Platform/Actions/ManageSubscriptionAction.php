@@ -11,6 +11,7 @@ use App\Models\Tenant;
 use App\Models\TenantSubscription;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
@@ -63,6 +64,8 @@ class ManageSubscriptionAction extends Action
                 'before' => ['plan_id' => $oldPlanId],
                 'after' => ['plan_id' => $newPlan->id, 'plan_code' => $newPlan->code],
             ]);
+
+            $this->flushTenantCache($tenant->id);
 
             return [
                 'tenant_id' => $tenant->id,
@@ -145,6 +148,8 @@ class ManageSubscriptionAction extends Action
                 ],
             ]);
 
+            $this->flushTenantCache($tenant->id);
+
             return [
                 'tenant_id' => $tenant->id,
                 'status' => $computedStatus,
@@ -203,6 +208,8 @@ class ManageSubscriptionAction extends Action
                 ],
             ]);
 
+            $this->flushTenantCache($tenant->id);
+
             return [
                 'tenant_id' => $tenant->id,
                 'status' => 'active',
@@ -245,6 +252,8 @@ class ManageSubscriptionAction extends Action
                 'created_at' => Carbon::now(),
                 'after' => ['grace_period_days' => $graceDays],
             ]);
+
+            $this->flushTenantCache($tenant->id);
 
             return [
                 'tenant_id' => $tenant->id,
@@ -310,6 +319,8 @@ class ManageSubscriptionAction extends Action
                 ],
             ]);
 
+            $this->flushTenantCache($tenant->id);
+
             return [
                 'tenant_id' => $tenant->id,
                 'subscription_id' => $newSub->id,
@@ -325,5 +336,11 @@ class ManageSubscriptionAction extends Action
         throw ValidationException::withMessages([
             'action' => ["Unsupported subscription action '{$actionType}'."],
         ]);
+    }
+
+    private function flushTenantCache(int $tenantId): void
+    {
+        Cache::forget("t{$tenantId}:tenant:profile");
+        Cache::forget("tenant:{$tenantId}:profile");
     }
 }

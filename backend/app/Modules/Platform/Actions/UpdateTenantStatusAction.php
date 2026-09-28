@@ -9,6 +9,7 @@ use App\Models\AuditLog;
 use App\Models\Tenant;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
@@ -52,6 +53,9 @@ class UpdateTenantStatusAction extends Action
         }
 
         $tenant->update($updates);
+
+        Cache::forget("t{$tenant->id}:tenant:profile");
+        Cache::forget("tenant:{$tenant->id}:profile");
 
         // Record platform audit log
         AuditLog::withoutTenantScope()->create([

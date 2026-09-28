@@ -8,6 +8,7 @@ use App\Core\Auth\JwtExpiredException;
 use App\Core\Auth\JwtInvalidException;
 use App\Core\Auth\JwtService;
 use App\Core\Http\Responses\ErrorResponse;
+use App\Core\Tenancy\Exceptions\TenantSuspended;
 use App\Core\Tenancy\TenantContext;
 use App\Models\Tenant;
 use App\Models\User;
@@ -134,10 +135,16 @@ class AuthenticateJwt
         $rawTenantId = $claims['tenant_id'] ?? null;
         $tenantId = is_numeric($rawTenantId) ? (int) $rawTenantId : null;
         if ($tenantId !== null) {
-            if (! TenantContext::isBound() || TenantContext::current()->tenantId() !== $tenantId) {
-                /** @var Tenant|null $tenant */
-                $tenant = Tenant::query()->find($tenantId);
-                if ($tenant !== null) {
+            /** @var Tenant|null $tenant */
+            $tenant = Tenant::find($tenantId);
+            if ($tenant !== null) {
+                // If not platform admin, enforce tenant active status and grace period in real-time
+                if (! $user->is_platform_admin && ($tenant->isSuspended() || $tenant->status === 'suspended' || $tenant->isSubscriptionExpiredPastGrace())) {
+                    $tenant->syncSuspensionStateIfNeeded();
+                    throw new TenantSuspended($tenant->slug, 'suspended');
+                }
+
+                if (! TenantContext::isBound() || TenantContext::current()->tenantId() !== $tenantId) {
                     $tenantArray = $tenant->toArray();
                     $tenantArray['id'] = (int) $tenant->id;
                     TenantContext::bind($tenantArray);

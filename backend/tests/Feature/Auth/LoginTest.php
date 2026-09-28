@@ -239,4 +239,72 @@ class LoginTest extends TestCase
         $response->assertJsonPath('success', true);
         $response->assertJsonPath('data.user.name', 'Farhana QC Lead');
     }
+
+    public function test_login_refused_when_tenant_is_suspended(): void
+    {
+        $this->tenant->update(['status' => 'suspended']);
+
+        User::query()->create([
+            'uuid' => (string) Str::uuid(),
+            'tenant_id' => $this->tenant->id,
+            'name' => 'Suspended Operator',
+            'email' => 'operator@suspended.com',
+            'password' => Hash::make('Password123!'),
+            'status' => 'active',
+            'locale' => 'en',
+            'token_version' => 1,
+            'perm_version' => 1,
+        ]);
+
+        $response = $this->postJson('/api/v1/auth/login', [
+            'email' => 'operator@suspended.com',
+            'password' => 'Password123!',
+        ]);
+
+        $response->assertStatus(402);
+        $response->assertJsonPath('success', false);
+        $response->assertJsonPath('error.code', 'TENANT_INACTIVE');
+    }
+
+    public function test_login_refused_when_subscription_and_grace_period_lapsed(): void
+    {
+        // Tenant is still marked 'active' in DB, but subscription + grace period have passed
+        $this->tenant->update(['status' => 'active']);
+
+        \App\Models\TenantSubscription::create([
+            'tenant_id' => $this->tenant->id,
+            'uuid' => (string) Str::uuid(),
+            'plan_id' => 1,
+            'starts_at' => Carbon::now()->subMonths(2),
+            'ends_at' => Carbon::now()->subDays(15),
+            'grace_period_days' => 7,
+            'grace_period_ends_at' => Carbon::now()->subDays(8),
+            'status' => 'past_due',
+            'amount' => '10000.0000',
+            'billing_cycle' => 'monthly',
+        ]);
+
+        User::query()->create([
+            'uuid' => (string) Str::uuid(),
+            'tenant_id' => $this->tenant->id,
+            'name' => 'Lapsed Member',
+            'email' => 'member@lapsed.com',
+            'password' => Hash::make('Password123!'),
+            'status' => 'active',
+            'locale' => 'en',
+            'token_version' => 1,
+            'perm_version' => 1,
+        ]);
+
+        $response = $this->postJson('/api/v1/auth/login', [
+            'email' => 'member@lapsed.com',
+            'password' => 'Password123!',
+        ]);
+
+        $response->assertStatus(402);
+        $response->assertJsonPath('success', false);
+        $response->assertJsonPath('error.code', 'TENANT_INACTIVE');
+        // Verify tenant state was automatically synchronized to suspended
+        $this->assertSame('suspended', $this->tenant->fresh()->status);
+    }
 }
