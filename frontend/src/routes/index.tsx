@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react';
-import { Navigate, createBrowserRouter, Outlet } from 'react-router-dom';
+import { Navigate, createBrowserRouter, Outlet, type RouteObject } from 'react-router-dom';
 import { usePwaManifest } from '../hooks/usePwaManifest';
 import { ProtectedRoute } from '../components/auth/ProtectedRoute';
 import { AppShell } from '../components/layout/AppShell';
@@ -249,6 +249,222 @@ function RootLayout() {
   return <Outlet />;
 }
 
+const erpWorkspaceRouteChildren: RouteObject[] = [
+  // For localhost / standard workspace (not storefront root), index route is Tenant ERP Dashboard
+  ...(!isTenantStorefrontDomain && !isMasterPlatformDomain
+    ? [
+        {
+          index: true,
+          element: <TenantRoleDashboard />,
+        },
+      ]
+    : []),
+  {
+    path: 'dashboard',
+    element: <TenantRoleDashboard />,
+  },
+  {
+    path: 'tutorial',
+    element: <InteractiveTutorialWorkspace />,
+  },
+  {
+    path: 'guide',
+    element: <Navigate to="/tutorial" replace />,
+  },
+  {
+    path: 'overview',
+    element: <Navigate to="/dashboard" replace />,
+  },
+  {
+    path: 'catalogue',
+    element: <CatalogueWorkspace />,
+  },
+  {
+    path: 'catalog',
+    element: <Navigate to="/catalogue" replace />,
+  },
+  {
+    path: 'production',
+    element: <ProductionWorkspace />,
+  },
+  {
+    path: 'qc',
+    element: <QcWorkspace />,
+  },
+  {
+    path: 'inventory',
+    element: <InventoryWorkspace />,
+  },
+  {
+    path: 'purchasing',
+    element: <PurchasingWorkspace />,
+  },
+  {
+    path: 'procurement',
+    element: <Navigate to="/purchasing" replace />,
+  },
+  {
+    path: 'sales',
+    element: <SalesWorkspace />,
+  },
+  {
+    path: 'pos',
+    element: <PosWorkspace />,
+  },
+  {
+    path: 'logistics',
+    element: <DeliveryWorkspace />,
+  },
+  {
+    path: 'delivery',
+    element: <Navigate to="/logistics" replace />,
+  },
+  {
+    path: 'finance',
+    element: <FinanceWorkspace />,
+  },
+  {
+    path: 'accounting',
+    element: <Navigate to="/finance" replace />,
+  },
+  {
+    path: 'assets',
+    element: <AssetsWorkspace />,
+  },
+  {
+    path: 'hr',
+    element: <HrWorkspace />,
+  },
+  {
+    path: 'workforce',
+    element: <HrWorkspace />,
+  },
+  {
+    path: 'payroll',
+    element: <Navigate to="/hr?tab=payroll" replace />,
+  },
+  {
+    path: 'employees',
+    element: <Navigate to="/workforce?tab=employees" replace />,
+  },
+  {
+    path: 'attendance',
+    element: <Navigate to="/workforce?tab=attendance" replace />,
+  },
+  {
+    path: 'reports',
+    element: <ReportsWorkspace />,
+  },
+  {
+    path: 'rms',
+    element: <Navigate to="/reports" replace />,
+  },
+  {
+    path: 'storefront',
+    element: <StorefrontSettingsWorkspace />,
+  },
+  {
+    path: 'storefront/builder',
+    element: <StorefrontPageBuilderWorkspace />,
+  },
+  {
+    path: 'audit-logs',
+    element: <ActivityLogWorkspace />,
+  },
+  {
+    path: 'activity-logs',
+    element: <ActivityLogWorkspace />,
+  },
+  {
+    path: 'audit',
+    element: <Navigate to="/audit-logs" replace />,
+  },
+  {
+    path: 'users',
+    element: <UsersManagementWorkspace />,
+  },
+  {
+    path: 'roles',
+    element: <RolesManagementWorkspace />,
+  },
+  {
+    path: 'settings',
+    element: <SettingsCenterWorkspace />,
+  },
+  {
+    path: 'settings/users',
+    element: <UsersManagementWorkspace />,
+  },
+  {
+    path: 'settings/roles',
+    element: <RolesManagementWorkspace />,
+  },
+  {
+    path: 'settings/audit-logs',
+    element: <ActivityLogWorkspace />,
+  },
+  {
+    path: 'settings/profile',
+    element: <ProfileSettingsWorkspace />,
+  },
+  {
+    path: 'settings/seo',
+    element: <SeoDiscoverabilityWorkspace />,
+  },
+  {
+    path: 'settings/bin',
+    element: <DataBinWorkspace />,
+  },
+  {
+    path: 'bin',
+    element: <Navigate to="/settings/bin" replace />,
+  },
+  {
+    path: 'settings/workflows',
+    element: <WorkflowAutomationWorkspace />,
+  },
+  {
+    path: 'workflows',
+    element: <Navigate to="/settings/workflows" replace />,
+  },
+  {
+    path: 'seo',
+    element: <Navigate to="/settings/seo" replace />,
+  },
+  {
+    path: 'onboarding',
+    element: <OnboardingWizard />,
+  },
+  {
+    path: 'settings/:group',
+    element: <SettingsCenterWorkspace />,
+  },
+  {
+    path: 'profile',
+    element: <ProfileSettingsWorkspace />,
+  },
+  ...(!isMasterPlatformDomain
+    ? [
+        {
+          path: '*',
+          element: <NotFoundPage />,
+        },
+      ]
+    : []),
+];
+
+const erpWorkspaceRoute: RouteObject = {
+  path: '/',
+  element: <ProtectedRoute />,
+  errorElement: <RouteErrorBoundary />,
+  children: [
+    {
+      element: <AppShell />,
+      children: erpWorkspaceRouteChildren,
+    },
+  ],
+};
+
 export const router = createBrowserRouter([
   {
     element: <RootLayout />,
@@ -341,6 +557,8 @@ export const router = createBrowserRouter([
               },
             ],
           },
+          // Mount Tenant ERP Application Workspaces for Super-Admin Impersonation on Master Domain
+          erpWorkspaceRoute,
           // On master platform domain, any unknown path goes to /platform
           {
             path: '*',
@@ -439,215 +657,7 @@ export const router = createBrowserRouter([
             : []),
 
           // Tenant ERP Application Workspaces (Slice Mart, etc.)
-          {
-            path: '/',
-            element: <ProtectedRoute />,
-            errorElement: <RouteErrorBoundary />,
-            children: [
-              {
-                element: <AppShell />,
-                children: [
-                  // For localhost / standard workspace (not storefront root), index route is Tenant ERP Dashboard
-                  ...(!isTenantStorefrontDomain
-                    ? [
-                        {
-                          index: true,
-                          element: <TenantRoleDashboard />,
-                        },
-                      ]
-                    : []),
-                  {
-                    path: 'dashboard',
-                    element: <TenantRoleDashboard />,
-                  },
-                  {
-                    path: 'tutorial',
-                    element: <InteractiveTutorialWorkspace />,
-                  },
-                  {
-                    path: 'guide',
-                    element: <Navigate to="/tutorial" replace />,
-                  },
-                  {
-                    path: 'overview',
-                    element: <Navigate to="/dashboard" replace />,
-                  },
-                  {
-                    path: 'catalogue',
-                    element: <CatalogueWorkspace />,
-                  },
-                  {
-                    path: 'catalog',
-                    element: <Navigate to="/catalogue" replace />,
-                  },
-                  {
-                    path: 'production',
-                    element: <ProductionWorkspace />,
-                  },
-                  {
-                    path: 'qc',
-                    element: <QcWorkspace />,
-                  },
-                  {
-                    path: 'inventory',
-                    element: <InventoryWorkspace />,
-                  },
-                  {
-                    path: 'purchasing',
-                    element: <PurchasingWorkspace />,
-                  },
-                  {
-                    path: 'procurement',
-                    element: <Navigate to="/purchasing" replace />,
-                  },
-                  {
-                    path: 'sales',
-                    element: <SalesWorkspace />,
-                  },
-                  {
-                    path: 'pos',
-                    element: <PosWorkspace />,
-                  },
-                  {
-                    path: 'logistics',
-                    element: <DeliveryWorkspace />,
-                  },
-                  {
-                    path: 'delivery',
-                    element: <Navigate to="/logistics" replace />,
-                  },
-                  {
-                    path: 'finance',
-                    element: <FinanceWorkspace />,
-                  },
-                  {
-                    path: 'accounting',
-                    element: <Navigate to="/finance" replace />,
-                  },
-                  {
-                    path: 'assets',
-                    element: <AssetsWorkspace />,
-                  },
-                  {
-                    path: 'hr',
-                    element: <HrWorkspace />,
-                  },
-                  {
-                    path: 'workforce',
-                    element: <HrWorkspace />,
-                  },
-                  {
-                    path: 'payroll',
-                    element: <Navigate to="/hr?tab=payroll" replace />,
-                  },
-                  {
-                    path: 'employees',
-                    element: <Navigate to="/workforce?tab=employees" replace />,
-                  },
-                  {
-                    path: 'attendance',
-                    element: <Navigate to="/workforce?tab=attendance" replace />,
-                  },
-                  {
-                    path: 'reports',
-                    element: <ReportsWorkspace />,
-                  },
-                  {
-                    path: 'rms',
-                    element: <Navigate to="/reports" replace />,
-                  },
-                  {
-                    path: 'storefront',
-                    element: <StorefrontSettingsWorkspace />,
-                  },
-                  {
-                    path: 'storefront/builder',
-                    element: <StorefrontPageBuilderWorkspace />,
-                  },
-                  {
-                    path: 'audit-logs',
-                    element: <ActivityLogWorkspace />,
-                  },
-                  {
-                    path: 'activity-logs',
-                    element: <ActivityLogWorkspace />,
-                  },
-                  {
-                    path: 'audit',
-                    element: <Navigate to="/audit-logs" replace />,
-                  },
-                  {
-                    path: 'users',
-                    element: <UsersManagementWorkspace />,
-                  },
-                  {
-                    path: 'roles',
-                    element: <RolesManagementWorkspace />,
-                  },
-                  {
-                    path: 'settings',
-                    element: <SettingsCenterWorkspace />,
-                  },
-                  {
-                    path: 'settings/users',
-                    element: <UsersManagementWorkspace />,
-                  },
-                  {
-                    path: 'settings/roles',
-                    element: <RolesManagementWorkspace />,
-                  },
-                  {
-                    path: 'settings/audit-logs',
-                    element: <ActivityLogWorkspace />,
-                  },
-                  {
-                    path: 'settings/profile',
-                    element: <ProfileSettingsWorkspace />,
-                  },
-                  {
-                    path: 'settings/seo',
-                    element: <SeoDiscoverabilityWorkspace />,
-                  },
-                  {
-                    path: 'settings/bin',
-                    element: <DataBinWorkspace />,
-                  },
-                  {
-                    path: 'bin',
-                    element: <Navigate to="/settings/bin" replace />,
-                  },
-                  {
-                    path: 'settings/workflows',
-                    element: <WorkflowAutomationWorkspace />,
-                  },
-                  {
-                    path: 'workflows',
-                    element: <Navigate to="/settings/workflows" replace />,
-                  },
-                  {
-                    path: 'seo',
-                    element: <Navigate to="/settings/seo" replace />,
-                  },
-                  {
-                    path: 'onboarding',
-                    element: <OnboardingWizard />,
-                  },
-                  {
-                    path: 'settings/:group',
-                    element: <SettingsCenterWorkspace />,
-                  },
-                  {
-                    path: 'profile',
-                    element: <ProfileSettingsWorkspace />,
-                  },
-                  {
-                    path: '*',
-                    element: <NotFoundPage />,
-                  },
-                ],
-              },
-            ],
-          },
+          erpWorkspaceRoute,
           {
             path: '*',
             element: (

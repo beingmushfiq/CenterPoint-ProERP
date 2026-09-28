@@ -108,6 +108,8 @@ final class PlatformImpersonationController extends Controller
             \Illuminate\Support\Facades\Log::warning('Impersonation audit log write deferred: '.$e->getMessage());
         }
 
+        $tenantUser->loadMissing(['roles']);
+
         return response()->json([
             'success' => true,
             'data' => [
@@ -116,14 +118,29 @@ final class PlatformImpersonationController extends Controller
                 'expires_in' => $ttl,
                 'tenant' => [
                     'id' => $tenant->id,
+                    'uuid' => $tenant->uuid,
                     'name' => $tenant->name,
                     'slug' => $tenant->slug,
+                    'status' => $tenant->status,
+                    'currency_code' => $tenant->currency_code,
+                    'timezone' => $tenant->timezone,
+                    'locale' => $tenant->locale,
+                    'branding' => $tenant->branding,
                 ],
                 'user' => [
                     'id' => $tenantUser->id,
+                    'uuid' => $tenantUser->uuid,
                     'name' => $tenantUser->name,
                     'email' => $tenantUser->email,
+                    'role' => $tenantUser->roles->first()?->name ?? 'Administrator',
+                    'role_label' => $tenantUser->roles->first()?->name ?? 'Administrator',
+                    'roles' => $tenantUser->roles->pluck('name')->all(),
+                    'is_platform_admin' => false,
+                    'is_active' => true,
+                    'status' => $tenantUser->status,
+                    'landing_page' => '/dashboard',
                 ],
+                'permissions' => $tenantUser->getEffectivePermissions(),
                 'impersonator' => [
                     'id' => $superAdmin->id,
                     'name' => $superAdmin->name,

@@ -87,6 +87,16 @@ export function ProtectedRoute() {
   }
 
   if (status === 'unauthenticated') {
+    const isMasterPlatform =
+      typeof window !== 'undefined' &&
+      ['proerp.devcenterpoint.com', 'platform.devcenterpoint.com', 'admin.devcenterpoint.com'].includes(
+        window.location.hostname.toLowerCase()
+      );
+
+    if (isMasterPlatform && (typeof localStorage === 'undefined' || localStorage.getItem('is_impersonating') !== 'true')) {
+      return <Navigate to="/platform" replace />;
+    }
+
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 

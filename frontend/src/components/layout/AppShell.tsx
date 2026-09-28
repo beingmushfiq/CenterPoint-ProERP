@@ -76,7 +76,9 @@ export function AppShell() {
   const user = useAuthStore((s) => s.user);
 
   // Hard barrier: if tenant workspace is suspended/cancelled/archived and not platform-impersonated, lock access
+  const isImpersonating = typeof localStorage !== 'undefined' && localStorage.getItem('is_impersonating') === 'true';
   const isSuspended =
+    !isImpersonating &&
     !user?.is_platform_admin &&
     tenant !== null &&
     (tenant.status === 'suspended' || tenant.status === 'cancelled' || tenant.status === 'archived');

@@ -52,6 +52,7 @@ final class PlatformImpersonationTest extends TestCase
                 'expires_in',
                 'tenant' => ['id', 'name', 'slug'],
                 'user' => ['id', 'name', 'email'],
+                'permissions',
                 'impersonator' => ['id', 'name', 'email'],
             ],
         ]);

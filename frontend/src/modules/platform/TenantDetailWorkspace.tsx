@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { api, setAccessToken } from '../../lib/api/client';
+import { useAuthStore } from '../../lib/auth/authStore';
 import type { PlatformTenant, PlatformPlan, PlatformPayment } from '../../types/api/platform';
 import { PlatformPulseLoader } from '../../components/platform/PlatformPulseLoader';
 import { Button } from '../../components/ui/Button';
@@ -371,8 +372,29 @@ export const TenantDetailWorkspace: React.FC = () => {
     try {
       const res = await api.post<{
         token: string;
-        tenant: { id: number; name: string; slug: string };
-        user: { id: number; name: string; email: string };
+        tenant: {
+          id: number;
+          uuid?: string;
+          name: string;
+          slug: string;
+          status?: string;
+          currency_code?: string;
+          timezone?: string;
+          locale?: string;
+          branding?: Record<string, unknown> | null;
+        };
+        user: {
+          id: number;
+          uuid?: string;
+          name: string;
+          email: string;
+          role?: string;
+          roles?: string[];
+          is_platform_admin?: boolean;
+          status?: string;
+          landing_page?: string;
+        };
+        permissions?: string[];
         impersonator: { id: number; name: string; email: string };
       }>(`/platform/tenants/${tenant.id}/impersonate`);
 
@@ -381,11 +403,16 @@ export const TenantDetailWorkspace: React.FC = () => {
       const targetTenant = payload?.tenant;
       const targetUser = payload?.user;
       const impersonator = payload?.impersonator;
+      const permissions = payload?.permissions ?? [];
 
       if (token) {
         setAccessToken(token);
         if (typeof sessionStorage !== 'undefined') {
           sessionStorage.setItem('impersonation_token', token);
+          sessionStorage.setItem('tenant_access_token', token);
+        }
+        if (typeof localStorage !== 'undefined') {
+          localStorage.setItem('tenant_access_token', token);
         }
       }
       localStorage.setItem('is_impersonating', 'true');
@@ -398,9 +425,18 @@ export const TenantDetailWorkspace: React.FC = () => {
       if (targetTenant) {
         localStorage.setItem('auth_tenant', JSON.stringify(targetTenant));
       }
+      localStorage.setItem('auth_permissions', JSON.stringify(permissions));
+
+      useAuthStore.setState({
+        user: targetUser as any,
+        tenant: targetTenant as any,
+        permissions: new Set(permissions),
+        status: 'authenticated',
+        error: null,
+      });
 
       toast.success(`Entering ${tenant.name}...`);
-      window.location.assign('/catalogue');
+      window.location.assign('/dashboard');
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Impersonation failed';
       toast.error(msg);
