@@ -6,6 +6,7 @@ use App\Models\Tenant;
 use App\Models\User;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 return new class extends Migration
 {
@@ -13,7 +14,8 @@ return new class extends Migration
      * Run the migrations.
      *
      * Prunes redundant duplicate persona users across all tenant workspaces,
-     * ensuring exactly one canonical persona account per enterprise role.
+     * ensuring exactly one canonical persona account per enterprise role,
+     * while strictly protecting active users, platform admins, and historical foreign keys.
      */
     public function up(): void
     {
@@ -22,32 +24,8 @@ return new class extends Migration
         foreach ($tenants as $tenant) {
             $slug = strtolower($tenant->slug);
 
-            // 1. Identify canonical emails for this tenant
-            if ($tenant->id === 1 || $slug === 'slicemart') {
-                $canonicalEmails = [
-                    'admin@slicemart.test',
-                    'production@slicemart.test',
-                    'qc@slicemart.test',
-                    'store@slicemart.test',
-                    'sales@slicemart.test',
-                ];
-
-                // Delete all known redundant seeded alias patterns for Tenant 1
-                $duplicateQuery = User::withoutTenantScope()->withTrashed()
-                    ->where('tenant_id', $tenant->id)
-                    ->where(function ($q) {
-                        $q->where('email', 'like', '%@dcp.com')
-                            ->orWhere('email', 'like', '%@slicemart.com')
-                            ->orWhere('email', 'like', 'warehouse@%')
-                            ->orWhere('email', 'like', '%@demoerp.com');
-                    });
-
-                $duplicates = $duplicateQuery->get();
-                foreach ($duplicates as $dup) {
-                    $this->pruneUser($dup->id);
-                }
-            } else {
-                // Remove duplicate warehouse@ if store@ exists
+            // 1. For non-primary tenants, prune redundant warehouse@ if store@ exists
+            if ($tenant->id !== 1 && $slug !== 'slicemart') {
                 $storeUser = User::withoutTenantScope()->withTrashed()
                     ->where('tenant_id', $tenant->id)
                     ->where('email', "store@{$slug}.com")
@@ -59,13 +37,15 @@ return new class extends Migration
                         ->where('email', "warehouse@{$slug}.com")
                         ->first();
 
-                    if ($warehouseUser) {
+                    if ($warehouseUser && $warehouseUser->id > 1 && ! $warehouseUser->is_platform_admin) {
                         $this->pruneUser($warehouseUser->id);
                     }
                 }
             }
 
             // 2. Generic duplicate cleanup by persona display name
+            // Keep the canonical user (prioritizing user id 1, platform admins, or oldest record),
+            // and safely prune only true unreferenced duplicates.
             $canonicalNames = [
                 'System Administrator',
                 'Hasan Production Lead',
@@ -82,10 +62,17 @@ return new class extends Migration
                     ->get();
 
                 if ($personaUsers->count() > 1) {
-                    // Keep the first (oldest/canonical) user, prune the rest
-                    $keep = $personaUsers->first();
-                    foreach ($personaUsers->slice(1) as $dup) {
-                        $this->pruneUser($dup->id);
+                    // Identify the primary/canonical user to keep
+                    // Prioritize user ID 1 or a platform admin if present
+                    $primary = $personaUsers->firstWhere('id', 1)
+                        ?? $personaUsers->firstWhere('is_platform_admin', true)
+                        ?? $personaUsers->first();
+
+                    foreach ($personaUsers as $candidate) {
+                        if ($candidate->id === $primary->id) {
+                            continue;
+                        }
+                        $this->pruneUser($candidate->id);
                     }
                 }
             }
@@ -93,17 +80,63 @@ return new class extends Migration
     }
 
     /**
-     * Safely prune a user record and its foreign dependencies.
+     * Safely prune a user record and its foreign dependencies if unreferenced by transactions.
      */
     private function pruneUser(int $userId): void
     {
-        DB::table('role_user')->where('user_id', $userId)->delete();
-        DB::table('user_scopes')->where('user_id', $userId)->delete();
-        DB::table('refresh_tokens')->where('user_id', $userId)->delete();
-        DB::table('employees')->where('user_id', $userId)->update(['user_id' => null]);
-        DB::table('audit_logs')->where('user_id', $userId)->update(['user_id' => null]);
+        // 1. Strict guard: NEVER prune root administrator or platform admins
+        if ($userId <= 1) {
+            return;
+        }
 
-        User::withoutTenantScope()->withTrashed()->where('id', $userId)->forceDelete();
+        $user = User::withoutTenantScope()->withTrashed()->find($userId);
+        if (! $user || $user->is_platform_admin) {
+            return;
+        }
+
+        // 2. Check for relational/transactional references that must be preserved
+        $hasPosSessions = DB::table('pos_sessions')
+            ->where('user_id', $userId)
+            ->orWhere('closed_by', $userId)
+            ->orWhere('created_by', $userId)
+            ->exists();
+
+        if ($hasPosSessions) {
+            Log::info("Skipping deletion of user {$userId} due to active POS sessions.");
+            return;
+        }
+
+        $hasSalesOrders = DB::table('sales_orders')
+            ->where('created_by', $userId)
+            ->exists();
+
+        if ($hasSalesOrders) {
+            Log::info("Skipping deletion of user {$userId} due to active sales orders.");
+            return;
+        }
+
+        $hasInvoices = DB::table('invoices')
+            ->where('created_by', $userId)
+            ->exists();
+
+        if ($hasInvoices) {
+            Log::info("Skipping deletion of user {$userId} due to invoice records.");
+            return;
+        }
+
+        try {
+            DB::transaction(function () use ($userId, $user): void {
+                DB::table('role_user')->where('user_id', $userId)->delete();
+                DB::table('user_scopes')->where('user_id', $userId)->delete();
+                DB::table('refresh_tokens')->where('user_id', $userId)->delete();
+                DB::table('employees')->where('user_id', $userId)->update(['user_id' => null]);
+                DB::table('audit_logs')->where('user_id', $userId)->update(['user_id' => null]);
+
+                $user->forceDelete();
+            });
+        } catch (\Throwable $e) {
+            Log::warning("Could not prune duplicate user {$userId}: " . $e->getMessage());
+        }
     }
 
     /**
