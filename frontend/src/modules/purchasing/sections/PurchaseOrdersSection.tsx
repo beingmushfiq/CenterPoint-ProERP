@@ -48,6 +48,7 @@ import { useTablePrefs } from '../../../hooks/useTablePrefs';
 import { DestructiveConfirmationDialog } from '../../../components/ui/DestructiveConfirmationDialog';
 import { useAuthStore } from '../../../lib/auth/authStore';
 import { AuditTimelineDrawer } from '../../../components/ui/AuditTimelineDrawer';
+import { SupplierFormModal } from '../components/SupplierFormModal';
 
 const PO_COLUMNS: ColumnDef[] = [
   { key: 'select', label: 'Select', required: true },
@@ -101,6 +102,10 @@ export function PurchaseOrdersSection({ onReceivePo, onCreateBill }: PurchaseOrd
   const [showViewModal, setShowViewModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [isPermanentDelete, setIsPermanentDelete] = useState(false);
+  const [showQuickSupplierModal, setShowQuickSupplierModal] = useState(false);
+  const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
+  const [isBulkPermanent, setIsBulkPermanent] = useState(false);
   const [activeOrder, setActiveOrder] = useState<PurchaseOrder | null>(null);
   const [printOrder, setPrintOrder] = useState<PurchaseOrder | null>(null);
   const [openActionMenuId, setOpenActionMenuId] = useState<number | null>(null);
@@ -537,14 +542,51 @@ export function PurchaseOrdersSection({ onReceivePo, onCreateBill }: PurchaseOrd
       });
   };
 
-  const handleDeleteOrder = () => {
+  const handleDeleteOrder = async () => {
     if (!activeOrder) return;
-    queryClient.setQueryData<PurchaseOrder[]>(['purchasing', 'orders'], (prev = []) =>
-      prev.filter((o) => o.id !== activeOrder.id)
-    );
-    api.delete(`/purchasing/orders/${activeOrder.id}`).catch(() => {});
-    toast.success('Purchase order deleted.');
-    setShowDeleteModal(false);
+    try {
+      const url = isPermanentDelete
+        ? `/purchasing/orders/${activeOrder.id}?force=true`
+        : `/purchasing/orders/${activeOrder.id}`;
+      await api.delete(url);
+      queryClient.setQueryData<PurchaseOrder[]>(['purchasing', 'orders'], (prev = []) =>
+        prev.filter((o) => o.id !== activeOrder.id)
+      );
+      toast.success(
+        isPermanentDelete
+          ? `Purchase Order ${activeOrder.po_number || `#${activeOrder.id}`} deleted permanently.`
+          : `Purchase Order ${activeOrder.po_number || `#${activeOrder.id}`} moved to Data Bin successfully.`
+      );
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to delete purchase order.');
+    } finally {
+      setShowDeleteModal(false);
+      setIsPermanentDelete(false);
+    }
+  };
+
+  const handleBulkDeleteOrders = async (force: boolean) => {
+    if (selectedPoIds.size === 0) return;
+    setIsBulkProcessing(true);
+    try {
+      const res = await api.post<{ success: boolean; message: string; data?: { processed: number; skipped: number } }>(
+        '/purchasing/orders/bulk-delete',
+        {
+          ids: Array.from(selectedPoIds),
+          force,
+        }
+      );
+      toast.success(
+        res.data?.message || (force ? 'Selected orders deleted permanently.' : 'Selected orders moved to Data Bin.')
+      );
+      queryClient.invalidateQueries({ queryKey: ['purchasing', 'orders'] });
+      setSelectedPoIds(new Set());
+      setShowBulkDeleteConfirm(false);
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to execute bulk deletion.');
+    } finally {
+      setIsBulkProcessing(false);
+    }
   };
 
   const addItemToForm = () => {
@@ -1312,7 +1354,7 @@ export function PurchaseOrdersSection({ onReceivePo, onCreateBill }: PurchaseOrd
                     <span>View Audit History...</span>
                   </button>
 
-                  {canDelete && order.status === 'draft' && (
+                  {canDelete && !['completed', 'received'].includes(order.status) && (
                     <>
                       <div className="my-1 border-t border-default" />
                       <button
@@ -1321,12 +1363,28 @@ export function PurchaseOrdersSection({ onReceivePo, onCreateBill }: PurchaseOrd
                           setOpenActionMenuId(null);
                           setActionMenuAnchor(null);
                           setActiveOrder(order);
+                          setIsPermanentDelete(false);
+                          setShowDeleteModal(true);
+                        }}
+                        className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left text-amber-600 dark:text-amber-400 hover:bg-amber-500/10 transition-colors cursor-pointer"
+                      >
+                        <Trash2 className="size-3.5 text-amber-500" />
+                        <span>Move to Data Bin</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setOpenActionMenuId(null);
+                          setActionMenuAnchor(null);
+                          setActiveOrder(order);
+                          setIsPermanentDelete(true);
                           setShowDeleteModal(true);
                         }}
                         className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer"
                       >
                         <Trash2 className="size-3.5 text-rose-500" />
-                        <span>Cancel / Void PO</span>
+                        <span>Delete Permanently</span>
                       </button>
                     </>
                   )}
@@ -1368,6 +1426,32 @@ export function PurchaseOrdersSection({ onReceivePo, onCreateBill }: PurchaseOrd
               >
                 <FileSpreadsheet className="size-3 text-primary" />
                 Export CSV
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setIsBulkPermanent(false);
+                  setShowBulkDeleteConfirm(true);
+                }}
+                disabled={isBulkProcessing}
+                className="flex h-8 items-center gap-1.5 rounded-xl bg-amber-500/10 border border-amber-500/20 px-3 text-xs font-semibold text-amber-600 dark:text-amber-400 hover:bg-amber-500/20 disabled:opacity-50 transition-colors cursor-pointer"
+              >
+                <Trash2 className="size-3 text-amber-500" />
+                Move to Bin ({selectedPoIds.size})
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setIsBulkPermanent(true);
+                  setShowBulkDeleteConfirm(true);
+                }}
+                disabled={isBulkProcessing}
+                className="flex h-8 items-center gap-1.5 rounded-xl bg-rose-500/10 border border-rose-500/20 px-3 text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-500/20 disabled:opacity-50 transition-colors cursor-pointer"
+              >
+                <Trash2 className="size-3 text-rose-500" />
+                Delete ({selectedPoIds.size})
               </button>
 
               <button
@@ -1420,7 +1504,17 @@ export function PurchaseOrdersSection({ onReceivePo, onCreateBill }: PurchaseOrd
                   />
                 </div>
                 <div>
-                  <label className="block font-semibold text-muted mb-1">Supplier / Vendor</label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block font-semibold text-muted">Supplier / Vendor</label>
+                    <button
+                      type="button"
+                      onClick={() => setShowQuickSupplierModal(true)}
+                      className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:underline cursor-pointer"
+                    >
+                      <Plus className="size-3" />
+                      <span>Quick Add</span>
+                    </button>
+                  </div>
                   {suppliers.length > 0 ? (
                     <select
                       value={String(formData.party_id || '')}
@@ -1443,13 +1537,23 @@ export function PurchaseOrdersSection({ onReceivePo, onCreateBill }: PurchaseOrd
                       ))}
                     </select>
                   ) : (
-                    <input
-                      type="text"
-                      value={formData.supplier_name}
-                      onChange={(e) => setFormData({ ...formData, supplier_name: e.target.value })}
-                      className="w-full rounded-xl border border-default bg-surface-sunken px-3 py-2 text-default focus:border-primary focus:outline-none"
-                      required
-                    />
+                    <div className="flex items-center gap-1.5">
+                      <input
+                        type="text"
+                        value={formData.supplier_name}
+                        onChange={(e) => setFormData({ ...formData, supplier_name: e.target.value })}
+                        className="w-full rounded-xl border border-default bg-surface-sunken px-3 py-2 text-default focus:border-primary focus:outline-none"
+                        required
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowQuickSupplierModal(true)}
+                        className="p-2 rounded-xl border border-primary/30 bg-primary/10 text-primary hover:bg-primary/20 cursor-pointer shrink-0"
+                        title="Quick Add Vendor"
+                      >
+                        <Plus className="size-4" />
+                      </button>
+                    </div>
                   )}
                 </div>
                 <div>
@@ -2531,13 +2635,16 @@ export function PurchaseOrdersSection({ onReceivePo, onCreateBill }: PurchaseOrd
         </div>
       )}
 
-      {/* DELETE / CANCEL CONFIRMATION MODAL (Sprint C3 Destructive UX) */}
+      {/* DELETE / MOVE TO BIN CONFIRMATION MODAL */}
       {showDeleteModal && activeOrder && (
         <DestructiveConfirmationDialog
           open={showDeleteModal}
-          onClose={() => setShowDeleteModal(false)}
+          onClose={() => {
+            setShowDeleteModal(false);
+            setIsPermanentDelete(false);
+          }}
           onConfirmDelete={handleDeleteOrder}
-          title="Cancel Purchase Order"
+          title={isPermanentDelete ? 'Permanently Delete Purchase Order' : 'Move Purchase Order to Data Bin'}
           entityType="Purchase Order"
           entityName={activeOrder.supplier_name || 'Purchase Order'}
           entityCode={activeOrder.po_number}
@@ -2564,9 +2671,57 @@ export function PurchaseOrdersSection({ onReceivePo, onCreateBill }: PurchaseOrd
               warning: parseFloat(activeOrder.grand_total || '0') > 0,
             },
           ]}
-          warningMessage="Cancelling this purchase order will revoke all commercial commitments with the supplier and prevent goods from being received into warehouse inventory."
+          warningMessage={
+            isPermanentDelete
+              ? 'WARNING: You are about to permanently purge this purchase order. This action cannot be reversed and will not be recoverable from the Data Bin.'
+              : 'Moving this purchase order to the Data Bin will soft-delete the record. It can be audited or restored at any time from Intelligence & System > Data Bin & Recovery Vault.'
+          }
         />
       )}
+
+      {/* BULK DELETE / MOVE TO BIN CONFIRMATION DIALOG */}
+      {showBulkDeleteConfirm && (
+        <DestructiveConfirmationDialog
+          open={showBulkDeleteConfirm}
+          onClose={() => setShowBulkDeleteConfirm(false)}
+          onConfirmDelete={() => handleBulkDeleteOrders(isBulkPermanent)}
+          title={isBulkPermanent ? `Permanently Delete ${selectedPoIds.size} Purchase Orders` : `Move ${selectedPoIds.size} Purchase Orders to Data Bin`}
+          entityType="Bulk Purchase Orders"
+          entityName={`${selectedPoIds.size} selected purchase orders`}
+          impactItems={[
+            {
+              label: 'Targeted Orders',
+              count: `${selectedPoIds.size} purchase orders`,
+              warning: true,
+            },
+            {
+              label: 'Action Mode',
+              count: isBulkPermanent ? 'Permanent Hard Delete' : 'Soft Delete (Data Bin Recoverable)',
+            },
+          ]}
+          warningMessage={
+            isBulkPermanent
+              ? `You are about to permanently erase ${selectedPoIds.size} purchase orders. This action completely removes records and cannot be undone.`
+              : `You are moving ${selectedPoIds.size} purchase orders to the Data Bin. They will be archived and can be restored from the Data Bin & Recovery Vault.`
+          }
+        />
+      )}
+
+      {/* QUICK ADD SUPPLIER MODAL */}
+      <SupplierFormModal
+        open={showQuickSupplierModal}
+        quickMode={true}
+        onClose={() => setShowQuickSupplierModal(false)}
+        onSuccess={(created) => {
+          queryClient.invalidateQueries({ queryKey: ['catalogue', 'parties'] });
+          setFormData((prev) => ({
+            ...prev,
+            party_id: created.party_id ?? created.id,
+            supplier_name: created.name,
+          }));
+          setShowQuickSupplierModal(false);
+        }}
+      />
 
       {/* Audit Timeline Drawer */}
       <AuditTimelineDrawer

@@ -16,8 +16,10 @@ import {
   Zap,
   AlertTriangle,
   CheckCircle2,
+  Building2,
 } from 'lucide-react';
 import { api } from '../../lib/api/client';
+import { SuppliersSection } from './sections/SuppliersSection';
 import { PurchaseOrdersSection } from './sections/PurchaseOrdersSection';
 import { GoodsReceiptsSection } from './sections/GoodsReceiptsSection';
 import { PurchaseRequisitionsSection } from './sections/PurchaseRequisitionsSection';
@@ -32,10 +34,10 @@ import { FastPoModal } from './modals/FastPoModal';
 import { FastGrnModal } from './modals/FastGrnModal';
 import { FastBillModal } from './modals/FastBillModal';
 
-export type PurchasingTab = 'requisitions' | 'orders' | 'receipts' | 'bills' | 'returns';
+export type PurchasingTab = 'suppliers' | 'requisitions' | 'orders' | 'receipts' | 'bills' | 'returns';
 export type PurchasingCategory = 'sourcing' | 'fulfillment' | 'returns';
 
-const VALID_TABS: readonly PurchasingTab[] = ['requisitions', 'orders', 'receipts', 'bills', 'returns'];
+const VALID_TABS: readonly PurchasingTab[] = ['suppliers', 'requisitions', 'orders', 'receipts', 'bills', 'returns'];
 
 interface TabConfig {
   id: PurchasingTab;
@@ -114,6 +116,15 @@ export default function PurchasingWorkspace() {
   ], [t]);
 
   const tabs: TabConfig[] = useMemo(() => [
+    {
+      id: 'suppliers',
+      category: 'sourcing',
+      label: 'Suppliers & Vendors',
+      shortLabel: 'Suppliers',
+      icon: Building2,
+      description: 'Vendor master directory, payment terms, tax IDs, and credit agreements',
+      highlights: ['Vendor Profiles', 'Payment Terms', 'Commercial Directory'],
+    },
     {
       id: 'requisitions',
       category: 'sourcing',
@@ -861,6 +872,7 @@ export default function PurchasingWorkspace() {
 
       {/* Tab Content */}
       <div className="pt-1">
+        {activeTab === 'suppliers' && <SuppliersSection />}
         {activeTab === 'requisitions' && <PurchaseRequisitionsSection />}
         {activeTab === 'orders' && (
           <PurchaseOrdersSection

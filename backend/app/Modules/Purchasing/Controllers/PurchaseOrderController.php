@@ -98,7 +98,7 @@ final class PurchaseOrderController extends Controller
         return new PurchaseOrderResource($approved);
     }
 
-    public function destroy(int $id): JsonResponse
+    public function destroy(int $id, Request $request): JsonResponse
     {
         $tenantId = TenantContext::current()->tenantId();
 
@@ -114,11 +114,67 @@ final class PurchaseOrderController extends Controller
         }
 
         $poNumber = $order->po_number ?? "#{$order->id}";
-        $order->delete();
+        $isForce = $request->boolean('force');
+
+        if ($isForce) {
+            $order->forceDelete();
+            $message = "Purchase Order {$poNumber} deleted permanently.";
+        } else {
+            $order->delete();
+            $message = "Purchase Order {$poNumber} moved to Data Bin successfully.";
+        }
 
         return response()->json([
             'success' => true,
-            'message' => "Purchase Order {$poNumber} moved to Data Bin successfully.",
+            'message' => $message,
+        ]);
+    }
+
+    public function bulkDestroy(Request $request): JsonResponse
+    {
+        $tenantId = TenantContext::current()->tenantId();
+
+        $validated = $request->validate([
+            'ids' => ['required', 'array', 'min:1'],
+            'ids.*' => ['integer'],
+            'force' => ['sometimes', 'boolean'],
+        ]);
+
+        $ids = $validated['ids'];
+        $force = (bool) ($validated['force'] ?? false);
+
+        /** @var \Illuminate\Database\Eloquent\Collection<int, PurchaseOrder> $orders */
+        $orders = PurchaseOrder::where('tenant_id', $tenantId)
+            ->whereIn('id', $ids)
+            ->get();
+
+        $processed = 0;
+        $skipped = 0;
+
+        foreach ($orders as $order) {
+            // Cannot delete orders that are completed or received
+            if (in_array($order->status, ['completed', 'received'], true)) {
+                $skipped++;
+                continue;
+            }
+
+            if ($force) {
+                $order->forceDelete();
+            } else {
+                $order->delete();
+            }
+            $processed++;
+        }
+
+        $actionText = $force ? 'deleted permanently' : 'moved to Data Bin';
+
+        return response()->json([
+            'success' => true,
+            'message' => "{$processed} purchase order(s) {$actionText}." . ($skipped > 0 ? " {$skipped} order(s) were skipped because they are completed/received." : ''),
+            'data' => [
+                'processed' => $processed,
+                'skipped' => $skipped,
+            ],
         ]);
     }
 

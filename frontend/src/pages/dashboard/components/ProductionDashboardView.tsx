@@ -201,7 +201,7 @@ export const ProductionDashboardView: React.FC<ProductionDashboardViewProps> = (
 
   // Worker Leaderboard
   const workers: WorkerLeaderboardItem[] = useMemo(() => {
-    if (activeWorkersData && activeWorkersData.length > 0) {
+    if (Array.isArray(activeWorkersData) && activeWorkersData.length > 0) {
       return activeWorkersData;
     }
     return [

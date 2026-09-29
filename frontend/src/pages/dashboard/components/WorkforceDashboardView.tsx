@@ -64,9 +64,13 @@ export const WorkforceDashboardView: React.FC<WorkforceDashboardViewProps> = ({ 
     },
   });
 
+  const safePropWorkers = useMemo(() => Array.isArray(propWorkers) ? propWorkers : EMPTY_WORKERS, [propWorkers]);
+  const metricsWorkers = metrics?.active_workers;
+  const safeMetricsWorkers = useMemo(() => Array.isArray(metricsWorkers) ? metricsWorkers : EMPTY_WORKERS, [metricsWorkers]);
+
   const workers: WorkerItem[] = useMemo(() => {
-    return propWorkers.length > 0 ? propWorkers : (metrics?.active_workers || EMPTY_WORKERS);
-  }, [propWorkers, metrics?.active_workers]);
+    return safePropWorkers.length > 0 ? safePropWorkers : safeMetricsWorkers;
+  }, [safePropWorkers, safeMetricsWorkers]);
 
   const { data: attendance = [] } = useQuery<AttendanceRecord[]>({
     queryKey: ['hr', 'recent-attendance'],
@@ -91,7 +95,7 @@ export const WorkforceDashboardView: React.FC<WorkforceDashboardViewProps> = ({ 
   });
 
   const departmentDistribution = useMemo(() => {
-    if (workers.length === 0) return [
+    if (!Array.isArray(workers) || workers.length === 0) return [
       { name: 'Production Floor', count: 0, percent: 0 },
       { name: 'Warehouse & Store', count: 0, percent: 0 },
       { name: 'Quality Control', count: 0, percent: 0 },
@@ -99,7 +103,7 @@ export const WorkforceDashboardView: React.FC<WorkforceDashboardViewProps> = ({ 
     ];
     const deptMap: Record<string, number> = {};
     workers.forEach((w) => {
-      const dept = w.department || 'General';
+      const dept = w?.department || 'General';
       deptMap[dept] = (deptMap[dept] || 0) + 1;
     });
     return Object.entries(deptMap).map(([name, count]) => ({

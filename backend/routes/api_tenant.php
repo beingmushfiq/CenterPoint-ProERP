@@ -511,6 +511,8 @@ Route::middleware(['auth.jwt', 'tenant.resolve', 'tenant.active'])
                     ->middleware('permission:purchasing.order.approve')->name('approve');
                 Route::post('{id}/cancel', [App\Modules\Purchasing\Controllers\PurchaseOrderController::class, 'cancel'])
                     ->middleware('permission:purchasing.order.create')->name('cancel');
+                Route::post('bulk-delete', [App\Modules\Purchasing\Controllers\PurchaseOrderController::class, 'bulkDestroy'])
+                    ->middleware('permission:purchasing.order.delete')->name('bulk-destroy');
                 Route::delete('{id}', [App\Modules\Purchasing\Controllers\PurchaseOrderController::class, 'destroy'])
                     ->middleware('permission:purchasing.order.delete')->name('destroy');
             });

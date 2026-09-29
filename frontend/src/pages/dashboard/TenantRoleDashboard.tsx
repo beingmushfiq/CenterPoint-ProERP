@@ -442,8 +442,8 @@ export const TenantRoleDashboard: React.FC = () => {
     return [];
   }, [rawLowStock, metricsAttentionItems]);
 
-  const qcList = useMemo(() => recentQc || [], [recentQc]);
-  const workers = useMemo(() => activeWorkers || [], [activeWorkers]);
+  const qcList = useMemo(() => Array.isArray(recentQc) ? recentQc : [], [recentQc]);
+  const workers = useMemo(() => Array.isArray(activeWorkers) ? activeWorkers : [], [activeWorkers]);
 
   // ── Quick actions ────────────────────────────────────────────
   const quickActions = useMemo(() => {

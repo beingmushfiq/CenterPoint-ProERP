@@ -7,6 +7,7 @@ import { api } from '../../../lib/api/client';
 import { extractList } from '../../../lib/api/apiData';
 import { useCurrency } from '../../../hooks/useCurrency';
 import { notify } from '../../../components/ui/Toast';
+import { SupplierFormModal } from '../components/SupplierFormModal';
 
 interface FastPoModalProps {
   open: boolean;
@@ -31,12 +32,13 @@ export const FastPoModal: React.FC<FastPoModalProps> = ({
   initialItems = [],
 }) => {
   const { formatCurrency } = useCurrency();
+  const [showQuickSupplierModal, setShowQuickSupplierModal] = useState(false);
 
   const { data: suppliers = [] } = useQuery<Array<{ id: number; name: string }>>({
     queryKey: ['catalogue', 'parties', 'suppliers'],
     queryFn: async () => {
       try {
-        const res = await api.get<any>('/parties?is_vendor=true&per_page=100');
+        const res = await api.get<any>('/parties?is_supplier=true&per_page=100');
         return extractList<{ id: number; name: string }>(res);
       } catch {
         return [];
@@ -213,9 +215,19 @@ export const FastPoModal: React.FC<FastPoModalProps> = ({
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-default mb-1">
-                Supplier / Vendor <span className="text-primary">*</span>
-              </label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-xs font-semibold text-default">
+                  Supplier / Vendor <span className="text-primary">*</span>
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setShowQuickSupplierModal(true)}
+                  className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:underline cursor-pointer"
+                >
+                  <Plus className="size-3" />
+                  <span>Quick Add</span>
+                </button>
+              </div>
               <input
                 type="text"
                 list="suppliers-list"
@@ -422,6 +434,16 @@ export const FastPoModal: React.FC<FastPoModalProps> = ({
           </div>
         </form>
       </div>
+
+      <SupplierFormModal
+        open={showQuickSupplierModal}
+        quickMode={true}
+        onClose={() => setShowQuickSupplierModal(false)}
+        onSuccess={(created) => {
+          setSupplierName(created.name);
+          setShowQuickSupplierModal(false);
+        }}
+      />
     </div>
   );
 };
