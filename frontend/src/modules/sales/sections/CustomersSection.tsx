@@ -18,6 +18,7 @@ import {
   X,
   Loader2,
   History,
+  Edit2,
 } from 'lucide-react';
 import type { CustomerCrm } from '../../../types/api/sales';
 import { api } from '../../../lib/api/client';
@@ -186,6 +187,7 @@ export function CustomersSection() {
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [editingCustomer, setEditingCustomer] = useState<CustomerCrm | null>(null);
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerCrm | null>(null);
   const [showLedgerModal, setShowLedgerModal] = useState(false);
   const [localStatuses, setLocalStatuses] = useState<Record<number, 'active' | 'inactive' | 'blocked'>>({});
@@ -240,6 +242,7 @@ export function CustomersSection() {
       setCloseConfirmOpen(true);
     } else {
       setShowCreateModal(false);
+      setEditingCustomer(null);
       resetForm();
     }
   }, [formIsDirty, resetForm]);
@@ -300,6 +303,37 @@ export function CustomersSection() {
     },
   });
 
+  // Update mutation — real PATCH to /parties/{uuid}
+  const updateCustomerMutation = useMutation({
+    mutationFn: async ({ uuid, payload }: { uuid: string; payload: typeof EMPTY_FORM }) => {
+      const res = await api.patch<{ data: PartyRaw }>(`/parties/${uuid}`, {
+        name: payload.name,
+        customer_tier: payload.type,
+        phone: payload.phone || undefined,
+        email: payload.email || undefined,
+        city: payload.city || undefined,
+        address: payload.address || undefined,
+        status: payload.status,
+      });
+      return res.data;
+    },
+    onSuccess: (raw: { data: PartyRaw } | PartyRaw) => {
+      const party = ('data' in raw && raw.data && typeof raw.data === 'object') ? (raw.data as PartyRaw) : (raw as PartyRaw);
+      toast.success(`${roleLabel} "${party.name}" updated successfully.`);
+      setShowCreateModal(false);
+      setEditingCustomer(null);
+      resetForm();
+      queryClient.invalidateQueries({ queryKey: roleQueryKey });
+    },
+    onError: (err: unknown) => {
+      const anyErr = err as { response?: { data?: { message?: string; errors?: Record<string, string[]> } } };
+      const firstError = anyErr?.response?.data?.errors
+        ? Object.values(anyErr.response.data.errors)[0]?.[0]
+        : anyErr?.response?.data?.message;
+      toast.error(firstError || `Failed to update ${roleLabel.toLowerCase()}. Please try again.`);
+    },
+  });
+
   // Fetch parties by role \u2014 customers, dealers, or agents
   const { data: customers = [], isFetching, refetch } = useQuery<CustomerCrm[]>({
     queryKey: roleQueryKey,
@@ -348,19 +382,43 @@ export function CustomersSection() {
     },
   });
 
-  const handleCreateCustomer = (e: React.FormEvent) => {
+  const handleSaveCustomer = (e: React.FormEvent) => {
     e.preventDefault();
-    createCustomerMutation.mutate(formData);
+    if (editingCustomer) {
+      updateCustomerMutation.mutate({ uuid: editingCustomer.uuid, payload: formData });
+    } else {
+      createCustomerMutation.mutate(formData);
+    }
   };
 
-  // Ctrl+Enter shortcut for create form
+  const handleOpenEdit = (c: CustomerCrm) => {
+    setEditingCustomer(c);
+    setFormData({
+      name: c.name,
+      type: c.type,
+      email: c.email || '',
+      phone: c.phone || '',
+      address: c.address || '',
+      city: c.city || 'Dhaka',
+      status: c.status,
+    });
+    setFormIsDirty(false);
+    setShowCreateModal(true);
+  };
+
+  // Ctrl+Enter shortcut for form
   useEffect(() => {
     if (!showCreateModal) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
         e.preventDefault();
-        if (formData.name && formData.phone && !createCustomerMutation.isPending) {
-          createCustomerMutation.mutate(formData);
+        const isPending = editingCustomer ? updateCustomerMutation.isPending : createCustomerMutation.isPending;
+        if (formData.name && formData.phone && !isPending) {
+          if (editingCustomer) {
+            updateCustomerMutation.mutate({ uuid: editingCustomer.uuid, payload: formData });
+          } else {
+            createCustomerMutation.mutate(formData);
+          }
         }
       }
       if (e.key === 'Escape') {
@@ -369,7 +427,7 @@ export function CustomersSection() {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [showCreateModal, formData, createCustomerMutation, handleRequestCloseModal]);
+  }, [showCreateModal, formData, editingCustomer, updateCustomerMutation, createCustomerMutation, handleRequestCloseModal]);
 
   const filteredCustomers = customers
     .map((c) => ({
@@ -631,7 +689,11 @@ export function CustomersSection() {
 
           {canCreate && (
             <button
-              onClick={() => setShowCreateModal(true)}
+              onClick={() => {
+                setEditingCustomer(null);
+                resetForm();
+                setShowCreateModal(true);
+              }}
               className="flex items-center gap-1.5 rounded-xl bg-primary px-3.5 py-2 text-xs font-medium text-white shadow-xs hover:bg-primary-hover transition-colors cursor-pointer"
             >
               <Plus className="h-4 w-4" />
@@ -697,7 +759,7 @@ export function CustomersSection() {
                 {isVisible('balance')  && <th className={`${cellClass} text-right`}>Current Balance</th>}
                 {isVisible('lifetime') && <th className={`${cellClass} text-right`}>Lifetime Billed</th>}
                 {isVisible('status')   && <th className={cellClass}>Status</th>}
-                <th className={`${cellClass} text-right`}>Ledger & Action</th>
+                <th className={`${cellClass} text-right whitespace-nowrap`}>Ledger & Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-default">
@@ -778,44 +840,57 @@ export function CustomersSection() {
                       />
                       </td>
                     )}
-                    <td className={`${cellClass} text-right space-x-1.5`}>
-                      <button
-                        type="button"
-                        onClick={() => setAuditingCustomer(c)}
-                        className="inline-flex items-center gap-1 rounded-lg border border-default bg-surface-sunken px-2.5 py-1 text-[11px] font-medium text-default hover:bg-surface transition-colors cursor-pointer"
-                        title="View Audit History"
-                      >
-                        <History className="h-3 w-3 text-muted" />
-                        <span>History</span>
-                      </button>
-                      <button
-                        onClick={() => {
-                          setSelectedCustomer(c);
-                          setShowLedgerModal(true);
-                        }}
-                        className="inline-flex items-center gap-1 rounded-lg border border-default bg-surface-sunken px-2.5 py-1 text-[11px] font-medium text-default hover:bg-surface transition-colors cursor-pointer"
-                      >
-                        <FileText className="h-3 w-3 text-primary" />
-                        <span>Ledger</span>
-                      </button>
-                      {canDelete && (
+                    <td className={`${cellClass} text-right whitespace-nowrap`}>
+                      <div className="flex items-center justify-end gap-1.5 whitespace-nowrap">
                         <button
                           type="button"
-                          onClick={() =>
-                            setDeleteConfirm({
-                              id: c.id,
-                              uuid: c.uuid,
-                              title: `${roleLabel.toLowerCase()} "${c.name}"`,
-                              customer: c,
-                            })
-                          }
-                          className="inline-flex items-center gap-1 rounded-lg bg-rose-500/10 border border-rose-500/20 px-2.5 py-1 text-[11px] font-medium text-rose-600 dark:text-rose-400 hover:bg-rose-500/20 transition-colors cursor-pointer"
-                          title="Move customer to Data Bin"
+                          onClick={() => setAuditingCustomer(c)}
+                          className="inline-flex items-center gap-1 rounded-lg border border-default bg-surface-sunken px-2.5 py-1 text-[11px] font-medium text-default hover:bg-surface transition-colors cursor-pointer"
+                          title="View Audit History"
                         >
-                          <Trash2 className="h-3 w-3" />
-                          <span>Move to Bin</span>
+                          <History className="h-3 w-3 text-muted" />
+                          <span>History</span>
                         </button>
-                      )}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedCustomer(c);
+                            setShowLedgerModal(true);
+                          }}
+                          className="inline-flex items-center gap-1 rounded-lg border border-default bg-surface-sunken px-2.5 py-1 text-[11px] font-medium text-default hover:bg-surface transition-colors cursor-pointer"
+                          title="View Financial Ledger Statement"
+                        >
+                          <FileText className="h-3 w-3 text-primary" />
+                          <span>Ledger</span>
+                        </button>
+                        {canCreate && (
+                          <button
+                            type="button"
+                            onClick={() => handleOpenEdit(c)}
+                            className="p-1.5 text-muted hover:text-default hover:bg-surface-sunken rounded-lg transition-colors cursor-pointer"
+                            title={`Edit ${roleLabel} Details`}
+                          >
+                            <Edit2 className="size-3.5" />
+                          </button>
+                        )}
+                        {canDelete && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setDeleteConfirm({
+                                id: c.id,
+                                uuid: c.uuid,
+                                title: `${roleLabel.toLowerCase()} "${c.name}"`,
+                                customer: c,
+                              })
+                            }
+                            className="p-1.5 text-muted hover:text-rose-600 hover:bg-rose-500/10 rounded-lg transition-colors cursor-pointer"
+                            title={`Move ${roleLabel.toLowerCase()} to Data Bin`}
+                          >
+                            <Trash2 className="size-3.5" />
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 );
@@ -957,7 +1032,9 @@ export function CustomersSection() {
           <div className="w-full max-w-lg rounded-2xl border border-default bg-surface p-6 shadow-xl space-y-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-default pb-3">
               <div>
-                <h3 className="text-base font-bold text-default">New Customer Account</h3>
+                <h3 className="text-base font-bold text-default">
+                  {editingCustomer ? `Edit ${roleLabel} Profile` : `New ${roleLabel} Account`}
+                </h3>
                 <p className="text-[11px] text-muted mt-0.5">Press <kbd className="px-1 py-0.5 rounded bg-surface-sunken border border-default text-[10px] font-mono">Ctrl+Enter</kbd> to save quickly</p>
               </div>
               <button
@@ -969,7 +1046,7 @@ export function CustomersSection() {
               </button>
             </div>
 
-            <form onSubmit={handleCreateCustomer} className="space-y-4 text-xs" noValidate>
+            <form onSubmit={handleSaveCustomer} className="space-y-4 text-xs" noValidate>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-[11px] font-semibold text-muted uppercase tracking-wider mb-1">
@@ -1086,13 +1163,13 @@ export function CustomersSection() {
                 </button>
                 <button
                   type="submit"
-                  disabled={createCustomerMutation.isPending || !formData.name || !formData.phone}
+                  disabled={(editingCustomer ? updateCustomerMutation.isPending : createCustomerMutation.isPending) || !formData.name || !formData.phone}
                   className="flex items-center gap-2 rounded-xl bg-primary px-5 py-2 font-medium text-white shadow-xs hover:bg-primary-hover transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {createCustomerMutation.isPending ? (
+                  {(editingCustomer ? updateCustomerMutation.isPending : createCustomerMutation.isPending) ? (
                     <><Loader2 className="size-3.5 animate-spin" /> Saving...</>
                   ) : (
-                    'Create Customer'
+                    editingCustomer ? 'Save Changes' : `Create ${roleLabel}`
                   )}
                 </button>
               </div>
@@ -1183,6 +1260,7 @@ export function CustomersSection() {
         onConfirm={() => {
           setCloseConfirmOpen(false);
           setShowCreateModal(false);
+          setEditingCustomer(null);
           resetForm();
         }}
         title="Discard Changes?"
