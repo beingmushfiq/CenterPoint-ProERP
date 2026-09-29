@@ -185,9 +185,10 @@ export const BankingSection: React.FC<BankingSectionProps> = ({
         {bankAccounts.map((ba) => {
           const bankKeyword = (ba.bank_name || '').trim().toLowerCase().split(/\s+/)[0] || '';
           const matchedAccount =
-            bankKeyword.length > 1
+            (ba.chart_of_account_id ? accounts.find((a) => a.id === ba.chart_of_account_id) : undefined) ||
+            (bankKeyword.length > 1
               ? accounts.find((a) => a.name.toLowerCase().includes(bankKeyword))
-              : undefined;
+              : undefined);
           return (
             <div
               key={ba.id}

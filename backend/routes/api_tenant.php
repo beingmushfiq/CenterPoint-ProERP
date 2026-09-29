@@ -906,6 +906,12 @@ Route::middleware(['auth.jwt', 'tenant.resolve', 'tenant.active'])
             Route::prefix('bank-accounts')->name('bank-accounts.')->group(static function (): void {
                 Route::get('/', [App\Modules\Finance\Controllers\BankAccountController::class, 'index'])
                     ->middleware('permission:finance.bank.view')->name('index');
+                Route::post('transfer', [App\Modules\Finance\Controllers\BankAccountController::class, 'transfer'])
+                    ->middleware('permission:finance.bank.create')->name('transfer');
+                Route::post('{id}/deposit', [App\Modules\Finance\Controllers\BankAccountController::class, 'deposit'])
+                    ->middleware('permission:finance.bank.create')->name('deposit');
+                Route::post('{id}/withdraw', [App\Modules\Finance\Controllers\BankAccountController::class, 'withdraw'])
+                    ->middleware('permission:finance.bank.create')->name('withdraw');
                 Route::post('/', [App\Modules\Finance\Controllers\BankAccountController::class, 'store'])
                     ->middleware('permission:finance.bank.create')->name('store');
                 Route::get('{id}', [App\Modules\Finance\Controllers\BankAccountController::class, 'show'])

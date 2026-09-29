@@ -25,6 +25,27 @@ class ChartOfAccountController extends Controller
 
         $accounts = $query->orderBy('account_code')->get();
 
+        // Calculate balances from posted journal lines
+        $balances = \Illuminate\Support\Facades\DB::table('journal_lines')
+            ->join('journal_entries', 'journal_lines.journal_entry_id', '=', 'journal_entries.id')
+            ->where('journal_entries.status', 'posted')
+            ->whereNull('journal_lines.deleted_at')
+            ->whereNull('journal_entries.deleted_at')
+            ->whereIn('journal_lines.account_id', $accounts->pluck('id'))
+            ->groupBy('journal_lines.account_id')
+            ->selectRaw('journal_lines.account_id, SUM(journal_lines.debit_amount) as total_debit, SUM(journal_lines.credit_amount) as total_credit')
+            ->get()
+            ->keyBy('account_id');
+
+        $accounts->transform(function ($account) use ($balances) {
+            $lineStats = $balances->get($account->id);
+            $dr = (float) ($lineStats->total_debit ?? 0.0);
+            $cr = (float) ($lineStats->total_credit ?? 0.0);
+            $net = $account->normal_balance === 'debit' ? ($dr - $cr) : ($cr - $dr);
+            $account->current_balance = number_format($net, 4, '.', '');
+            return $account;
+        });
+
         return response()->json([
             'data' => $accounts,
         ]);

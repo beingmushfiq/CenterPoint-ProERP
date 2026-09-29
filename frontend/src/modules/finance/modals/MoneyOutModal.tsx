@@ -71,7 +71,13 @@ export const MoneyOutModal: React.FC<MoneyOutModalProps> = ({
 
   // Find selected bank / cash account
   const sourceAccount = accounts.find((a) => a.id === selectedAccountId);
-  const sourceBank = bankAccounts.find((b) => b.account_name.includes(sourceAccount?.name || ''));
+  const sourceBank = bankAccounts.find(
+    (b) => (b.chart_of_account_id && b.chart_of_account_id === selectedAccountId) ||
+      (sourceAccount && (
+        b.account_name.toLowerCase().includes(sourceAccount.name.toLowerCase().split(' ')[0] || '') ||
+        sourceAccount.name.toLowerCase().includes((b.bank_name || '').toLowerCase().split(' ')[0] || '')
+      ))
+  );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -98,22 +104,22 @@ export const MoneyOutModal: React.FC<MoneyOutModalProps> = ({
     let debitAccountId = 501; // default expense
     let createdExpense: Expense | undefined;
 
+    const activeSplits = isMultiPayMode
+      ? splits
+      : [
+          {
+            id: '1',
+            method: sourceAccount?.account_subtype === 'cash' ? ('cash' as const) : ('bank_transfer' as const),
+            amount: numAmount,
+            ...(sourceBank?.id ? { bank_account_id: sourceBank.id } : {}),
+          },
+        ];
+    const primaryMethod = activeSplits.length > 1 ? 'split' : (activeSplits[0]?.method || 'cash');
+
     if (outType === 'expense') {
       const cat = EXPENSE_CATEGORIES.find((c) => c.id === categoryId);
       narration = `Operational Expense: ${cat?.name || 'Disbursement'} paid to ${payeeName || 'Vendor'}. ${description}`.trim();
       debitAccountId = accounts.find((a) => a.account_type === 'expense')?.id ?? 501;
-
-      const activeSplits = isMultiPayMode
-        ? splits
-        : [
-            {
-              id: '1',
-              method: sourceAccount?.account_subtype === 'cash' ? ('cash' as const) : ('bank_transfer' as const),
-              amount: numAmount,
-              ...(sourceBank?.id ? { bank_account_id: sourceBank.id } : {}),
-            },
-          ];
-      const primaryMethod = activeSplits.length > 1 ? 'split' : (activeSplits[0]?.method || 'cash');
 
       try {
         const res = await api.post('/finance/expenses', {
@@ -210,7 +216,7 @@ export const MoneyOutModal: React.FC<MoneyOutModalProps> = ({
           },
         ];
 
-    const newJournalEntry: JournalEntry = {
+    let createdJournalEntry: JournalEntry = {
       id: entryId,
       uuid: `je-auto-${timestamp}`,
       entry_number: entryNumber,
@@ -235,12 +241,79 @@ export const MoneyOutModal: React.FC<MoneyOutModalProps> = ({
       ],
     };
 
-    // Update account balances
-    const updatedAccounts = accounts.map((acc) => {
-      if (acc.id === selectedAccountId) {
-        const bal = parseFloat(acc.current_balance || '0') - numAmount;
-        return { ...acc, current_balance: bal.toFixed(4) };
+    // If non-expense disbursement (supplier or drawings) and source is a bank account, call withdraw API
+    if (outType !== 'expense' && sourceBank && !isMultiPayMode) {
+      try {
+        const res = await api.post(`/finance/bank-accounts/${sourceBank.id}/withdraw`, {
+          amount: numAmount,
+          debit_account_id: debitAccountId,
+          date,
+          payment_method: primaryMethod,
+          reference_number: supplierInvoiceRef || undefined,
+          narration,
+        });
+
+        if (res.data && (res.data as { data?: { journal_entry?: JournalEntry } }).data?.journal_entry) {
+          createdJournalEntry = (res.data as { data: { journal_entry: JournalEntry } }).data.journal_entry;
+        }
+      } catch (err) {
+        console.warn('Backend withdraw failed or offline, falling back to client-side sync', err);
       }
+    } else if (outType !== 'expense') {
+      try {
+        const res = await api.post('/finance/journal-entries', {
+          company_id: 1,
+          entry_date: date,
+          entry_type: 'manual',
+          source_module: 'finance_disbursement',
+          narration,
+          lines: createdJournalEntry.lines?.map((l) => ({
+            account_id: l.account_id,
+            debit_amount: parseFloat(String(l.debit_amount || '0')),
+            credit_amount: parseFloat(String(l.credit_amount || '0')),
+            narration: l.narration,
+          })) || [],
+        });
+
+        if (res.data && (res.data as { data?: JournalEntry }).data) {
+          createdJournalEntry = (res.data as { data: JournalEntry }).data;
+        }
+      } catch (err) {
+        console.warn('Backend journal post failed or offline, using client entry', err);
+      }
+    }
+
+    // Update account balances
+    let updatedAccounts = [...accounts];
+    if (isMultiPayMode && splits.length > 0) {
+      splits.forEach((s) => {
+        const splitAmount = Number(s.amount) || 0;
+        const matchedAccId =
+          s.method === 'cash'
+            ? accounts.find((a) => a.account_subtype === 'cash')?.id ?? selectedAccountId
+            : s.bank_account_id
+            ? s.bank_account_id
+            : accounts.find((a) => a.account_subtype === 'bank')?.id ?? selectedAccountId;
+
+        updatedAccounts = updatedAccounts.map((acc) => {
+          if (acc.id === matchedAccId) {
+            const bal = parseFloat(acc.current_balance || '0') - splitAmount;
+            return { ...acc, current_balance: bal.toFixed(4) };
+          }
+          return acc;
+        });
+      });
+    } else {
+      updatedAccounts = updatedAccounts.map((acc) => {
+        if (acc.id === selectedAccountId) {
+          const bal = parseFloat(acc.current_balance || '0') - numAmount;
+          return { ...acc, current_balance: bal.toFixed(4) };
+        }
+        return acc;
+      });
+    }
+
+    updatedAccounts = updatedAccounts.map((acc) => {
       if (acc.id === debitAccountId) {
         const bal = parseFloat(acc.current_balance || '0') + numAmount;
         return { ...acc, current_balance: bal.toFixed(4) };
@@ -248,18 +321,40 @@ export const MoneyOutModal: React.FC<MoneyOutModalProps> = ({
       return acc;
     });
 
-    // Update bank accounts if applicable
-    const updatedBankAccounts = bankAccounts.map((ba) => {
-      if (sourceAccount && ba.account_name.toLowerCase().includes(sourceAccount.name.toLowerCase().split(' ')[0] || '')) {
-        const bal = parseFloat(ba.current_balance || '0') - numAmount;
-        return { ...ba, current_balance: bal.toFixed(4) };
-      }
-      return ba;
-    });
+    // Update bank accounts directly by relation or id
+    let updatedBankAccounts = [...bankAccounts];
+    if (isMultiPayMode && splits.length > 0) {
+      splits.forEach((s) => {
+        if (s.bank_account_id) {
+          const splitAmount = Number(s.amount) || 0;
+          updatedBankAccounts = updatedBankAccounts.map((ba) => {
+            if (ba.id === s.bank_account_id || ba.chart_of_account_id === s.bank_account_id) {
+              const bal = parseFloat(ba.current_balance || '0') - splitAmount;
+              return { ...ba, current_balance: bal.toFixed(4) };
+            }
+            return ba;
+          });
+        }
+      });
+    } else {
+      updatedBankAccounts = bankAccounts.map((ba) => {
+        const isMatch = (ba.chart_of_account_id && ba.chart_of_account_id === selectedAccountId) ||
+          (sourceAccount && (
+            ba.account_name.toLowerCase().includes(sourceAccount.name.toLowerCase().split(' ')[0] || '') ||
+            sourceAccount.name.toLowerCase().includes((ba.bank_name || '').toLowerCase().split(' ')[0] || '')
+          ));
+
+        if (isMatch) {
+          const bal = parseFloat(ba.current_balance || '0') - numAmount;
+          return { ...ba, current_balance: bal.toFixed(4) };
+        }
+        return ba;
+      });
+    }
 
     onSuccess({
       expense: createdExpense,
-      journalEntry: newJournalEntry,
+      journalEntry: createdJournalEntry,
       updatedAccounts,
       updatedBankAccounts,
     });

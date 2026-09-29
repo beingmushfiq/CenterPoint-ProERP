@@ -64,6 +64,7 @@ export interface BankAccount {
   routing_number?: string | undefined;
   swift_code?: string | undefined;
   currency_code: string;
+  chart_of_account_id?: number | undefined;
   opening_balance: string;
   current_balance: string;
   is_active: boolean;

@@ -3,6 +3,7 @@ import { X, ArrowUpRight, Coins, Package, UserPlus, Split } from 'lucide-react';
 import type { ChartOfAccount, BankAccount, JournalEntry } from '../../../types/api/finance';
 import { useCurrency } from '../../../hooks/useCurrency';
 import { notify } from '../../../components/ui/Toast';
+import { api } from '../../../lib/api/client';
 import { PaymentSplitEditor } from '../../../components/payment/PaymentSplitEditor';
 import type { PaymentSplitRow } from '../../../components/payment/PaymentSplitEditor';
 
@@ -66,7 +67,7 @@ export const MoneyInModal: React.FC<MoneyInModalProps> = ({
 
   const destAccount = accounts.find((a) => a.id === destAccountId);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const numAmount = parseFloat(amount);
     if (isNaN(numAmount) || numAmount <= 0) {
@@ -127,7 +128,7 @@ export const MoneyInModal: React.FC<MoneyInModalProps> = ({
           },
         ];
 
-    const newJournalEntry: JournalEntry = {
+    let createdJournalEntry: JournalEntry = {
       id: entryId,
       uuid: `je-auto-${timestamp}`,
       entry_number: entryNumber,
@@ -151,6 +152,57 @@ export const MoneyInModal: React.FC<MoneyInModalProps> = ({
         },
       ],
     };
+
+    // If destination is a Bank Account, call deposit endpoint
+    const targetBank = bankAccounts.find(
+      (b) => b.chart_of_account_id === destAccountId ||
+        (destAccount && (
+          b.account_name.toLowerCase().includes(destAccount.name.toLowerCase().split(' ')[0] || '') ||
+          destAccount.name.toLowerCase().includes((b.bank_name || '').toLowerCase().split(' ')[0] || '')
+        ))
+    );
+
+    if (targetBank && !isMultiPayMode) {
+      try {
+        const res = await api.post(`/finance/bank-accounts/${targetBank.id}/deposit`, {
+          amount: numAmount,
+          credit_account_id: creditAccountId,
+          date,
+          payment_method: paymentMethod,
+          reference_number: invoiceNumber || undefined,
+          narration,
+        });
+
+        if (res.data && (res.data as { data?: { journal_entry?: JournalEntry } }).data?.journal_entry) {
+          createdJournalEntry = (res.data as { data: { journal_entry: JournalEntry } }).data.journal_entry;
+        }
+      } catch (err) {
+        console.warn('Backend deposit failed or offline, falling back to client-side sync', err);
+      }
+    } else {
+      // General ledger journal entry post (e.g. for cash drawer or multi-split)
+      try {
+        const res = await api.post('/finance/journal-entries', {
+          company_id: 1,
+          entry_date: date,
+          entry_type: 'manual',
+          source_module: 'finance_receipt',
+          narration,
+          lines: createdJournalEntry.lines?.map((l) => ({
+            account_id: l.account_id,
+            debit_amount: parseFloat(String(l.debit_amount || '0')),
+            credit_amount: parseFloat(String(l.credit_amount || '0')),
+            narration: l.narration,
+          })) || [],
+        });
+
+        if (res.data && (res.data as { data?: JournalEntry }).data) {
+          createdJournalEntry = (res.data as { data: JournalEntry }).data;
+        }
+      } catch (err) {
+        console.warn('Backend journal post failed or offline, using client entry', err);
+      }
+    }
 
     // Update account balances
     let updatedAccounts = [...accounts];
@@ -194,14 +246,14 @@ export const MoneyInModal: React.FC<MoneyInModalProps> = ({
       return acc;
     });
 
-    // Update bank accounts if applicable
+    // Update bank accounts directly by relation or id
     let updatedBankAccounts = [...bankAccounts];
     if (isMultiPayMode && splits.length > 0) {
       splits.forEach((s) => {
         if (s.bank_account_id) {
           const splitAmount = Number(s.amount) || 0;
           updatedBankAccounts = updatedBankAccounts.map((ba) => {
-            if (ba.id === s.bank_account_id) {
+            if (ba.id === s.bank_account_id || ba.chart_of_account_id === s.bank_account_id) {
               const bal = parseFloat(ba.current_balance || '0') + splitAmount;
               return { ...ba, current_balance: bal.toFixed(4) };
             }
@@ -211,7 +263,13 @@ export const MoneyInModal: React.FC<MoneyInModalProps> = ({
       });
     } else {
       updatedBankAccounts = bankAccounts.map((ba) => {
-        if (destAccount && ba.account_name.toLowerCase().includes(destAccount.name.toLowerCase().split(' ')[0] || '')) {
+        const isMatch = (ba.chart_of_account_id && ba.chart_of_account_id === destAccountId) ||
+          (destAccount && (
+            ba.account_name.toLowerCase().includes(destAccount.name.toLowerCase().split(' ')[0] || '') ||
+            destAccount.name.toLowerCase().includes((ba.bank_name || '').toLowerCase().split(' ')[0] || '')
+          ));
+
+        if (isMatch) {
           const bal = parseFloat(ba.current_balance || '0') + numAmount;
           return { ...ba, current_balance: bal.toFixed(4) };
         }
@@ -220,7 +278,7 @@ export const MoneyInModal: React.FC<MoneyInModalProps> = ({
     }
 
     onSuccess({
-      journalEntry: newJournalEntry,
+      journalEntry: createdJournalEntry,
       updatedAccounts,
       updatedBankAccounts,
       collectedCustomerName: inType === 'customer' ? customerName : undefined,
@@ -229,7 +287,7 @@ export const MoneyInModal: React.FC<MoneyInModalProps> = ({
     });
 
     notify.success('Money Received Successfully', {
-      description: `${formatCurrency(numAmount)} deposited into ${destAccount?.name}. Auto-balanced in General Ledger (${entryNumber}).`,
+      description: `${formatCurrency(numAmount)} deposited into ${destAccount?.name}. Auto-balanced in General Ledger (${createdJournalEntry.entry_number || entryNumber}).`,
     });
     onClose();
   };

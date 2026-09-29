@@ -686,6 +686,7 @@ export const FinanceWorkspace: React.FC = () => {
       id: 1,
       uuid: 'ba-01',
       company_id: 1,
+      chart_of_account_id: 102,
       account_name: 'Principal Operating Account',
       account_number: '1501204892001',
       bank_name: 'BRAC Bank PLC',
@@ -725,6 +726,13 @@ export const FinanceWorkspace: React.FC = () => {
       // Retain state on error
     }
   }, []);
+
+  // Hydrate finance live data from API on component mount
+  useEffect(() => {
+    void fetchAccountsFromApi();
+    void fetchBanksFromApi();
+    void fetchJournalsFromApi();
+  }, [fetchAccountsFromApi, fetchBanksFromApi, fetchJournalsFromApi]);
 
   // Expenses State
   const [expenses, setExpenses] = useState<Expense[]>([
@@ -1234,18 +1242,27 @@ export const FinanceWorkspace: React.FC = () => {
     setJournalEntries((prev) => [payload.journalEntry, ...prev]);
     setAccounts(payload.updatedAccounts);
     setBankAccounts(payload.updatedBankAccounts);
+    void fetchAccountsFromApi();
+    void fetchBanksFromApi();
+    void fetchJournalsFromApi();
   };
 
   const handleMoneyInSuccess = (payload: MoneyInSuccessPayload) => {
     setJournalEntries((prev) => [payload.journalEntry, ...prev]);
     setAccounts(payload.updatedAccounts);
     setBankAccounts(payload.updatedBankAccounts);
+    void fetchAccountsFromApi();
+    void fetchBanksFromApi();
+    void fetchJournalsFromApi();
   };
 
   const handleTransferSuccess = (payload: TransferMoneySuccessPayload) => {
     setJournalEntries((prev) => [payload.journalEntry, ...prev]);
     setAccounts(payload.updatedAccounts);
     setBankAccounts(payload.updatedBankAccounts);
+    void fetchAccountsFromApi();
+    void fetchBanksFromApi();
+    void fetchJournalsFromApi();
   };
 
   // Adjusting Journal Modal State

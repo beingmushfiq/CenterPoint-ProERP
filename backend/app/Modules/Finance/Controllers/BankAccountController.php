@@ -308,15 +308,310 @@ class BankAccountController extends Controller
         ]);
     }
 
-    public function destroy(int $id): JsonResponse
+    public function __construct(
+        private readonly \App\Modules\Finance\Actions\PostJournalEntryAction $postJournalEntryAction
+    ) {}
+
+    public function deposit(Request $request, int $id): JsonResponse
     {
         $account = BankAccount::findOrFail($id);
-        $account->delete();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Bank account deleted successfully.',
+        $validated = $request->validate([
+            'amount' => 'required|numeric|min:0.01',
+            'credit_account_id' => 'required|integer|exists:chart_of_accounts,id',
+            'date' => 'nullable|date',
+            'payment_method' => 'nullable|string|max:64',
+            'reference_number' => 'nullable|string|max:128',
+            'narration' => 'nullable|string|max:500',
         ]);
+
+        $userId = (int) ($request->user()?->id ?? 1);
+        $amount = (float) $validated['amount'];
+        $date = $validated['date'] ?? date('Y-m-d');
+        $creditAccountId = (int) $validated['credit_account_id'];
+        $paymentMethod = $validated['payment_method'] ?? 'cash';
+        $ref = $validated['reference_number'] ?? ('DEP-' . date('Ymd') . '-' . str_pad((string) random_int(1000, 99999), 5, '0', STR_PAD_LEFT));
+        $narration = $validated['narration'] ?? "Money Deposit into {$account->name}";
+
+        return \Illuminate\Support\Facades\DB::transaction(function () use ($account, $amount, $date, $creditAccountId, $paymentMethod, $ref, $narration, $userId): JsonResponse {
+            // Update balance
+            $currentBal = (float) ($account->current_balance ?? 0.0);
+            $newBal = $currentBal + $amount;
+            $account->current_balance = number_format($newBal, 4, '.', '');
+            $account->updated_by = $userId;
+            $account->save();
+
+            // Post balanced GL Journal Entry
+            // Dr: Bank COA (increases asset)
+            // Cr: Source COA (reduces receivable or increases income/equity)
+            $journalData = [
+                'company_id' => $account->company_id,
+                'entry_date' => $date,
+                'entry_type' => 'manual',
+                'source_module' => 'finance_deposit',
+                'narration' => $narration,
+                'lines' => [
+                    [
+                        'account_id' => $account->chart_of_account_id,
+                        'debit_amount' => number_format($amount, 4, '.', ''),
+                        'credit_amount' => '0.0000',
+                        'narration' => "Dr: Deposit into {$account->name}",
+                    ],
+                    [
+                        'account_id' => $creditAccountId,
+                        'debit_amount' => '0.0000',
+                        'credit_amount' => number_format($amount, 4, '.', ''),
+                        'narration' => "Cr: Funds recognized for {$account->name}",
+                    ],
+                ],
+            ];
+
+            $journalEntry = $this->postJournalEntryAction->execute($journalData, $userId);
+
+            // Record Bank Transaction
+            $txn = new \App\Modules\Finance\Models\BankTransaction();
+            $txn->uuid = (string) \Illuminate\Support\Str::uuid();
+            $txn->tenant_id = $account->tenant_id;
+            $txn->bank_account_id = $account->id;
+            $txn->transaction_date = $date;
+            $txn->direction = 'in';
+            $txn->transaction_type = 'deposit';
+            $txn->amount = number_format($amount, 4, '.', '');
+            $txn->running_balance = number_format($newBal, 4, '.', '');
+            $txn->reference_number = $ref;
+            $txn->journal_entry_id = $journalEntry->id;
+            $txn->description = $narration;
+            $txn->reconciliation_status = 'unreconciled';
+            $txn->created_by = $userId;
+            $txn->updated_by = $userId;
+            $txn->save();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Deposit processed and posted to General Ledger.',
+                'data' => [
+                    'account' => $account->load('chartOfAccount'),
+                    'journal_entry' => $journalEntry,
+                    'transaction' => $txn,
+                ],
+            ]);
+        });
+    }
+
+    public function withdraw(Request $request, int $id): JsonResponse
+    {
+        $account = BankAccount::findOrFail($id);
+
+        $validated = $request->validate([
+            'amount' => 'required|numeric|min:0.01',
+            'debit_account_id' => 'required|integer|exists:chart_of_accounts,id',
+            'date' => 'nullable|date',
+            'payment_method' => 'nullable|string|max:64',
+            'reference_number' => 'nullable|string|max:128',
+            'narration' => 'nullable|string|max:500',
+        ]);
+
+        $userId = (int) ($request->user()?->id ?? 1);
+        $amount = (float) $validated['amount'];
+        $date = $validated['date'] ?? date('Y-m-d');
+        $debitAccountId = (int) $validated['debit_account_id'];
+        $paymentMethod = $validated['payment_method'] ?? 'cash';
+        $ref = $validated['reference_number'] ?? ('WTH-' . date('Ymd') . '-' . str_pad((string) random_int(1000, 99999), 5, '0', STR_PAD_LEFT));
+        $narration = $validated['narration'] ?? "Money Withdrawal from {$account->name}";
+
+        return \Illuminate\Support\Facades\DB::transaction(function () use ($account, $amount, $date, $debitAccountId, $paymentMethod, $ref, $narration, $userId): JsonResponse {
+            // Update balance
+            $currentBal = (float) ($account->current_balance ?? 0.0);
+            $newBal = $currentBal - $amount;
+            $account->current_balance = number_format($newBal, 4, '.', '');
+            $account->updated_by = $userId;
+            $account->save();
+
+            // Post balanced GL Journal Entry
+            // Dr: Destination COA (increases expense or reduces liability/drawings)
+            // Cr: Bank COA (decreases asset)
+            $journalData = [
+                'company_id' => $account->company_id,
+                'entry_date' => $date,
+                'entry_type' => 'manual',
+                'source_module' => 'finance_withdrawal',
+                'narration' => $narration,
+                'lines' => [
+                    [
+                        'account_id' => $debitAccountId,
+                        'debit_amount' => number_format($amount, 4, '.', ''),
+                        'credit_amount' => '0.0000',
+                        'narration' => "Dr: Withdrawal application from {$account->name}",
+                    ],
+                    [
+                        'account_id' => $account->chart_of_account_id,
+                        'debit_amount' => '0.0000',
+                        'credit_amount' => number_format($amount, 4, '.', ''),
+                        'narration' => "Cr: Paid out from {$account->name}",
+                    ],
+                ],
+            ];
+
+            $journalEntry = $this->postJournalEntryAction->execute($journalData, $userId);
+
+            // Record Bank Transaction
+            $txn = new \App\Modules\Finance\Models\BankTransaction();
+            $txn->uuid = (string) \Illuminate\Support\Str::uuid();
+            $txn->tenant_id = $account->tenant_id;
+            $txn->bank_account_id = $account->id;
+            $txn->transaction_date = $date;
+            $txn->direction = 'out';
+            $txn->transaction_type = 'withdrawal';
+            $txn->amount = number_format($amount, 4, '.', '');
+            $txn->running_balance = number_format($newBal, 4, '.', '');
+            $txn->reference_number = $ref;
+            $txn->journal_entry_id = $journalEntry->id;
+            $txn->description = $narration;
+            $txn->reconciliation_status = 'unreconciled';
+            $txn->created_by = $userId;
+            $txn->updated_by = $userId;
+            $txn->save();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Withdrawal processed and posted to General Ledger.',
+                'data' => [
+                    'account' => $account->load('chartOfAccount'),
+                    'journal_entry' => $journalEntry,
+                    'transaction' => $txn,
+                ],
+            ]);
+        });
+    }
+
+    public function transfer(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'from_account_id' => 'required|integer|exists:chart_of_accounts,id',
+            'to_account_id' => 'required|integer|exists:chart_of_accounts,id|different:from_account_id',
+            'amount' => 'required|numeric|min:0.01',
+            'date' => 'nullable|date',
+            'purpose' => 'nullable|string|max:500',
+            'reference_number' => 'nullable|string|max:128',
+        ]);
+
+        $userId = (int) ($request->user()?->id ?? 1);
+        $fromCoaId = (int) $validated['from_account_id'];
+        $toCoaId = (int) $validated['to_account_id'];
+        $amount = (float) $validated['amount'];
+        $date = $validated['date'] ?? date('Y-m-d');
+        $purpose = $validated['purpose'] ?? 'Internal Transfer';
+        $ref = $validated['reference_number'] ?? ('TRF-' . date('Ymd') . '-' . str_pad((string) random_int(1000, 99999), 5, '0', STR_PAD_LEFT));
+
+        $fromCoa = \App\Modules\Finance\Models\ChartOfAccount::findOrFail($fromCoaId);
+        $toCoa = \App\Modules\Finance\Models\ChartOfAccount::findOrFail($toCoaId);
+
+        return \Illuminate\Support\Facades\DB::transaction(function () use ($fromCoa, $toCoa, $amount, $date, $purpose, $ref, $userId): JsonResponse {
+            /** @var BankAccount|null $fromBank */
+            $fromBank = BankAccount::where('chart_of_account_id', $fromCoa->id)->first();
+            /** @var BankAccount|null $toBank */
+            $toBank = BankAccount::where('chart_of_account_id', $toCoa->id)->first();
+
+            if ($fromBank instanceof BankAccount) {
+                $cur = (float) ($fromBank->current_balance ?? 0.0);
+                $fromBank->current_balance = number_format($cur - $amount, 4, '.', '');
+                $fromBank->updated_by = $userId;
+                $fromBank->save();
+            }
+
+            if ($toBank instanceof BankAccount) {
+                $cur = (float) ($toBank->current_balance ?? 0.0);
+                $toBank->current_balance = number_format($cur + $amount, 4, '.', '');
+                $toBank->updated_by = $userId;
+                $toBank->save();
+            }
+
+            // Post balanced GL Journal Entry
+            // Dr: Destination Account (increases)
+            // Cr: Source Account (decreases)
+            $narration = "Internal Fund Transfer: {$amount} from {$fromCoa->name} to {$toCoa->name}. {$purpose}";
+            $journalData = [
+                'company_id' => $fromCoa->company_id,
+                'entry_date' => $date,
+                'entry_type' => 'manual',
+                'source_module' => 'finance_transfer',
+                'narration' => $narration,
+                'lines' => [
+                    [
+                        'account_id' => $toCoa->id,
+                        'debit_amount' => number_format($amount, 4, '.', ''),
+                        'credit_amount' => '0.0000',
+                        'narration' => "Dr: Transfer into {$toCoa->name}",
+                    ],
+                    [
+                        'account_id' => $fromCoa->id,
+                        'debit_amount' => '0.0000',
+                        'credit_amount' => number_format($amount, 4, '.', ''),
+                        'narration' => "Cr: Transfer debited from {$fromCoa->name}",
+                    ],
+                ],
+            ];
+
+            $journalEntry = $this->postJournalEntryAction->execute($journalData, $userId);
+
+            // Record Bank Transactions if applicable
+            $outTxn = null;
+            $inTxn = null;
+
+            if ($fromBank) {
+                $outTxn = new \App\Modules\Finance\Models\BankTransaction();
+                $outTxn->uuid = (string) \Illuminate\Support\Str::uuid();
+                $outTxn->tenant_id = $fromBank->tenant_id;
+                $outTxn->bank_account_id = $fromBank->id;
+                $outTxn->transaction_date = $date;
+                $outTxn->direction = 'out';
+                $outTxn->transaction_type = 'transfer_out';
+                $outTxn->amount = number_format($amount, 4, '.', '');
+                $outTxn->running_balance = $fromBank->current_balance;
+                $outTxn->reference_number = $ref;
+                $outTxn->journal_entry_id = $journalEntry->id;
+                $outTxn->description = "Transfer to {$toCoa->name}: {$purpose}";
+                $outTxn->reconciliation_status = 'unreconciled';
+                $outTxn->created_by = $userId;
+                $outTxn->updated_by = $userId;
+                $outTxn->save();
+            }
+
+            if ($toBank) {
+                $inTxn = new \App\Modules\Finance\Models\BankTransaction();
+                $inTxn->uuid = (string) \Illuminate\Support\Str::uuid();
+                $inTxn->tenant_id = $toBank->tenant_id;
+                $inTxn->bank_account_id = $toBank->id;
+                $inTxn->transaction_date = $date;
+                $inTxn->direction = 'in';
+                $inTxn->transaction_type = 'transfer_in';
+                $inTxn->amount = number_format($amount, 4, '.', '');
+                $inTxn->running_balance = $toBank->current_balance;
+                $inTxn->reference_number = $ref;
+                $inTxn->related_transaction_id = $outTxn?->id;
+                $inTxn->journal_entry_id = $journalEntry->id;
+                $inTxn->description = "Transfer from {$fromCoa->name}: {$purpose}";
+                $inTxn->reconciliation_status = 'unreconciled';
+                $inTxn->created_by = $userId;
+                $inTxn->updated_by = $userId;
+                $inTxn->save();
+
+                if ($outTxn) {
+                    $outTxn->related_transaction_id = $inTxn->id;
+                    $outTxn->save();
+                }
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Internal transfer processed successfully and auto-balanced in General Ledger.',
+                'data' => [
+                    'from_bank' => $fromBank instanceof BankAccount ? $fromBank->load('chartOfAccount') : null,
+                    'to_bank' => $toBank instanceof BankAccount ? $toBank->load('chartOfAccount') : null,
+                    'journal_entry' => $journalEntry,
+                ],
+            ]);
+        });
     }
 }
 

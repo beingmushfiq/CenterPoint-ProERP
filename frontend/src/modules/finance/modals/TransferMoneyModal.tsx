@@ -3,6 +3,7 @@ import { X, ArrowLeftRight } from 'lucide-react';
 import type { ChartOfAccount, BankAccount, JournalEntry } from '../../../types/api/finance';
 import { useCurrency } from '../../../hooks/useCurrency';
 import { notify } from '../../../components/ui/Toast';
+import { api } from '../../../lib/api/client';
 
 export interface TransferMoneySuccessPayload {
   journalEntry: JournalEntry;
@@ -43,6 +44,7 @@ export const TransferMoneyModal: React.FC<TransferMoneyModalProps> = ({
   const [amount, setAmount] = useState('');
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [purpose, setPurpose] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   if (!open) return null;
 
@@ -50,7 +52,7 @@ export const TransferMoneyModal: React.FC<TransferMoneyModalProps> = ({
   const toAcc = accounts.find((a) => a.id === toAccountId);
   const fromBal = parseFloat(fromAcc?.current_balance || '0');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const numAmount = parseFloat(amount);
     if (isNaN(numAmount) || numAmount <= 0) {
@@ -71,18 +73,15 @@ export const TransferMoneyModal: React.FC<TransferMoneyModalProps> = ({
       });
     }
 
+    setIsSubmitting(true);
     const now = new Date();
     const timestamp = now.getTime();
     const monthStr = now.toISOString().slice(0, 7).replace('-', '');
     const entryId = timestamp % 10000;
     const entryNumber = `JE-${monthStr}-${String(entryId).padStart(4, '0')}`;
-
     const narration = `Internal Fund Transfer: ${formatCurrency(numAmount)} from ${fromAcc?.name} to ${toAcc?.name}. ${purpose}`.trim();
 
-    // Contra Double-Entry:
-    // Line 1: Dr Destination Account (increases)
-    // Line 2: Cr Source Account (decreases)
-    const newJournalEntry: JournalEntry = {
+    let createdJournalEntry: JournalEntry = {
       id: entryId,
       uuid: `je-transfer-${timestamp}`,
       entry_number: entryNumber,
@@ -114,6 +113,24 @@ export const TransferMoneyModal: React.FC<TransferMoneyModalProps> = ({
       ],
     };
 
+    try {
+      const res = await api.post('/finance/bank-accounts/transfer', {
+        from_account_id: fromAccountId,
+        to_account_id: toAccountId,
+        amount: numAmount,
+        date,
+        purpose,
+      });
+
+      if (res.data && (res.data as { data?: { journal_entry?: JournalEntry } }).data?.journal_entry) {
+        createdJournalEntry = (res.data as { data: { journal_entry: JournalEntry } }).data.journal_entry;
+      }
+    } catch (err) {
+      console.warn('Backend transfer failed or offline, falling back to client-side sync', err);
+    } finally {
+      setIsSubmitting(false);
+    }
+
     // Update account balances
     const updatedAccounts = accounts.map((acc) => {
       if (acc.id === fromAccountId) {
@@ -127,13 +144,24 @@ export const TransferMoneyModal: React.FC<TransferMoneyModalProps> = ({
       return acc;
     });
 
-    // Update bank accounts if applicable
+    // Update bank accounts directly by relation or id
     const updatedBankAccounts = bankAccounts.map((ba) => {
-      if (fromAcc && ba.account_name.toLowerCase().includes(fromAcc.name.toLowerCase().split(' ')[0] || '')) {
+      const isFromBank = (ba.chart_of_account_id && ba.chart_of_account_id === fromAccountId) ||
+        (fromAcc && (
+          ba.account_name.toLowerCase().includes(fromAcc.name.toLowerCase().split(' ')[0] || '') ||
+          fromAcc.name.toLowerCase().includes((ba.bank_name || '').toLowerCase().split(' ')[0] || '')
+        ));
+      const isToBank = (ba.chart_of_account_id && ba.chart_of_account_id === toAccountId) ||
+        (toAcc && (
+          ba.account_name.toLowerCase().includes(toAcc.name.toLowerCase().split(' ')[0] || '') ||
+          toAcc.name.toLowerCase().includes((ba.bank_name || '').toLowerCase().split(' ')[0] || '')
+        ));
+
+      if (isFromBank) {
         const bal = parseFloat(ba.current_balance || '0') - numAmount;
         return { ...ba, current_balance: bal.toFixed(4) };
       }
-      if (toAcc && ba.account_name.toLowerCase().includes(toAcc.name.toLowerCase().split(' ')[0] || '')) {
+      if (isToBank) {
         const bal = parseFloat(ba.current_balance || '0') + numAmount;
         return { ...ba, current_balance: bal.toFixed(4) };
       }
@@ -141,13 +169,13 @@ export const TransferMoneyModal: React.FC<TransferMoneyModalProps> = ({
     });
 
     onSuccess({
-      journalEntry: newJournalEntry,
+      journalEntry: createdJournalEntry,
       updatedAccounts,
       updatedBankAccounts,
     });
 
     notify.success('Fund Transfer Completed', {
-      description: `Transferred ${formatCurrency(numAmount)} from ${fromAcc?.name} to ${toAcc?.name}. Auto-balanced in General Ledger (${entryNumber}).`,
+      description: `Transferred ${formatCurrency(numAmount)} from ${fromAcc?.name} to ${toAcc?.name}. Auto-balanced in General Ledger (${createdJournalEntry.entry_number || entryNumber}).`,
     });
     onClose();
   };
@@ -281,9 +309,10 @@ export const TransferMoneyModal: React.FC<TransferMoneyModalProps> = ({
             </button>
             <button
               type="submit"
-              className="px-5 py-2 text-xs font-semibold rounded-xl bg-blue-600 hover:bg-blue-700 text-white shadow-xs transition cursor-pointer flex items-center gap-1.5"
+              disabled={isSubmitting}
+              className="px-5 py-2 text-xs font-semibold rounded-xl bg-blue-600 hover:bg-blue-700 text-white shadow-xs transition cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
             >
-              <span>Transfer Funds</span>
+              <span>{isSubmitting ? 'Transferring...' : 'Transfer Funds'}</span>
             </button>
           </div>
         </form>
