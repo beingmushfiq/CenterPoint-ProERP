@@ -187,7 +187,56 @@ export const VersionDiffModal: React.FC<VersionDiffModalProps> = ({ isOpen, onCl
                 </p>
               </div>
             ) : (
-              <div className="rounded-xl border border-default bg-surface overflow-hidden divide-y divide-default">
+              <>
+                {/* Executive Change Summary Chips */}
+                <div className="rounded-xl border border-default bg-surface-sunken/60 p-3.5 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-muted block">
+                      Executive Change Summary
+                    </span>
+                    <span className="text-[10px] font-mono text-muted">
+                      {changedFieldsList.length} field mutation{changedFieldsList.length === 1 ? '' : 's'}
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {changedFieldsList.map((key) => {
+                      const valBefore = before[key];
+                      const valAfter = after[key];
+                      const humanName = key.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+                      const formatPillVal = (v: unknown): string => {
+                        if (v === null || v === undefined) return 'none';
+                        if (typeof v === 'boolean') return v ? 'Yes' : 'No';
+                        if (typeof v === 'number') {
+                          if (key.includes('price') || key.includes('amount') || key.includes('cost') || key.includes('total')) {
+                            return `৳ ${v.toLocaleString('en-US')}`;
+                          }
+                          return v.toLocaleString('en-US');
+                        }
+                        if (typeof v === 'object') return Array.isArray(v) ? `[${v.length} items]` : '{...}';
+                        const str = String(v);
+                        return str.length > 20 ? `${str.slice(0, 18)}...` : str;
+                      };
+
+                      return (
+                        <div
+                          key={key}
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-default bg-surface px-2.5 py-1 text-xs font-mono shadow-xs"
+                        >
+                          <span className="font-semibold text-default">{humanName}:</span>
+                          <span className="line-through text-rose-600 dark:text-rose-400 bg-rose-500/10 px-1.5 py-0.5 rounded text-[11px]">
+                            {formatPillVal(valBefore)}
+                          </span>
+                          <ArrowRight className="size-3 text-muted shrink-0" />
+                          <span className="font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded text-[11px]">
+                            {formatPillVal(valAfter)}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-default bg-surface overflow-hidden divide-y divide-default">
                 {/* Table Header */}
                 <div className="grid grid-cols-12 bg-surface-sunken px-4 py-2 text-[11px] font-bold uppercase tracking-wider text-muted border-b border-default">
                   <div className="col-span-3">Field Key</div>
@@ -241,6 +290,7 @@ export const VersionDiffModal: React.FC<VersionDiffModalProps> = ({ isOpen, onCl
                   );
                 })}
               </div>
+              </>
             )}
           </div>
         ) : (

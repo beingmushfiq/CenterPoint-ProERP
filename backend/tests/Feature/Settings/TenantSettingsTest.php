@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Settings;
 
+use App\Core\Auth\JwtService;
+use App\Core\Tenancy\TenantContext;
 use App\Models\AuditLog;
 use App\Models\Setting;
 use App\Models\Tenant;
@@ -28,12 +30,16 @@ class TenantSettingsTest extends TestCase
         $this->tenant = Tenant::where('slug', 'slicemart')->firstOrFail();
         $this->admin = User::where('email', 'admin@slicemart.test')->firstOrFail();
 
-        $loginRes = $this->postJson('/api/v1/auth/login', [
-            'email' => 'admin@slicemart.test',
-            'password' => 'Password123!',
-        ]);
+        TenantContext::bind($this->tenant->toArray());
 
-        $this->token = $loginRes->json('data.access_token');
+        $jwtService = app(JwtService::class);
+        $this->token = $jwtService->issueToken(
+            userId: $this->admin->id,
+            tenantId: $this->tenant->id,
+            tokenVersion: 1,
+            permVersion: '1',
+            scopes: ['*']
+        );
     }
 
     public function test_can_fetch_settings_schema(): void

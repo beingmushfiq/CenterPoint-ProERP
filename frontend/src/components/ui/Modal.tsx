@@ -322,7 +322,7 @@ interface ConfirmDialogProps {
   onClose: () => void;
   onConfirm: () => void;
   title: string;
-  message: string;
+  message: React.ReactNode;
   confirmLabel?: string;
   cancelLabel?: string;
   /** Button variant. 'warning' is deliberately absent — Button's closed set
@@ -380,7 +380,7 @@ export function ConfirmDialog({
               points at a sr-only h2 containing the same title text, providing
               the accessible name without a second render. */}
           <h3 className="text-md font-semibold text-default">{title}</h3>
-          <p className="mt-1 text-sm text-muted leading-relaxed">{message}</p>
+          <div className="mt-1 text-sm text-muted leading-relaxed">{message}</div>
         </div>
       </div>
     </Modal>

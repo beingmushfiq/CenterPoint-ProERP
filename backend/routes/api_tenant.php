@@ -1423,6 +1423,21 @@ Route::middleware(['auth.jwt', 'tenant.resolve', 'tenant.active'])
                 ->middleware('permission:integrations.webhook.manage')->name('ping');
         });
 
+        Route::prefix('webhooks')->name('webhooks.')->group(static function (): void {
+            Route::get('/', [App\Modules\Platform\Controllers\TenantWebhookController::class, 'index'])
+                ->middleware('permission:integrations.webhook.view')->name('alias.index');
+            Route::post('/', [App\Modules\Platform\Controllers\TenantWebhookController::class, 'store'])
+                ->middleware('permission:integrations.webhook.create')->name('alias.store');
+            Route::get('{id}', [App\Modules\Platform\Controllers\TenantWebhookController::class, 'show'])
+                ->middleware('permission:integrations.webhook.view')->name('alias.show');
+            Route::match(['patch', 'put'], '{id}', [App\Modules\Platform\Controllers\TenantWebhookController::class, 'update'])
+                ->middleware('permission:integrations.webhook.update')->name('alias.update');
+            Route::delete('{id}', [App\Modules\Platform\Controllers\TenantWebhookController::class, 'destroy'])
+                ->middleware('permission:integrations.webhook.delete')->name('alias.destroy');
+            Route::post('{id}/ping', [App\Modules\Platform\Controllers\TenantWebhookController::class, 'ping'])
+                ->middleware('permission:integrations.webhook.manage')->name('alias.ping');
+        });
+
         // ── Operations AI Brain (100% Self-Contained Agentic AI) ──────────
         Route::prefix('brain')->name('brain.')->group(static function (): void {
             Route::post('ask', [App\Modules\Platform\Controllers\AIBrainController::class, 'ask'])->name('ask');

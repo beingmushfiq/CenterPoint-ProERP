@@ -282,10 +282,56 @@ describe('DataBinWorkspace - Enterprise Recovery Vault', () => {
     const confirmButton = screen.getByRole('button', { name: /Permanently Purge/i });
     fireEvent.click(confirmButton);
 
-    await waitFor(() => {
-      expect(api.post).toHaveBeenCalledWith('/bin/bulk-force-delete', {
-        items: [{ type: 'purchase_orders', id: '101' }],
+      await waitFor(() => {
+        expect(api.post).toHaveBeenCalledWith('/bin/bulk-force-delete', {
+          items: [{ type: 'purchase_orders', id: '101' }],
+        });
       });
+    });
+
+    it('supports 30-second safe undo countdown before permanent purge', async () => {
+    vi.mocked(api.delete).mockResolvedValueOnce({
+      data: { success: true, message: 'Purchase Order permanently deleted.' },
+    } as unknown as Awaited<ReturnType<typeof api.delete>>);
+
+    render(
+      <MemoryRouter>
+        <DataBinWorkspace />
+      </MemoryRouter>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('PO-TEST-101')).toBeInTheDocument();
+    });
+
+    // Click purge on first item
+    const purgeButtons = screen.getAllByRole('button', { name: /Purge/i });
+    fireEvent.click(purgeButtons[0]!);
+
+    // Dialog opens
+    await waitFor(() => {
+      expect(screen.getAllByText('Permanently Purge Purchase Order?').length).toBeGreaterThanOrEqual(1);
+    });
+
+    // Click "Start 30-second safe countdown with instant Undo"
+    const safeCountdownBtn = screen.getByRole('button', { name: /Start 30-second safe countdown/i });
+    fireEvent.click(safeCountdownBtn);
+
+    // Floating bar appears with 30s countdown and Undo button
+    await waitFor(() => {
+      expect(screen.getByText(/Permanent Purge Initiated: PO-TEST-101/i)).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /Undo Purge/i })).toBeInTheDocument();
+      expect(screen.getAllByRole('button', { name: /Purge Now/i }).length).toBeGreaterThanOrEqual(1);
+    });
+
+    // Click Undo
+    const undoButton = screen.getByRole('button', { name: /Undo Purge/i });
+    fireEvent.click(undoButton);
+
+    // Verify purge is cancelled and floating bar disappears
+    await waitFor(() => {
+      expect(screen.queryByText(/Permanent Purge Initiated: PO-TEST-101/i)).not.toBeInTheDocument();
+      expect(api.delete).not.toHaveBeenCalled();
     });
   });
 });

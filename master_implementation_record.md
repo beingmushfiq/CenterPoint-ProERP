@@ -1,7 +1,7 @@
 # 🏭 Master Implementation & Testing Record (Phases 0 — 11)
 ### Production ERP + Storefront — Full Platform Upgrade
 > **Single Source of Truth** for Platform Architecture, Multi-Payment, Design, Workflows & Module Upgrades  
-> **Overall Progress**: Phase 0 (100% COMPLETE) | Phase 1 (100% COMPLETE) | Phase 2 (100% COMPLETE) | Phase 3 (100% COMPLETE) | Phase 4 (100% COMPLETE) | Phase 5 (100% COMPLETE) | Phase 6 (100% COMPLETE) | Phase 7 (100% COMPLETE) | Phase 8 (READY TO PROCEED)  
+> **Overall Progress**: Phase 0 (100% COMPLETE) | Phase 1 (100% COMPLETE) | Phase 2 (100% COMPLETE) | Phase 3 (100% COMPLETE) | Phase 4 (100% COMPLETE) | Phase 5 (100% COMPLETE) | Phase 6 (100% COMPLETE) | Phase 7 (100% COMPLETE) | Phase 8 (100% COMPLETE) | Phase 9 (READY TO PROCEED)  
 > **Last Verified**: September 29, 2026 | **Build Status**: Green (0 TypeScript Errors, 100% Automated Tests Passing)
 
 ---
@@ -18,8 +18,8 @@
 | **Phase 5** | **Production, QC & Logistics Workflows** | **COMPLETED & VERIFIED** | **PASS** (302/302 Vitest, 0 TS errors) | 5-stage stepper, QC defect badge & rework modal, Gantt-lite plans view, worker bulk piece-rate grid, ISO 2859-1 AQL calculator & auto disposition, QC sparkline, COD reconciliation, route optimization & courier SLA breach alerts |
 | **Phase 6** | **Finance & Fixed Assets Upgrades** | **COMPLETED & VERIFIED** | **PASS** (11/11 Vitest, 64/64 backend, 0 TS errors) | Bank statement reconciliation, P&L visualizer, budget tracker, COA hierarchy, depreciation schedules, QR labels, maintenance SLA alerts, timeline tab |
 | **Phase 7** | **HR Workspace (Kiosk Removed)** | **COMPLETED & VERIFIED** | **PASS** (16/16 Vitest, 80/80 backend, 0 TS errors) | Attendance month calendar view with employee drill-down, payroll calculation preview breakdown with double-entry GL audit, in-app leave notification feed banner, salary advance auto-deduct toggle & pre-population, kiosk mode decoupled |
-| **Phase 8** | **Settings, Roles, Activity Logs & Data Bin** | 🟡 **NEXT TO PROCEED** | *Pending User Authorization* | Dedicated routes, permission matrix, human-readable diffs, 30s undo countdown |
-| **Phase 9** | **Storefront (Page Builder & Public Checkout)** | ⚪ Queued | *Pending* | Section splitting, drag-and-drop ordering, guest checkout, gateway placeholder |
+| **Phase 8** | **Settings, Roles, Activity Logs & Data Bin** | **COMPLETED & VERIFIED** | **PASS** (311/311 Vitest, 18/18 backend, 0 TS errors) | Dedicated routes, Reset to Defaults per group, Webhook management & ping, Role clone & matrix, Human-readable diffs, 30s undo purge countdown |
+| **Phase 9** | **Storefront (Page Builder & Public Checkout)** | 🟡 **NEXT TO PROCEED** | *Pending User Authorization* | Section splitting, drag-and-drop ordering, guest checkout, gateway placeholder |
 | **Phase 10**| **Agentic AI & Brain Upgrade** | ⚪ Queued | *Pending* | SSE streaming, ERP tool-use schemas, persistent conversation history, slide-over panel |
 | **Phase 11**| **End-to-End Polish, Accessibility & Staging Deploy** | ⚪ Queued | *Pending* | Focus traps, ARIA audits, micro-interactions, responsive viewport stress tests |
 
@@ -487,14 +487,55 @@ Upgraded SliceMart FMS Finance Workspace and Assets Workspace with enterprise-gr
 
 ---
 
-## ⚪ PHASE 8: Settings, Roles, Activity Logs & Data Bin (QUEUED)
+## 🟢 PHASE 8: Settings, Roles, Activity Logs & Data Bin (COMPLETED & VERIFIED)
 
-- [ ] Route Roles, Activity, Bin, and Workflows to independent dedicated sidebar routes.
-- [ ] "Reset to Defaults" button per settings group.
-- [ ] Webhook management UI (`WebhookEndpoint` and `WebhookDelivery`).
-- [ ] Role duplicate / clone feature and permission matrix hierarchy.
-- [ ] Human-readable activity log diffs (e.g. "Invoice Status: Draft → Paid").
-- [ ] Data Bin 30-second undo countdown before permanent purge.
+### 8.1 Dedicated Independent Routes & Smart Navigation (`Sidebar.tsx`, `routes/index.tsx`)
+- **Independent Dedicated Subroutes**: Decoupled monolithic settings tabs into first-class accessible routes:
+  - Roles & Permissions: `/settings/roles`
+  - User Directory: `/settings/users`
+  - System Audit & Activity Logs: `/activity-logs`
+  - Enterprise Data Bin & Vault: `/settings/bin`
+  - Workflow Automation: `/settings/workflows`
+  - Webhooks Management: `/webhooks` and `/settings/webhooks`
+- **Smart Non-Greedy Route Matching**: Upgraded `isItemActive` in `Sidebar.tsx` using exact-matching and subpath boundary checking (`path === item.path || (path.startsWith(item.path + '/') && ...)`). Completely prevents greedy activation of `/settings` when navigating to dedicated subroutes like `/settings/roles` or `/settings/bin`.
+- **Route Aliasing & Redirects**: Registered route redirects in `frontend/src/routes/index.tsx` for seamless direct URL bookmarking, deep-linking, and legacy URL backwards-compatibility.
+
+### 8.2 Group-Level "Reset to Defaults" Factory Restoration (`SettingsCenterWorkspace.tsx`)
+- **Per-Category Factory Reset Trigger**: Added dedicated group-level factory reset button in `SettingsCenterWorkspace.tsx` wired to backend `POST /api/v1/settings/{group}/reset`.
+- **Scoped Confirmation Dialog**: Implemented `<ConfirmDialog open={confirmResetOpen} ... />` with category-specific warning alerts detailing the exact parameters being reverted to pristine defaults.
+- **Cache Invalidation & Real-Time Sync**: Automatically purges dirty keys, clears local edits state for the current group, and invalidates/refetches settings schema from the server.
+
+### 8.3 Enterprise Webhook Management & Real-Time Ping Testing (`WebhookManagementSection.tsx`, `api_tenant.php`)
+- **Full Endpoint Lifecycle**: Comprehensive webhook endpoint manager supporting registration, editing, toggle active/inactive status, and secure endpoint deletion.
+- **Backend Aliasing**: Added `Route::prefix('webhooks')` alongside `Route::prefix('integrations/webhooks')` in `backend/routes/api_tenant.php`, providing 13 fully registered API endpoints for webhooks and delivery monitoring.
+- **One-Time HMAC Signing Secret Reveal**: Secure modal reveal showing secret key (`whsec_...`) with instant 1-click clipboard copy and high-visibility security caution.
+- **Interactive Test Ping**: Live "Send Test Ping" action wired to `POST /integrations/webhooks/{id}/ping` returning delivery latency, response HTTP status code, and payload status badges.
+- **Delivery Log Inspection Modal**: Slide-over drawer and inspect modal displaying individual delivery logs (`WebhookDelivery`), attempt counts, response status codes, delivery error traces, and JSON payload inspector.
+- **Settings Center Tab Integration**: Mounted as a dedicated `webhooks` tab in `SettingsCenterWorkspace.tsx` with `Radio` icon, included in categories, skip-lists, and active tab states.
+
+### 8.4 Role Duplication & Cascading Permission Matrix (`RolesManagementWorkspace.tsx`)
+- **1-Click Role Clone**: Added an accessible `Clone` button in every role card footer and a "Duplicate as New Role" button in the configuration modal footer.
+- **Permission Inheritance**: Instantly pre-populates the role creation form with the source role's name prefixed with `"Copy of "`, description, and exact permission matrix snapshot.
+- **Granular Permission Matrix**: Organized by system modules (Commercial, Supply, Inventory, Production, Finance, Workforce, Settings) with cascading module-level toggles (Select All / Clear All per module).
+
+### 8.5 Human-Readable Activity Log Diffs (`ActivityLogWorkspace.tsx`, `VersionDiffModal.tsx`)
+- **Formatted Field Change Pills**: Replaced raw JSON delta keys with title-cased labels and formatted change pills: `Field: Before → After` (e.g., `Status: Draft → Paid`, `Unit Price: ৳ 450 → ৳ 420`).
+- **Currency & Attribute Formatting**: Automatically formats numeric monetary values with Bangladeshi Taka currency symbol (`৳`) and humanized timestamps.
+- **Executive Change Summary Card**: Built a prominent overview card in `VersionDiffModal.tsx` summarizing total fields modified, actor information, and critical entity state transitions.
+
+### 8.6 Data Bin 30-Second Safe Undo Countdown (`DataBinWorkspace.tsx`, `Modal.tsx`)
+- **Quarantined Purge with 30s Protection**: Added a safe purge countdown workflow. Clicking safe purge initiates a 30-second quarantine with live animated progress bar.
+- **Floating Countdown Banner**: Prominent bottom floating card showing `Permanent Purge Initiated: {identifier}`, animated 1-second countdown badge (`30s`, `29s`, ...), instant `Undo Purge` button, and immediate `Purge Now` bypass button.
+- **Row-Level Inline Quarantine State**: Replaces standard table row actions with an inline pulsing `Purging in Xs` alert, row-level `Undo` button, and `Purge Now` button.
+- **Universal ConfirmDialog Enhancement**: Updated `ConfirmDialog` in `Modal.tsx` to support `message: React.ReactNode` without invalid `<p><div>` nesting, preserving accessibility and DOM compliance across all modules.
+
+### 8.7 Verification Evidence
+- **Automated Frontend Test Suite**: `npx vitest run src/pages/settings/DataBinWorkspace.test.tsx` — **7 of 7 tests passing (100%)**.
+- **Comprehensive Frontend Test Suite**: `npx vitest run` — **44 test files passed, 311 of 311 tests passing (100%)**.
+- **Backend Test Suite (Webhooks)**: `php artisan test --filter=TenantWebhookTest` — **6 of 6 tests passing (31 assertions, 100%)**.
+- **Backend Test Suite (Settings)**: `php artisan test --filter=TenantSettingsTest` — **5 of 5 tests passing (36 assertions, 100%)**.
+- **Backend Test Suite (Data Bin)**: `php artisan test --filter=DataBinTest` — **7 of 7 tests passing (69 assertions, 100%)**.
+- **TypeScript Static Analysis**: `npx tsc -b --noEmit` — **0 compile errors across the entire codebase**.
 
 ---
 

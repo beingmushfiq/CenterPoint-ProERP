@@ -178,6 +178,21 @@ export const DataBinWorkspace: React.FC = () => {
   const [purgeConfirmItem, setPurgeConfirmItem] = useState<DataBinItem | null>(null);
   const [emptyConfirmOpen, setEmptyConfirmOpen] = useState<boolean>(false);
 
+  // 30-Second Safe Purge Countdown State & Timers
+  const [pendingPurge, setPendingPurge] = useState<{
+    item: DataBinItem;
+    remainingSeconds: number;
+  } | null>(null);
+  const pendingPurgeTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const pendingPurgeIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (pendingPurgeTimerRef.current) clearTimeout(pendingPurgeTimerRef.current);
+      if (pendingPurgeIntervalRef.current) clearInterval(pendingPurgeIntervalRef.current);
+    };
+  }, []);
+
   // Fetch stats & records (pure asynchronous fetch)
   const loadBinData = useCallback(async () => {
     try {
@@ -336,8 +351,46 @@ export const DataBinWorkspace: React.FC = () => {
     }
   };
 
-  // Handle Permanent Delete (Force Delete)
-  const handleForceDelete = async (item: DataBinItem) => {
+  // Initiate 30-Second Safe Purge Countdown
+  const startSafePurgeCountdown = (item: DataBinItem) => {
+    if (pendingPurgeTimerRef.current) clearTimeout(pendingPurgeTimerRef.current);
+    if (pendingPurgeIntervalRef.current) clearInterval(pendingPurgeIntervalRef.current);
+
+    setPurgeConfirmItem(null);
+    setPendingPurge({ item, remainingSeconds: 30 });
+    notify.info(`Quarantined for permanent purge: "${item.identifier}". 30-second undo protection active.`);
+
+    pendingPurgeIntervalRef.current = setInterval(() => {
+      setPendingPurge((prev) => {
+        if (!prev) return null;
+        if (prev.remainingSeconds <= 1) {
+          if (pendingPurgeIntervalRef.current) clearInterval(pendingPurgeIntervalRef.current);
+          return null;
+        }
+        return { ...prev, remainingSeconds: prev.remainingSeconds - 1 };
+      });
+    }, 1000);
+
+    pendingPurgeTimerRef.current = setTimeout(async () => {
+      if (pendingPurgeIntervalRef.current) clearInterval(pendingPurgeIntervalRef.current);
+      setPendingPurge(null);
+      await executePermanentDelete(item);
+    }, 30000);
+  };
+
+  // Undo / Cancel Purge
+  const handleCancelSafePurge = () => {
+    if (pendingPurgeTimerRef.current) clearTimeout(pendingPurgeTimerRef.current);
+    if (pendingPurgeIntervalRef.current) clearInterval(pendingPurgeIntervalRef.current);
+    setPendingPurge(null);
+    notify.info('Purge aborted. Record preserved in Data Bin.');
+  };
+
+  // Execute Immediate Purge (Directly or after timer expires)
+  const executePermanentDelete = async (item: DataBinItem) => {
+    if (pendingPurgeTimerRef.current) clearTimeout(pendingPurgeTimerRef.current);
+    if (pendingPurgeIntervalRef.current) clearInterval(pendingPurgeIntervalRef.current);
+    setPendingPurge(null);
     setActionLoadingId(item.id);
     try {
       const res = await api.delete<{ message?: string }>(`/bin/${item.type}/${item.id}/force-delete`);
@@ -350,6 +403,11 @@ export const DataBinWorkspace: React.FC = () => {
     } finally {
       setActionLoadingId(null);
     }
+  };
+
+  // Handle Permanent Delete (Force Delete)
+  const handleForceDelete = async (item: DataBinItem) => {
+    await executePermanentDelete(item);
   };
 
   // Handle Empty Bin (type-scoped, domain-scoped, or full)
@@ -918,27 +976,51 @@ export const DataBinWorkspace: React.FC = () => {
 
                       {/* Action Buttons */}
                       <td className="py-3.5 px-4 whitespace-nowrap text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <Button
-                            variant="secondary"
-                            size="sm"
-                            disabled={isActing}
-                            onClick={() => setRestoreConfirmItem(item)}
-                            leftIcon={<RotateCcw className="size-3.5 text-emerald-600 dark:text-emerald-400" />}
-                          >
-                            Restore
-                          </Button>
+                        {pendingPurge?.item.id === item.id && pendingPurge?.item.type === item.type ? (
+                          <div className="flex items-center justify-end gap-1.5">
+                            <span className="font-mono text-xs font-bold text-rose-500 bg-rose-500/10 px-2 py-0.5 rounded border border-rose-500/20 animate-pulse">
+                              Purging in {pendingPurge.remainingSeconds}s
+                            </span>
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              onClick={handleCancelSafePurge}
+                              className="text-xs h-7 px-2"
+                            >
+                              Undo
+                            </Button>
+                            <Button
+                              variant="danger"
+                              size="sm"
+                              onClick={() => executePermanentDelete(item)}
+                              className="text-xs h-7 px-2"
+                            >
+                              Purge Now
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center justify-end gap-2">
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              disabled={isActing}
+                              onClick={() => setRestoreConfirmItem(item)}
+                              leftIcon={<RotateCcw className="size-3.5 text-emerald-600 dark:text-emerald-400" />}
+                            >
+                              Restore
+                            </Button>
 
-                          <Button
-                            variant="danger"
-                            size="sm"
-                            disabled={isActing}
-                            onClick={() => setPurgeConfirmItem(item)}
-                            leftIcon={<Trash2 className="size-3.5" />}
-                          >
-                            Purge
-                          </Button>
-                        </div>
+                            <Button
+                              variant="danger"
+                              size="sm"
+                              disabled={isActing}
+                              onClick={() => setPurgeConfirmItem(item)}
+                              leftIcon={<Trash2 className="size-3.5" />}
+                            >
+                              Purge
+                            </Button>
+                          </div>
+                        )}
                       </td>
                     </tr>
                   );
@@ -970,7 +1052,29 @@ export const DataBinWorkspace: React.FC = () => {
           onClose={() => setPurgeConfirmItem(null)}
           onConfirm={() => void handleForceDelete(purgeConfirmItem)}
           title={`Permanently Purge ${purgeConfirmItem.type_label}?`}
-          message={`WARNING: This action is permanent and irreversible. "${purgeConfirmItem.identifier}" and its relational sub-items will be completely erased from the database.`}
+          message={
+            <div className="space-y-3">
+              <p>
+                WARNING: This action is permanent and irreversible. &quot;{purgeConfirmItem.identifier}&quot; and its relational sub-items will be completely erased from the database.
+              </p>
+              <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 p-3 text-xs">
+                <span className="font-bold text-amber-700 dark:text-amber-300 block mb-1">
+                  Want safety protection before irreversible deletion?
+                </span>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    startSafePurgeCountdown(purgeConfirmItem);
+                  }}
+                  className="font-bold text-primary hover:underline cursor-pointer flex items-center gap-1.5"
+                >
+                  <ShieldAlert className="size-3.5" />
+                  <span>Start 30-second safe countdown with instant Undo</span>
+                </button>
+              </div>
+            </div>
+          }
           confirmLabel="Permanently Delete"
           cancelLabel="Cancel"
           variant="danger"
@@ -1029,6 +1133,62 @@ export const DataBinWorkspace: React.FC = () => {
           cancelLabel="Cancel"
           variant="danger"
         />
+      )}
+
+      {/* 30-Second Safe Purge Countdown Floating Bar */}
+      {pendingPurge && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-full max-w-xl px-4 animate-rise-in">
+          <div className="rounded-2xl border border-rose-500/40 bg-zinc-950 text-white p-4 shadow-2xl backdrop-blur-xl space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="flex size-8 items-center justify-center rounded-xl bg-rose-500/20 text-rose-400 border border-rose-500/30 shrink-0">
+                  <ShieldAlert className="size-4 animate-pulse" />
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-white truncate">
+                      Permanent Purge Initiated: {pendingPurge.item.identifier}
+                    </span>
+                    <span className="font-mono text-xs font-bold text-rose-400 bg-rose-500/20 px-2 py-0.5 rounded-full border border-rose-500/30">
+                      {pendingPurge.remainingSeconds}s
+                    </span>
+                  </div>
+                  <span className="text-[11px] text-zinc-400 block truncate">
+                    Record will be permanently erased when countdown expires.
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 shrink-0">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={handleCancelSafePurge}
+                  className="bg-zinc-800 hover:bg-zinc-700 text-white border-zinc-700 text-xs h-8 px-3"
+                >
+                  <RotateCcw className="size-3 mr-1" />
+                  <span>Undo Purge</span>
+                </Button>
+                <Button
+                  variant="danger"
+                  size="sm"
+                  onClick={() => executePermanentDelete(pendingPurge.item)}
+                  className="text-xs h-8 px-3"
+                >
+                  <span>Purge Now</span>
+                </Button>
+              </div>
+            </div>
+
+            {/* Countdown Progress Bar */}
+            <div className="h-1.5 w-full overflow-hidden rounded-full bg-zinc-800">
+              <div
+                className="h-full bg-linear-to-r from-amber-500 to-rose-500 transition-all duration-1000 ease-linear"
+                style={{ width: `${(pendingPurge.remainingSeconds / 30) * 100}%` }}
+              />
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

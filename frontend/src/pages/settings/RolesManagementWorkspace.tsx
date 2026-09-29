@@ -626,14 +626,29 @@ interface RoleMemberUser {
                       <span>{role.users_count ?? 0} Users Assigned</span>
                     </button>
 
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      onClick={() => handleOpenEdit(role)}
-                      className="text-[11px] h-7 px-2.5"
-                    >
-                      <span>Matrix Setup →</span>
-                    </Button>
+                    <div className="flex items-center gap-1.5">
+                      {canCreateRole && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleCloneRole(role)}
+                          className="text-[11px] h-7 px-2 text-muted hover:text-default"
+                          title="Duplicate role permissions matrix"
+                          aria-label={`Duplicate ${role.name}`}
+                        >
+                          <Copy className="size-3 mr-1" />
+                          <span>Clone</span>
+                        </Button>
+                      )}
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => handleOpenEdit(role)}
+                        className="text-[11px] h-7 px-2.5"
+                      >
+                        <span>Matrix Setup →</span>
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -955,18 +970,35 @@ interface RoleMemberUser {
             </div>
 
             {/* Modal Actions */}
-            <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-default sticky bottom-0 bg-surface">
-              <Button variant="ghost" onClick={() => setIsModalOpen(false)}>
-                Cancel
-              </Button>
-              <Button
-                variant="primary"
-                onClick={handleSaveRole}
-                disabled={saving || !roleName.trim() || (editingRole ? !canEditRole : !canCreateRole)}
-                className="shadow-md shadow-emerald-600/20"
-              >
-                {saving ? 'Saving Permissions Matrix...' : 'Save Role Permissions'}
-              </Button>
+            <div className="flex items-center justify-between gap-2.5 pt-4 border-t border-default sticky bottom-0 bg-surface">
+              <div>
+                {editingRole && canCreateRole && (
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => handleCloneRole(editingRole)}
+                    className="gap-1.5 text-xs"
+                    title="Clone this role into a new role template"
+                  >
+                    <Copy className="size-3.5" />
+                    <span>Duplicate as New Role</span>
+                  </Button>
+                )}
+              </div>
+              <div className="flex items-center gap-2.5">
+                <Button variant="ghost" onClick={() => setIsModalOpen(false)}>
+                  Cancel
+                </Button>
+                <Button
+                  variant="primary"
+                  onClick={handleSaveRole}
+                  disabled={saving || !roleName.trim() || (editingRole ? !canEditRole : !canCreateRole)}
+                  className="shadow-md shadow-emerald-600/20"
+                >
+                  {saving ? 'Saving Permissions Matrix...' : 'Save Role Permissions'}
+                </Button>
+              </div>
             </div>
           </div>
         </Modal>

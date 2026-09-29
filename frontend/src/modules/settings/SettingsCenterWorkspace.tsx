@@ -55,6 +55,7 @@ import {
   Search,
   User,
   Zap,
+  Radio,
 } from 'lucide-react';
 import { m, AnimatePresence } from 'framer-motion';
 import { api } from '../../lib/api/client';
@@ -71,6 +72,7 @@ import { ModuleManagerSection } from './sections/ModuleManagerSection';
 import { ProductionStagesSection } from './sections/ProductionStagesSection';
 import { CustomFieldsManagerSection } from './sections/CustomFieldsManagerSection';
 import { TerminologySection } from './sections/TerminologySection';
+import { WebhookManagementSection } from './sections/WebhookManagementSection';
 import { RolesManagementWorkspace } from '../../pages/settings/RolesManagementWorkspace';
 import { ActivityLogWorkspace } from '../../pages/settings/ActivityLogWorkspace';
 import { DataBinWorkspace } from '../../pages/settings/DataBinWorkspace';
@@ -115,6 +117,7 @@ const GROUP_ICONS: Record<string, React.ElementType> = {
   custom_domains: Globe,
   delivery: Truck,
   integrations: PlugZap,
+  webhooks: Radio,
   qc: CheckSquare,
   hr_payroll: Users,
   assets: Cpu,
@@ -147,6 +150,7 @@ const GROUP_LABELS: Record<string, string> = {
   ecommerce: 'E-Commerce Storefront',
   delivery: 'Delivery & Couriers',
   integrations: 'API & Payment Gateways',
+  webhooks: 'Webhooks & Event Streams',
   qc: 'Quality Control (QC)',
   hr_payroll: 'HR & Payroll Governance',
   assets: 'Assets & Maintenance',
@@ -206,7 +210,7 @@ export const SettingsCenterWorkspace: React.FC = () => {
       },
       {
         name: t('settings.categories.services'),
-        groups: ['delivery', 'integrations', 'finance', 'hr_payroll', 'notifications', 'security', 'reports'],
+        groups: ['delivery', 'integrations', 'webhooks', 'finance', 'hr_payroll', 'notifications', 'security', 'reports'],
       },
     ],
     [t]
@@ -237,6 +241,7 @@ export const SettingsCenterWorkspace: React.FC = () => {
       'seo',
       'delivery',
       'integrations',
+      'webhooks',
       'qc',
       'hr_payroll',
       'assets',
@@ -334,6 +339,9 @@ export const SettingsCenterWorkspace: React.FC = () => {
         'audit_logs',
         'profile',
         'seo',
+        'workflows',
+        'bin',
+        'webhooks',
       ].includes(group)
     ) {
       setLoading(false);
@@ -399,6 +407,9 @@ export const SettingsCenterWorkspace: React.FC = () => {
         'audit_logs',
         'profile',
         'seo',
+        'workflows',
+        'bin',
+        'webhooks',
       ].includes(activeGroup)
     ) {
       return [];
@@ -1252,6 +1263,11 @@ export const SettingsCenterWorkspace: React.FC = () => {
                     </div>
                   )}
                 </div>
+              ) : activeGroup === 'webhooks' ? (
+                /* Enterprise Webhook Subsystems & Event Streams */
+                <div className="bg-surface rounded-(--card-radius) border border-default p-6 shadow-xs">
+                  <WebhookManagementSection />
+                </div>
               ) : (
                 /* Standard Domain Form View with Logical Sub-Group Cards & Dedicated Input Widgets */
                 <div className="space-y-6">
@@ -1652,6 +1668,18 @@ export const SettingsCenterWorkspace: React.FC = () => {
         confirmLabel="Remove Domain"
         variant="danger"
         loading={domainActionLoading === confirmDeleteDomain?.id}
+      />
+
+      {/* Reset Group to Defaults Confirmation Dialog */}
+      <ConfirmDialog
+        open={confirmResetOpen}
+        onClose={() => setConfirmResetOpen(false)}
+        onConfirm={handleResetToDefault}
+        title={`Reset ${getGroupLabel(activeGroup)} to Defaults?`}
+        message={`Are you sure you want to restore factory default configuration for the '${getGroupLabel(activeGroup)}' domain? All tailored parameters and overrides in this group will be reverted to baseline platform defaults.`}
+        confirmLabel={saving ? 'Resetting...' : 'Reset to Defaults'}
+        variant="danger"
+        loading={saving}
       />
     </div>
   );

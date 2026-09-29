@@ -494,17 +494,52 @@ export const ActivityLogWorkspace: React.FC = () => {
 
                           if (effectiveChanged.length > 0) {
                             return (
-                              <div className="flex items-center gap-1 flex-wrap max-w-xs">
-                                {effectiveChanged.slice(0, 3).map((f) => (
-                                  <span
-                                    key={f}
-                                    className="font-mono text-[10px] bg-amber-500/10 text-amber-600 dark:text-amber-400 px-1.5 py-0.5 rounded border border-amber-500/20"
-                                  >
-                                    {f}
-                                  </span>
-                                ))}
+                              <div className="flex items-center gap-1.5 flex-wrap max-w-sm">
+                                {effectiveChanged.slice(0, 3).map((f) => {
+                                  const beforeVal = log.before?.[f];
+                                  const afterVal = log.after?.[f];
+                                  const hasBoth = beforeVal !== undefined || afterVal !== undefined;
+                                  const humanField = f.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+                                  
+                                  const formatBrief = (val: unknown): string => {
+                                    if (val === null || val === undefined) return 'none';
+                                    if (typeof val === 'boolean') return val ? 'Yes' : 'No';
+                                    if (typeof val === 'number') {
+                                      if (f.includes('price') || f.includes('amount') || f.includes('cost') || f.includes('total')) {
+                                        return `৳ ${val.toLocaleString('en-US')}`;
+                                      }
+                                      return val.toLocaleString('en-US');
+                                    }
+                                    if (typeof val === 'object') return Array.isArray(val) ? `[${val.length}]` : '{...}';
+                                    const str = String(val);
+                                    return str.length > 14 ? `${str.slice(0, 12)}...` : str;
+                                  };
+
+                                  return (
+                                    <span
+                                      key={f}
+                                      className="inline-flex items-center gap-1 font-mono text-[10px] bg-amber-500/10 text-amber-700 dark:text-amber-300 px-2 py-0.5 rounded-md border border-amber-500/25"
+                                      title={`${f}: ${JSON.stringify(beforeVal)} → ${JSON.stringify(afterVal)}`}
+                                    >
+                                      <span className="font-semibold text-default">{humanField}:</span>
+                                      {hasBoth ? (
+                                        <>
+                                          <span className="line-through opacity-75 text-rose-600 dark:text-rose-400">
+                                            {formatBrief(beforeVal)}
+                                          </span>
+                                          <span className="text-muted">→</span>
+                                          <span className="font-bold text-emerald-600 dark:text-emerald-400">
+                                            {formatBrief(afterVal)}
+                                          </span>
+                                        </>
+                                      ) : (
+                                        <span>modified</span>
+                                      )}
+                                    </span>
+                                  );
+                                })}
                                 {effectiveChanged.length > 3 && (
-                                  <span className="text-[10px] text-muted font-mono">
+                                  <span className="text-[10px] text-muted font-mono bg-surface-sunken px-1.5 py-0.5 rounded border border-default">
                                     +{effectiveChanged.length - 3} more
                                   </span>
                                 )}

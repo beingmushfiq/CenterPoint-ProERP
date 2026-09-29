@@ -428,6 +428,14 @@ const erpWorkspaceRouteChildren: RouteObject[] = [
     element: <Navigate to="/settings/workflows" replace />,
   },
   {
+    path: 'settings/webhooks',
+    element: <Navigate to="/settings?tab=webhooks" replace />,
+  },
+  {
+    path: 'webhooks',
+    element: <Navigate to="/settings?tab=webhooks" replace />,
+  },
+  {
     path: 'seo',
     element: <Navigate to="/settings/seo" replace />,
   },

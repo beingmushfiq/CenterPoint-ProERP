@@ -105,12 +105,44 @@ export function Sidebar({ isOpen, onClose, isCollapsed = false, onToggleCollapse
       return location.pathname === '/storefront' || location.pathname.startsWith('/storefront/');
     }
 
-    // 3. Special case for '/settings': if URL is '/settings/roles', Roles is the active nav item
+    // 3. Special case for '/settings': if URL is a dedicated item, do not highlight general settings
     if (to === '/settings') {
-      if (location.pathname.startsWith('/settings/roles')) {
+      if (
+        location.pathname.startsWith('/settings/roles') ||
+        location.pathname.startsWith('/settings/users') ||
+        location.pathname.startsWith('/settings/bin') ||
+        location.pathname.startsWith('/settings/workflows') ||
+        location.pathname.startsWith('/settings/audit-logs') ||
+        location.pathname.startsWith('/settings/webhooks')
+      ) {
         return false;
       }
       return location.pathname === '/settings' || location.pathname.startsWith('/settings/');
+    }
+
+    // 3b. Dedicated sub-routes & aliases for system governance
+    if (to === '/settings/roles' || to === '/roles') {
+      return location.pathname.startsWith('/settings/roles') || location.pathname.startsWith('/roles');
+    }
+    if (to === '/settings/users' || to === '/users') {
+      return location.pathname.startsWith('/settings/users') || location.pathname.startsWith('/users');
+    }
+    if (to === '/activity-logs' || to === '/audit-logs' || to === '/audit') {
+      return (
+        location.pathname.startsWith('/activity-logs') ||
+        location.pathname.startsWith('/audit-logs') ||
+        location.pathname.startsWith('/audit') ||
+        location.pathname.startsWith('/settings/audit-logs')
+      );
+    }
+    if (to === '/settings/bin' || to === '/bin') {
+      return location.pathname.startsWith('/settings/bin') || location.pathname.startsWith('/bin');
+    }
+    if (to === '/settings/workflows' || to === '/workflows') {
+      return location.pathname.startsWith('/settings/workflows') || location.pathname.startsWith('/workflows');
+    }
+    if (to === '/webhooks' || to === '/settings/webhooks') {
+      return location.pathname.startsWith('/webhooks') || location.pathname.startsWith('/settings/webhooks');
     }
 
     // 4. Aliases for HR module
