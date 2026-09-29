@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type React from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { X, User, Building2, Phone, Mail, DollarSign, Calendar, Tag, ShieldCheck, Lock, UserCheck } from 'lucide-react';
+import { X, User, Building2, Phone, Mail, DollarSign, Calendar, Tag, ShieldCheck, Lock, UserCheck, AlertTriangle } from 'lucide-react';
 import type { Lead, LeadStatus, LeadSource } from '../../../types/api/crm';
 import { api } from '../../../lib/api/client';
 import { useAuthStore } from '../../../lib/auth/authStore';
@@ -105,6 +105,47 @@ function LeadFormDialog({ lead, onClose, onSuccess }: LeadFormDialogProps) {
       : (isFixedSalesman ? mySalesmanId : '')
   );
   const [notes, setNotes] = useState(lead?.notes || '');
+  const [allowDuplicate, setAllowDuplicate] = useState(false);
+
+  // Debounced duplicate lead check
+  const [debouncedPhone, setDebouncedPhone] = useState(phone);
+  const [debouncedEmail, setDebouncedEmail] = useState(email);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedPhone(phone.trim());
+      setDebouncedEmail(email.trim());
+    }, 450);
+    return () => clearTimeout(handler);
+  }, [phone, email]);
+
+  const { data: duplicateCheck } = useQuery<{
+    exists: boolean;
+    lead?: {
+      id: number;
+      lead_number: string;
+      name: string;
+      company_name?: string | null;
+      stage: string;
+      assigned_user_name: string;
+    };
+  }>({
+    queryKey: ['crm', 'duplicate-check', debouncedPhone, debouncedEmail, lead?.id],
+    queryFn: async () => {
+      if (!debouncedPhone && !debouncedEmail) return { exists: false };
+      const params = new URLSearchParams();
+      if (debouncedPhone) params.append('phone', debouncedPhone);
+      if (debouncedEmail) params.append('email', debouncedEmail);
+      if (lead?.id) params.append('exclude_id', String(lead.id));
+
+      const res = await api.get<{ exists: boolean; lead?: { id: number; lead_number: string; name: string; company_name?: string | null; stage: string; assigned_user_name: string } }>(
+        `/sales/leads/check-duplicate?${params.toString()}`
+      );
+      return res.data;
+    },
+    enabled: Boolean(debouncedPhone || debouncedEmail),
+    staleTime: 10 * 1000,
+  });
 
   // Computed effective assignedTo: for fixed salesman adding/editing, ensure it resolves to their ID
   const effectiveAssignedTo = isFixedSalesman
@@ -128,6 +169,7 @@ function LeadFormDialog({ lead, onClose, onSuccess }: LeadFormDialogProps) {
         expected_close_date: expectedCloseDate || null,
         assigned_to: finalAssignedTo,
         notes: notes.trim() || null,
+        allow_duplicate: allowDuplicate,
       };
 
       if (isEditing && lead) {
@@ -157,6 +199,20 @@ function LeadFormDialog({ lead, onClose, onSuccess }: LeadFormDialogProps) {
     e.preventDefault();
     if (!name.trim()) {
       toast.error('Contact Name is required.');
+      return;
+    }
+    if (!phone.trim() && !email.trim()) {
+      toast.error('At least one contact method (Phone Number or Email Address) is required.');
+      return;
+    }
+    if (phone.trim() && phone.replace(/\D/g, '').length < 7) {
+      toast.error('Phone number must contain at least 7 digits.');
+      return;
+    }
+    if (duplicateCheck?.exists && !allowDuplicate) {
+      toast.error(
+        `Potential duplicate lead detected (#${duplicateCheck.lead?.lead_number}). Confirm "Allow duplicate" below if this is a separate inquiry.`
+      );
       return;
     }
     saveMutation.mutate();
@@ -191,6 +247,32 @@ function LeadFormDialog({ lead, onClose, onSuccess }: LeadFormDialogProps) {
 
         {/* Form Body */}
         <form onSubmit={handleSubmit} className="space-y-4 text-xs">
+          {/* Duplicate Lead Detection Alert Banner */}
+          {duplicateCheck?.exists && (
+            <div className="p-3.5 rounded-xl border border-amber-500/40 bg-amber-500/10 text-amber-500 flex items-start gap-3 animate-in fade-in">
+              <AlertTriangle className="size-4 shrink-0 mt-0.5 text-amber-500" />
+              <div className="flex-1 text-xs">
+                <p className="font-semibold text-amber-500">
+                  Existing Prospect Detected: {duplicateCheck.lead?.lead_number} - {duplicateCheck.lead?.name}
+                </p>
+                <p className="text-[11px] text-muted mt-0.5">
+                  Currently assigned to <span className="font-semibold text-default">{duplicateCheck.lead?.assigned_user_name}</span> ({duplicateCheck.lead?.stage} stage).
+                </p>
+                <label className="flex items-center gap-2 mt-2.5 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={allowDuplicate}
+                    onChange={(e) => setAllowDuplicate(e.target.checked)}
+                    className="rounded border-default text-primary focus:ring-primary size-3.5 cursor-pointer"
+                  />
+                  <span className="text-[11px] font-medium text-default">
+                    Allow duplicate (confirmed separate commercial inquiry / branch)
+                  </span>
+                </label>
+              </div>
+            </div>
+          )}
+
           {/* Contact & Company */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
             <div>
@@ -228,38 +310,44 @@ function LeadFormDialog({ lead, onClose, onSuccess }: LeadFormDialogProps) {
           </div>
 
           {/* Phone & Email */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-            <div>
-              <label className="block text-[11px] font-semibold text-muted uppercase tracking-wider mb-1">
-                Phone Number
-              </label>
-              <div className="relative">
-                <Phone className="absolute left-3 top-2.5 size-3.5 text-muted" />
-                <input
-                  type="tel"
-                  placeholder="+8801..."
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  className="w-full rounded-xl border border-default bg-surface-sunken pl-9 pr-3.5 py-2 font-mono text-default placeholder:text-muted focus:border-primary focus:outline-none"
-                />
+          <div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+              <div>
+                <label className="block text-[11px] font-semibold text-muted uppercase tracking-wider mb-1">
+                  Phone Number
+                </label>
+                <div className="relative">
+                  <Phone className="absolute left-3 top-2.5 size-3.5 text-muted" />
+                  <input
+                    type="tel"
+                    placeholder="+8801..."
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    className="w-full rounded-xl border border-default bg-surface-sunken pl-9 pr-3.5 py-2 font-mono text-default placeholder:text-muted focus:border-primary focus:outline-none"
+                  />
+                </div>
               </div>
-            </div>
 
-            <div>
-              <label className="block text-[11px] font-semibold text-muted uppercase tracking-wider mb-1">
-                Email Address
-              </label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-2.5 size-3.5 text-muted" />
-                <input
-                  type="email"
-                  placeholder="contact@company.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full rounded-xl border border-default bg-surface-sunken pl-9 pr-3.5 py-2 text-default placeholder:text-muted focus:border-primary focus:outline-none"
-                />
+              <div>
+                <label className="block text-[11px] font-semibold text-muted uppercase tracking-wider mb-1">
+                  Email Address
+                </label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-2.5 size-3.5 text-muted" />
+                  <input
+                    type="email"
+                    placeholder="contact@company.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="w-full rounded-xl border border-default bg-surface-sunken pl-9 pr-3.5 py-2 text-default placeholder:text-muted focus:border-primary focus:outline-none"
+                  />
+                </div>
               </div>
             </div>
+            <p className="text-[10.5px] text-muted/80 mt-1.5 flex items-center gap-1">
+              <span className="text-amber-500 font-bold">*</span>
+              <span>At least one contact method (Phone or Email) is required for sales communication.</span>
+            </p>
           </div>
 
           {/* Lead Source & Lead Status/Stage */}
@@ -311,6 +399,7 @@ function LeadFormDialog({ lead, onClose, onSuccess }: LeadFormDialogProps) {
                 <DollarSign className="absolute left-3 top-2.5 size-3.5 text-muted" />
                 <input
                   type="number"
+                  min="0"
                   step="0.01"
                   placeholder="0.00"
                   value={dealValue}

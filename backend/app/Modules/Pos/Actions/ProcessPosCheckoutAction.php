@@ -315,6 +315,7 @@ final class ProcessPosCheckoutAction
                         'amount'             => $netAmt,
                         'allocated_amount'   => $netAmt,
                         'unallocated_amount' => '0.0000',
+                        'currency_code'      => $data['currency_code'] ?? 'BDT',
                         'status'             => 'posted',
                         'created_by'         => $data['user_id'],
                     ]);

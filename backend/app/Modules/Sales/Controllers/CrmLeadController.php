@@ -86,9 +86,131 @@ final class CrmLeadController extends Controller
         return CrmLeadResource::collection($leads);
     }
 
+    private function userCanReassignLeads(?User $user): bool
+    {
+        if (!$user) {
+            return false;
+        }
+
+        return (bool) ($user->is_platform_admin
+            || $user->hasRole('admin')
+            || $user->hasRole('tenant_admin')
+            || $user->hasRole('super_admin')
+            || $user->hasRole('sales_manager')
+            || $user->hasRole('manager')
+            || $user->hasRole('Administrator')
+            || $user->hasRole('Super Administrator')
+            || $user->hasPermission('crm.lead.assign')
+            || $user->hasPermission('sales.lead.assign')
+            || $user->hasPermission('sales.lead.manage')
+            || $user->hasPermission('crm.lead.manage'));
+    }
+
+    private function userCanAuditFakeLeads(?User $user): bool
+    {
+        if (!$user) {
+            return false;
+        }
+
+        return (bool) ($user->is_platform_admin
+            || $user->hasRole('admin')
+            || $user->hasRole('tenant_admin')
+            || $user->hasRole('super_admin')
+            || $user->hasRole('sales_manager')
+            || $user->hasRole('manager')
+            || $user->hasRole('Administrator')
+            || $user->hasRole('Super Administrator')
+            || $user->hasPermission('sales.lead.manage')
+            || $user->hasPermission('crm.lead.manage'));
+    }
+
+    private function normalizePhone(?string $phone): ?string
+    {
+        if (!$phone) {
+            return null;
+        }
+        $cleaned = preg_replace('/[^\d+]/', '', trim($phone));
+        return $cleaned ?: null;
+    }
+
+    public function checkDuplicate(Request $request): JsonResponse
+    {
+        $tenantId = TenantContext::current()->tenantId();
+        $rawPhone = $request->query('phone');
+        $rawEmail = $request->query('email');
+        $excludeId = $request->query('exclude_id');
+
+        $phone = $this->normalizePhone($rawPhone);
+        $email = $rawEmail ? strtolower(trim((string) $rawEmail)) : null;
+
+        if (!$phone && !$email) {
+            return response()->json(['exists' => false]);
+        }
+
+        $query = CrmLead::with(['assignedUser'])
+            ->where('tenant_id', $tenantId)
+            ->where('stage', '!=', 'fake');
+
+        if ($excludeId) {
+            $query->where('id', '!=', (int) $excludeId);
+        }
+
+        $query->where(function ($q) use ($phone, $email) {
+            $matched = false;
+            if ($phone) {
+                $digits = preg_replace('/\D/', '', $phone);
+                $q->where(function ($sub) use ($phone, $digits) {
+                    $sub->where('phone', $phone);
+                    if (strlen($digits) >= 7) {
+                        $sub->orWhere('phone', 'like', "%{$digits}%");
+                    }
+                });
+                $matched = true;
+            }
+            if ($email) {
+                if ($matched) {
+                    $q->orWhere('email', $email);
+                } else {
+                    $q->where('email', $email);
+                }
+            }
+        });
+
+        $existing = $query->orderByDesc('id')->first();
+
+        if ($existing) {
+            return response()->json([
+                'exists' => true,
+                'lead'   => [
+                    'id'                 => $existing->id,
+                    'lead_number'        => $existing->lead_number,
+                    'name'               => $existing->name,
+                    'company_name'       => $existing->company_name,
+                    'phone'              => $existing->phone,
+                    'email'              => $existing->email,
+                    'stage'              => $existing->stage,
+                    'assigned_to'        => $existing->assigned_to,
+                    'assigned_user_name' => $existing->assignedUser?->name ?? 'Unassigned',
+                ],
+            ]);
+        }
+
+        return response()->json(['exists' => false]);
+    }
+
     public function store(Request $request): JsonResponse
     {
         $tenantId = TenantContext::current()->tenantId();
+
+        if (empty($request->input('phone')) && empty($request->input('email'))) {
+            return response()->json([
+                'message' => 'At least one contact method (phone number or email address) is required.',
+                'errors'  => [
+                    'phone' => ['At least one contact method (phone number or email address) is required.'],
+                    'email' => ['At least one contact method (phone number or email address) is required.'],
+                ],
+            ], 422);
+        }
 
         $validated = $request->validate([
             'name'                => ['required', 'string', 'max:255'],
@@ -103,25 +225,84 @@ final class CrmLeadController extends Controller
             'notes'               => ['nullable', 'string'],
         ]);
 
-        $assignedTo = isset($validated['assigned_to']) ? (int) $validated['assigned_to'] : null;
-        if ($assignedTo) {
-            $userExists = User::where('id', $assignedTo)->exists();
-            if (!$userExists) {
-                $employee = Employee::where('tenant_id', $tenantId)->where('id', $assignedTo)->first();
-                if ($employee && $employee->user_id) {
-                    $assignedTo = (int) $employee->user_id;
+        $phone = $this->normalizePhone($validated['phone'] ?? null);
+        $email = isset($validated['email']) ? strtolower(trim((string) $validated['email'])) : null;
+
+        if ($phone && strlen(preg_replace('/\D/', '', $phone)) < 7) {
+            return response()->json([
+                'message' => 'Phone number must contain at least 7 digits.',
+                'errors'  => ['phone' => ['Phone number must contain at least 7 digits.']],
+            ], 422);
+        }
+
+        // Duplicate check on create unless explicitly overridden
+        if (!$request->boolean('allow_duplicate')) {
+            $duplicateQuery = CrmLead::where('tenant_id', $tenantId)->where('stage', '!=', 'fake');
+            $duplicateQuery->where(function ($q) use ($phone, $email) {
+                $matched = false;
+                if ($phone) {
+                    $digits = preg_replace('/\D/', '', $phone);
+                    $q->where(function ($sub) use ($phone, $digits) {
+                        $sub->where('phone', $phone);
+                        if (strlen($digits) >= 8) {
+                            $sub->orWhere('phone', 'like', "%{$digits}%");
+                        }
+                    });
+                    $matched = true;
                 }
+                if ($email) {
+                    if ($matched) {
+                        $q->orWhere('email', $email);
+                    } else {
+                        $q->where('email', $email);
+                    }
+                }
+            });
+
+            $duplicate = $duplicateQuery->with('assignedUser')->first();
+            if ($duplicate) {
+                $assignedRep = $duplicate->assignedUser?->name ?? 'Unassigned';
+                return response()->json([
+                    'message' => "A lead with this contact information already exists: {$duplicate->lead_number} ({$duplicate->name}, assigned to {$assignedRep}).",
+                    'errors'  => [
+                        'phone' => ["A lead with this contact already exists (#{$duplicate->lead_number} assigned to {$assignedRep})."],
+                    ],
+                    'duplicate_lead' => [
+                        'id' => $duplicate->id,
+                        'lead_number' => $duplicate->lead_number,
+                        'name' => $duplicate->name,
+                        'assigned_user_name' => $assignedRep,
+                    ],
+                ], 422);
             }
-        } elseif (Auth::id()) {
-            $assignedTo = (int) Auth::id();
+        }
+
+        $currentUser = Auth::user();
+        $canReassign = $this->userCanReassignLeads($currentUser);
+
+        $assignedTo = isset($validated['assigned_to']) ? (int) $validated['assigned_to'] : null;
+        if (!$canReassign) {
+            $assignedTo = Auth::id() ? (int) Auth::id() : null;
+        } else {
+            if ($assignedTo) {
+                $userExists = User::where('id', $assignedTo)->exists();
+                if (!$userExists) {
+                    $employee = Employee::where('tenant_id', $tenantId)->where('id', $assignedTo)->first();
+                    if ($employee && $employee->user_id) {
+                        $assignedTo = (int) $employee->user_id;
+                    }
+                }
+            } elseif (Auth::id()) {
+                $assignedTo = (int) Auth::id();
+            }
         }
 
         $lead = new CrmLead();
         $lead->tenant_id = $tenantId;
         $lead->name = $validated['name'];
         $lead->company_name = $validated['company_name'] ?? null;
-        $lead->phone = $validated['phone'] ?? null;
-        $lead->email = $validated['email'] ?? null;
+        $lead->phone = $phone;
+        $lead->email = $email;
         $lead->source = $validated['source'] ?? 'walk_in';
         $lead->stage = $validated['stage'] ?? 'new';
         $lead->assigned_to = $assignedTo;
@@ -160,12 +341,41 @@ final class CrmLeadController extends Controller
             'email'               => ['nullable', 'email', 'max:255'],
             'source'              => ['nullable', 'string', 'in:' . implode(',', self::VALID_SOURCES)],
             'stage'               => ['nullable', 'string', 'in:' . implode(',', self::VALID_STAGES)],
-            'assigned_to'         => ['nullable', 'integer', 'exists:users,id'],
+            'assigned_to'         => ['nullable', 'integer'],
             'expected_value'      => ['nullable', 'numeric', 'min:0'],
             'expected_close_date' => ['nullable', 'date'],
             'lost_reason_id'      => ['nullable', 'integer'],
             'notes'               => ['nullable', 'string'],
         ]);
+
+        // Security check for reassignment
+        $currentUser = Auth::user();
+        $canReassign = $this->userCanReassignLeads($currentUser);
+
+        if (array_key_exists('assigned_to', $validated)) {
+            if (!$canReassign) {
+                // Ignore reassignment attempt from sales rep
+                unset($validated['assigned_to']);
+            } else {
+                $assignedTo = $validated['assigned_to'] ? (int) $validated['assigned_to'] : null;
+                if ($assignedTo) {
+                    $userExists = User::where('id', $assignedTo)->exists();
+                    if (!$userExists) {
+                        $employee = Employee::where('tenant_id', $tenantId)->where('id', $assignedTo)->first();
+                        if ($employee && $employee->user_id) {
+                            $validated['assigned_to'] = (int) $employee->user_id;
+                        }
+                    }
+                }
+            }
+        }
+
+        if (isset($validated['phone'])) {
+            $validated['phone'] = $this->normalizePhone($validated['phone']);
+        }
+        if (isset($validated['email'])) {
+            $validated['email'] = strtolower(trim((string) $validated['email']));
+        }
 
         $lead->fill($validated);
         $lead->updated_by = Auth::id() ? (int) Auth::id() : null;
@@ -186,6 +396,38 @@ final class CrmLeadController extends Controller
             'notes'          => ['nullable', 'string'],
         ]);
 
+        if ($validated['stage'] === 'lost' && empty($validated['lost_reason_id'])) {
+            return response()->json([
+                'message' => 'A valid Lost Reason must be provided when marking a lead as Lost.',
+                'errors'  => ['lost_reason_id' => ['Lost Reason is required when marking as Lost.']],
+            ], 422);
+        }
+
+        // If stage is won and not yet converted to a Customer Party, auto-convert
+        if ($validated['stage'] === 'won' && !$lead->converted_party_id) {
+            $party = null;
+            if ($lead->phone) {
+                $party = Party::where('tenant_id', $tenantId)->where('phone', $lead->phone)->first();
+            }
+            if (!$party) {
+                $customerCode = 'CUST-' . strtoupper(Str::random(6));
+                $party = new Party([
+                    'uuid'        => (string) Str::uuid(),
+                    'code'        => $customerCode,
+                    'name'        => $lead->company_name ? "{$lead->name} ({$lead->company_name})" : ($lead->name ?: 'Customer'),
+                    'phone'       => $lead->phone,
+                    'email'       => $lead->email,
+                    'is_customer' => 1,
+                    'type'        => $lead->company_name ? 'business' : 'individual',
+                    'status'      => 'active',
+                ]);
+                $party->tenant_id = $tenantId;
+                $party->save();
+            }
+            $lead->converted_party_id = $party->id;
+            $lead->converted_at = now();
+        }
+
         $lead->stage = $validated['stage'];
         if (isset($validated['lost_reason_id'])) {
             $lead->lost_reason_id = $validated['lost_reason_id'];
@@ -202,6 +444,13 @@ final class CrmLeadController extends Controller
     public function validateFake(Request $request, int $id): JsonResponse
     {
         $tenantId = TenantContext::current()->tenantId();
+
+        $currentUser = Auth::user();
+        if (!$this->userCanAuditFakeLeads($currentUser)) {
+            return response()->json([
+                'message' => 'Only sales managers and administrators are authorized to audit or flag fake leads.',
+            ], 403);
+        }
 
         $lead = CrmLead::where('tenant_id', $tenantId)->findOrFail($id);
 

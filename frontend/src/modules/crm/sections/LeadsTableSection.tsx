@@ -9,6 +9,7 @@ import {
   Eye,
   Check,
   ShoppingCart,
+  Clock,
 } from 'lucide-react';
 import type { Lead, LeadStatus } from '../../../types/api/crm';
 import { useCurrency } from '../../../hooks/useCurrency';
@@ -107,6 +108,16 @@ export function LeadsTableSection({
                 const isFake = Boolean(lead.is_fake || lead.status === 'fake');
                 const canConvert = !isWon && !isFake;
 
+                const isStale = (() => {
+                  const currentStatus = lead.stage || lead.status;
+                  if (currentStatus === 'won' || currentStatus === 'lost' || currentStatus === 'fake' || lead.is_fake) {
+                    return false;
+                  }
+                  const lastDate = lead.updated_at || lead.created_at;
+                  if (!lastDate) return false;
+                  return (Date.now() - new Date(lastDate).getTime()) / (1000 * 60 * 60 * 24) >= 7;
+                })();
+
                 return (
                   <tr
                     key={lead.id}
@@ -132,7 +143,18 @@ export function LeadsTableSection({
 
                     {/* Contact & Number */}
                     <td className="px-4 py-3.5">
-                      <div className="font-bold text-default">{lead.name}</div>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="font-bold text-default">{lead.name}</span>
+                        {isStale && (
+                          <span
+                            className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20"
+                            title="No activity or update in ≥ 7 days"
+                          >
+                            <Clock className="size-2.5 text-amber-500" />
+                            <span>Stale</span>
+                          </span>
+                        )}
+                      </div>
                       <div className="text-[10px] font-mono text-muted">
                         {lead.lead_number || `LD-${lead.id}`}
                       </div>

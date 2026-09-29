@@ -675,6 +675,8 @@ Route::middleware(['auth.jwt', 'tenant.resolve', 'tenant.active'])
             Route::prefix('leads')->name('leads.')->middleware('module.active:crm')->group(static function (): void {
                 Route::get('/', [App\Modules\Sales\Controllers\CrmLeadController::class, 'index'])
                     ->middleware('permission:sales.lead.view')->name('index');
+                Route::get('check-duplicate', [App\Modules\Sales\Controllers\CrmLeadController::class, 'checkDuplicate'])
+                    ->middleware('permission:sales.lead.view')->name('check-duplicate');
                 Route::post('/', [App\Modules\Sales\Controllers\CrmLeadController::class, 'store'])
                     ->middleware('permission:sales.lead.create')->name('store');
                 Route::post('bulk-import', [App\Modules\Sales\Controllers\CrmLeadController::class, 'bulkImport'])

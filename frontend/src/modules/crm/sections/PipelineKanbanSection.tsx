@@ -1,4 +1,4 @@
-import { ArrowRight, UserCheck, Eye, Tag } from 'lucide-react';
+import { ArrowRight, UserCheck, Eye, Tag, Clock } from 'lucide-react';
 import type { Lead, LeadStatus } from '../../../types/api/crm';
 import { useCurrency } from '../../../hooks/useCurrency';
 import { cn } from '../../../lib/utils';
@@ -70,21 +70,45 @@ export function PipelineKanbanSection({
                   const isLost = (lead.stage || lead.status) === 'lost';
                   const sourceConfig = LEAD_SOURCES.find((s) => s.id === lead.source);
 
+                  const isStale = (() => {
+                    const currentStatus = lead.stage || lead.status;
+                    if (currentStatus === 'won' || currentStatus === 'lost' || currentStatus === 'fake' || lead.is_fake) {
+                      return false;
+                    }
+                    const lastDate = lead.updated_at || lead.created_at;
+                    if (!lastDate) return false;
+                    return (Date.now() - new Date(lastDate).getTime()) / (1000 * 60 * 60 * 24) >= 7;
+                  })();
+
                   return (
                     <div
                       key={lead.id}
-                      className="p-3 rounded-xl border border-default bg-surface hover:border-primary/40 hover:shadow-xs transition-all space-y-2 group"
+                      className={cn(
+                        'p-3 rounded-xl border border-default bg-surface hover:border-primary/40 hover:shadow-xs transition-all space-y-2 group',
+                        isStale && 'border-amber-500/40 bg-amber-500/5'
+                      )}
                     >
                       {/* Top Bar: Name & ID */}
                       <div className="flex items-start justify-between gap-1.5">
                         <div className="min-w-0 flex-1">
-                          <button
-                            type="button"
-                            onClick={() => onViewLead(lead)}
-                            className="text-xs font-bold text-default group-hover:text-primary transition-colors truncate text-left w-full cursor-pointer hover:underline"
-                          >
-                            {lead.name}
-                          </button>
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => onViewLead(lead)}
+                              className="text-xs font-bold text-default group-hover:text-primary transition-colors truncate text-left cursor-pointer hover:underline"
+                            >
+                              {lead.name}
+                            </button>
+                            {isStale && (
+                              <span
+                                className="inline-flex items-center gap-0.5 px-1 py-0.2 rounded text-[9px] font-bold bg-amber-500/15 text-amber-700 dark:text-amber-400 shrink-0"
+                                title="Untouched for ≥ 7 days"
+                              >
+                                <Clock className="size-2.5 text-amber-500" />
+                                <span>Stale</span>
+                              </span>
+                            )}
+                          </div>
                           {lead.company_name && (
                             <div className="text-[10px] text-muted font-medium truncate mt-0.5">
                               {lead.company_name}

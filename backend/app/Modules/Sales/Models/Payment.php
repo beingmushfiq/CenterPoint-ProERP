@@ -100,6 +100,9 @@ final class Payment extends Model
             if (empty($model->uuid)) {
                 $model->uuid = (string) Str::uuid();
             }
+            if (empty($model->currency_code)) {
+                $model->currency_code = 'BDT';
+            }
         });
     }
 

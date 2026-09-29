@@ -37,8 +37,8 @@ export const SettingsOverviewHub: React.FC<SettingsOverviewHubProps> = ({
     rawCandidate || tenantBrandName,
     tenantBrandName || 'Enterprise Operations'
   );
-  const currency = String(formValues['currency_code'] || activeCurrency || 'USD');
-  const currencySymbol = String(formValues['currency_symbol'] || activeSymbol || '$');
+  const currency = String(formValues['currency_code'] || activeCurrency || 'BDT');
+  const currencySymbol = String(formValues['currency_symbol'] || activeSymbol || '৳');
   const timezone = String(formValues['system_timezone'] || 'Asia/Dhaka');
   const invoicePrefix = String(formValues['invoice_prefix'] || 'INV-');
 

@@ -26,6 +26,14 @@ export function PaymentReceiptDocument({ payment, businessConfig }: PaymentRecei
     });
   }, [payment.payment_number]);
 
+  const currencyCode = (
+    payment.currency_code && payment.currency_code !== 'USD'
+      ? payment.currency_code
+      : (businessConfig.currencyCode && businessConfig.currencyCode !== 'USD'
+          ? businessConfig.currencyCode
+          : 'BDT')
+  ).toUpperCase();
+
   return (
     <div className="print-doc w-full text-slate-900 bg-white text-[9pt] leading-normal font-sans">
       {/* Header */}
@@ -75,7 +83,7 @@ export function PaymentReceiptDocument({ payment, businessConfig }: PaymentRecei
         <div className="flex items-center justify-between border-b border-slate-200 pb-2">
           <span className="text-slate-600">{t('theSumOf')}:</span>
           <span className="font-mono font-black text-[11pt] text-emerald-800">
-            {formatCurrency(payment.amount, payment.currency_code || businessConfig.currencySymbol || '৳')}
+            {formatCurrency(payment.amount, currencyCode)}
           </span>
         </div>
 
@@ -84,8 +92,8 @@ export function PaymentReceiptDocument({ payment, businessConfig }: PaymentRecei
           <p className="font-bold italic text-slate-900 text-[8.5pt]">
             {numberToWords(
               payment.amount,
-              payment.currency_code === 'BDT' ? 'Taka' : (payment.currency_code || 'Units'),
-              payment.currency_code === 'BDT' ? 'Paisa' : 'Cents'
+              currencyCode === 'BDT' ? 'BDT' : (currencyCode || 'Units'),
+              currencyCode === 'BDT' ? 'Poisha' : 'Cents'
             )}
           </p>
         </div>

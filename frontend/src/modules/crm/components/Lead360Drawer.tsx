@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import {
@@ -53,6 +53,8 @@ export function Lead360Drawer({
   const [activityType, setActivityType] = useState<LeadActivity['type']>('call');
   const [activityTitle, setActivityTitle] = useState('');
   const [activityDescription, setActivityDescription] = useState('');
+  const [activityDueAt, setActivityDueAt] = useState('');
+  const [activityCompleted, setActivityCompleted] = useState(false);
   const [activityOutcome, setActivityOutcome] = useState('');
 
   // Lost Reason Modal State
@@ -128,13 +130,17 @@ export function Lead360Drawer({
         type: activityType,
         title: activityTitle.trim(),
         description: activityDescription.trim() || null,
+        due_at: activityDueAt ? new Date(activityDueAt).toISOString() : null,
         outcome: activityOutcome.trim() || null,
+        completed: activityCompleted,
       });
     },
     onSuccess: () => {
       toast.success(`Logged ${activityType} activity.`);
       setActivityTitle('');
       setActivityDescription('');
+      setActivityDueAt('');
+      setActivityCompleted(false);
       setActivityOutcome('');
       refetch();
       queryClient.invalidateQueries({ queryKey: ['crm', 'leads'] });
@@ -143,6 +149,18 @@ export function Lead360Drawer({
       toast.error('Failed to log activity.');
     },
   });
+
+  const isStale = useMemo(() => {
+    if (!lead) return false;
+    const currentStage = lead.stage || lead.status;
+    if (currentStage === 'won' || currentStage === 'lost' || currentStage === 'fake' || lead.is_fake) {
+      return false;
+    }
+    const lastDate = lead.updated_at || lead.created_at;
+    if (!lastDate) return false;
+    const diff = (Date.now() - new Date(lastDate).getTime()) / (1000 * 60 * 60 * 24);
+    return diff >= 7;
+  }, [lead]);
 
   if (!leadId) return null;
 
@@ -345,6 +363,19 @@ export function Lead360Drawer({
             ) : activeTab === 'overview' ? (
               /* Overview Tab */
               <div className="space-y-4">
+                {/* Stale Lead Warning Banner */}
+                {isStale && (
+                  <div className="p-3.5 rounded-2xl border border-amber-500/40 bg-amber-500/10 text-amber-900 dark:text-amber-200 flex items-start gap-2.5 text-xs">
+                    <Clock className="size-4 shrink-0 text-amber-600 dark:text-amber-400 mt-0.5" />
+                    <div>
+                      <span className="font-bold block">Stale Lead Alert (&ge; 7 Days Inactive)</span>
+                      <span className="text-[11px] leading-relaxed">
+                        This lead has had no activity or stage advancement in over a week. Immediate follow-up or reassignment recommended.
+                      </span>
+                    </div>
+                  </div>
+                )}
+
                 {/* Live Stage Selector */}
                 <div className="p-4 rounded-2xl border border-default bg-surface-sunken/40 space-y-2">
                   <div className="text-[11px] font-bold text-muted uppercase tracking-wider flex items-center justify-between">
@@ -551,6 +582,35 @@ export function Lead360Drawer({
                       className="w-full rounded-xl border border-default bg-surface px-3 py-1.5 text-default text-xs focus:border-primary focus:outline-none leading-relaxed"
                     />
 
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-semibold text-muted uppercase tracking-wider block">
+                          Due Date & Time (Optional)
+                        </label>
+                        <input
+                          type="datetime-local"
+                          value={activityDueAt}
+                          onChange={(e) => setActivityDueAt(e.target.value)}
+                          className="w-full rounded-xl border border-default bg-surface px-3 py-1.5 text-default text-xs focus:border-primary focus:outline-none"
+                        />
+                      </div>
+                      <div className="flex items-center gap-2 pt-4 sm:pt-5">
+                        <input
+                          type="checkbox"
+                          id="activity-completed-flag"
+                          checked={activityCompleted}
+                          onChange={(e) => setActivityCompleted(e.target.checked)}
+                          className="size-4 rounded border-default text-primary focus:ring-primary cursor-pointer"
+                        />
+                        <label
+                          htmlFor="activity-completed-flag"
+                          className="text-xs text-default cursor-pointer font-medium select-none"
+                        >
+                          Mark as completed now
+                        </label>
+                      </div>
+                    </div>
+
                     <div className="flex gap-2">
                       <input
                         type="text"
@@ -589,8 +649,21 @@ export function Lead360Drawer({
                             {getActivityIcon(act.type)}
                           </div>
                           <div className="flex-1 p-3 rounded-xl border border-default bg-surface space-y-1">
-                            <div className="flex items-center justify-between gap-2">
-                              <span className="font-bold text-default">{act.title}</span>
+                            <div className="flex items-center justify-between gap-2 flex-wrap">
+                              <div className="flex items-center gap-2">
+                                <span className="font-bold text-default">{act.title}</span>
+                                {act.completed_at ? (
+                                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                                    <CheckCircle2 className="size-2.5" />
+                                    Done
+                                  </span>
+                                ) : act.due_at ? (
+                                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400">
+                                    <Clock className="size-2.5" />
+                                    Due: {new Date(act.due_at).toLocaleDateString()}
+                                  </span>
+                                ) : null}
+                              </div>
                               <span className="text-[10px] text-muted flex items-center gap-1">
                                 <Clock className="size-3" />
                                 <span>{new Date(act.created_at).toLocaleString()}</span>

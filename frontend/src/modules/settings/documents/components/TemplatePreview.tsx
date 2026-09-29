@@ -119,7 +119,7 @@ export function TemplatePreview({
     warehouse_name: 'Tejgaon Central Parts Warehouse',
     order_date: '2026-08-31',
     expected_delivery_date: '2026-09-07',
-    currency_code: businessConfig.currencyCode || 'USD',
+    currency_code: businessConfig.currencyCode || 'BDT',
     exchange_rate: '1.0',
     subtotal_amount: '90000.00',
     discount_amount: '0.00',
@@ -193,7 +193,7 @@ export function TemplatePreview({
     amount: '25000.00',
     allocated_amount: '25000.00',
     unallocated_amount: '0.00',
-    currency_code: businessConfig.currencyCode || 'USD',
+    currency_code: businessConfig.currencyCode || 'BDT',
     status: 'posted',
     notes: 'Advance installment against INV-2026-000042',
   };

@@ -16,6 +16,7 @@ import {
   LayoutGrid,
   Trash2,
   X,
+  Clock,
 } from 'lucide-react';
 import type { Lead, LeadStatus, LeadSource } from '../../types/api/crm';
 import { api } from '../../lib/api/client';
@@ -69,17 +70,30 @@ interface SalesmanOption {
   employee_id: number;
   name: string;
   code?: string;
+  user_id?: number | null;
 }
 
 export function CrmWorkspace() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { hasPermission } = useAuthStore();
+  const { user, hasPermission } = useAuthStore();
   const canDelete = hasPermission('sales.lead.delete');
   const { formatCurrency } = useCurrency();
 
+  const isManagerOrAdmin = Boolean(
+    user?.is_platform_admin ||
+    hasPermission(['crm.lead.assign', 'sales.lead.assign', 'sales.lead.manage', 'crm.lead.manage']) ||
+    ['admin', 'tenant_admin', 'super_admin', 'sales_manager', 'manager'].includes(
+      (user?.role || '').toLowerCase()
+    ) ||
+    user?.roles?.some((r) =>
+      ['admin', 'tenant_admin', 'super_admin', 'sales_manager', 'manager'].includes(r.toLowerCase())
+    )
+  );
+
   // View & Filter States
   const [viewMode, setViewMode] = useState<'table' | 'kanban'>('table');
+  const [scopeFilter, setScopeFilter] = useState<'my' | 'all' | 'stale'>(!isManagerOrAdmin ? 'my' : 'all');
   const [search, setSearch] = useState('');
   const [stageFilter, setStageFilter] = useState<string>('all');
   const [sourceFilter, setSourceFilter] = useState<string>('all');
@@ -241,9 +255,43 @@ export function CrmWorkspace() {
     },
   });
 
-  // Filtered Leads
+  // Matched salesman profile for current user
+  const matchedSalesman = salesmen.find((s) => {
+    if (s.user_id && user?.id && String(s.user_id) === String(user.id)) return true;
+    if (s.code && user?.id && String(s.code) === String(user.id)) return true;
+    if (s.name && user?.name && s.name.trim().toLowerCase() === user.name.trim().toLowerCase()) return true;
+    return false;
+  });
+
+  // Check if a lead is stale (> 7 days without update/interaction)
+  const isLeadStale = (l: Lead): boolean => {
+    const stage = l.stage || l.status;
+    if (stage === 'won' || stage === 'lost' || stage === 'fake') {
+      return false;
+    }
+    const lastDate = l.updated_at || l.created_at;
+    if (!lastDate) return false;
+    const diff = (Date.now() - new Date(lastDate).getTime()) / (1000 * 60 * 60 * 24);
+    return diff >= 7;
+  };
+
+  // Filtered Leads with Scope Control
   const filteredLeads = useMemo(() => {
     return leads.filter((l) => {
+      // Scope filtering
+      if (scopeFilter === 'my') {
+        const myId = String(user?.id);
+        const mySalesmanId = matchedSalesman ? String(matchedSalesman.employee_id) : '';
+        const assigned = String(l.assigned_to || '');
+        const isMine =
+          assigned === myId ||
+          (mySalesmanId && assigned === mySalesmanId) ||
+          l.assigned_user_name === user?.name;
+        if (!isMine) return false;
+      } else if (scopeFilter === 'stale') {
+        if (!isLeadStale(l)) return false;
+      }
+
       const q = search.toLowerCase();
       const matchesSearch =
         !q ||
@@ -263,7 +311,24 @@ export function CrmWorkspace() {
 
       return matchesSearch && matchesStage && matchesSource && matchesRep;
     });
-  }, [leads, search, stageFilter, sourceFilter, salesmanFilter]);
+  }, [leads, search, stageFilter, sourceFilter, salesmanFilter, scopeFilter, user, matchedSalesman]);
+
+  const myLeadsCount = useMemo(() => {
+    const myId = String(user?.id);
+    const mySalesmanId = matchedSalesman ? String(matchedSalesman.employee_id) : '';
+    return leads.filter((l) => {
+      const assigned = String(l.assigned_to || '');
+      return (
+        assigned === myId ||
+        (mySalesmanId && assigned === mySalesmanId) ||
+        l.assigned_user_name === user?.name
+      );
+    }).length;
+  }, [leads, user, matchedSalesman]);
+
+  const staleLeadsCount = useMemo(() => {
+    return leads.filter(isLeadStale).length;
+  }, [leads]);
 
   // Bulk Selection Mechanics
   const isAllSelected = filteredLeads.length > 0 && selectedIds.size === filteredLeads.length;
@@ -301,9 +366,27 @@ export function CrmWorkspace() {
     }
   };
 
-  // Convert to Sales Order: redirects to Sales module orders tab with lead pre-linked
-  const handleConvertToOrder = (lead: Lead) => {
-    navigate(`/sales?tab=orders&createOrder=true&lead_id=${lead.id}`);
+  // Convert to Sales Order: auto-provisions customer party if needed, then redirects to Sales order drafting
+  const handleConvertToOrder = async (lead: Lead) => {
+    try {
+      let partyId = lead.converted_party_id;
+      if (!partyId) {
+        toast.info('Converting lead to customer account before creating sales order...');
+        const res = await api.post<{ party_id?: number }>(`/sales/leads/${lead.id}/convert`);
+        partyId = res.data?.party_id ?? null;
+        queryClient.invalidateQueries({ queryKey: ['crm', 'leads'] });
+      }
+      const params = new URLSearchParams();
+      params.append('tab', 'orders');
+      params.append('createOrder', 'true');
+      params.append('lead_id', String(lead.id));
+      if (partyId) params.append('party_id', String(partyId));
+      if (lead.assigned_to) params.append('salesman_id', String(lead.assigned_to));
+
+      navigate(`/sales?${params.toString()}`);
+    } catch {
+      toast.error('Failed to prepare lead for sales order creation.');
+    }
   };
 
   // Export CSV
@@ -435,6 +518,83 @@ export function CrmWorkspace() {
           {...(fakeCount > 0 ? { alert: 'danger' as const } : {})}
           icon={<AlertTriangle className="w-4 h-4 text-danger" />}
         />
+      </div>
+
+      {/* Scope Pipeline Segmented Control */}
+      <div className="flex items-center justify-between border-b border-default pb-3 gap-3 flex-wrap">
+        <div className="inline-flex items-center rounded-xl bg-surface-sunken p-1 border border-default shadow-2xs">
+          <button
+            type="button"
+            onClick={() => setScopeFilter('all')}
+            className={cn(
+              'flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer',
+              scopeFilter === 'all'
+                ? 'bg-surface text-primary shadow-xs font-bold'
+                : 'text-muted hover:text-default'
+            )}
+          >
+            <span>All Pipeline</span>
+            <span
+              className={cn(
+                'px-1.5 py-0.5 rounded-full text-[10px] font-bold',
+                scopeFilter === 'all' ? 'bg-primary/10 text-primary' : 'bg-surface text-muted'
+              )}
+            >
+              {leads.length}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setScopeFilter('my')}
+            className={cn(
+              'flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer',
+              scopeFilter === 'my'
+                ? 'bg-surface text-primary shadow-xs font-bold'
+                : 'text-muted hover:text-default'
+            )}
+          >
+            <span>My Leads</span>
+            <span
+              className={cn(
+                'px-1.5 py-0.5 rounded-full text-[10px] font-bold',
+                scopeFilter === 'my' ? 'bg-primary/10 text-primary' : 'bg-surface text-muted'
+              )}
+            >
+              {myLeadsCount}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setScopeFilter('stale')}
+            className={cn(
+              'flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer',
+              scopeFilter === 'stale'
+                ? 'bg-surface text-amber-600 dark:text-amber-400 shadow-xs font-bold'
+                : 'text-muted hover:text-default'
+            )}
+          >
+            <Clock className="w-3.5 h-3.5 text-amber-500" />
+            <span>Stale Action Needed</span>
+            <span
+              className={cn(
+                'px-1.5 py-0.5 rounded-full text-[10px] font-bold',
+                staleLeadsCount > 0
+                  ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300'
+                  : 'bg-surface text-muted'
+              )}
+            >
+              {staleLeadsCount}
+            </span>
+          </button>
+        </div>
+
+        {scopeFilter === 'stale' && (
+          <p className="text-xs text-amber-600 dark:text-amber-400 font-medium">
+            Showing active leads untouched for &ge; 7 days. Follow-up or reassign immediately.
+          </p>
+        )}
       </div>
 
       {/* Multi-Filter Bar */}

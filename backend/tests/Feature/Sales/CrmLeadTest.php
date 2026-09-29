@@ -78,6 +78,18 @@ class CrmLeadTest extends TestCase
             'sales.order.approve'
         );
 
+        DB::table('reason_codes')->insert([
+            'id' => 1,
+            'tenant_id' => $this->tenant->id,
+            'uuid' => (string) Str::uuid(),
+            'context' => 'crm_lost',
+            'code' => 'PRICE_TOO_HIGH',
+            'name' => 'Price Too High',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
         $this->token = app(JwtService::class)->issueToken(
             userId: $this->user->id,
             tenantId: $this->tenant->id,
@@ -154,6 +166,7 @@ class CrmLeadTest extends TestCase
         $lead = CrmLead::create([
             'tenant_id' => $this->tenant->id,
             'name' => 'Negotiation Prospect',
+            'phone' => '+8801711223399',
             'source' => 'phone',
             'stage' => 'proposal',
         ]);
@@ -168,10 +181,19 @@ class CrmLeadTest extends TestCase
         $res1->assertOk();
         $res1->assertJsonPath('data.stage', 'negotiation');
 
-        // Move to lost with notes
+        // Move to lost without lost_reason_id fails with 422
+        $resFail = $this->withHeader('Authorization', "Bearer {$this->token}")
+            ->patchJson("/api/v1/sales/leads/{$lead->id}/stage", [
+                'stage' => 'lost',
+                'notes' => 'Client chose competitor due to lead time',
+            ]);
+        $resFail->assertStatus(422);
+
+        // Move to lost with valid lost_reason_id
         $res2 = $this->withHeader('Authorization', "Bearer {$this->token}")
             ->patchJson("/api/v1/sales/leads/{$lead->id}/stage", [
                 'stage' => 'lost',
+                'lost_reason_id' => 1,
                 'notes' => 'Client chose competitor due to lead time',
             ]);
 
@@ -264,5 +286,137 @@ class CrmLeadTest extends TestCase
         $res->assertOk();
         $this->assertCount(1, $res->json('data'));
         $this->assertEquals('Storefront Lead', $res->json('data.0.name'));
+    }
+
+    public function test_requires_phone_or_email_to_create_lead(): void
+    {
+        $payload = [
+            'name' => 'Ghost Prospect',
+            'source' => 'walk_in',
+        ];
+
+        $res = $this->withHeader('Authorization', "Bearer {$this->token}")
+            ->postJson('/api/v1/sales/leads', $payload);
+
+        $res->assertStatus(422);
+        $res->assertJsonValidationErrors(['phone', 'email']);
+    }
+
+    public function test_duplicate_check_endpoint_identifies_matching_lead(): void
+    {
+        CrmLead::create([
+            'tenant_id' => $this->tenant->id,
+            'name' => 'Existing Company Lead',
+            'phone' => '+8801700112233',
+            'email' => 'corp@existing.com',
+            'source' => 'phone',
+            'stage' => 'qualified',
+        ]);
+
+        // Check duplicate by phone
+        $res1 = $this->withHeader('Authorization', "Bearer {$this->token}")
+            ->getJson('/api/v1/sales/leads/check-duplicate?phone=+8801700112233');
+
+        $res1->assertOk();
+        $res1->assertJsonPath('exists', true);
+        $res1->assertJsonPath('lead.name', 'Existing Company Lead');
+
+        // Check duplicate by email
+        $res2 = $this->withHeader('Authorization', "Bearer {$this->token}")
+            ->getJson('/api/v1/sales/leads/check-duplicate?email=corp@existing.com');
+
+        $res2->assertOk();
+        $res2->assertJsonPath('exists', true);
+
+        // Check non-existing
+        $res3 = $this->withHeader('Authorization', "Bearer {$this->token}")
+            ->getJson('/api/v1/sales/leads/check-duplicate?phone=+8801999999999');
+
+        $res3->assertOk();
+        $res3->assertJsonPath('exists', false);
+    }
+
+    public function test_rejects_duplicate_lead_creation_unless_overridden(): void
+    {
+        CrmLead::create([
+            'tenant_id' => $this->tenant->id,
+            'name' => 'Existing Prospect',
+            'phone' => '+8801799887766',
+            'source' => 'phone',
+            'stage' => 'new',
+        ]);
+
+        $payload = [
+            'name' => 'Duplicate Attempt',
+            'phone' => '+8801799887766',
+            'source' => 'walk_in',
+        ];
+
+        // Should be blocked with 422
+        $resBlocked = $this->withHeader('Authorization', "Bearer {$this->token}")
+            ->postJson('/api/v1/sales/leads', $payload);
+
+        $resBlocked->assertStatus(422);
+        $resBlocked->assertJsonValidationErrors(['phone']);
+
+        // When allow_duplicate flag is set, allow create
+        $resAllowed = $this->withHeader('Authorization', "Bearer {$this->token}")
+            ->postJson('/api/v1/sales/leads?allow_duplicate=1', $payload);
+
+        $resAllowed->assertStatus(201);
+    }
+
+    public function test_salesman_cannot_reassign_lead_to_another_user(): void
+    {
+        $otherUser = User::create([
+            'id' => 2,
+            'uuid' => (string) Str::uuid(),
+            'tenant_id' => $this->tenant->id,
+            'name' => 'Other Sales Rep',
+            'email' => 'rep2@slicemart.com',
+            'password' => 'secret',
+            'status' => 'active',
+        ]);
+
+        $lead = CrmLead::create([
+            'tenant_id' => $this->tenant->id,
+            'name' => 'Protected Assignment Lead',
+            'phone' => '+8801555443322',
+            'source' => 'phone',
+            'stage' => 'new',
+            'assigned_to' => $this->user->id,
+        ]);
+
+        // Attempt reassignment by non-manager (role only has basic lead permissions, not crm.lead.assign)
+        $res = $this->withHeader('Authorization', "Bearer {$this->token}")
+            ->putJson("/api/v1/sales/leads/{$lead->id}", [
+                'name' => 'Protected Assignment Lead Updated',
+                'assigned_to' => $otherUser->id,
+            ]);
+
+        $res->assertOk();
+        $lead->refresh();
+        // The reassignment attempt should be ignored
+        $this->assertEquals($this->user->id, $lead->assigned_to);
+    }
+
+    public function test_non_manager_cannot_validate_fake_lead(): void
+    {
+        $lead = CrmLead::create([
+            'tenant_id' => $this->tenant->id,
+            'name' => 'Candidate Fake Lead',
+            'phone' => '+8801444332211',
+            'source' => 'phone',
+            'stage' => 'new',
+        ]);
+
+        // Non-manager role gets 403 Forbidden
+        $res = $this->withHeader('Authorization', "Bearer {$this->token}")
+            ->postJson("/api/v1/sales/leads/{$lead->id}/validate-fake", [
+                'is_fake' => true,
+                'validation_notes' => 'Suspicious phone number',
+            ]);
+
+        $res->assertStatus(403);
     }
 }
