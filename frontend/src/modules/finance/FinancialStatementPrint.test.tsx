@@ -5,6 +5,11 @@ import { FinancialStatementPrintDocument } from '../../components/print/document
 import { DEFAULT_BUSINESS_CONFIG } from '../../lib/document/useBusinessConfig';
 import { FinanceWorkspace } from './FinanceWorkspace';
 
+// Mock react-apexcharts for JSDOM
+vi.mock('react-apexcharts', () => ({
+  default: () => <div data-testid="mock-apexchart">ApexChart Mock</div>,
+}));
+
 // Mock matchMedia for modal responsiveness
 Object.defineProperty(window, 'matchMedia', {
   writable: true,

@@ -6,6 +6,7 @@ import {
   ArrowLeftRight,
   Plus,
   Trash2,
+  FileCheck,
 } from 'lucide-react';
 import type { ChartOfAccount, BankAccount } from '../../../types/api/finance';
 
@@ -18,6 +19,7 @@ export interface BankingSectionProps {
   onOpenTransferModal?: (prefill?: { fromId?: number; toId?: number }) => void;
   onOpenAddAccountModal?: (presetSubtype?: string) => void;
   onOpenAddBankModal?: () => void;
+  onOpenReconcileModal?: (bank?: BankAccount) => void;
   onDeleteAccount: (account: ChartOfAccount) => void;
   onDeleteBankAccount: (bank: BankAccount) => void;
 }
@@ -31,6 +33,7 @@ export const BankingSection: React.FC<BankingSectionProps> = ({
   onOpenTransferModal,
   onOpenAddAccountModal,
   onOpenAddBankModal,
+  onOpenReconcileModal,
   onDeleteAccount,
   onDeleteBankAccount,
 }) => {
@@ -49,6 +52,16 @@ export const BankingSection: React.FC<BankingSectionProps> = ({
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          {onOpenReconcileModal && (
+            <button
+              type="button"
+              onClick={() => onOpenReconcileModal()}
+              className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs transition cursor-pointer"
+            >
+              <FileCheck className="size-3.5" />
+              <span>Reconcile Statement</span>
+            </button>
+          )}
           {onOpenImportBankModal && (
             <button
               type="button"
@@ -227,6 +240,17 @@ export const BankingSection: React.FC<BankingSectionProps> = ({
                   </div>
                 </div>
                 <div className="flex items-center gap-1.5">
+                  {onOpenReconcileModal && (
+                    <button
+                      type="button"
+                      onClick={() => onOpenReconcileModal(ba)}
+                      className="px-2.5 py-1.5 text-xs font-semibold rounded-lg border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 transition cursor-pointer flex items-center gap-1"
+                      title="Reconcile bank statement against GL journal entries"
+                    >
+                      <FileCheck className="size-3" />
+                      <span>Reconcile</span>
+                    </button>
+                  )}
                   {onOpenTransferModal && (
                     <>
                       <button

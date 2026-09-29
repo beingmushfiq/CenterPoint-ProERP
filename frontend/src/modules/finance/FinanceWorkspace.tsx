@@ -67,6 +67,7 @@ import { MoneyInModal } from './modals/MoneyInModal';
 import type { MoneyInSuccessPayload } from './modals/MoneyInModal';
 import { TransferMoneyModal } from './modals/TransferMoneyModal';
 import type { TransferMoneySuccessPayload } from './modals/TransferMoneyModal';
+import { BankReconciliationModal } from './modals/BankReconciliationModal';
 import { PrintPreviewModal, FinancialStatementPrintDocument } from '../../components/print';
 import { useBusinessConfig } from '../../lib/document/useBusinessConfig';
 import { api } from '../../lib/api/client';
@@ -148,6 +149,8 @@ export const FinanceWorkspace: React.FC = () => {
   const [showImportCoaModal, setShowImportCoaModal] = useState(false);
   const [showImportJournalModal, setShowImportJournalModal] = useState(false);
   const [showImportBankModal, setShowImportBankModal] = useState(false);
+  const [showBankReconciliationModal, setShowBankReconciliationModal] = useState(false);
+  const [reconcileBankId, setReconcileBankId] = useState<number | undefined>(undefined);
   const [activeTab, setActiveTab] = useWorkspaceTab<FinanceTab>('banking', [
     'banking',
     'expenses',
@@ -1951,6 +1954,10 @@ export const FinanceWorkspace: React.FC = () => {
               setShowNewAccountModal(true);
             }}
             onOpenAddBankModal={() => setShowNewBankModal(true)}
+            onOpenReconcileModal={(bank) => {
+              setReconcileBankId(bank?.id);
+              setShowBankReconciliationModal(true);
+            }}
             onDeleteAccount={(acc) => setDeletingAccount(acc)}
             onDeleteBankAccount={(ba) => setDeletingBankAccount(ba)}
           />
@@ -2975,6 +2982,20 @@ export const FinanceWorkspace: React.FC = () => {
         onClose={() => setShowImportBankModal(false)}
         schema={bankStatementImportSchema}
         onImportSuccess={() => fetchBanksFromApi()}
+      />
+
+      <BankReconciliationModal
+        open={showBankReconciliationModal}
+        onClose={() => setShowBankReconciliationModal(false)}
+        bankAccounts={bankAccounts}
+        accounts={accounts}
+        journalEntries={journalEntries}
+        preselectedBankId={reconcileBankId}
+        onReconciliationComplete={(bank, balance) => {
+          setBankAccounts((prev) =>
+            prev.map((b) => (b.id === bank.id ? { ...b, current_balance: balance.toFixed(2) } : b))
+          );
+        }}
       />
 
       {/* Modal: Confirm Delete Bank Account (Move to Data Bin) */}

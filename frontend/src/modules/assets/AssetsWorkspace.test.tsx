@@ -107,5 +107,80 @@ describe('AssetsWorkspace Component & Action Buttons', () => {
     expect(runDepButtons.length).toBeGreaterThanOrEqual(1);
 
     expect(screen.getByRole('button', { name: /Export CSV/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Projection Calculator/i })).toBeInTheDocument();
+  });
+
+  it('renders QR Tag and Schedule action buttons in Fixed Asset Register and opens QR modal', () => {
+    render(
+      <MemoryRouter initialEntries={['/assets?tab=assets']}>
+        <AssetsWorkspace />
+      </MemoryRouter>
+    );
+
+    const qrButtons = screen.getAllByRole('button', { name: /QR Tag/i });
+    expect(qrButtons.length).toBeGreaterThanOrEqual(1);
+
+    const scheduleButtons = screen.getAllByRole('button', { name: /Schedule/i });
+    expect(scheduleButtons.length).toBeGreaterThanOrEqual(1);
+
+    // Clicking QR Tag should open the Asset QR Label Modal
+    fireEvent.click(qrButtons[0]!);
+    expect(screen.getByText(/Printable QR Asset Label:/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Print Label/i })).toBeInTheDocument();
+  });
+
+  it('opens Depreciation Projection Schedule modal with multi-method calculations and parameter tuning', () => {
+    render(
+      <MemoryRouter initialEntries={['/assets?tab=assets']}>
+        <AssetsWorkspace />
+      </MemoryRouter>
+    );
+
+    const scheduleButtons = screen.getAllByRole('button', { name: /Schedule/i });
+    expect(scheduleButtons[0]).toBeDefined();
+
+    // Click Schedule button on first asset row
+    fireEvent.click(scheduleButtons[0]!);
+    expect(screen.getByText(/Depreciation Projection Schedule:/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Straight-Line \(IAS 16\)/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Double Declining/i })).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: /Export CSV/i }).length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('renders Critical Maintenance SLA Breach banner and SLA overdue filter & badges on Maintenance tab', () => {
+    render(
+      <MemoryRouter initialEntries={['/assets?tab=maintenance']}>
+        <AssetsWorkspace />
+      </MemoryRouter>
+    );
+
+    // SLA breach banner should be visible for overdue work orders
+    expect(screen.getByText(/CRITICAL MAINTENANCE SLA BREACH:/i)).toBeInTheDocument();
+
+    // SLA Overdue filter chip should be present
+    expect(screen.getByRole('button', { name: /SLA Overdue/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Due in 7 Days/i })).toBeInTheDocument();
+
+    // Row should show SLA overdue badge
+    expect(screen.getAllByText(/SLA Overdue/i).length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('renders Lifecycle Timeline tab with chronological audit events and custom event modal', () => {
+    render(
+      <MemoryRouter initialEntries={['/assets?tab=timeline']}>
+        <AssetsWorkspace />
+      </MemoryRouter>
+    );
+
+    // Timeline tab heading and milestones
+    expect(screen.getByText(/Audit Trail & Operational Milestones/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Log Lifecycle Event/i })).toBeInTheDocument();
+
+    // Capital inception milestone should be present
+    expect(screen.getByText(/Capital Acquisition & Balance Sheet Capitalization/i)).toBeInTheDocument();
+
+    // Clicking Log Lifecycle Event should open modal
+    fireEvent.click(screen.getByRole('button', { name: /Log Lifecycle Event/i }));
+    expect(screen.getByText(/Log Lifecycle Audit Event/i)).toBeInTheDocument();
   });
 });

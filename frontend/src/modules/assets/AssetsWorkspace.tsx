@@ -41,14 +41,20 @@ import {
   Upload,
   FileSpreadsheet,
   ChevronDown,
+  QrCode,
+  AlertTriangle,
+  Calculator,
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { UniversalImportModal } from '../../components/import/UniversalImportModal';
 import { fixedAssetImportSchema } from '../finance/schemas/fixedAssetImportSchema';
 import { ActionMenuPortal } from '../../components/ui/ActionMenuPortal';
 import { useTranslation } from 'react-i18next';
+import { DepreciationScheduleModal } from './modals/DepreciationScheduleModal';
+import { AssetQrLabelModal } from './modals/AssetQrLabelModal';
+import { AssetTimelineSection } from './sections/AssetTimelineSection';
 
-type AssetTab = 'machinery' | 'maintenance' | 'assets' | 'depreciation' | 'categories';
+type AssetTab = 'machinery' | 'maintenance' | 'assets' | 'depreciation' | 'categories' | 'timeline';
 type PerspectiveMode = 'all' | 'operations' | 'finance';
 
 interface PlantMachineMeta {
@@ -63,7 +69,7 @@ export const AssetsWorkspace: React.FC = () => {
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useWorkspaceTab<AssetTab>(
     'machinery',
-    ['machinery', 'maintenance', 'assets', 'depreciation', 'categories'] as const,
+    ['machinery', 'maintenance', 'assets', 'depreciation', 'categories', 'timeline'] as const,
     'tab'
   );
   const [perspective, setPerspective] = useState<PerspectiveMode>('all');
@@ -372,6 +378,24 @@ export const AssetsWorkspace: React.FC = () => {
 
   // Maintenance Order Details Modal
   const [viewingMaintenanceOrder, setViewingMaintenanceOrder] = useState<MaintenanceOrder | null>(null);
+
+  // Depreciation Schedule Projection Modal
+  const [showDepreciationScheduleModal, setShowDepreciationScheduleModal] = useState(false);
+  const [scheduleModalAsset, setScheduleModalAsset] = useState<Asset | null>(null);
+
+  // Asset Printable QR Label Modal
+  const [showQrLabelModal, setShowQrLabelModal] = useState(false);
+  const [qrLabelAsset, setQrLabelAsset] = useState<Asset | null>(null);
+
+  const handleOpenDepreciationSchedule = (ast: Asset) => {
+    setScheduleModalAsset(ast);
+    setShowDepreciationScheduleModal(true);
+  };
+
+  const handleOpenQrLabel = (ast: Asset) => {
+    setQrLabelAsset(ast);
+    setShowQrLabelModal(true);
+  };
 
   // ─────────────────────────────────────────────────────────────────────────────
   // 4. Filtering & Search States
@@ -870,10 +894,39 @@ export const AssetsWorkspace: React.FC = () => {
     });
   }, [assets, selectedCategoryFilter, selectedStatusFilter, assetSearchQuery]);
 
+  // Maintenance SLA Status Calculator
+  const getMaintenanceSlaStatus = useCallback((mo: MaintenanceOrder) => {
+    if (mo.status === 'completed' || mo.status === 'cancelled') {
+      return { isOverdue: false, isDueSoon: false, onSchedule: true, diffDays: 0 };
+    }
+    const scheduled = new Date(mo.scheduled_date);
+    const today = new Date('2026-09-29'); // baseline reference
+    const diffTime = today.getTime() - scheduled.getTime();
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    const isOverdue = diffDays > 0;
+    const isDueSoon = diffDays <= 0 && diffDays >= -7;
+    const onSchedule = !isOverdue && !isDueSoon;
+    return { isOverdue, isDueSoon, onSchedule, diffDays };
+  }, []);
+
+  const overdueMaintenanceCount = useMemo(() => {
+    return maintenanceOrders.filter((mo) => getMaintenanceSlaStatus(mo).isOverdue).length;
+  }, [maintenanceOrders, getMaintenanceSlaStatus]);
+
+  const dueSoonMaintenanceCount = useMemo(() => {
+    return maintenanceOrders.filter((mo) => getMaintenanceSlaStatus(mo).isDueSoon).length;
+  }, [maintenanceOrders, getMaintenanceSlaStatus]);
+
   // Filtered Maintenance Orders for Tab 2
   const filteredOrders = useMemo(() => {
     return maintenanceOrders.filter((mo) => {
-      if (orderStatusFilter !== 'all' && mo.status !== orderStatusFilter) {
+      if (orderStatusFilter === 'overdue') {
+        const sla = getMaintenanceSlaStatus(mo);
+        if (!sla.isOverdue) return false;
+      } else if (orderStatusFilter === 'due_soon') {
+        const sla = getMaintenanceSlaStatus(mo);
+        if (!sla.isDueSoon) return false;
+      } else if (orderStatusFilter !== 'all' && mo.status !== orderStatusFilter) {
         return false;
       }
       if (orderSearchQuery.trim()) {
@@ -885,7 +938,7 @@ export const AssetsWorkspace: React.FC = () => {
       }
       return true;
     });
-  }, [maintenanceOrders, orderStatusFilter, orderSearchQuery]);
+  }, [maintenanceOrders, orderStatusFilter, orderSearchQuery, getMaintenanceSlaStatus]);
 
   // Asset selection helpers
   const isAllAssetsSelected =
@@ -1001,7 +1054,7 @@ export const AssetsWorkspace: React.FC = () => {
     setDeleteOrderConfirm({ open: false, isBulk: false });
   };
 
-  const isOperationsTab = activeTab === 'machinery' || activeTab === 'maintenance';
+  const isOperationsTab = activeTab === 'machinery' || activeTab === 'maintenance' || activeTab === 'timeline';
   const showOperationsKpis = perspective === 'operations' || (perspective === 'all' && isOperationsTab);
 
   // Active category filter helper
@@ -1010,7 +1063,7 @@ export const AssetsWorkspace: React.FC = () => {
     return categories.find((c) => c.id === selectedCategoryFilter)?.name;
   }, [categories, selectedCategoryFilter]);
 
-  // Keyboard shortcuts 1..5
+  // Keyboard shortcuts 1..6
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (
@@ -1021,13 +1074,14 @@ export const AssetsWorkspace: React.FC = () => {
         return;
       }
       const num = parseInt(e.key, 10);
-      if (num >= 1 && num <= 5) {
+      if (num >= 1 && num <= 6) {
         const stageMap: Record<number, AssetTab> = {
           1: 'machinery',
           2: 'maintenance',
           3: 'assets',
           4: 'depreciation',
           5: 'categories',
+          6: 'timeline',
         };
         const target = stageMap[num];
         if (target) {
@@ -1091,6 +1145,16 @@ export const AssetsWorkspace: React.FC = () => {
         count: categories.length,
         group: 'finance' as const,
         description: t('assets.stages.categories.description'),
+      },
+      {
+        id: 'timeline' as const,
+        step: 6,
+        label: t('assets.stages.timeline.label', 'Lifecycle Timeline'),
+        shortLabel: t('assets.stages.timeline.shortLabel', 'Timeline'),
+        icon: Clock,
+        count: assets.length,
+        group: 'operations' as const,
+        description: t('assets.stages.timeline.description', 'Chronological ownership, servicing, and depreciation audit trail'),
       },
     ],
     [t, plantMachines.length, maintenanceOrders.length, assets.length, depreciationEntries.length, categories.length]
@@ -1421,9 +1485,9 @@ export const AssetsWorkspace: React.FC = () => {
         </div>
       </div>
 
-      {/* 5-Stage Execution Ribbon (Grid with 1..5 shortcuts, non-colliding labels, zero scrollbar) */}
+      {/* 6-Stage Execution Ribbon (Grid with 1..6 shortcuts, non-colliding labels, zero scrollbar) */}
       <div className="bg-surface rounded-2xl border border-default p-2 shadow-xs">
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
           {stages
             .filter((tab) => {
               if (perspective === 'operations') return tab.group === 'operations';
@@ -1648,21 +1712,40 @@ export const AssetsWorkspace: React.FC = () => {
                 />
               </div>
 
-              {/* Status filter chips */}
-              <div className="flex items-center bg-surface-sunken p-1 rounded-xl border border-default text-2xs font-semibold">
-                {['all', 'scheduled', 'in_progress', 'completed'].map((status) => (
+              {/* Status and SLA filter chips */}
+              <div className="flex items-center bg-surface-sunken p-1 rounded-xl border border-default text-2xs font-semibold flex-wrap gap-1">
+                {[
+                  { id: 'all', label: 'All Orders' },
+                  { id: 'overdue', label: 'SLA Overdue', count: overdueMaintenanceCount, variant: 'danger' },
+                  { id: 'due_soon', label: 'Due in 7 Days', count: dueSoonMaintenanceCount, variant: 'warning' },
+                  { id: 'scheduled', label: 'Scheduled' },
+                  { id: 'in_progress', label: 'In Progress' },
+                  { id: 'completed', label: 'Completed' },
+                ].map((item) => (
                   <button
-                    key={status}
+                    key={item.id}
                     type="button"
-                    onClick={() => setOrderStatusFilter(status)}
+                    onClick={() => setOrderStatusFilter(item.id)}
                     className={cn(
-                      'px-2.5 py-1 rounded-lg transition capitalize cursor-pointer',
-                      orderStatusFilter === status
+                      'px-2.5 py-1 rounded-lg transition capitalize cursor-pointer flex items-center gap-1.5',
+                      orderStatusFilter === item.id
                         ? 'bg-surface text-default shadow-2xs font-bold'
                         : 'text-muted hover:text-default'
                     )}
                   >
-                    {status.replace('_', ' ')}
+                    <span>{item.label}</span>
+                    {item.count !== undefined && item.count > 0 && (
+                      <span
+                        className={cn(
+                          'px-1.5 py-0.2 rounded-full text-[9px] font-extrabold',
+                          item.variant === 'danger'
+                            ? 'bg-rose-500 text-white'
+                            : 'bg-amber-500 text-white'
+                        )}
+                      >
+                        {item.count}
+                      </span>
+                    )}
                   </button>
                 ))}
               </div>
@@ -1677,6 +1760,32 @@ export const AssetsWorkspace: React.FC = () => {
               <span>Create Work Order</span>
             </button>
           </div>
+
+          {/* SLA Critical Warning Banner if overdue orders exist */}
+          {overdueMaintenanceCount > 0 && (
+            <div className="bg-rose-500/10 border border-rose-500/30 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
+              <div className="flex items-center gap-3">
+                <div className="size-8 rounded-xl bg-rose-500 text-white flex items-center justify-center shrink-0 shadow-xs">
+                  <AlertTriangle className="size-4" />
+                </div>
+                <div>
+                  <span className="font-extrabold text-rose-700 dark:text-rose-300 block">
+                    CRITICAL MAINTENANCE SLA BREACH: {overdueMaintenanceCount} Work Order{overdueMaintenanceCount > 1 ? 's' : ''} Past Due
+                  </span>
+                  <span className="text-2xs text-rose-600/90 dark:text-rose-400">
+                    Immediate service dispatch required to avoid factory floor halts and equipment warranty invalidation.
+                  </span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setOrderStatusFilter('overdue')}
+                className="px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-2xs font-bold transition cursor-pointer shrink-0 shadow-2xs"
+              >
+                View Overdue Orders ({overdueMaintenanceCount})
+              </button>
+            </div>
+          )}
 
           {/* Selected Work Orders Bulk Action Ribbon */}
           {selectedOrderIds.size > 0 && (
@@ -1779,7 +1888,38 @@ export const AssetsWorkspace: React.FC = () => {
                           Tech: {mo.performed_by || 'Unassigned'}
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-xs font-mono">{mo.scheduled_date}</td>
+                      <td className="px-6 py-4">
+                        <div className="text-xs font-mono font-medium text-default">{mo.scheduled_date}</div>
+                        {(() => {
+                          const sla = getMaintenanceSlaStatus(mo);
+                          if (sla.isOverdue) {
+                            return (
+                              <span className="inline-flex items-center gap-1 text-[9px] font-bold text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 px-1.5 py-0.5 rounded border border-rose-200 dark:border-rose-800 mt-1">
+                                <AlertTriangle className="size-2.5" /> SLA Overdue ({sla.diffDays}d)
+                              </span>
+                            );
+                          }
+                          if (sla.isDueSoon) {
+                            return (
+                              <span className="inline-flex items-center gap-1 text-[9px] font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 px-1.5 py-0.5 rounded border border-amber-200 dark:border-amber-800 mt-1">
+                                <Clock className="size-2.5" /> Due in {Math.abs(sla.diffDays)}d
+                              </span>
+                            );
+                          }
+                          if (mo.status === 'completed') {
+                            return (
+                              <span className="inline-flex items-center gap-1 text-[9px] font-semibold text-emerald-600 dark:text-emerald-400 mt-1">
+                                <CheckCircle2 className="size-2.5" /> SLA Met
+                              </span>
+                            );
+                          }
+                          return (
+                            <span className="inline-flex items-center gap-1 text-[9px] text-muted mt-1">
+                              On Schedule
+                            </span>
+                          );
+                        })()}
+                      </td>
                       <td className="px-6 py-4 text-right font-mono font-semibold text-default">
                         {formatCurrency(mo.cost)}
                       </td>
@@ -2050,6 +2190,24 @@ export const AssetsWorkspace: React.FC = () => {
                           </button>
                           <button
                             type="button"
+                            onClick={() => handleOpenQrLabel(ast)}
+                            className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-surface hover:bg-surface-sunken text-default border border-default shadow-2xs transition cursor-pointer flex items-center gap-1"
+                            title="Print thermal QR label"
+                          >
+                            <QrCode className="size-3 text-primary" />
+                            <span>QR Tag</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleOpenDepreciationSchedule(ast)}
+                            className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-surface hover:bg-surface-sunken text-default border border-default shadow-2xs transition cursor-pointer flex items-center gap-1"
+                            title="View depreciation projection schedule"
+                          >
+                            <TrendingDown className="size-3 text-amber-500" />
+                            <span>Schedule</span>
+                          </button>
+                          <button
+                            type="button"
                             onClick={() => handleViewAssetDetails(ast)}
                             className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-surface hover:bg-surface-sunken text-default border border-default shadow-2xs transition cursor-pointer flex items-center gap-1"
                             title="View complete asset specifications"
@@ -2143,6 +2301,32 @@ export const AssetsWorkspace: React.FC = () => {
                         onClick={() => {
                           setOpenActionMenuId(null);
                           setActionMenuAnchor(null);
+                          handleOpenQrLabel(activeItem);
+                        }}
+                        className="w-full flex items-center gap-2 px-3 py-2 text-xs font-semibold text-default hover:bg-surface-sunken transition-colors cursor-pointer text-left"
+                      >
+                        <QrCode className="size-3.5 text-primary" />
+                        <span>Print Industrial QR Tag</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setOpenActionMenuId(null);
+                          setActionMenuAnchor(null);
+                          handleOpenDepreciationSchedule(activeItem);
+                        }}
+                        className="w-full flex items-center gap-2 px-3 py-2 text-xs font-semibold text-default hover:bg-surface-sunken transition-colors cursor-pointer text-left"
+                      >
+                        <TrendingDown className="size-3.5 text-amber-500" />
+                        <span>Depreciation Projection Schedule</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setOpenActionMenuId(null);
+                          setActionMenuAnchor(null);
                           navigator.clipboard?.writeText(activeItem.asset_code);
                           alert(`Copied ${activeItem.asset_code} to clipboard!`);
                         }}
@@ -2190,7 +2374,21 @@ export const AssetsWorkspace: React.FC = () => {
                 System calculates monthly straight-line write-downs: (Cost - Salvage) / Useful Life, and posts journal adjustments.
               </p>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              <button
+                type="button"
+                onClick={() => {
+                  const firstAsset = assets[0];
+                  if (firstAsset) {
+                    handleOpenDepreciationSchedule(firstAsset);
+                  }
+                }}
+                className="px-3.5 py-2 bg-surface hover:bg-surface-sunken border border-default text-default font-semibold rounded-xl shadow-2xs transition flex items-center gap-1.5 text-xs cursor-pointer"
+                title="View month-by-month multi-method projection schedule"
+              >
+                <Calculator className="size-3.5 text-primary" />
+                <span>Projection Calculator</span>
+              </button>
               <button
                 type="button"
                 onClick={handleRunMonthlyDepreciation}
@@ -2374,6 +2572,21 @@ export const AssetsWorkspace: React.FC = () => {
             })}
           </div>
         </div>
+      )}
+
+      {/* ─────────────────────────────────────────────────────────────────────────────
+          Tab 6: Asset Ownership & Lifecycle Timeline
+          ───────────────────────────────────────────────────────────────────────────── */}
+      {activeTab === 'timeline' && (
+        <AssetTimelineSection
+          assets={assets}
+          maintenanceOrders={maintenanceOrders}
+          depreciationEntries={depreciationEntries}
+          machinesMeta={machinesMeta}
+          onOpenServiceModal={(ast) => handleServiceAsset(ast)}
+          onOpenScheduleModal={(ast) => handleOpenDepreciationSchedule(ast)}
+          onOpenQrModal={(ast) => handleOpenQrLabel(ast)}
+        />
       )}
 
       {/* ─────────────────────────────────────────────────────────────────────────────
@@ -2941,7 +3154,29 @@ export const AssetsWorkspace: React.FC = () => {
               <span className="text-2xs text-muted">
                 Asset ID: #{viewingAsset.id} • Registered under Enterprise Plant Register
               </span>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleOpenQrLabel(viewingAsset);
+                  }}
+                  className="px-3 py-1.5 rounded-xl border border-default bg-surface hover:bg-surface-sunken text-default text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                  title="Print industrial QR tag"
+                >
+                  <QrCode className="size-3 text-primary" />
+                  <span>Print QR Tag</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleOpenDepreciationSchedule(viewingAsset);
+                  }}
+                  className="px-3 py-1.5 rounded-xl border border-default bg-surface hover:bg-surface-sunken text-default text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                  title="View depreciation projection schedule"
+                >
+                  <TrendingDown className="size-3 text-amber-500" />
+                  <span>Depreciation Schedule</span>
+                </button>
                 <button
                   type="button"
                   onClick={() => {
@@ -3056,6 +3291,22 @@ export const AssetsWorkspace: React.FC = () => {
         }
         confirmLabel="Move to Bin"
         variant="danger"
+      />
+
+      {/* Depreciation Projection Schedule Modal */}
+      <DepreciationScheduleModal
+        open={showDepreciationScheduleModal}
+        onClose={() => setShowDepreciationScheduleModal(false)}
+        asset={scheduleModalAsset}
+        allAssets={assets}
+        onSelectAsset={(ast) => setScheduleModalAsset(ast)}
+      />
+
+      {/* Asset Printable QR Label Modal */}
+      <AssetQrLabelModal
+        open={showQrLabelModal}
+        onClose={() => setShowQrLabelModal(false)}
+        asset={qrLabelAsset}
       />
     </div>
   );
