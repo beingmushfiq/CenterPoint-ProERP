@@ -11,17 +11,14 @@ import {
   Mail,
   MapPin,
   Clock,
-  ShieldCheck,
   Edit2,
   Trash2,
   MoreVertical,
   CheckCircle2,
-  XCircle,
   AlertTriangle,
   X,
   CreditCard,
   User,
-  ExternalLink,
 } from 'lucide-react';
 import { api } from '../../../lib/api/client';
 import { extractList } from '../../../lib/api/apiData';
@@ -699,6 +696,7 @@ export const SuppliersSection: React.FC = () => {
           open={showBulkDeleteConfirm}
           onClose={() => setShowBulkDeleteConfirm(false)}
           onConfirmDelete={() => handleBulkDelete(isBulkPermanent)}
+          isDeleting={isBulkDeleting}
           title={isBulkPermanent ? `Permanently Purge ${selectedIds.size} Suppliers` : `Move ${selectedIds.size} Suppliers to Data Bin`}
           entityType="Bulk Suppliers"
           entityName={`${selectedIds.size} selected vendor records`}

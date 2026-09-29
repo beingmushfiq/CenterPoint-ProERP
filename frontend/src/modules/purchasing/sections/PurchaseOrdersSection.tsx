@@ -2716,7 +2716,7 @@ export function PurchaseOrdersSection({ onReceivePo, onCreateBill }: PurchaseOrd
           queryClient.invalidateQueries({ queryKey: ['catalogue', 'parties'] });
           setFormData((prev) => ({
             ...prev,
-            party_id: created.party_id ?? created.id,
+            party_id: created.id,
             supplier_name: created.name,
           }));
           setShowQuickSupplierModal(false);

@@ -9,7 +9,6 @@ import {
   MapPin,
   CreditCard,
   User,
-  FileText,
   AlertCircle,
   Save,
   Sparkles,
