@@ -44,6 +44,7 @@ import type {
   ReportDataResponse,
   ReportSavedView,
   ExportFormat,
+  ReportColumnDefinition,
 } from '../../types/api/reports';
 import { useCurrency } from '../../hooks/useCurrency';
 import {
@@ -553,8 +554,55 @@ export const ReportsWorkspace: React.FC = () => {
       // Shape 3: Direct array of rows [{...}]
       if (Array.isArray(raw)) {
         const fallback = getReportFallbackData(code, activeDef);
+        let columns = fallback.columns;
+
+        // If fallback has generic default columns that don't match data, infer columns from first row
+        if (raw.length > 0 && typeof raw[0] === 'object' && raw[0] !== null) {
+          const firstRow = raw[0] as Record<string, unknown>;
+          const rowKeys = Object.keys(firstRow);
+          const hasGenericFallback = Object.keys(columns).every((k) =>
+            ['id', 'date', 'title', 'amount', 'status'].includes(k)
+          );
+
+          if (hasGenericFallback && !rowKeys.includes('amount') && !rowKeys.includes('title')) {
+            const derivedColumns: Record<string, ReportColumnDefinition> = {};
+            for (const key of rowKeys) {
+              if (key === 'uuid' || key.endsWith('_uuid')) continue;
+              const val = firstRow[key];
+              let colType: 'string' | 'number' | 'currency' | 'date' | 'badge' = 'string';
+              if (typeof val === 'number') {
+                const lower = key.toLowerCase();
+                if (
+                  lower.includes('amount') ||
+                  lower.includes('total') ||
+                  lower.includes('subtotal') ||
+                  lower.includes('price') ||
+                  lower.includes('cost') ||
+                  lower.includes('tax') ||
+                  lower.includes('discount')
+                ) {
+                  colType = 'currency';
+                } else {
+                  colType = 'number';
+                }
+              } else if (key.toLowerCase().includes('date') || key.toLowerCase().endsWith('_at')) {
+                colType = 'date';
+              } else if (key === 'status' || key.endsWith('_status') || key === 'channel') {
+                colType = 'badge';
+              }
+              derivedColumns[key] = {
+                label: key.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
+                type: colType,
+                sortable: true,
+              };
+            }
+            columns = derivedColumns;
+          }
+        }
+
         return {
           ...fallback,
+          columns,
           data: raw as ReportDataResponse['data'],
           pagination: {
             ...fallback.pagination,

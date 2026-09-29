@@ -86,6 +86,8 @@ class ReportDataController extends Controller
 
         $result = $action->execute($code, $filters, $page, $perPage);
 
-        return response()->json($result);
+        return response()->json([
+            'data' => $result,
+        ]);
     }
 }

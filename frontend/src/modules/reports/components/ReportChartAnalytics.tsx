@@ -85,7 +85,9 @@ export const ReportChartAnalytics: React.FC<ReportChartAnalyticsProps> = ({
     const keys: string[] = [];
     for (const [key, col] of Object.entries(columns)) {
       if (col.type === 'currency' || col.type === 'number' || col.type === 'percentage') {
-        keys.push(key);
+        if (rows.length === 0 || rows.some((r) => r[key] !== undefined && r[key] !== null)) {
+          keys.push(key);
+        }
       }
     }
     // Fallback: check first row data types
@@ -103,7 +105,7 @@ export const ReportChartAnalytics: React.FC<ReportChartAnalyticsProps> = ({
   // Discover candidate label/dimension columns
   const labelColumnKey = useMemo(() => {
     // Priority order: date, name, title, code, period, or first string column
-    const candidates = ['date', 'created_at', 'month', 'name', 'title', 'sku', 'product_name', 'channel', 'status'];
+    const candidates = ['order_date', 'date', 'created_at', 'month', 'order_number', 'name', 'title', 'sku', 'product_name', 'channel', 'status'];
     for (const cand of candidates) {
       if (columns[cand]) return cand;
     }
@@ -119,6 +121,11 @@ export const ReportChartAnalytics: React.FC<ReportChartAnalyticsProps> = ({
   const activeMetricKey = useMemo(() => {
     if (selectedMetricKey && numericColumns.includes(selectedMetricKey)) {
       return selectedMetricKey;
+    }
+    // Prefer primary total/revenue metric over subtotal/tax/due
+    const priority = ['grand_total', 'total_amount', 'total_revenue', 'total', 'amount', 'revenue', 'subtotal', 'paid_amount'];
+    for (const p of priority) {
+      if (numericColumns.includes(p)) return p;
     }
     return numericColumns[0] || '';
   }, [selectedMetricKey, numericColumns]);
