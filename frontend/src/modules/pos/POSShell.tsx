@@ -38,6 +38,7 @@ import type { PosSession, PosCheckoutPayload, PosCheckoutPaymentPayload, PosChec
 import type { Product, Category } from '../../types/api/catalog';
 import type { Invoice } from '../../types/api/sales';
 import { api } from '../../lib/api/client';
+import { cn } from '../../lib/utils';
 import { useCurrency } from '../../hooks/useCurrency';
 import { notify } from '../../components/ui/Toast';
 import { useDocumentPrint } from '../../components/print/useDocumentPrint';
@@ -1719,10 +1720,49 @@ export function POSShell({ session, onExit }: POSShellProps) {
                         </div>
 
                         <div className="flex flex-col gap-0.5">
-                          <label className="text-[10px] font-semibold text-muted">
-                            Disc ({item.discount_type === 'percentage' ? '%' : currencySymbol})
-                          </label>
+                          <div className="flex items-center justify-between">
+                            <label className="text-[10px] font-semibold text-muted">
+                              Disc ({item.discount_type === 'percentage' ? '%' : currencySymbol})
+                            </label>
+                            {discAmt > 0 && (
+                              <span className="font-mono text-[9px] font-bold text-rose-500">
+                                -{formatCurrency(discAmt)}
+                              </span>
+                            )}
+                          </div>
                           <div className="flex items-center">
+                            <div className="inline-flex rounded-l border border-r-0 border-default bg-surface-sunken p-0.5 shrink-0">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (item.discount_type !== 'flat') toggleItemDiscountType(item.product.id);
+                                }}
+                                className={cn(
+                                  "px-1 py-0.5 text-[9px] font-bold rounded cursor-pointer transition-colors",
+                                  item.discount_type !== 'percentage'
+                                    ? "bg-primary text-primary-fg"
+                                    : "text-muted hover:text-default"
+                                )}
+                                title="Flat discount (cash off)"
+                              >
+                                {currencySymbol}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (item.discount_type !== 'percentage') toggleItemDiscountType(item.product.id);
+                                }}
+                                className={cn(
+                                  "px-1 py-0.5 text-[9px] font-bold rounded cursor-pointer transition-colors",
+                                  item.discount_type === 'percentage'
+                                    ? "bg-primary text-primary-fg"
+                                    : "text-muted hover:text-default"
+                                )}
+                                title="Percentage discount (%)"
+                              >
+                                %
+                              </button>
+                            </div>
                             <input
                               type="number"
                               min="0"
@@ -1730,17 +1770,46 @@ export function POSShell({ session, onExit }: POSShellProps) {
                               placeholder="0"
                               value={item.discount === 0 ? '' : item.discount}
                               onChange={(e) => updateItemDiscount(item.product.id, Math.max(0, parseFloat(e.target.value) || 0))}
-                              className="h-7 w-full rounded-l border border-default bg-surface px-1 text-right font-mono font-bold text-xs text-rose-500 focus:border-primary focus:outline-none"
+                              className="h-7 w-full rounded-r border border-default bg-surface px-1 text-right font-mono font-bold text-xs text-rose-500 focus:border-primary focus:outline-none"
                             />
-                            <button
-                              type="button"
-                              onClick={() => toggleItemDiscountType(item.product.id)}
-                              className="flex h-7 w-6 shrink-0 items-center justify-center rounded-r border border-l-0 border-default bg-surface-sunken font-bold text-[10px] text-muted hover:text-default cursor-pointer"
-                              title="Toggle flat/percentage"
-                            >
-                              {item.discount_type === 'percentage' ? '%' : currencySymbol}
-                            </button>
                           </div>
+                          {item.discount_type === 'percentage' ? (
+                            <div className="flex items-center gap-1 mt-0.5">
+                              {[5, 10, 15, 20].map((pct) => (
+                                <button
+                                  key={pct}
+                                  type="button"
+                                  onClick={() => updateItemDiscount(item.product.id, pct)}
+                                  className={cn(
+                                    "px-1 py-0.2 rounded border text-[9px] font-semibold transition-colors cursor-pointer",
+                                    item.discount === pct
+                                      ? "bg-primary/10 border-primary text-primary font-bold"
+                                      : "border-default/60 bg-surface-sunken text-muted hover:text-default"
+                                  )}
+                                >
+                                  {pct}%
+                                </button>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-1 mt-0.5">
+                              {[10, 20, 50].map((amt) => (
+                                <button
+                                  key={amt}
+                                  type="button"
+                                  onClick={() => updateItemDiscount(item.product.id, amt)}
+                                  className={cn(
+                                    "px-1 py-0.2 rounded border text-[9px] font-semibold transition-colors cursor-pointer",
+                                    item.discount === amt
+                                      ? "bg-primary/10 border-primary text-primary font-bold"
+                                      : "border-default/60 bg-surface-sunken text-muted hover:text-default"
+                                  )}
+                                >
+                                  +{amt}
+                                </button>
+                              ))}
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -2185,27 +2254,96 @@ export function POSShell({ session, onExit }: POSShellProps) {
                 </div>
               )}
 
-              <div className="flex items-center justify-between gap-2 py-0.5">
-                <span className="font-medium text-default font-sans">Order Discount (F8):</span>
-                <div className="flex items-center">
-                  <input
-                    ref={orderDiscountInputRef}
-                    type="number"
-                    min="0"
-                    step="any"
-                    placeholder="0"
-                    value={currentSlot.order_discount_value || ''}
-                    onChange={(e) => updateCurrentSlot({ order_discount_value: e.target.value })}
-                    className="h-6 w-16 rounded-l border border-default bg-surface px-1 text-right font-mono font-bold text-xs text-rose-500 focus:border-primary focus:outline-none"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => updateCurrentSlot({ order_discount_type: (currentSlot.order_discount_type || 'flat') === 'flat' ? 'percentage' : 'flat' })}
-                    className="flex h-6 w-5 items-center justify-center rounded-r border border-l-0 border-default bg-surface-sunken font-bold text-[10px] text-muted hover:text-default cursor-pointer"
-                    title="Toggle Flat/Percentage"
-                  >
-                    {(currentSlot.order_discount_type || 'flat') === 'percentage' ? '%' : currencySymbol}
-                  </button>
+              <div className="space-y-1.5 py-1 border-t border-(--color-border)/40">
+                <div className="flex items-center justify-between gap-1">
+                  <span className="font-semibold text-xs text-default font-sans flex items-center gap-1">
+                    Order Discount <span className="text-[10px] text-muted font-mono font-normal">(F8)</span>:
+                  </span>
+                  <div className="flex items-center gap-1">
+                    <div className="inline-flex rounded-md border border-default bg-surface-sunken p-0.5 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => updateCurrentSlot({ order_discount_type: 'flat' })}
+                        className={cn(
+                          "px-1.5 py-0.5 text-[10px] font-bold rounded cursor-pointer transition-colors",
+                          (currentSlot.order_discount_type || 'flat') !== 'percentage'
+                            ? "bg-primary text-primary-fg shadow-xs"
+                            : "text-muted hover:text-default"
+                        )}
+                        title="Flat discount (cash off)"
+                      >
+                        {currencySymbol} Flat
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => updateCurrentSlot({ order_discount_type: 'percentage' })}
+                        className={cn(
+                          "px-1.5 py-0.5 text-[10px] font-bold rounded cursor-pointer transition-colors",
+                          (currentSlot.order_discount_type || 'flat') === 'percentage'
+                            ? "bg-primary text-primary-fg shadow-xs"
+                            : "text-muted hover:text-default"
+                        )}
+                        title="Percentage discount (%)"
+                      >
+                        %
+                      </button>
+                    </div>
+                    <input
+                      ref={orderDiscountInputRef}
+                      type="number"
+                      min="0"
+                      step="any"
+                      placeholder="0"
+                      value={currentSlot.order_discount_value || ''}
+                      onChange={(e) => updateCurrentSlot({ order_discount_value: e.target.value })}
+                      className="h-6 w-16 rounded border border-default bg-surface px-1 text-right font-mono font-bold text-xs text-rose-500 focus:border-primary focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-1 justify-end flex-wrap">
+                  {(currentSlot.order_discount_type || 'flat') === 'percentage' ? (
+                    [5, 10, 15, 20].map((pct) => (
+                      <button
+                        key={pct}
+                        type="button"
+                        onClick={() => updateCurrentSlot({ order_discount_value: String(pct) })}
+                        className={cn(
+                          "px-1.5 py-0.5 rounded border text-[9px] font-semibold transition-colors cursor-pointer",
+                          currentSlot.order_discount_value === String(pct)
+                            ? "bg-primary/10 border-primary text-primary font-bold"
+                            : "border-default bg-surface-sunken text-muted hover:text-default"
+                        )}
+                      >
+                        {pct}%
+                      </button>
+                    ))
+                  ) : (
+                    [20, 50, 100, 200, 500].map((amt) => (
+                      <button
+                        key={amt}
+                        type="button"
+                        onClick={() => updateCurrentSlot({ order_discount_value: String(amt) })}
+                        className={cn(
+                          "px-1.5 py-0.5 rounded border text-[9px] font-semibold transition-colors cursor-pointer",
+                          currentSlot.order_discount_value === String(amt)
+                            ? "bg-primary/10 border-primary text-primary font-bold"
+                            : "border-default bg-surface-sunken text-muted hover:text-default"
+                        )}
+                      >
+                        +{amt}
+                      </button>
+                    ))
+                  )}
+                  {parseFloat(currentSlot.order_discount_value || '0') > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => updateCurrentSlot({ order_discount_value: '' })}
+                      className="px-1 py-0.5 text-[9px] font-semibold text-rose-500 hover:underline cursor-pointer"
+                    >
+                      Clear
+                    </button>
+                  )}
                 </div>
               </div>
               {orderDiscountAmount > 0 && (

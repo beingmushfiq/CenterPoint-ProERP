@@ -152,6 +152,32 @@ final class SalesOrderTest extends TestCase
         ]);
     }
 
+    public function test_create_sales_order_with_uuid_references_succeeds(): void
+    {
+        $res = $this->postJson('/api/v1/sales/orders', [
+            'order_date' => now()->toDateString(),
+            'channel'    => 'dealer',
+            'party_id'   => $this->customer->uuid,
+            'items'      => [
+                [
+                    'product_id' => $this->product->uuid,
+                    'quantity'   => '3.0000',
+                    'unit_price' => '150.0000',
+                ],
+            ],
+        ], $this->headers());
+
+        $res->assertStatus(201)
+            ->assertJsonPath('data.status', 'draft')
+            ->assertJsonPath('data.total_amount', '450.0000');
+
+        $this->assertDatabaseHas('sales_order_items', [
+            'tenant_id'  => 1,
+            'product_id' => $this->product->id,
+            'unit_id'    => $this->product->base_unit_id,
+        ]);
+    }
+
     public function test_approve_sales_order_transitions_to_confirmed(): void
     {
         $createRes = $this->postJson('/api/v1/sales/orders', [

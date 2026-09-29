@@ -389,14 +389,20 @@ export function ExchangesSection() {
         const res = await api.get<unknown>('/products?per_page=100');
         const list = extractArray<Record<string, unknown>>(res.data);
         if (list.length > 0) {
-          return list.map((p, idx) => ({
-            id: String(p['id'] ?? p['uuid'] ?? idx + 1),
-            product_id: Number(p['product_id'] ?? p['id'] ?? idx + 1),
-            name: String(p['name'] ?? `Product #${idx + 1}`),
-            sku: String(p['sku'] ?? `SKU-${idx + 1}`),
-            unit_id: Number(p['unit_id'] ?? p['base_unit_id'] ?? 1),
-            default_sale_price: String(p['default_sale_price'] ?? '0.00'),
-          }));
+          return list.map((p, idx) => {
+            const rawProdId = p['product_id'];
+            const rawUnitId = p['unit_id'];
+            const resolvedProdId = typeof rawProdId === 'number' ? rawProdId : (typeof rawProdId === 'string' && /^\d+$/.test(rawProdId) ? parseInt(rawProdId, 10) : idx + 1);
+            const resolvedUnitId = typeof rawUnitId === 'number' ? rawUnitId : (typeof rawUnitId === 'string' && /^\d+$/.test(rawUnitId) ? parseInt(rawUnitId, 10) : 1);
+            return {
+              id: String(p['id'] ?? p['uuid'] ?? idx + 1),
+              product_id: resolvedProdId,
+              name: String(p['name'] ?? `Product #${idx + 1}`),
+              sku: String(p['sku'] ?? `SKU-${idx + 1}`),
+              unit_id: resolvedUnitId,
+              default_sale_price: String(p['default_sale_price'] ?? '0.00'),
+            };
+          });
         }
       } catch {
         // fallback

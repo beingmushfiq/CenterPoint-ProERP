@@ -199,6 +199,67 @@ final class PurchaseOrderTest extends TestCase
         ]);
     }
 
+    public function test_create_purchase_order_with_multiple_items_and_uuid_references(): void
+    {
+        $secondProduct = Product::create([
+            'uuid' => (string) Str::uuid(),
+            'tenant_id' => 1,
+            'sku' => 'RAW-SUGAR-01',
+            'name' => 'Refined Cane Sugar',
+            'type' => 'raw',
+            'base_unit_id' => $this->unit->id,
+            'is_purchased' => true,
+            'is_stock_tracked' => true,
+        ]);
+
+        $res = $this->postJson('/api/v1/purchasing/orders', [
+            'party_id' => $this->supplier->uuid,
+            'warehouse_id' => $this->warehouse->uuid,
+            'order_date' => now()->toDateString(),
+            'order_discount_type' => 'percentage',
+            'order_discount_value' => '10.0000',
+            'items' => [
+                [
+                    'product_id' => $this->product->uuid,
+                    'quantity' => '10.0000',
+                    'unit_price' => '100.0000',
+                    'discount_type' => 'percentage',
+                    'discount_value' => '5.0000',
+                ],
+                [
+                    'product_id' => $secondProduct->uuid,
+                    'quantity' => '5.0000',
+                    'unit_price' => '200.0000',
+                    'discount_type' => 'flat',
+                    'discount_value' => '50.0000',
+                ],
+            ],
+        ], $this->headers());
+
+        $res->assertStatus(201);
+        $poId = $res->json('data.id');
+        $this->assertIsInt($poId);
+
+        $this->assertDatabaseHas('purchase_orders', [
+            'id' => $poId,
+            'tenant_id' => 1,
+            'party_id' => $this->supplier->id,
+            'warehouse_id' => $this->warehouse->id,
+        ]);
+
+        $this->assertDatabaseHas('purchase_order_items', [
+            'purchase_order_id' => $poId,
+            'product_id' => $this->product->id,
+            'unit_id' => $this->unit->id,
+        ]);
+
+        $this->assertDatabaseHas('purchase_order_items', [
+            'purchase_order_id' => $poId,
+            'product_id' => $secondProduct->id,
+            'unit_id' => $this->unit->id,
+        ]);
+    }
+
     /**
      * @return array<string, string>
      */

@@ -16,25 +16,25 @@ import { useCurrency } from '../../../hooks/useCurrency';
 
 export interface CustomerOption {
   id: string | number;
-  party_id?: number;
-  uuid?: string;
+  party_id?: number | undefined;
+  uuid?: string | undefined;
   name: string;
-  code?: string;
-  phone?: string;
-  email?: string;
-  type?: 'dealer' | 'wholesale' | 'retail' | 'corporate' | string;
-  is_dealer?: boolean;
-  credit_limit?: string;
-  current_balance?: string;
-  label?: string;
+  code?: string | undefined;
+  phone?: string | undefined;
+  email?: string | undefined;
+  type?: 'dealer' | 'wholesale' | 'retail' | 'corporate' | string | undefined;
+  is_dealer?: boolean | undefined;
+  credit_limit?: string | undefined;
+  current_balance?: string | undefined;
+  label?: string | undefined;
 }
 
 interface CustomerSearchComboboxProps {
-  selectedPartyId: number | null;
+  selectedPartyId: number | string | null;
   customerName: string;
   customerPhone: string;
   onChange: (data: {
-    partyId: number | null;
+    partyId: number | string | null;
     customerName: string;
     customerPhone: string;
     isDealer?: boolean;
@@ -113,27 +113,35 @@ export function CustomerSearchCombobox({
   // Fetch active customers from /parties/options or /parties?is_customer=true
   const { data: customerOptions = FALLBACK_CUSTOMERS } = useQuery<CustomerOption[]>({
     queryKey: ['parties', 'customer-options'],
-    queryFn: async () => {
+    queryFn: async (): Promise<CustomerOption[]> => {
       try {
         const res = await api.get<{ data?: CustomerOption[] } | CustomerOption[]>(
           '/parties/options?is_customer=true'
         );
         const raw = res.data;
-        const list = Array.isArray(raw) ? raw : (raw?.data ?? []);
+        const list = (Array.isArray(raw) ? raw : (raw?.data ?? [])) as unknown as Array<Record<string, unknown>>;
         if (list.length > 0) {
-          return list.map((item, idx) => ({
-            id: item.party_id ?? item.id ?? idx + 1,
-            party_id: Number(item.party_id ?? item.id ?? idx + 1),
-            uuid: item.uuid ?? String(item.id),
-            name: item.name || (item.label?.split(' (')[0] ?? 'Customer'),
-            code: item.code || (item.label?.match(/\(([^)]+)\)/)?.[1] ?? `CUST-${idx + 1}`),
-            phone: item.phone || '',
-            email: item.email || '',
-            type: item.type || (item.is_dealer ? 'dealer' : 'retail'),
-            is_dealer: Boolean(item.is_dealer || item.type === 'dealer'),
-            credit_limit: item.credit_limit || '0.00',
-            current_balance: item.current_balance || '0.00',
-          }));
+          const mapped: CustomerOption[] = list.map((item, idx) => {
+            const rawPartyId = item['party_id'];
+            const rawId = item['id'];
+            const numPartyId = rawPartyId && !isNaN(Number(rawPartyId))
+              ? Number(rawPartyId)
+              : (typeof rawId === 'number' || (typeof rawId === 'string' && !isNaN(Number(rawId))) ? Number(rawId) : undefined);
+            return {
+              id: (item['party_id'] ?? item['id'] ?? idx + 1) as string | number,
+              party_id: numPartyId,
+              uuid: String(item['uuid'] ?? item['id'] ?? `cust-${idx + 1}`),
+              name: String(item['name'] || (typeof item['label'] === 'string' ? item['label'].split(' (')[0] : 'Customer')),
+              code: String(item['code'] || (typeof item['label'] === 'string' ? item['label'].match(/\(([^)]+)\)/)?.[1] : `CUST-${idx + 1}`)),
+              phone: String(item['phone'] ?? ''),
+              email: String(item['email'] ?? ''),
+              type: String(item['type'] || (item['is_dealer'] ? 'dealer' : 'retail')),
+              is_dealer: Boolean(item['is_dealer'] || item['type'] === 'dealer'),
+              credit_limit: String(item['credit_limit'] ?? '0.00'),
+              current_balance: String(item['current_balance'] ?? '0.00'),
+            };
+          });
+          return mapped;
         }
       } catch {
         // Fallback to demo customers if catalogue is not populated yet
@@ -146,7 +154,13 @@ export function CustomerSearchCombobox({
   // Find currently selected customer
   const selectedCustomer = useMemo(() => {
     if (!selectedPartyId) return null;
-    return customerOptions.find((c) => Number(c.party_id || c.id) === Number(selectedPartyId)) ?? null;
+    return (
+      customerOptions.find((c) =>
+        String(c.party_id) === String(selectedPartyId) ||
+        String(c.id) === String(selectedPartyId) ||
+        String(c.uuid) === String(selectedPartyId)
+      ) ?? null
+    );
   }, [customerOptions, selectedPartyId]);
 
   // Filter customers by search term and tab
@@ -183,8 +197,15 @@ export function CustomerSearchCombobox({
 
   const handleSelectCustomer = (customer: CustomerOption) => {
     setIsWalkinMode(false);
+    const resolvedPartyId =
+      customer.party_id && !isNaN(Number(customer.party_id))
+        ? Number(customer.party_id)
+        : (typeof customer.id === 'number' || (typeof customer.id === 'string' && !isNaN(Number(customer.id)))
+            ? Number(customer.id)
+            : customer.uuid || customer.id);
+
     onChange({
-      partyId: Number(customer.party_id || customer.id),
+      partyId: resolvedPartyId,
       customerName: customer.name,
       customerPhone: customer.phone || customerPhone || '',
       isDealer: customer.is_dealer || customer.type === 'dealer',
@@ -444,7 +465,13 @@ export function CustomerSearchCombobox({
               <div className="overflow-y-auto divide-y divide-default/50 flex-1">
                 {filteredCustomers.length > 0 ? (
                   filteredCustomers.map((cust, idx) => {
-                    const isSelected = selectedPartyId === cust.party_id;
+                    const isSelected = Boolean(
+                      selectedPartyId && (
+                        String(selectedPartyId) === String(cust.party_id) ||
+                        String(selectedPartyId) === String(cust.id) ||
+                        String(selectedPartyId) === String(cust.uuid)
+                      )
+                    );
                     const isHighlighted = highlightedIndex === idx;
 
                     return (

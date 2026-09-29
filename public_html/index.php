@@ -65,8 +65,10 @@ if (!$isApiOrSystemRoute && !$isStaticFile && in_array($requestMethod, ['GET', '
 // The backend is OUTSIDE the web root — source code, .env, vendor, and all
 // application logic are completely inaccessible to the public internet.
 // =============================================================================
+$dotBackendPath = file_exists(__DIR__ . '/.backend_path') ? trim((string) file_get_contents(__DIR__ . '/.backend_path')) : null;
 $home = getenv('HOME') ?: ($_SERVER['HOME'] ?? '');
 $possiblePaths = array_filter([
+    $dotBackendPath,
     __DIR__ . '/../backend',
     __DIR__ . '/../projects/proerp/backend',
     $home ? $home . '/projects/proerp/backend' : null,

@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Modules\Sales\Actions;
 
 use App\Models\Party;
+use App\Models\Product;
+use App\Models\Unit;
 use App\Modules\HR\Models\Employee;
 use App\Modules\Sales\Models\CrmActivity;
 use App\Modules\Sales\Models\CrmLead;
@@ -12,6 +14,7 @@ use App\Modules\Sales\Models\SalesOrder;
 use App\Modules\Sales\Models\SalesOrderItem;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 final class CreateSalesOrderAction
 {
@@ -65,6 +68,43 @@ final class CreateSalesOrderAction
 
             // Pass 1: calculate gross line amounts and line-level discounts
             foreach ($data['items'] as $idx => $item) {
+                $rawProductId = $item['product_id'] ?? null;
+                $productId = null;
+                $product = null;
+
+                if (is_numeric($rawProductId)) {
+                    $productId = (int) $rawProductId;
+                    $product = Product::where('tenant_id', $data['tenant_id'])->find($productId);
+                } elseif (is_string($rawProductId) && $rawProductId !== '') {
+                    $product = Product::where('tenant_id', $data['tenant_id'])->where('uuid', $rawProductId)->first();
+                    $productId = $product?->id;
+                }
+
+                if (!$productId || !$product) {
+                    throw ValidationException::withMessages([
+                        "items.{$idx}.product_id" => ["The selected product is invalid or does not exist for this company."],
+                    ]);
+                }
+
+                $rawUnitId = $item['unit_id'] ?? null;
+                $unitId = null;
+                if (is_numeric($rawUnitId)) {
+                    $unitId = (int) $rawUnitId;
+                } elseif (is_string($rawUnitId) && $rawUnitId !== '') {
+                    $unit = Unit::where('tenant_id', $data['tenant_id'])->where('uuid', $rawUnitId)->first();
+                    $unitId = $unit?->id;
+                }
+
+                if (!$unitId) {
+                    $unitId = $product->base_unit_id;
+                }
+
+                if (!$unitId) {
+                    throw ValidationException::withMessages([
+                        "items.{$idx}.unit_id" => ["The selected unit of measure is invalid."],
+                    ]);
+                }
+
                 /** @var numeric-string $qty */
                 $qty = is_numeric($item['quantity'] ?? null) ? (string) $item['quantity'] : '0.0000';
                 /** @var numeric-string $price */
@@ -97,6 +137,8 @@ final class CreateSalesOrderAction
                 $processedItems[] = [
                     'item' => $item,
                     'idx' => $idx,
+                    'resolved_product_id' => $productId,
+                    'resolved_unit_id' => $unitId,
                     'quantity' => $qty,
                     'unit_price' => $price,
                     'line_gross' => $lineGross,
@@ -305,11 +347,11 @@ final class CreateSalesOrderAction
                 SalesOrderItem::create([
                     'tenant_id'           => $data['tenant_id'],
                     'sales_order_id'      => $order->id,
-                    'product_id'          => $fi['item']['product_id'],
+                    'product_id'          => $fi['resolved_product_id'],
                     'variant_id'          => $fi['item']['variant_id'] ?? null,
                     'description'         => $fi['item']['description'] ?? null,
                     'quantity'            => $fi['quantity'],
-                    'unit_id'             => $fi['item']['unit_id'],
+                    'unit_id'             => $fi['resolved_unit_id'],
                     'unit_price'          => $fi['unit_price'],
                     'discount_percentage' => $fi['disc_pct'],
                     'discount_amount'     => $fi['total_line_disc'],

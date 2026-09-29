@@ -4,18 +4,23 @@ declare(strict_types=1);
 
 namespace App\Modules\Purchasing\Actions;
 
+use App\Models\Party;
+use App\Models\Product;
+use App\Models\Unit;
+use App\Models\Warehouse;
 use App\Modules\Purchasing\Models\PurchaseOrder;
 use App\Modules\Purchasing\Models\PurchaseOrderItem;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 final class CreatePurchaseOrderAction
 {
     /**
      * @param array{
      *     tenant_id: int,
-     *     party_id: int,
-     *     warehouse_id: int,
+     *     party_id: int|string,
+     *     warehouse_id: int|string,
      *     order_date: string,
      *     po_number?: string,
      *     expected_date?: string|null,
@@ -27,14 +32,17 @@ final class CreatePurchaseOrderAction
      *     terms_and_conditions?: string|null,
      *     created_by?: int|null,
      *     items: list<array{
-     *         product_id: int,
-     *         quantity: string,
-     *         unit_id: int,
-     *         unit_price: string,
+     *         product_id: int|string,
+     *         quantity: string|numeric,
+     *         unit_id?: int|string|null,
+     *         unit_price: string|numeric,
      *         variant_id?: int|null,
-     *         discount_amount?: string,
+     *         discount_type?: string,
+     *         discount_value?: string|numeric,
+     *         discount_percentage?: string|numeric,
+     *         discount_amount?: string|numeric,
      *         tax_profile_id?: int|null,
-     *         tax_rate?: string,
+     *         tax_rate?: string|numeric,
      *         expected_date?: string|null,
      *         notes?: string|null
      *     }>
@@ -45,12 +53,84 @@ final class CreatePurchaseOrderAction
         return DB::transaction(function () use ($data): PurchaseOrder {
             $poNumber = $data['po_number'] ?? ('PO-' . date('Ymd') . '-' . strtoupper(Str::random(6)));
 
+            // Resolve party (supplier)
+            $partyId = $data['party_id'] ?? null;
+            if (is_numeric($partyId)) {
+                $party = Party::where('tenant_id', $data['tenant_id'])->find((int) $partyId);
+            } elseif (is_string($partyId) && $partyId !== '') {
+                $party = Party::where('tenant_id', $data['tenant_id'])->where('uuid', $partyId)->first();
+            } else {
+                $party = null;
+            }
+            if (!$party) {
+                throw ValidationException::withMessages([
+                    'party_id' => ['The selected supplier is invalid or does not exist for this company.'],
+                ]);
+            }
+            $resolvedPartyId = $party->id;
+
+            // Resolve warehouse
+            $warehouseId = $data['warehouse_id'] ?? null;
+            if (is_numeric($warehouseId)) {
+                $warehouse = Warehouse::where('tenant_id', $data['tenant_id'])->find((int) $warehouseId);
+            } elseif (is_string($warehouseId) && $warehouseId !== '') {
+                $warehouse = Warehouse::where('tenant_id', $data['tenant_id'])->where('uuid', $warehouseId)->first();
+            } else {
+                $warehouse = null;
+            }
+            if (!$warehouse) {
+                $warehouse = Warehouse::where('tenant_id', $data['tenant_id'])->first();
+            }
+            if (!$warehouse) {
+                throw ValidationException::withMessages([
+                    'warehouse_id' => ['The selected warehouse is invalid or does not exist for this company.'],
+                ]);
+            }
+            $resolvedWarehouseId = $warehouse->id;
+
             /** @var numeric-string $grossSubtotal */
             $grossSubtotal = '0.0000';
             $processedItems = [];
 
             // Pass 1: compute line gross and line discounts
-            foreach ($data['items'] as $item) {
+            foreach ($data['items'] as $idx => $item) {
+                $rawProductId = $item['product_id'] ?? null;
+                $productId = null;
+                $product = null;
+
+                if (is_numeric($rawProductId)) {
+                    $productId = (int) $rawProductId;
+                    $product = Product::where('tenant_id', $data['tenant_id'])->find($productId);
+                } elseif (is_string($rawProductId) && $rawProductId !== '') {
+                    $product = Product::where('tenant_id', $data['tenant_id'])->where('uuid', $rawProductId)->first();
+                    $productId = $product?->id;
+                }
+
+                if (!$productId || !$product) {
+                    throw ValidationException::withMessages([
+                        "items.{$idx}.product_id" => ["The selected product is invalid or does not exist for this company."],
+                    ]);
+                }
+
+                $rawUnitId = $item['unit_id'] ?? null;
+                $unitId = null;
+                if (is_numeric($rawUnitId)) {
+                    $unitId = (int) $rawUnitId;
+                } elseif (is_string($rawUnitId) && $rawUnitId !== '') {
+                    $unit = Unit::where('tenant_id', $data['tenant_id'])->where('uuid', $rawUnitId)->first();
+                    $unitId = $unit?->id;
+                }
+
+                if (!$unitId) {
+                    $unitId = $product->base_unit_id;
+                }
+
+                if (!$unitId) {
+                    throw ValidationException::withMessages([
+                        "items.{$idx}.unit_id" => ["The selected unit of measure is invalid."],
+                    ]);
+                }
+
                 /** @var numeric-string $qty */
                 $qty = is_numeric($item['quantity'] ?? null) ? (string) $item['quantity'] : '0.0000';
                 /** @var numeric-string $price */
@@ -82,6 +162,8 @@ final class CreatePurchaseOrderAction
 
                 $processedItems[] = [
                     'item' => $item,
+                    'resolved_product_id' => $productId,
+                    'resolved_unit_id' => $unitId,
                     'quantity' => $qty,
                     'unit_price' => $price,
                     'line_gross' => $lineGross,
@@ -173,8 +255,8 @@ final class CreatePurchaseOrderAction
             $order = PurchaseOrder::create([
                 'tenant_id' => $data['tenant_id'],
                 'po_number' => $poNumber,
-                'party_id' => $data['party_id'],
-                'warehouse_id' => $data['warehouse_id'],
+                'party_id' => $resolvedPartyId,
+                'warehouse_id' => $resolvedWarehouseId,
                 'order_date' => $data['order_date'],
                 'expected_date' => $data['expected_date'] ?? $data['expected_delivery_date'] ?? null,
                 'status' => 'draft',
@@ -194,12 +276,12 @@ final class CreatePurchaseOrderAction
                 PurchaseOrderItem::create([
                     'tenant_id' => $data['tenant_id'],
                     'purchase_order_id' => $order->id,
-                    'product_id' => $fi['item']['product_id'],
+                    'product_id' => $fi['resolved_product_id'],
                     'variant_id' => $fi['item']['variant_id'] ?? null,
                     'quantity' => $fi['quantity'],
                     'received_quantity' => '0.0000',
                     'billed_quantity' => '0.0000',
-                    'unit_id' => $fi['item']['unit_id'],
+                    'unit_id' => $fi['resolved_unit_id'],
                     'unit_price' => $fi['unit_price'],
                     'discount_percentage' => $fi['disc_pct'],
                     'discount_amount' => $fi['total_line_disc'],

@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -33,6 +33,7 @@ import {
 import type { PurchaseOrder } from '../../../types/api/purchasing';
 import type { Product } from '../../../types/api/catalog';
 import { api } from '../../../lib/api/client';
+import { isApiError } from '../../../lib/api/errors';
 import { extractList } from '../../../lib/api/apiData';
 import { PrintPreviewModal } from '../../../components/print/PrintPreviewModal';
 import { PurchaseOrderDocument } from '../../../components/print/documents/PurchaseOrderDocument';
@@ -119,7 +120,9 @@ export function PurchaseOrdersSection({ onReceivePo, onCreateBill }: PurchaseOrd
   // Form State
   const [formData, setFormData] = useState<{
     po_number: string;
+    party_id: number | string;
     supplier_name: string;
+    warehouse_id: number | string;
     warehouse_name: string;
     order_date: string;
     expected_delivery_date: string;
@@ -131,7 +134,9 @@ export function PurchaseOrdersSection({ onReceivePo, onCreateBill }: PurchaseOrd
     items: PoFormItem[];
   }>(() => ({
     po_number: '',
+    party_id: '',
     supplier_name: 'Bengal Glass & Ceramic Ltd.',
+    warehouse_id: '',
     warehouse_name: 'Tejgaon Central Electronic Components & Parts Warehouse',
     order_date: new Date().toISOString().slice(0, 10),
     expected_delivery_date: new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10),
@@ -166,6 +171,18 @@ export function PurchaseOrdersSection({ onReceivePo, onCreateBill }: PurchaseOrd
     },
   });
 
+  const { data: suppliers = [] } = useQuery<Array<{ id: number | string; uuid?: string; name: string; code?: string }>>({
+    queryKey: ['catalogue', 'parties', 'suppliers-list'],
+    queryFn: async () => {
+      try {
+        const res = await api.get<Array<{ id: number | string; uuid?: string; name: string; code?: string }>>('/parties?is_supplier=true&per_page=100');
+        return extractList<{ id: number | string; uuid?: string; name: string; code?: string }>(res);
+      } catch {
+        return [];
+      }
+    },
+  });
+
   const { data: purchasableProducts = [] } = useQuery<Product[]>({
     queryKey: ['catalogue', 'products', 'purchasable'],
     queryFn: async () => {
@@ -189,6 +206,63 @@ export function PurchaseOrdersSection({ onReceivePo, onCreateBill }: PurchaseOrd
       }
     },
   });
+
+
+  const [quickProductSearch, setQuickProductSearch] = useState('');
+  const quickMatchingProducts = useMemo(() => {
+    if (!quickProductSearch.trim()) return [];
+    const q = quickProductSearch.toLowerCase().trim();
+    return purchasableProducts
+      .filter(
+        (p) =>
+          p.name.toLowerCase().includes(q) ||
+          p.sku.toLowerCase().includes(q) ||
+          (p.barcode && p.barcode.toLowerCase().includes(q))
+      )
+      .slice(0, 8);
+  }, [quickProductSearch, purchasableProducts]);
+
+  const handleQuickAddProduct = (prod: Product) => {
+    const existingIndex = formData.items.findIndex(
+      (it) => (it.product_id && String(it.product_id) === String(prod.product_id || prod.id)) || it.product_sku === prod.sku
+    );
+    if (existingIndex >= 0) {
+      const existing = formData.items[existingIndex];
+      const curQty = parseFloat(existing?.quantity || '1') || 1;
+      updateFormItem(existingIndex, { quantity: String(curQty + 1) });
+      toast.success(`Incremented ${prod.name} quantity to ${curQty + 1}`);
+    } else {
+      const unitCode = prod.base_unit?.code || prod.unit?.code || 'PCS';
+      const cost = parseFloat(prod.standard_cost || '0') > 0 ? String(parseFloat(prod.standard_cost || '0')) : '100.00';
+      setFormData((prev) => {
+        const isDefaultDummy =
+          prev.items.length === 1 &&
+          prev.items[0]?.product_sku === 'RAW-CERAMIC-PANEL' &&
+          prev.items[0]?.product_name === 'Microcrystalline Ceramic Glass Panel';
+        const baseItems = isDefaultDummy ? [] : prev.items;
+        return {
+          ...prev,
+          items: [
+            ...baseItems,
+            {
+              product_id: prod.product_id || prod.id,
+              product_name: prod.name,
+              product_sku: prod.sku,
+              quantity: '10',
+              unit_id: prod.unit_id || prod.base_unit_id || 1,
+              unit_code: unitCode,
+              unit_price: cost,
+              discount_type: 'flat',
+              discount_amount: '0.00',
+              tax_rate: '5.00',
+            },
+          ],
+        };
+      });
+      toast.success(`Added ${prod.name} to order`);
+    }
+    setQuickProductSearch('');
+  };
 
   const approveMutation = useMutation({
     mutationFn: async (orderId: number) => {
@@ -271,15 +345,18 @@ export function PurchaseOrdersSection({ onReceivePo, onCreateBill }: PurchaseOrd
     e.preventDefault();
     const totals = calculatePoTotals(formData.items, formData.order_discount_type, formData.order_discount_value);
 
+    const resolvedPartyId = formData.party_id || suppliers[0]?.id || 1;
+    const resolvedWarehouseId = formData.warehouse_id || warehouses[0]?.id || 1;
+
     const newPo: PurchaseOrder = {
       id: Date.now(),
       uuid: `po-${Date.now()}`,
       po_number:
         formData.po_number ||
         `PO-${new Date().toISOString().slice(0, 7).replace('-', '')}-${String(orders.length + 1).padStart(3, '0')}`,
-      party_id: 1,
+      party_id: Number(resolvedPartyId) || 1,
       supplier_name: formData.supplier_name,
-      warehouse_id: 1,
+      warehouse_id: Number(resolvedWarehouseId) || 1,
       warehouse_name: formData.warehouse_name,
       order_date: formData.order_date,
       expected_delivery_date: formData.expected_delivery_date,
@@ -315,13 +392,13 @@ export function PurchaseOrdersSection({ onReceivePo, onCreateBill }: PurchaseOrd
           id: Date.now() + idx,
           uuid: `poi-${Date.now() + idx}`,
           purchase_order_id: Date.now(),
-          product_id: it.product_id ? Number(it.product_id) : idx + 1,
+          product_id: typeof it.product_id === 'number' ? it.product_id : (parseInt(String(it.product_id), 10) || idx + 1),
           product_name: it.product_name,
           product_sku: it.product_sku,
           quantity: it.quantity,
           received_quantity: '0.00',
           billed_quantity: '0.00',
-          unit_id: it.unit_id ? Number(it.unit_id) : 1,
+          unit_id: typeof it.unit_id === 'number' ? it.unit_id : (parseInt(String(it.unit_id), 10) || 1),
           unit_code: it.unit_code,
           unit_price: it.unit_price,
           discount_amount: totalEffectiveDisc.toFixed(2),
@@ -338,12 +415,14 @@ export function PurchaseOrdersSection({ onReceivePo, onCreateBill }: PurchaseOrd
     setIsSubmitting(true);
     api.post('/purchasing/orders', {
       ...newPo,
+      party_id: resolvedPartyId,
+      warehouse_id: resolvedWarehouseId,
       order_discount_type: formData.order_discount_type || 'flat',
       order_discount_value: String(formData.order_discount_value || '0'),
       items: formData.items.map((it, idx) => ({
-        product_id: it.product_id ? Number(it.product_id) : idx + 1,
+        product_id: it.product_id ?? idx + 1,
         quantity: it.quantity,
-        unit_id: it.unit_id ? Number(it.unit_id) : 1,
+        unit_id: it.unit_id ?? 1,
         unit_price: it.unit_price,
         discount_type: it.discount_type || 'flat',
         discount_value: String(it.discount_amount || '0'),
@@ -351,13 +430,28 @@ export function PurchaseOrdersSection({ onReceivePo, onCreateBill }: PurchaseOrd
         tax_rate: it.tax_rate,
       })),
     })
-      .catch(() => {})
+      .then(() => {
+        toast.success('Purchase order created.');
+        queryClient.invalidateQueries({ queryKey: ['purchasing', 'orders'] });
+        setShowCreateModal(false);
+      })
+      .catch((err: unknown) => {
+        if (isApiError(err)) {
+          if (err.fields && Object.keys(err.fields).length > 0) {
+            const errorList = Object.entries(err.fields)
+              .map(([field, msgs]) => `${field}: ${msgs.join(', ')}`)
+              .join(' | ');
+            toast.error(`PO Validation Error: ${errorList}`);
+            return;
+          }
+          toast.error(err.message || 'Failed to create purchase order');
+          return;
+        }
+        toast.error(err instanceof Error ? err.message : 'Failed to create purchase order');
+      })
       .finally(() => {
         setIsSubmitting(false);
       });
-    queryClient.setQueryData<PurchaseOrder[]>(['purchasing', 'orders'], (prev = []) => [newPo, ...prev]);
-    toast.success('Purchase order created.');
-    setShowCreateModal(false);
   };
 
   const handleUpdateOrder = (e: React.FormEvent) => {
@@ -386,13 +480,13 @@ export function PurchaseOrdersSection({ onReceivePo, onCreateBill }: PurchaseOrd
         id: activeOrder.items?.[idx]?.id ?? Date.now() + idx,
         uuid: activeOrder.items?.[idx]?.uuid ?? `poi-${Date.now() + idx}`,
         purchase_order_id: activeOrder.id,
-        product_id: it.product_id ? Number(it.product_id) : (activeOrder.items?.[idx]?.product_id ?? idx + 1),
+        product_id: typeof it.product_id === 'number' ? it.product_id : (parseInt(String(it.product_id), 10) || activeOrder.items?.[idx]?.product_id || idx + 1),
         product_name: it.product_name,
         product_sku: it.product_sku,
         quantity: it.quantity,
         received_quantity: activeOrder.items?.[idx]?.received_quantity ?? '0.00',
         billed_quantity: activeOrder.items?.[idx]?.billed_quantity ?? '0.00',
-        unit_id: it.unit_id ? Number(it.unit_id) : (activeOrder.items?.[idx]?.unit_id ?? 1),
+        unit_id: typeof it.unit_id === 'number' ? it.unit_id : (parseInt(String(it.unit_id), 10) || activeOrder.items?.[idx]?.unit_id || 1),
         unit_code: it.unit_code,
         unit_price: it.unit_price,
         discount_amount: totalEffectiveDisc.toFixed(2),
@@ -408,7 +502,9 @@ export function PurchaseOrdersSection({ onReceivePo, onCreateBill }: PurchaseOrd
         o.id === activeOrder.id
           ? {
               ...o,
+              party_id: Number(formData.party_id) || o.party_id,
               supplier_name: formData.supplier_name,
+              warehouse_id: Number(formData.warehouse_id) || o.warehouse_id,
               warehouse_name: formData.warehouse_name,
               expected_delivery_date: formData.expected_delivery_date,
               subtotal_amount: totals.grossSubtotal.toFixed(2),
@@ -422,9 +518,23 @@ export function PurchaseOrdersSection({ onReceivePo, onCreateBill }: PurchaseOrd
           : o
       )
     );
-    api.put(`/purchasing/orders/${activeOrder.id}`, formData).catch(() => {});
-    toast.success('Purchase order updated.');
-    setShowEditModal(false);
+    api.put(`/purchasing/orders/${activeOrder.id}`, {
+      ...formData,
+      party_id: formData.party_id || activeOrder.party_id,
+      warehouse_id: formData.warehouse_id || activeOrder.warehouse_id,
+    })
+      .then(() => {
+        toast.success('Purchase order updated.');
+        queryClient.invalidateQueries({ queryKey: ['purchasing', 'orders'] });
+        setShowEditModal(false);
+      })
+      .catch((err: unknown) => {
+        if (isApiError(err)) {
+          toast.error(err.message || 'Failed to update purchase order');
+          return;
+        }
+        toast.error(err instanceof Error ? err.message : 'Failed to update purchase order');
+      });
   };
 
   const handleDeleteOrder = () => {
@@ -808,8 +918,10 @@ export function PurchaseOrdersSection({ onReceivePo, onCreateBill }: PurchaseOrd
               onClick={() => {
                 setFormData({
                   po_number: '',
-                  supplier_name: 'Bengal Glass & Ceramic Ltd.',
-                  warehouse_name: 'Tejgaon Central Electronic Components & Parts Warehouse',
+                  party_id: suppliers[0]?.id || '',
+                  supplier_name: suppliers[0]?.name || 'Bengal Glass & Ceramic Ltd.',
+                  warehouse_id: warehouses[0]?.id || '',
+                  warehouse_name: warehouses[0]?.name || 'Tejgaon Central Electronic Components & Parts Warehouse',
                   order_date: new Date().toISOString().slice(0, 10),
                   expected_delivery_date: new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10),
                   currency_code: currencyCode,
@@ -1042,14 +1154,16 @@ export function PurchaseOrdersSection({ onReceivePo, onCreateBill }: PurchaseOrd
                       setActionMenuAnchor(null);
                       setFormData({
                         po_number: '',
+                        party_id: order.party_id || '',
                         supplier_name: order.supplier_name || '',
+                        warehouse_id: order.warehouse_id || '',
                         warehouse_name: order.warehouse_name || '',
                         order_date: new Date().toISOString().slice(0, 10),
                         expected_delivery_date: new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10),
                         currency_code: order.currency_code || currencyCode,
                         terms_and_conditions: order.terms_and_conditions || 'Net 30 Days upon inspection pass.',
                         notes: `Repeat of PO #${order.po_number}${order.notes ? ' - ' + order.notes : ''}`,
-                        order_discount_type: 'flat',
+                        order_discount_type: (order as unknown as { order_discount_type?: 'flat' | 'percentage' }).order_discount_type || 'flat',
                         order_discount_value: order.discount_amount || '0.00',
                         items: order.items?.map((it) => ({
                           product_id: it.product_id,
@@ -1083,14 +1197,16 @@ export function PurchaseOrdersSection({ onReceivePo, onCreateBill }: PurchaseOrd
                           setActiveOrder(order);
                           setFormData({
                             po_number: order.po_number,
+                            party_id: order.party_id || '',
                             supplier_name: order.supplier_name || '',
+                            warehouse_id: order.warehouse_id || '',
                             warehouse_name: order.warehouse_name || '',
                             order_date: order.order_date,
                             expected_delivery_date: order.expected_delivery_date || '',
                             currency_code: order.currency_code,
                             terms_and_conditions: order.terms_and_conditions || '',
                             notes: order.notes || '',
-                            order_discount_type: 'flat',
+                            order_discount_type: (order as unknown as { order_discount_type?: 'flat' | 'percentage' }).order_discount_type || 'flat',
                             order_discount_value: order.discount_amount || '0.00',
                             items: order.items?.map((it) => ({
                               product_id: it.product_id,
@@ -1305,25 +1421,56 @@ export function PurchaseOrdersSection({ onReceivePo, onCreateBill }: PurchaseOrd
                 </div>
                 <div>
                   <label className="block font-semibold text-muted mb-1">Supplier / Vendor</label>
-                  <input
-                    type="text"
-                    value={formData.supplier_name}
-                    onChange={(e) => setFormData({ ...formData, supplier_name: e.target.value })}
-                    className="w-full rounded-xl border border-default bg-surface-sunken px-3 py-2 text-default focus:border-primary focus:outline-none"
-                    required
-                  />
+                  {suppliers.length > 0 ? (
+                    <select
+                      value={String(formData.party_id || '')}
+                      onChange={(e) => {
+                        const s = suppliers.find((x) => String(x.id) === e.target.value);
+                        setFormData({
+                          ...formData,
+                          party_id: s ? s.id : e.target.value,
+                          supplier_name: s ? s.name : formData.supplier_name,
+                        });
+                      }}
+                      className="w-full rounded-xl border border-default bg-surface-sunken px-3 py-2 text-default focus:border-primary focus:outline-none cursor-pointer"
+                      required
+                    >
+                      <option value="">-- Select Supplier ({suppliers.length}) --</option>
+                      {suppliers.map((s) => (
+                        <option key={s.uuid || s.id} value={String(s.id)}>
+                          {s.name} {s.code ? `(${s.code})` : ''}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input
+                      type="text"
+                      value={formData.supplier_name}
+                      onChange={(e) => setFormData({ ...formData, supplier_name: e.target.value })}
+                      className="w-full rounded-xl border border-default bg-surface-sunken px-3 py-2 text-default focus:border-primary focus:outline-none"
+                      required
+                    />
+                  )}
                 </div>
                 <div>
                   <label className="block font-semibold text-muted mb-1">Target Warehouse</label>
                   {warehouses.length > 0 ? (
                     <select
-                      value={formData.warehouse_name}
-                      onChange={(e) => setFormData({ ...formData, warehouse_name: e.target.value })}
+                      value={String(formData.warehouse_id || '')}
+                      onChange={(e) => {
+                        const w = warehouses.find((x) => String(x.id) === e.target.value || x.name === e.target.value);
+                        setFormData({
+                          ...formData,
+                          warehouse_id: w ? w.id : e.target.value,
+                          warehouse_name: w ? w.name : formData.warehouse_name,
+                        });
+                      }}
                       className="w-full rounded-xl border border-default bg-surface-sunken px-3 py-2 text-default focus:border-primary focus:outline-none cursor-pointer"
                       required
                     >
+                      <option value="">-- Select Warehouse ({warehouses.length}) --</option>
                       {warehouses.map((w) => (
-                        <option key={w.uuid || w.id} value={w.name}>
+                        <option key={w.uuid || w.id} value={String(w.id)}>
                           {w.name} ({w.code})
                         </option>
                       ))}
@@ -1359,8 +1506,56 @@ export function PurchaseOrdersSection({ onReceivePo, onCreateBill }: PurchaseOrd
                     onClick={addItemToForm}
                     className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:underline cursor-pointer"
                   >
-                    <Plus className="size-3" /> Add Item Line
+                    <Plus className="size-3" /> Add Custom Line
                   </button>
+                </div>
+
+                {/* Quick Product Search Bar */}
+                <div className="relative">
+                  <div className="flex items-center gap-2 rounded-xl border border-default bg-surface px-3 py-1.5 focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/20 transition-all">
+                    <Search className="size-3.5 text-muted shrink-0" />
+                    <input
+                      type="text"
+                      placeholder="Quick add item: type product name or SKU to add multiple items instantly..."
+                      value={quickProductSearch}
+                      onChange={(e) => setQuickProductSearch(e.target.value)}
+                      className="w-full bg-transparent text-xs text-default placeholder:text-muted focus:outline-none"
+                    />
+                    {quickProductSearch && (
+                      <button
+                        type="button"
+                        onClick={() => setQuickProductSearch('')}
+                        className="text-muted hover:text-default"
+                      >
+                        <X className="size-3" />
+                      </button>
+                    )}
+                  </div>
+                  {quickMatchingProducts.length > 0 && (
+                    <div className="absolute top-full left-0 right-0 mt-1 z-30 max-h-48 overflow-y-auto rounded-xl border border-default bg-surface shadow-xl p-1 space-y-1">
+                      {quickMatchingProducts.map((p) => {
+                        const cost = parseFloat(p.standard_cost || '0') > 0 ? parseFloat(p.standard_cost || '0') : 100;
+                        return (
+                          <div
+                            key={p.id}
+                            className="flex items-center justify-between p-2 rounded-lg hover:bg-surface-sunken transition-colors"
+                          >
+                            <div className="min-w-0 pr-2">
+                              <p className="font-semibold text-default text-xs truncate">{p.name}</p>
+                              <p className="text-[10px] text-muted font-mono">{p.sku} &bull; Cost: {formatCurrency(cost)}</p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => handleQuickAddProduct(p)}
+                              className="shrink-0 inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold rounded-lg bg-primary text-primary-fg hover:opacity-90 cursor-pointer shadow-xs"
+                            >
+                              <Plus className="size-3" /> Add
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
 
                 {/* Items Grid Header */}
@@ -1369,204 +1564,316 @@ export function PurchaseOrdersSection({ onReceivePo, onCreateBill }: PurchaseOrd
                   <div className="col-span-2">Qty</div>
                   <div className="col-span-1">Unit</div>
                   <div className="col-span-2">Unit Price (৳)</div>
-                  <div className="col-span-2">Discount (৳)</div>
+                  <div className="col-span-2">Discount</div>
                   <div className="col-span-1 text-center">Del</div>
                 </div>
 
-                {formData.items.map((item, idx) => (
-                  <div key={idx} className="grid grid-cols-12 gap-2 items-center bg-surface p-2.5 rounded-lg border border-default">
-                    <div className="col-span-4 space-y-1">
-                      {purchasableProducts.length > 0 && (
-                        <select
-                          value={
-                            purchasableProducts.find(
-                              (p) =>
-                                (item.product_id && (p.product_id === Number(item.product_id) || p.id === String(item.product_id))) ||
-                                p.sku === item.product_sku
-                            )?.sku || ''
-                          }
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            if (!val) return;
-                            const prod = purchasableProducts.find((p) => p.sku === val);
-                            if (prod) {
-                              const unitCode = prod.base_unit?.code || prod.unit?.code || 'PCS';
-                              updateFormItem(idx, {
-                                product_id: prod.product_id || prod.id,
-                                product_name: prod.name,
-                                product_sku: prod.sku,
-                                unit_id: prod.unit_id || 1,
-                                unit_code: unitCode,
-                                unit_price: parseFloat(prod.standard_cost || '0') > 0 ? String(parseFloat(prod.standard_cost)) : item.unit_price,
-                              });
+                {formData.items.map((item, idx) => {
+                  const qty = parseFloat(item.quantity || '0');
+                  const price = parseFloat(item.unit_price || '0');
+                  const lineGross = qty * price;
+                  const isPct = item.discount_type === 'percentage';
+                  const discVal = parseFloat(item.discount_amount || '0') || 0;
+                  const lineDisc = isPct ? lineGross * (discVal / 100) : Math.min(lineGross, discVal);
+                  const lineNet = Math.max(0, lineGross - lineDisc);
+
+                  return (
+                    <div key={idx} className="grid grid-cols-12 gap-2 items-center bg-surface p-2.5 rounded-lg border border-default">
+                      <div className="col-span-4 space-y-1">
+                        {purchasableProducts.length > 0 && (
+                          <select
+                            value={
+                              purchasableProducts.find(
+                                (p) =>
+                                  (item.product_id && (p.product_id === Number(item.product_id) || p.id === String(item.product_id))) ||
+                                  p.sku === item.product_sku
+                              )?.sku || ''
                             }
-                          }}
-                          className="w-full rounded-lg border border-default bg-surface-sunken px-2 py-1 text-[11px] text-default focus:border-primary focus:outline-none mb-1 font-medium cursor-pointer"
-                        >
-                          <option value="">-- Select from Catalog ({purchasableProducts.length}) --</option>
-                          <optgroup label="Finished Goods">
-                            {purchasableProducts
-                              .filter((p) => p.type === 'finished')
-                              .map((p) => (
-                                <option key={p.id} value={p.sku}>
-                                  [FG] {p.name} ({p.sku})
-                                </option>
-                              ))}
-                          </optgroup>
-                          <optgroup label="Raw Materials & Components">
-                            {purchasableProducts
-                              .filter((p) => p.type !== 'finished')
-                              .map((p) => (
-                                <option key={p.id} value={p.sku}>
-                                  [{p.type?.replace('_', ' ') || 'RM'}] {p.name} ({p.sku})
-                                </option>
-                              ))}
-                          </optgroup>
-                        </select>
-                      )}
-                      <input
-                        type="text"
-                        placeholder="Product Description or SKU"
-                        value={item.product_name}
-                        onChange={(e) => updateFormItem(idx, { product_name: e.target.value })}
-                        className="w-full rounded-lg border border-default bg-surface-sunken px-2 py-1 text-xs text-default focus:border-primary focus:outline-none"
-                        required
-                      />
-                    </div>
-                    <div className="col-span-2">
-                      <input
-                        type="number"
-                        min="0.001"
-                        step="any"
-                        placeholder="Qty"
-                        value={item.quantity}
-                        onChange={(e) => updateFormItem(idx, { quantity: e.target.value })}
-                        className="w-full rounded-lg border border-default bg-surface-sunken px-2 py-1.5 text-xs text-default font-mono focus:border-primary focus:outline-none"
-                        required
-                      />
-                    </div>
-                    <div className="col-span-1">
-                      <input
-                        type="text"
-                        placeholder="KG"
-                        value={item.unit_code}
-                        onChange={(e) => updateFormItem(idx, { unit_code: e.target.value })}
-                        className="w-full rounded-lg border border-default bg-surface-sunken px-1 py-1.5 text-xs text-default font-mono uppercase text-center focus:border-primary focus:outline-none"
-                        required
-                      />
-                    </div>
-                    <div className="col-span-2">
-                      <input
-                        type="number"
-                        min="0"
-                        step="any"
-                        placeholder="Unit Price"
-                        value={item.unit_price}
-                        onChange={(e) => updateFormItem(idx, { unit_price: e.target.value })}
-                        className="w-full rounded-lg border border-default bg-surface-sunken px-2 py-1.5 text-xs text-default font-mono text-right focus:border-primary focus:outline-none"
-                        required
-                      />
-                    </div>
-                    <div className="col-span-2">
-                      <div className="flex items-center">
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              if (!val) return;
+                              const prod = purchasableProducts.find((p) => p.sku === val);
+                              if (prod) {
+                                const unitCode = prod.base_unit?.code || prod.unit?.code || 'PCS';
+                                updateFormItem(idx, {
+                                  product_id: prod.product_id || prod.id,
+                                  product_name: prod.name,
+                                  product_sku: prod.sku,
+                                  unit_id: prod.unit_id || prod.base_unit_id || 1,
+                                  unit_code: unitCode,
+                                  unit_price: parseFloat(prod.standard_cost || '0') > 0 ? String(parseFloat(prod.standard_cost)) : item.unit_price,
+                                });
+                              }
+                            }}
+                            className="w-full rounded-lg border border-default bg-surface-sunken px-2 py-1 text-[11px] text-default focus:border-primary focus:outline-none mb-1 font-medium cursor-pointer"
+                          >
+                            <option value="">-- Select from Catalog ({purchasableProducts.length}) --</option>
+                            <optgroup label="Finished Goods">
+                              {purchasableProducts
+                                .filter((p) => p.type === 'finished')
+                                .map((p) => (
+                                  <option key={p.id} value={p.sku}>
+                                    [FG] {p.name} ({p.sku})
+                                  </option>
+                                ))}
+                            </optgroup>
+                            <optgroup label="Raw Materials & Components">
+                              {purchasableProducts
+                                .filter((p) => p.type !== 'finished')
+                                .map((p) => (
+                                  <option key={p.id} value={p.sku}>
+                                    [{p.type?.replace('_', ' ') || 'RM'}] {p.name} ({p.sku})
+                                  </option>
+                                ))}
+                            </optgroup>
+                          </select>
+                        )}
+                        <input
+                          type="text"
+                          placeholder="Product Description or SKU"
+                          value={item.product_name}
+                          onChange={(e) => updateFormItem(idx, { product_name: e.target.value })}
+                          className="w-full rounded-lg border border-default bg-surface-sunken px-2 py-1 text-xs text-default focus:border-primary focus:outline-none"
+                          required
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <input
+                          type="number"
+                          min="0.001"
+                          step="any"
+                          placeholder="Qty"
+                          value={item.quantity}
+                          onChange={(e) => updateFormItem(idx, { quantity: e.target.value })}
+                          className="w-full rounded-lg border border-default bg-surface-sunken px-2 py-1.5 text-xs text-default font-mono focus:border-primary focus:outline-none"
+                          required
+                        />
+                      </div>
+                      <div className="col-span-1">
+                        <input
+                          type="text"
+                          placeholder="KG"
+                          value={item.unit_code}
+                          onChange={(e) => updateFormItem(idx, { unit_code: e.target.value })}
+                          className="w-full rounded-lg border border-default bg-surface-sunken px-1 py-1.5 text-xs text-default font-mono uppercase text-center focus:border-primary focus:outline-none"
+                          required
+                        />
+                      </div>
+                      <div className="col-span-2">
                         <input
                           type="number"
                           min="0"
                           step="any"
-                          placeholder="0.00"
-                          value={item.discount_amount || ''}
-                          onChange={(e) => updateFormItem(idx, { discount_amount: e.target.value })}
-                          className="w-full rounded-l-lg border border-default bg-surface-sunken px-2 py-1.5 text-xs text-rose-600 dark:text-rose-400 font-mono text-right focus:border-primary focus:outline-none"
+                          placeholder="Unit Price"
+                          value={item.unit_price}
+                          onChange={(e) => updateFormItem(idx, { unit_price: e.target.value })}
+                          className="w-full rounded-lg border border-default bg-surface-sunken px-2 py-1.5 text-xs text-default font-mono text-right focus:border-primary focus:outline-none"
+                          required
                         />
-                        <button
-                          type="button"
-                          onClick={() =>
-                            updateFormItem(idx, {
-                              discount_type: item.discount_type === 'percentage' ? 'flat' : 'percentage',
-                            })
-                          }
-                          className="flex h-7.5 w-6 shrink-0 items-center justify-center rounded-r-lg border border-l-0 border-default bg-surface hover:bg-surface-sunken font-bold text-[10px] text-muted hover:text-default cursor-pointer transition-colors"
-                          title="Toggle Flat (৳) or Percentage (%)"
-                        >
-                          {item.discount_type === 'percentage' ? '%' : '৳'}
-                        </button>
                       </div>
-                    </div>
-                    <div className="col-span-1 text-center">
-                      {formData.items.length > 1 && (
-                        <button
-                          type="button"
-                          onClick={() => removeItemFromForm(idx)}
-                          className="text-rose-500 hover:text-rose-700 cursor-pointer p-1"
-                          title="Remove item line"
-                        >
-                          ✕
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                ))}
-
-                {/* Order Discount Row & Summary Breakdown */}
-                {(() => {
-                  const totals = calculatePoTotals(formData.items, formData.order_discount_type, formData.order_discount_value);
-                  return (
-                    <div className="space-y-2 pt-2 border-t border-default/60">
-                      <div className="flex items-center justify-between gap-2 p-2 rounded-lg bg-surface border border-default">
-                        <span className="text-xs font-semibold text-default">
-                          Full PO Order Discount
-                          <span className="block text-[10px] text-muted font-normal">
-                            Discount applied on procurement subtotal
-                          </span>
-                        </span>
-                        <div className="flex items-center">
+                      <div className="col-span-2 space-y-1">
+                        <div className="flex items-center gap-1">
+                          <div className="inline-flex rounded-lg border border-default bg-surface-sunken p-0.5 shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => updateFormItem(idx, { discount_type: 'flat' })}
+                              className={cn(
+                                'px-1.5 py-0.5 text-[10px] font-bold rounded transition-colors cursor-pointer',
+                                item.discount_type !== 'percentage'
+                                  ? 'bg-primary text-primary-fg shadow-xs'
+                                  : 'text-muted hover:text-default'
+                              )}
+                              title="Flat Discount (৳)"
+                            >
+                              ৳
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => updateFormItem(idx, { discount_type: 'percentage' })}
+                              className={cn(
+                                'px-1.5 py-0.5 text-[10px] font-bold rounded transition-colors cursor-pointer',
+                                item.discount_type === 'percentage'
+                                  ? 'bg-primary text-primary-fg shadow-xs'
+                                  : 'text-muted hover:text-default'
+                              )}
+                              title="Percentage Discount (%)"
+                            >
+                              %
+                            </button>
+                          </div>
                           <input
                             type="number"
                             min="0"
                             step="any"
                             placeholder="0.00"
-                            value={formData.order_discount_value}
-                            onChange={(e) => setFormData({ ...formData, order_discount_value: e.target.value })}
-                            className="w-24 rounded-l-lg border border-default bg-surface-sunken px-2 py-1.5 text-xs text-rose-600 dark:text-rose-400 font-mono text-right focus:border-primary focus:outline-none"
+                            value={item.discount_amount || ''}
+                            onChange={(e) => updateFormItem(idx, { discount_amount: e.target.value })}
+                            className="w-full rounded-lg border border-default bg-surface-sunken px-1.5 py-1 text-xs text-rose-600 dark:text-rose-400 font-mono text-right focus:border-primary focus:outline-none"
                           />
+                        </div>
+                        <div className="flex items-center justify-between text-[10px]">
+                          {item.discount_type === 'percentage' ? (
+                            <div className="flex items-center gap-0.5">
+                              {[5, 10, 15].map((pct) => (
+                                <button
+                                  key={pct}
+                                  type="button"
+                                  onClick={() => updateFormItem(idx, { discount_amount: String(pct) })}
+                                  className="px-1 py-0.2 rounded border border-default/60 bg-surface-sunken text-[9px] font-semibold text-muted hover:text-default hover:bg-surface cursor-pointer"
+                                >
+                                  {pct}%
+                                </button>
+                              ))}
+                            </div>
+                          ) : (
+                            <span className="text-[9px] text-muted">Flat cash off</span>
+                          )}
+                          <span className="font-mono text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
+                            {lineDisc > 0 && <span className="text-rose-500 mr-1">(-{formatCurrency(lineDisc)})</span>}
+                            Net {formatCurrency(lineNet)}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="col-span-1 text-center">
+                        {formData.items.length > 1 && (
                           <button
                             type="button"
-                            onClick={() =>
-                              setFormData({
-                                ...formData,
-                                order_discount_type: formData.order_discount_type === 'percentage' ? 'flat' : 'percentage',
-                              })
-                            }
-                            className="flex h-7.5 w-7 shrink-0 items-center justify-center rounded-r-lg border border-l-0 border-default bg-surface-sunken hover:bg-surface font-bold text-[10px] text-muted hover:text-default cursor-pointer transition-colors"
-                            title="Toggle Flat (৳) or Percentage (%)"
+                            onClick={() => removeItemFromForm(idx)}
+                            className="text-rose-500 hover:text-rose-700 cursor-pointer p-1"
+                            title="Remove item line"
                           >
-                            {formData.order_discount_type === 'percentage' ? '%' : '৳'}
+                            ✕
                           </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {/* Order Discount Row & Summary Breakdown */}
+                {(() => {
+                  const totals = calculatePoTotals(formData.items, formData.order_discount_type, formData.order_discount_value);
+                  return (
+                    <div className="space-y-3 pt-3 border-t border-default/60">
+                      <div className="p-3 rounded-xl bg-surface border border-default space-y-2">
+                        <div className="flex items-center justify-between flex-wrap gap-2">
+                          <div>
+                            <span className="text-xs font-bold text-default">
+                              Full PO Order Discount
+                            </span>
+                            <span className="block text-[10px] text-muted">
+                              Commercial rebate or trade discount applied on order subtotal
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <div className="inline-flex rounded-lg border border-default bg-surface-sunken p-0.5">
+                              <button
+                                type="button"
+                                onClick={() => setFormData({ ...formData, order_discount_type: 'flat' })}
+                                className={cn(
+                                  'px-2 py-1 text-xs font-bold rounded-md transition-colors cursor-pointer',
+                                  formData.order_discount_type !== 'percentage'
+                                    ? 'bg-primary text-primary-fg shadow-xs'
+                                    : 'text-muted hover:text-default'
+                                )}
+                              >
+                                ৳ Flat
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setFormData({ ...formData, order_discount_type: 'percentage' })}
+                                className={cn(
+                                  'px-2 py-1 text-xs font-bold rounded-md transition-colors cursor-pointer',
+                                  formData.order_discount_type === 'percentage'
+                                    ? 'bg-primary text-primary-fg shadow-xs'
+                                    : 'text-muted hover:text-default'
+                                )}
+                              >
+                                % Percentage
+                              </button>
+                            </div>
+                            <input
+                              type="number"
+                              min="0"
+                              step="any"
+                              placeholder="0.00"
+                              value={formData.order_discount_value}
+                              onChange={(e) => setFormData({ ...formData, order_discount_value: e.target.value })}
+                              className="w-28 rounded-lg border border-default bg-surface-sunken px-2.5 py-1 text-xs text-rose-600 dark:text-rose-400 font-mono font-bold text-right focus:border-primary focus:outline-none"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Quick Preset Chips */}
+                        <div className="flex items-center gap-1.5 pt-1 border-t border-default/40">
+                          <span className="text-[10px] font-semibold text-muted">Quick presets:</span>
+                          {formData.order_discount_type === 'percentage' ? (
+                            [5, 10, 15, 20].map((pct) => (
+                              <button
+                                key={pct}
+                                type="button"
+                                onClick={() => setFormData({ ...formData, order_discount_value: String(pct) })}
+                                className={cn(
+                                  'px-2 py-0.5 text-[10px] font-semibold rounded-md border transition-colors cursor-pointer',
+                                  formData.order_discount_value === String(pct)
+                                    ? 'bg-primary/10 border-primary text-primary font-bold'
+                                    : 'border-default bg-surface-sunken text-muted hover:text-default hover:bg-surface'
+                                )}
+                              >
+                                {pct}%
+                              </button>
+                            ))
+                          ) : (
+                            [100, 500, 1000, 5000].map((amt) => (
+                              <button
+                                key={amt}
+                                type="button"
+                                onClick={() => setFormData({ ...formData, order_discount_value: String(amt) })}
+                                className={cn(
+                                  'px-2 py-0.5 text-[10px] font-semibold rounded-md border transition-colors cursor-pointer',
+                                  formData.order_discount_value === String(amt)
+                                    ? 'bg-primary/10 border-primary text-primary font-bold'
+                                    : 'border-default bg-surface-sunken text-muted hover:text-default hover:bg-surface'
+                                )}
+                              >
+                                +{formatCurrency(amt)}
+                              </button>
+                            ))
+                          )}
+                          {parseFloat(formData.order_discount_value || '0') > 0 && (
+                            <button
+                              type="button"
+                              onClick={() => setFormData({ ...formData, order_discount_value: '' })}
+                              className="px-2 py-0.5 text-[10px] font-semibold text-rose-500 hover:underline cursor-pointer ml-auto"
+                            >
+                              Clear
+                            </button>
+                          )}
                         </div>
                       </div>
 
                       <div className="flex flex-col items-end gap-1 text-xs font-mono pr-1">
-                        <div className="flex justify-between w-56 text-muted">
+                        <div className="flex justify-between w-64 text-muted">
                           <span>Gross Subtotal:</span>
                           <span>{formatCurrency(totals.grossSubtotal)}</span>
                         </div>
                         {totals.totalLineDiscounts > 0 && (
-                          <div className="flex justify-between w-56 text-rose-600 dark:text-rose-400">
+                          <div className="flex justify-between w-64 text-rose-600 dark:text-rose-400">
                             <span>Item Discounts:</span>
                             <span>-{formatCurrency(totals.totalLineDiscounts)}</span>
                           </div>
                         )}
                         {totals.orderDiscountAmount > 0 && (
-                          <div className="flex justify-between w-56 text-rose-600 dark:text-rose-400">
-                            <span>Order Discount:</span>
+                          <div className="flex justify-between w-64 text-rose-600 dark:text-rose-400">
+                            <span>Order Discount ({formData.order_discount_type === 'percentage' ? `${formData.order_discount_value}%` : 'Flat'}):</span>
                             <span>-{formatCurrency(totals.orderDiscountAmount)}</span>
                           </div>
                         )}
-                        <div className="flex justify-between w-56 text-muted">
+                        <div className="flex justify-between w-64 text-muted">
                           <span>Est. Tax (5%):</span>
                           <span>+{formatCurrency(totals.calculatedTax)}</span>
                         </div>
-                        <div className="flex justify-between w-56 font-bold text-emerald-600 dark:text-emerald-400 pt-1 border-t border-default/60">
+                        <div className="flex justify-between w-64 font-bold text-emerald-600 dark:text-emerald-400 pt-1 border-t border-default/60">
                           <span>Grand Total:</span>
                           <span>{formatCurrency(totals.grandTotal)}</span>
                         </div>
@@ -1719,16 +2026,72 @@ export function PurchaseOrdersSection({ onReceivePo, onCreateBill }: PurchaseOrd
             </div>
 
             <form onSubmit={handleUpdateOrder} className="space-y-4 text-xs">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
-                  <label className="block font-semibold text-muted mb-1">Supplier</label>
-                  <input
-                    type="text"
-                    value={formData.supplier_name}
-                    onChange={(e) => setFormData({ ...formData, supplier_name: e.target.value })}
-                    className="w-full rounded-xl border border-default bg-surface-sunken px-3 py-2 text-default focus:border-primary focus:outline-none"
-                    required
-                  />
+                  <label className="block font-semibold text-muted mb-1">Supplier / Vendor</label>
+                  {suppliers.length > 0 ? (
+                    <select
+                      value={String(formData.party_id || '')}
+                      onChange={(e) => {
+                        const s = suppliers.find((x) => String(x.id) === e.target.value);
+                        setFormData({
+                          ...formData,
+                          party_id: s ? s.id : e.target.value,
+                          supplier_name: s ? s.name : formData.supplier_name,
+                        });
+                      }}
+                      className="w-full rounded-xl border border-default bg-surface-sunken px-3 py-2 text-default focus:border-primary focus:outline-none cursor-pointer"
+                      required
+                    >
+                      <option value="">-- Select Supplier ({suppliers.length}) --</option>
+                      {suppliers.map((s) => (
+                        <option key={s.uuid || s.id} value={String(s.id)}>
+                          {s.name} {s.code ? `(${s.code})` : ''}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input
+                      type="text"
+                      value={formData.supplier_name}
+                      onChange={(e) => setFormData({ ...formData, supplier_name: e.target.value })}
+                      className="w-full rounded-xl border border-default bg-surface-sunken px-3 py-2 text-default focus:border-primary focus:outline-none"
+                      required
+                    />
+                  )}
+                </div>
+                <div>
+                  <label className="block font-semibold text-muted mb-1">Target Warehouse</label>
+                  {warehouses.length > 0 ? (
+                    <select
+                      value={String(formData.warehouse_id || '')}
+                      onChange={(e) => {
+                        const w = warehouses.find((x) => String(x.id) === e.target.value || x.name === e.target.value);
+                        setFormData({
+                          ...formData,
+                          warehouse_id: w ? w.id : e.target.value,
+                          warehouse_name: w ? w.name : formData.warehouse_name,
+                        });
+                      }}
+                      className="w-full rounded-xl border border-default bg-surface-sunken px-3 py-2 text-default focus:border-primary focus:outline-none cursor-pointer"
+                      required
+                    >
+                      <option value="">-- Select Warehouse ({warehouses.length}) --</option>
+                      {warehouses.map((w) => (
+                        <option key={w.uuid || w.id} value={String(w.id)}>
+                          {w.name} ({w.code})
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input
+                      type="text"
+                      value={formData.warehouse_name}
+                      onChange={(e) => setFormData({ ...formData, warehouse_name: e.target.value })}
+                      className="w-full rounded-xl border border-default bg-surface-sunken px-3 py-2 text-default focus:border-primary focus:outline-none"
+                      required
+                    />
+                  )}
                 </div>
                 <div>
                   <label className="block font-semibold text-muted mb-1">Expected Delivery Date</label>
@@ -1751,8 +2114,56 @@ export function PurchaseOrdersSection({ onReceivePo, onCreateBill }: PurchaseOrd
                     onClick={addItemToForm}
                     className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:underline cursor-pointer"
                   >
-                    <Plus className="size-3" /> Add Item Line
+                    <Plus className="size-3" /> Add Custom Line
                   </button>
+                </div>
+
+                {/* Quick Product Search Bar */}
+                <div className="relative">
+                  <div className="flex items-center gap-2 rounded-xl border border-default bg-surface px-3 py-1.5 focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/20 transition-all">
+                    <Search className="size-3.5 text-muted shrink-0" />
+                    <input
+                      type="text"
+                      placeholder="Quick add item: type product name or SKU to add multiple items instantly..."
+                      value={quickProductSearch}
+                      onChange={(e) => setQuickProductSearch(e.target.value)}
+                      className="w-full bg-transparent text-xs text-default placeholder:text-muted focus:outline-none"
+                    />
+                    {quickProductSearch && (
+                      <button
+                        type="button"
+                        onClick={() => setQuickProductSearch('')}
+                        className="text-muted hover:text-default"
+                      >
+                        <X className="size-3" />
+                      </button>
+                    )}
+                  </div>
+                  {quickMatchingProducts.length > 0 && (
+                    <div className="absolute top-full left-0 right-0 mt-1 z-30 max-h-48 overflow-y-auto rounded-xl border border-default bg-surface shadow-xl p-1 space-y-1">
+                      {quickMatchingProducts.map((p) => {
+                        const cost = parseFloat(p.standard_cost || '0') > 0 ? parseFloat(p.standard_cost || '0') : 100;
+                        return (
+                          <div
+                            key={p.id}
+                            className="flex items-center justify-between p-2 rounded-lg hover:bg-surface-sunken transition-colors"
+                          >
+                            <div className="min-w-0 pr-2">
+                              <p className="font-semibold text-default text-xs truncate">{p.name}</p>
+                              <p className="text-[10px] text-muted font-mono">{p.sku} &bull; Cost: {formatCurrency(cost)}</p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => handleQuickAddProduct(p)}
+                              className="shrink-0 inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold rounded-lg bg-primary text-primary-fg hover:opacity-90 cursor-pointer shadow-xs"
+                            >
+                              <Plus className="size-3" /> Add
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
 
                 {/* Items Grid Header */}
@@ -1761,204 +2172,316 @@ export function PurchaseOrdersSection({ onReceivePo, onCreateBill }: PurchaseOrd
                   <div className="col-span-2">Qty</div>
                   <div className="col-span-1">Unit</div>
                   <div className="col-span-2">Unit Price (৳)</div>
-                  <div className="col-span-2">Discount (৳)</div>
+                  <div className="col-span-2">Discount</div>
                   <div className="col-span-1 text-center">Del</div>
                 </div>
 
-                {formData.items.map((item, idx) => (
-                  <div key={idx} className="grid grid-cols-12 gap-2 items-center bg-surface p-2.5 rounded-lg border border-default">
-                    <div className="col-span-4 space-y-1">
-                      {purchasableProducts.length > 0 && (
-                        <select
-                          value={
-                            purchasableProducts.find(
-                              (p) =>
-                                (item.product_id && (p.product_id === Number(item.product_id) || p.id === String(item.product_id))) ||
-                                p.sku === item.product_sku
-                            )?.sku || ''
-                          }
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            if (!val) return;
-                            const prod = purchasableProducts.find((p) => p.sku === val);
-                            if (prod) {
-                              const unitCode = prod.base_unit?.code || prod.unit?.code || 'PCS';
-                              updateFormItem(idx, {
-                                product_id: prod.product_id || prod.id,
-                                product_name: prod.name,
-                                product_sku: prod.sku,
-                                unit_id: prod.unit_id || 1,
-                                unit_code: unitCode,
-                                unit_price: parseFloat(prod.standard_cost || '0') > 0 ? String(parseFloat(prod.standard_cost)) : item.unit_price,
-                              });
+                {formData.items.map((item, idx) => {
+                  const qty = parseFloat(item.quantity || '0');
+                  const price = parseFloat(item.unit_price || '0');
+                  const lineGross = qty * price;
+                  const isPct = item.discount_type === 'percentage';
+                  const discVal = parseFloat(item.discount_amount || '0') || 0;
+                  const lineDisc = isPct ? lineGross * (discVal / 100) : Math.min(lineGross, discVal);
+                  const lineNet = Math.max(0, lineGross - lineDisc);
+
+                  return (
+                    <div key={idx} className="grid grid-cols-12 gap-2 items-center bg-surface p-2.5 rounded-lg border border-default">
+                      <div className="col-span-4 space-y-1">
+                        {purchasableProducts.length > 0 && (
+                          <select
+                            value={
+                              purchasableProducts.find(
+                                (p) =>
+                                  (item.product_id && (p.product_id === Number(item.product_id) || p.id === String(item.product_id))) ||
+                                  p.sku === item.product_sku
+                              )?.sku || ''
                             }
-                          }}
-                          className="w-full rounded-lg border border-default bg-surface-sunken px-2 py-1 text-[11px] text-default focus:border-primary focus:outline-none mb-1 font-medium cursor-pointer"
-                        >
-                          <option value="">-- Select from Catalog ({purchasableProducts.length}) --</option>
-                          <optgroup label="Finished Goods">
-                            {purchasableProducts
-                              .filter((p) => p.type === 'finished')
-                              .map((p) => (
-                                <option key={p.id} value={p.sku}>
-                                  [FG] {p.name} ({p.sku})
-                                </option>
-                              ))}
-                          </optgroup>
-                          <optgroup label="Raw Materials & Components">
-                            {purchasableProducts
-                              .filter((p) => p.type !== 'finished')
-                              .map((p) => (
-                                <option key={p.id} value={p.sku}>
-                                  [{p.type?.replace('_', ' ') || 'RM'}] {p.name} ({p.sku})
-                                </option>
-                              ))}
-                          </optgroup>
-                        </select>
-                      )}
-                      <input
-                        type="text"
-                        placeholder="Product Description or SKU"
-                        value={item.product_name}
-                        onChange={(e) => updateFormItem(idx, { product_name: e.target.value })}
-                        className="w-full rounded-lg border border-default bg-surface-sunken px-2 py-1 text-xs text-default focus:border-primary focus:outline-none"
-                        required
-                      />
-                    </div>
-                    <div className="col-span-2">
-                      <input
-                        type="number"
-                        min="0.001"
-                        step="any"
-                        placeholder="Qty"
-                        value={item.quantity}
-                        onChange={(e) => updateFormItem(idx, { quantity: e.target.value })}
-                        className="w-full rounded-lg border border-default bg-surface-sunken px-2 py-1.5 text-xs text-default font-mono focus:border-primary focus:outline-none"
-                        required
-                      />
-                    </div>
-                    <div className="col-span-1">
-                      <input
-                        type="text"
-                        placeholder="KG"
-                        value={item.unit_code}
-                        onChange={(e) => updateFormItem(idx, { unit_code: e.target.value })}
-                        className="w-full rounded-lg border border-default bg-surface-sunken px-1 py-1.5 text-xs text-default font-mono uppercase text-center focus:border-primary focus:outline-none"
-                        required
-                      />
-                    </div>
-                    <div className="col-span-2">
-                      <input
-                        type="number"
-                        min="0"
-                        step="any"
-                        placeholder="Unit Price"
-                        value={item.unit_price}
-                        onChange={(e) => updateFormItem(idx, { unit_price: e.target.value })}
-                        className="w-full rounded-lg border border-default bg-surface-sunken px-2 py-1.5 text-xs text-default font-mono text-right focus:border-primary focus:outline-none"
-                        required
-                      />
-                    </div>
-                    <div className="col-span-2">
-                      <div className="flex items-center">
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              if (!val) return;
+                              const prod = purchasableProducts.find((p) => p.sku === val);
+                              if (prod) {
+                                const unitCode = prod.base_unit?.code || prod.unit?.code || 'PCS';
+                                updateFormItem(idx, {
+                                  product_id: prod.product_id || prod.id,
+                                  product_name: prod.name,
+                                  product_sku: prod.sku,
+                                  unit_id: prod.unit_id || prod.base_unit_id || 1,
+                                  unit_code: unitCode,
+                                  unit_price: parseFloat(prod.standard_cost || '0') > 0 ? String(parseFloat(prod.standard_cost)) : item.unit_price,
+                                });
+                              }
+                            }}
+                            className="w-full rounded-lg border border-default bg-surface-sunken px-2 py-1 text-[11px] text-default focus:border-primary focus:outline-none mb-1 font-medium cursor-pointer"
+                          >
+                            <option value="">-- Select from Catalog ({purchasableProducts.length}) --</option>
+                            <optgroup label="Finished Goods">
+                              {purchasableProducts
+                                .filter((p) => p.type === 'finished')
+                                .map((p) => (
+                                  <option key={p.id} value={p.sku}>
+                                    [FG] {p.name} ({p.sku})
+                                  </option>
+                                ))}
+                            </optgroup>
+                            <optgroup label="Raw Materials & Components">
+                              {purchasableProducts
+                                .filter((p) => p.type !== 'finished')
+                                .map((p) => (
+                                  <option key={p.id} value={p.sku}>
+                                    [{p.type?.replace('_', ' ') || 'RM'}] {p.name} ({p.sku})
+                                  </option>
+                                ))}
+                            </optgroup>
+                          </select>
+                        )}
+                        <input
+                          type="text"
+                          placeholder="Product Description or SKU"
+                          value={item.product_name}
+                          onChange={(e) => updateFormItem(idx, { product_name: e.target.value })}
+                          className="w-full rounded-lg border border-default bg-surface-sunken px-2 py-1 text-xs text-default focus:border-primary focus:outline-none"
+                          required
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <input
+                          type="number"
+                          min="0.001"
+                          step="any"
+                          placeholder="Qty"
+                          value={item.quantity}
+                          onChange={(e) => updateFormItem(idx, { quantity: e.target.value })}
+                          className="w-full rounded-lg border border-default bg-surface-sunken px-2 py-1.5 text-xs text-default font-mono focus:border-primary focus:outline-none"
+                          required
+                        />
+                      </div>
+                      <div className="col-span-1">
+                        <input
+                          type="text"
+                          placeholder="KG"
+                          value={item.unit_code}
+                          onChange={(e) => updateFormItem(idx, { unit_code: e.target.value })}
+                          className="w-full rounded-lg border border-default bg-surface-sunken px-1 py-1.5 text-xs text-default font-mono uppercase text-center focus:border-primary focus:outline-none"
+                          required
+                        />
+                      </div>
+                      <div className="col-span-2">
                         <input
                           type="number"
                           min="0"
                           step="any"
-                          placeholder="0.00"
-                          value={item.discount_amount || ''}
-                          onChange={(e) => updateFormItem(idx, { discount_amount: e.target.value })}
-                          className="w-full rounded-l-lg border border-default bg-surface-sunken px-2 py-1.5 text-xs text-rose-600 dark:text-rose-400 font-mono text-right focus:border-primary focus:outline-none"
+                          placeholder="Unit Price"
+                          value={item.unit_price}
+                          onChange={(e) => updateFormItem(idx, { unit_price: e.target.value })}
+                          className="w-full rounded-lg border border-default bg-surface-sunken px-2 py-1.5 text-xs text-default font-mono text-right focus:border-primary focus:outline-none"
+                          required
                         />
-                        <button
-                          type="button"
-                          onClick={() =>
-                            updateFormItem(idx, {
-                              discount_type: item.discount_type === 'percentage' ? 'flat' : 'percentage',
-                            })
-                          }
-                          className="flex h-7.5 w-6 shrink-0 items-center justify-center rounded-r-lg border border-l-0 border-default bg-surface hover:bg-surface-sunken font-bold text-[10px] text-muted hover:text-default cursor-pointer transition-colors"
-                          title="Toggle Flat (৳) or Percentage (%)"
-                        >
-                          {item.discount_type === 'percentage' ? '%' : '৳'}
-                        </button>
                       </div>
-                    </div>
-                    <div className="col-span-1 text-center">
-                      {formData.items.length > 1 && (
-                        <button
-                          type="button"
-                          onClick={() => removeItemFromForm(idx)}
-                          className="text-rose-500 hover:text-rose-700 cursor-pointer p-1"
-                          title="Remove item line"
-                        >
-                          ✕
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                ))}
-
-                {/* Edit Order Discount Row & Summary Breakdown */}
-                {(() => {
-                  const totals = calculatePoTotals(formData.items, formData.order_discount_type, formData.order_discount_value);
-                  return (
-                    <div className="space-y-2 pt-2 border-t border-default/60">
-                      <div className="flex items-center justify-between gap-2 p-2 rounded-lg bg-surface border border-default">
-                        <span className="text-xs font-semibold text-default">
-                          Full PO Order Discount
-                          <span className="block text-[10px] text-muted font-normal">
-                            Discount applied on procurement subtotal
-                          </span>
-                        </span>
-                        <div className="flex items-center">
+                      <div className="col-span-2 space-y-1">
+                        <div className="flex items-center gap-1">
+                          <div className="inline-flex rounded-lg border border-default bg-surface-sunken p-0.5 shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => updateFormItem(idx, { discount_type: 'flat' })}
+                              className={cn(
+                                'px-1.5 py-0.5 text-[10px] font-bold rounded transition-colors cursor-pointer',
+                                item.discount_type !== 'percentage'
+                                  ? 'bg-primary text-primary-fg shadow-xs'
+                                  : 'text-muted hover:text-default'
+                              )}
+                              title="Flat Discount (৳)"
+                            >
+                              ৳
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => updateFormItem(idx, { discount_type: 'percentage' })}
+                              className={cn(
+                                'px-1.5 py-0.5 text-[10px] font-bold rounded transition-colors cursor-pointer',
+                                item.discount_type === 'percentage'
+                                  ? 'bg-primary text-primary-fg shadow-xs'
+                                  : 'text-muted hover:text-default'
+                              )}
+                              title="Percentage Discount (%)"
+                            >
+                              %
+                            </button>
+                          </div>
                           <input
                             type="number"
                             min="0"
                             step="any"
                             placeholder="0.00"
-                            value={formData.order_discount_value}
-                            onChange={(e) => setFormData({ ...formData, order_discount_value: e.target.value })}
-                            className="w-24 rounded-l-lg border border-default bg-surface-sunken px-2 py-1.5 text-xs text-rose-600 dark:text-rose-400 font-mono text-right focus:border-primary focus:outline-none"
+                            value={item.discount_amount || ''}
+                            onChange={(e) => updateFormItem(idx, { discount_amount: e.target.value })}
+                            className="w-full rounded-lg border border-default bg-surface-sunken px-1.5 py-1 text-xs text-rose-600 dark:text-rose-400 font-mono text-right focus:border-primary focus:outline-none"
                           />
+                        </div>
+                        <div className="flex items-center justify-between text-[10px]">
+                          {item.discount_type === 'percentage' ? (
+                            <div className="flex items-center gap-0.5">
+                              {[5, 10, 15].map((pct) => (
+                                <button
+                                  key={pct}
+                                  type="button"
+                                  onClick={() => updateFormItem(idx, { discount_amount: String(pct) })}
+                                  className="px-1 py-0.2 rounded border border-default/60 bg-surface-sunken text-[9px] font-semibold text-muted hover:text-default hover:bg-surface cursor-pointer"
+                                >
+                                  {pct}%
+                                </button>
+                              ))}
+                            </div>
+                          ) : (
+                            <span className="text-[9px] text-muted">Flat cash off</span>
+                          )}
+                          <span className="font-mono text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
+                            {lineDisc > 0 && <span className="text-rose-500 mr-1">(-{formatCurrency(lineDisc)})</span>}
+                            Net {formatCurrency(lineNet)}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="col-span-1 text-center">
+                        {formData.items.length > 1 && (
                           <button
                             type="button"
-                            onClick={() =>
-                              setFormData({
-                                ...formData,
-                                order_discount_type: formData.order_discount_type === 'percentage' ? 'flat' : 'percentage',
-                              })
-                            }
-                            className="flex h-7.5 w-7 shrink-0 items-center justify-center rounded-r-lg border border-l-0 border-default bg-surface-sunken hover:bg-surface font-bold text-[10px] text-muted hover:text-default cursor-pointer transition-colors"
-                            title="Toggle Flat (৳) or Percentage (%)"
+                            onClick={() => removeItemFromForm(idx)}
+                            className="text-rose-500 hover:text-rose-700 cursor-pointer p-1"
+                            title="Remove item line"
                           >
-                            {formData.order_discount_type === 'percentage' ? '%' : '৳'}
+                            ✕
                           </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {/* Edit Order Discount Row & Summary Breakdown */}
+                {(() => {
+                  const totals = calculatePoTotals(formData.items, formData.order_discount_type, formData.order_discount_value);
+                  return (
+                    <div className="space-y-3 pt-3 border-t border-default/60">
+                      <div className="p-3 rounded-xl bg-surface border border-default space-y-2">
+                        <div className="flex items-center justify-between flex-wrap gap-2">
+                          <div>
+                            <span className="text-xs font-bold text-default">
+                              Full PO Order Discount
+                            </span>
+                            <span className="block text-[10px] text-muted">
+                              Commercial rebate or trade discount applied on order subtotal
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <div className="inline-flex rounded-lg border border-default bg-surface-sunken p-0.5">
+                              <button
+                                type="button"
+                                onClick={() => setFormData({ ...formData, order_discount_type: 'flat' })}
+                                className={cn(
+                                  'px-2 py-1 text-xs font-bold rounded-md transition-colors cursor-pointer',
+                                  formData.order_discount_type !== 'percentage'
+                                    ? 'bg-primary text-primary-fg shadow-xs'
+                                    : 'text-muted hover:text-default'
+                                )}
+                              >
+                                ৳ Flat
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setFormData({ ...formData, order_discount_type: 'percentage' })}
+                                className={cn(
+                                  'px-2 py-1 text-xs font-bold rounded-md transition-colors cursor-pointer',
+                                  formData.order_discount_type === 'percentage'
+                                    ? 'bg-primary text-primary-fg shadow-xs'
+                                    : 'text-muted hover:text-default'
+                                )}
+                              >
+                                % Percentage
+                              </button>
+                            </div>
+                            <input
+                              type="number"
+                              min="0"
+                              step="any"
+                              placeholder="0.00"
+                              value={formData.order_discount_value}
+                              onChange={(e) => setFormData({ ...formData, order_discount_value: e.target.value })}
+                              className="w-28 rounded-lg border border-default bg-surface-sunken px-2.5 py-1 text-xs text-rose-600 dark:text-rose-400 font-mono font-bold text-right focus:border-primary focus:outline-none"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Quick Preset Chips */}
+                        <div className="flex items-center gap-1.5 pt-1 border-t border-default/40">
+                          <span className="text-[10px] font-semibold text-muted">Quick presets:</span>
+                          {formData.order_discount_type === 'percentage' ? (
+                            [5, 10, 15, 20].map((pct) => (
+                              <button
+                                key={pct}
+                                type="button"
+                                onClick={() => setFormData({ ...formData, order_discount_value: String(pct) })}
+                                className={cn(
+                                  'px-2 py-0.5 text-[10px] font-semibold rounded-md border transition-colors cursor-pointer',
+                                  formData.order_discount_value === String(pct)
+                                    ? 'bg-primary/10 border-primary text-primary font-bold'
+                                    : 'border-default bg-surface-sunken text-muted hover:text-default hover:bg-surface'
+                                )}
+                              >
+                                {pct}%
+                              </button>
+                            ))
+                          ) : (
+                            [100, 500, 1000, 5000].map((amt) => (
+                              <button
+                                key={amt}
+                                type="button"
+                                onClick={() => setFormData({ ...formData, order_discount_value: String(amt) })}
+                                className={cn(
+                                  'px-2 py-0.5 text-[10px] font-semibold rounded-md border transition-colors cursor-pointer',
+                                  formData.order_discount_value === String(amt)
+                                    ? 'bg-primary/10 border-primary text-primary font-bold'
+                                    : 'border-default bg-surface-sunken text-muted hover:text-default hover:bg-surface'
+                                )}
+                              >
+                                +{formatCurrency(amt)}
+                              </button>
+                            ))
+                          )}
+                          {parseFloat(formData.order_discount_value || '0') > 0 && (
+                            <button
+                              type="button"
+                              onClick={() => setFormData({ ...formData, order_discount_value: '' })}
+                              className="px-2 py-0.5 text-[10px] font-semibold text-rose-500 hover:underline cursor-pointer ml-auto"
+                            >
+                              Clear
+                            </button>
+                          )}
                         </div>
                       </div>
 
                       <div className="flex flex-col items-end gap-1 text-xs font-mono pr-1">
-                        <div className="flex justify-between w-56 text-muted">
+                        <div className="flex justify-between w-64 text-muted">
                           <span>Gross Subtotal:</span>
                           <span>{formatCurrency(totals.grossSubtotal)}</span>
                         </div>
                         {totals.totalLineDiscounts > 0 && (
-                          <div className="flex justify-between w-56 text-rose-600 dark:text-rose-400">
+                          <div className="flex justify-between w-64 text-rose-600 dark:text-rose-400">
                             <span>Item Discounts:</span>
                             <span>-{formatCurrency(totals.totalLineDiscounts)}</span>
                           </div>
                         )}
                         {totals.orderDiscountAmount > 0 && (
-                          <div className="flex justify-between w-56 text-rose-600 dark:text-rose-400">
-                            <span>Order Discount:</span>
+                          <div className="flex justify-between w-64 text-rose-600 dark:text-rose-400">
+                            <span>Order Discount ({formData.order_discount_type === 'percentage' ? `${formData.order_discount_value}%` : 'Flat'}):</span>
                             <span>-{formatCurrency(totals.orderDiscountAmount)}</span>
                           </div>
                         )}
-                        <div className="flex justify-between w-56 text-muted">
+                        <div className="flex justify-between w-64 text-muted">
                           <span>Est. Tax (5%):</span>
                           <span>+{formatCurrency(totals.calculatedTax)}</span>
                         </div>
-                        <div className="flex justify-between w-56 font-bold text-emerald-600 dark:text-emerald-400 pt-1 border-t border-default/60">
+                        <div className="flex justify-between w-64 font-bold text-emerald-600 dark:text-emerald-400 pt-1 border-t border-default/60">
                           <span>Grand Total:</span>
                           <span>{formatCurrency(totals.grandTotal)}</span>
                         </div>

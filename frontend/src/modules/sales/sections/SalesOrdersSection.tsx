@@ -32,6 +32,7 @@ import {
 import type { SalesOrder, SalesOrderStatus, SalesOrderPaymentStatus, Invoice } from '../../../types/api/sales';
 import type { Product } from '../../../types/api/catalog';
 import { api } from '../../../lib/api/client';
+import { isApiError } from '../../../lib/api/errors';
 import { useCurrency } from '../../../hooks/useCurrency';
 import { OrderProcessingModal } from '../components/OrderProcessingModal';
 import { PrintPreviewModal } from '../../../components/print/PrintPreviewModal';
@@ -51,10 +52,10 @@ interface SalesOrdersSectionProps {
 }
 
 interface SoFormItem {
-  product_id: number;
+  product_id: number | string;
   product_name: string;
   quantity: string;
-  unit_id: number;
+  unit_id?: number | string;
   unit_price: string;
   discount_type?: 'flat' | 'percentage';
   discount_amount: string;
@@ -145,7 +146,7 @@ export function SalesOrdersSection({ onNavigateToTab }: SalesOrdersSectionProps 
   const [channel, setChannel] = useState<'counter' | 'dealer' | 'phone' | 'field' | 'online'>(
     'dealer'
   );
-  const [selectedPartyId, setSelectedPartyId] = useState<number | null>(null);
+  const [selectedPartyId, setSelectedPartyId] = useState<number | string | null>(null);
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
   const [orderDate, setOrderDate] = useState(new Date().toISOString().slice(0, 10));
@@ -215,15 +216,107 @@ export function SalesOrdersSection({ onNavigateToTab }: SalesOrdersSectionProps 
     },
   });
 
+  const findProduct = (idOrUuid: number | string | undefined | null): Product | undefined => {
+    if (idOrUuid === undefined || idOrUuid === null || idOrUuid === '') return undefined;
+    const str = String(idOrUuid);
+    return catalogProducts.find(
+      (p) => String(p.id) === str || (p.product_id != null && String(p.product_id) === str)
+    );
+  };
+
+  const handleOpenCreateModal = () => {
+    const first = catalogProducts[0];
+    if (items.length === 0 || (items.length === 1 && items[0]?.product_name === 'Standard Catalog Item')) {
+      if (first) {
+        setItems([
+          {
+            product_id: first.product_id ?? first.id,
+            product_name: first.name,
+            quantity: '1',
+            unit_id: first.unit_id ?? first.base_unit_id ?? 1,
+            unit_price: first.default_sale_price || '100.00',
+            discount_type: 'flat',
+            discount_amount: '0.00',
+          },
+        ]);
+      }
+    }
+    setShowCreateModal(true);
+  };
+
+  const [quickProductSearch, setQuickProductSearch] = useState('');
+
+  const quickMatchingProducts = useMemo(() => {
+    if (!quickProductSearch.trim()) return [];
+    const q = quickProductSearch.toLowerCase().trim();
+    return catalogProducts
+      .filter(
+        (p) =>
+          p.name.toLowerCase().includes(q) ||
+          (p.sku && p.sku.toLowerCase().includes(q)) ||
+          (p.barcode && p.barcode.toLowerCase().includes(q))
+      )
+      .slice(0, 8);
+  }, [catalogProducts, quickProductSearch]);
+
+  const handleQuickAddProduct = (prod: Product) => {
+    const prodId = prod.product_id ?? prod.id;
+    const unitId = prod.unit_id ?? prod.base_unit_id ?? 1;
+    const existingIndex = items.findIndex((it) => {
+      const f = findProduct(it.product_id);
+      return f && (String(f.id) === String(prod.id) || (f.product_id != null && String(f.product_id) === String(prod.product_id)));
+    });
+
+    if (existingIndex >= 0) {
+      const currentItem = items[existingIndex];
+      if (currentItem) {
+        const currentQty = parseFloat(currentItem.quantity || '0');
+        updateItem(existingIndex, { quantity: String(currentQty + 1) });
+        notify.info(`Incremented quantity for "${prod.name}" to ${currentQty + 1}`);
+      }
+    } else {
+      if (items.length === 1 && items[0]?.product_name === 'Standard Catalog Item') {
+        setItems([
+          {
+            product_id: prodId,
+            product_name: prod.name,
+            quantity: '1',
+            unit_id: unitId,
+            unit_price: prod.default_sale_price || '100.00',
+            discount_type: 'flat',
+            discount_amount: '0.00',
+          },
+        ]);
+      } else {
+        setItems((prev) => [
+          ...prev,
+          {
+            product_id: prodId,
+            product_name: prod.name,
+            quantity: '1',
+            unit_id: unitId,
+            unit_price: prod.default_sale_price || '100.00',
+            discount_type: 'flat',
+            discount_amount: '0.00',
+          },
+        ]);
+      }
+      notify.success(`Added "${prod.name}" to order.`);
+    }
+    setQuickProductSearch('');
+  };
+
   const addItem = () => {
     const firstProduct = catalogProducts[0];
+    const prodId = firstProduct?.product_id ?? firstProduct?.id ?? 1;
+    const unitId = firstProduct?.unit_id ?? firstProduct?.base_unit_id ?? 1;
     setItems((prev) => [
       ...prev,
       {
-        product_id: Number(firstProduct?.id || prev.length + 1),
+        product_id: prodId,
         product_name: firstProduct?.name || 'New Item',
         quantity: '1',
-        unit_id: Number(firstProduct?.base_unit_id || 1),
+        unit_id: unitId,
         unit_price: firstProduct?.default_sale_price || '100.00',
         discount_type: 'flat',
         discount_amount: '0.00',
@@ -250,21 +343,24 @@ export function SalesOrdersSection({ onNavigateToTab }: SalesOrdersSectionProps 
     setOrderDiscountValue(order.discount_amount ? String(order.discount_amount) : '');
 
     const clonedItems: SoFormItem[] = (order.items && order.items.length > 0)
-      ? order.items.map((it) => ({
-          product_id: Number(it.product_id),
-          product_name: it.product_name || `Product #${it.product_id}`,
-          quantity: String(it.quantity),
-          unit_id: Number(it.unit_id),
-          unit_price: String(it.unit_price),
-          discount_type: (it.discount_percentage && parseFloat(it.discount_percentage) > 0) ? ('percentage' as const) : ('flat' as const),
-          discount_amount: it.discount_amount ? String(it.discount_amount) : '0.00',
-        }))
+      ? order.items.map((it) => {
+          const matched = findProduct(it.product_id);
+          return {
+            product_id: matched?.product_id ?? matched?.id ?? it.product_id,
+            product_name: it.product_name || matched?.name || `Product #${it.product_id}`,
+            quantity: String(it.quantity),
+            unit_id: matched?.unit_id ?? matched?.base_unit_id ?? it.unit_id ?? 1,
+            unit_price: String(it.unit_price),
+            discount_type: (it.discount_percentage && parseFloat(it.discount_percentage) > 0) ? ('percentage' as const) : ('flat' as const),
+            discount_amount: it.discount_amount ? String(it.discount_amount) : '0.00',
+          };
+        })
       : [
           {
-            product_id: 1,
-            product_name: 'Standard Catalog Item',
+            product_id: catalogProducts[0]?.product_id ?? catalogProducts[0]?.id ?? 1,
+            product_name: catalogProducts[0]?.name ?? 'Standard Catalog Item',
             quantity: '1',
-            unit_id: 1,
+            unit_id: catalogProducts[0]?.unit_id ?? catalogProducts[0]?.base_unit_id ?? 1,
             unit_price: '100.00',
             discount_type: 'flat' as const,
             discount_amount: '0.00',
@@ -344,24 +440,31 @@ export function SalesOrdersSection({ onNavigateToTab }: SalesOrdersSectionProps 
 
   const createOrderMutation = useMutation({
     mutationFn: async () => {
+      const mappedItems = items.map((it) => {
+        const found = findProduct(it.product_id);
+        const prodId = found?.product_id ? Number(found.product_id) : it.product_id;
+        const unitId = found?.unit_id ? Number(found.unit_id) : (it.unit_id ?? found?.base_unit_id);
+        return {
+          product_id: prodId,
+          quantity: it.quantity,
+          unit_id: unitId,
+          unit_price: it.unit_price,
+          discount_type: it.discount_type || 'flat',
+          discount_value: it.discount_amount || '0',
+          discount_amount: it.discount_amount || '0.00',
+        };
+      });
+
       await api.post('/sales/orders', {
         channel,
-        party_id: selectedPartyId || undefined,
+        party_id: selectedPartyId ? (typeof selectedPartyId === 'string' && /^\d+$/.test(selectedPartyId) ? Number(selectedPartyId) : selectedPartyId) : undefined,
         customer_name: customerName || undefined,
         customer_phone: customerPhone || undefined,
         order_date: orderDate,
         notes: notes || undefined,
         order_discount_type: orderDiscountType,
         order_discount_value: orderDiscountValue || '0',
-        items: items.map((it) => ({
-          product_id: it.product_id,
-          quantity: it.quantity,
-          unit_id: it.unit_id,
-          unit_price: it.unit_price,
-          discount_type: it.discount_type || 'flat',
-          discount_value: it.discount_amount || '0',
-          discount_amount: it.discount_amount || '0.00',
-        })),
+        items: mappedItems,
       });
     },
     onSuccess: () => {
@@ -373,13 +476,14 @@ export function SalesOrdersSection({ onNavigateToTab }: SalesOrdersSectionProps 
       setNotes('');
       setOrderDiscountType('flat');
       setOrderDiscountValue('');
+      const firstProduct = catalogProducts[0];
       setItems([
         {
-          product_id: 1,
-          product_name: 'Standard Catalog Item',
+          product_id: firstProduct?.product_id ?? firstProduct?.id ?? 1,
+          product_name: firstProduct?.name ?? 'Standard Catalog Item',
           quantity: '1',
-          unit_id: 1,
-          unit_price: '100.00',
+          unit_id: firstProduct?.unit_id ?? firstProduct?.base_unit_id ?? 1,
+          unit_price: firstProduct?.default_sale_price ?? '100.00',
           discount_type: 'flat',
           discount_amount: '0.00',
         },
@@ -390,12 +494,41 @@ export function SalesOrdersSection({ onNavigateToTab }: SalesOrdersSectionProps 
       queryClient.invalidateQueries({ queryKey: ['tenant', 'dashboard'] });
     },
     onError: (err: unknown) => {
+      if (isApiError(err)) {
+        if (err.fields && Object.keys(err.fields).length > 0) {
+          const errorList = Object.entries(err.fields)
+            .map(([field, msgs]) => `${field}: ${msgs.join(', ')}`)
+            .join(' | ');
+          notify.error(`Order validation failed: ${errorList}`);
+          return;
+        }
+        notify.error(err.message || 'Failed to create sales order');
+        return;
+      }
       notify.error(err instanceof Error ? err.message : 'Failed to create sales order');
     },
   });
 
   const handleCreateOrder = (e: React.FormEvent) => {
     e.preventDefault();
+    if (items.length === 0) {
+      notify.error('At least one item is required.');
+      return;
+    }
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      if (!item) continue;
+      const qty = parseFloat(item.quantity || '0');
+      if (isNaN(qty) || qty <= 0) {
+        notify.error(`Item #${i + 1} (${item.product_name}) must have a valid quantity greater than 0.`);
+        return;
+      }
+      const price = parseFloat(item.unit_price || '0');
+      if (isNaN(price) || price < 0) {
+        notify.error(`Item #${i + 1} (${item.product_name}) must have a valid non-negative price.`);
+        return;
+      }
+    }
     createOrderMutation.mutate();
   };
 
@@ -873,7 +1006,7 @@ export function SalesOrdersSection({ onNavigateToTab }: SalesOrdersSectionProps 
 
           {canCreateOrder && (
             <button
-              onClick={() => setShowCreateModal(true)}
+              onClick={handleOpenCreateModal}
               className="flex h-9 items-center gap-1.5 rounded-xl bg-primary px-3 text-xs font-semibold text-primary-foreground shadow-xs hover:bg-primary/90 transition-colors cursor-pointer"
             >
               <Plus className="h-3.5 w-3.5" />
@@ -1421,9 +1554,7 @@ export function SalesOrdersSection({ onNavigateToTab }: SalesOrdersSectionProps 
                     <strong>CRM Lead Tracking:</strong> A new lead will be created automatically with all order details and queued for sale verification once confirmed.
                   </span>
                 </div>
-              </div>
-
-              {/* Items Builder */}
+              </div>              {/* Items Builder */}
               <div className="border border-default rounded-xl p-3 bg-surface-sunken/40 space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="font-semibold text-default">Order Line Items & Pricing</span>
@@ -1436,178 +1567,333 @@ export function SalesOrdersSection({ onNavigateToTab }: SalesOrdersSectionProps 
                   </button>
                 </div>
 
+                {/* Quick Product Search Bar */}
+                <div className="relative">
+                  <div className="flex items-center gap-2 rounded-xl border border-default bg-surface px-3 py-2 text-xs shadow-xs">
+                    <Search className="size-4 text-muted shrink-0" />
+                    <input
+                      type="text"
+                      placeholder="Type product name, SKU or barcode to quickly add to order..."
+                      value={quickProductSearch}
+                      onChange={(e) => setQuickProductSearch(e.target.value)}
+                      className="w-full bg-transparent text-default placeholder:text-muted focus:outline-none"
+                    />
+                    {quickProductSearch && (
+                      <button
+                        type="button"
+                        onClick={() => setQuickProductSearch('')}
+                        className="text-muted hover:text-default text-xs cursor-pointer p-0.5"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+
+                  {quickMatchingProducts.length > 0 && (
+                    <div className="absolute top-full left-0 right-0 z-30 mt-1 max-h-60 overflow-y-auto rounded-xl border border-default bg-surface shadow-xl py-1 divide-y divide-default/40">
+                      {quickMatchingProducts.map((p) => (
+                        <button
+                          key={String(p.id)}
+                          type="button"
+                          onClick={() => handleQuickAddProduct(p)}
+                          className="w-full flex items-center justify-between px-3 py-2.5 text-left hover:bg-surface-sunken transition-colors cursor-pointer group"
+                        >
+                          <div>
+                            <p className="font-semibold text-xs text-default group-hover:text-primary transition-colors">
+                              {p.name}
+                            </p>
+                            <p className="text-[10px] text-muted font-mono">
+                              SKU: {p.sku || 'N/A'} &bull; Stock: {p.stock_quantity ?? 'N/A'} {p.base_unit?.name || 'units'}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono font-bold text-xs text-emerald-600 dark:text-emerald-400">
+                              {formatCurrency(p.default_sale_price || '0')}
+                            </span>
+                            <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-md bg-primary/10 text-primary text-[10px] font-semibold group-hover:bg-primary group-hover:text-primary-fg transition-all">
+                              <Plus className="size-3" /> Add
+                            </span>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
                 {/* Items Grid Header */}
                 <div className="grid grid-cols-12 gap-2 text-[10px] font-semibold text-muted px-1">
-                  <div className="col-span-5">Product / Item</div>
+                  <div className="col-span-4">Product / Item</div>
                   <div className="col-span-2">Qty</div>
                   <div className="col-span-2">Price ({currencySymbol})</div>
-                  <div className="col-span-2">Discount ({currencySymbol})</div>
+                  <div className="col-span-3">Discount (Flat / %)</div>
                   <div className="col-span-1 text-center">Del</div>
                 </div>
 
-                {items.map((item, idx) => (
-                  <div key={idx} className="grid grid-cols-12 gap-2 items-center bg-surface p-2.5 rounded-lg border border-default">
-                    <div className="col-span-5">
-                      {catalogProducts.length > 0 ? (
-                        <div>
-                          <select
-                            value={item.product_id}
-                            onChange={(e) => {
-                              const pId = Number(e.target.value);
-                              const found = catalogProducts.find((p) => Number(p.id) === pId);
-                              updateItem(idx, {
-                                product_id: pId,
-                                product_name: found?.name || item.product_name,
-                                unit_price: found?.default_sale_price || item.unit_price,
-                                unit_id: Number(found?.base_unit_id || 1),
-                              });
-                            }}
-                            className="w-full rounded-lg border border-default bg-surface-sunken px-2 py-1.5 text-xs text-default focus:border-primary focus:outline-none"
-                          >
-                            {catalogProducts.map((p) => (
-                              <option key={p.id} value={p.id}>
-                                {p.name} ({formatCurrency(p.default_sale_price || '0')})
-                              </option>
-                            ))}
-                          </select>
-                          {/* Real-time stock indicator */}
-                          {(() => {
-                            const found = catalogProducts.find((p) => Number(p.id) === item.product_id);
-                            const stock = found?.stock_quantity ?? null;
-                            const ordered = parseFloat(item.quantity || '0');
-                            if (stock === null) return null;
-                            const isOver = ordered > stock;
-                            return (
-                              <div className={`flex items-center gap-1 mt-1 text-[10px] font-medium ${
-                                isOver ? 'text-amber-600 dark:text-amber-400' : stock < 10 ? 'text-amber-500' : 'text-emerald-600 dark:text-emerald-400'
-                              }`}>
-                                {isOver ? (
-                                  <AlertTriangle className="size-3 shrink-0" />
-                                ) : null}
-                                <span>Stock: {stock} {found?.base_unit?.name || 'units'}</span>
-                                {isOver && <span className="font-semibold">— Exceeds available</span>}
-                              </div>
-                            );
-                          })()}
-                        </div>
-                      ) : (
-                        <input
-                          type="text"
-                          placeholder="Item Name"
-                          value={item.product_name}
-                          onChange={(e) => updateItem(idx, { product_name: e.target.value })}
-                          className="w-full rounded-lg border border-default bg-surface-sunken px-2 py-1.5 text-xs text-default focus:border-primary focus:outline-none"
-                        />
-                      )}
-                    </div>
-                    <div className="col-span-2">
-                      {(() => {
-                        const found = catalogProducts.find((p) => Number(p.id) === item.product_id);
-                        const stock = found?.stock_quantity ?? null;
-                        const ordered = parseFloat(item.quantity || '0');
-                        const isOver = stock !== null && ordered > stock;
-                        return (
+                {items.map((item, idx) => {
+                  const lineGross = parseFloat(item.quantity || '0') * parseFloat(item.unit_price || '0');
+                  const isPct = item.discount_type === 'percentage';
+                  const discVal = parseFloat(item.discount_amount || '0') || 0;
+                  const lineDiscAmt = isPct ? lineGross * (discVal / 100) : Math.min(lineGross, discVal);
+                  const lineNet = Math.max(0, lineGross - lineDiscAmt);
+
+                  return (
+                    <div key={idx} className="grid grid-cols-12 gap-2 items-center bg-surface p-2.5 rounded-lg border border-default">
+                      <div className="col-span-4">
+                        {catalogProducts.length > 0 ? (
+                          <div>
+                            <select
+                              value={String(item.product_id)}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                const found = findProduct(val);
+                                const prodId = found ? (found.product_id ?? found.id) : val;
+                                const unitId = found ? (found.unit_id ?? found.base_unit_id ?? 1) : 1;
+                                updateItem(idx, {
+                                  product_id: prodId,
+                                  product_name: found?.name || item.product_name,
+                                  unit_price: found?.default_sale_price || item.unit_price,
+                                  unit_id: unitId,
+                                });
+                              }}
+                              className="w-full rounded-lg border border-default bg-surface-sunken px-2 py-1.5 text-xs text-default focus:border-primary focus:outline-none"
+                            >
+                              {catalogProducts.map((p) => (
+                                <option key={String(p.id)} value={String(p.product_id ?? p.id)}>
+                                  {p.name} ({formatCurrency(p.default_sale_price || '0')})
+                                </option>
+                              ))}
+                            </select>
+                            {/* Real-time stock indicator */}
+                            {(() => {
+                              const found = findProduct(item.product_id);
+                              const stock = found?.stock_quantity ?? null;
+                              const ordered = parseFloat(item.quantity || '0');
+                              if (stock === null) return null;
+                              const isOver = ordered > stock;
+                              return (
+                                <div className={`flex items-center gap-1 mt-1 text-[10px] font-medium ${
+                                  isOver ? 'text-amber-600 dark:text-amber-400' : stock < 10 ? 'text-amber-500' : 'text-emerald-600 dark:text-emerald-400'
+                                }`}>
+                                  {isOver ? (
+                                    <AlertTriangle className="size-3 shrink-0" />
+                                  ) : null}
+                                  <span>Stock: {stock} {found?.base_unit?.name || 'units'}</span>
+                                  {isOver && <span className="font-semibold">— Exceeds available</span>}
+                                </div>
+                              );
+                            })()}
+                          </div>
+                        ) : (
                           <input
-                            type="number"
-                            min="0.001"
-                            step="any"
-                            placeholder="Qty"
-                            value={item.quantity}
-                            onChange={(e) => updateItem(idx, { quantity: e.target.value })}
-                            className={`w-full rounded-lg border px-2 py-1.5 text-xs font-mono focus:outline-none ${
-                              isOver
-                                ? 'border-amber-400 bg-amber-500/5 text-amber-700 dark:text-amber-300 focus:border-amber-500'
-                                : 'border-default bg-surface-sunken text-default focus:border-primary'
-                            }`}
-                            required
+                            type="text"
+                            placeholder="Item Name"
+                            value={item.product_name}
+                            onChange={(e) => updateItem(idx, { product_name: e.target.value })}
+                            className="w-full rounded-lg border border-default bg-surface-sunken px-2 py-1.5 text-xs text-default focus:border-primary focus:outline-none"
                           />
-                        );
-                      })()}
-                    </div>
-                    <div className="col-span-2">
-                      <input
-                        type="number"
-                        min="0"
-                        step="any"
-                        placeholder="Price"
-                        value={item.unit_price}
-                        onChange={(e) => updateItem(idx, { unit_price: e.target.value })}
-                        className="w-full rounded-lg border border-default bg-surface-sunken px-2 py-1.5 text-xs text-default font-mono text-right focus:border-primary focus:outline-none"
-                        required
-                      />
-                    </div>
-                    <div className="col-span-2">
-                      <div className="flex items-center">
+                        )}
+                      </div>
+                      <div className="col-span-2">
+                        {(() => {
+                          const found = findProduct(item.product_id);
+                          const stock = found?.stock_quantity ?? null;
+                          const ordered = parseFloat(item.quantity || '0');
+                          const isOver = stock !== null && ordered > stock;
+                          return (
+                            <input
+                              type="number"
+                              min="0.001"
+                              step="any"
+                              placeholder="Qty"
+                              value={item.quantity}
+                              onChange={(e) => updateItem(idx, { quantity: e.target.value })}
+                              className={`w-full rounded-lg border px-2 py-1.5 text-xs font-mono focus:outline-none ${
+                                isOver
+                                  ? 'border-amber-400 bg-amber-500/5 text-amber-700 dark:text-amber-300 focus:border-amber-500'
+                                  : 'border-default bg-surface-sunken text-default focus:border-primary'
+                              }`}
+                              required
+                            />
+                          );
+                        })()}
+                      </div>
+                      <div className="col-span-2">
                         <input
                           type="number"
                           min="0"
                           step="any"
-                          placeholder="0.00"
-                          value={item.discount_amount}
-                          onChange={(e) => updateItem(idx, { discount_amount: e.target.value })}
-                          className="w-full rounded-l-lg border border-default bg-surface-sunken px-2 py-1.5 text-xs text-rose-600 dark:text-rose-400 font-mono text-right focus:border-primary focus:outline-none"
+                          placeholder="Price"
+                          value={item.unit_price}
+                          onChange={(e) => updateItem(idx, { unit_price: e.target.value })}
+                          className="w-full rounded-lg border border-default bg-surface-sunken px-2 py-1.5 text-xs text-default font-mono text-right focus:border-primary focus:outline-none"
+                          required
                         />
-                        <button
-                          type="button"
-                          onClick={() =>
-                            updateItem(idx, {
-                              discount_type: item.discount_type === 'percentage' ? 'flat' : 'percentage',
-                            })
-                          }
-                          className="flex h-7.5 w-6 shrink-0 items-center justify-center rounded-r-lg border border-l-0 border-default bg-surface hover:bg-surface-sunken font-bold text-[10px] text-muted hover:text-default cursor-pointer transition-colors"
-                          title={`Toggle Flat (${currencySymbol}) or Percentage (%)`}
-                        >
-                          {item.discount_type === 'percentage' ? '%' : currencySymbol}
-                        </button>
+                      </div>
+                      <div className="col-span-3 space-y-1">
+                        <div className="flex items-center gap-1">
+                          <div className="inline-flex rounded-lg border border-default p-0.5 bg-surface-sunken shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => updateItem(idx, { discount_type: 'flat' })}
+                              className={`px-1.5 py-0.5 rounded text-[10px] font-bold transition-all cursor-pointer ${
+                                item.discount_type !== 'percentage'
+                                  ? 'bg-primary text-primary-fg shadow-xs'
+                                  : 'text-muted hover:text-default'
+                              }`}
+                              title={`Flat discount in ${currencySymbol}`}
+                            >
+                              {currencySymbol}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => updateItem(idx, { discount_type: 'percentage' })}
+                              className={`px-1.5 py-0.5 rounded text-[10px] font-bold transition-all cursor-pointer ${
+                                item.discount_type === 'percentage'
+                                  ? 'bg-primary text-primary-fg shadow-xs'
+                                  : 'text-muted hover:text-default'
+                              }`}
+                              title="Percentage discount %"
+                            >
+                              %
+                            </button>
+                          </div>
+                          <input
+                            type="number"
+                            min="0"
+                            step="any"
+                            placeholder="0.00"
+                            value={item.discount_amount}
+                            onChange={(e) => updateItem(idx, { discount_amount: e.target.value })}
+                            className="w-full rounded-lg border border-default bg-surface-sunken px-2 py-1 text-xs text-rose-600 dark:text-rose-400 font-mono text-right focus:border-primary focus:outline-none"
+                          />
+                        </div>
+
+                        {/* Quick presets and live calculated discount feedback */}
+                        <div className="flex items-center justify-between text-[10px]">
+                          {item.discount_type === 'percentage' ? (
+                            <div className="flex items-center gap-1">
+                              {[5, 10, 15].map((pct) => (
+                                <button
+                                  key={pct}
+                                  type="button"
+                                  onClick={() => updateItem(idx, { discount_type: 'percentage', discount_amount: String(pct) })}
+                                  className="px-1 py-0.2 rounded bg-surface-sunken border border-default hover:border-primary text-muted hover:text-default font-mono cursor-pointer"
+                                >
+                                  {pct}%
+                                </button>
+                              ))}
+                            </div>
+                          ) : (
+                            <span className="text-muted font-mono text-[9px]">Flat deduction</span>
+                          )}
+                          {lineDiscAmt > 0 ? (
+                            <span className="font-mono font-semibold text-rose-500">
+                              -{formatCurrency(lineDiscAmt)}
+                            </span>
+                          ) : (
+                            <span className="text-muted font-mono">{formatCurrency(lineNet)}</span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="col-span-1 text-center">
+                        {items.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => removeItem(idx)}
+                            className="text-rose-500 hover:text-rose-700 cursor-pointer p-1"
+                            title="Remove item line"
+                          >
+                            ✕
+                          </button>
+                        )}
                       </div>
                     </div>
-                    <div className="col-span-1 text-center">
-                      {items.length > 1 && (
-                        <button
-                          type="button"
-                          onClick={() => removeItem(idx)}
-                          className="text-rose-500 hover:text-rose-700 cursor-pointer p-1"
-                          title="Remove item line"
-                        >
-                          ✕
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
 
                 {/* Full Order Discount & Calculation Summary */}
                 {(() => {
                   const totals = calculateSoTotals(items, orderDiscountType, orderDiscountValue);
                   return (
                     <div className="space-y-2 pt-2 border-t border-default/60">
-                      <div className="flex items-center justify-between gap-2 p-2 rounded-lg bg-surface border border-default">
-                        <span className="text-xs font-semibold text-default">
-                          Full Order Discount
-                          <span className="block text-[10px] text-muted font-normal">
-                            Discount applied on sales order subtotal
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-xl bg-surface border border-default">
+                        <div>
+                          <span className="text-xs font-semibold text-default block">
+                            Full Order Discount
                           </span>
-                        </span>
-                        <div className="flex items-center">
-                          <input
-                            type="number"
-                            min="0"
-                            step="any"
-                            placeholder="0.00"
-                            value={orderDiscountValue}
-                            onChange={(e) => setOrderDiscountValue(e.target.value)}
-                            className="w-24 rounded-l-lg border border-default bg-surface-sunken px-2 py-1.5 text-xs text-rose-600 dark:text-rose-400 font-mono text-right focus:border-primary focus:outline-none"
-                          />
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setOrderDiscountType(orderDiscountType === 'percentage' ? 'flat' : 'percentage')
-                            }
-                            className="flex h-7.5 w-7 shrink-0 items-center justify-center rounded-r-lg border border-l-0 border-default bg-surface-sunken hover:bg-surface font-bold text-[10px] text-muted hover:text-default cursor-pointer transition-colors"
-                            title={`Toggle Flat (${currencySymbol}) or Percentage (%)`}
-                          >
-                            {orderDiscountType === 'percentage' ? '%' : currencySymbol}
-                          </button>
+                          <span className="text-[10px] text-muted">
+                            Overall commercial reduction applied across all order items
+                          </span>
+                        </div>
+                        <div className="flex flex-col sm:flex-row items-end sm:items-center gap-2">
+                          <div className="inline-flex rounded-lg border border-default p-0.5 bg-surface-sunken">
+                            <button
+                              type="button"
+                              onClick={() => setOrderDiscountType('flat')}
+                              className={`px-2 py-1 rounded text-xs font-bold transition-all cursor-pointer ${
+                                orderDiscountType === 'flat'
+                                  ? 'bg-primary text-primary-fg shadow-xs'
+                                  : 'text-muted hover:text-default'
+                              }`}
+                            >
+                              {currencySymbol} Flat
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setOrderDiscountType('percentage')}
+                              className={`px-2 py-1 rounded text-xs font-bold transition-all cursor-pointer ${
+                                orderDiscountType === 'percentage'
+                                  ? 'bg-primary text-primary-fg shadow-xs'
+                                  : 'text-muted hover:text-default'
+                              }`}
+                            >
+                              % Percentage
+                            </button>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <input
+                              type="number"
+                              min="0"
+                              step="any"
+                              placeholder="0.00"
+                              value={orderDiscountValue}
+                              onChange={(e) => setOrderDiscountValue(e.target.value)}
+                              className="w-24 rounded-lg border border-default bg-surface-sunken px-2.5 py-1 text-xs text-rose-600 dark:text-rose-400 font-mono text-right focus:border-primary focus:outline-none"
+                            />
+                            {orderDiscountType === 'percentage' ? (
+                              <div className="flex items-center gap-1">
+                                {[5, 10, 15, 20].map((pct) => (
+                                  <button
+                                    key={pct}
+                                    type="button"
+                                    onClick={() => {
+                                      setOrderDiscountType('percentage');
+                                      setOrderDiscountValue(String(pct));
+                                    }}
+                                    className="px-1.5 py-1 rounded-md bg-surface-sunken border border-default hover:border-primary text-xs font-mono text-muted hover:text-default cursor-pointer"
+                                  >
+                                    {pct}%
+                                  </button>
+                                ))}
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-1">
+                                {[100, 500, 1000].map((amt) => (
+                                  <button
+                                    key={amt}
+                                    type="button"
+                                    onClick={() => {
+                                      setOrderDiscountType('flat');
+                                      setOrderDiscountValue(String(amt));
+                                    }}
+                                    className="px-1.5 py-1 rounded-md bg-surface-sunken border border-default hover:border-primary text-xs font-mono text-muted hover:text-default cursor-pointer"
+                                  >
+                                    +{amt}
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </div>
 

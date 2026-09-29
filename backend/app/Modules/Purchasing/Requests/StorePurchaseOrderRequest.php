@@ -19,8 +19,8 @@ final class StorePurchaseOrderRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'party_id' => ['required', 'integer'],
-            'warehouse_id' => ['required', 'integer'],
+            'party_id' => ['required'],
+            'warehouse_id' => ['required'],
             'order_date' => ['required', 'date'],
             'po_number' => ['nullable', 'string', 'max:64'],
             'expected_delivery_date' => ['nullable', 'date'],
@@ -32,9 +32,9 @@ final class StorePurchaseOrderRequest extends FormRequest
             'notes' => ['nullable', 'string', 'max:1000'],
             'terms_and_conditions' => ['nullable', 'string', 'max:1000'],
             'items' => ['required', 'array', 'min:1'],
-            'items.*.product_id' => ['required', 'integer'],
+            'items.*.product_id' => ['required'],
             'items.*.quantity' => ['required', 'numeric', 'gt:0'],
-            'items.*.unit_id' => ['required', 'integer'],
+            'items.*.unit_id' => ['nullable'],
             'items.*.unit_price' => ['required', 'numeric', 'gte:0'],
             'items.*.variant_id' => ['nullable', 'integer'],
             'items.*.discount_type' => ['nullable', 'string', 'in:flat,percentage'],
