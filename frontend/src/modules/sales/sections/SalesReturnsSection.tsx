@@ -164,13 +164,18 @@ export function SalesReturnsSection() {
             }))
           : [];
 
+      const resolvedCustomerName =
+        (match.customer_name && match.customer_name.trim().length > 0)
+          ? match.customer_name.trim()
+          : (match.party_id ? `Customer #${match.party_id}` : 'Walk-in Customer');
+
       setFormData((prev) => ({
         ...prev,
         invoice_id: match.id,
         invoice_number: match.invoice_number,
         sales_order_id: match.sales_order_id || null,
-        party_id: match.party_id || prev.party_id,
-        customer_name: match.customer_name || prev.customer_name,
+        party_id: match.party_id ?? prev.party_id ?? null,
+        customer_name: resolvedCustomerName,
         warehouse_id: match.warehouse_id || prev.warehouse_id,
         warehouse_name: match.warehouse_name || prev.warehouse_name,
         items: loadedItems.length > 0 ? loadedItems : prev.items,
@@ -257,8 +262,8 @@ export function SalesReturnsSection() {
       invoice_id: formData.invoice_id,
       invoice_number: formData.invoice_number || null,
       sales_order_id: formData.sales_order_id,
-      party_id: formData.party_id ?? 1,
-      customer_name: formData.customer_name,
+      party_id: formData.party_id ?? null,
+      customer_name: formData.customer_name || 'Walk-in Customer',
       warehouse_id: formData.warehouse_id ?? 1,
       warehouse_name: formData.warehouse_name,
       return_date: formData.return_date,
@@ -290,7 +295,7 @@ export function SalesReturnsSection() {
       const payload = {
         return_date: formData.return_date,
         warehouse_id: formData.warehouse_id || 1,
-        party_id: formData.party_id || 1,
+        party_id: formData.party_id ?? undefined,
         reason_code_id: formData.reason_code_id || 1,
         invoice_id: formData.invoice_id || undefined,
         sales_order_id: formData.sales_order_id || undefined,
@@ -904,6 +909,7 @@ export function SalesReturnsSection() {
                   <input
                     type="text"
                     value={formData.customer_name}
+                    placeholder="e.g. Walk-in Customer or Customer Name"
                     onChange={(e) => setFormData({ ...formData, customer_name: e.target.value })}
                     className="w-full rounded-xl border border-default bg-surface-sunken px-3 py-2 text-default focus:border-primary focus:outline-none"
                     required

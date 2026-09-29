@@ -29,7 +29,7 @@ final class InvoiceController extends Controller
     {
         $tenantId = TenantContext::current()->tenantId();
 
-        $query = Invoice::with(['customer', 'items.product'])
+        $query = Invoice::with(['customer', 'salesOrder', 'items.product'])
             ->where('tenant_id', $tenantId);
 
         if ($request->filled('status')) {

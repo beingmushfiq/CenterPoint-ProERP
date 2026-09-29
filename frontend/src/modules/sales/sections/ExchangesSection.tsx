@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import {
@@ -390,8 +390,8 @@ export function ExchangesSection() {
         const list = extractArray<Record<string, unknown>>(res.data);
         if (list.length > 0) {
           return list.map((p, idx) => {
-            const rawProdId = p['product_id'];
-            const rawUnitId = p['unit_id'];
+            const rawProdId = p['product_id'] ?? p['id'];
+            const rawUnitId = p['unit_id'] ?? p['base_unit_id'];
             const resolvedProdId = typeof rawProdId === 'number' ? rawProdId : (typeof rawProdId === 'string' && /^\d+$/.test(rawProdId) ? parseInt(rawProdId, 10) : idx + 1);
             const resolvedUnitId = typeof rawUnitId === 'number' ? rawUnitId : (typeof rawUnitId === 'string' && /^\d+$/.test(rawUnitId) ? parseInt(rawUnitId, 10) : 1);
             return {
@@ -404,15 +404,37 @@ export function ExchangesSection() {
             };
           });
         }
-      } catch {
-        // fallback
+      } catch (err) {
+        console.warn('Failed to load products for exchange', err);
       }
       return FALLBACK_PRODUCTS;
     },
-    initialData: FALLBACK_PRODUCTS,
+    placeholderData: FALLBACK_PRODUCTS,
   });
 
   const selectedInvoice = invoiceOptions.find((inv) => inv.id === formData.original_invoice_id);
+
+  // Combined product options for returns: invoice items guaranteed present + catalog products
+  const returnProductOptions: ProductOption[] = useMemo(() => {
+    const list: ProductOption[] = [...productOptions];
+    if (selectedInvoice && selectedInvoice.items && selectedInvoice.items.length > 0) {
+      selectedInvoice.items.forEach((invIt) => {
+        const pId = Number(invIt.product_id);
+        const exists = list.some((p: ProductOption) => p.product_id === pId);
+        if (!exists) {
+          list.unshift({
+            id: `inv-item-${invIt.id || pId}`,
+            product_id: pId,
+            name: invIt.product_name || `Product #${pId}`,
+            sku: `INV-${pId}`,
+            unit_id: invIt.unit_id || 1,
+            default_sale_price: String(invIt.unit_price || '0.00'),
+          });
+        }
+      });
+    }
+    return list;
+  }, [productOptions, selectedInvoice]);
 
   // ── Calculations ─────────────────────────────────────────────────────────
   const returnTotal = formData.return_items.reduce(
@@ -1005,14 +1027,30 @@ export function ExchangesSection() {
                       onChange={(e) => {
                         const val = e.target.value ? parseInt(e.target.value, 10) : null;
                         const inv = invoiceOptions.find((i) => i.id === val);
+                        
+                        let autoReturnItems: FormReturnItem[] | null = null;
+                        if (inv && inv.items && inv.items.length > 0) {
+                          autoReturnItems = inv.items.map((it) => ({
+                            product_id: it.product_id,
+                            product_name: it.product_name ?? `Product #${it.product_id}`,
+                            quantity: String(parseFloat(it.quantity || '1') || 1),
+                            unit_id: it.unit_id || 1,
+                            unit_price: String(parseFloat(it.unit_price || '0') || 0),
+                            condition: 'good',
+                            restock: true,
+                          }));
+                        }
+
                         setFormData((f) => ({
                           ...f,
                           original_invoice_id: val,
                           party_id: inv?.party_id ?? f.party_id,
                           customer_name: inv?.customer_name ?? f.customer_name,
+                          return_items: autoReturnItems && autoReturnItems.length > 0 ? autoReturnItems : f.return_items,
                         }));
                         if (inv) {
-                          toast.info(`Linked Invoice ${inv.invoice_number}. Customer auto-filled.`);
+                          const itemCount = inv.items?.length ?? 0;
+                          toast.info(`Linked Invoice ${inv.invoice_number}. Customer & ${itemCount} billed product(s) loaded.`);
                         }
                       }}
                       className="w-full px-3 py-1.5 text-xs rounded-lg border border-default bg-surface text-default focus:outline-none focus:ring-1 focus:ring-violet-500/50"
@@ -1212,7 +1250,8 @@ export function ExchangesSection() {
                             value={item.product_id}
                             onChange={(e) => {
                               const pId = parseInt(e.target.value, 10);
-                              const prod = productOptions.find((p) => p.product_id === pId);
+                              const invIt = selectedInvoice?.items?.find((i) => Number(i.product_id) === pId);
+                              const prod = returnProductOptions.find((p) => p.product_id === pId);
                               setFormData((f) => ({
                                 ...f,
                                 return_items: f.return_items.map((it, i) =>
@@ -1220,12 +1259,14 @@ export function ExchangesSection() {
                                     ? {
                                         ...it,
                                         product_id: pId,
-                                        product_name: prod?.name ?? it.product_name,
-                                        unit_price:
-                                          prod?.default_sale_price && parseFloat(prod.default_sale_price) > 0
+                                        product_name: invIt?.product_name || prod?.name || it.product_name,
+                                        unit_price: invIt?.unit_price
+                                          ? String(parseFloat(invIt.unit_price))
+                                          : prod?.default_sale_price && parseFloat(prod.default_sale_price) > 0
                                             ? prod.default_sale_price
                                             : it.unit_price,
-                                        unit_id: prod?.unit_id ?? it.unit_id,
+                                        unit_id: invIt?.unit_id || prod?.unit_id || it.unit_id,
+                                        quantity: invIt?.quantity ? String(parseFloat(invIt.quantity)) : it.quantity,
                                       }
                                     : it
                                 ),
@@ -1234,12 +1275,27 @@ export function ExchangesSection() {
                             className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-default bg-surface text-default focus:outline-none focus:ring-1 focus:ring-primary/40 font-medium"
                             required
                           >
-                            <option value={0}>— Select Catalog Product —</option>
-                            {productOptions.map((prod) => (
-                              <option key={prod.id} value={prod.product_id}>
-                                {prod.name} ({prod.sku}) — {currencySymbol}{parseFloat(prod.default_sale_price || '0').toFixed(2)}
-                              </option>
-                            ))}
+                            <option value={0}>— Select Product to Return —</option>
+
+                            {/* Products on Linked Invoice */}
+                            {selectedInvoice && selectedInvoice.items && selectedInvoice.items.length > 0 && (
+                              <optgroup label={`⭐ Products on Invoice #${selectedInvoice.invoice_number}`}>
+                                {selectedInvoice.items.map((invItem) => (
+                                  <option key={`inv-opt-${invItem.id || invItem.product_id}`} value={invItem.product_id}>
+                                    {invItem.product_name ?? `Product #${invItem.product_id}`} — {currencySymbol}{parseFloat(invItem.unit_price || '0').toFixed(2)} (Billed Qty: {parseFloat(invItem.quantity || '1')})
+                                  </option>
+                                ))}
+                              </optgroup>
+                            )}
+
+                            {/* Catalog Products */}
+                            <optgroup label={selectedInvoice ? "All Catalog Products" : "Catalog Products"}>
+                              {returnProductOptions.map((prod) => (
+                                <option key={prod.id} value={prod.product_id}>
+                                  {prod.name} ({prod.sku}) — {currencySymbol}{parseFloat(prod.default_sale_price || '0').toFixed(2)}
+                                </option>
+                              ))}
+                            </optgroup>
                             <option value={-1}>+ Other / Custom Product (Enter Name Below)</option>
                           </select>
 
