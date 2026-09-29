@@ -28,8 +28,9 @@ import {
   DollarSign,
   AlertTriangle,
   Printer,
+  UserCheck,
 } from 'lucide-react';
-import type { SalesOrder, SalesOrderStatus, SalesOrderPaymentStatus, Invoice } from '../../../types/api/sales';
+import type { SalesOrder, SalesOrderStatus, SalesOrderPaymentStatus, Invoice, Lead } from '../../../types/api/sales';
 import type { Product } from '../../../types/api/catalog';
 import { api } from '../../../lib/api/client';
 import { isApiError } from '../../../lib/api/errors';
@@ -147,6 +148,7 @@ export function SalesOrdersSection({ onNavigateToTab }: SalesOrdersSectionProps 
     'dealer'
   );
   const [selectedPartyId, setSelectedPartyId] = useState<number | string | null>(null);
+  const [selectedLeadId, setSelectedLeadId] = useState<number | null>(null);
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
   const [orderDate, setOrderDate] = useState(new Date().toISOString().slice(0, 10));
@@ -215,6 +217,45 @@ export function SalesOrdersSection({ onNavigateToTab }: SalesOrdersSectionProps 
       }
     },
   });
+
+  const { data: crmLeads = [] } = useQuery<Lead[]>({
+    queryKey: ['crm', 'leads', 'dropdown'],
+    queryFn: async () => {
+      try {
+        const res = await api.get<{ data?: Lead[] } | Lead[]>('/sales/leads?per_page=100');
+        const raw = res.data;
+        return Array.isArray(raw) ? raw : (raw?.data ?? []);
+      } catch {
+        return [];
+      }
+    },
+    staleTime: 60 * 1000,
+  });
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const leadIdParam = params.get('lead_id');
+    const createOrderParam = params.get('createOrder');
+    if (leadIdParam || createOrderParam === 'true') {
+      if (leadIdParam) {
+        const lid = parseInt(leadIdParam, 10);
+        if (!isNaN(lid)) {
+          setSelectedLeadId(lid);
+          api
+            .get<{ data?: Lead } | Lead>(`/sales/leads/${lid}`)
+            .then((res) => {
+              const l = (res.data && 'data' in res.data ? res.data.data : res.data) as Lead;
+              if (l) {
+                if (l.name) setCustomerName(l.name);
+                if (l.phone) setCustomerPhone(l.phone);
+              }
+            })
+            .catch(() => {});
+        }
+      }
+      setShowCreateModal(true);
+    }
+  }, []);
 
   const findProduct = (idOrUuid: number | string | undefined | null): Product | undefined => {
     if (idOrUuid === undefined || idOrUuid === null || idOrUuid === '') return undefined;
@@ -458,6 +499,7 @@ export function SalesOrdersSection({ onNavigateToTab }: SalesOrdersSectionProps 
       await api.post('/sales/orders', {
         channel,
         party_id: selectedPartyId ? (typeof selectedPartyId === 'string' && /^\d+$/.test(selectedPartyId) ? Number(selectedPartyId) : selectedPartyId) : undefined,
+        lead_id: selectedLeadId || undefined,
         customer_name: customerName || undefined,
         customer_phone: customerPhone || undefined,
         order_date: orderDate,
@@ -468,9 +510,10 @@ export function SalesOrdersSection({ onNavigateToTab }: SalesOrdersSectionProps 
       });
     },
     onSuccess: () => {
-      notify.success('Sales order created & CRM lead generated.');
+      notify.success('Sales order created successfully.');
       setShowCreateModal(false);
       setSelectedPartyId(null);
+      setSelectedLeadId(null);
       setCustomerName('');
       setCustomerPhone('');
       setNotes('');
@@ -1548,13 +1591,51 @@ export function SalesOrdersSection({ onNavigateToTab }: SalesOrdersSectionProps 
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 p-2 rounded-lg bg-sky-500/10 border border-sky-500/20 text-[11px] text-sky-700 dark:text-sky-300">
-                  <Sparkles className="size-3.5 text-sky-500 shrink-0" />
-                  <span>
-                    <strong>CRM Lead Tracking:</strong> A new lead will be created automatically with all order details and queued for sale verification once confirmed.
-                  </span>
+                <div className="pt-2 border-t border-default/50 space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-semibold text-default flex items-center gap-1.5">
+                      <UserCheck className="size-3.5 text-primary" />
+                      <span>Link Commercial CRM Lead</span>
+                    </label>
+                    {selectedLeadId && (
+                      <button
+                        type="button"
+                        onClick={() => setSelectedLeadId(null)}
+                        className="text-[10px] text-muted hover:text-default cursor-pointer"
+                      >
+                        Clear Link
+                      </button>
+                    )}
+                  </div>
+                  <select
+                    value={selectedLeadId ?? ''}
+                    onChange={(e) => {
+                      const lid = e.target.value ? Number(e.target.value) : null;
+                      setSelectedLeadId(lid);
+                      if (lid) {
+                        const l = crmLeads.find((item) => item.id === lid);
+                        if (l) {
+                          if (!customerName) setCustomerName(l.name);
+                          if (!customerPhone && l.phone) setCustomerPhone(l.phone);
+                        }
+                      }
+                    }}
+                    className="w-full rounded-xl border border-default bg-surface px-3 py-2 text-xs text-default focus:border-primary focus:outline-none cursor-pointer"
+                  >
+                    <option value="">No existing lead (Auto-generates lead on order confirmation)</option>
+                    {crmLeads.map((l) => (
+                      <option key={l.id} value={l.id}>
+                        {l.lead_number || `LD-${l.id}`} - {l.name} {l.company_name ? `(${l.company_name})` : ''} [{l.stage || l.status}]
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-[11px] text-muted">
+                    Linking an existing prospect attributes deal value and records this order in their 360° commercial history.
+                  </p>
                 </div>
-              </div>              {/* Items Builder */}
+              </div>
+
+              {/* Items Builder */}
               <div className="border border-default rounded-xl p-3 bg-surface-sunken/40 space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="font-semibold text-default">Order Line Items & Pricing</span>

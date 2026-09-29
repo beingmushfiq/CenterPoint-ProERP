@@ -191,8 +191,11 @@ final class SalesmanTargetController extends Controller
 
             return [
                 'id'                  => $emp->id,
+                'employee_id'         => $emp->id,
                 'uuid'                => $emp->uuid,
+                'user_id'             => $emp->user_id,
                 'employee_code'       => $emp->employee_code,
+                'code'                => $emp->employee_code,
                 'name'                => $emp->display_name ?? "{$emp->first_name} {$emp->last_name}",
                 'email'               => $emp->email,
                 'phone'               => $emp->phone,

@@ -95,7 +95,7 @@ export const PLATFORM_NAV_DEFINITIONS: DynamicNavSection[] = [
         id: 'crm-leads',
         moduleKey: 'crm',
         defaultLabel: 'Customer Leads & CRM',
-        to: '/sales?tab=leads',
+        to: '/crm',
         icon: UserCheck,
         permission: ['sales.lead.view', 'crm.lead.view', 'sales.order.view'],
       },

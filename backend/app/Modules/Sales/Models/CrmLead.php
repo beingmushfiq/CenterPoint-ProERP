@@ -90,11 +90,18 @@ class CrmLead extends Model
 
     public function activities(): HasMany
     {
-        return $this->hasMany(CrmActivity::class, 'lead_id');
+        return $this->hasMany(CrmActivity::class, 'subject_id')
+            ->where('subject_type', 'lead')
+            ->orderByDesc('id');
     }
 
     public function orders(): HasMany
     {
         return $this->hasMany(SalesOrder::class, 'lead_id');
+    }
+
+    public function lostReason(): BelongsTo
+    {
+        return $this->belongsTo(\App\Models\ReasonCode::class, 'lost_reason_id');
     }
 }

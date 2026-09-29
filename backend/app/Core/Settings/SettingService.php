@@ -106,6 +106,44 @@ class SettingService
                     'max_commercial_discount_percent' => ['label' => 'Max Allowed Commercial Discount (%)', 'type' => 'number', 'default' => 15.0, 'sensitive' => false],
                 ],
             ],
+            'crm' => [
+                'title' => 'CRM & Pipeline Controls',
+                'description' => 'Lead acquisition sources, pipeline stages, and lost reason codes.',
+                'settings' => [
+                    'lead_sources' => [
+                        'label' => 'Active Lead Acquisition Sources',
+                        'type' => 'json',
+                        'default' => [
+                            'storefront', 'walk_in', 'phone', 'field_visit', 'referral',
+                            'cold_outreach', 'event', 'social_media', 'website', 'other'
+                        ],
+                        'sensitive' => false,
+                    ],
+                    'pipeline_stages' => [
+                        'label' => 'Active Pipeline Stages',
+                        'type' => 'json',
+                        'default' => [
+                            'new', 'contacted', 'qualified', 'proposal', 'negotiation', 'won', 'lost'
+                        ],
+                        'sensitive' => false,
+                    ],
+                    'lost_reason_codes' => [
+                        'label' => 'Lead Lost Reason Codes',
+                        'type' => 'json',
+                        'default' => [
+                            'price_too_high', 'competitor_chosen', 'budget_cancelled',
+                            'product_unfit', 'no_response', 'fraud_invalid', 'other'
+                        ],
+                        'sensitive' => false,
+                    ],
+                    'auto_convert_won_lead_to_customer' => [
+                        'label' => 'Auto-Convert Lead to Customer Party on Won',
+                        'type' => 'boolean',
+                        'default' => true,
+                        'sensitive' => false,
+                    ],
+                ],
+            ],
             'pos' => [
                 'title' => 'Point of Sale (POS)',
                 'description' => 'Retail counter registers, receipt formatting, cashier variance thresholds, and manager PIN overrides.',

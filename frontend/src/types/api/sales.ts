@@ -3,6 +3,8 @@
  * Aligned with Backend API Resources & Database Schemas
  */
 
+import type { LeadStatus } from './crm';
+
 export type SalesOrderChannel = 'counter' | 'dealer' | 'phone' | 'field' | 'online';
 
 export type SalesOrderStatus =
@@ -268,46 +270,15 @@ export interface SalesReturn {
   items?: SalesReturnItem[];
 }
 
-export type LeadStatus = 'new' | 'contacted' | 'qualified' | 'proposal' | 'negotiation' | 'won' | 'lost' | 'fake';
-export type LeadSource = 'website' | 'storefront' | 'referral' | 'cold_outreach' | 'event' | 'social_media' | 'walk_in' | 'phone' | 'field_visit' | 'other';
-
-export interface Lead {
-  id: number;
-  uuid: string;
-  lead_number?: string;
-  name: string;
-  company_name?: string | null;
-  email?: string | null;
-  phone?: string | null;
-  status: LeadStatus;
-  stage?: LeadStatus;
-  source: LeadSource;
-  deal_value?: string;
-  expected_value?: string;
-  currency_code?: string;
-  assigned_to?: string | number | null;
-  assigned_user_name?: string | null;
-  notes?: string | null;
-  expected_close_date?: string | null;
-  is_fake?: boolean;
-  validation_notes?: string | null;
-  validated_by?: number | null;
-  validator_name?: string | null;
-  validated_at?: string | null;
-  converted_party_id?: number | null;
-  converted_party_name?: string | null;
-  converted_at?: string | null;
-  converted_to_customer_id?: number | null;
-  orders?: Array<{
-    id: number;
-    order_number: string;
-    total_amount: string;
-    status: string;
-    payment_status: string;
-  }>;
-  created_at: string;
-  updated_at?: string;
-}
+export type {
+  LeadStatus,
+  LeadSource,
+  LeadActivity,
+  Lead,
+  LeadOrderLink,
+  LostReasonOption,
+} from './crm';
+export { LOST_REASON_OPTIONS } from './crm';
 
 export interface SalesmanTarget {
   id: number;

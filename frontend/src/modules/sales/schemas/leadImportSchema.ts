@@ -57,9 +57,9 @@ export const leadImportSchema: ImportSchemaConfig = {
       label: 'Lead Source',
       required: false,
       type: 'enum',
-      options: ['walk_in', 'phone', 'referral', 'online', 'field_visit', 'other'],
+      options: ['storefront', 'walk_in', 'phone', 'field_visit', 'referral', 'cold_outreach', 'event', 'social_media', 'website', 'online', 'other'],
       sampleValue: 'field_visit',
-      description: 'Acquisition channel: walk_in, phone, referral, online, field_visit, or other',
+      description: 'Acquisition channel: storefront, walk_in, phone, field_visit, referral, cold_outreach, event, social_media, website, or other',
       aliases: ['source', 'lead_source', 'channel', 'origin', 'acquisition_source'],
     },
     {
@@ -67,9 +67,9 @@ export const leadImportSchema: ImportSchemaConfig = {
       label: 'Pipeline Stage',
       required: false,
       type: 'enum',
-      options: ['new', 'contacted', 'qualified', 'proposal', 'won', 'lost'],
+      options: ['new', 'contacted', 'qualified', 'proposal', 'negotiation', 'won', 'lost', 'fake'],
       sampleValue: 'qualified',
-      description: 'Stage: new, contacted, qualified, proposal, won, or lost',
+      description: 'Stage: new, contacted, qualified, proposal, negotiation, won, or lost',
       aliases: ['stage', 'pipeline_stage', 'status', 'lead_status'],
     },
     {

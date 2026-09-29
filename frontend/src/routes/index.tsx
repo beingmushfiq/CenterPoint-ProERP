@@ -22,6 +22,7 @@ const QcWorkspace = lazy(() => import('../modules/qc/QcWorkspace'));
 const InventoryWorkspace = lazy(() => import('../modules/inventory/InventoryWorkspace'));
 const PurchasingWorkspace = lazy(() => import('../modules/purchasing/PurchasingWorkspace'));
 const SalesWorkspace = lazy(() => import('../modules/sales/SalesWorkspace'));
+const CrmWorkspace = lazy(() => import('../modules/crm/CrmWorkspace'));
 const PosWorkspace = lazy(() => import('../modules/pos/PosWorkspace'));
 const DeliveryWorkspace = lazy(() => import('../modules/delivery/DeliveryWorkspace'));
 const FinanceWorkspace = lazy(() => import('../modules/finance/FinanceWorkspace'));
@@ -306,6 +307,14 @@ const erpWorkspaceRouteChildren: RouteObject[] = [
   {
     path: 'sales',
     element: <SalesWorkspace />,
+  },
+  {
+    path: 'crm',
+    element: <CrmWorkspace />,
+  },
+  {
+    path: 'leads',
+    element: <Navigate to="/crm" replace />,
   },
   {
     path: 'pos',

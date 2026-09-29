@@ -7,6 +7,8 @@ namespace App\Modules\Sales\Controllers;
 use App\Core\Tenancy\TenantContext;
 use App\Http\Controllers\Controller;
 use App\Models\Party;
+use App\Models\User;
+use App\Modules\HR\Models\Employee;
 use App\Modules\Sales\Models\CrmActivity;
 use App\Modules\Sales\Models\CrmLead;
 use App\Modules\Sales\Models\SalesOrder;
@@ -20,6 +22,31 @@ use Illuminate\Support\Str;
 
 final class CrmLeadController extends Controller
 {
+    public const VALID_SOURCES = [
+        'storefront',
+        'walk_in',
+        'phone',
+        'field_visit',
+        'referral',
+        'cold_outreach',
+        'event',
+        'social_media',
+        'website',
+        'online',
+        'other',
+    ];
+
+    public const VALID_STAGES = [
+        'new',
+        'contacted',
+        'qualified',
+        'proposal',
+        'negotiation',
+        'won',
+        'lost',
+        'fake',
+    ];
+
     public function index(Request $request): AnonymousResourceCollection
     {
         $tenantId = TenantContext::current()->tenantId();
@@ -68,13 +95,26 @@ final class CrmLeadController extends Controller
             'company_name'        => ['nullable', 'string', 'max:255'],
             'phone'               => ['nullable', 'string', 'max:64'],
             'email'               => ['nullable', 'email', 'max:255'],
-            'source'              => ['nullable', 'string', 'max:32'],
-            'stage'               => ['nullable', 'string', 'max:32'],
-            'assigned_to'         => ['nullable', 'integer', 'exists:users,id'],
+            'source'              => ['nullable', 'string', 'in:' . implode(',', self::VALID_SOURCES)],
+            'stage'               => ['nullable', 'string', 'in:' . implode(',', self::VALID_STAGES)],
+            'assigned_to'         => ['nullable', 'integer'],
             'expected_value'      => ['nullable', 'numeric', 'min:0'],
             'expected_close_date' => ['nullable', 'date'],
             'notes'               => ['nullable', 'string'],
         ]);
+
+        $assignedTo = isset($validated['assigned_to']) ? (int) $validated['assigned_to'] : null;
+        if ($assignedTo) {
+            $userExists = User::where('id', $assignedTo)->exists();
+            if (!$userExists) {
+                $employee = Employee::where('tenant_id', $tenantId)->where('id', $assignedTo)->first();
+                if ($employee && $employee->user_id) {
+                    $assignedTo = (int) $employee->user_id;
+                }
+            }
+        } elseif (Auth::id()) {
+            $assignedTo = (int) Auth::id();
+        }
 
         $lead = new CrmLead();
         $lead->tenant_id = $tenantId;
@@ -84,7 +124,7 @@ final class CrmLeadController extends Controller
         $lead->email = $validated['email'] ?? null;
         $lead->source = $validated['source'] ?? 'walk_in';
         $lead->stage = $validated['stage'] ?? 'new';
-        $lead->assigned_to = $validated['assigned_to'] ?? null;
+        $lead->assigned_to = $assignedTo;
         $lead->expected_value = (string) ($validated['expected_value'] ?? '0.0000');
         $lead->expected_close_date = $validated['expected_close_date'] ?? null;
         $lead->notes = $validated['notes'] ?? null;
@@ -100,7 +140,7 @@ final class CrmLeadController extends Controller
     {
         $tenantId = TenantContext::current()->tenantId();
 
-        $lead = CrmLead::with(['assignedUser', 'convertedParty', 'validator', 'activities.assignedUser', 'orders'])
+        $lead = CrmLead::with(['assignedUser', 'convertedParty', 'validator', 'activities.assignedUser', 'orders', 'lostReason'])
             ->where('tenant_id', $tenantId)
             ->findOrFail($id);
 
@@ -118,11 +158,12 @@ final class CrmLeadController extends Controller
             'company_name'        => ['nullable', 'string', 'max:255'],
             'phone'               => ['nullable', 'string', 'max:64'],
             'email'               => ['nullable', 'email', 'max:255'],
-            'source'              => ['nullable', 'string', 'max:32'],
-            'stage'               => ['nullable', 'string', 'max:32'],
+            'source'              => ['nullable', 'string', 'in:' . implode(',', self::VALID_SOURCES)],
+            'stage'               => ['nullable', 'string', 'in:' . implode(',', self::VALID_STAGES)],
             'assigned_to'         => ['nullable', 'integer', 'exists:users,id'],
             'expected_value'      => ['nullable', 'numeric', 'min:0'],
             'expected_close_date' => ['nullable', 'date'],
+            'lost_reason_id'      => ['nullable', 'integer'],
             'notes'               => ['nullable', 'string'],
         ]);
 
@@ -130,7 +171,7 @@ final class CrmLeadController extends Controller
         $lead->updated_by = Auth::id() ? (int) Auth::id() : null;
         $lead->save();
 
-        return (new CrmLeadResource($lead->load(['assignedUser', 'convertedParty', 'validator'])))->response();
+        return (new CrmLeadResource($lead->load(['assignedUser', 'convertedParty', 'validator', 'activities.assignedUser', 'orders', 'lostReason'])))->response();
     }
 
     public function updateStage(Request $request, int $id): JsonResponse
@@ -140,7 +181,7 @@ final class CrmLeadController extends Controller
         $lead = CrmLead::where('tenant_id', $tenantId)->findOrFail($id);
 
         $validated = $request->validate([
-            'stage'          => ['required', 'string', 'in:new,contacted,qualified,proposal,won,lost,fake'],
+            'stage'          => ['required', 'string', 'in:' . implode(',', self::VALID_STAGES)],
             'lost_reason_id' => ['nullable', 'integer'],
             'notes'          => ['nullable', 'string'],
         ]);
@@ -155,7 +196,7 @@ final class CrmLeadController extends Controller
         $lead->updated_by = Auth::id() ? (int) Auth::id() : null;
         $lead->save();
 
-        return (new CrmLeadResource($lead->load(['assignedUser', 'convertedParty', 'validator'])))->response();
+        return (new CrmLeadResource($lead->load(['assignedUser', 'convertedParty', 'validator', 'activities.assignedUser', 'orders', 'lostReason'])))->response();
     }
 
     public function validateFake(Request $request, int $id): JsonResponse
@@ -399,8 +440,8 @@ final class CrmLeadController extends Controller
             }
         }
 
-        $validSources = ['walk_in', 'phone', 'referral', 'online', 'field_visit', 'other'];
-        $validStages = ['new', 'contacted', 'qualified', 'proposal', 'won', 'lost'];
+        $validSources = self::VALID_SOURCES;
+        $validStages = self::VALID_STAGES;
 
         $chunks = array_chunk($rows, 100);
 
