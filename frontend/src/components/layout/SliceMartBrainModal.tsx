@@ -8,7 +8,6 @@ import {
   ArrowRight,
   X,
   RefreshCw,
-  Search,
   Plus,
   DollarSign,
   Factory,
@@ -21,6 +20,14 @@ import {
   Square,
   Wrench,
   AlertTriangle,
+  Maximize2,
+  Minimize2,
+  Zap,
+  Terminal,
+  Activity,
+  Layers,
+  Building2,
+  Users,
 } from 'lucide-react';
 import { useTenantBranding } from '../../lib/theme/useTenantBranding';
 import { useAuthStore } from '../../lib/auth/authStore';
@@ -97,11 +104,16 @@ interface SliceMartBrainModalProps {
 }
 
 const TONE_STYLES: Record<string, string> = {
-  success: 'border-emerald-500/40 bg-emerald-500/5 text-emerald-700 dark:text-emerald-400',
-  primary: 'border-primary/40 bg-primary/5 text-primary',
-  amber: 'border-amber-500/40 bg-amber-500/5 text-amber-700 dark:text-amber-400',
-  danger: 'border-rose-500/40 bg-rose-500/5 text-rose-700 dark:text-rose-400',
-  neutral: 'border-default bg-surface-sunken/60 text-muted',
+  success:
+    'border-emerald-500/40 bg-emerald-50/80 dark:bg-emerald-950/40 text-emerald-900 dark:text-emerald-200 border-l-4 border-l-emerald-500 shadow-xs',
+  primary:
+    'border-indigo-500/40 bg-indigo-50/80 dark:bg-indigo-950/40 text-indigo-900 dark:text-indigo-200 border-l-4 border-l-indigo-600 shadow-xs',
+  amber:
+    'border-amber-500/40 bg-amber-50/80 dark:bg-amber-950/40 text-amber-900 dark:text-amber-200 border-l-4 border-l-amber-500 shadow-xs',
+  danger:
+    'border-rose-500/40 bg-rose-50/80 dark:bg-rose-950/40 text-rose-900 dark:text-rose-200 border-l-4 border-l-rose-500 shadow-xs',
+  neutral:
+    'border-slate-300 dark:border-slate-700 bg-slate-100/90 dark:bg-slate-800/90 text-slate-800 dark:text-slate-200 border-l-4 border-l-slate-400 dark:border-l-slate-500 shadow-xs',
 };
 
 const PROMPT_CATEGORIES = [
@@ -143,19 +155,6 @@ const PROMPT_CATEGORIES = [
       'Show active shopfloor batches and quality inspection pass yield',
       'How many batches failed QC inspections this week?',
       'What is the status of our current production work orders?',
-    ],
-  },
-  {
-    id: 'create',
-    label: 'Quick Add',
-    icon: Plus,
-    chips: [
-      'Add a product',
-      'Add a customer',
-      'Add an expense',
-      'Create a production batch',
-      'Add a warehouse',
-      'Add an employee',
     ],
   },
 ];
@@ -200,28 +199,41 @@ function formatFieldLabel(key: string): string {
 }
 
 /**
- * Lightweight safe markdown renderer for bold text, bullet points, and code tokens.
+ * Safe markdown renderer for bold text, bullet points, headers, and code tokens.
  */
 function FormattedMessageText({ text, isStreaming }: { text: string; isStreaming?: boolean | undefined }) {
   const lines = text.split('\n');
 
   return (
-    <div className="space-y-1.5 leading-relaxed text-xs">
+    <div className="space-y-2 leading-relaxed text-[13px] sm:text-sm">
       {lines.map((line, lIdx) => {
         const trimmed = line.trim();
         if (!trimmed) {
-          return <div key={lIdx} className="h-1" />;
+          return <div key={lIdx} className="h-1.5" />;
         }
 
-        const isBullet = trimmed.startsWith('•') || trimmed.startsWith('-');
-        const content = isBullet ? trimmed.replace(/^[•-]\s*/, '') : line;
+        // Header Markdown support (##, ###)
+        if (trimmed.startsWith('## ') || trimmed.startsWith('### ')) {
+          const headerText = trimmed.replace(/^#{2,3}\s*/, '');
+          return (
+            <div key={lIdx} className="flex items-center gap-2 pt-2.5 pb-1">
+              <span className="size-2 rounded-full bg-gradient-to-r from-indigo-500 to-violet-600 shrink-0" />
+              <h4 className="text-xs sm:text-[13px] font-black uppercase tracking-wider text-indigo-700 dark:text-indigo-300">
+                {headerText}
+              </h4>
+            </div>
+          );
+        }
+
+        const isBullet = trimmed.startsWith('•') || trimmed.startsWith('-') || trimmed.startsWith('*');
+        const content = isBullet ? trimmed.replace(/^[•\-*]\s*/, '') : line;
 
         const parts = content.split(/(\*\*.*?\*\*|`.*?`)/g);
 
         const renderedLine = parts.map((part, pIdx) => {
           if (part.startsWith('**') && part.endsWith('**')) {
             return (
-              <strong key={pIdx} className="font-semibold text-default">
+              <strong key={pIdx} className="font-extrabold text-slate-900 dark:text-white tracking-tight">
                 {part.slice(2, -2)}
               </strong>
             );
@@ -230,7 +242,7 @@ function FormattedMessageText({ text, isStreaming }: { text: string; isStreaming
             return (
               <code
                 key={pIdx}
-                className="px-1.5 py-0.5 rounded bg-surface border border-default text-primary font-mono text-[11px]"
+                className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 border border-slate-300/80 dark:border-slate-700 text-indigo-700 dark:text-indigo-300 font-mono text-xs font-semibold shadow-2xs"
               >
                 {part.slice(1, -1)}
               </code>
@@ -243,12 +255,17 @@ function FormattedMessageText({ text, isStreaming }: { text: string; isStreaming
 
         if (isBullet) {
           return (
-            <div key={lIdx} className="flex items-start gap-2 pl-1 py-0.5">
-              <span className="size-1.5 rounded-full bg-primary mt-1.5 shrink-0" />
-              <div className="flex-1 text-muted leading-relaxed">
+            <div
+              key={lIdx}
+              className="flex items-start gap-3 py-1.5 px-3 rounded-xl bg-slate-50/80 dark:bg-slate-800/40 border border-slate-200/70 dark:border-slate-700/60 hover:border-indigo-500/30 hover:bg-indigo-50/20 dark:hover:bg-indigo-950/20 transition-all group"
+            >
+              <div className="size-5 rounded-lg bg-indigo-500/10 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0 mt-0.5 group-hover:bg-indigo-600 group-hover:text-white transition-colors shadow-2xs">
+                <Check className="size-3 stroke-[3]" />
+              </div>
+              <div className="flex-1 text-slate-800 dark:text-slate-100 font-medium leading-relaxed text-[13px] sm:text-sm">
                 {renderedLine}
                 {isStreaming && isLastLine && (
-                  <span className="inline-block w-1.5 h-3 bg-primary ml-1 align-middle animate-pulse rounded-xs" />
+                  <span className="inline-block w-2 h-3.5 bg-indigo-600 dark:bg-indigo-400 ml-1.5 align-middle animate-pulse rounded-xs shadow-xs" />
                 )}
               </div>
             </div>
@@ -256,10 +273,10 @@ function FormattedMessageText({ text, isStreaming }: { text: string; isStreaming
         }
 
         return (
-          <p key={lIdx} className="text-default">
+          <p key={lIdx} className="text-slate-800 dark:text-slate-200 font-normal leading-relaxed text-[13px] sm:text-sm">
             {renderedLine}
             {isStreaming && isLastLine && (
-              <span className="inline-block w-1.5 h-3 bg-primary ml-1 align-middle animate-pulse rounded-xs" />
+              <span className="inline-block w-2 h-3.5 bg-indigo-600 dark:bg-indigo-400 ml-1.5 align-middle animate-pulse rounded-xs shadow-xs" />
             )}
           </p>
         );
@@ -269,34 +286,44 @@ function FormattedMessageText({ text, isStreaming }: { text: string; isStreaming
 }
 
 /**
- * Collapsible Agent Thought Trace Accordion
+ * Collapsible Agent Thought Trace Accordion (Terminal-style)
  */
 function AgentThoughtAccordion({ thought }: { thought: string }) {
   const [expanded, setExpanded] = useState(false);
 
   return (
-    <div className="rounded-xl border border-primary/25 bg-primary/5 overflow-hidden transition-all shadow-2xs">
+    <div className="rounded-xl border border-violet-500/25 bg-gradient-to-r from-violet-500/5 via-indigo-500/5 to-transparent overflow-hidden transition-all shadow-2xs">
       <button
         type="button"
         onClick={() => setExpanded(!expanded)}
-        className="w-full flex items-center justify-between px-3 py-1.5 text-2xs font-medium text-primary hover:bg-primary/10 transition-colors cursor-pointer"
+        className="w-full flex items-center justify-between px-3.5 py-2 text-xs font-medium text-violet-700 dark:text-violet-300 hover:bg-violet-500/10 transition-colors cursor-pointer"
       >
-        <div className="flex items-center gap-1.5">
-          <Sparkles className="size-3 text-primary animate-pulse" />
-          <span className="font-semibold">Local Toolchain Trace</span>
-          <span className="text-[10px] px-1.5 py-0.2 rounded-md bg-primary/20 text-primary font-mono">
-            Deterministic Engine
+        <div className="flex items-center gap-2">
+          <div className="size-5 rounded-md bg-violet-500/15 text-violet-600 dark:text-violet-400 flex items-center justify-center">
+            <Terminal className="size-3" />
+          </div>
+          <span className="font-bold text-xs tracking-tight">Deterministic Local Reasoning</span>
+          <span className="text-[10px] px-2 py-0.5 rounded-full bg-violet-500/20 text-violet-700 dark:text-violet-300 font-mono font-semibold">
+            Zero-Latency Trace
           </span>
         </div>
-        <div className="flex items-center gap-1 text-[10px] text-muted">
+        <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 font-medium">
           <span>{expanded ? 'Hide Trace' : 'Inspect Reasoning'}</span>
-          <ChevronDown className={cn('size-3 transition-transform duration-200', expanded && 'rotate-180')} />
+          <ChevronDown className={cn('size-3.5 transition-transform duration-200', expanded && 'rotate-180')} />
         </div>
       </button>
 
       {expanded && (
-        <div className="p-2.5 pt-1.5 border-t border-primary/15 text-2xs font-mono text-muted bg-surface/90 leading-relaxed">
-          {thought}
+        <div className="p-3.5 border-t border-violet-500/20 bg-slate-950 text-emerald-400 font-mono text-[11px] sm:text-xs leading-relaxed space-y-2 shadow-inner">
+          <div className="flex items-center gap-2 text-slate-500 text-[10px] pb-1 border-b border-slate-800">
+            <Activity className="size-3 text-emerald-400 animate-pulse" />
+            <span>kernel.trace --mode=deterministic-planner</span>
+          </div>
+          <div className="whitespace-pre-wrap">{thought}</div>
+          <div className="flex items-center gap-1 text-[10px] text-emerald-500/80 pt-1">
+            <span>● Trace verified by internal policy engine</span>
+            <span className="inline-block w-1.5 h-3 bg-emerald-400 animate-pulse ml-1" />
+          </div>
         </div>
       )}
     </div>
@@ -304,7 +331,7 @@ function AgentThoughtAccordion({ thought }: { thought: string }) {
 }
 
 /**
- * Action & Tool Execution Card (Renders live ERP tool results, metrics, and deep-link actions)
+ * Action & Tool Execution Card (Renders live ERP tool results, metrics, and deep-links)
  */
 function ToolExecutionCard({
   toolCall,
@@ -323,47 +350,49 @@ function ToolExecutionCard({
   const aging = data?.aging as Record<string, number> | undefined;
 
   return (
-    <div className="rounded-xl border border-primary/30 bg-surface/95 overflow-hidden shadow-xs space-y-2.5 p-3.5 my-1 text-xs">
-      <div className="flex items-center justify-between pb-2 border-b border-default/70">
-        <div className="flex items-center gap-2">
-          <div className="size-6 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
-            <Wrench className="size-3.5" />
+    <div className="rounded-2xl border border-indigo-200/80 dark:border-indigo-900/60 bg-gradient-to-b from-indigo-50/50 via-white to-white dark:from-indigo-950/20 dark:via-slate-900 dark:to-slate-900 overflow-hidden shadow-sm space-y-3.5 p-4 my-2 text-xs">
+      {/* Header */}
+      <div className="flex items-center justify-between pb-3 border-b border-slate-200/80 dark:border-slate-800">
+        <div className="flex items-center gap-2.5">
+          <div className="size-8 rounded-xl bg-gradient-to-br from-indigo-600 to-violet-600 text-white flex items-center justify-center shrink-0 shadow-xs shadow-indigo-500/30">
+            <Wrench className="size-4" />
           </div>
           <div>
-            <div className="flex items-center gap-1.5">
-              <span className="font-bold text-default">{title}</span>
-              <span className="px-1.5 py-0.5 rounded bg-surface-sunken text-primary font-mono text-[10px] border border-primary/20">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="font-extrabold text-slate-900 dark:text-white text-xs sm:text-sm tracking-tight">{title}</span>
+              <span className="px-2 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 font-mono text-[10px] font-semibold border border-indigo-500/20">
                 {toolName}
               </span>
             </div>
-            <p className="text-[10px] text-muted">Executed by ProERP Deterministic Local Kernel</p>
+            <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">Executed by ProERP Deterministic Local Kernel</p>
           </div>
         </div>
-        <div className="flex items-center gap-1 text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">
+        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 text-[10px] font-bold shadow-2xs">
           <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
           <span>Local Live Query</span>
         </div>
       </div>
 
+      {/* Summary text */}
       {toolResult?.summary && (
-        <p className="text-2xs text-muted leading-relaxed font-medium">
+        <p className="text-xs sm:text-[13px] text-slate-800 dark:text-slate-200 leading-relaxed font-normal bg-white/70 dark:bg-slate-850/60 p-3 rounded-xl border border-slate-200/70 dark:border-slate-750">
           {toolResult.summary}
         </p>
       )}
 
       {/* Metric Badges */}
       {toolResult?.metrics && toolResult.metrics.length > 0 && (
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
+        <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-4 gap-2.5 pt-1">
           {toolResult.metrics.map((m, idx) => (
             <div
               key={idx}
               className={cn(
-                'p-2 rounded-lg border transition-all text-left shadow-2xs',
+                'p-3 rounded-xl border transition-all text-left shadow-2xs hover:shadow-xs hover:scale-[1.02] flex flex-col justify-between',
                 TONE_STYLES[m.tone || 'neutral']
               )}
             >
-              <div className="text-[10px] font-medium uppercase tracking-wider opacity-80">{m.label}</div>
-              <div className="text-xs font-bold mt-0.5 font-mono">{m.value}</div>
+              <div className="text-[10px] font-bold uppercase tracking-wider opacity-80">{m.label}</div>
+              <div className="text-xs sm:text-sm font-extrabold mt-1 font-mono tracking-tight">{m.value}</div>
             </div>
           ))}
         </div>
@@ -371,16 +400,16 @@ function ToolExecutionCard({
 
       {/* Low Stock Alerts */}
       {lowStockItems && lowStockItems.length > 0 && (
-        <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-2 space-y-1.5">
-          <div className="flex items-center gap-1 text-[11px] font-bold text-amber-700 dark:text-amber-400">
-            <AlertTriangle className="size-3" />
+        <div className="rounded-xl border border-amber-500/30 bg-amber-50/60 dark:bg-amber-950/20 p-3 space-y-2">
+          <div className="flex items-center gap-2 text-xs font-bold text-amber-800 dark:text-amber-300">
+            <AlertTriangle className="size-4" />
             <span>Low Stock Reorder Triggers (&lt; 50 units):</span>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 text-2xs">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
             {lowStockItems.map((item, i) => (
-              <div key={i} className="flex items-center justify-between px-2 py-1 rounded bg-surface/80 border border-amber-500/20">
-                <span className="truncate font-medium">{item.name} <span className="text-[10px] text-muted font-mono">({item.sku})</span></span>
-                <span className="font-bold text-amber-700 dark:text-amber-400 font-mono ml-2">{item.quantity} pcs</span>
+              <div key={i} className="flex items-center justify-between px-3 py-2 rounded-lg bg-white/90 dark:bg-slate-800/90 border border-amber-500/20 shadow-2xs">
+                <span className="truncate font-medium text-slate-800 dark:text-slate-100">{item.name} <span className="text-[10px] text-slate-500 dark:text-slate-400 font-mono">({item.sku})</span></span>
+                <span className="font-extrabold text-amber-700 dark:text-amber-400 font-mono ml-2 shrink-0 px-2 py-0.5 rounded-md bg-amber-500/10">{item.quantity} pcs</span>
               </div>
             ))}
           </div>
@@ -389,20 +418,20 @@ function ToolExecutionCard({
 
       {/* Accounts Receivable Aging Breakdown */}
       {aging && (
-        <div className="rounded-lg border border-default bg-surface-sunken/40 p-2 space-y-1">
-          <span className="text-[10px] font-bold text-muted uppercase tracking-wider block">Accounts Receivable Aging Breakdown:</span>
-          <div className="grid grid-cols-3 gap-1.5 text-center text-2xs">
-            <div className="p-1.5 rounded bg-surface border border-default">
-              <span className="text-[10px] text-muted block">0-30 Days</span>
-              <span className="font-bold text-default font-mono">৳{Number(aging['0_30_days'] || 0).toLocaleString()}</span>
+        <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-850/60 p-3 space-y-2">
+          <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">Accounts Receivable Aging Breakdown:</span>
+          <div className="grid grid-cols-1 xs:grid-cols-3 gap-2 text-center text-xs">
+            <div className="p-2.5 rounded-xl bg-white dark:bg-slate-800 border border-emerald-500/30 text-emerald-800 dark:text-emerald-300 shadow-2xs">
+              <span className="text-[10px] text-slate-500 dark:text-slate-400 block font-semibold">0-30 Days</span>
+              <span className="font-extrabold font-mono text-xs sm:text-sm mt-0.5 block">৳{Number(aging['0_30_days'] || 0).toLocaleString()}</span>
             </div>
-            <div className="p-1.5 rounded bg-surface border border-amber-500/30 text-amber-700 dark:text-amber-400">
-              <span className="text-[10px] block opacity-80">31-60 Days</span>
-              <span className="font-bold font-mono">৳{Number(aging['31_60_days'] || 0).toLocaleString()}</span>
+            <div className="p-2.5 rounded-xl bg-white dark:bg-slate-800 border border-amber-500/30 text-amber-800 dark:text-amber-300 shadow-2xs">
+              <span className="text-[10px] text-slate-500 dark:text-slate-400 block font-semibold">31-60 Days</span>
+              <span className="font-extrabold font-mono text-xs sm:text-sm mt-0.5 block">৳{Number(aging['31_60_days'] || 0).toLocaleString()}</span>
             </div>
-            <div className="p-1.5 rounded bg-surface border border-rose-500/30 text-rose-700 dark:text-rose-400">
-              <span className="text-[10px] block opacity-80">60+ Days</span>
-              <span className="font-bold font-mono">৳{Number(aging['60_plus_days'] || 0).toLocaleString()}</span>
+            <div className="p-2.5 rounded-xl bg-white dark:bg-slate-800 border border-rose-500/30 text-rose-800 dark:text-rose-300 shadow-2xs">
+              <span className="text-[10px] text-slate-500 dark:text-slate-400 block font-semibold">60+ Days</span>
+              <span className="font-extrabold font-mono text-xs sm:text-sm mt-0.5 block">৳{Number(aging['60_plus_days'] || 0).toLocaleString()}</span>
             </div>
           </div>
         </div>
@@ -410,17 +439,17 @@ function ToolExecutionCard({
 
       {/* Deep links */}
       {toolResult?.actions && toolResult.actions.length > 0 && (
-        <div className="flex flex-wrap items-center gap-1.5 pt-2 border-t border-default/50">
-          <span className="text-3xs text-muted font-semibold mr-1">Deep Links:</span>
+        <div className="flex flex-wrap items-center gap-2 pt-2.5 border-t border-slate-200/70 dark:border-slate-800">
+          <span className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider mr-1">Deep Links:</span>
           {toolResult.actions.map((act, idx) => (
             <button
               key={idx}
               type="button"
               onClick={() => act.url && onNavigate(act.url)}
-              className="text-2xs font-semibold px-2 py-1 rounded-md bg-surface border border-default hover:border-primary hover:text-primary transition-all flex items-center gap-1 cursor-pointer shadow-2xs"
+              className="text-xs font-semibold px-3 py-1.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-indigo-500 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs active:scale-95 group"
             >
               <span>{act.label}</span>
-              <ArrowRight className="size-2.5 text-primary" />
+              <ArrowRight className="size-3 text-indigo-500 group-hover:translate-x-0.5 transition-transform" />
             </button>
           ))}
         </div>
@@ -471,36 +500,36 @@ function UniversalActionExecutionCard({
     const destLabel = result.navigation_label || 'View in ERP';
 
     return (
-      <div className="p-4 rounded-xl border border-emerald-500/40 bg-emerald-500/10 space-y-3 animate-in fade-in zoom-in-95 duration-150">
-        <div className="flex items-center gap-2 text-xs font-bold text-emerald-700 dark:text-emerald-400">
-          <CheckCircle2 className="size-4 shrink-0" />
+      <div className="p-4 sm:p-5 rounded-2xl border border-emerald-500/40 bg-emerald-50/80 dark:bg-emerald-950/30 space-y-3.5 shadow-sm animate-in fade-in zoom-in-95 duration-150">
+        <div className="flex items-center gap-2 text-xs sm:text-sm font-bold text-emerald-800 dark:text-emerald-300">
+          <CheckCircle2 className="size-4.5 shrink-0 text-emerald-600 dark:text-emerald-400" />
           <span>Entity Successfully Created in Live ERP!</span>
         </div>
-        <p className="text-2xs text-muted leading-relaxed">
+        <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed font-normal">
           {result.message}
         </p>
 
         {result.record && (
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 py-1">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 py-1">
             {Object.entries(result.record).map(([k, v]) => (
-              <div key={k} className="p-2 rounded-lg bg-surface/80 border border-emerald-500/20 text-2xs">
-                <span className="text-[10px] text-muted block uppercase tracking-wider">{k}</span>
-                <span className="font-semibold text-default font-mono truncate block">{String(v)}</span>
+              <div key={k} className="p-2.5 rounded-xl bg-white/90 dark:bg-slate-900/90 border border-emerald-500/20 text-xs shadow-2xs">
+                <span className="text-[10px] text-slate-500 dark:text-slate-400 block uppercase tracking-wider font-semibold">{k}</span>
+                <span className="font-bold text-slate-900 dark:text-white font-mono truncate block mt-0.5">{String(v)}</span>
               </div>
             ))}
           </div>
         )}
 
-        <div className="flex items-center gap-2 pt-1 border-t border-emerald-500/20">
+        <div className="flex items-center gap-2 pt-2 border-t border-emerald-500/20">
           <Button
             type="button"
             variant="secondary"
             size="sm"
             onClick={() => navigate(destUrl)}
-            className="text-xs gap-1.5 h-8 font-semibold cursor-pointer"
+            className="text-xs gap-1.5 h-8.5 px-4 font-semibold cursor-pointer"
           >
             <span>{destLabel}</span>
-            <ArrowRight className="size-3" />
+            <ArrowRight className="size-3.5" />
           </Button>
         </div>
       </div>
@@ -508,23 +537,23 @@ function UniversalActionExecutionCard({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="p-3.5 rounded-xl border border-primary/30 bg-surface space-y-3 shadow-xs">
-      <div className="flex items-center justify-between pb-2 border-b border-default">
-        <div className="flex items-center gap-2">
-          <div className="size-6 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
-            <Plus className="size-3.5" />
+    <form onSubmit={handleSubmit} className="p-4 sm:p-5 rounded-2xl border border-indigo-200/80 dark:border-indigo-900/60 bg-white dark:bg-slate-900 space-y-4 shadow-sm">
+      <div className="flex items-center justify-between pb-3 border-b border-slate-200/80 dark:border-slate-800">
+        <div className="flex items-center gap-2.5">
+          <div className="size-7 rounded-xl bg-indigo-500/10 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
+            <Plus className="size-4" />
           </div>
           <div>
-            <h4 className="text-xs font-bold text-default">{action.title}</h4>
-            <p className="text-[10px] text-muted">Review parameters and commit to ERP database</p>
+            <h4 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">{action.title}</h4>
+            <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">Review parameters and commit to ERP database</p>
           </div>
         </div>
-        <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-primary/10 text-primary border border-primary/20">
+        <span className="text-[10px] font-mono px-2.5 py-1 rounded-full bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 font-bold border border-indigo-500/20">
           1-Click Action
         </span>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
         {Object.entries(fields).map(([key, val]) => {
           const isCodeField = key.includes('sku') || key.includes('code') || key.includes('number');
           const isNumberField = key.includes('price') || key.includes('cost') || key.includes('stock') || key.includes('amount') || key.includes('quantity') || key.includes('limit') || key.includes('value');
@@ -533,11 +562,11 @@ function UniversalActionExecutionCard({
           if (key === 'type' && action.type === 'create_product') {
             return (
               <div key={key}>
-                <label className="text-[10px] font-semibold text-muted block mb-1">{label}</label>
+                <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block mb-1">{label}</label>
                 <select
                   value={val}
                   onChange={(e) => setFields((p) => ({ ...p, [key]: e.target.value }))}
-                  className="w-full px-2.5 py-1.5 rounded-lg border border-default bg-surface-sunken text-xs text-default focus:border-primary focus:outline-hidden"
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:bg-white dark:focus:bg-slate-900 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all outline-hidden"
                 >
                   <option value="finished">Finished Product</option>
                   <option value="raw">Raw Material</option>
@@ -551,11 +580,11 @@ function UniversalActionExecutionCard({
           if (key === 'type' && action.type === 'create_warehouse') {
             return (
               <div key={key}>
-                <label className="text-[10px] font-semibold text-muted block mb-1">{label}</label>
+                <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block mb-1">{label}</label>
                 <select
                   value={val}
                   onChange={(e) => setFields((p) => ({ ...p, [key]: e.target.value }))}
-                  className="w-full px-2.5 py-1.5 rounded-lg border border-default bg-surface-sunken text-xs text-default focus:border-primary focus:outline-hidden"
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:bg-white dark:focus:bg-slate-900 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all outline-hidden"
                 >
                   <option value="general">General Distribution Hub</option>
                   <option value="factory">Factory Floor Store</option>
@@ -569,11 +598,11 @@ function UniversalActionExecutionCard({
           if (key === 'payment_method') {
             return (
               <div key={key}>
-                <label className="text-[10px] font-semibold text-muted block mb-1">{label}</label>
+                <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block mb-1">{label}</label>
                 <select
                   value={val}
                   onChange={(e) => setFields((p) => ({ ...p, [key]: e.target.value }))}
-                  className="w-full px-2.5 py-1.5 rounded-lg border border-default bg-surface-sunken text-xs text-default focus:border-primary focus:outline-hidden"
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:bg-white dark:focus:bg-slate-900 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all outline-hidden"
                 >
                   <option value="cash">Cash on Hand</option>
                   <option value="bank_transfer">Corporate Bank Transfer</option>
@@ -587,15 +616,15 @@ function UniversalActionExecutionCard({
           return (
             <div key={key} className={cn(key === 'address' || key === 'description' || key === 'notes' ? 'sm:col-span-2' : '')}>
               <div className="flex items-center justify-between mb-1">
-                <label className="text-[10px] font-semibold text-muted">{label}</label>
+                <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300">{label}</label>
                 {isCodeField && (
                   <button
                     type="button"
                     onClick={() => regenerateCode(key, key.substring(0, 3).toUpperCase())}
-                    className="text-[10px] text-primary hover:underline flex items-center gap-0.5 cursor-pointer"
+                    className="text-[11px] text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1 cursor-pointer font-medium"
                     title="Generate new random code"
                   >
-                    <RefreshCw className="size-2.5" /> Re-gen
+                    <RefreshCw className="size-3" /> Re-gen
                   </button>
                 )}
               </div>
@@ -606,9 +635,9 @@ function UniversalActionExecutionCard({
                 onChange={(e) => setFields((p) => ({ ...p, [key]: e.target.value }))}
                 required={!key.includes('notes') && !key.includes('description') && !key.includes('address')}
                 className={cn(
-                  'w-full px-2.5 py-1.5 rounded-lg border border-default bg-surface-sunken text-xs text-default focus:border-primary focus:outline-hidden',
-                  isCodeField && 'font-mono uppercase',
-                  isNumberField && 'font-mono'
+                  'w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white focus:bg-white dark:focus:bg-slate-900 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all outline-hidden',
+                  isCodeField && 'font-mono uppercase font-semibold',
+                  isNumberField && 'font-mono font-semibold'
                 )}
               />
             </div>
@@ -616,15 +645,15 @@ function UniversalActionExecutionCard({
         })}
       </div>
 
-      <div className="flex items-center justify-end gap-2 pt-2 border-t border-default/70">
+      <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-200/80 dark:border-slate-800">
         <Button
           type="submit"
           variant="primary"
           size="sm"
           loading={submitting}
-          className="gap-1.5 text-xs font-semibold px-4 h-8 cursor-pointer"
+          className="gap-1.5 text-xs sm:text-sm font-bold px-5 h-9 rounded-xl shadow-md shadow-indigo-500/25 active:scale-95 transition-all cursor-pointer"
         >
-          <Check className="size-3.5" />
+          <Check className="size-4 stroke-[3]" />
           <span>Confirm & Execute Now</span>
         </Button>
       </div>
@@ -682,6 +711,25 @@ export const SliceMartBrainModal: React.FC<SliceMartBrainModalProps> = ({ open, 
   const [streamStatus, setStreamStatus] = useState<string | null>(null);
   const [activeCategory, setActiveCategory] = useState<string>('commercial');
   const [showAddMenu, setShowAddMenu] = useState(false);
+  const [isWideMode, setIsWideMode] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('brain.wide_mode') === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  const toggleWideMode = () => {
+    setIsWideMode((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem('brain.wide_mode', String(next));
+      } catch {
+        // Ignore storage error
+      }
+      return next;
+    });
+  };
 
   const abortControllerRef = useRef<AbortController | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -1056,7 +1104,7 @@ export const SliceMartBrainModal: React.FC<SliceMartBrainModalProps> = ({ open, 
   return createPortal(
     <div
       role="presentation"
-      className="fixed inset-0 z-50 flex justify-end bg-slate-950/65 backdrop-blur-xs animate-in fade-in duration-200"
+      className="fixed inset-0 z-50 flex justify-end bg-slate-950/60 backdrop-blur-sm animate-in fade-in duration-200"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
@@ -1068,48 +1116,70 @@ export const SliceMartBrainModal: React.FC<SliceMartBrainModalProps> = ({ open, 
         role="dialog"
         aria-modal="true"
         aria-label={`${brandName} AI Operations Brain`}
-        className="relative w-full max-w-2xl sm:max-w-3xl h-full bg-surface border-l border-default shadow-2xl flex flex-col min-h-0 overflow-hidden animate-in slide-in-from-right duration-250 ease-out"
+        className={cn(
+          "relative w-full h-full h-dvh max-h-dvh bg-slate-50/98 dark:bg-slate-950/98 backdrop-blur-2xl border-l border-slate-200 dark:border-slate-800 shadow-2xl flex flex-col min-h-0 overflow-hidden transition-all duration-300 ease-in-out",
+          isWideMode ? "max-w-4xl lg:max-w-5xl" : "max-w-2xl sm:max-w-3xl",
+          "animate-in slide-in-from-right duration-250 ease-out"
+        )}
       >
-        {/* Top Accent Gradient */}
-        <div className="h-1 bg-linear-to-r from-primary via-indigo-500 to-emerald-500 shrink-0" />
+        {/* Top Accent Gradient with Shimmer */}
+        <div className="relative h-1.5 w-full bg-gradient-to-r from-indigo-600 via-violet-600 to-emerald-400 shrink-0 shadow-sm shadow-indigo-500/20 overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent opacity-75 animate-pulse pointer-events-none" />
+        </div>
 
-        {/* Top Header */}
-        <div className="px-5 py-3 border-b border-default bg-surface-sunken/80 flex items-center justify-between shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="size-9 rounded-xl bg-linear-to-br from-primary to-indigo-600 flex items-center justify-center text-white shadow-md shadow-primary/20">
+        {/* Top Header Command Bar */}
+        <div className="px-4 sm:px-5 py-3 border-b border-slate-200 dark:border-slate-800 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md flex items-center justify-between shrink-0 gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="relative size-10 rounded-2xl bg-gradient-to-tr from-indigo-600 via-violet-600 to-purple-600 flex items-center justify-center text-white shadow-lg shadow-indigo-500/25 ring-2 ring-indigo-500/20 shrink-0">
               <Brain className="size-5" />
+              <span className="absolute -bottom-0.5 -right-0.5 size-2.5 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-slate-900 animate-pulse" />
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-sm font-bold text-default tracking-tight">{brandName} AI Brain</h2>
-                <span className="px-2 py-0.5 rounded-full text-3xs font-bold uppercase tracking-wider bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25 flex items-center gap-1">
-                  <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white tracking-tight truncate">
+                  {brandName} AI Brain
+                </h2>
+                <span className="hidden xs:inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 items-center gap-1.5 shadow-2xs">
+                  <span className="size-1.5 rounded-full bg-emerald-500 animate-ping inline-block" />
                   Streaming Neural Agent
                 </span>
               </div>
-              <p className="text-[11px] text-muted">
-                100% local ERP agent · Real-time SSE streaming · Zero external cloud APIs
+              <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                100% local deterministic ERP agent · Real-time SSE streaming
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
+            {/* Desktop wide mode toggle */}
+            <button
+              type="button"
+              onClick={toggleWideMode}
+              className="hidden md:inline-flex p-2 rounded-xl text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 border border-transparent hover:border-slate-200 dark:hover:border-slate-700 transition-all cursor-pointer"
+              title={isWideMode ? "Switch to Standard View" : "Expand to Wide Studio View"}
+              aria-label="Toggle wide mode"
+            >
+              {isWideMode ? <Minimize2 className="size-4" /> : <Maximize2 className="size-4" />}
+            </button>
+
             <button
               type="button"
               onClick={handleClearHistory}
-              className="p-1.5 rounded-lg text-muted hover:text-rose-600 hover:bg-rose-500/10 transition-colors cursor-pointer"
+              className="p-2 rounded-xl text-slate-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer"
               title="Clear Conversation History"
               aria-label="Clear Conversation History"
             >
               <Trash2 className="size-4" />
             </button>
-            <kbd className="hidden sm:inline-flex items-center gap-1 px-2 py-1 rounded-md bg-surface border border-default text-3xs font-mono text-muted shadow-2xs">
+
+            <kbd className="hidden sm:inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-[10px] font-mono font-semibold text-slate-500 dark:text-slate-400 shadow-2xs select-none">
               Esc to close
             </kbd>
+
             <button
               type="button"
               onClick={onClose}
-              className="p-1.5 rounded-lg text-muted hover:text-default hover:bg-surface-sunken transition-colors cursor-pointer"
+              className="p-2 rounded-xl text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
               aria-label="Close AI Brain"
             >
               <X className="size-4" />
@@ -1117,94 +1187,114 @@ export const SliceMartBrainModal: React.FC<SliceMartBrainModalProps> = ({ open, 
           </div>
         </div>
 
-        {/* Categorized Prompt Chips Bar */}
-        <div className="border-b border-default/70 bg-surface-sunken/40 shrink-0">
+        {/* Categorized Prompt Ribbon Bar */}
+        <div className="border-b border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/80 backdrop-blur-md shrink-0">
           {/* Category Tabs */}
-          <div className="px-4 pt-2 pb-1 flex items-center gap-1.5 overflow-x-auto scrollbar-none">
-            {PROMPT_CATEGORIES.map((cat) => {
-              const Icon = cat.icon;
-              const isActive = cat.id === activeCategory;
-              return (
-                <button
-                  key={cat.id}
-                  type="button"
-                  onClick={() => setActiveCategory(cat.id)}
-                  className={cn(
-                    'px-2.5 py-1 rounded-lg text-3xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap shadow-2xs',
-                    isActive
-                      ? 'bg-primary text-primary-fg shadow-xs'
-                      : 'bg-surface border border-default/80 text-muted hover:text-default hover:border-primary/40'
-                  )}
-                >
-                  <Icon className={cn('size-3 shrink-0', isActive ? 'text-primary-fg' : 'text-primary')} />
-                  <span>{cat.label}</span>
-                </button>
-              );
-            })}
+          <div className="px-4 sm:px-5 pt-2.5 pb-2 flex items-center justify-between gap-2">
+            <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none min-w-0 py-0.5">
+              {PROMPT_CATEGORIES.map((cat) => {
+                const Icon = cat.icon;
+                const isActive = cat.id === activeCategory;
+                return (
+                  <button
+                    key={cat.id}
+                    type="button"
+                    onClick={() => setActiveCategory(cat.id)}
+                    className={cn(
+                      'px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap shrink-0 shadow-2xs',
+                      isActive
+                        ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-sm shadow-indigo-500/30 ring-1 ring-indigo-500/40 font-bold'
+                        : 'bg-white dark:bg-slate-850 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:border-indigo-400 hover:bg-slate-100 dark:hover:bg-slate-700/80'
+                    )}
+                  >
+                    <Icon className={cn('size-3.5 shrink-0', isActive ? 'text-white' : 'text-indigo-600 dark:text-indigo-400')} />
+                    <span>{cat.label}</span>
+                  </button>
+                );
+              })}
+            </div>
 
             {/* Quick Add Menu Dropdown */}
-            <div className="relative ml-auto">
+            <div className="relative shrink-0">
               <button
                 type="button"
                 onClick={() => setShowAddMenu(!showAddMenu)}
-                className="px-2 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 text-3xs font-bold flex items-center gap-1 cursor-pointer transition-all shadow-2xs"
+                className="px-3 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 text-emerald-800 dark:text-emerald-300 border border-emerald-500/30 text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all shadow-2xs whitespace-nowrap active:scale-95"
               >
-                <Plus className="size-3" />
+                <Plus className="size-3.5 shrink-0 text-emerald-600 dark:text-emerald-400" />
                 <span>Quick Add</span>
-                <ChevronDown className={cn('size-2.5 transition-transform', showAddMenu && 'rotate-180')} />
+                <ChevronDown className={cn('size-3 transition-transform duration-200 shrink-0 opacity-70', showAddMenu && 'rotate-180')} />
               </button>
 
               {showAddMenu && (
-                <div className="absolute right-0 top-full mt-1 w-52 p-1.5 rounded-xl bg-surface border border-default shadow-xl z-20 grid grid-cols-1 gap-0.5 animate-in fade-in zoom-in-95 duration-100">
-                  <div className="px-2 py-1 text-3xs font-bold text-muted uppercase tracking-wider border-b border-default mb-1">
-                    Select Entity to Add
+                <div className="absolute right-0 top-full mt-2 w-64 p-2 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl z-30 grid grid-cols-1 gap-1 animate-in fade-in zoom-in-95 duration-150">
+                  <div className="px-3 py-1.5 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                    <span>Instant ERP Creation</span>
+                    <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-semibold">11 Entities</span>
                   </div>
-                  {[
-                    { label: '📦 Product Item', prompt: 'Add a product' },
-                    { label: '🤝 Wholesale Customer', prompt: 'Add a customer' },
-                    { label: '🚚 Material Supplier', prompt: 'Add a supplier' },
-                    { label: '👤 Payroll Employee', prompt: 'Add an employee' },
-                    { label: '🏭 Storage Warehouse', prompt: 'Add a warehouse' },
-                    { label: '💵 Operating Expense', prompt: 'Add an expense' },
-                    { label: '⚙️ Production Batch', prompt: 'Create a production batch' },
-                    { label: '🎯 CRM Sales Lead', prompt: 'Add a CRM lead' },
-                    { label: '🏷️ Product Category', prompt: 'Add a category' },
-                    { label: '🏢 Trademark Brand', prompt: 'Add a brand' },
-                    { label: '👥 HR Department', prompt: 'Add a department' },
-                  ].map((item, idx) => (
-                    <button
-                      key={idx}
-                      type="button"
-                      onClick={() => void handleSendQuery(item.prompt)}
-                      className="w-full text-left px-2 py-1.5 rounded-lg text-2xs hover:bg-primary/10 hover:text-primary transition-colors cursor-pointer text-default font-medium flex items-center justify-between"
-                    >
-                      <span>{item.label}</span>
-                      <ArrowRight className="size-2.5 opacity-50" />
-                    </button>
-                  ))}
+                  <div className="max-h-80 overflow-y-auto space-y-0.5 pr-0.5">
+                    {[
+                      { label: 'Product Item', icon: Package, prompt: 'Add a product' },
+                      { label: 'Wholesale Customer', icon: Users, prompt: 'Add a customer' },
+                      { label: 'Material Supplier', icon: Factory, prompt: 'Add a supplier' },
+                      { label: 'Payroll Employee', icon: Users, prompt: 'Add an employee' },
+                      { label: 'Storage Warehouse', icon: Building2, prompt: 'Add a warehouse' },
+                      { label: 'Operating Expense', icon: DollarSign, prompt: 'Add an expense' },
+                      { label: 'Production Batch', icon: Factory, prompt: 'Create a production batch' },
+                      { label: 'CRM Sales Lead', icon: TrendingUp, prompt: 'Add a CRM lead' },
+                      { label: 'Product Category', icon: Layers, prompt: 'Add a category' },
+                      { label: 'Trademark Brand', icon: Sparkles, prompt: 'Add a brand' },
+                      { label: 'HR Department', icon: Building2, prompt: 'Add a department' },
+                    ].map((item, idx) => {
+                      const ItemIcon = item.icon;
+                      return (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={() => {
+                            setShowAddMenu(false);
+                            void handleSendQuery(item.prompt);
+                          }}
+                          className="w-full text-left px-3 py-2 rounded-xl text-xs hover:bg-indigo-50 dark:hover:bg-indigo-950/40 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors cursor-pointer text-slate-700 dark:text-slate-200 font-medium flex items-center justify-between group"
+                        >
+                          <div className="flex items-center gap-2">
+                            <div className="size-6 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-500 group-hover:bg-indigo-100 dark:group-hover:bg-indigo-900/50 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 flex items-center justify-center transition-colors">
+                              <ItemIcon className="size-3" />
+                            </div>
+                            <span>{item.label}</span>
+                          </div>
+                          <ArrowRight className="size-3 opacity-30 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all text-indigo-600 dark:text-indigo-400" />
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               )}
             </div>
           </div>
 
           {/* Chips for Active Category */}
-          <div className="px-4 py-2 flex items-center gap-1.5 overflow-x-auto scrollbar-none border-t border-default/50">
-            {currentCategory.chips.map((chip, idx) => (
-              <button
-                key={idx}
-                type="button"
-                onClick={() => void handleSendQuery(chip)}
-                className="text-3xs px-2.5 py-1 rounded-lg bg-surface border border-default/80 hover:border-primary hover:text-primary text-default font-medium whitespace-nowrap transition-all cursor-pointer shrink-0 flex items-center gap-1.5 shadow-2xs"
-              >
-                <Sparkles className="size-2.5 text-primary shrink-0" />
-                <span>{chip}</span>
-              </button>
-            ))}
+          <div className="relative border-t border-slate-200/60 dark:border-slate-800/80">
+            <div className="px-3.5 sm:px-5 py-2 flex items-center gap-2 overflow-x-auto scrollbar-none scroll-smooth">
+              {currentCategory.chips.map((chip, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => void handleSendQuery(chip)}
+                  className="text-xs px-3.5 py-1.5 rounded-xl bg-white dark:bg-slate-850 border border-slate-200 dark:border-slate-700/80 hover:border-indigo-500 hover:text-indigo-700 dark:hover:text-indigo-300 text-slate-700 dark:text-slate-200 font-medium whitespace-nowrap transition-all cursor-pointer shrink-0 flex items-center gap-1.5 shadow-2xs hover:shadow-xs hover:scale-[1.01] active:scale-98"
+                >
+                  <Sparkles className="size-3 text-indigo-500 dark:text-indigo-400 shrink-0" />
+                  <span>{chip}</span>
+                </button>
+              ))}
+            </div>
+            {/* Right fade hint */}
+            <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-10 bg-gradient-to-l from-slate-50 dark:from-slate-900 to-transparent" />
           </div>
         </div>
 
         {/* Messages Stream Area */}
-        <div ref={scrollContainerRef} className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-5 space-y-4">
+        <div ref={scrollContainerRef} className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-5 space-y-5">
           {messages.map((msg) => (
             <div
               key={msg.id}
@@ -1213,12 +1303,29 @@ export const SliceMartBrainModal: React.FC<SliceMartBrainModalProps> = ({ open, 
                 msg.sender === 'user' ? 'items-end' : 'items-start'
               )}
             >
+              {/* Agent identity mini header */}
+              {msg.sender === 'agent' && (
+                <div className="flex items-center gap-2 mb-1.5 px-1">
+                  <div className="size-5 rounded-lg bg-gradient-to-tr from-indigo-600 via-violet-600 to-purple-600 flex items-center justify-center text-white shadow-2xs">
+                    <Brain className="size-3" />
+                  </div>
+                  <span className="text-xs font-bold text-slate-900 dark:text-white">{brandName} AI</span>
+                  <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 font-bold border border-emerald-500/20 flex items-center gap-1">
+                    <span className="size-1 rounded-full bg-emerald-500 animate-pulse" />
+                    Online
+                  </span>
+                  <span className="text-[10px] text-slate-400 dark:text-slate-500 font-mono">
+                    {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                </div>
+              )}
+
               <div
                 className={cn(
-                  'max-w-[94%] sm:max-w-[88%] rounded-2xl p-4 text-xs leading-relaxed space-y-3',
+                  'w-full rounded-2xl leading-relaxed space-y-4 transition-all',
                   msg.sender === 'user'
-                    ? 'bg-primary text-primary-fg rounded-tr-xs shadow-xs'
-                    : 'bg-surface-sunken/70 border border-default text-default rounded-tl-xs shadow-xs'
+                    ? 'max-w-[85%] sm:max-w-[78%] p-3.5 sm:p-4 bg-gradient-to-r from-indigo-600 via-indigo-600 to-violet-600 text-white rounded-tr-xs shadow-md shadow-indigo-500/20 ml-auto font-medium text-[13px] sm:text-sm'
+                    : 'max-w-[96%] sm:max-w-[92%] p-4 sm:p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 rounded-2xl rounded-tl-xs shadow-sm hover:shadow-md transition-shadow'
                 )}
               >
                 {/* Agent Thought Accordion */}
@@ -1240,9 +1347,9 @@ export const SliceMartBrainModal: React.FC<SliceMartBrainModalProps> = ({ open, 
                 {msg.text ? (
                   <FormattedMessageText text={msg.text} isStreaming={msg.isStreaming} />
                 ) : msg.isStreaming ? (
-                  <div className="flex items-center gap-2 text-2xs text-muted font-mono">
-                    <span className="size-2 rounded-full bg-primary animate-ping" />
-                    <span>Streaming response...</span>
+                  <div className="flex items-center gap-2.5 text-xs text-indigo-600 dark:text-indigo-400 font-mono py-2">
+                    <span className="size-2 rounded-full bg-indigo-600 animate-ping" />
+                    <span className="font-semibold">Synthesizing local neural stream...</span>
                   </div>
                 ) : null}
 
@@ -1257,17 +1364,17 @@ export const SliceMartBrainModal: React.FC<SliceMartBrainModalProps> = ({ open, 
 
                 {/* Metric Cards */}
                 {msg.metrics && msg.metrics.length > 0 && !msg.tool_result && (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-2 border-t border-default/50">
+                  <div className="grid grid-cols-1 xs:grid-cols-3 gap-2.5 pt-3 border-t border-slate-100 dark:border-slate-800">
                     {msg.metrics.map((m, idx) => (
                       <div
                         key={idx}
                         className={cn(
-                          'p-2.5 rounded-xl border transition-all shadow-2xs',
+                          'p-3 rounded-xl border transition-all shadow-xs hover:shadow-md hover:scale-[1.02] flex flex-col justify-between',
                           TONE_STYLES[m.tone || 'neutral']
                         )}
                       >
-                        <div className="text-3xs font-medium uppercase tracking-wider opacity-80">{m.label}</div>
-                        <div className="text-xs font-bold mt-0.5 font-mono">{m.value}</div>
+                        <div className="text-[10px] font-bold uppercase tracking-wider opacity-75">{m.label}</div>
+                        <div className="text-sm sm:text-base font-black font-mono mt-1 tracking-tight">{m.value}</div>
                       </div>
                     ))}
                   </div>
@@ -1275,40 +1382,61 @@ export const SliceMartBrainModal: React.FC<SliceMartBrainModalProps> = ({ open, 
 
                 {/* Action Deep-Links */}
                 {msg.actions && msg.actions.length > 0 && !msg.tool_result?.actions && (
-                  <div className="pt-2 border-t border-default/50 flex flex-wrap items-center gap-1.5">
-                    <span className="text-3xs text-muted font-semibold mr-1">One-Click Actions:</span>
-                    {msg.actions.map((act, idx) => (
-                      <button
-                        key={idx}
-                        type="button"
-                        onClick={() => handleActionClick(act)}
-                        className="text-2xs font-semibold px-2.5 py-1.5 rounded-lg bg-surface border border-default hover:border-primary hover:text-primary transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs"
-                      >
-                        <span>{act.label}</span>
-                        <ArrowRight className="size-3 text-primary" />
-                      </button>
-                    ))}
+                  <div className="pt-3 border-t border-slate-100 dark:border-slate-800 space-y-2.5">
+                    <div className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                      <Zap className="size-3.5 text-indigo-600 dark:text-indigo-400" />
+                      <span>Recommended Next Steps & Direct Actions:</span>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      {msg.actions.map((act, idx) => {
+                        const isCreation = act.type === 'action' || act.action_key;
+                        return (
+                          <button
+                            key={idx}
+                            type="button"
+                            onClick={() => handleActionClick(act)}
+                            className={cn(
+                              "text-xs font-semibold px-3 py-1.5 rounded-xl border transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs active:scale-95 group",
+                              isCreation
+                                ? "bg-emerald-50/90 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border-emerald-500/30 hover:border-emerald-500 hover:bg-emerald-100 dark:hover:bg-emerald-900/50"
+                                : "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:border-indigo-500 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50/30 dark:hover:bg-indigo-950/30"
+                            )}
+                          >
+                            <span>{act.label}</span>
+                            <ArrowRight className="size-3 opacity-50 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all text-current" />
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
                 )}
               </div>
 
-              <span className="text-3xs text-muted/60 mt-1 px-1">
-                {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-              </span>
+              {msg.sender === 'user' && (
+                <span className="text-[10px] text-slate-400 dark:text-slate-500 font-mono mt-1 px-1">
+                  {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </span>
+              )}
             </div>
           ))}
 
           {/* Streaming Status Indicator */}
           {isStreaming && (
-            <div className="flex items-center justify-between p-2.5 rounded-xl bg-surface-sunken border border-primary/25 text-xs text-muted animate-in fade-in">
-              <div className="flex items-center gap-2">
-                <RefreshCw className="size-3.5 text-primary animate-spin" />
-                <span className="font-mono text-2xs text-default">{streamStatus || 'Processing stream...'}</span>
+            <div className="flex items-center justify-between p-3 rounded-2xl bg-gradient-to-r from-indigo-50/60 via-violet-50/40 to-transparent dark:from-indigo-950/30 dark:via-violet-950/20 dark:to-transparent border border-indigo-200 dark:border-indigo-900/60 text-xs shadow-xs animate-in fade-in">
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-1">
+                  <span className="size-2 rounded-full bg-indigo-600 dark:bg-indigo-400 animate-bounce" style={{ animationDelay: '0ms' }} />
+                  <span className="size-2 rounded-full bg-indigo-600 dark:bg-indigo-400 animate-bounce" style={{ animationDelay: '150ms' }} />
+                  <span className="size-2 rounded-full bg-indigo-600 dark:bg-indigo-400 animate-bounce" style={{ animationDelay: '300ms' }} />
+                </div>
+                <span className="font-mono text-xs font-semibold text-slate-800 dark:text-slate-200">
+                  {streamStatus || 'Executing local neural inference...'}
+                </span>
               </div>
               <button
                 type="button"
                 onClick={handleStopGenerating}
-                className="flex items-center gap-1 px-2.5 py-1 rounded-md bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/25 text-3xs font-semibold cursor-pointer transition-all"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-900/40 text-rose-700 dark:text-rose-300 border border-rose-500/30 text-xs font-bold cursor-pointer transition-all shadow-2xs active:scale-95"
               >
                 <Square className="size-2.5 fill-current" />
                 <span>Stop</span>
@@ -1317,55 +1445,69 @@ export const SliceMartBrainModal: React.FC<SliceMartBrainModalProps> = ({ open, 
           )}
         </div>
 
-        {/* Input Bar */}
-        <div className="p-3.5 border-t border-default bg-surface-sunken/60 shrink-0">
+        {/* Input Studio Bar */}
+        <div className="p-3.5 sm:p-4 pb-safe border-t border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-950/80 backdrop-blur-xl shrink-0">
           <form
             onSubmit={(e) => {
               e.preventDefault();
               void handleSendQuery();
             }}
-            className="relative flex items-center"
+            className="relative rounded-2xl border border-slate-200 dark:border-slate-750 bg-white dark:bg-slate-900 shadow-lg shadow-slate-900/5 dark:shadow-black/40 focus-within:border-indigo-500 focus-within:ring-4 focus-within:ring-indigo-500/15 transition-all p-2 sm:p-2.5 space-y-2"
           >
-            <Search className="absolute left-3.5 size-4 text-muted pointer-events-none" />
-            <input
-              ref={inputRef}
-              type="text"
-              value={inputQuery}
-              onChange={(e) => setInputQuery(e.target.value)}
-              placeholder="Instruct the assistant (e.g. 'Show stock valuation', 'Add product', 'Check AR aging')..."
-              className="w-full pl-10 pr-28 py-2.5 rounded-xl border border-default bg-surface text-xs text-default placeholder:text-muted focus:outline-hidden focus:border-primary focus:ring-1 focus:ring-primary shadow-xs transition-all"
-            />
-            <div className="absolute right-2 flex items-center gap-1.5">
-              {isStreaming ? (
-                <button
-                  type="button"
-                  onClick={handleStopGenerating}
-                  className="flex items-center gap-1 px-3 py-1 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/25 text-xs font-semibold cursor-pointer h-8 transition-all"
-                >
-                  <Square className="size-3 fill-current" />
-                  <span>Stop</span>
-                </button>
-              ) : (
-                <Button
-                  type="submit"
-                  variant="primary"
-                  size="sm"
-                  disabled={!inputQuery.trim() || isStreaming}
-                  className="gap-1.5 px-3.5 py-1 text-xs font-semibold cursor-pointer h-8"
-                >
-                  <span>Ask</span>
-                  <Send className="size-3" />
-                </Button>
-              )}
+            <div className="flex items-center gap-2.5">
+              <div className="size-8 rounded-xl bg-indigo-500/10 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0 ml-1">
+                <Brain className="size-4" />
+              </div>
+              <input
+                ref={inputRef}
+                type="text"
+                value={inputQuery}
+                onChange={(e) => setInputQuery(e.target.value)}
+                placeholder="Instruct AI Brain (e.g. 'Show stock valuation', 'Add product', 'Overdue receivables')..."
+                disabled={isStreaming}
+                className="flex-1 bg-transparent text-xs sm:text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-hidden disabled:opacity-50 font-normal"
+              />
+              <div className="flex items-center gap-1.5 shrink-0">
+                {isStreaming ? (
+                  <button
+                    type="button"
+                    onClick={handleStopGenerating}
+                    className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-900/40 text-rose-700 dark:text-rose-300 border border-rose-500/30 text-xs font-bold cursor-pointer transition-all shadow-2xs active:scale-95"
+                  >
+                    <Square className="size-3 fill-current" />
+                    <span>Stop</span>
+                  </button>
+                ) : (
+                  <button
+                    type="submit"
+                    disabled={!inputQuery.trim() || isStreaming}
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-indigo-600 via-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs sm:text-sm font-bold shadow-md shadow-indigo-500/25 active:scale-95 transition-all cursor-pointer"
+                  >
+                    <span>Ask</span>
+                    <Send className="size-3.5" />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Sub-bar */}
+            <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 pt-1 px-1 border-t border-slate-100 dark:border-slate-800">
+              <div className="flex items-center gap-2 truncate">
+                <span className="size-2 rounded-full bg-emerald-500 inline-block shrink-0 animate-pulse" />
+                <span className="font-bold text-emerald-700 dark:text-emerald-400">Local Neural Kernel</span>
+                <span className="opacity-30">·</span>
+                <span className="truncate">Deterministic ERP Schema Engine</span>
+                <span className="opacity-30">·</span>
+                <span className="hidden md:inline truncate text-slate-400 dark:text-slate-500">Zero Cloud Exfiltration</span>
+              </div>
+              <div className="hidden sm:flex items-center gap-2 text-[10px] font-mono text-slate-400 dark:text-slate-500">
+                <span className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">↵ Enter</span>
+                <span>to send</span>
+                <span className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">Esc</span>
+                <span>to close</span>
+              </div>
             </div>
           </form>
-          <div className="flex items-center justify-between text-3xs text-muted mt-2 px-1">
-            <span className="flex items-center gap-1">
-              <span className="size-1.5 rounded-full bg-emerald-500 inline-block" />
-              Powered by ProERP Streaming Engine
-            </span>
-            <span>Zero external API calls · 100% Deterministic Local Execution</span>
-          </div>
         </div>
       </div>
     </div>,

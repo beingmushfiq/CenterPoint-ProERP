@@ -506,6 +506,7 @@
   background: var(--color-surface-sunken);
   border-top: 1px solid var(--color-border-strong);
   padding: 12px;
+  padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
   margin: 0 -12px -12px;
   box-shadow: 0 -8px 24px rgb(0 0 0 / 0.15);
   z-index: 10;

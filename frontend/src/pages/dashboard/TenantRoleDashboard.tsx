@@ -677,7 +677,7 @@ export const TenantRoleDashboard: React.FC = () => {
 
         {/* Elevated KPI Cards Grid */}
         <div className="p-3 bg-surface-sunken/30 border-t border-default">
-          <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-2.5">
+          <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-2.5">
             <ElevatedKpiCard
               label="Today Revenue"
               value={metrics ? formatCurrency(metrics.commercial.today_revenue) : '—'}

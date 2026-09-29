@@ -233,7 +233,7 @@ export function Modal({
               aria-labelledby={titleId}
               tabIndex={-1}
               className={cn(
-                'relative z-(--z-modal) max-h-[90vh] sm:max-h-[92vh] overflow-y-auto w-full',
+                'relative z-(--z-modal) max-h-[90dvh] sm:max-h-[92dvh] overflow-y-auto w-full',
                 'rounded-t-3xl sm:rounded-2xl p-4 sm:p-6 pb-6 sm:pb-6',
                 'bg-surface text-default',
                 'border-t sm:border border-default shadow-2xl',

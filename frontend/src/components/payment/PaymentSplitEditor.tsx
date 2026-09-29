@@ -284,88 +284,115 @@ export const PaymentSplitEditor: React.FC<PaymentSplitEditorProps> = ({
               className="rounded-xl border border-default bg-surface transition-all overflow-hidden focus-within:border-primary"
             >
               {/* Primary Split Row */}
-              <div className="flex items-center gap-2.5 p-3">
-                <div className="text-xs font-semibold text-muted font-mono w-5 text-center">
-                  #{index + 1}
-                </div>
-
-                {/* Method Selector */}
-                <div className="flex-1 min-w-32.5 max-w-50">
-                  <div className="relative">
-                    <select
-                      disabled={readOnly}
-                      value={split.method}
-                      onChange={(e) => {
-                        const m = e.target.value as PaymentMethod;
-                        updateSplit(split.id, {
-                          method: m,
-                          ...(m === 'mobile_banking' && !split.mobile_provider ? { mobile_provider: 'bKash' } : {}),
-                          ...(m === 'bank_transfer' && !split.bank_account_id && bankAccounts[0]
-                            ? { bank_account_id: bankAccounts[0].id }
-                            : {}),
-                        });
-                        setExpandedRowIds((prev) => new Set([...prev, split.id]));
-                      }}
-                      className="w-full appearance-none rounded-xl border border-default bg-surface-sunken pl-8 pr-7 py-2 text-xs font-medium text-default focus:border-primary focus:outline-none cursor-pointer disabled:opacity-60"
+              <div className="p-3 space-y-2.5 sm:space-y-0 sm:flex sm:items-center sm:gap-2.5">
+                <div className="flex items-center justify-between sm:justify-start gap-2">
+                  <div className="text-xs font-semibold text-muted font-mono w-5 text-center shrink-0">
+                    #{index + 1}
+                  </div>
+                  {/* Action buttons on mobile view */}
+                  <div className="flex items-center gap-1 sm:hidden">
+                    <button
+                      type="button"
+                      onClick={() => toggleExpand(split.id)}
+                      title="Toggle payment details"
+                      className="p-1.5 rounded-lg text-muted hover:text-default hover:bg-surface-sunken transition-colors cursor-pointer"
                     >
-                      <option value="cash">Cash Tender</option>
-                      <option value="bank_transfer">Bank Transfer</option>
-                      <option value="mobile_banking">Mobile Banking (MFS)</option>
-                      <option value="card">Card / POS</option>
-                      <option value="cheque">Cheque Deposit</option>
-                      <option value="credit_adjustment">Credit Adjustment</option>
-                      <option value="other">Other Tender</option>
-                    </select>
-                    <div className="absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-muted">
-                      <MethodIcon className="h-3.5 w-3.5" />
-                    </div>
-                    <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-muted">
-                      <ChevronDown className="h-3 w-3" />
-                    </div>
+                      {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                    </button>
+                    {!readOnly && splits.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => removeSplitRow(split.id)}
+                        title="Remove split method"
+                        className="p-1.5 rounded-lg text-muted hover:text-rose-600 hover:bg-rose-500/10 transition-colors cursor-pointer"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    )}
                   </div>
                 </div>
 
-                {/* Amount Input */}
-                <div className="flex-1 min-w-35 relative">
-                  <div className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-muted pointer-events-none">
-                    {currencySymbol}
+                {/* Controls container: flexible inputs */}
+                <div className="flex flex-col xs:flex-row items-stretch sm:items-center gap-2 flex-1">
+                  {/* Method Selector */}
+                  <div className="flex-1 sm:min-w-32 sm:max-w-48">
+                    <div className="relative">
+                      <select
+                        disabled={readOnly}
+                        value={split.method}
+                        onChange={(e) => {
+                          const m = e.target.value as PaymentMethod;
+                          updateSplit(split.id, {
+                            method: m,
+                            ...(m === 'mobile_banking' && !split.mobile_provider ? { mobile_provider: 'bKash' } : {}),
+                            ...(m === 'bank_transfer' && !split.bank_account_id && bankAccounts[0]
+                              ? { bank_account_id: bankAccounts[0].id }
+                              : {}),
+                          });
+                          setExpandedRowIds((prev) => new Set([...prev, split.id]));
+                        }}
+                        className="w-full appearance-none rounded-xl border border-default bg-surface-sunken pl-8 pr-7 py-2 text-xs font-medium text-default focus:border-primary focus:outline-none cursor-pointer disabled:opacity-60"
+                      >
+                        <option value="cash">Cash Tender</option>
+                        <option value="bank_transfer">Bank Transfer</option>
+                        <option value="mobile_banking">Mobile Banking (MFS)</option>
+                        <option value="card">Card / POS</option>
+                        <option value="cheque">Cheque Deposit</option>
+                        <option value="credit_adjustment">Credit Adjustment</option>
+                        <option value="other">Other Tender</option>
+                      </select>
+                      <div className="absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-muted">
+                        <MethodIcon className="h-3.5 w-3.5" />
+                      </div>
+                      <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-muted">
+                        <ChevronDown className="h-3 w-3" />
+                      </div>
+                    </div>
                   </div>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    disabled={readOnly}
-                    value={split.amount === 0 && !readOnly ? '' : split.amount}
-                    placeholder="0.00"
-                    onChange={(e) => {
-                      const val = parseFloat(e.target.value) || 0;
-                      updateSplit(split.id, { amount: val });
-                    }}
-                    className="w-full rounded-xl border border-default bg-surface-sunken pl-7 pr-3 py-2 text-xs font-bold font-mono text-default placeholder:text-muted focus:border-primary focus:outline-none"
-                  />
+
+                  {/* Amount Input */}
+                  <div className="flex-1 sm:min-w-32 relative">
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-muted pointer-events-none">
+                      {currencySymbol}
+                    </div>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      disabled={readOnly}
+                      value={split.amount === 0 && !readOnly ? '' : split.amount}
+                      placeholder="0.00"
+                      onChange={(e) => {
+                        const val = parseFloat(e.target.value) || 0;
+                        updateSplit(split.id, { amount: val });
+                      }}
+                      className="w-full rounded-xl border border-default bg-surface-sunken pl-7 pr-3 py-2 text-xs font-bold font-mono text-default placeholder:text-muted focus:border-primary focus:outline-none"
+                    />
+                  </div>
                 </div>
 
-                {/* Toggle details button */}
-                <button
-                  type="button"
-                  onClick={() => toggleExpand(split.id)}
-                  title="Toggle payment details (reference, bank, mobile provider)"
-                  className="p-2 rounded-xl text-muted hover:text-default hover:bg-surface-sunken transition-colors cursor-pointer"
-                >
-                  {isExpanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
-                </button>
-
-                {/* Delete row */}
-                {!readOnly && splits.length > 1 && (
+                {/* Desktop Action buttons */}
+                <div className="hidden sm:flex items-center gap-1 shrink-0">
                   <button
                     type="button"
-                    onClick={() => removeSplitRow(split.id)}
-                    title="Remove split method"
-                    className="p-2 rounded-xl text-muted hover:text-rose-600 hover:bg-rose-500/10 transition-colors cursor-pointer"
+                    onClick={() => toggleExpand(split.id)}
+                    title="Toggle payment details (reference, bank, mobile provider)"
+                    className="p-2 rounded-xl text-muted hover:text-default hover:bg-surface-sunken transition-colors cursor-pointer"
                   >
-                    <Trash2 className="h-3.5 w-3.5" />
+                    {isExpanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
                   </button>
-                )}
+
+                  {!readOnly && splits.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => removeSplitRow(split.id)}
+                      title="Remove split method"
+                      className="p-2 rounded-xl text-muted hover:text-rose-600 hover:bg-rose-500/10 transition-colors cursor-pointer"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
               </div>
 
               {/* Subfields details drawer */}
@@ -530,24 +557,24 @@ export const PaymentSplitEditor: React.FC<PaymentSplitEditorProps> = ({
 
       {/* Footer Add Row & Presets */}
       {!readOnly && (
-        <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pt-1">
           <button
             type="button"
             onClick={() => addSplitRow()}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-dashed border-default bg-surface-sunken/60 text-xs font-semibold text-default hover:border-primary hover:text-primary transition-all cursor-pointer"
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-3 py-2 sm:py-1.5 rounded-xl border border-dashed border-default bg-surface-sunken/60 text-xs font-semibold text-default hover:border-primary hover:text-primary transition-all cursor-pointer"
           >
             <Plus className="h-3.5 w-3.5" />
             <span>Add Split Method</span>
           </button>
 
-          <div className="flex items-center gap-1 text-[11px] text-muted">
-            <span>Quick add:</span>
+          <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-muted">
+            <span className="shrink-0">Quick add:</span>
             {(['mobile_banking', 'bank_transfer', 'cheque'] as PaymentMethod[]).map((m) => (
               <button
                 key={m}
                 type="button"
                 onClick={() => addSplitRow(m)}
-                className="px-2 py-0.5 rounded-lg border border-default bg-surface hover:bg-surface-sunken hover:text-default transition-all cursor-pointer"
+                className="px-2 py-1 sm:py-0.5 rounded-lg border border-default bg-surface hover:bg-surface-sunken hover:text-default transition-all cursor-pointer"
               >
                 +{METHOD_CONFIG[m].label}
               </button>

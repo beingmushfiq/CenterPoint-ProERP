@@ -53,26 +53,26 @@ export const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({
         </div>
 
         {actions && (
-          <div className="flex flex-wrap items-center gap-2 shrink-0 self-start sm:self-auto">
+          <div className="flex flex-wrap items-center gap-2 shrink-0 self-stretch sm:self-auto">
             {actions}
           </div>
         )}
       </div>
 
       {metrics && metrics.length > 0 && (
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 pt-2">
+        <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3 pt-2">
           {metrics.map((m, idx) => (
             <div
               key={idx}
-              className="rounded-xl border border-default bg-surface-raised p-3 shadow-2xs"
+              className="rounded-xl border border-default bg-surface-raised p-3 shadow-2xs min-w-0"
             >
-              <div className="text-[11px] font-medium text-muted">{m.label}</div>
-              <div className="mt-1 flex items-baseline gap-2">
-                <span className="text-lg font-bold font-mono text-default">{m.value}</span>
+              <div className="text-[11px] font-medium text-muted truncate">{m.label}</div>
+              <div className="mt-1 flex items-baseline justify-between gap-1.5 flex-wrap">
+                <span className="text-base sm:text-lg font-bold font-mono text-default truncate">{m.value}</span>
                 {m.change && (
                   <span
                     className={cn(
-                      'text-[10px] font-semibold',
+                      'text-[10px] font-semibold shrink-0',
                       m.isPositive ? 'text-success' : 'text-danger'
                     )}
                   >

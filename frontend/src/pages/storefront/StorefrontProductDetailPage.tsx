@@ -536,7 +536,7 @@ export const StorefrontProductDetailPage: React.FC = () => {
       </div>
 
       {/* Sticky Mobile Add-to-Cart & WhatsApp Action Bar for High Ad Conversions */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-white/95 dark:bg-zinc-950/95 backdrop-blur-md border-t border-slate-200 dark:border-zinc-800 p-3 shadow-2xl flex items-center justify-between gap-3 animate-in slide-in-from-bottom-2">
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-white/95 dark:bg-zinc-950/95 backdrop-blur-md border-t border-slate-200 dark:border-zinc-800 p-3 pb-safe shadow-2xl flex items-center justify-between gap-3 animate-in slide-in-from-bottom-2">
         <div className="flex items-center gap-2.5 min-w-0">
           {activeImage && (
             <img src={activeImage} alt={product.name} className="size-10 rounded-lg object-contain bg-slate-100 dark:bg-zinc-900 shrink-0" />

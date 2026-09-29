@@ -37,6 +37,7 @@ import {
   Compass,
   Layers,
   Monitor,
+  Languages,
 } from 'lucide-react';
 import { SliceMartBrainModal } from './SliceMartBrainModal';
 import { LanguageSwitcher } from '../ui/LanguageSwitcher';
@@ -507,7 +508,7 @@ export function AppHeader({
         {/* ── POS (Point of Sale) Register Direct Action Button ──── */}
         <Link
           to="/pos"
-          className="flex items-center gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-600 dark:hover:bg-emerald-500 px-2 sm:px-2.5 py-1.5 text-xs font-bold text-white shadow-xs transition-colors cursor-pointer shrink-0"
+          className="hidden sm:flex items-center gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-600 dark:hover:bg-emerald-500 px-2 sm:px-2.5 py-1.5 text-xs font-bold text-white shadow-xs transition-colors cursor-pointer shrink-0"
           title="Open Point of Sale Counter Terminal"
         >
           <Store className="size-3.5" />
@@ -561,8 +562,8 @@ export function AppHeader({
           </div>
         )}
 
-        {/* ── Comprehensive + Quick Add Dropdown ────────────────── */}
-        <div className="relative shrink-0">
+        {/* ── Comprehensive + Quick Add Dropdown (Desktop & Tablet >= sm; Mobile uses BottomNav center +) ── */}
+        <div className="relative shrink-0 hidden sm:block">
           <button
             type="button"
             onClick={() => setIsQuickAddOpen(!isQuickAddOpen)}
@@ -834,13 +835,15 @@ export function AppHeader({
         </Link>
 
         {/* Language Switcher (EN / বাংলা) */}
-        <LanguageSwitcher />
+        <div className="hidden sm:block">
+          <LanguageSwitcher />
+        </div>
 
         {/* Theme Toggle (3-state: Light / Dark / System) */}
         <button
           type="button"
           onClick={toggleTheme}
-          className="rounded-lg p-1.5 sm:p-2 text-muted hover:bg-surface-sunken hover:text-default transition-token-colors focus-visible:ring-focus cursor-pointer shrink-0"
+          className="hidden sm:flex rounded-lg p-1.5 sm:p-2 text-muted hover:bg-surface-sunken hover:text-default transition-token-colors focus-visible:ring-focus cursor-pointer shrink-0"
           aria-label={
             themeMode === 'light'
               ? 'Switch to Dark Mode'
@@ -897,6 +900,27 @@ export function AppHeader({
 
               <div className="mt-1 space-y-0.5">
                 {/* Mobile-only shortcuts */}
+                <div className="sm:hidden flex items-center justify-between px-3 py-2 border-b border-default/70 mb-1">
+                  <span className="text-xs text-muted font-medium flex items-center gap-1.5">
+                    <Sun className="size-3.5" />
+                    <span>Theme</span>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={toggleTheme}
+                    className="flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-md bg-surface-sunken border border-default text-default cursor-pointer"
+                  >
+                    {themeMode === 'dark' ? 'Dark' : themeMode === 'light' ? 'Light' : 'System'}
+                  </button>
+                </div>
+
+                <div className="sm:hidden flex items-center justify-between px-3 py-2 border-b border-default/70 mb-1">
+                  <span className="text-xs text-muted font-medium flex items-center gap-1.5">
+                    <Languages className="size-3.5 text-primary" />
+                    <span>Language</span>
+                  </span>
+                  <LanguageSwitcher />
+                </div>
                 <button
                   type="button"
                   onClick={() => {

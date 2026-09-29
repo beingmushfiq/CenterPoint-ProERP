@@ -540,7 +540,8 @@ export function OrderProcessingModal({ order, onClose, onNavigateToTab }: OrderP
             </span>
           </div>
 
-          <div className="overflow-x-auto">
+          {/* Desktop Table View */}
+          <div className="hidden sm:block overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead className="bg-surface-sunken/50 text-[10px] font-semibold text-muted uppercase border-b border-default">
                 <tr>
@@ -582,6 +583,37 @@ export function OrderProcessingModal({ order, onClose, onNavigateToTab }: OrderP
                 )}
               </tbody>
             </table>
+          </div>
+
+          {/* Mobile Stacked Items Card View (< sm) */}
+          <div className="sm:hidden divide-y divide-default">
+            {order.items && order.items.length > 0 ? (
+              order.items.map((item) => (
+                <div key={item.id} className="p-3 space-y-1 bg-surface">
+                  <div className="flex items-start justify-between gap-2">
+                    <span className="font-semibold text-xs text-default">
+                      {item.product_name ?? `Product #${item.product_id}`}
+                    </span>
+                    <span className="font-mono font-bold text-xs text-default shrink-0">
+                      {formatCurrency(item.line_total)}
+                    </span>
+                  </div>
+                  {item.description && (
+                    <div className="text-[10px] text-muted font-normal">
+                      {item.description}
+                    </div>
+                  )}
+                  <div className="flex items-center justify-between text-[11px] text-muted font-mono pt-1">
+                    <span>Qty: {parseFloat(item.quantity).toLocaleString()}</span>
+                    <span>@ {formatCurrency(item.unit_price)}</span>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="p-4 text-center text-xs text-muted">
+                No item details recorded. Total: {formatCurrency(order.total_amount)}
+              </div>
+            )}
           </div>
 
           {/* Totals Summary */}
