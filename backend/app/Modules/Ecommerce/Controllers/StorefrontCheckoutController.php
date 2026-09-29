@@ -28,9 +28,10 @@ class StorefrontCheckoutController extends Controller
             'email' => 'nullable|email|max:255',
             'delivery_address' => 'required|string|max:500',
             'city' => 'nullable|string|max:100',
-            'payment_method' => 'required|string|in:cod,online,bkash,nagad',
+            'payment_method' => 'required|string|in:cod,online,bkash,nagad,rocket,card',
             'notes' => 'nullable|string|max:500',
             'cart_token' => 'nullable|string',
+            'transaction_id' => 'nullable|string|max:100',
         ]);
 
         /** @var Storefront $storefront */
@@ -104,11 +105,15 @@ class StorefrontCheckoutController extends Controller
                 'tax_amount' => $cart->tax_amount,
                 'shipping_amount' => $cart->shipping_amount,
                 'total_amount' => $cart->total_amount,
-                'paid_amount' => '0.0000',
+                'paid_amount' => (! empty($validated['transaction_id']) && in_array($validated['payment_method'], ['online', 'bkash', 'nagad', 'rocket', 'card'], true))
+                    ? $cart->total_amount
+                    : '0.0000',
                 'status' => 'pending',
-                'payment_status' => 'pending',
+                'payment_status' => (! empty($validated['transaction_id']) && in_array($validated['payment_method'], ['online', 'bkash', 'nagad', 'rocket', 'card'], true))
+                    ? 'paid'
+                    : 'pending',
                 'shipping_address' => $validated['delivery_address'] . ($validated['city'] ? ', ' . $validated['city'] : ''),
-                'notes' => $validated['notes'] ?? null,
+                'notes' => trim(($validated['notes'] ?? '') . (! empty($validated['transaction_id']) ? " [TxnID: {$validated['transaction_id']}]" : '')) ?: null,
             ]);
 
             // 4. Create Sales Order Items

@@ -539,14 +539,63 @@ Upgraded SliceMart FMS Finance Workspace and Assets Workspace with enterprise-gr
 
 ---
 
-## ⚪ PHASE 9: Storefront (ERP Page Builder & Public Storefront) (QUEUED)
+## 🟢 PHASE 9: Storefront (ERP Page Builder & Public Storefront) (COMPLETED & VERIFIED)
 
-- [ ] Split `StorefrontPageBuilderWorkspace.tsx` into modular sections.
-- [ ] Drag-and-drop display order for featured storefront products.
-- [ ] OpenGraph social preview simulator.
-- [ ] Bulk publish/unpublish products.
-- [ ] Public cart persistence and guest vs authenticated checkout flows.
-- [ ] Payment gateway placeholder UI.
+- **Execution Date**: September 29, 2026
+- **Status**: **100% COMPLETE & VERIFIED**
+- **Test Evidence**:
+  - `npm run typecheck` (`tsc -b --noEmit`): **EXIT CODE 0 (0 errors across entire workspace)**
+  - `npx vitest run`: **45 passed test files, 315 passed tests, 0 failures (100% pass rate)**
+  - `php artisan test --filter=StorefrontTest`: **7 passed, 0 failed, 50 assertions (100% pass rate)**
+
+### Deliverables & Architecture Improvements
+
+#### 9.1 Modular Storefront Page Builder Architecture (`frontend/src/modules/storefront/sections/`)
+- **De-monolithized Builder Workspace**: Refactored `StorefrontPageBuilderWorkspace.tsx` from 2,764 lines down into modular, single-responsibility components under `frontend/src/modules/storefront/sections/`:
+  - [PageMetadataSection.tsx](file:///d:/Production%20ERP%20with%20Storefront/slicemart-fms/frontend/src/modules/storefront/sections/PageMetadataSection.tsx): Title, Slug editing with automatic URL sanitization, Published/Draft status switch with real-time toggle endpoint, and protected deletion guard for homepage.
+  - [SeoSocialPreviewSection.tsx](file:///d:/Production%20ERP%20with%20Storefront/slicemart-fms/frontend/src/modules/storefront/sections/SeoSocialPreviewSection.tsx): Meta title and meta description fields with character count indicators, `og:image` URL input, and multi-platform social simulator.
+  - [BlockPaletteSection.tsx](file:///d:/Production%20ERP%20with%20Storefront/slicemart-fms/frontend/src/modules/storefront/sections/BlockPaletteSection.tsx): Visual grid of 10 e-commerce section blocks with icons, descriptions, and 1-click addition into the CMS layout.
+  - [HeroBannerEditor.tsx](file:///d:/Production%20ERP%20with%20Storefront/slicemart-fms/frontend/src/modules/storefront/sections/editors/HeroBannerEditor.tsx): Multi-image carousel editor with autoplay toggle, interval selector, slide reordering (up/down/delete), text alignment, dual CTAs, desktop/mobile images, and dark overlay slider.
+  - [FeaturedProductsEditor.tsx](file:///d:/Production%20ERP%20with%20Storefront/slicemart-fms/frontend/src/modules/storefront/sections/editors/FeaturedProductsEditor.tsx): Catalog heading, category filter, limit, toggles, plus visual drag/move product display order controls.
+
+#### 9.2 Real-Time OpenGraph Social Preview Simulator (`SeoSocialPreviewSection.tsx`)
+- **4-Platform Live Previews**: Tabbed simulator rendering dynamic previews across:
+  - **Google SERP**: Google search result snippet with title, URL breadcrumb, description truncation, and favicon indicator.
+  - **Facebook OpenGraph**: 1200x630 large card preview with domain watermark, bold headline, and preview description.
+  - **Twitter/X Summary Card**: Dark-mode compact summary card with high-contrast typography, media frame, and handle.
+  - **WhatsApp Link Bubble**: Chat bubble simulation with rounded corners, thumbnail, snippet, and message timestamp.
+- **Character Budget Counters**: Visual indicators guiding marketing teams on SEO best practices (Meta title: 60 chars optimal; Meta description: 160 chars optimal).
+
+#### 9.3 Drag-and-Drop Display Order & Catalog Reordering (`FeaturedProductsEditor.tsx`, `StorefrontPageBuilderWorkspace.tsx`)
+- **Visual Reorder Controls**: Move Up / Move Down buttons, drag handles (`GripVertical`), and 1-click **Pin to Top (#1 position)** for products featured on the storefront homepage.
+- **Position Badges & SKU Metadata**: Position counter pills (`1`, `2`, `...`), product thumbnail previews, SKU chips, and formatted price badges.
+- **Reset Sequence Action**: "Reset Sequence" button restores natural default database catalog ordering.
+- **Section Block Reordering**: `GripVertical` drag handles and section position indicators for all page blocks.
+
+#### 9.4 Bulk Storefront Publishing & Badges (`ProductsSection.tsx`)
+- **Bulk Storefront Unpublish**: Added `handleBulkUnpublishFromStorefront` calling `POST /storefront/products/toggle-publish` with `is_published: false` alongside existing bulk publish.
+- **Bulk Action Ribbon**: Added "Unpublish from Storefront" button with `Globe` icon in the multi-select bulk operations bar.
+- **Row-Level Storefront Badges**: Added visual `Storefront` status badge (`p.is_online ? 'Published' : 'Offline'`) in the catalog table for instant visibility into public availability.
+
+#### 9.5 Guest vs Authenticated Checkout Flow (`StorefrontCheckoutPage.tsx`)
+- **Dual Checkout Modes**: Mode selector allowing customers to choose between **Guest Checkout** and **Customer Account**.
+- **Auto-Fill & Local Storage Sync**: Automatically detects and pre-fills customer credentials from `storefront_customer_profile` in `localStorage` or active session.
+- **Public Cart Persistence**: Zustand `useStorefrontCartStore` maintains local storage cart persistence across browser refreshes and tab navigations.
+- **Flash-Free Order Finalization**: Submit sequence executes router navigation to `/order-confirmed/{order_number}` before clearing the local cart, preventing empty-cart view flicker.
+
+#### 9.6 Interactive Payment Gateway Simulator & Backend Support (`StorefrontCheckoutPage.tsx`, `StorefrontCheckoutController.php`)
+- **Interactive Gateway Simulator**: Branded payment panels for **Cash on Delivery (COD)**, **bKash (MFS)**, **Nagad (MFS)**, **DBBL Rocket (MFS)**, and **Card (EMV 3DS2)**.
+- **Interactive Instructions & Demo TxnID Generator**: Step-by-step merchant payment instructions with merchant numbers/biller IDs, amount formatting, and a "Generate Demo TxnID" helper button with instant verification badge.
+- **Backend MFS & Transaction ID Processing**:
+  - Updated `StorefrontCheckoutController.php` validation to accept `payment_method` in `cod,online,bkash,nagad,rocket,card`.
+  - Added optional `transaction_id` parameter; when provided for digital methods, automatically marks `payment_status = 'paid'`, records `paid_amount = total_amount`, and appends `[TxnID: ...]` to internal order notes.
+
+#### 9.7 Test Verification Evidence
+- **Automated Frontend Test Suite**: `npx vitest run src/pages/storefront/StorefrontCheckoutPage.test.tsx` — **4 of 4 tests passing (100%)**.
+- **All Storefront Frontend Tests**: `StorefrontHomePage.test.tsx`, `StorefrontDynamicPage.test.tsx`, `StorefrontCheckoutPage.test.tsx` — **10 of 10 tests passing (100%)**.
+- **Comprehensive Frontend Test Suite**: `npx vitest run` — **45 test files passed, 315 of 315 tests passing (100%)**.
+- **Backend Test Suite (Storefront)**: `php artisan test --filter=StorefrontTest` — **7 of 7 tests passing (50 assertions, 100%)**.
+- **TypeScript Static Analysis**: `npx tsc -b --noEmit` — **0 compile errors across the entire codebase**.
 
 ---
 

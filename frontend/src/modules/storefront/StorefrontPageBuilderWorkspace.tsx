@@ -8,7 +8,6 @@ import {
   FileText,
   HelpCircle,
   Image as ImageIcon,
-  Layers,
   Layout,
   Plus,
   Save,
@@ -36,6 +35,7 @@ import {
   Undo2,
   Redo2,
   Power,
+  GripVertical,
 } from 'lucide-react';
 import { api } from '../../lib/api/client';
 import { notify } from '../../components/ui/Toast';
@@ -44,6 +44,11 @@ import { useAuthStore } from '../../lib/auth/authStore';
 import { StorefrontBlockRenderer } from '../../components/storefront/StorefrontBlockRenderer';
 import type { StorefrontProduct } from '../../types/api/storefront';
 import { getStorefrontExternalUrl } from '../../lib/storefront/storefrontUrl';
+import { PageMetadataSection } from './sections/PageMetadataSection';
+import { SeoSocialPreviewSection } from './sections/SeoSocialPreviewSection';
+import { BlockPaletteSection } from './sections/BlockPaletteSection';
+import { HeroBannerEditor } from './sections/editors/HeroBannerEditor';
+import { FeaturedProductsEditor } from './sections/editors/FeaturedProductsEditor';
 
 export type BlockType =
   | 'hero_banner'
@@ -81,6 +86,8 @@ export interface PageBlock {
   limit?: number;
   show_search?: boolean;
   show_categories?: boolean;
+  product_order?: number[] | undefined;
+  featured_product_ids?: number[] | undefined;
   // Quality Journey
   steps?: { step: string; title: string; desc: string }[];
   // Newsletter
@@ -110,8 +117,9 @@ export interface CmsPage {
   title: string;
   slug: string;
   page_type: string;
-  meta_title?: string;
-  meta_description?: string;
+  meta_title?: string | undefined;
+  meta_description?: string | undefined;
+  og_image?: string | undefined;
   status: 'draft' | 'published';
   blocks: PageBlock[];
 }
@@ -1289,237 +1297,30 @@ export const StorefrontPageBuilderWorkspace: React.FC = () => {
         {/* Center Canvas: Block Reordering & Editor */}
         {selectedPage && previewMode === 'edit' && (
           <div className="space-y-6 lg:col-span-3">
-            {/* Page Metadata Card & SEO SERP Preview */}
-            <div className="rounded-2xl border border-default bg-surface p-5 shadow-2xs space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-default gap-3">
-                <div className="flex items-center gap-2">
-                  {selectedPage.slug === 'home' ? (
-                    <Store className="size-4 text-emerald-600 dark:text-emerald-400" />
-                  ) : (
-                    <FileText className="size-4 text-emerald-600 dark:text-emerald-400" />
-                  )}
-                  <div>
-                    <h2 className="text-sm font-bold text-default">{selectedPage.title}</h2>
-                    <span className="text-[11px] font-mono text-muted">
-                      {selectedPage.slug === 'home' ? '/ (Storefront Home)' : `/pages/${selectedPage.slug}`}
-                    </span>
-                  </div>
-                </div>
+            {/* Page Metadata Section */}
+            <PageMetadataSection
+              page={selectedPage}
+              onUpdate={(fields) => setSelectedPage({ ...selectedPage, ...fields })}
+              onDeleteClick={() => setPageToDelete(selectedPage)}
+              canDelete={selectedPage.slug !== 'home'}
+              onToggleStatus={() => void handleTogglePageStatus(selectedPage)}
+              isToggling={togglingId === selectedPage.id}
+            />
 
-                <div className="flex items-center gap-2 flex-wrap">
-                  {/* Status Toggle Button */}
-                  <button
-                    type="button"
-                    disabled={togglingId === selectedPage.id}
-                    onClick={() => void handleTogglePageStatus(selectedPage)}
-                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                      selectedPage.status === 'published'
-                        ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/25'
-                        : 'bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30 hover:bg-amber-500/25'
-                    }`}
-                  >
-                    <Power className={`size-3 ${togglingId === selectedPage.id ? 'animate-spin' : ''}`} />
-                    <span>
-                      {togglingId === selectedPage.id
-                        ? 'Updating...'
-                        : selectedPage.status === 'published'
-                        ? 'Status: Active'
-                        : 'Status: Inactive'}
-                    </span>
-                  </button>
+            {/* SEO & OpenGraph Social Preview Section */}
+            <SeoSocialPreviewSection
+              metaTitle={selectedPage.meta_title || ''}
+              metaDescription={selectedPage.meta_description || ''}
+              slug={selectedPage.slug}
+              title={selectedPage.title}
+              ogImage={typeof selectedPage.og_image === 'string' ? selectedPage.og_image : undefined}
+              onUpdate={(fields) => setSelectedPage({ ...selectedPage, ...fields })}
+              brandName={tenant?.name || 'SliceMart'}
+              domain={`${storeSlug}.devcenterpoint.com`}
+            />
 
-                  {/* View Live */}
-                  <a
-                    href={selectedPage.slug === 'home' ? getStorefrontExternalUrl(storeSlug) : getStorefrontExternalUrl(storeSlug, `/pages/${selectedPage.slug}`)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl border border-default bg-surface hover:bg-surface-sunken text-xs font-semibold text-default transition-colors"
-                  >
-                    <ExternalLink className="size-3" />
-                    <span className="hidden sm:inline">View Live</span>
-                  </a>
-
-                  {/* Delete (non-home only) */}
-                  {selectedPage.slug !== 'home' && (
-                    <button
-                      type="button"
-                      onClick={() => setPageToDelete(selectedPage)}
-                      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl border border-rose-500/30 bg-rose-500/10 hover:bg-rose-500/20 text-xs font-semibold text-rose-600 dark:text-rose-400 transition-colors cursor-pointer"
-                    >
-                      <Trash2 className="size-3" />
-                      <span className="hidden sm:inline">Delete</span>
-                    </button>
-                  )}
-                </div>
-              </div>
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div>
-                  <label className="text-[11px] font-semibold uppercase tracking-wider text-muted block mb-1">
-                    Page Title
-                  </label>
-                  <input
-                    type="text"
-                    value={selectedPage.title}
-                    onChange={(e) => setSelectedPage({ ...selectedPage, title: e.target.value })}
-                    className="w-full rounded-xl border border-default bg-surface-sunken px-3.5 py-2 text-xs text-default focus:border-primary focus:outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-[11px] font-semibold uppercase tracking-wider text-muted block mb-1">
-                    URL Slug
-                  </label>
-                  <div className="flex items-center rounded-xl border border-default bg-surface-sunken px-3 py-2 text-xs">
-                    <span className="text-muted">{selectedPage.slug === 'home' ? '/' : '/pages/'}</span>
-                    <input
-                      type="text"
-                      value={selectedPage.slug}
-                      readOnly={selectedPage.slug === 'home'}
-                      onChange={(e) => setSelectedPage({ ...selectedPage, slug: e.target.value })}
-                      className="flex-1 bg-transparent text-default focus:outline-none pl-1 font-mono"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* SEO Meta Fields */}
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 pt-2 border-t border-default">
-                <div>
-                  <label className="text-[11px] font-semibold uppercase tracking-wider text-muted block mb-1">
-                    SEO Meta Title (Browser & Search Snippet)
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Next-Gen Modern Appliances"
-                    value={selectedPage.meta_title || ''}
-                    onChange={(e) => setSelectedPage({ ...selectedPage, meta_title: e.target.value })}
-                    className="w-full rounded-xl border border-default bg-surface-sunken px-3.5 py-2 text-xs text-default placeholder:text-muted focus:border-primary focus:outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-[11px] font-semibold uppercase tracking-wider text-muted block mb-1">
-                    SEO Meta Description
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="Brief 150-160 character summary for search engines..."
-                    value={selectedPage.meta_description || ''}
-                    onChange={(e) => setSelectedPage({ ...selectedPage, meta_description: e.target.value })}
-                    className="w-full rounded-xl border border-default bg-surface-sunken px-3.5 py-2 text-xs text-default placeholder:text-muted focus:border-primary focus:outline-none"
-                  />
-                </div>
-              </div>
-
-              {/* Google Search Live SERP Snippet Preview */}
-              <div className="p-4 rounded-xl bg-surface-sunken border border-default space-y-1.5">
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] uppercase font-bold text-muted">Google Search Snippet Preview</span>
-                  <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-mono">Live SERP</span>
-                </div>
-                <div className="text-xs text-emerald-600 dark:text-emerald-400 font-sans truncate">
-                  https://store.yourdomain.com › {selectedPage.slug === 'home' ? '' : `pages › `}<span className="font-mono">{selectedPage.slug === 'home' ? '' : selectedPage.slug || 'untitled'}</span>
-                </div>
-                <div className="text-sm font-semibold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer">
-                  {selectedPage.meta_title || selectedPage.title || 'Page Title — Storefront'}
-                </div>
-                <div className="text-xs text-muted line-clamp-2">
-                  {selectedPage.meta_description ||
-                    'Discover authentic collections, commercial-grade products, and direct fulfillment from our verified catalog.'}
-                </div>
-              </div>
-            </div>
-
-            {/* Block Palette Bar */}
-            <div className="rounded-2xl border border-default bg-surface p-4 shadow-2xs space-y-3">
-              <span className="text-xs font-bold text-default flex items-center gap-1.5">
-                <Layers className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                <span>Add E-Commerce Section Block:</span>
-              </span>
-
-              <div className="flex flex-wrap items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => handleAddBlock('hero_banner')}
-                  className="flex items-center gap-1.5 rounded-xl border border-default bg-surface-sunken px-3 py-1.5 text-xs font-semibold text-default hover:border-emerald-500 hover:text-emerald-600 transition-all cursor-pointer"
-                >
-                  <ImageIcon className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
-                  <span>Hero Banner</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleAddBlock('value_props')}
-                  className="flex items-center gap-1.5 rounded-xl border border-default bg-surface-sunken px-3 py-1.5 text-xs font-semibold text-default hover:border-emerald-500 hover:text-emerald-600 transition-all cursor-pointer"
-                >
-                  <Award className="h-3.5 w-3.5 text-purple-600 dark:text-purple-400" />
-                  <span>Value Props</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleAddBlock('trending_categories')}
-                  className="flex items-center gap-1.5 rounded-xl border border-default bg-surface-sunken px-3 py-1.5 text-xs font-semibold text-default hover:border-emerald-500 hover:text-emerald-600 transition-all cursor-pointer"
-                >
-                  <Layers className="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />
-                  <span>Trending Categories</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleAddBlock('featured_products')}
-                  className="flex items-center gap-1.5 rounded-xl border border-default bg-surface-sunken px-3 py-1.5 text-xs font-semibold text-default hover:border-emerald-500 hover:text-emerald-600 transition-all cursor-pointer"
-                >
-                  <ShoppingBag className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
-                  <span>Products Grid</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleAddBlock('quality_journey')}
-                  className="flex items-center gap-1.5 rounded-xl border border-default bg-surface-sunken px-3 py-1.5 text-xs font-semibold text-default hover:border-emerald-500 hover:text-emerald-600 transition-all cursor-pointer"
-                >
-                  <ListOrdered className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
-                  <span>Quality Journey</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleAddBlock('promo_split_banner')}
-                  className="flex items-center gap-1.5 rounded-xl border border-default bg-surface-sunken px-3 py-1.5 text-xs font-semibold text-default hover:border-emerald-500 hover:text-emerald-600 transition-all cursor-pointer"
-                >
-                  <Zap className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
-                  <span>Promo Banner</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleAddBlock('faq')}
-                  className="flex items-center gap-1.5 rounded-xl border border-default bg-surface-sunken px-3 py-1.5 text-xs font-semibold text-default hover:border-emerald-500 hover:text-emerald-600 transition-all cursor-pointer"
-                >
-                  <HelpCircle className="h-3.5 w-3.5 text-teal-600 dark:text-teal-400" />
-                  <span>FAQ Accordion</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleAddBlock('newsletter_vip')}
-                  className="flex items-center gap-1.5 rounded-xl border border-default bg-surface-sunken px-3 py-1.5 text-xs font-semibold text-default hover:border-emerald-500 hover:text-emerald-600 transition-all cursor-pointer"
-                >
-                  <Mail className="h-3.5 w-3.5 text-rose-600 dark:text-rose-400" />
-                  <span>VIP Newsletter</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleAddBlock('rich_text')}
-                  className="flex items-center gap-1.5 rounded-xl border border-default bg-surface-sunken px-3 py-1.5 text-xs font-semibold text-default hover:border-emerald-500 hover:text-emerald-600 transition-all cursor-pointer"
-                >
-                  <FileText className="h-3.5 w-3.5 text-muted" />
-                  <span>Rich Text</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleAddBlock('custom_html_css')}
-                  className="flex items-center gap-1.5 rounded-xl border border-default bg-surface-sunken px-3 py-1.5 text-xs font-semibold text-default hover:border-emerald-500 hover:text-emerald-600 transition-all cursor-pointer"
-                >
-                  <Code className="h-3.5 w-3.5 text-muted" />
-                  <span>Sandboxed Code</span>
-                </button>
-              </div>
-            </div>
+            {/* Block Palette Section */}
+            <BlockPaletteSection onAddBlock={handleAddBlock} />
 
             {/* Block Stack Canvas */}
             <div className="space-y-4">
@@ -1531,6 +1332,9 @@ export const StorefrontPageBuilderWorkspace: React.FC = () => {
                   {/* Block Header & Reorder Controls */}
                   <div className="flex items-center justify-between border-b border-default pb-3">
                     <div className="flex items-center gap-2">
+                      <span title="Drag to reorder section">
+                        <GripVertical className="size-3.5 text-muted opacity-40 group-hover:opacity-100 cursor-grab" />
+                      </span>
                       <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-surface-sunken border border-default font-mono text-[11px] text-muted font-bold">
                         {idx + 1}
                       </span>
@@ -1588,388 +1392,14 @@ export const StorefrontPageBuilderWorkspace: React.FC = () => {
 
                   {/* HERO BANNER & MULTI-IMAGE SLIDER EDIT */}
                   {block.type === 'hero_banner' && (
-                    <div className="space-y-4">
-                      {/* Global Slider Settings Toolbar */}
-                      <div className="flex flex-wrap items-center justify-between gap-3 p-3 rounded-xl border border-default bg-surface-sunken">
-                        <div className="flex items-center gap-4 text-xs font-semibold text-default">
-                          <label className="flex items-center gap-2 cursor-pointer">
-                            <input
-                              type="checkbox"
-                              checked={block.autoplay !== false}
-                              onChange={(e) => {
-                                const blocks = [...selectedPage.blocks];
-                                blocks[idx] = { ...block, autoplay: e.target.checked };
-                                setSelectedPage({ ...selectedPage, blocks });
-                              }}
-                              className="rounded border-default text-primary focus:ring-0"
-                            />
-                            <span>Autoplay Slider</span>
-                          </label>
-
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-muted text-[11px]">Interval:</span>
-                            <select
-                              value={block.duration || 6000}
-                              onChange={(e) => {
-                                const blocks = [...selectedPage.blocks];
-                                blocks[idx] = { ...block, duration: Number(e.target.value) };
-                                setSelectedPage({ ...selectedPage, blocks });
-                              }}
-                              className="rounded-lg border border-default bg-surface px-2 py-1 text-xs text-default font-mono"
-                            >
-                              <option value={3000}>3s (Fast)</option>
-                              <option value={5000}>5s</option>
-                              <option value={6000}>6s (Default)</option>
-                              <option value={8000}>8s</option>
-                              <option value={10000}>10s</option>
-                            </select>
-                          </div>
-                        </div>
-
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const currentSlides = (block.slides && block.slides.length > 0)
-                              ? [...block.slides]
-                              : [
-                                  {
-                                    id: 'slide_1',
-                                    badge: block.badge || 'Official Store • Direct Fulfillment',
-                                    title: block.title || 'Designed for Excellence, Crafted for Longevity',
-                                    subtitle: block.subtitle || 'Explore curated collections built to the highest commercial standards.',
-                                    cta_text: block.cta_text || 'Explore Catalog',
-                                    cta_url: block.cta_url || '#catalog',
-                                    secondary_cta_text: block.secondary_cta_text || 'About Us',
-                                    secondary_cta_url: block.secondary_cta_url || '/pages/about-us',
-                                    desktop_image: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?q=80&w=1600&auto=format&fit=crop',
-                                    text_align: 'left' as const,
-                                    overlay_opacity: 60,
-                                  },
-                                ];
-
-                            currentSlides.push({
-                              id: `slide_${Date.now()}`,
-                              badge: 'New Collection • Verified Quality',
-                              title: 'Elevate Your Everyday Standards',
-                              subtitle: 'Engineered with sustainable materials, precise finishing, and direct fulfillment.',
-                              cta_text: 'Shop New Arrivals',
-                              cta_url: '#catalog',
-                              secondary_cta_text: 'View Story',
-                              secondary_cta_url: '/pages/about-us',
-                              desktop_image: 'https://images.unsplash.com/photo-1472851294608-062f824d29cc?q=80&w=1600&auto=format&fit=crop',
-                              text_align: 'left' as const,
-                              overlay_opacity: 60,
-                            });
-
-                            const blocks = [...selectedPage.blocks];
-                            blocks[idx] = { ...block, slides: currentSlides };
-                            setSelectedPage({ ...selectedPage, blocks });
-                          }}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-500 transition-colors shadow-2xs cursor-pointer"
-                        >
-                          <Plus className="size-3.5" />
-                          <span>Add Slide</span>
-                        </button>
-                      </div>
-
-                      {/* Slides Cards List */}
-                      {(() => {
-                        const slidesList = (block.slides && block.slides.length > 0)
-                          ? block.slides
-                          : [
-                              {
-                                id: 'slide_1',
-                                badge: block.badge || 'Official Store • Direct Fulfillment',
-                                title: block.title || 'Designed for Excellence, Crafted for Longevity',
-                                subtitle: block.subtitle || 'Explore curated collections built to the highest commercial standards with direct-to-consumer value and official warranty.',
-                                cta_text: block.cta_text || 'Explore Catalog',
-                                cta_url: block.cta_url || '#catalog',
-                                secondary_cta_text: block.secondary_cta_text || 'About Us',
-                                secondary_cta_url: block.secondary_cta_url || '/pages/about-us',
-                                desktop_image: (block.desktop_image as string) || (block.image_url as string) || 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?q=80&w=1600&auto=format&fit=crop',
-                                mobile_image: '',
-                                text_align: 'left' as const,
-                                overlay_opacity: 60,
-                              },
-                              {
-                                id: 'slide_2',
-                                badge: 'New Season • Premium Craftsmanship',
-                                title: 'Engineered for Performance & Elevated Living',
-                                subtitle: 'Discover our latest release of meticulously finished products, created with sustainable materials and verified quality controls.',
-                                cta_text: 'Discover New Releases',
-                                cta_url: '#catalog',
-                                secondary_cta_text: 'View Specs',
-                                secondary_cta_url: '/products',
-                                desktop_image: 'https://images.unsplash.com/photo-1472851294608-062f824d29cc?q=80&w=1600&auto=format&fit=crop',
-                                mobile_image: '',
-                                text_align: 'left' as const,
-                                overlay_opacity: 65,
-                              },
-                            ];
-
-                        return (
-                          <div className="space-y-3">
-                            {slidesList.map((slide, sIdx) => (
-                              <div
-                                key={slide.id || sIdx}
-                                className="p-4 rounded-xl border border-default bg-surface-sunken/60 space-y-3 relative group/slide"
-                              >
-                                <div className="flex items-center justify-between border-b border-default/50 pb-2">
-                                  <div className="flex items-center gap-2">
-                                    <span className="flex size-5 items-center justify-center rounded-md bg-surface border border-default text-[10px] font-mono font-bold text-muted">
-                                      {sIdx + 1}
-                                    </span>
-                                    <span className="text-xs font-bold text-default truncate max-w-50 sm:max-w-xs">
-                                      {slide.title || `Slide ${sIdx + 1}`}
-                                    </span>
-                                  </div>
-
-                                  <div className="flex items-center gap-1">
-                                    {/* Alignment Selector */}
-                                    <select
-                                      value={slide.text_align || 'left'}
-                                      onChange={(e) => {
-                                        const updated = [...slidesList];
-                                        updated[sIdx] = { ...slide, text_align: e.target.value as 'left' | 'center' | 'right' };
-                                        const blocks = [...selectedPage.blocks];
-                                        blocks[idx] = { ...block, slides: updated };
-                                        setSelectedPage({ ...selectedPage, blocks });
-                                      }}
-                                      className="text-[10px] rounded-lg border border-default bg-surface px-1.5 py-0.5 text-muted"
-                                      title="Text Alignment"
-                                    >
-                                      <option value="left">Left</option>
-                                      <option value="center">Center</option>
-                                      <option value="right">Right</option>
-                                    </select>
-
-                                    {/* Move Slide */}
-                                    <button
-                                      type="button"
-                                      disabled={sIdx === 0}
-                                      onClick={() => {
-                                        const updated = [...slidesList];
-                                        const temp = updated[sIdx - 1];
-                                        if (temp && updated[sIdx]) {
-                                          updated[sIdx - 1] = updated[sIdx]!;
-                                          updated[sIdx] = temp;
-                                          const blocks = [...selectedPage.blocks];
-                                          blocks[idx] = { ...block, slides: updated };
-                                          setSelectedPage({ ...selectedPage, blocks });
-                                        }
-                                      }}
-                                      className="p-1 rounded text-muted hover:text-default disabled:opacity-20 cursor-pointer"
-                                      title="Move Up"
-                                    >
-                                      <ArrowUp className="size-3" />
-                                    </button>
-                                    <button
-                                      type="button"
-                                      disabled={sIdx === slidesList.length - 1}
-                                      onClick={() => {
-                                        const updated = [...slidesList];
-                                        const temp = updated[sIdx + 1];
-                                        if (temp && updated[sIdx]) {
-                                          updated[sIdx + 1] = updated[sIdx]!;
-                                          updated[sIdx] = temp;
-                                          const blocks = [...selectedPage.blocks];
-                                          blocks[idx] = { ...block, slides: updated };
-                                          setSelectedPage({ ...selectedPage, blocks });
-                                        }
-                                      }}
-                                      className="p-1 rounded text-muted hover:text-default disabled:opacity-20 cursor-pointer"
-                                      title="Move Down"
-                                    >
-                                      <ArrowDown className="size-3" />
-                                    </button>
-
-                                    {/* Delete Slide */}
-                                    {slidesList.length > 1 && (
-                                      <button
-                                        type="button"
-                                        onClick={() => {
-                                          const updated = slidesList.filter((_, i) => i !== sIdx);
-                                          const blocks = [...selectedPage.blocks];
-                                          blocks[idx] = { ...block, slides: updated };
-                                          setSelectedPage({ ...selectedPage, blocks });
-                                        }}
-                                        className="p-1 rounded text-muted hover:text-rose-500 cursor-pointer ml-1"
-                                        title="Delete Slide"
-                                      >
-                                        <Trash2 className="size-3.5" />
-                                      </button>
-                                    )}
-                                  </div>
-                                </div>
-
-                                {/* Slide Content Form */}
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                  <div>
-                                    <label className="text-[9px] uppercase font-bold text-muted block mb-1">Badge Tag</label>
-                                    <input
-                                      type="text"
-                                      placeholder="e.g. Official Store • Direct Fulfillment"
-                                      value={slide.badge || ''}
-                                      onChange={(e) => {
-                                        const updated = [...slidesList];
-                                        updated[sIdx] = { ...slide, badge: e.target.value };
-                                        const blocks = [...selectedPage.blocks];
-                                        blocks[idx] = { ...block, slides: updated };
-                                        setSelectedPage({ ...selectedPage, blocks });
-                                      }}
-                                      className="w-full rounded-lg border border-default bg-surface px-2.5 py-1.5 text-xs text-default focus:border-primary focus:outline-none"
-                                    />
-                                  </div>
-                                  <div>
-                                    <label className="text-[9px] uppercase font-bold text-muted block mb-1">Headline</label>
-                                    <input
-                                      type="text"
-                                      placeholder="Headline..."
-                                      value={slide.title || ''}
-                                      onChange={(e) => {
-                                        const updated = [...slidesList];
-                                        updated[sIdx] = { ...slide, title: e.target.value };
-                                        const blocks = [...selectedPage.blocks];
-                                        blocks[idx] = { ...block, slides: updated };
-                                        setSelectedPage({ ...selectedPage, blocks });
-                                      }}
-                                      className="w-full rounded-lg border border-default bg-surface px-2.5 py-1.5 text-xs text-default focus:border-primary focus:outline-none font-bold"
-                                    />
-                                  </div>
-                                </div>
-
-                                <div>
-                                  <label className="text-[9px] uppercase font-bold text-muted block mb-1">Subtitle</label>
-                                  <textarea
-                                    rows={2}
-                                    placeholder="Supporting subtitle..."
-                                    value={slide.subtitle || ''}
-                                    onChange={(e) => {
-                                      const updated = [...slidesList];
-                                      updated[sIdx] = { ...slide, subtitle: e.target.value };
-                                      const blocks = [...selectedPage.blocks];
-                                      blocks[idx] = { ...block, slides: updated };
-                                      setSelectedPage({ ...selectedPage, blocks });
-                                    }}
-                                    className="w-full rounded-lg border border-default bg-surface px-2.5 py-1.5 text-xs text-default focus:border-primary focus:outline-none"
-                                  />
-                                </div>
-
-                                {/* Slide Image & Darkening Overlay */}
-                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                                  <div className="sm:col-span-2">
-                                    <label className="text-[9px] uppercase font-bold text-muted block mb-1">Desktop Image URL</label>
-                                    <div className="flex gap-2">
-                                      <input
-                                        type="text"
-                                        placeholder="https://images.unsplash.com/..."
-                                        value={slide.desktop_image || ''}
-                                        onChange={(e) => {
-                                          const updated = [...slidesList];
-                                          updated[sIdx] = { ...slide, desktop_image: e.target.value };
-                                          const blocks = [...selectedPage.blocks];
-                                          blocks[idx] = { ...block, slides: updated };
-                                          setSelectedPage({ ...selectedPage, blocks });
-                                        }}
-                                        className="flex-1 rounded-lg border border-default bg-surface px-2.5 py-1.5 text-xs text-default font-mono focus:border-primary focus:outline-none"
-                                      />
-                                      {slide.desktop_image && (
-                                        <div className="size-8 rounded-lg overflow-hidden border border-default shrink-0 bg-black">
-                                          <img src={slide.desktop_image} alt="preview" className="size-full object-cover" />
-                                        </div>
-                                      )}
-                                    </div>
-                                  </div>
-
-                                  <div>
-                                    <div className="flex items-center justify-between mb-1">
-                                      <label className="text-[9px] uppercase font-bold text-muted">Darkening Overlay</label>
-                                      <span className="text-[10px] font-mono text-muted">{slide.overlay_opacity ?? 60}%</span>
-                                    </div>
-                                    <input
-                                      type="range"
-                                      min={10}
-                                      max={90}
-                                      step={5}
-                                      value={slide.overlay_opacity ?? 60}
-                                      onChange={(e) => {
-                                        const updated = [...slidesList];
-                                        updated[sIdx] = { ...slide, overlay_opacity: Number(e.target.value) };
-                                        const blocks = [...selectedPage.blocks];
-                                        blocks[idx] = { ...block, slides: updated };
-                                        setSelectedPage({ ...selectedPage, blocks });
-                                      }}
-                                      className="w-full accent-primary"
-                                    />
-                                  </div>
-                                </div>
-
-                                {/* CTAs */}
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-                                  <div className="flex gap-2">
-                                    <input
-                                      type="text"
-                                      placeholder="Primary CTA Text"
-                                      value={slide.cta_text || ''}
-                                      onChange={(e) => {
-                                        const updated = [...slidesList];
-                                        updated[sIdx] = { ...slide, cta_text: e.target.value };
-                                        const blocks = [...selectedPage.blocks];
-                                        blocks[idx] = { ...block, slides: updated };
-                                        setSelectedPage({ ...selectedPage, blocks });
-                                      }}
-                                      className="w-1/2 rounded-lg border border-default bg-surface px-2 py-1 text-xs text-default"
-                                    />
-                                    <input
-                                      type="text"
-                                      placeholder="URL (e.g. #catalog)"
-                                      value={slide.cta_url || ''}
-                                      onChange={(e) => {
-                                        const updated = [...slidesList];
-                                        updated[sIdx] = { ...slide, cta_url: e.target.value };
-                                        const blocks = [...selectedPage.blocks];
-                                        blocks[idx] = { ...block, slides: updated };
-                                        setSelectedPage({ ...selectedPage, blocks });
-                                      }}
-                                      className="w-1/2 rounded-lg border border-default bg-surface px-2 py-1 text-xs text-default font-mono"
-                                    />
-                                  </div>
-
-                                  <div className="flex gap-2">
-                                    <input
-                                      type="text"
-                                      placeholder="Secondary CTA Text"
-                                      value={slide.secondary_cta_text || ''}
-                                      onChange={(e) => {
-                                        const updated = [...slidesList];
-                                        updated[sIdx] = { ...slide, secondary_cta_text: e.target.value };
-                                        const blocks = [...selectedPage.blocks];
-                                        blocks[idx] = { ...block, slides: updated };
-                                        setSelectedPage({ ...selectedPage, blocks });
-                                      }}
-                                      className="w-1/2 rounded-lg border border-default bg-surface px-2 py-1 text-xs text-default"
-                                    />
-                                    <input
-                                      type="text"
-                                      placeholder="URL (e.g. /pages/about)"
-                                      value={slide.secondary_cta_url || ''}
-                                      onChange={(e) => {
-                                        const updated = [...slidesList];
-                                        updated[sIdx] = { ...slide, secondary_cta_url: e.target.value };
-                                        const blocks = [...selectedPage.blocks];
-                                        blocks[idx] = { ...block, slides: updated };
-                                        setSelectedPage({ ...selectedPage, blocks });
-                                      }}
-                                      className="w-1/2 rounded-lg border border-default bg-surface px-2 py-1 text-xs text-default font-mono"
-                                    />
-                                  </div>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        );
-                      })()}
-                    </div>
+                    <HeroBannerEditor
+                      block={block}
+                      onChange={(updated) => {
+                        const blocks = [...selectedPage.blocks];
+                        blocks[idx] = updated;
+                        setSelectedPage({ ...selectedPage, blocks });
+                      }}
+                    />
                   )}
 
                   {/* VALUE PROPS EDIT */}
@@ -2062,104 +1492,16 @@ export const StorefrontPageBuilderWorkspace: React.FC = () => {
 
                   {/* FEATURED PRODUCTS CATALOG EDIT */}
                   {block.type === 'featured_products' && (
-                    <div className="space-y-3">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <div>
-                          <label className="text-[10px] uppercase font-bold text-muted block mb-1">Catalog Section Heading</label>
-                          <input
-                            type="text"
-                            value={block.title || ''}
-                            placeholder="e.g. Browse Available Products"
-                            onChange={(e) => {
-                              const blocks = [...selectedPage.blocks];
-                              blocks[idx] = { ...block, title: e.target.value };
-                              setSelectedPage({ ...selectedPage, blocks });
-                            }}
-                            className="w-full rounded-xl border border-default bg-surface-sunken px-3 py-2 text-xs text-default focus:border-primary focus:outline-none font-bold"
-                          />
-                        </div>
-                        <div>
-                          <label className="text-[10px] uppercase font-bold text-muted block mb-1">Catalog Subtitle</label>
-                          <input
-                            type="text"
-                            value={block.subtitle || ''}
-                            placeholder="e.g. Select items below to add directly to your cart."
-                            onChange={(e) => {
-                              const blocks = [...selectedPage.blocks];
-                              blocks[idx] = { ...block, subtitle: e.target.value };
-                              setSelectedPage({ ...selectedPage, blocks });
-                            }}
-                            className="w-full rounded-xl border border-default bg-surface-sunken px-3 py-2 text-xs text-default focus:border-primary focus:outline-none"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                        <div>
-                          <label className="text-[10px] uppercase font-bold text-muted block mb-1">Category Filter</label>
-                          <select
-                            value={block.category_id || ''}
-                            onChange={(e) => {
-                              const val = e.target.value ? Number(e.target.value) : null;
-                              const blocks = [...selectedPage.blocks];
-                              blocks[idx] = { ...block, category_id: val };
-                              setSelectedPage({ ...selectedPage, blocks });
-                            }}
-                            className="w-full rounded-xl border border-default bg-surface-sunken px-3 py-2 text-xs text-default focus:outline-none"
-                          >
-                            <option value="">All Categories</option>
-                            {categories.map((c) => (
-                              <option key={c.id} value={c.id}>
-                                {c.name}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                        <div>
-                          <label className="text-[10px] uppercase font-bold text-muted block mb-1">Items To Display</label>
-                          <input
-                            type="number"
-                            min={2}
-                            max={48}
-                            value={block.limit || 8}
-                            onChange={(e) => {
-                              const blocks = [...selectedPage.blocks];
-                              blocks[idx] = { ...block, limit: parseInt(e.target.value) || 8 };
-                              setSelectedPage({ ...selectedPage, blocks });
-                            }}
-                            className="w-full rounded-xl border border-default bg-surface-sunken px-3 py-2 text-xs text-default focus:outline-none"
-                          />
-                        </div>
-                        <div className="flex items-center gap-4 pt-5">
-                          <label className="flex items-center gap-1.5 text-xs text-default cursor-pointer">
-                            <input
-                              type="checkbox"
-                              checked={block.show_search !== false}
-                              onChange={(e) => {
-                                const blocks = [...selectedPage.blocks];
-                                blocks[idx] = { ...block, show_search: e.target.checked };
-                                setSelectedPage({ ...selectedPage, blocks });
-                              }}
-                              className="rounded accent-emerald-500"
-                            />
-                            <span>Live Search Bar</span>
-                          </label>
-                          <label className="flex items-center gap-1.5 text-xs text-default cursor-pointer">
-                            <input
-                              type="checkbox"
-                              checked={block.show_categories !== false}
-                              onChange={(e) => {
-                                const blocks = [...selectedPage.blocks];
-                                blocks[idx] = { ...block, show_categories: e.target.checked };
-                                setSelectedPage({ ...selectedPage, blocks });
-                              }}
-                              className="rounded accent-emerald-500"
-                            />
-                            <span>Category Pills</span>
-                          </label>
-                        </div>
-                      </div>
-                    </div>
+                    <FeaturedProductsEditor
+                      block={block}
+                      categories={categories}
+                      products={previewProducts}
+                      onChange={(updated) => {
+                        const blocks = [...selectedPage.blocks];
+                        blocks[idx] = updated;
+                        setSelectedPage({ ...selectedPage, blocks });
+                      }}
+                    />
                   )}
 
                   {/* QUALITY JOURNEY EDIT */}

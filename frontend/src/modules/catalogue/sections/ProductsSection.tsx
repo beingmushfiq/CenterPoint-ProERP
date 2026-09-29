@@ -786,6 +786,28 @@ export function ProductsSection() {
     }
   };
 
+  const handleBulkUnpublishFromStorefront = async () => {
+    if (selectedProducts.length === 0) return;
+    setIsBulkUpdating(true);
+    try {
+      const promises = selectedProducts.map((p) =>
+        api.post('/storefront/products/toggle-publish', {
+          product_id: p.id,
+          is_published: false,
+        })
+      );
+      await Promise.allSettled(promises);
+      await queryClient.invalidateQueries({ queryKey: ['catalogue', 'products'] });
+      notify.success(`Unpublished ${selectedProducts.length} product(s) from online storefront.`);
+      clearSelection();
+    } catch {
+      notify.error('Failed to unpublish selected products from storefront.');
+    } finally {
+      setIsBulkUpdating(false);
+    }
+  };
+
+
   return (
     <div className="space-y-6">
       {/* Catalog Intelligence KPI Summary Cards */}
@@ -975,6 +997,17 @@ export function ProductsSection() {
                 <Globe className="size-3" />
                 Publish to Storefront
               </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={handleBulkUnpublishFromStorefront}
+                disabled={isBulkUpdating}
+                className="flex items-center gap-1 text-[11px] py-1 border-amber-500/30 text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/30"
+                title="Unpublish selected items from Online Storefront"
+              >
+                <Globe className="size-3 line-through opacity-70" />
+                Unpublish from Storefront
+              </Button>
             </>
           ) : (
             <>
@@ -1100,6 +1133,12 @@ export function ProductsSection() {
                               {p.barcode && (
                                 <span className="text-[10px] text-slate-500 dark:text-slate-400 font-mono bg-slate-100 dark:bg-slate-800 px-1.5 py-0.2 rounded border border-slate-200 dark:border-slate-700">
                                   {p.barcode}
+                                </span>
+                              )}
+                              {p.is_online && (
+                                <span className="inline-flex items-center gap-1 text-[9px] font-semibold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800/60 px-1.5 py-0.2 rounded" title="Published to public storefront">
+                                  <Globe className="size-2.5" />
+                                  Storefront
                                 </span>
                               )}
                             </div>
