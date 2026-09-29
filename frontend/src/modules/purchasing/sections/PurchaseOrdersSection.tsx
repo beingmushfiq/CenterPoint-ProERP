@@ -557,8 +557,9 @@ export function PurchaseOrdersSection({ onReceivePo, onCreateBill }: PurchaseOrd
           ? `Purchase Order ${activeOrder.po_number || `#${activeOrder.id}`} deleted permanently.`
           : `Purchase Order ${activeOrder.po_number || `#${activeOrder.id}`} moved to Data Bin successfully.`
       );
-    } catch (err: any) {
-      toast.error(err?.message || 'Failed to delete purchase order.');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to delete purchase order.';
+      toast.error(message);
     } finally {
       setShowDeleteModal(false);
       setIsPermanentDelete(false);
@@ -582,8 +583,9 @@ export function PurchaseOrdersSection({ onReceivePo, onCreateBill }: PurchaseOrd
       queryClient.invalidateQueries({ queryKey: ['purchasing', 'orders'] });
       setSelectedPoIds(new Set());
       setShowBulkDeleteConfirm(false);
-    } catch (err: any) {
-      toast.error(err?.message || 'Failed to execute bulk deletion.');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to execute bulk deletion.';
+      toast.error(message);
     } finally {
       setIsBulkProcessing(false);
     }

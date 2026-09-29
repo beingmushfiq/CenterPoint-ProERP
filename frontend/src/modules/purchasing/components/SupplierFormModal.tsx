@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import {
@@ -25,19 +25,32 @@ export interface SupplierFormModalProps {
   quickMode?: boolean;
 }
 
-export const SupplierFormModal: React.FC<SupplierFormModalProps> = ({
-  open,
-  onClose,
-  onSuccess,
-  supplier = null,
-  quickMode = false,
-}) => {
-  const queryClient = useQueryClient();
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-
-  const [formData, setFormData] = useState({
-    code: '',
+function getInitialSupplierFormData(supplier?: Party | null) {
+  if (supplier) {
+    const primaryAddress = supplier.addresses?.[0];
+    const primaryContact = supplier.contacts?.[0];
+    return {
+      code: supplier.code || '',
+      name: supplier.name || '',
+      legal_name: supplier.legal_name || '',
+      type: supplier.type || 'business',
+      tax_identifier: supplier.tax_identifier || '',
+      phone: supplier.phone || '',
+      email: supplier.email || '',
+      credit_limit: supplier.credit_limit || '0',
+      credit_days: supplier.credit_days ?? 30,
+      opening_balance: supplier.opening_balance || '0',
+      status: supplier.status || 'active',
+      contact_name: primaryContact?.name || '',
+      line1: primaryAddress?.line1 || '',
+      city: primaryAddress?.city || 'Dhaka',
+      district: primaryAddress?.district || '',
+      postal_code: primaryAddress?.postal_code || '',
+    };
+  }
+  const rand = Math.floor(1000 + Math.random() * 9000);
+  return {
+    code: `SUP-${rand}`,
     name: '',
     legal_name: '',
     type: 'business',
@@ -48,65 +61,25 @@ export const SupplierFormModal: React.FC<SupplierFormModalProps> = ({
     credit_days: 30,
     opening_balance: '0',
     status: 'active',
-    // Contact
     contact_name: '',
-    // Address
     line1: '',
     city: 'Dhaka',
     district: '',
     postal_code: '',
-  });
+  };
+}
 
-  useEffect(() => {
-    if (open) {
-      setErrorMessage(null);
-      if (supplier) {
-        const primaryAddress = supplier.addresses?.[0];
-        const primaryContact = supplier.contacts?.[0];
-        setFormData({
-          code: supplier.code || '',
-          name: supplier.name || '',
-          legal_name: supplier.legal_name || '',
-          type: supplier.type || 'business',
-          tax_identifier: supplier.tax_identifier || '',
-          phone: supplier.phone || '',
-          email: supplier.email || '',
-          credit_limit: supplier.credit_limit || '0',
-          credit_days: supplier.credit_days ?? 30,
-          opening_balance: supplier.opening_balance || '0',
-          status: supplier.status || 'active',
-          contact_name: primaryContact?.name || '',
-          line1: primaryAddress?.line1 || '',
-          city: primaryAddress?.city || 'Dhaka',
-          district: primaryAddress?.district || '',
-          postal_code: primaryAddress?.postal_code || '',
-        });
-      } else {
-        // Auto-generate code e.g. SUP-8921
-        const rand = Math.floor(1000 + Math.random() * 9000);
-        setFormData({
-          code: `SUP-${rand}`,
-          name: '',
-          legal_name: '',
-          type: 'business',
-          tax_identifier: '',
-          phone: '',
-          email: '',
-          credit_limit: '0',
-          credit_days: 30,
-          opening_balance: '0',
-          status: 'active',
-          contact_name: '',
-          line1: '',
-          city: 'Dhaka',
-          district: '',
-          postal_code: '',
-        });
-      }
-    }
-  }, [open, supplier]);
+const SupplierFormDialog: React.FC<SupplierFormModalProps> = ({
+  onClose,
+  onSuccess,
+  supplier = null,
+  quickMode = false,
+}) => {
+  const queryClient = useQueryClient();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  if (!open) return null;
+  const [formData, setFormData] = useState(() => getInitialSupplierFormData(supplier));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -493,4 +466,10 @@ export const SupplierFormModal: React.FC<SupplierFormModalProps> = ({
       </div>
     </div>
   );
+};
+
+export const SupplierFormModal: React.FC<SupplierFormModalProps> = (props) => {
+  if (!props.open) return null;
+  const key = props.supplier?.id ? `edit-sup-${props.supplier.id}` : 'new-sup';
+  return <SupplierFormDialog key={key} {...props} />;
 };

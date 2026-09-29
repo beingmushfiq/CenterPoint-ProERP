@@ -108,8 +108,9 @@ export const SuppliersSection: React.FC = () => {
       setDeletingSupplier(null);
       setIsPermanentDelete(false);
     },
-    onError: (err: any) => {
-      toast.error(err?.message || 'Failed to delete supplier.');
+    onError: (err: unknown) => {
+      const message = err instanceof Error ? err.message : 'Failed to delete supplier.';
+      toast.error(message);
     },
   });
 
