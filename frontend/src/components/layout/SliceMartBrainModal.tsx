@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -15,6 +15,8 @@ import {
   CheckCircle2,
   Trash2,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   Check,
   TrendingUp,
   Square,
@@ -125,6 +127,8 @@ const PROMPT_CATEGORIES = [
       'What is our total sales revenue and collected cash this month?',
       'Show our top selling products and recent customer sales orders',
       'What are our open customer orders awaiting fulfillment?',
+      'How does multi-payment tender and split payment work?',
+      'Show our recent POS sales transactions and walk-in receipts',
     ],
   },
   {
@@ -135,6 +139,8 @@ const PROMPT_CATEGORIES = [
       'Calculate total warehouse inventory valuation and show low-stock items',
       'List all raw materials below safety stock reorder levels',
       'What is our absorbed stock valuation by warehouse location?',
+      'Explain FIFO vs Weighted Average Costing (AVCO) rules',
+      'How do warehouse transfers and bin-location movements work?',
     ],
   },
   {
@@ -145,6 +151,8 @@ const PROMPT_CATEGORIES = [
       'List overdue customer accounts receivable and aging breakdown',
       'What is our current liquid cash and bank balance across all accounts?',
       'Summarize unallocated customer payments and credit memos',
+      'Explain our 3-way purchase order matching policy',
+      'Show operational expense vouchers and petty cash entries',
     ],
   },
   {
@@ -155,6 +163,8 @@ const PROMPT_CATEGORIES = [
       'Show active shopfloor batches and quality inspection pass yield',
       'How many batches failed QC inspections this week?',
       'What is the status of our current production work orders?',
+      'Explain ISO 2859-1 AQL sampling plans and inspection gates',
+      'Show BOM material requirements and production run costs',
     ],
   },
 ];
@@ -375,7 +385,7 @@ function ToolExecutionCard({
 
       {/* Summary text */}
       {toolResult?.summary && (
-        <p className="text-xs sm:text-[13px] text-slate-800 dark:text-slate-200 leading-relaxed font-normal bg-white/70 dark:bg-slate-850/60 p-3 rounded-xl border border-slate-200/70 dark:border-slate-750">
+        <p className="text-xs sm:text-[13px] text-slate-800 dark:text-slate-200 leading-relaxed font-normal bg-white/70 dark:bg-slate-800/80 p-3 rounded-xl border border-slate-200/70 dark:border-slate-700/80">
           {toolResult.summary}
         </p>
       )}
@@ -418,7 +428,7 @@ function ToolExecutionCard({
 
       {/* Accounts Receivable Aging Breakdown */}
       {aging && (
-        <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-850/60 p-3 space-y-2">
+        <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/80 p-3 space-y-2">
           <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">Accounts Receivable Aging Breakdown:</span>
           <div className="grid grid-cols-1 xs:grid-cols-3 gap-2 text-center text-xs">
             <div className="p-2.5 rounded-xl bg-white dark:bg-slate-800 border border-emerald-500/30 text-emerald-800 dark:text-emerald-300 shadow-2xs">
@@ -734,6 +744,85 @@ export const SliceMartBrainModal: React.FC<SliceMartBrainModalProps> = ({ open, 
   const abortControllerRef = useRef<AbortController | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Horizontal scroll controller for question chips
+  const chipsScrollRef = useRef<HTMLDivElement>(null);
+  const [chipsCanScrollLeft, setChipsCanScrollLeft] = useState(false);
+  const [chipsCanScrollRight, setChipsCanScrollRight] = useState(false);
+  const isDraggingChipsRef = useRef(false);
+  const startDragXRef = useRef(0);
+  const startScrollLeftRef = useRef(0);
+  const hasDraggedChipsRef = useRef(false);
+
+  const checkChipsScroll = useCallback(() => {
+    const el = chipsScrollRef.current;
+    if (!el) return;
+    const { scrollLeft, scrollWidth, clientWidth } = el;
+    setChipsCanScrollLeft(scrollLeft > 6);
+    setChipsCanScrollRight(scrollLeft < scrollWidth - clientWidth - 6);
+  }, []);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      checkChipsScroll();
+    }, 60);
+    const el = chipsScrollRef.current;
+    if (!el) return () => clearTimeout(timer);
+
+    const handleWheel = (e: WheelEvent) => {
+      if (e.deltaY !== 0) {
+        el.scrollLeft += e.deltaY;
+        checkChipsScroll();
+      }
+    };
+
+    const handleMouseDown = (e: MouseEvent) => {
+      isDraggingChipsRef.current = true;
+      hasDraggedChipsRef.current = false;
+      startDragXRef.current = e.pageX - el.offsetLeft;
+      startScrollLeftRef.current = el.scrollLeft;
+    };
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isDraggingChipsRef.current || !chipsScrollRef.current) return;
+      const x = e.pageX - chipsScrollRef.current.offsetLeft;
+      const walk = (x - startDragXRef.current) * 1.5;
+      if (Math.abs(walk) > 4) {
+        hasDraggedChipsRef.current = true;
+      }
+      chipsScrollRef.current.scrollLeft = startScrollLeftRef.current - walk;
+      checkChipsScroll();
+    };
+
+    const handleMouseUp = () => {
+      isDraggingChipsRef.current = false;
+    };
+
+    el.addEventListener('scroll', checkChipsScroll, { passive: true });
+    el.addEventListener('wheel', handleWheel, { passive: true });
+    el.addEventListener('mousedown', handleMouseDown);
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+    window.addEventListener('resize', checkChipsScroll);
+
+    return () => {
+      clearTimeout(timer);
+      el.removeEventListener('scroll', checkChipsScroll);
+      el.removeEventListener('wheel', handleWheel);
+      el.removeEventListener('mousedown', handleMouseDown);
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+      window.removeEventListener('resize', checkChipsScroll);
+    };
+  }, [activeCategory, open, checkChipsScroll]);
+
+  const scrollChips = (direction: 'left' | 'right') => {
+    const el = chipsScrollRef.current;
+    if (!el) return;
+    const amount = direction === 'left' ? -280 : 280;
+    el.scrollBy({ left: amount, behavior: 'smooth' });
+    setTimeout(checkChipsScroll, 250);
+  };
 
   // Sync history to localStorage
   useEffect(() => {
@@ -1188,10 +1277,17 @@ export const SliceMartBrainModal: React.FC<SliceMartBrainModalProps> = ({ open, 
         </div>
 
         {/* Categorized Prompt Ribbon Bar */}
-        <div className="border-b border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/80 backdrop-blur-md shrink-0">
+        <div className="border-b border-slate-200 dark:border-slate-800 bg-slate-50/90 dark:bg-slate-900/90 backdrop-blur-md shrink-0">
           {/* Category Tabs */}
           <div className="px-4 sm:px-5 pt-2.5 pb-2 flex items-center justify-between gap-2">
-            <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none min-w-0 py-0.5">
+            <div 
+              onWheel={(e) => {
+                if (e.deltaY !== 0) {
+                  e.currentTarget.scrollLeft += e.deltaY;
+                }
+              }}
+              className="flex items-center gap-1.5 overflow-x-auto scrollbar-none min-w-0 py-0.5 select-none"
+            >
               {PROMPT_CATEGORIES.map((cat) => {
                 const Icon = cat.icon;
                 const isActive = cat.id === activeCategory;
@@ -1201,10 +1297,10 @@ export const SliceMartBrainModal: React.FC<SliceMartBrainModalProps> = ({ open, 
                     type="button"
                     onClick={() => setActiveCategory(cat.id)}
                     className={cn(
-                      'px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap shrink-0 shadow-2xs',
+                      'px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap shrink-0 shadow-2xs active:scale-95',
                       isActive
                         ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-sm shadow-indigo-500/30 ring-1 ring-indigo-500/40 font-bold'
-                        : 'bg-white dark:bg-slate-850 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:border-indigo-400 hover:bg-slate-100 dark:hover:bg-slate-700/80'
+                        : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:border-indigo-400 dark:hover:border-indigo-500/50 hover:bg-slate-100 dark:hover:bg-slate-700'
                     )}
                   >
                     <Icon className={cn('size-3.5 shrink-0', isActive ? 'text-white' : 'text-indigo-600 dark:text-indigo-400')} />
@@ -1273,23 +1369,59 @@ export const SliceMartBrainModal: React.FC<SliceMartBrainModalProps> = ({ open, 
             </div>
           </div>
 
-          {/* Chips for Active Category */}
-          <div className="relative border-t border-slate-200/60 dark:border-slate-800/80">
-            <div className="px-3.5 sm:px-5 py-2 flex items-center gap-2 overflow-x-auto scrollbar-none scroll-smooth">
+          {/* Chips for Active Category with Horizontal Drag & Navigation Buttons */}
+          <div className="relative border-t border-slate-200/60 dark:border-slate-800/80 group/ribbon">
+            {/* Left Scroll Navigation Button */}
+            {chipsCanScrollLeft && (
+              <div className="absolute left-0 top-0 bottom-0 z-10 flex items-center pl-1 bg-gradient-to-r from-slate-100 dark:from-slate-900 via-slate-100/90 dark:via-slate-900/90 to-transparent pr-4">
+                <button
+                  type="button"
+                  onClick={() => scrollChips('left')}
+                  className="size-6 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 shadow-md hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center justify-center transition-all cursor-pointer active:scale-90"
+                  aria-label="Scroll left"
+                >
+                  <ChevronLeft className="size-3.5" />
+                </button>
+              </div>
+            )}
+
+            {/* Chips Scroll Track */}
+            <div
+              ref={chipsScrollRef}
+              role="region"
+              aria-label="Suggested prompt chips"
+              tabIndex={0}
+              className="px-3.5 sm:px-5 py-2 flex items-center gap-2 overflow-x-auto select-none scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-700 scrollbar-track-transparent cursor-grab active:cursor-grabbing focus:outline-hidden"
+            >
               {currentCategory.chips.map((chip, idx) => (
                 <button
                   key={idx}
                   type="button"
-                  onClick={() => void handleSendQuery(chip)}
-                  className="text-xs px-3.5 py-1.5 rounded-xl bg-white dark:bg-slate-850 border border-slate-200 dark:border-slate-700/80 hover:border-indigo-500 hover:text-indigo-700 dark:hover:text-indigo-300 text-slate-700 dark:text-slate-200 font-medium whitespace-nowrap transition-all cursor-pointer shrink-0 flex items-center gap-1.5 shadow-2xs hover:shadow-xs hover:scale-[1.01] active:scale-98"
+                  onClick={() => {
+                    if (hasDraggedChipsRef.current) return;
+                    void handleSendQuery(chip);
+                  }}
+                  className="text-xs px-3.5 py-1.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200/90 dark:border-slate-700/80 hover:border-indigo-500/70 dark:hover:border-indigo-500 text-slate-700 dark:text-slate-200 hover:text-indigo-700 dark:hover:text-white hover:bg-indigo-50/50 dark:hover:bg-slate-700/80 font-medium whitespace-nowrap transition-all cursor-pointer shrink-0 flex items-center gap-1.5 shadow-2xs hover:shadow-xs hover:scale-[1.01] active:scale-98"
                 >
                   <Sparkles className="size-3 text-indigo-500 dark:text-indigo-400 shrink-0" />
                   <span>{chip}</span>
                 </button>
               ))}
             </div>
-            {/* Right fade hint */}
-            <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-10 bg-gradient-to-l from-slate-50 dark:from-slate-900 to-transparent" />
+
+            {/* Right Scroll Navigation Button */}
+            {chipsCanScrollRight && (
+              <div className="absolute right-0 top-0 bottom-0 z-10 flex items-center pr-1 bg-gradient-to-l from-slate-100 dark:from-slate-900 via-slate-100/90 dark:via-slate-900/90 to-transparent pl-4">
+                <button
+                  type="button"
+                  onClick={() => scrollChips('right')}
+                  className="size-6 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 shadow-md hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center justify-center transition-all cursor-pointer active:scale-90"
+                  aria-label="Scroll right"
+                >
+                  <ChevronRight className="size-3.5" />
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
@@ -1452,7 +1584,7 @@ export const SliceMartBrainModal: React.FC<SliceMartBrainModalProps> = ({ open, 
               e.preventDefault();
               void handleSendQuery();
             }}
-            className="relative rounded-2xl border border-slate-200 dark:border-slate-750 bg-white dark:bg-slate-900 shadow-lg shadow-slate-900/5 dark:shadow-black/40 focus-within:border-indigo-500 focus-within:ring-4 focus-within:ring-indigo-500/15 transition-all p-2 sm:p-2.5 space-y-2"
+            className="relative rounded-2xl border border-slate-200 dark:border-slate-700/80 bg-white dark:bg-slate-900 shadow-lg shadow-slate-900/5 dark:shadow-black/40 focus-within:border-indigo-500 focus-within:ring-4 focus-within:ring-indigo-500/15 transition-all p-2 sm:p-2.5 space-y-2"
           >
             <div className="flex items-center gap-2.5">
               <div className="size-8 rounded-xl bg-indigo-500/10 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0 ml-1">

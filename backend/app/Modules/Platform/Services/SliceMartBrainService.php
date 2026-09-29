@@ -38,100 +38,144 @@ class SliceMartBrainService
 
     private function evaluateQuery(int $tenantId, string $q, string $input): array
     {
-        // 0. Action Intents: Create / Add any system entity
-        if (str_contains($q, 'add product') || str_contains($q, 'create product') || str_contains($q, 'new product') || str_contains($q, 'make product') || str_contains($q, 'insert product')) {
+        // 0. Action Intents: Create / Add any system entity (handles direct commands and questions like "how do i add a product")
+        if (preg_match('/\b(add|create|new|insert|make)\s+(?:a\s+|an\s+|new\s+)?product\b/i', $q) || preg_match('/how\s+(?:do\s+i|to)\s+(?:add|create)\s+(?:a\s+)?product/i', $q)) {
             return $this->handleActionCreateProduct($tenantId, $input);
         }
-        if (str_contains($q, 'add customer') || str_contains($q, 'create customer') || str_contains($q, 'new customer') || str_contains($q, 'insert customer') || str_contains($q, 'add client')) {
+        if (preg_match('/\b(add|create|new|insert|register)\s+(?:a\s+|an\s+|new\s+)?(?:customer|client)\b/i', $q) || preg_match('/how\s+(?:do\s+i|to)\s+(?:add|create|register)\s+(?:a\s+)?(?:customer|client)/i', $q)) {
             return $this->handleActionCreateCustomer($tenantId, $input);
         }
-        if (str_contains($q, 'add supplier') || str_contains($q, 'create supplier') || str_contains($q, 'add vendor') || str_contains($q, 'create vendor') || str_contains($q, 'new supplier')) {
+        if (preg_match('/\b(add|create|new|insert|register)\s+(?:a\s+|an\s+|new\s+)?(?:supplier|vendor)\b/i', $q) || preg_match('/how\s+(?:do\s+i|to)\s+(?:add|create|register)\s+(?:a\s+)?(?:supplier|vendor)/i', $q)) {
             return $this->handleActionCreateSupplier($tenantId, $input);
         }
-        if (str_contains($q, 'add employee') || str_contains($q, 'create employee') || str_contains($q, 'add staff') || str_contains($q, 'create staff') || str_contains($q, 'new employee')) {
+        if (preg_match('/\b(add|create|new|insert|register|hire|enroll)\s+(?:a\s+|an\s+|new\s+)?(?:employee|staff|worker)\b/i', $q) || preg_match('/how\s+(?:do\s+i|to)\s+(?:add|create|enroll)\s+(?:an?\s+)?(?:employee|staff)/i', $q)) {
             return $this->handleActionCreateEmployee($tenantId, $input);
         }
-        if (str_contains($q, 'add warehouse') || str_contains($q, 'create warehouse') || str_contains($q, 'new warehouse') || str_contains($q, 'add store') || str_contains($q, 'create store')) {
+        if (preg_match('/\b(add|create|new|insert|setup)\s+(?:a\s+|an\s+|new\s+)?(?:warehouse|store|godown)\b/i', $q) || preg_match('/how\s+(?:do\s+i|to)\s+(?:add|create|setup)\s+(?:a\s+)?warehouse/i', $q)) {
             return $this->handleActionCreateWarehouse($tenantId, $input);
         }
-        if (str_contains($q, 'add expense') || str_contains($q, 'create expense') || str_contains($q, 'record expense') || str_contains($q, 'new expense') || str_contains($q, 'log expense')) {
+        if (preg_match('/\b(add|create|record|log|new)\s+(?:an?\s+)?expense\b/i', $q) || preg_match('/how\s+(?:do\s+i|to)\s+(?:add|record|log)\s+(?:an?\s+)?expense/i', $q)) {
             return $this->handleActionCreateExpense($tenantId, $input);
         }
-        if (str_contains($q, 'add batch') || str_contains($q, 'create batch') || str_contains($q, 'new batch') || str_contains($q, 'production batch') || str_contains($q, 'work order')) {
+        if (preg_match('/\b(add|create|launch|start|new)\s+(?:a\s+)?(?:batch|production batch|work order)\b/i', $q) || preg_match('/how\s+(?:do\s+i|to)\s+(?:launch|create|start)\s+(?:a\s+)?batch/i', $q)) {
             return $this->handleActionCreateBatch($tenantId, $input);
         }
-        if (str_contains($q, 'add lead') || str_contains($q, 'create lead') || str_contains($q, 'new lead') || str_contains($q, 'add crm lead') || str_contains($q, 'create crm lead')) {
+        if (preg_match('/\b(add|create|new|insert|log)\s+(?:a\s+)?(?:lead|crm lead|opportunity)\b/i', $q) || preg_match('/how\s+(?:do\s+i|to)\s+(?:add|create|capture)\s+(?:a\s+)?lead/i', $q)) {
             return $this->handleActionCreateCrmLead($tenantId, $input);
         }
-        if (str_contains($q, 'add category') || str_contains($q, 'create category') || str_contains($q, 'new category')) {
+        if (preg_match('/\b(add|create|new)\s+(?:a\s+)?category\b/i', $q)) {
             return $this->handleActionCreateCategory($tenantId, $input);
         }
-        if (str_contains($q, 'add brand') || str_contains($q, 'create brand') || str_contains($q, 'new brand')) {
+        if (preg_match('/\b(add|create|new)\s+(?:a\s+)?brand\b/i', $q)) {
             return $this->handleActionCreateBrand($tenantId, $input);
         }
-        if (str_contains($q, 'add department') || str_contains($q, 'create department') || str_contains($q, 'new department')) {
+        if (preg_match('/\b(add|create|new)\s+(?:a\s+)?department\b/i', $q)) {
             return $this->handleActionCreateDepartment($tenantId, $input);
         }
-        if (str_contains($q, 'add exchange') || str_contains($q, 'create exchange') || str_contains($q, 'new exchange') || str_contains($q, 'product exchange') || str_contains($q, 'swap product') || str_contains($q, 'exchange product')) {
+        if (preg_match('/\b(add|create|new|swap)\s+(?:an?\s+)?exchange\b/i', $q) || str_contains($q, 'product exchange')) {
             return $this->handleNavigateExchange();
         }
-        if (str_contains($q, 'what can i add') || str_contains($q, 'what can be added') || str_contains($q, 'add entity') || str_contains($q, 'create entity') || $q === 'add' || $q === 'create') {
+        if (str_contains($q, 'what can i add') || str_contains($q, 'what can be added') || str_contains($q, 'add entity') || str_contains($q, 'create entity') || $q === 'add' || $q === 'create' || str_contains($q, 'shortcuts')) {
             return $this->handleActionHelpOverview($tenantId);
         }
 
-        // 1. Reports & Analytics Hubs (Checked early to prevent collision with shorter tokens)
+        // 1. High-Value Specific Operational Queries (Prioritized before broad token match)
+        // 1.1 Top Selling Products & Recent Orders
+        if (str_contains($q, 'top selling') || str_contains($q, 'best selling') || str_contains($q, 'popular product') || (str_contains($q, 'recent') && str_contains($q, 'order')) || (str_contains($q, 'top') && str_contains($q, 'product'))) {
+            return $this->handleTopSellingAndRecentOrdersQuery($tenantId, $q);
+        }
+
+        // 1.2 Sales Revenue & Collected Cash
+        if ((str_contains($q, 'sale') || str_contains($q, 'revenue')) && (str_contains($q, 'collected') || str_contains($q, 'cash') || str_contains($q, 'month') || str_contains($q, 'today') || str_contains($q, 'total sales'))) {
+            return $this->handleSalesAndCollectionsQuery($tenantId, $q);
+        }
+
+        // 1.3 Open Customer Orders & Fulfillment
+        if ((str_contains($q, 'open') || str_contains($q, 'pending') || str_contains($q, 'awaiting')) && (str_contains($q, 'order') || str_contains($q, 'fulfillment') || str_contains($q, 'delivery'))) {
+            return $this->handleOpenOrdersQuery($tenantId, $q);
+        }
+
+        // 1.4 Overdue Invoices & Aging Breakdown
+        if (str_contains($q, 'overdue') || str_contains($q, 'aging') || (str_contains($q, 'unpaid') && str_contains($q, 'invoice')) || str_contains($q, 'debtor') || str_contains($q, 'past due')) {
+            return $this->handleOverdueInvoicesQuery($tenantId, $q);
+        }
+
+        // 1.5 Low Stock & Safety Reorder Levels
+        if ((str_contains($q, 'low') || str_contains($q, 'safety') || str_contains($q, 'reorder') || str_contains($q, 'shortage') || str_contains($q, 'below')) && (str_contains($q, 'stock') || str_contains($q, 'material') || str_contains($q, 'item') || str_contains($q, 'level'))) {
+            return $this->handleLowStockQuery($tenantId, $q);
+        }
+
+        // 1.6 Liquid Cash & Bank Balances
+        if ((str_contains($q, 'liquid') && str_contains($q, 'cash')) || (str_contains($q, 'bank') && str_contains($q, 'balance')) || str_contains($q, 'treasury') || str_contains($q, 'funds') || str_contains($q, 'cash in hand')) {
+            return $this->handleFinanceQuery($tenantId, $q);
+        }
+
+        // 2. Comprehensive Platform Knowledge Base & SOPs (Trained on entire ERP system)
+        if (
+            str_contains($q, 'payment method') || str_contains($q, 'multi payment') || str_contains($q, 'multi-payment') || str_contains($q, 'split payment') || str_contains($q, 'split tender') ||
+            str_contains($q, '3-way') || str_contains($q, 'matching policy') || str_contains($q, 'three way') ||
+            str_contains($q, 'fifo') || str_contains($q, 'avco') || str_contains($q, 'costing') || (str_contains($q, 'valuation') && str_contains($q, 'policy')) ||
+            str_contains($q, 'aql') || str_contains($q, 'iso 2859') || str_contains($q, 'quarantine') || (str_contains($q, 'qc') && str_contains($q, 'policy')) ||
+            str_contains($q, 'how to do payroll') || str_contains($q, 'how do i run payroll') || str_contains($q, 'salary advance') || (str_contains($q, 'attendance') && str_contains($q, 'payroll')) ||
+            str_contains($q, 'depreciation') || str_contains($q, 'fixed asset policy') || str_contains($q, 'straight line') ||
+            str_contains($q, 'restore') || (str_contains($q, 'data bin') && (str_contains($q, 'work') || str_contains($q, 'how'))) ||
+            (str_contains($q, 'pos') && (str_contains($q, 'offline') || str_contains($q, 'scanner') || str_contains($q, 'barcode') || str_contains($q, 'x-report'))) ||
+            (str_contains($q, 'storefront') && (str_contains($q, 'builder') || str_contains($q, 'cms') || str_contains($q, 'checkout'))) ||
+            str_contains($q, 'rbac') || str_contains($q, 'permission') || str_contains($q, 'role matrix') ||
+            str_contains($q, 'explain') || str_contains($q, 'how does') || str_contains($q, 'what is') || str_contains($q, 'sop') || str_contains($q, 'policy') || str_contains($q, 'workflow') ||
+            str_contains($q, 'who are you') || str_contains($q, 'what can you do') || str_contains($q, 'help') || str_contains($q, 'capabilities')
+        ) {
+            return $this->consultPlatformKnowledgeBase($q, $tenantId);
+        }
+
+        // 3. Reports & Analytics Hubs
         if (str_contains($q, 'report') || str_contains($q, 'analytics') || str_contains($q, 'hub') || str_contains($q, 'directory') || str_contains($q, 'রিপোর্ট') || str_contains($q, 'প্রতিবেদন')) {
             return $this->handleReportsQuery($tenantId, $q);
         }
 
-        // 2. Finance & Cash Balances
-        if (str_contains($q, 'cash') || str_contains($q, 'bank') || str_contains($q, 'balance') || str_contains($q, 'money') || str_contains($q, 'funds') || str_contains($q, 'treasury') || str_contains($q, 'টাকা') || str_contains($q, 'ক্যাশ') || str_contains($q, 'ব্যাংক') || str_contains($q, 'ব্যালেন্স')) {
-            return $this->handleFinanceQuery($tenantId, $q);
-        }
-
-        // 3. Production, Batches & Manufacturing (Checked before stock/product to avoid substring clash)
+        // 4. Production, Batches & Manufacturing
         if (str_contains($q, 'production') || str_contains($q, 'batch') || str_contains($q, 'manufactur') || str_contains($q, 'factory') || str_contains($q, 'floor') || str_contains($q, 'variance') || str_contains($q, 'kiosk') || str_contains($q, 'yield') || str_contains($q, 'উৎপাদন') || str_contains($q, 'কারখানা') || str_contains($q, 'ব্যাচ')) {
             return $this->handleProductionQuery($tenantId, $q);
         }
 
-        // 4. Inventory, Stock & Valuation
+        // 5. Inventory, Stock & Valuation
         if (str_contains($q, 'stock') || str_contains($q, 'inventory') || str_contains($q, 'warehouse') || str_contains($q, 'valuation') || str_contains($q, 'product') || str_contains($q, 'sku') || str_contains($q, 'reorder') || str_contains($q, 'মজুদ') || str_contains($q, 'স্টক') || str_contains($q, 'গুদাম') || str_contains($q, 'পণ্য')) {
             return $this->handleInventoryQuery($tenantId, $q);
         }
 
-        // 5. Quality Control & Defects
+        // 6. Quality Control & Defects
         if (str_contains($q, 'qc') || str_contains($q, 'defect') || str_contains($q, 'quality') || str_contains($q, 'inspection') || str_contains($q, 'fail') || str_contains($q, 'quarantine') || str_contains($q, 'কোয়ালিটি') || str_contains($q, 'মান নিয়ন্ত্রণ') || str_contains($q, 'ত্রুটি')) {
             return $this->handleQualityQuery($tenantId, $q);
         }
 
-        // 6. HR, Workforce & Payroll
+        // 7. HR, Workforce & Payroll
         if (str_contains($q, 'hr') || str_contains($q, 'employee') || str_contains($q, 'worker') || str_contains($q, 'payroll') || str_contains($q, 'salary') || str_contains($q, 'wage') || str_contains($q, 'staff') || str_contains($q, 'কর্মী') || str_contains($q, 'কর্মচারী') || str_contains($q, 'বেতন') || str_contains($q, 'হাজিরা')) {
             return $this->handleHrQuery($tenantId, $q);
         }
 
-        // 7. Fixed Assets & Machinery
+        // 8. Fixed Assets & Machinery
         if (str_contains($q, 'asset') || str_contains($q, 'machine') || str_contains($q, 'equipment') || str_contains($q, 'maintenance') || str_contains($q, 'vehicle') || str_contains($q, 'সম্পদ') || str_contains($q, 'যন্ত্রপাতি') || str_contains($q, 'মেশিন')) {
             return $this->handleAssetQuery($tenantId, $q);
         }
 
-        // 8. Sales, Revenue & Invoices
+        // 9. Sales, Revenue & Invoices
         if (str_contains($q, 'sale') || str_contains($q, 'revenue') || str_contains($q, 'invoice') || str_contains($q, 'customer') || str_contains($q, 'order') || str_contains($q, 'ar') || str_contains($q, 'receivable') || str_contains($q, 'বিক্রয়') || str_contains($q, 'ইনভয়েস') || str_contains($q, 'বাকি') || str_contains($q, 'গ্রাহক')) {
             return $this->handleSalesQuery($tenantId, $q);
         }
 
-        // 9. Procurement & Purchasing (Uses word boundary for PO to prevent matching 'reports')
+        // 10. Procurement & Purchasing
         if (str_contains($q, 'purchase') || preg_match('/\bpo\b/i', $q) || str_contains($q, 'supplier') || str_contains($q, 'vendor') || str_contains($q, 'bill') || str_contains($q, 'grn') || str_contains($q, 'ক্রয়') || str_contains($q, 'সরবরাহকারী')) {
             return $this->handlePurchasingQuery($tenantId, $q);
         }
 
-        // 10. Data Bin & Deleted Records
+        // 11. Data Bin & Trashed Records
         if (str_contains($q, 'bin') || str_contains($q, 'trash') || str_contains($q, 'delete') || str_contains($q, 'recycle') || str_contains($q, 'restore') || str_contains($q, 'রিসাইকেল') || str_contains($q, 'বিন')) {
             return $this->handleBinQuery($tenantId, $q);
         }
 
-        // 11. System Policies & Architecture Knowledge Base
-        if (str_contains($q, 'fifo') || str_contains($q, 'avco') || str_contains($q, 'matching') || str_contains($q, 'policy') || str_contains($q, 'workflow') || str_contains($q, 'rbac') || str_contains($q, 'role')) {
-            return $this->handleKnowledgeBaseQuery($q);
+        // 12. Finance & Cash Balances
+        if (str_contains($q, 'cash') || str_contains($q, 'bank') || str_contains($q, 'balance') || str_contains($q, 'money') || str_contains($q, 'funds') || str_contains($q, 'treasury') || str_contains($q, 'টাকা') || str_contains($q, 'ক্যাশ') || str_contains($q, 'ব্যাংক') || str_contains($q, 'ব্যালেন্স')) {
+            return $this->handleFinanceQuery($tenantId, $q);
         }
 
         // Default Executive Cockpit Overview
@@ -846,39 +890,416 @@ class SliceMartBrainService
         ];
     }
 
-    private function handleKnowledgeBaseQuery(string $q): array
+    private function handleTopSellingAndRecentOrdersQuery(int $tenantId, string $q): array
     {
-        $topic = 'Enterprise SOP & Architecture';
-        $explanation = '';
+        $topProducts = DB::table('invoice_items as ii')
+            ->join('products as p', 'ii.product_id', '=', 'p.id')
+            ->where('ii.tenant_id', $tenantId)
+            ->whereNull('ii.deleted_at')
+            ->whereNull('p.deleted_at')
+            ->selectRaw('p.name, p.sku, SUM(ii.quantity) as total_qty, SUM(ii.line_total) as total_revenue')
+            ->groupBy('p.id', 'p.name', 'p.sku')
+            ->orderByDesc('total_revenue')
+            ->limit(4)
+            ->get();
 
-        if (str_contains($q, 'fifo') || str_contains($q, 'avco') || str_contains($q, 'valuation')) {
-            $topic = 'Inventory Valuation Policy (FIFO vs AVCO)';
-            $explanation = 'The ERP supports both **FIFO (First-In, First-Out)** and **AVCO (Weighted Average Cost)** valuation. Under FIFO, materials consumed in manufacturing batches absorb the unit cost of the oldest inbound PO batch first, giving precise gross margin recognition during inflation periods.';
-        } elseif (str_contains($q, 'matching') || str_contains($q, '3-way')) {
-            $topic = '3-Way Procurement Matching Interlock';
-            $explanation = 'To eliminate duplicate or inflated vendor charges, the system validates: (1) Purchase Order authorized price and terms, (2) Goods Receipt Note warehouse physical received count, and (3) Vendor Invoice line item charges. If quantity discrepancy exceeds ±0.5%, the bill is held for manager override.';
-        } elseif (str_contains($q, 'rbac') || str_contains($q, 'permission') || str_contains($q, 'role')) {
-            $topic = 'Multi-Tenant Granular RBAC Permissions';
-            $explanation = 'Access control is governed by tenant-isolated role matrices. Users are assigned roles (e.g. Super Admin, Factory Operator, QC Inspector, Cashier, Warehouse Keeper), mapping to 120+ granular atomic permissions scoped to specific branches and companies.';
-        } else {
-            $topic = 'Event Automation & Operations Flow Engine';
-            $explanation = 'The Operations Flow engine connects triggers (e.g. low stock, failed QC, overdue invoice) with configurable business condition matrices and multi-channel actions (SMS, WhatsApp, batch locking, draft POs).';
+        $recentOrders = DB::table('sales_orders as so')
+            ->where('so.tenant_id', $tenantId)
+            ->whereNull('so.deleted_at')
+            ->orderByDesc('so.id')
+            ->limit(4)
+            ->get();
+
+        $topLines = [];
+        $totalTopRev = 0.0;
+        foreach ($topProducts as $tp) {
+            $totalTopRev += (float) $tp->total_revenue;
+            $topLines[] = "• **{$tp->name}** (`{$tp->sku}`): **{$tp->total_qty} units sold** | ৳" . number_format((float) $tp->total_revenue, 2);
         }
 
+        $orderLines = [];
+        foreach ($recentOrders as $ro) {
+            $cName = $ro->customer_name ?: 'Walk-in Customer';
+            $orderLines[] = "• **{$ro->order_number}** ({$cName}): ৳" . number_format((float) $ro->total_amount, 2) . " | Status: `{$ro->status}` | Payment: `{$ro->payment_status}`";
+        }
+
+        $answer = "### 🏆 Commercial Sales & Product Performance\n\n" .
+            "**Top Selling Products by Revenue:**\n" .
+            (!empty($topLines) ? implode("\n", $topLines) : "• No settled product sales recorded yet.") .
+            "\n\n**Recent Customer Orders:**\n" .
+            (!empty($orderLines) ? implode("\n", $orderLines) : "• No customer sales orders recorded yet.");
+
         return [
-            'thought' => "Consulted embedded system knowledge base ➔ Retrieved authoritative SOP for: '{$topic}' ➔ Prepared policy synthesis.",
-            'answer' => "**{$topic}**\n\n{$explanation}",
+            'thought' => "Parsed commercial performance inquiry ➔ Dispatched internal tool: 'QueryTopProductsAndSalesOrders' ➔ Aggregated settled invoice items across catalog SKUs and retrieved latest sales orders.",
+            'answer' => $answer,
             'metrics' => [
-                ['label' => 'Knowledge Domain', 'value' => 'ERP Standard SOP', 'tone' => 'primary'],
-                ['label' => 'System Mode', 'value' => 'Local / Offline-Ready', 'tone' => 'success'],
+                ['label' => 'Top Product Revenue', 'value' => '৳' . number_format($totalTopRev, 0), 'tone' => 'success'],
+                ['label' => 'Recent Orders Logged', 'value' => (string) count($recentOrders), 'tone' => 'primary'],
+                ['label' => 'Catalog SKUs Sold', 'value' => (string) count($topProducts), 'tone' => 'neutral'],
             ],
             'actions' => [
-                ['label' => 'System Settings Center', 'type' => 'navigate', 'url' => '/settings'],
-                ['label' => 'Roles & Permissions', 'type' => 'navigate', 'url' => '/settings/roles'],
-                ['label' => 'Automation Workflows', 'type' => 'navigate', 'url' => '/settings/workflows'],
+                ['label' => 'Open Sales Workspace', 'type' => 'navigate', 'url' => '/sales'],
+                ['label' => 'Sales Performance Report', 'type' => 'navigate', 'url' => '/reports?code=sales_performance'],
+                ['label' => 'Product Catalogue', 'type' => 'navigate', 'url' => '/catalogue'],
+            ],
+            'tool_call' => [
+                'name' => 'get_sales_summary',
+                'parameters' => ['period' => 'this_month'],
             ],
         ];
     }
+
+    private function handleSalesAndCollectionsQuery(int $tenantId, string $q): array
+    {
+        $invoices = DB::table('invoices')->where('tenant_id', $tenantId)->whereNull('deleted_at')->get();
+        $totalBilled = (float) $invoices->sum('total_amount');
+        $totalPaid = (float) $invoices->sum('paid_amount');
+        $totalDue = (float) $invoices->sum('due_amount');
+        $invoiceCount = $invoices->count();
+
+        $collectedPayments = (float) (DB::table('payments')->where('tenant_id', $tenantId)->whereNull('deleted_at')->sum('amount') ?: $totalPaid);
+
+        return [
+            'thought' => "Analyzed commercial ledger ➔ Extracted total billed invoices, collected customer payments via multi-payment tender, and calculated net outstanding AR.",
+            'answer' => "Here is the commercial sales and collections summary for your enterprise:\n\n" .
+                "• **Total Sales Billed**: **৳" . number_format($totalBilled, 2) . "** across {$invoiceCount} invoices\n" .
+                "• **Cash & Digital Payments Collected**: **৳" . number_format($collectedPayments, 2) . "**\n" .
+                "• **Open Accounts Receivable (Due)**: **৳" . number_format($totalDue, 2) . "** pending collection\n\n" .
+                "All customer payments are settled across Cash, Bank, and Mobile Wallets (bKash/Nagad) with automatic double-entry journal balance.",
+            'metrics' => [
+                ['label' => 'Total Billed Sales', 'value' => '৳' . number_format($totalBilled, 0), 'tone' => 'success'],
+                ['label' => 'Collected Payments', 'value' => '৳' . number_format($collectedPayments, 0), 'tone' => 'primary'],
+                ['label' => 'Open AR Due', 'value' => '৳' . number_format($totalDue, 0), 'tone' => $totalDue > 0 ? 'amber' : 'neutral'],
+            ],
+            'actions' => [
+                ['label' => 'Sales & Commercial Hub', 'type' => 'navigate', 'url' => '/sales'],
+                ['label' => 'AR Aging Analysis', 'type' => 'navigate', 'url' => '/reports?code=ar_aging'],
+                ['label' => 'Finance Treasury Cockpit', 'type' => 'navigate', 'url' => '/finance'],
+            ],
+            'tool_call' => [
+                'name' => 'get_sales_summary',
+                'parameters' => ['period' => 'this_month'],
+            ],
+        ];
+    }
+
+    private function handleOpenOrdersQuery(int $tenantId, string $q): array
+    {
+        $openOrders = DB::table('sales_orders as so')
+            ->where('so.tenant_id', $tenantId)
+            ->whereNull('so.deleted_at')
+            ->whereNotIn('so.status', ['cancelled', 'delivered'])
+            ->orderByDesc('so.id')
+            ->limit(5)
+            ->get();
+
+        $totalOpenCount = DB::table('sales_orders')
+            ->where('tenant_id', $tenantId)
+            ->whereNull('deleted_at')
+            ->whereNotIn('status', ['cancelled', 'delivered'])
+            ->count();
+
+        $totalOpenAmount = (float) DB::table('sales_orders')
+            ->where('tenant_id', $tenantId)
+            ->whereNull('deleted_at')
+            ->whereNotIn('status', ['cancelled', 'delivered'])
+            ->sum('total_amount');
+
+        $orderLines = [];
+        foreach ($openOrders as $ro) {
+            $cName = $ro->customer_name ?: 'Walk-in Customer';
+            $orderLines[] = "• **{$ro->order_number}** ({$cName}): ৳" . number_format((float) $ro->total_amount, 2) . " | Status: `{$ro->status}` | Delivery: `{$ro->delivery_type}`";
+        }
+
+        $answer = "### 📦 Open Customer Orders Awaiting Fulfillment\n\n" .
+            "You currently have **{$totalOpenCount} open sales orders** awaiting fulfillment and delivery, representing **৳" . number_format($totalOpenAmount, 2) . "** in commercial demand.\n\n" .
+            (!empty($orderLines) ? "**Orders in Queue:**\n" . implode("\n", $orderLines) : "All orders have been processed and dispatched! No orders currently pending fulfillment.");
+
+        return [
+            'thought' => "Scanned sales order pipeline ➔ Filtered for active non-delivered orders requiring warehouse picking, packing, or delivery run-sheet dispatch.",
+            'answer' => $answer,
+            'metrics' => [
+                ['label' => 'Open Orders', 'value' => (string) $totalOpenCount, 'tone' => $totalOpenCount > 0 ? 'amber' : 'success'],
+                ['label' => 'Pending Volume', 'value' => '৳' . number_format($totalOpenAmount, 0), 'tone' => 'primary'],
+                ['label' => 'Queue Status', 'value' => $totalOpenCount > 0 ? 'Awaiting Dispatch' : 'Clear', 'tone' => 'neutral'],
+            ],
+            'actions' => [
+                ['label' => 'Open Orders in Sales', 'type' => 'navigate', 'url' => '/sales?tab=orders'],
+                ['label' => 'Logistics & Dispatch Run-Sheets', 'type' => 'navigate', 'url' => '/logistics'],
+            ],
+        ];
+    }
+
+    private function handleLowStockQuery(int $tenantId, string $q): array
+    {
+        $lowStock = DB::table('stock_balances as sb')
+            ->join('products as p', 'sb.product_id', '=', 'p.id')
+            ->where('sb.tenant_id', $tenantId)
+            ->whereNull('p.deleted_at')
+            ->where('sb.quantity', '<', 50)
+            ->select(['p.name', 'p.sku', 'sb.quantity', 'sb.average_cost'])
+            ->orderBy('sb.quantity')
+            ->limit(6)
+            ->get();
+
+        $totalLow = DB::table('stock_balances as sb')
+            ->join('products as p', 'sb.product_id', '=', 'p.id')
+            ->where('sb.tenant_id', $tenantId)
+            ->whereNull('p.deleted_at')
+            ->where('sb.quantity', '<', 50)
+            ->count();
+
+        $lines = [];
+        foreach ($lowStock as $ls) {
+            $lines[] = "• **{$ls->name}** (`{$ls->sku}`): **{$ls->quantity} units** remaining (Avg Cost: ৳" . number_format((float) $ls->average_cost, 2) . ")";
+        }
+
+        $answer = "### ⚠️ Inventory Safety Stock & Reorder Alert\n\n" .
+            ($totalLow > 0
+                ? "The system detected **{$totalLow} items below minimum safety stock levels (< 50 units)**. Reorder procurement or launch manufacturing batches to prevent stockouts:\n\n" . implode("\n", $lines)
+                : "All tracked materials and finished goods are currently well above safety stock thresholds (minimum 50 units). Zero reorder alerts at this moment.");
+
+        return [
+            'thought' => "Queried stock ledger ➔ Filtered quantities below safety stock buffer ➔ Calculated affected SKUs and unit replacement costs.",
+            'answer' => $answer,
+            'metrics' => [
+                ['label' => 'Low Stock SKUs', 'value' => (string) $totalLow, 'tone' => $totalLow > 0 ? 'danger' : 'success'],
+                ['label' => 'Safety Threshold', 'value' => '< 50 Units', 'tone' => 'neutral'],
+                ['label' => 'Procurement Need', 'value' => $totalLow > 0 ? 'Action Required' : 'Optimal', 'tone' => $totalLow > 0 ? 'amber' : 'success'],
+            ],
+            'actions' => [
+                ['label' => 'Warehouse Stock Ledger', 'type' => 'navigate', 'url' => '/inventory'],
+                ['label' => '➕ Create Purchase Order', 'type' => 'navigate', 'url' => '/purchasing?action=create_po'],
+                ['label' => 'Stock Valuation Report', 'type' => 'navigate', 'url' => '/reports?code=stock_valuation'],
+            ],
+            'tool_call' => [
+                'name' => 'get_stock_level',
+                'parameters' => ['low_stock_only' => true],
+            ],
+        ];
+    }
+
+    private function handleOverdueInvoicesQuery(int $tenantId, string $q): array
+    {
+        $overdueData = $this->getOverdueInvoices($tenantId, ['min_days_overdue' => 0]);
+        $data = $overdueData['data'] ?? [];
+        $totalOverdue = (float) ($data['total_overdue'] ?? 0);
+        $count = (int) ($data['overdue_count'] ?? 0);
+        $topList = $data['top_overdue'] ?? [];
+
+        $lines = [];
+        foreach ($topList as $inv) {
+            $lines[] = "• **{$inv['invoice_number']}** ({$inv['customer_name']}): **{$inv['amount']}** — *{$inv['days_overdue']} days overdue*";
+        }
+
+        $answer = "### 💳 Overdue Accounts Receivable (AR) Breakdown\n\n" .
+            ($totalOverdue > 0
+                ? "There is **৳" . number_format($totalOverdue, 2) . "** in overdue receivables across **{$count} invoices** past their payment terms.\n\n" .
+                  "**Aging Breakdown:**\n" .
+                  "• 0–30 Days: ৳" . number_format((float) ($data['aging']['0_30_days'] ?? 0), 2) . "\n" .
+                  "• 31–60 Days: ৳" . number_format((float) ($data['aging']['31_60_days'] ?? 0), 2) . "\n" .
+                  "• 60+ Days (Critical): ৳" . number_format((float) ($data['aging']['60_plus_days'] ?? 0), 2) . "\n\n" .
+                  "**Oldest Overdue Invoices:**\n" . implode("\n", $lines)
+                : "Excellent financial health! There are currently **zero overdue invoices** in your accounts receivable ledger. All customer accounts are up to date.");
+
+        return [
+            'thought' => "Analyzed customer invoices ➔ Filtered unpaid records past due date ➔ Categorized into 0-30, 31-60, and 60+ day aging buckets.",
+            'answer' => $answer,
+            'metrics' => [
+                ['label' => 'Total Overdue AR', 'value' => '৳' . number_format($totalOverdue, 0), 'tone' => $totalOverdue > 0 ? 'danger' : 'success'],
+                ['label' => 'Overdue Invoices', 'value' => (string) $count, 'tone' => $count > 0 ? 'amber' : 'neutral'],
+                ['label' => 'Critical (>60d)', 'value' => '৳' . number_format((float) ($data['aging']['60_plus_days'] ?? 0), 0), 'tone' => 'danger'],
+            ],
+            'actions' => [
+                ['label' => 'View Invoices in Sales', 'type' => 'navigate', 'url' => '/sales?tab=invoices'],
+                ['label' => 'AR Aging Analysis Report', 'type' => 'navigate', 'url' => '/reports?code=ar_aging'],
+                ['label' => 'Customer Credit Balances', 'type' => 'navigate', 'url' => '/sales?tab=customers'],
+            ],
+            'tool_call' => [
+                'name' => 'get_overdue_invoices',
+                'parameters' => ['min_days_overdue' => 0],
+            ],
+        ];
+    }
+
+    public function consultPlatformKnowledgeBase(string $q, int $tenantId): array
+    {
+        $topic = 'ProERP Operations System Knowledge';
+        $explanation = '';
+        $actions = [];
+        $metrics = [
+            ['label' => 'Knowledge Domain', 'value' => 'Enterprise Architecture', 'tone' => 'primary'],
+            ['label' => 'Execution Mode', 'value' => '100% Local / Zero Cloud', 'tone' => 'success'],
+        ];
+
+        // 1. Multi-Payment Tender & Splits
+        if (str_contains($q, 'payment') || str_contains($q, 'split') || str_contains($q, 'bkash') || str_contains($q, 'tender')) {
+            $topic = 'Unified Multi-Payment Split Tenders & GL Auto-Balancing';
+            $explanation = "ProERP features an enterprise **Unified Multi-Payment Tender System** deployed across Sales Invoicing, POS Counter, Purchasing Bills, Operating Expenses, and Customer Due Collections.\n\n" .
+                "**Supported Payment Tender Methods:**\n" .
+                "• **Cash in Hand**: Physical cash drawer with currency tracking\n" .
+                "• **Bank Transfer**: Integrated checking/savings accounts (BRAC Bank, DBBL, etc.)\n" .
+                "• **Mobile Wallets (MFS)**: Instant settlement via bKash, Nagad, and Rocket\n" .
+                "• **Credit & Debit Cards**: POS card terminal merchant gateways\n" .
+                "• **Cheque Payments**: Clearing status and cheque number tracking\n" .
+                "• **Customer Credit Notes**: Instant deduction against settled advance balances\n\n" .
+                "**Double-Entry General Ledger Rules:**\n" .
+                "Every transaction allows unlimited split rows. The engine strictly requires `Total Splits == Transaction Total`. Each split line automatically debits the respective Asset Account (Cash/Bank) and credits Accounts Receivable or Sales Revenue, maintaining 100% accounting balance.";
+            $actions = [
+                ['label' => 'Sales Workspace', 'type' => 'navigate', 'url' => '/sales'],
+                ['label' => 'POS Counter Terminal', 'type' => 'navigate', 'url' => '/pos'],
+                ['label' => 'Finance Cockpit', 'type' => 'navigate', 'url' => '/finance'],
+            ];
+            $metrics[] = ['label' => 'Split Support', 'value' => '6 Payment Modes', 'tone' => 'success'];
+        }
+        // 2. 3-Way Matching Policy
+        elseif (str_contains($q, '3-way') || str_contains($q, 'three way') || str_contains($q, 'matching')) {
+            $topic = '3-Way Procurement Matching Interlock (PO ➔ GRN ➔ Supplier Bill)';
+            $explanation = "To eliminate vendor overbilling, price inflation, and phantom deliveries, ProERP enforces **Mandatory 3-Way Matching** across all procurement cycles:\n\n" .
+                "1. **Purchase Order (PO)**: Validates approved quantities, unit prices, discount terms, and delivery schedules agreed with the supplier.\n" .
+                "2. **Goods Receipt Note (GRN)**: Validates actual physical inventory received into the warehouse, confirmed by warehouse staff after inspection.\n" .
+                "3. **Supplier Bill (AP)**: Validates the vendor's commercial tax invoice line by line against PO authorized rates and GRN received units.\n\n" .
+                "**Tolerance Controls:**\n" .
+                "If price or quantity variances exceed the configured threshold (default **±0.5%**), the bill is automatically placed on payment authorization hold until approved by an authorized procurement manager.";
+            $actions = [
+                ['label' => 'Purchasing & Sourcing', 'type' => 'navigate', 'url' => '/purchasing'],
+                ['label' => 'Goods Receipts (GRN)', 'type' => 'navigate', 'url' => '/purchasing?tab=receipts'],
+                ['label' => 'Supplier Bills', 'type' => 'navigate', 'url' => '/purchasing?tab=bills'],
+            ];
+            $metrics[] = ['label' => 'Discrepancy Limit', 'value' => '±0.5% Tolerance', 'tone' => 'amber'];
+        }
+        // 3. FIFO vs AVCO Inventory Valuation
+        elseif (str_contains($q, 'fifo') || str_contains($q, 'avco') || str_contains($q, 'costing') || str_contains($q, 'valuation')) {
+            $topic = 'Inventory Costing & Valuation (FIFO vs AVCO)';
+            $explanation = "ProERP supports dual inventory costing models suited for manufacturing and commercial distribution:\n\n" .
+                "• **FIFO (First-In, First-Out)**: Units consumed in manufacturing work orders or sold in customer invoices absorb the cost of the oldest inbound PO batch first. This ensures precise margin reporting and realistic asset valuation during inflationary price fluctuations.\n" .
+                "• **AVCO (Moving Weighted Average Cost)**: Moving average unit cost is dynamically recalculated upon every Goods Receipt: `New Avg Cost = (Current Stock Value + Inbound Batch Value) / (Current Qty + Inbound Qty)`.\n\n" .
+                "All inventory movements generate real-time double-entry GL postings to the Inventory Asset account and Raw Material Consumption / Cost of Goods Sold (COGS).";
+            $actions = [
+                ['label' => 'Warehouse Stock Ledger', 'type' => 'navigate', 'url' => '/inventory'],
+                ['label' => 'Stock Valuation (FIFO)', 'type' => 'navigate', 'url' => '/reports?code=inventory_valuation_fifo'],
+                ['label' => 'Catalogue & Recipes', 'type' => 'navigate', 'url' => '/catalogue'],
+            ];
+            $metrics[] = ['label' => 'Valuation Engines', 'value' => 'FIFO + AVCO', 'tone' => 'primary'];
+        }
+        // 4. Production Stepper & QC AQL Inspection
+        elseif (str_contains($q, 'production') || str_contains($q, 'batch') || str_contains($q, 'aql') || str_contains($q, 'qc') || str_contains($q, 'quarantine')) {
+            $topic = 'Manufacturing Batch Stepper & ISO 2859-1 AQL Quality Control';
+            $explanation = "Manufacturing execution on the factory floor is governed by a strict **5-stage operational stepper**:\n\n" .
+                "1. **Draft**: Bill of Materials (BOM) explosion and material availability check.\n" .
+                "2. **Planned**: Work center and machine scheduling with expected completion dates.\n" .
+                "3. **In Progress**: Material requisition issuance, live shopfloor progress, and piece-rate worker entry.\n" .
+                "4. **Quality Check (QC Interlock)**: Samples are inspected against **ISO 2859-1 Normal Single Sampling Plans** (General Inspection Level II). Defect limits (Critical: 0, Major: 2.5%, Minor: 4.0%) govern pass/fail disposition.\n" .
+                "5. **Completed**: Finished goods transfer to warehouse available stock with actual yield variances calculated.\n\n" .
+                "**Automatic Quarantine Hold:**\n" .
+                "Any batch failing QC is instantly locked from warehouse transfer. Only a designated Quality Supervisor can authorize rework or scrap disposition.";
+            $actions = [
+                ['label' => 'Production Floor Batches', 'type' => 'navigate', 'url' => '/production'],
+                ['label' => 'Quality Control Center', 'type' => 'navigate', 'url' => '/qc'],
+                ['label' => 'Manufacturing Variance Radar', 'type' => 'navigate', 'url' => '/production?tab=variance-radar'],
+            ];
+            $metrics[] = ['label' => 'QC Standard', 'value' => 'ISO 2859-1 AQL', 'tone' => 'success'];
+        }
+        // 5. HR Workforce, Attendance & Payroll
+        elseif (str_contains($q, 'payroll') || str_contains($q, 'attendance') || str_contains($q, 'salary') || str_contains($q, 'hr')) {
+            $topic = 'Workforce Attendance Matrix, Payroll Calculator & Deductions';
+            $explanation = "The HR Workspace integrates workforce attendance with monthly payroll generation:\n\n" .
+                "• **Attendance Matrix**: Daily status logging (Present, Late, Half-Day, Approved Paid Leave, Unexcused Absence) with biometric time-clock support.\n" .
+                "• **Salary Calculation**: Gross pay is computed from base monthly wage + overtime allowances at statutory multipliers.\n" .
+                "• **Statutory & Policy Deductions**: Automatic computation of Provident Fund (PF), Tax Deducted at Source (TDS), and unpaid absence prorations.\n" .
+                "• **Salary Advance Auto-Deduct**: If an employee has received an approved salary advance, the system automatically suggests the deduction amount with a 1-click toggle during payroll preview.\n\n" .
+                "Review the payroll run preview before final commitment to generate automated employee payslips and GL salary liability journals.";
+            $actions = [
+                ['label' => 'Workforce & HR Center', 'type' => 'navigate', 'url' => '/hr'],
+                ['label' => 'Staff Directory', 'type' => 'navigate', 'url' => '/hr?tab=directory'],
+                ['label' => 'RBAC Roles Matrix', 'type' => 'navigate', 'url' => '/settings/roles'],
+            ];
+            $metrics[] = ['label' => 'Payroll Engine', 'value' => 'Auto-Deduct Advance', 'tone' => 'primary'];
+        }
+        // 6. Fixed Assets & Depreciation
+        elseif (str_contains($q, 'asset') || str_contains($q, 'depreciation') || str_contains($q, 'machine') || str_contains($q, 'maintenance')) {
+            $topic = 'Capital Asset Register, QR Tagging & Depreciation Schedules';
+            $explanation = "Capital plant machinery, equipment, vehicles, and factory facilities are tracked in the **Fixed Assets Register**:\n\n" .
+                "• **Valuation & Depreciation**: Supports Straight-Line (equal monthly depreciation) and Written-Down Value (WDV / Declining Balance) methods with salvage value deduction.\n" .
+                "• **Asset Tagging**: Automatically generates scannable QR asset labels for physical inventory audits and shopfloor identification.\n" .
+                "• **Preventive Maintenance**: Schedules recurring calibration, lubrication, and inspection work orders with maintenance cost logging.\n" .
+                "• **Disposal & Write-Off**: Calculates gain or loss on asset retirement and automatically updates general ledger capital accounts.";
+            $actions = [
+                ['label' => 'Fixed Assets Register', 'type' => 'navigate', 'url' => '/assets'],
+                ['label' => 'Maintenance Schedule', 'type' => 'navigate', 'url' => '/assets?tab=maintenance'],
+            ];
+            $metrics[] = ['label' => 'Depreciation', 'value' => 'Straight-Line / WDV', 'tone' => 'neutral'];
+        }
+        // 7. Data Bin & Soft-Delete Recovery
+        elseif (str_contains($q, 'bin') || str_contains($q, 'restore') || str_contains($q, 'trash') || str_contains($q, 'recycle') || str_contains($q, 'delete')) {
+            $topic = '20-Entity Soft-Delete Data Bin & 30-Day Recovery Vault';
+            $explanation = "To prevent catastrophic accidental deletions, ProERP implements a **Tenant-Isolated Data Bin** across 20 core business entities (Products, Invoices, Sales Orders, QC Inspections, Purchase Orders, Suppliers, Employees, etc.):\n\n" .
+                "• **Safe Soft-Deletion**: Records are timestamped with `deleted_at` and instantly hidden from active workflows without breaking relational database integrity.\n" .
+                "• **30-Day Recovery Window**: Trashed records display an active countdown timer. Any authorized user can restore items with 1 click to active status.\n" .
+                "• **Permanent Purge**: Only Super Administrators can purge records permanently after passing confirmation safeguards.\n" .
+                "• **Audit Trail**: Every delete, restore, and purge action is logged to the system audit timeline.";
+            $actions = [
+                ['label' => 'Open Data Bin Vault', 'type' => 'navigate', 'url' => '/settings/bin'],
+                ['label' => 'System Audit Trail', 'type' => 'navigate', 'url' => '/activity-logs'],
+            ];
+            $metrics[] = ['label' => 'Safety Vault', 'value' => '20 Entities Protected', 'tone' => 'success'];
+        }
+        // 8. POS Counter & Barcode Scanners
+        elseif (str_contains($q, 'pos') || str_contains($q, 'barcode') || str_contains($q, 'scanner') || str_contains($q, 'x-report') || str_contains($q, 'counter')) {
+            $topic = 'POS Counter Terminal, HID Barcode Buffer & Thermal Receipts';
+            $explanation = "The ProERP Point-of-Sale (POS) counter terminal is designed for high-throughput retail and factory outlet transactions:\n\n" .
+                "• **High-Speed Barcode Buffer**: Built-in rapid keystroke listener (<50ms inter-character interval) detects USB and Bluetooth HID scanners effortlessly, adding products directly to the active bill.\n" .
+                "• **Split-Tender Checkout**: Combine Cash, bKash, and Card payments on a single sales ticket.\n" .
+                "• **Item Exchanges**: Like-for-like defective swaps, customer top-up upgrades, and downgrade refunds in a single atomic transaction.\n" .
+                "• **Thermal Receipt Printing**: Instant ESC/POS formatted print preview optimized for standard 80mm and 58mm thermal printers.\n" .
+                "• **X-Report & Cash Drawer**: Real-time mid-day shift cash balancing and end-of-day register reconciliation.";
+            $actions = [
+                ['label' => 'Open POS Counter', 'type' => 'navigate', 'url' => '/pos'],
+                ['label' => 'Sales Workspace', 'type' => 'navigate', 'url' => '/sales'],
+            ];
+            $metrics[] = ['label' => 'Scanner Engine', 'value' => '<50ms HID Buffer', 'tone' => 'primary'];
+        }
+        // 9. Storefront & CMS Builder
+        elseif (str_contains($q, 'storefront') || str_contains($q, 'builder') || str_contains($q, 'cms') || str_contains($q, 'theme')) {
+            $topic = 'Storefront CMS Page Builder & Public Catalog';
+            $explanation = "The public eCommerce Storefront connects directly to your live ERP catalog without separate third-party sync plugins:\n\n" .
+                "• **Visual Block Builder**: Customize landing pages using drag-and-drop sections (Hero Carousels, Featured Categories, Flash Sales, Promo Banners, Testimonials).\n" .
+                "• **Live Inventory Sync**: Stock levels displayed on the storefront directly reflect warehouse available units.\n" .
+                "• **Guest & Account Checkout**: Customers can place orders as guest users or create customer accounts to track delivery progress.\n" .
+                "• **Payment Simulator**: Test live card, bKash, Nagad, and Cash-on-Delivery payment flows seamlessly in development mode.";
+            $actions = [
+                ['label' => 'Storefront Page Builder', 'type' => 'navigate', 'url' => '/settings/storefront-builder'],
+                ['label' => 'Visit Public Storefront', 'type' => 'navigate', 'url' => '/store'],
+            ];
+            $metrics[] = ['label' => 'Storefront', 'value' => 'Zero-Latency Sync', 'tone' => 'success'];
+        }
+        // 10. Default / General Agent Capabilities
+        else {
+            $topic = 'ProERP Operations AI Brain — Agentic Capabilities';
+            $explanation = "I am your **Operations AI Brain**, a self-contained streaming ERP copilot running 100% locally inside the enterprise kernel with **zero external cloud APIs or data exfiltration**.\n\n" .
+                "**What I Can Do For You:**\n\n" .
+                "• **Live Enterprise Telemetry**: Query live sales revenue, collected cash, bank accounts, warehouse stock valuation, low-stock reorders, and open customer orders.\n" .
+                "• **1-Click Entity Creation (11 System Types)**: Type *\"Add product\"*, *\"Add customer\"*, *\"Record expense\"*, or *\"Launch batch\"* to generate an interactive in-chat form and commit it directly to the database.\n" .
+                "• **Standard Operating Procedures (SOPs)**: Ask me anything about multi-payment tender, 3-way matching, FIFO/AVCO costing, ISO 2859-1 AQL inspections, or payroll advance deductions.\n" .
+                "• **Intelligent Deep-Link Navigation**: Dispatches instant routing shortcuts with pre-configured filters.";
+            $actions = [
+                ['label' => '➕ Add Product', 'type' => 'action', 'action_key' => 'quick_add_product'],
+                ['label' => '➕ Add Customer', 'type' => 'action', 'action_key' => 'quick_add_customer'],
+                ['label' => '➕ Record Expense', 'type' => 'action', 'action_key' => 'quick_add_expense'],
+                ['label' => '📊 Reports Hub', 'type' => 'navigate', 'url' => '/reports'],
+                ['label' => 'Executive Dashboard', 'type' => 'navigate', 'url' => '/dashboard'],
+            ];
+            $metrics[] = ['label' => 'Agentic Engine', 'value' => '100% Deterministic', 'tone' => 'success'];
+        }
+
+        return [
+            'thought' => "Consulted embedded platform knowledge base ➔ Retrieved authoritative SOP for: '{$topic}' ➔ Prepared policy synthesis with operational deep-links.",
+            'answer' => "### {$topic}\n\n{$explanation}",
+            'metrics' => $metrics,
+            'actions' => $actions,
+        ];
+    }
+
 
     private function handleProductionQuery(int $tenantId, string $q): array
     {
