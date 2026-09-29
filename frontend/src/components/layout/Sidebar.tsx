@@ -97,11 +97,8 @@ export function Sidebar({ isOpen, onClose, isCollapsed = false, onToggleCollapse
       return location.pathname === '/sales' || location.pathname.startsWith('/sales/');
     }
 
-    // 2b. Special case for '/storefront': if URL has 'tab=coupons', Coupons is the active nav item
+    // 2b. Case for '/storefront': Keep Online Store CMS active across all storefront sub-tabs
     if (to === '/storefront') {
-      if (location.pathname === '/storefront' && location.search.includes('tab=coupons')) {
-        return false;
-      }
       return location.pathname === '/storefront' || location.pathname.startsWith('/storefront/');
     }
 

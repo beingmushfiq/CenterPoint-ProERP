@@ -32,6 +32,7 @@ export interface DynamicNavItem {
   permission?: string | string[];
   badge?: string;
   badgeTone?: 'primary' | 'success' | 'amber' | 'neutral';
+  hiddenInSidebar?: boolean;
 }
 
 export interface DynamicNavSection {
@@ -147,6 +148,7 @@ export const PLATFORM_NAV_DEFINITIONS: DynamicNavSection[] = [
         permission: ['ecommerce.storefront.view', 'sales.order.view'],
         badge: 'Promo',
         badgeTone: 'primary',
+        hiddenInSidebar: true,
       },
     ],
   },
@@ -373,6 +375,9 @@ export function buildDynamicNavSections(
   const mappedSections = PLATFORM_NAV_DEFINITIONS.map((section) => {
     let activeItems = section.items
       .filter((item) => {
+        if (item.hiddenInSidebar) {
+          return false;
+        }
         if (item.moduleKey && !isModuleEnabled(item.moduleKey)) {
           return false;
         }
