@@ -20,6 +20,7 @@ export interface AdvanceRecord {
   issuedOn: string;
   status: 'active' | 'recovered' | 'written_off';
   notes: string;
+  autoDeductNextPayroll?: boolean;
 }
 
 const DEFAULT_ADVANCES: AdvanceRecord[] = [
@@ -36,6 +37,7 @@ const DEFAULT_ADVANCES: AdvanceRecord[] = [
     issuedOn: '2026-08-01',
     status: 'active',
     notes: 'Emergency home repair assistance; 5-month payroll deduction plan.',
+    autoDeductNextPayroll: true,
   },
   {
     id: 2,
@@ -50,6 +52,7 @@ const DEFAULT_ADVANCES: AdvanceRecord[] = [
     issuedOn: '2026-06-15',
     status: 'recovered',
     notes: 'Medical advance; fully recovered across four payroll cycles.',
+    autoDeductNextPayroll: false,
   },
   {
     id: 3,
@@ -64,6 +67,7 @@ const DEFAULT_ADVANCES: AdvanceRecord[] = [
     issuedOn: '2026-08-20',
     status: 'active',
     notes: 'Festival advance; recovered at ৳4,000 per month.',
+    autoDeductNextPayroll: true,
   },
 ];
 
@@ -98,6 +102,7 @@ export const SalaryAdvancesSection: React.FC = () => {
   const [monthlyInstallment, setMonthlyInstallment] = useState('3000');
   const [issueDate, setIssueDate] = useState<string>(new Date().toISOString().slice(0, 10));
   const [notes, setNotes] = useState('');
+  const [autoDeductNextPayroll, setAutoDeductNextPayroll] = useState(true);
 
   const handleExportCsv = () => {
     const headers = [
@@ -258,6 +263,7 @@ export const SalaryAdvancesSection: React.FC = () => {
         issuedOn: issueDate || new Date().toISOString().slice(0, 10),
         status: 'active',
         notes: notes.trim() || 'Approved salary advance.',
+        autoDeductNextPayroll,
       };
 
       setAdvances([created, ...advances]);
@@ -265,6 +271,7 @@ export const SalaryAdvancesSection: React.FC = () => {
       setLoanAmount('12000');
       setMonthlyInstallment('3000');
       setNotes('');
+      setAutoDeductNextPayroll(true);
       notify.success(`Salary advance ${created.advanceNumber} of ৳${amt.toLocaleString()} approved.`);
     } catch {
       // Local fallback
@@ -281,14 +288,30 @@ export const SalaryAdvancesSection: React.FC = () => {
         issuedOn: issueDate || new Date().toISOString().slice(0, 10),
         status: 'active',
         notes: notes.trim() || 'Approved salary advance.',
+        autoDeductNextPayroll,
       };
       setAdvances([created, ...advances]);
       setIsModalOpen(false);
       setLoanAmount('12000');
       setMonthlyInstallment('3000');
       setNotes('');
+      setAutoDeductNextPayroll(true);
       notify.success(`Salary advance ${created.advanceNumber} recorded.`);
     }
+  };
+
+  const handleToggleAutoDeduct = (id: number) => {
+    setAdvances((prev) =>
+      prev.map((a) => {
+        if (a.id !== id) return a;
+        const nextVal = a.autoDeductNextPayroll === false;
+        notify.info(`Auto-deduct from next payroll for ${a.advanceNumber} ${nextVal ? 'enabled' : 'disabled'}.`);
+        return {
+          ...a,
+          autoDeductNextPayroll: nextVal,
+        };
+      })
+    );
   };
 
   const handleManualRecovery = (id: number) => {
@@ -543,6 +566,7 @@ export const SalaryAdvancesSection: React.FC = () => {
               <th className="p-3 text-right">Installment / Mo</th>
               <th className="p-3 text-right">Recovered</th>
               <th className="p-3 text-right">Remaining</th>
+              <th className="p-3 text-center">Auto-Deduct</th>
               <th className="p-3 text-center">Status</th>
               <th className="p-3 text-right">Action</th>
             </tr>
@@ -550,7 +574,7 @@ export const SalaryAdvancesSection: React.FC = () => {
           <tbody className="divide-y divide-default text-xs">
             {filteredAdvances.length === 0 ? (
               <tr>
-                <td colSpan={9} className="p-8 text-center text-muted">
+                <td colSpan={10} className="p-8 text-center text-muted">
                   No salary advance records match the selected criteria.
                 </td>
               </tr>
@@ -596,6 +620,24 @@ export const SalaryAdvancesSection: React.FC = () => {
                     </td>
                     <td className="p-3 text-right font-mono font-bold text-amber-600">
                       ৳{remaining.toLocaleString()}
+                    </td>
+                    <td className="p-3 text-center">
+                      {adv.autoDeductNextPayroll !== false ? (
+                        <span
+                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800"
+                          title="Scheduled for auto-deduction in next payroll"
+                        >
+                          <CheckCircle2 className="size-3 text-emerald-600" />
+                          Next Run
+                        </span>
+                      ) : (
+                        <span
+                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-surface-sunken text-muted border border-default"
+                          title="Manual collection or offline recovery"
+                        >
+                          Manual
+                        </span>
+                      )}
                     </td>
                     <td className="p-3 text-center">
                       <span
@@ -670,18 +712,32 @@ export const SalaryAdvancesSection: React.FC = () => {
               className="w-48"
             >
               {!isRecovered && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setOpenActionMenuId(null);
-                    setActionMenuAnchor(null);
-                    handleManualRecovery(adv.id);
-                  }}
-                  className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs text-default hover:bg-surface-sunken transition-colors cursor-pointer"
-                >
-                  <CreditCard className="size-3.5 text-primary shrink-0" />
-                  <span>Deduct Next Installment</span>
-                </button>
+                <>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setOpenActionMenuId(null);
+                      setActionMenuAnchor(null);
+                      handleManualRecovery(adv.id);
+                    }}
+                    className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs text-default hover:bg-surface-sunken transition-colors cursor-pointer"
+                  >
+                    <CreditCard className="size-3.5 text-primary shrink-0" />
+                    <span>Deduct Next Installment</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setOpenActionMenuId(null);
+                      setActionMenuAnchor(null);
+                      handleToggleAutoDeduct(adv.id);
+                    }}
+                    className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs text-default hover:bg-surface-sunken transition-colors cursor-pointer"
+                  >
+                    <CheckCircle2 className="size-3.5 text-emerald-600 shrink-0" />
+                    <span>{adv.autoDeductNextPayroll !== false ? 'Disable Auto-Deduct' : 'Enable Auto-Deduct'}</span>
+                  </button>
+                </>
               )}
               <button
                 type="button"
@@ -797,6 +853,25 @@ export const SalaryAdvancesSection: React.FC = () => {
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               className="w-full px-3 py-2 rounded-lg border border-default bg-surface text-sm text-default focus:ring-2 focus:ring-primary/20 outline-hidden"
+            />
+          </div>
+
+          <div className="flex items-center justify-between p-3.5 rounded-xl border border-default bg-surface-sunken">
+            <div className="space-y-0.5 pr-2">
+              <label htmlFor="autoDeductToggle" className="text-xs font-bold text-default flex items-center gap-1.5 cursor-pointer">
+                <CheckCircle2 className="size-3.5 text-emerald-600" />
+                <span>Auto-deduct from next payroll cycle</span>
+              </label>
+              <p className="text-[11px] text-muted">
+                Installment of ৳{parseFloat(monthlyInstallment || '0').toLocaleString()} will automatically be deducted during the next monthly payroll run.
+              </p>
+            </div>
+            <input
+              id="autoDeductToggle"
+              type="checkbox"
+              checked={autoDeductNextPayroll}
+              onChange={(e) => setAutoDeductNextPayroll(e.target.checked)}
+              className="size-4.5 rounded text-primary focus:ring-primary/20 cursor-pointer shrink-0"
             />
           </div>
 

@@ -33,6 +33,15 @@ vi.mock('../../lib/auth/authStore', () => ({
     selector ? selector(mockAuthState) : mockAuthState,
 }));
 
+vi.mock('../../lib/api/client', () => ({
+  api: {
+    get: vi.fn().mockResolvedValue({ data: [] }),
+    post: vi.fn().mockResolvedValue({ data: {} }),
+    put: vi.fn().mockResolvedValue({ data: {} }),
+    delete: vi.fn().mockResolvedValue({ data: {} }),
+  },
+}));
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: { retry: false },
@@ -223,6 +232,67 @@ describe('HrWorkspace Component & Action Controls', () => {
 
     // Confirmation modal should open with confirm action button
     expect(screen.getAllByRole('button', { name: /Move to Bin/i }).length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('renders attendance view mode switcher and toggles Month Calendar view', () => {
+    renderWithProviders(['/hr?tab=attendance']);
+
+    // Check Daily Log and Month Calendar switcher buttons
+    expect(screen.getByRole('button', { name: /Daily Attendance Table View/i })).toBeInTheDocument();
+    const calendarSwitchBtn = screen.getByRole('button', { name: /Attendance Month Calendar View/i });
+    expect(calendarSwitchBtn).toBeInTheDocument();
+
+    // Toggle to Month Calendar
+    fireEvent.click(calendarSwitchBtn);
+
+    // Verify Month Calendar KPIs and calendar view
+    expect(screen.getByText(/Workforce Attendance Grid/i)).toBeInTheDocument();
+    expect(screen.getByText(/Scheduled Workdays/i)).toBeInTheDocument();
+    expect(screen.getByText(/Present & Punctual/i)).toBeInTheDocument();
+    expect(screen.getByText(/Late Arrivals/i)).toBeInTheDocument();
+  });
+
+  it('renders Calculation Preview button and opens comprehensive payroll calculation breakdown modal', () => {
+    renderWithProviders(['/hr?tab=payroll']);
+
+    const calcButtons = screen.getAllByRole('button', { name: /Calculation Preview/i });
+    expect(calcButtons.length).toBeGreaterThanOrEqual(1);
+
+    fireEvent.click(calcButtons[0]!);
+
+    expect(screen.getByText(/Payslip Breakdown:/i)).toBeInTheDocument();
+    expect(screen.getByText(/Double-Entry GL Auto-Posting Audit/i)).toBeInTheDocument();
+    expect(screen.getByText(/Itemized Earnings & Allowances/i)).toBeInTheDocument();
+    expect(screen.getByText(/Itemized Deductions & Recoveries/i)).toBeInTheDocument();
+    expect(screen.getByText(/Net Payable Payout/i)).toBeInTheDocument();
+  });
+
+  it('logs leave decision in in-app notification feed banner when leave request is approved', () => {
+    renderWithProviders(['/hr?tab=leaves']);
+
+    const approveButtons = screen.getAllByRole('button', { name: /Approve/i });
+    expect(approveButtons.length).toBeGreaterThanOrEqual(1);
+
+    fireEvent.click(approveButtons[0]!);
+
+    // Expect In-App Leave Notifications & Decision Feed section to appear
+    expect(screen.getByText(/In-App Leave Notifications & Decision Feed/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/Approved/i).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText(/Abdul Karim/i).length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('verifies salary advances auto-deduct toggle in Grant Advance modal and table badges', () => {
+    renderWithProviders(['/hr?tab=advances']);
+
+    // Auto-Deduct column header
+    expect(screen.getByText(/Auto-Deduct/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/Next Run/i).length).toBeGreaterThanOrEqual(1);
+
+    // Open Grant Advance modal
+    const grantButtons = screen.getAllByRole('button', { name: /\+ Grant Advance/i });
+    fireEvent.click(grantButtons[0]!);
+
+    expect(screen.getByText(/Auto-deduct from next payroll cycle/i)).toBeInTheDocument();
   });
 });
 

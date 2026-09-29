@@ -30,6 +30,8 @@ import {
   KeyRound,
   ChevronDown,
   Upload,
+  Calculator,
+  Bell,
 } from 'lucide-react';
 import { api } from '../../lib/api/client';
 import { useTranslation } from 'react-i18next';
@@ -60,6 +62,8 @@ import { DepartmentsSetupSection } from './sections/DepartmentsSetupSection';
 import { SalaryStructuresSection } from './sections/SalaryStructuresSection';
 import { SalaryAdvancesSection } from './sections/SalaryAdvancesSection';
 import { CreatePayslipModal } from './components/CreatePayslipModal';
+import { AttendanceMonthCalendar } from './components/AttendanceMonthCalendar';
+import { PayrollCalculationPreviewModal } from './components/PayrollCalculationPreviewModal';
 import { useDocumentPrint, EmployeeIdBadgeDocument, PayslipDocument } from '../../components/print';
 import { useBusinessConfig } from '../../lib/document/useBusinessConfig';
 import { ActionMenuPortal } from '../../components/ui/ActionMenuPortal';
@@ -472,6 +476,143 @@ export const HrWorkspace: React.FC = () => {
       status: 'late',
       remarks: 'Late check-in beyond 15m grace period',
     },
+    {
+      id: 3,
+      uuid: 'att-03',
+      employee_id: 1,
+      employee: employees[0],
+      attendance_date: '2026-09-01',
+      shift_id: 1,
+      shift: shifts[0],
+      check_in_at: '2026-09-01 08:55:00',
+      check_out_at: '2026-09-01 17:05:00',
+      worked_minutes: 490,
+      late_minutes: 0,
+      overtime_minutes: 10,
+      status: 'present',
+      remarks: 'Punctual check-in',
+    },
+    {
+      id: 4,
+      uuid: 'att-04',
+      employee_id: 2,
+      employee: employees[1],
+      attendance_date: '2026-09-01',
+      shift_id: 1,
+      shift: shifts[0],
+      check_in_at: '2026-09-01 09:25:00',
+      check_out_at: '2026-09-01 17:30:00',
+      worked_minutes: 485,
+      late_minutes: 25,
+      overtime_minutes: 0,
+      status: 'late',
+      remarks: 'Traffic congestion on bridge',
+    },
+    {
+      id: 5,
+      uuid: 'att-05',
+      employee_id: 3,
+      employee: employees[2],
+      attendance_date: '2026-09-01',
+      shift_id: 1,
+      shift: shifts[0],
+      check_in_at: '2026-09-01 08:50:00',
+      check_out_at: '2026-09-01 17:00:00',
+      worked_minutes: 490,
+      late_minutes: 0,
+      overtime_minutes: 0,
+      status: 'present',
+      remarks: 'Normal day shift',
+    },
+    {
+      id: 6,
+      uuid: 'att-06',
+      employee_id: 1,
+      employee: employees[0],
+      attendance_date: '2026-09-02',
+      shift_id: 1,
+      shift: shifts[0],
+      check_in_at: '2026-09-02 08:58:00',
+      check_out_at: '2026-09-02 17:10:00',
+      worked_minutes: 492,
+      late_minutes: 0,
+      overtime_minutes: 10,
+      status: 'present',
+    },
+    {
+      id: 7,
+      uuid: 'att-07',
+      employee_id: 2,
+      employee: employees[1],
+      attendance_date: '2026-09-02',
+      shift_id: 1,
+      shift: shifts[0],
+      check_in_at: '2026-09-02 09:00:00',
+      check_out_at: '2026-09-02 17:00:00',
+      worked_minutes: 480,
+      late_minutes: 0,
+      overtime_minutes: 0,
+      status: 'present',
+    },
+    {
+      id: 8,
+      uuid: 'att-08',
+      employee_id: 1,
+      employee: employees[0],
+      attendance_date: '2026-09-03',
+      shift_id: 1,
+      shift: shifts[0],
+      check_in_at: '2026-09-03 09:18:00',
+      check_out_at: '2026-09-03 17:25:00',
+      worked_minutes: 487,
+      late_minutes: 18,
+      overtime_minutes: 0,
+      status: 'late',
+    },
+    {
+      id: 9,
+      uuid: 'att-09',
+      employee_id: 2,
+      employee: employees[1],
+      attendance_date: '2026-09-03',
+      shift_id: 1,
+      shift: shifts[0],
+      worked_minutes: 0,
+      late_minutes: 0,
+      overtime_minutes: 0,
+      status: 'absent',
+      remarks: 'Unplanned absence without notice',
+    },
+    {
+      id: 10,
+      uuid: 'att-10',
+      employee_id: 1,
+      employee: employees[0],
+      attendance_date: '2026-09-07',
+      shift_id: 1,
+      shift: shifts[0],
+      check_in_at: '2026-09-07 08:52:00',
+      check_out_at: '2026-09-07 17:02:00',
+      worked_minutes: 490,
+      late_minutes: 0,
+      overtime_minutes: 0,
+      status: 'present',
+    },
+    {
+      id: 11,
+      uuid: 'att-11',
+      employee_id: 2,
+      employee: employees[1],
+      attendance_date: '2026-09-07',
+      shift_id: 1,
+      shift: shifts[0],
+      check_in_at: '2026-09-07 08:57:00',
+      check_out_at: '2026-09-07 17:15:00',
+      worked_minutes: 498,
+      late_minutes: 0,
+      overtime_minutes: 15,
+      status: 'present',
+    },
   ]);
 
   // ─────────────────────────────────────────────────────────────────────────────
@@ -681,6 +822,18 @@ export const HrWorkspace: React.FC = () => {
   const [attSearch, setAttSearch] = useState('');
   const [attStatusFilter, setAttStatusFilter] = useState<string>('all');
   const [attDateFilter, setAttDateFilter] = useState<string>('2026-08-28');
+  const [attendanceViewMode, setAttendanceViewMode] = useState<'table' | 'calendar'>('table');
+
+  // In-App Leave Decisions Notifications Feed
+  const [leaveNotifications, setLeaveNotifications] = useState<Array<{
+    id: number;
+    employeeName: string;
+    action: 'approved' | 'rejected';
+    leaveType: string;
+    dates: string;
+    days: string;
+    timestamp: string;
+  }>>([]);
 
   const [leaveSearch, setLeaveSearch] = useState('');
   const [leaveStatusFilter, setLeaveStatusFilter] = useState<string>('all');
@@ -1129,19 +1282,75 @@ export const HrWorkspace: React.FC = () => {
     notify.success(`Leave request submitted for ${targetEmp?.display_name}!`);
   };
 
-  // Approve / Reject Leave
+  // Approve / Reject Leave with in-app notifications
   const handleApproveLeave = (id: number) => {
+    const target = leaveRequests.find((lr) => lr.id === id);
+    const empName = target?.employee?.display_name || 'Staff Member';
+    const leaveTypeName = target?.leave_type?.name || 'Leave';
+    const days = target?.total_days ? parseFloat(String(target.total_days)).toFixed(0) : '1';
+    const dateRange = target ? `${target.start_date} to ${target.end_date}` : '';
+
     setLeaveRequests((prev) =>
       prev.map((lr) => (lr.id === id ? { ...lr, status: 'approved' } : lr))
     );
-    notify.success('Leave request approved');
+
+    setLeaveNotifications((prev) => [
+      {
+        id: Date.now(),
+        employeeName: empName,
+        action: 'approved',
+        leaveType: leaveTypeName,
+        dates: dateRange,
+        days,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      },
+      ...prev,
+    ]);
+
+    // Dispatch background in-app system notification
+    api.post('/notifications', {
+      type: 'hr.leave.approved',
+      title: `Leave Approved: ${empName}`,
+      message: `${leaveTypeName} application for ${empName} (${days} days) has been approved.`,
+      severity: 'success',
+    }).catch(() => {});
+
+    notify.success(`Leave request approved for ${empName} (${days} days). In-app notification sent.`);
   };
 
   const handleRejectLeave = (id: number) => {
+    const target = leaveRequests.find((lr) => lr.id === id);
+    const empName = target?.employee?.display_name || 'Staff Member';
+    const leaveTypeName = target?.leave_type?.name || 'Leave';
+    const days = target?.total_days ? parseFloat(String(target.total_days)).toFixed(0) : '1';
+    const dateRange = target ? `${target.start_date} to ${target.end_date}` : '';
+
     setLeaveRequests((prev) =>
       prev.map((lr) => (lr.id === id ? { ...lr, status: 'rejected' } : lr))
     );
-    notify.warning('Leave request rejected');
+
+    setLeaveNotifications((prev) => [
+      {
+        id: Date.now(),
+        employeeName: empName,
+        action: 'rejected',
+        leaveType: leaveTypeName,
+        dates: dateRange,
+        days,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      },
+      ...prev,
+    ]);
+
+    // Dispatch background in-app system notification
+    api.post('/notifications', {
+      type: 'hr.leave.rejected',
+      title: `Leave Rejected: ${empName}`,
+      message: `${leaveTypeName} application for ${empName} was rejected.`,
+      severity: 'warning',
+    }).catch(() => {});
+
+    notify.warning(`Leave request rejected for ${empName} (${leaveTypeName}). Notification sent.`);
   };
 
   // Disburse Payroll
@@ -2546,7 +2755,7 @@ export const HrWorkspace: React.FC = () => {
                     <th className="px-2.5 py-2.5 text-right font-mono">Gross Amount</th>
                     <th className="px-2.5 py-2.5 text-right font-mono">Deductions</th>
                     <th className="px-2.5 py-2.5 text-right font-mono">Net Payable</th>
-                    <th className="w-36 px-2 py-2.5 text-right">Action</th>
+                    <th className="w-48 px-2 py-2.5 text-right">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-default/40">
@@ -2656,9 +2865,19 @@ export const HrWorkspace: React.FC = () => {
                           <td className="px-2.5 py-2.5 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400 whitespace-nowrap">
                             {formatCurrency(ps.net_amount)}
                           </td>
-                          <td className="w-36 px-2 py-2.5 text-right whitespace-nowrap">
+                          <td className="w-48 px-2 py-2.5 text-right whitespace-nowrap">
                             <div className="flex items-center justify-end gap-1.5 relative">
-                              {/* 1. Primary Direct Action Button */}
+                              {/* 1. Direct Action Buttons */}
+                              <button
+                                type="button"
+                                onClick={() => handleViewPayslip(ps)}
+                                className="px-2 py-1 text-xs bg-surface border border-default hover:bg-surface-sunken text-default rounded-lg font-medium transition cursor-pointer flex items-center gap-1 shadow-2xs"
+                                title="View calculation preview breakdown"
+                                aria-label="Calculation Preview"
+                              >
+                                <Calculator className="size-3 text-emerald-600 dark:text-emerald-400" />
+                                <span>Calc</span>
+                              </button>
                               <button
                                 type="button"
                                 onClick={() => handleViewPayslip(ps)}
@@ -2719,6 +2938,19 @@ export const HrWorkspace: React.FC = () => {
                     }}
                     className="w-52"
                   >
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setOpenActionMenuId(null);
+                        setActionMenuAnchor(null);
+                        handleViewPayslip(ps);
+                      }}
+                      className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs text-default hover:bg-surface-sunken transition-colors cursor-pointer"
+                    >
+                      <Calculator className="size-3.5 text-emerald-600 shrink-0" />
+                      <span>Calculation Breakdown</span>
+                    </button>
+
                     <button
                       type="button"
                       onClick={() => {
@@ -3263,37 +3495,71 @@ export const HrWorkspace: React.FC = () => {
           {/* Attendance Toolbar */}
           <div className="bg-surface rounded-2xl border border-default p-4 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 shadow-2xs">
             <div className="flex items-center gap-2.5 flex-wrap flex-1">
-              <div className="flex items-center gap-1.5 px-3 py-1.5 border border-default rounded-xl bg-surface">
-                <span className="text-xs font-semibold text-muted">Date:</span>
-                <input
-                  type="date"
-                  value={attDateFilter}
-                  onChange={(e) => setAttDateFilter(e.target.value)}
-                  className="bg-transparent text-xs font-mono font-bold text-default focus:outline-none cursor-pointer"
-                />
+              {/* View Switcher: Table vs Month Calendar */}
+              <div className="flex items-center p-1 rounded-xl bg-surface-sunken border border-default">
+                <button
+                  type="button"
+                  onClick={() => setAttendanceViewMode('table')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer ${
+                    attendanceViewMode === 'table'
+                      ? 'bg-surface text-primary shadow-2xs font-bold'
+                      : 'text-muted hover:text-default'
+                  }`}
+                  aria-label="Daily Attendance Table View"
+                >
+                  <FileSpreadsheet className="size-3.5" />
+                  <span>Daily Log</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAttendanceViewMode('calendar')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer ${
+                    attendanceViewMode === 'calendar'
+                      ? 'bg-surface text-primary shadow-2xs font-bold'
+                      : 'text-muted hover:text-default'
+                  }`}
+                  aria-label="Attendance Month Calendar View"
+                >
+                  <CalendarCheck className="size-3.5" />
+                  <span>Month Calendar</span>
+                </button>
               </div>
 
-              <div className="relative flex-1 min-w-45 max-w-xs">
-                <Search className="size-3.5 text-muted absolute left-3 top-1/2 -translate-y-1/2" />
-                <input
-                  type="text"
-                  value={attSearch}
-                  onChange={(e) => setAttSearch(e.target.value)}
-                  placeholder="Filter by worker name/code..."
-                  className="w-full pl-8 pr-3 py-1.5 border border-default rounded-xl bg-surface-sunken text-default text-xs focus:border-primary focus:outline-none"
-                />
-              </div>
+              {attendanceViewMode === 'table' && (
+                <>
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 border border-default rounded-xl bg-surface">
+                    <span className="text-xs font-semibold text-muted">Date:</span>
+                    <input
+                      type="date"
+                      value={attDateFilter}
+                      onChange={(e) => setAttDateFilter(e.target.value)}
+                      className="bg-transparent text-xs font-mono font-bold text-default focus:outline-none cursor-pointer"
+                    />
+                  </div>
 
-              <select
-                value={attStatusFilter}
-                onChange={(e) => setAttStatusFilter(e.target.value)}
-                className="px-2.5 py-1.5 border border-default rounded-xl bg-surface text-default text-xs focus:border-primary focus:outline-none font-medium cursor-pointer"
-              >
-                <option value="all">All Attendance Statuses</option>
-                <option value="present">Present</option>
-                <option value="late">Late Check-in</option>
-                <option value="absent">Absent</option>
-              </select>
+                  <div className="relative flex-1 min-w-45 max-w-xs">
+                    <Search className="size-3.5 text-muted absolute left-3 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      value={attSearch}
+                      onChange={(e) => setAttSearch(e.target.value)}
+                      placeholder="Filter by worker name/code..."
+                      className="w-full pl-8 pr-3 py-1.5 border border-default rounded-xl bg-surface-sunken text-default text-xs focus:border-primary focus:outline-none"
+                    />
+                  </div>
+
+                  <select
+                    value={attStatusFilter}
+                    onChange={(e) => setAttStatusFilter(e.target.value)}
+                    className="px-2.5 py-1.5 border border-default rounded-xl bg-surface text-default text-xs focus:border-primary focus:outline-none font-medium cursor-pointer"
+                  >
+                    <option value="all">All Attendance Statuses</option>
+                    <option value="present">Present</option>
+                    <option value="late">Late Check-in</option>
+                    <option value="absent">Absent</option>
+                  </select>
+                </>
+              )}
             </div>
 
             <div className="flex items-center gap-2">
@@ -3315,6 +3581,26 @@ export const HrWorkspace: React.FC = () => {
               </button>
             </div>
           </div>
+
+          {/* Conditional Calendar View vs Table View */}
+          {attendanceViewMode === 'calendar' ? (
+            <AttendanceMonthCalendar
+              attendances={attendances}
+              employees={employees}
+              departments={departments}
+              leaveRequests={leaveRequests}
+              onSelectDate={(dateStr) => {
+                setAttDateFilter(dateStr);
+                setAttendanceViewMode('table');
+              }}
+              onMarkAttendance={(dateStr, empId) => {
+                if (dateStr) setAttDate(dateStr);
+                if (empId) setAttEmpId(empId);
+                setShowMarkAttendanceModal(true);
+              }}
+            />
+          ) : (
+            <>
 
           {/* Floating Bulk Actions Ribbon for Attendance */}
           {selectedAttIds.length > 0 && (
@@ -3580,14 +3866,71 @@ export const HrWorkspace: React.FC = () => {
               })()}
             </div>
           </div>
-        </div>
+        </>
       )}
+    </div>
+  )}
 
       {/* ─────────────────────────────────────────────────────────────────────────────
           Tab 4: Leave Management
           ───────────────────────────────────────────────────────────────────────────── */}
       {activeTab === 'leaves' && (
         <div className="space-y-4">
+          {/* In-App Leave Notifications Decision Feed Banner */}
+          {leaveNotifications.length > 0 && (
+            <div className="bg-primary/5 border border-primary/20 rounded-2xl p-4 shadow-2xs space-y-2 animate-in fade-in duration-200">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="p-1 rounded-lg bg-primary/10 text-primary">
+                    <Bell className="size-4" />
+                  </span>
+                  <h3 className="text-xs font-bold text-default uppercase tracking-wider">
+                    In-App Leave Notifications & Decision Feed ({leaveNotifications.length})
+                  </h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setLeaveNotifications([])}
+                  className="text-2xs text-muted hover:text-default font-semibold cursor-pointer"
+                >
+                  Dismiss Feed
+                </button>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+                {leaveNotifications.slice(0, 3).map((notif) => (
+                  <div
+                    key={notif.id}
+                    className="p-2.5 rounded-xl bg-surface border border-default flex items-start justify-between gap-2 shadow-2xs text-xs"
+                  >
+                    <div>
+                      <div className="flex items-center gap-1.5">
+                        <span
+                          className={`size-2 rounded-full ${
+                            notif.action === 'approved' ? 'bg-emerald-500' : 'bg-rose-500'
+                          }`}
+                        />
+                        <span className="font-semibold text-default">{notif.employeeName}</span>
+                        <span
+                          className={`text-[10px] px-1.5 py-0.2 rounded font-bold uppercase ${
+                            notif.action === 'approved'
+                              ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
+                              : 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300'
+                          }`}
+                        >
+                          {notif.action}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-muted mt-0.5">
+                        {notif.leaveType} • {notif.days} days ({notif.dates})
+                      </p>
+                    </div>
+                    <span className="text-[10px] font-mono text-muted shrink-0">{notif.timestamp}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Leaves Toolbar */}
           <div className="bg-surface rounded-2xl border border-default p-4 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 shadow-2xs">
             <div className="flex items-center gap-2.5 flex-wrap flex-1">
@@ -3952,71 +4295,15 @@ export const HrWorkspace: React.FC = () => {
       {activeTab === 'advances' && <SalaryAdvancesSection />}
 
       {/* ─────────────────────────────────────────────────────────────────────────────
-          Modal 1: View Payslip Breakdown
+          Modal 1: Payroll Calculation Preview & Breakdown Modal
           ───────────────────────────────────────────────────────────────────────────── */}
-      <Modal
+      <PayrollCalculationPreviewModal
         open={Boolean(selectedPayslip)}
         onClose={() => setSelectedPayslip(null)}
-        title={`Payslip Breakdown: ${selectedPayslip?.payslip_number || ''}`}
-        subtitle={`Employee: ${selectedPayslip?.employee?.display_name || ''} (${selectedPayslip?.employee?.employee_code || ''})`}
-        size="md"
-      >
-        {selectedPayslip && (
-          <div className="space-y-5 pt-1">
-            <div className="space-y-3">
-              <div className="text-2xs font-semibold text-muted uppercase tracking-wider">
-                Itemized Salary & Production Output Earnings
-              </div>
-              {selectedPayslip.items?.map((item, idx) => (
-                <div
-                  key={idx}
-                  className="flex justify-between items-center p-3 bg-surface-sunken rounded-xl border border-default"
-                >
-                  <div>
-                    <div className="font-semibold text-sm text-default font-mono">
-                      {item.component_code}
-                    </div>
-                    {item.quantity && item.rate && (
-                      <div className="text-xs text-muted">
-                        {parseFloat(item.quantity).toFixed(0)} units @ {formatCurrency(item.rate)}
-                      </div>
-                    )}
-                  </div>
-                  <div className="font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                    {formatCurrency(item.amount)}
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <div className="pt-4 border-t border-default flex justify-between items-center">
-              <div>
-                <span className="text-2xs text-muted block uppercase font-semibold">Net Payable Payout</span>
-                <div className="text-2xl font-extrabold text-emerald-600 dark:text-emerald-400 font-mono">
-                  {formatCurrency(selectedPayslip.net_amount)}
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => handlePrintPayslip(selectedPayslip)}
-                  className="px-3.5 py-2 text-xs border border-default rounded-xl bg-surface hover:bg-surface-sunken text-default font-semibold flex items-center gap-1.5 cursor-pointer"
-                >
-                  <Printer className="size-3.5" />
-                  <span>Print Payslip</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setSelectedPayslip(null)}
-                  className="px-4 py-2 bg-primary hover:bg-primary/90 text-primary-fg text-xs font-semibold rounded-xl cursor-pointer"
-                >
-                  Done
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-      </Modal>
+        payslip={selectedPayslip}
+        activePeriod={payrollPeriods.find((p) => p.id === selectedPayslip?.payroll_period_id) || payrollPeriods[0]}
+        onPrint={handlePrintPayslip}
+      />
 
       {/* ─────────────────────────────────────────────────────────────────────────────
           Modal 2: Onboard Employee

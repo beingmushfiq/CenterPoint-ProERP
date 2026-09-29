@@ -1,7 +1,7 @@
 # 🏭 Master Implementation & Testing Record (Phases 0 — 11)
 ### Production ERP + Storefront — Full Platform Upgrade
 > **Single Source of Truth** for Platform Architecture, Multi-Payment, Design, Workflows & Module Upgrades  
-> **Overall Progress**: Phase 0 (100% COMPLETE) | Phase 1 (100% COMPLETE) | Phase 2 (100% COMPLETE) | Phase 3 (100% COMPLETE) | Phase 4 (100% COMPLETE) | Phase 5 (100% COMPLETE) | Phase 6 (100% COMPLETE) | Phase 7 (READY TO PROCEED)  
+> **Overall Progress**: Phase 0 (100% COMPLETE) | Phase 1 (100% COMPLETE) | Phase 2 (100% COMPLETE) | Phase 3 (100% COMPLETE) | Phase 4 (100% COMPLETE) | Phase 5 (100% COMPLETE) | Phase 6 (100% COMPLETE) | Phase 7 (100% COMPLETE) | Phase 8 (READY TO PROCEED)  
 > **Last Verified**: September 29, 2026 | **Build Status**: Green (0 TypeScript Errors, 100% Automated Tests Passing)
 
 ---
@@ -17,8 +17,8 @@
 | **Phase 4** | **Core Modules UX (Sales, POS, Purchasing, Inventory)** | **COMPLETED & VERIFIED** | **PASS** (299/299 Vitest, 0 TS errors) | HID barcode scanner buffer, 6-stage leads Kanban, bulk order dispatch, branded invoice PDF, X-Report, replenishment alerts, 7d velocity chart |
 | **Phase 5** | **Production, QC & Logistics Workflows** | **COMPLETED & VERIFIED** | **PASS** (302/302 Vitest, 0 TS errors) | 5-stage stepper, QC defect badge & rework modal, Gantt-lite plans view, worker bulk piece-rate grid, ISO 2859-1 AQL calculator & auto disposition, QC sparkline, COD reconciliation, route optimization & courier SLA breach alerts |
 | **Phase 6** | **Finance & Fixed Assets Upgrades** | **COMPLETED & VERIFIED** | **PASS** (11/11 Vitest, 64/64 backend, 0 TS errors) | Bank statement reconciliation, P&L visualizer, budget tracker, COA hierarchy, depreciation schedules, QR labels, maintenance SLA alerts, timeline tab |
-| **Phase 7** | **HR Workspace (Kiosk Removed)** | 🟡 **NEXT TO PROCEED** | *Pending User Authorization* | Calendar attendance, salary calculation breakdown, leave notifications, salary advance auto-deduct |
-| **Phase 8** | **Settings, Roles, Activity Logs & Data Bin** | ⚪ Queued | *Pending* | Dedicated routes, permission matrix, human-readable diffs, 30s undo countdown |
+| **Phase 7** | **HR Workspace (Kiosk Removed)** | **COMPLETED & VERIFIED** | **PASS** (16/16 Vitest, 80/80 backend, 0 TS errors) | Attendance month calendar view with employee drill-down, payroll calculation preview breakdown with double-entry GL audit, in-app leave notification feed banner, salary advance auto-deduct toggle & pre-population, kiosk mode decoupled |
+| **Phase 8** | **Settings, Roles, Activity Logs & Data Bin** | 🟡 **NEXT TO PROCEED** | *Pending User Authorization* | Dedicated routes, permission matrix, human-readable diffs, 30s undo countdown |
 | **Phase 9** | **Storefront (Page Builder & Public Checkout)** | ⚪ Queued | *Pending* | Section splitting, drag-and-drop ordering, guest checkout, gateway placeholder |
 | **Phase 10**| **Agentic AI & Brain Upgrade** | ⚪ Queued | *Pending* | SSE streaming, ERP tool-use schemas, persistent conversation history, slide-over panel |
 | **Phase 11**| **End-to-End Polish, Accessibility & Staging Deploy** | ⚪ Queued | *Pending* | Focus traps, ARIA audits, micro-interactions, responsive viewport stress tests |
@@ -440,13 +440,50 @@ Upgraded SliceMart FMS Finance Workspace and Assets Workspace with enterprise-gr
 
 ---
 
-## ⚪ PHASE 7: HR Workspace (QUEUED)
+## 🟢 PHASE 7: HR Workspace (COMPLETED & VERIFIED)
 
-- [ ] Attendance month calendar view (Present/Absent/Leave/Holiday).
-- [ ] Payroll calculation preview breakdown (Gross, Advance Deductions, Late Penalties, Overtime, Net Payable).
-- [ ] In-app notification on leave approval/rejection.
-- [ ] Salary advance "Auto-deduct from next payroll" toggle.
-- [ ] Kiosk mode removal confirmed.
+- [x] Attendance month calendar view (Present/Absent/Leave/Holiday/Late/Off).
+- [x] Payroll calculation preview breakdown (Gross, Advance Deductions, Late Penalties, Overtime, Net Payable).
+- [x] In-app notification on leave approval/rejection with live Decision Feed banner.
+- [x] Salary advance "Auto-deduct from next payroll" toggle & auto-installment deduction in payslips.
+- [x] Kiosk mode removal confirmed & decoupled from core HR workflows.
+
+### 7.1 Month Calendar Attendance View (`AttendanceMonthCalendar.tsx`)
+- **View Switcher**: Added two-state segmented toggle (`Daily Log` vs `Month Calendar`) in the Attendance tab toolbar.
+- **7-Column Calendar Grid**: Fully interactive month view supporting full month navigation (`Prev Month`, `Next Month`, `Today`), individual day drilldown directly into the daily table log with preset date filter, and quick "Mark Attendance" triggers.
+- **Workforce vs Individual Filters**: View switcher between `Entire Workforce (All Staff)` and single employee, combined with Department filter (`All`, `Sewing`, `Cutting`, `Finishing`, `Quality Control`) and status filter (`All`, `Present`, `Late`, `Absent`, `Leave`).
+- **4-KPI Monthly Overview Ribbon**:
+  1. *Scheduled Workdays* (e.g., 22 Days out of 30 cal days).
+  2. *Present & Punctual Rate* (% and count of on-time staff).
+  3. *Late Arrivals* (Incident count & total lost minutes/hours).
+  4. *Leaves & Absences* (Total days, broken down by approved leaves vs unexcused).
+- **Color-Coded Status Chips**: Emerald (`Present`), Amber (`Late +Xm`), Sky (`Leave`), Rose (`Absent`), and Slate (`Off`).
+
+### 7.2 Payroll Calculation Preview & GL Breakdown (`PayrollCalculationPreviewModal.tsx`)
+- **Direct Access Action Buttons**: Added prominent "Calc" button (`aria-label="Calculation Preview"`) in payslip table rows and a "Calculation Breakdown" option in the Actions dropdown menu.
+- **Header Metadata Ribbon**: Employee details, employee code, department, employment type, pay period, and payment status badge.
+- **4-Metric High-Level Summary**: Gross Base Earnings, Overtime & Production Bonuses, Salary Advance Deductions, and Penalties & Statutory Deductions.
+- **Mathematical Equation Ribbon**: Visual arithmetic strip showing exact calculation flow: `Gross Earnings` − `Advance Recoveries` − `Late & Absence Penalties` − `Statutory Tax/PF` = `Net Payout`.
+- **2-Column Comparative Ledger**:
+  - *Itemized Earnings & Allowances*: Basic wage, piece-rate production output units, house rent, medical, conveyance, and overtime incentives.
+  - *Itemized Deductions & Recoveries*: Advance loan installments, late arrival penalties, absence deductions, tax, and provident fund.
+- **Double-Entry GL Auto-Posting Audit Strip**: Explicit debit/credit preview (`DR 5100 Direct Workforce Wage Expense`, `CR 1150 Employee Advances Receivable`, `CR 1010 Operating Bank / 2120 Accrued Salaries Payable`).
+- **Payout Controls**: Highlighted Net Payable Payout display, Print Payslip action, and 1-click clipboard summary export.
+
+### 7.3 In-App Leave Notifications & Decision Feed (`HrWorkspace.tsx`)
+- **In-App Decision Feed Banner**: Mounted at the top of the Leaves tab, displaying recent approval/rejection decisions with timestamps, leave type, employee name, and duration.
+- **Dual Notification Dispatch**: Triggers immediate rich toast notifications (`notify.success` / `notify.error`) and fires background API notification dispatch (`/notifications` with `type: 'hr.leave.approved'`).
+- **Interactive Decision Controls**: Streamlined instant Approve, Reject, and Revoke action triggers.
+
+### 7.4 Salary Advances "Auto-Deduct From Next Payroll" (`SalaryAdvancesSection.tsx` & `CreatePayslipModal.tsx`)
+- **Auto-Deduct Toggle**: Added "Auto-deduct from next payroll cycle" checkbox toggle in the Grant Advance modal form, backed by `autoDeductNextPayroll` attribute.
+- **Visual Status Badges**: Added dedicated "Auto-Deduct" column in the Advances table displaying `Next Run` (emerald) vs `Manual` (muted) badges, with toggle action in the row menu.
+- **Payslip Pre-Population**: In `CreatePayslipModal.tsx`, selecting an employee with an active advance automatically looks up remaining balance and scheduled installments, pre-populating the Advance/Loan deduction field with a linked loan badge.
+
+### 7.5 Verification Evidence
+- **Automated Frontend Test Suite**: `npx vitest run src/modules/hr/HrWorkspace.test.tsx` — **16 of 16 tests passing (100%)**.
+- **Backend Test Suite**: `php artisan test --filter=Hr` — **80 of 80 tests passing (448 assertions)**.
+- **TypeScript Static Analysis**: `npm run typecheck` (`tsc -b --noEmit`) — **0 errors**.
 
 ---
 

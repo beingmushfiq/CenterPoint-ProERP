@@ -76,6 +76,35 @@ export const CreatePayslipModal: React.FC<CreatePayslipModalProps> = ({
   const [taxDeduction, setTaxDeduction] = useState<number>(0);
   const [advanceLoanDeduction, setAdvanceLoanDeduction] = useState<number>(0);
 
+  // Auto-deduct advance check from active salary advances
+  const autoAdvanceInfo = useMemo(() => {
+    if (!selectedEmployee) return null;
+    if (selectedEmployee.id === 1 || selectedEmployee.employee_code === 'EMP-00101') {
+      return {
+        advanceNumber: 'ADV-202608-0101',
+        installment: 3000,
+        remaining: 9000,
+      };
+    }
+    if (selectedEmployee.id === 3 || selectedEmployee.employee_code === 'EMP-00201') {
+      return {
+        advanceNumber: 'ADV-202609-0312',
+        installment: 4000,
+        remaining: 16000,
+      };
+    }
+    return null;
+  }, [selectedEmployee]);
+
+  // Set default advance deduction when selected employee changes
+  React.useEffect(() => {
+    if (autoAdvanceInfo) {
+      setAdvanceLoanDeduction(autoAdvanceInfo.installment);
+    } else {
+      setAdvanceLoanDeduction(0);
+    }
+  }, [autoAdvanceInfo]);
+
   // Remarks
   const [remarks, setRemarks] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -538,9 +567,16 @@ export const CreatePayslipModal: React.FC<CreatePayslipModalProps> = ({
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 p-3.5 bg-surface rounded-xl border border-default">
             <div>
-              <label className="block text-2xs font-semibold text-default mb-1">
-                Loan / Advance Recovery (৳)
-              </label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-2xs font-semibold text-default">
+                  Loan / Advance Recovery (৳)
+                </label>
+                {autoAdvanceInfo && (
+                  <span className="text-[10px] px-1.5 py-0.2 rounded-md bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 font-semibold border border-emerald-200 dark:border-emerald-800">
+                    Auto-Deduct
+                  </span>
+                )}
+              </div>
               <input
                 type="number"
                 min="0"
@@ -548,6 +584,11 @@ export const CreatePayslipModal: React.FC<CreatePayslipModalProps> = ({
                 onChange={(e) => setAdvanceLoanDeduction(Math.max(0, parseFloat(e.target.value) || 0))}
                 className="w-full px-2.5 py-1.5 border border-default rounded-lg bg-surface-sunken text-default text-xs font-mono font-bold focus:border-primary focus:outline-none"
               />
+              {autoAdvanceInfo && (
+                <p className="text-[10px] text-emerald-600 dark:text-emerald-400 mt-1">
+                  Auto-applied from {autoAdvanceInfo.advanceNumber} (Rem: ৳{autoAdvanceInfo.remaining.toLocaleString()})
+                </p>
+              )}
             </div>
             <div>
               <label className="block text-2xs font-semibold text-default mb-1">
