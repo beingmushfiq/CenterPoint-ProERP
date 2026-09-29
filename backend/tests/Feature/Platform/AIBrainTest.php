@@ -87,7 +87,10 @@ final class AIBrainTest extends TestCase
         $response->assertJsonPath('success', true);
         $response->assertJsonPath('data.name', 'ProERP Operations AI Brain Agent');
         $response->assertJsonPath('data.mode', 'Self-Contained / Local Agentic Execution');
+        $response->assertJsonPath('data.streaming_supported', true);
         $this->assertNotEmpty($response->json('data.tools'));
+        $this->assertNotEmpty($response->json('data.tool_schemas'));
+        $this->assertNotEmpty($response->json('data.suggested_prompt_categories'));
     }
 
     public function test_brain_ask_endpoint_answers_operational_queries(): void
@@ -110,5 +113,42 @@ final class AIBrainTest extends TestCase
         ])->postJson('/api/v1/brain/ask', []);
 
         $response->assertStatus(422);
+    }
+
+    public function test_brain_call_tool_endpoint_executes_stock_level(): void
+    {
+        $response = $this->withHeaders([
+            'Authorization' => "Bearer {$this->jwt}",
+        ])->postJson('/api/v1/brain/tool', [
+            'tool' => 'get_stock_level',
+            'parameters' => ['low_stock_only' => true],
+        ]);
+
+        $response->assertOk();
+        $response->assertJsonPath('success', true);
+        $response->assertJsonPath('data.tool', 'get_stock_level');
+        $this->assertArrayHasKey('metrics', $response->json('data'));
+    }
+
+    public function test_brain_call_tool_validates_unknown_tool(): void
+    {
+        $response = $this->withHeaders([
+            'Authorization' => "Bearer {$this->jwt}",
+        ])->postJson('/api/v1/brain/tool', [
+            'tool' => 'unknown_tool_xyz',
+        ]);
+
+        $response->assertStatus(422);
+        $response->assertJsonPath('success', false);
+    }
+
+    public function test_brain_stream_endpoint_returns_event_stream(): void
+    {
+        $response = $this->withHeaders([
+            'Authorization' => "Bearer {$this->jwt}",
+        ])->get('/api/v1/brain/stream?query=What+is+our+sales+revenue');
+
+        $response->assertOk();
+        $this->assertStringContainsString('text/event-stream', (string) $response->headers->get('Content-Type'));
     }
 }

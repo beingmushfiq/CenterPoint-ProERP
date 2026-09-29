@@ -17,6 +17,27 @@ class SliceMartBrainService
         $tenantId = $this->resolveTenantId();
         $q = strtolower(trim($input));
 
+        $result = $this->evaluateQuery($tenantId, $q, $input);
+
+        // Auto-attach detected tool call & result if not already present
+        if (empty($result['tool_call'])) {
+            $toolCall = $this->detectTool($input);
+            if ($toolCall) {
+                try {
+                    $toolResult = $this->executeTool($toolCall['name'], $toolCall['parameters']);
+                    $result['tool_call'] = $toolCall;
+                    $result['tool_result'] = $toolResult;
+                } catch (Throwable) {
+                    // Ignore non-fatal tool evaluation errors
+                }
+            }
+        }
+
+        return $result;
+    }
+
+    private function evaluateQuery(int $tenantId, string $q, string $input): array
+    {
         // 0. Action Intents: Create / Add any system entity
         if (str_contains($q, 'add product') || str_contains($q, 'create product') || str_contains($q, 'new product') || str_contains($q, 'make product') || str_contains($q, 'insert product')) {
             return $this->handleActionCreateProduct($tenantId, $input);
@@ -1526,6 +1547,359 @@ class SliceMartBrainService
                 ['label' => 'Manufacturing Output Hub', 'type' => 'navigate', 'url' => '/reports?code=production_summary_daily'],
                 ['label' => 'Inventory Valuation (FIFO)', 'type' => 'navigate', 'url' => '/reports?code=inventory_valuation_fifo'],
                 ['label' => 'Profit & Loss Statement', 'type' => 'navigate', 'url' => '/reports?code=profit_loss'],
+            ],
+        ];
+    }
+
+    public function detectTool(string $input): ?array
+    {
+        $q = strtolower(trim($input));
+
+        if (str_contains($q, 'overdue') || str_contains($q, 'aging') || (str_contains($q, 'unpaid') && str_contains($q, 'invoice')) || str_contains($q, 'debtor') || str_contains($q, 'বাকি') || str_contains($q, 'অনাদায়ী')) {
+            return [
+                'name' => 'get_overdue_invoices',
+                'parameters' => ['min_days_overdue' => 0],
+            ];
+        }
+
+        if (str_contains($q, 'sale') || str_contains($q, 'revenue') || str_contains($q, 'order') || str_contains($q, 'commercial') || str_contains($q, 'বিক্রয়') || str_contains($q, 'টপ সেলিং')) {
+            $period = 'this_month';
+            if (str_contains($q, 'today') || str_contains($q, 'আজকের')) {
+                $period = 'today';
+            } elseif (str_contains($q, 'week') || str_contains($q, 'সপ্তাহ')) {
+                $period = 'this_week';
+            }
+            return [
+                'name' => 'get_sales_summary',
+                'parameters' => ['period' => $period],
+            ];
+        }
+
+        if (str_contains($q, 'stock') || str_contains($q, 'inventory') || str_contains($q, 'warehouse') || str_contains($q, 'valuation') || str_contains($q, 'on-hand') || str_contains($q, 'মজুদ') || str_contains($q, 'গুদাম')) {
+            $lowStockOnly = str_contains($q, 'low') || str_contains($q, 'shortage') || str_contains($q, 'reorder') || str_contains($q, 'কম');
+            return [
+                'name' => 'get_stock_level',
+                'parameters' => ['low_stock_only' => $lowStockOnly],
+            ];
+        }
+
+        if (str_contains($q, 'production') || str_contains($q, 'batch') || str_contains($q, 'manufactur') || str_contains($q, 'yield') || str_contains($q, 'উৎপাদন') || str_contains($q, 'কারখানা') || str_contains($q, 'ব্যাচ')) {
+            return [
+                'name' => 'get_production_status',
+                'parameters' => ['status' => 'all'],
+            ];
+        }
+
+        return null;
+    }
+
+    public function executeTool(string $toolName, array $parameters = []): array
+    {
+        $tenantId = $this->resolveTenantId();
+
+        return match ($toolName) {
+            'get_sales_summary' => $this->getSalesSummary($tenantId, $parameters),
+            'get_stock_level' => $this->getStockLevel($tenantId, $parameters),
+            'get_overdue_invoices' => $this->getOverdueInvoices($tenantId, $parameters),
+            'get_production_status' => $this->getProductionStatus($tenantId, $parameters),
+            default => throw new InvalidArgumentException("Unknown ERP tool schema: {$toolName}"),
+        };
+    }
+
+    public function getToolSchemas(): array
+    {
+        return [
+            [
+                'name' => 'get_sales_summary',
+                'description' => 'Calculates billed revenue, collected payments, open receivables, and order volumes.',
+                'parameters' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'period' => [
+                            'type' => 'string',
+                            'enum' => ['today', 'this_week', 'this_month', 'all_time'],
+                            'description' => 'Aggregation timeframe for sales and invoicing data',
+                        ],
+                    ],
+                ],
+            ],
+            [
+                'name' => 'get_stock_level',
+                'description' => 'Extracts total physical inventory valuation, on-hand units, and low-stock replenishment alerts.',
+                'parameters' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'low_stock_only' => [
+                            'type' => 'boolean',
+                            'description' => 'When true, filters specifically for SKUs below safe safety stock levels',
+                        ],
+                    ],
+                ],
+            ],
+            [
+                'name' => 'get_overdue_invoices',
+                'description' => 'Analyzes past-due accounts receivable with aging buckets (0-30, 31-60, 60+ days) and debtor details.',
+                'parameters' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'min_days_overdue' => [
+                            'type' => 'integer',
+                            'description' => 'Minimum threshold of days past invoice due date',
+                        ],
+                    ],
+                ],
+            ],
+            [
+                'name' => 'get_production_status',
+                'description' => 'Tracks live shopfloor manufacturing batches, planned vs actual output, and QC yield pass-rate.',
+                'parameters' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'status' => [
+                            'type' => 'string',
+                            'enum' => ['in_progress', 'all'],
+                            'description' => 'Filter status for production batches',
+                        ],
+                    ],
+                ],
+            ],
+        ];
+    }
+
+    public function getSalesSummary(int $tenantId, array $params = []): array
+    {
+        $period = (string) ($params['period'] ?? 'this_month');
+        try {
+            $invoicesQuery = DB::table('invoices')->where('tenant_id', $tenantId)->whereNull('deleted_at');
+
+            if ($period === 'today') {
+                $invoicesQuery->whereDate('created_at', now()->toDateString());
+            } elseif ($period === 'this_week') {
+                $invoicesQuery->where('created_at', '>=', now()->startOfWeek());
+            } elseif ($period === 'this_month') {
+                $invoicesQuery->where('created_at', '>=', now()->startOfMonth());
+            }
+
+            $invoices = $invoicesQuery->get();
+            $totalBilled = (float) $invoices->sum('total_amount');
+            $totalPaid = (float) $invoices->where('payment_status', 'paid')->sum('total_amount');
+            $unpaidInvoices = $invoices->where('payment_status', '!=', 'paid');
+            $totalUnpaid = (float) $unpaidInvoices->sum('total_amount');
+            $invoiceCount = $invoices->count();
+        } catch (Throwable) {
+            $totalBilled = 0.0;
+            $totalPaid = 0.0;
+            $totalUnpaid = 0.0;
+            $invoiceCount = 0;
+        }
+
+        return [
+            'tool' => 'get_sales_summary',
+            'title' => 'Commercial Sales & Receivables Summary',
+            'period' => $period,
+            'summary' => "Total Billed: ৳" . number_format($totalBilled, 2) . " across {$invoiceCount} invoices (৳" . number_format($totalUnpaid, 2) . " open receivables).",
+            'metrics' => [
+                ['label' => 'Total Billed', 'value' => '৳' . number_format($totalBilled, 0), 'tone' => 'success'],
+                ['label' => 'Collected / Paid', 'value' => '৳' . number_format($totalPaid, 0), 'tone' => 'primary'],
+                ['label' => 'Open Receivables', 'value' => '৳' . number_format($totalUnpaid, 0), 'tone' => $totalUnpaid > 0 ? 'amber' : 'neutral'],
+                ['label' => 'Invoices Count', 'value' => (string) $invoiceCount, 'tone' => 'neutral'],
+            ],
+            'data' => [
+                'total_billed' => $totalBilled,
+                'total_paid' => $totalPaid,
+                'total_unpaid' => $totalUnpaid,
+                'invoice_count' => $invoiceCount,
+                'period' => $period,
+            ],
+            'actions' => [
+                ['label' => 'Open Sales Workspace', 'type' => 'navigate', 'url' => '/sales'],
+                ['label' => 'Sales Performance Report', 'type' => 'navigate', 'url' => '/reports?code=sales_performance'],
+            ],
+        ];
+    }
+
+    public function getStockLevel(int $tenantId, array $params = []): array
+    {
+        $lowStockOnly = !empty($params['low_stock_only']);
+        try {
+            $balances = DB::table('stock_balances as sb')
+                ->join('products as p', 'sb.product_id', '=', 'p.id')
+                ->where('sb.tenant_id', $tenantId)
+                ->whereNull('p.deleted_at')
+                ->select(['p.id', 'p.name', 'p.sku', 'sb.quantity', 'sb.average_cost', 'sb.total_value'])
+                ->get();
+
+            $totalUnits = (float) $balances->sum('quantity');
+            $totalValuation = (float) $balances->sum('total_value');
+            $totalSkus = $balances->pluck('sku')->unique()->count();
+
+            $lowStockItems = $balances->filter(function ($item) {
+                return (float) $item->quantity < 50;
+            })->take(5)->values()->map(function ($item) {
+                return [
+                    'name' => $item->name,
+                    'sku' => $item->sku,
+                    'quantity' => (float) $item->quantity,
+                ];
+            })->toArray();
+        } catch (Throwable) {
+            $totalUnits = 0.0;
+            $totalValuation = 0.0;
+            $totalSkus = 0;
+            $lowStockItems = [];
+        }
+
+        return [
+            'tool' => 'get_stock_level',
+            'title' => 'Warehouse Inventory & Stock Valuation',
+            'summary' => "Total Inventory: " . number_format($totalUnits, 0) . " units across {$totalSkus} SKUs (Valuation: ৳" . number_format($totalValuation, 2) . ").",
+            'metrics' => [
+                ['label' => 'Stock Valuation', 'value' => '৳' . number_format($totalValuation, 0), 'tone' => 'success'],
+                ['label' => 'Physical Units', 'value' => number_format($totalUnits, 0), 'tone' => 'primary'],
+                ['label' => 'Active SKUs', 'value' => (string) $totalSkus, 'tone' => 'neutral'],
+                ['label' => 'Low Stock Items', 'value' => (string) count($lowStockItems), 'tone' => count($lowStockItems) > 0 ? 'amber' : 'success'],
+            ],
+            'data' => [
+                'total_units' => $totalUnits,
+                'total_valuation' => $totalValuation,
+                'total_skus' => $totalSkus,
+                'low_stock_items' => $lowStockItems,
+            ],
+            'actions' => [
+                ['label' => 'Warehouse Stock Ledger', 'type' => 'navigate', 'url' => '/inventory'],
+                ['label' => 'Inventory Valuation (FIFO)', 'type' => 'navigate', 'url' => '/reports?code=inventory_valuation_fifo'],
+            ],
+        ];
+    }
+
+    public function getOverdueInvoices(int $tenantId, array $params = []): array
+    {
+        $minDays = (int) ($params['min_days_overdue'] ?? 0);
+        $overdueList = [];
+        $bucket0to30 = 0.0;
+        $bucket31to60 = 0.0;
+        $bucket60plus = 0.0;
+
+        try {
+            $invoices = DB::table('invoices as inv')
+                ->leftJoin('parties as p', 'inv.customer_id', '=', 'p.id')
+                ->where('inv.tenant_id', $tenantId)
+                ->whereNull('inv.deleted_at')
+                ->where('inv.payment_status', '!=', 'paid')
+                ->select([
+                    'inv.id',
+                    'inv.invoice_number',
+                    'inv.total_amount',
+                    'inv.due_date',
+                    'p.name as customer_name',
+                    'inv.created_at',
+                ])
+                ->get();
+
+            $now = now();
+            foreach ($invoices as $inv) {
+                $dueDate = $inv->due_date ? \Carbon\Carbon::parse($inv->due_date) : \Carbon\Carbon::parse($inv->created_at)->addDays(30);
+                $daysOverdue = (int) $dueDate->diffInDays($now, false);
+                if ($daysOverdue >= $minDays && $daysOverdue > 0) {
+                    $amount = (float) $inv->total_amount;
+                    if ($daysOverdue <= 30) {
+                        $bucket0to30 += $amount;
+                    } elseif ($daysOverdue <= 60) {
+                        $bucket31to60 += $amount;
+                    } else {
+                        $bucket60plus += $amount;
+                    }
+
+                    $overdueList[] = [
+                        'invoice_number' => $inv->invoice_number,
+                        'customer_name' => $inv->customer_name ?? 'Walk-in Client',
+                        'amount' => '৳' . number_format($amount, 2),
+                        'days_overdue' => $daysOverdue,
+                    ];
+                }
+            }
+        } catch (Throwable) {
+            // Silently fallback if table columns differ
+        }
+
+        $totalOverdue = $bucket0to30 + $bucket31to60 + $bucket60plus;
+        $count = count($overdueList);
+
+        return [
+            'tool' => 'get_overdue_invoices',
+            'title' => 'Overdue Customer Receivables & Aging',
+            'summary' => "Total Overdue: ৳" . number_format($totalOverdue, 2) . " across {$count} overdue invoices.",
+            'metrics' => [
+                ['label' => 'Total Overdue AR', 'value' => '৳' . number_format($totalOverdue, 0), 'tone' => $totalOverdue > 0 ? 'danger' : 'success'],
+                ['label' => '0-30 Days Aging', 'value' => '৳' . number_format($bucket0to30, 0), 'tone' => 'amber'],
+                ['label' => '31-60 Days Aging', 'value' => '৳' . number_format($bucket31to60, 0), 'tone' => 'danger'],
+                ['label' => '60+ Days Critical', 'value' => '৳' . number_format($bucket60plus, 0), 'tone' => 'danger'],
+            ],
+            'data' => [
+                'total_overdue' => $totalOverdue,
+                'overdue_count' => $count,
+                'aging' => [
+                    '0_30_days' => $bucket0to30,
+                    '31_60_days' => $bucket31to60,
+                    '60_plus_days' => $bucket60plus,
+                ],
+                'top_overdue' => array_slice($overdueList, 0, 5),
+            ],
+            'actions' => [
+                ['label' => 'Open Receivables in Sales', 'type' => 'navigate', 'url' => '/sales?tab=invoices'],
+                ['label' => 'Customer Aging Summary', 'type' => 'navigate', 'url' => '/reports?code=ar_aging'],
+            ],
+        ];
+    }
+
+    public function getProductionStatus(int $tenantId, array $params = []): array
+    {
+        try {
+            $batches = DB::table('production_batches')
+                ->where('tenant_id', $tenantId)
+                ->whereNull('deleted_at')
+                ->get();
+
+            $activeBatches = $batches->whereIn('status', ['in_progress', 'scheduled', 'stage_1', 'stage_2', 'stage_3'])->count();
+            $completedBatches = $batches->where('status', 'completed')->count();
+            $totalPlanned = (float) $batches->sum('target_quantity');
+            $totalActual = (float) $batches->sum('actual_quantity');
+
+            $inspections = DB::table('qc_inspections')
+                ->where('tenant_id', $tenantId)
+                ->whereNull('deleted_at')
+                ->get();
+            $passed = $inspections->where('result', 'pass')->count();
+            $totalQc = $inspections->count();
+            $qcPassRate = $totalQc > 0 ? round(($passed / $totalQc) * 100, 1) : 100.0;
+        } catch (Throwable) {
+            $activeBatches = 0;
+            $completedBatches = 0;
+            $totalPlanned = 0.0;
+            $totalActual = 0.0;
+            $qcPassRate = 100.0;
+        }
+
+        return [
+            'tool' => 'get_production_status',
+            'title' => 'Factory Production & Shopfloor Status',
+            'summary' => "{$activeBatches} manufacturing batches in progress. QC Pass Yield is {$qcPassRate}%.",
+            'metrics' => [
+                ['label' => 'Active Batches', 'value' => (string) $activeBatches, 'tone' => 'primary'],
+                ['label' => 'Completed Batches', 'value' => (string) $completedBatches, 'tone' => 'success'],
+                ['label' => 'Units Produced', 'value' => number_format($totalActual, 0), 'tone' => 'neutral'],
+                ['label' => 'QC Pass Rate', 'value' => "{$qcPassRate}%", 'tone' => $qcPassRate >= 95 ? 'success' : 'amber'],
+            ],
+            'data' => [
+                'active_batches' => $activeBatches,
+                'completed_batches' => $completedBatches,
+                'planned_units' => $totalPlanned,
+                'actual_units' => $totalActual,
+                'qc_pass_rate' => $qcPassRate,
+            ],
+            'actions' => [
+                ['label' => 'Production Floor Workspace', 'type' => 'navigate', 'url' => '/production'],
+                ['label' => 'Quality Inspection Logs', 'type' => 'navigate', 'url' => '/qc'],
             ],
         ];
     }

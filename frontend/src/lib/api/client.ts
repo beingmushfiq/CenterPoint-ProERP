@@ -655,13 +655,76 @@ async function request<T>(
   }
 }
 
-/* ───────────────────────────────────────────────────────────────────────────
-   Public surface
+export interface SseEvent<T = string> {
+  event: string;
+  data: T;
+}
 
-   Verb helpers rather than one `request()` export, so the read/write
-   distinction is visible at the call site — that is where the retry policy,
-   the idempotency requirement and the transaction boundary all diverge.
-   ─────────────────────────────────────────────────────────────────────────── */
+export async function* streamSse(
+  path: string,
+  options: {
+    params?: RequestOptions['params'];
+    signal?: AbortSignal | undefined;
+  } = {}
+): AsyncGenerator<SseEvent<string>, void, unknown> {
+  const token = getAccessToken(path);
+  const headers: Record<string, string> = {
+    Accept: 'text/event-stream',
+  };
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+    headers['X-Authorization'] = `Bearer ${token}`;
+  }
+
+  const fetchInit: RequestInit = {
+    method: 'GET',
+    headers,
+    credentials: 'include',
+  };
+  if (options.signal) {
+    fetchInit.signal = options.signal;
+  }
+
+  const response = await fetch(buildUrl(path, options.params), fetchInit);
+
+  if (!response.ok || !response.body) {
+    throw new Error(`SSE stream failed with status ${response.status}`);
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+
+      const parts = buffer.split('\n\n');
+      buffer = parts.pop() ?? '';
+
+      for (const part of parts) {
+        if (!part.trim()) continue;
+        const lines = part.split('\n');
+        let event = 'message';
+        let data = '';
+
+        for (const line of lines) {
+          if (line.startsWith('event:')) {
+            event = line.slice(6).trim();
+          } else if (line.startsWith('data:')) {
+            data += (data ? '\n' : '') + line.slice(5).trim();
+          }
+        }
+
+        yield { event, data };
+      }
+    }
+  } finally {
+    reader.releaseLock();
+  }
+}
 
 export const api = {
   get: <T>(path: string, options?: Omit<RequestOptions, 'body' | 'idempotencyKey'>) =>
@@ -678,4 +741,6 @@ export const api = {
 
   delete: <T>(path: string, options?: Omit<RequestOptions, 'body'>) =>
     request<T>('DELETE', path, options),
+
+  streamSse,
 } as const;

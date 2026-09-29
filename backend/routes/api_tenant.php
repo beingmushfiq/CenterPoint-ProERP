@@ -1441,6 +1441,8 @@ Route::middleware(['auth.jwt', 'tenant.resolve', 'tenant.active'])
         // ── Operations AI Brain (100% Self-Contained Agentic AI) ──────────
         Route::prefix('brain')->name('brain.')->group(static function (): void {
             Route::post('ask', [App\Modules\Platform\Controllers\AIBrainController::class, 'ask'])->name('ask');
+            Route::match(['get', 'post'], 'stream', [App\Modules\Platform\Controllers\AIBrainController::class, 'stream'])->name('stream');
+            Route::post('tool', [App\Modules\Platform\Controllers\AIBrainController::class, 'callTool'])->name('tool');
             Route::get('capabilities', [App\Modules\Platform\Controllers\AIBrainController::class, 'capabilities'])->name('capabilities');
             Route::post('execute', [App\Modules\Platform\Controllers\AIBrainController::class, 'execute'])->name('execute');
         });
