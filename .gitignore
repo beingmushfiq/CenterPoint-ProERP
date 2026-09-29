@@ -27,7 +27,8 @@ dist-ssr
 test-results/
 playwright-report/
 
-# cPanel public_html dynamic storage
+# cPanel public_html dynamic storage & pointer
 public_html/storage
+public_html/.backend_path
 *.zip
 

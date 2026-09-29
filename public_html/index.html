@@ -105,8 +105,8 @@
         }
 
         /* ── Theme ─────────────────────────────────────────────────────────── */
-        var theme = read('ui.theme') || read('theme') || 'light';
-        var dark = theme === 'dark';
+        var theme = read('ui.theme') || read('theme') || 'system';
+        var dark = theme === 'dark' || (theme === 'system' && media('(prefers-color-scheme: dark)'));
         if (dark) {
           el.classList.add('dark');
           el.setAttribute('data-theme', 'dark');
@@ -122,6 +122,25 @@
         chrome.setAttribute('name', 'theme-color');
         chrome.setAttribute('content', dark ? '#020617' : '#f8fafc');
         document.head.appendChild(chrome);
+
+        /* Real-time system theme change listener when in system mode */
+        try {
+          var mql = window.matchMedia('(prefers-color-scheme: dark)');
+          if (mql && mql.addEventListener) {
+            mql.addEventListener('change', function (e) {
+              var currentMode = read('ui.theme') || read('theme') || 'system';
+              if (currentMode === 'system') {
+                if (e.matches) {
+                  el.classList.add('dark');
+                  el.setAttribute('data-theme', 'dark');
+                } else {
+                  el.classList.remove('dark');
+                  el.setAttribute('data-theme', 'light');
+                }
+              }
+            });
+          }
+        } catch (err) {}
 
         /* ── Density ───────────────────────────────────────────────────────── */
         var density = read('ui.density');
@@ -319,35 +338,55 @@
         }
       }
     </style>
-    <script type="module" crossorigin src="/assets/index-Dr-571fH.js"></script>
+    <script type="module" crossorigin src="/assets/index-CYxklzFO.js"></script>
     <link rel="modulepreload" crossorigin href="/assets/rolldown-runtime-hePW80VL.js">
     <link rel="modulepreload" crossorigin href="/assets/createLucideIcon-CyrWxPaY.js">
     <link rel="modulepreload" crossorigin href="/assets/query-CGhxzULL.js">
-    <link rel="modulepreload" crossorigin href="/assets/gestures-CHCdZAhA.js">
+    <link rel="modulepreload" crossorigin href="/assets/create-proxy-BfkfWo2K.js">
+    <link rel="modulepreload" crossorigin href="/assets/gestures-DCYf0SsV.js">
+    <link rel="modulepreload" crossorigin href="/assets/preload-helper-Czpn1I53.js">
     <link rel="modulepreload" crossorigin href="/assets/react-CkRtIzPG.js">
     <link rel="modulepreload" crossorigin href="/assets/pwaInstallStore-DxEAAPAZ.js">
-    <link rel="modulepreload" crossorigin href="/assets/client-BgkI0VSN.js">
-    <link rel="modulepreload" crossorigin href="/assets/authStore-Dc3xwfLf.js">
+    <link rel="modulepreload" crossorigin href="/assets/client-Dgh4T7vh.js">
+    <link rel="modulepreload" crossorigin href="/assets/authStore-DspIcJxQ.js">
+    <link rel="modulepreload" crossorigin href="/assets/boxes-Cj9Gvsdb.js">
+    <link rel="modulepreload" crossorigin href="/assets/building-2-BZjklCk-.js">
     <link rel="modulepreload" crossorigin href="/assets/calculator-vZugRuKC.js">
     <link rel="modulepreload" crossorigin href="/assets/check-C7-zmla6.js">
     <link rel="modulepreload" crossorigin href="/assets/chevron-down-ZCrLjO2X.js">
     <link rel="modulepreload" crossorigin href="/assets/circle-check-big-BYJzxLiA.js">
     <link rel="modulepreload" crossorigin href="/assets/circle-check-C30qV2aE.js">
     <link rel="modulepreload" crossorigin href="/assets/circle-x-E733u09J.js">
+    <link rel="modulepreload" crossorigin href="/assets/clipboard-list-chrxYopU.js">
+    <link rel="modulepreload" crossorigin href="/assets/coins-Ck3RuLRF.js">
+    <link rel="modulepreload" crossorigin href="/assets/factory-DVXMb8xk.js">
+    <link rel="modulepreload" crossorigin href="/assets/file-spreadsheet-BvMdK8ZZ.js">
     <link rel="modulepreload" crossorigin href="/assets/info-EaMhkXp0.js">
     <link rel="modulepreload" crossorigin href="/assets/utils-trw2hvGU.js">
     <link rel="modulepreload" crossorigin href="/assets/useTranslation-DjgbeaKG.js">
-    <link rel="modulepreload" crossorigin href="/assets/LanguageSwitcher-BeuKb2Ls.js">
+    <link rel="modulepreload" crossorigin href="/assets/LanguageSwitcher-DlaGwOID.js">
+    <link rel="modulepreload" crossorigin href="/assets/layout-dashboard-DPvE7Vx2.js">
     <link rel="modulepreload" crossorigin href="/assets/Button-D9Dmy_xB.js">
     <link rel="modulepreload" crossorigin href="/assets/microscope-ZMpCsThC.js">
-    <link rel="modulepreload" crossorigin href="/assets/themeTransition-DT6xHBg0.js">
+    <link rel="modulepreload" crossorigin href="/assets/themeTransition-D_a4W67b.js">
     <link rel="modulepreload" crossorigin href="/assets/receipt-DEcmpnKN.js">
     <link rel="modulepreload" crossorigin href="/assets/rotate-ccw-DqwlPqNV.js">
+    <link rel="modulepreload" crossorigin href="/assets/settings-D6rXK5yr.js">
+    <link rel="modulepreload" crossorigin href="/assets/shield-check-DaHBw7eW.js">
+    <link rel="modulepreload" crossorigin href="/assets/shield-D_pdNbUJ.js">
+    <link rel="modulepreload" crossorigin href="/assets/shopping-bag-CgTznz4n.js">
+    <link rel="modulepreload" crossorigin href="/assets/shopping-cart-Dv4f_vd1.js">
     <link rel="modulepreload" crossorigin href="/assets/store-GjEQPEeF.js">
+    <link rel="modulepreload" crossorigin href="/assets/ticket-B50E1E1s.js">
+    <link rel="modulepreload" crossorigin href="/assets/trash-2-TtJDKbmS.js">
     <link rel="modulepreload" crossorigin href="/assets/triangle-alert-C9o7IGKZ.js">
     <link rel="modulepreload" crossorigin href="/assets/truck-BbLiFYUL.js">
+    <link rel="modulepreload" crossorigin href="/assets/user-check-BOglyrBN.js">
+    <link rel="modulepreload" crossorigin href="/assets/users-ITSTr6Pw.js">
+    <link rel="modulepreload" crossorigin href="/assets/warehouse-CpOBy4OK.js">
+    <link rel="modulepreload" crossorigin href="/assets/zap-D496Du1X.js">
     <link rel="modulepreload" crossorigin href="/assets/dist-C6eneP1Q.js">
-    <link rel="stylesheet" crossorigin href="/assets/index-G_LU6Jz9.css">
+    <link rel="stylesheet" crossorigin href="/assets/index-CTshfB3D.css">
   </head>
 
   <body>

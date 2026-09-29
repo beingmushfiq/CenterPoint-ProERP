@@ -1,0 +1,1 @@
+import{t as e}from"./create-proxy-BfkfWo2K.js";var t=e();export{t};

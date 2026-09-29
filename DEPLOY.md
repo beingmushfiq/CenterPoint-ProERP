@@ -18,12 +18,29 @@ This guide covers deployment procedures for staging and production environments,
 
 ## 🚀 Deployment Workflows
 
-### Method 1: Automated cPanel Git Deployment (`.cpanel.yml`)
+### Method 1: Master Deployment Runner (`bash deploy.sh` in cPanel Terminal)
+Run `deploy.sh` directly in the cPanel Terminal. It automatically resolves environment paths, PHP CLI version (MultiPHP 8.2–8.5), scaffolds permissions, links public storage, registers `.backend_path`, runs composer, migrations, seeders, and compiles production caches:
+
+```bash
+# Navigate to repository directory in cPanel Terminal:
+cd ~/slicemart-fms   # or ~/projects/proerp or ~/repositories/proerp
+
+# Run master deployment:
+bash deploy.sh
+
+# Advanced options:
+# bash deploy.sh --in-place               # Deploy within current repository
+# bash deploy.sh --seed                    # Run full database seeders
+# bash deploy.sh --skip-migrate            # Skip migrations
+# bash deploy.sh --target-frontend=PATH    # Custom document root
+```
+
+### Method 2: Automated cPanel Git Deployment (`.cpanel.yml`)
 When code is pushed to the repository, cPanel triggers `scripts/deploy-cpanel.sh` automatically.
 
 ```bash
 # To trigger manually on the server via SSH / cPanel Terminal:
-bash /home/devcente/projects/proerp/scripts/deploy-cpanel.sh
+bash scripts/deploy-cpanel.sh
 ```
 
 #### What `deploy-cpanel.sh` executes:

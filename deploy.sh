@@ -83,17 +83,33 @@ done
 # ------------------------------------------------------------------------------
 # 1. Environment & Target Directory Resolution
 # ------------------------------------------------------------------------------
-CPANEL_USER="${CPANEL_USER:-$(whoami 2>/dev/null || echo 'devcente')}"
+DETECTED_USER=""
+if command -v whoami &>/dev/null; then
+    DETECTED_USER="$(whoami 2>/dev/null || true)"
+fi
+if [ -z "${DETECTED_USER}" ] && [ -n "${USER:-}" ]; then
+    DETECTED_USER="${USER}"
+fi
+if [ -z "${DETECTED_USER}" ] && [ -n "${LOGNAME:-}" ]; then
+    DETECTED_USER="${LOGNAME}"
+fi
+if [ -z "${DETECTED_USER}" ] && command -v id &>/dev/null; then
+    DETECTED_USER="$(id -un 2>/dev/null || true)"
+fi
+if [ -z "${DETECTED_USER}" ]; then
+    DETECTED_USER="$(pwd | sed -n 's|^/home/\([^/]*\).*|\1|p')"
+fi
+CPANEL_USER="${CPANEL_USER:-${DETECTED_USER:-devcente}}"
 USER_HOME="${HOME:-/home/${CPANEL_USER}}"
 
 if [ -n "${CUSTOM_BACKEND}" ]; then
     TARGET_BACKEND="${CUSTOM_BACKEND}"
 elif [ "${IN_PLACE}" = true ]; then
     TARGET_BACKEND="${REPO_DIR}/backend"
-elif [ -d "/home/devcente/projects/proerp/backend" ]; then
-    TARGET_BACKEND="/home/devcente/projects/proerp/backend"
 elif [ -d "${USER_HOME}/projects/proerp/backend" ]; then
     TARGET_BACKEND="${USER_HOME}/projects/proerp/backend"
+elif [ -d "/home/devcente/projects/proerp/backend" ]; then
+    TARGET_BACKEND="/home/devcente/projects/proerp/backend"
 else
     TARGET_BACKEND="${REPO_DIR}/backend"
 fi
@@ -102,10 +118,10 @@ if [ -n "${CUSTOM_FRONTEND}" ]; then
     TARGET_FRONTEND="${CUSTOM_FRONTEND}"
 elif [ "${IN_PLACE}" = true ]; then
     TARGET_FRONTEND="${REPO_DIR}/public_html"
-elif [ -d "/home/devcente/projects/proerp/public" ]; then
-    TARGET_FRONTEND="/home/devcente/projects/proerp/public"
 elif [ -d "${USER_HOME}/projects/proerp/public" ]; then
     TARGET_FRONTEND="${USER_HOME}/projects/proerp/public"
+elif [ -d "/home/devcente/projects/proerp/public" ]; then
+    TARGET_FRONTEND="/home/devcente/projects/proerp/public"
 elif [ -d "${USER_HOME}/public_html" ] && [ "${USER_HOME}/public_html" != "${REPO_DIR}/public_html" ]; then
     TARGET_FRONTEND="${USER_HOME}/public_html"
 else
@@ -121,26 +137,50 @@ echo " Source Repo:        ${REPO_DIR}"
 echo " Backend Target:     ${TARGET_BACKEND}"
 echo " Frontend Target:    ${TARGET_FRONTEND}"
 echo " In-Place Mode:      ${IN_PLACE}"
+echo " cPanel User:        ${CPANEL_USER}"
+echo " Home Directory:     ${USER_HOME}"
 echo "=================================================================="
 
 # ------------------------------------------------------------------------------
-# 2. PHP CLI Discovery (MultiPHP 8.4/8.5, System PHP)
+# 2. PHP CLI Discovery (MultiPHP 8.5/8.4/8.3/8.2, System PHP)
 # ------------------------------------------------------------------------------
 PHP_BIN=""
-if [ -n "${PHP_BIN:-}" ] && [ -x "${PHP_BIN}" ]; then
-    :
-elif [ -x "/opt/cpanel/ea-php85/root/usr/bin/php" ]; then
-    PHP_BIN="/opt/cpanel/ea-php85/root/usr/bin/php"
-elif [ -x "/opt/cpanel/ea-php84/root/usr/bin/php" ]; then
-    PHP_BIN="/opt/cpanel/ea-php84/root/usr/bin/php"
-elif command -v php8.5 &> /dev/null; then
-    PHP_BIN="$(command -v php8.5)"
-elif command -v php8.4 &> /dev/null; then
-    PHP_BIN="$(command -v php8.4)"
-elif command -v php &> /dev/null; then
-    PHP_BIN="$(command -v php)"
-else
-    PHP_BIN="php"
+PHP_CANDIDATES=(
+    "${PHP_BIN_CUSTOM:-}"
+    "/opt/cpanel/ea-php85/root/usr/bin/php"
+    "/opt/cpanel/ea-php84/root/usr/bin/php"
+    "/opt/cpanel/ea-php83/root/usr/bin/php"
+    "/opt/cpanel/ea-php82/root/usr/bin/php"
+    "/usr/local/bin/ea-php85"
+    "/usr/local/bin/ea-php84"
+    "/usr/local/bin/ea-php83"
+    "/usr/local/bin/ea-php82"
+    "$(command -v php8.5 2>/dev/null || true)"
+    "$(command -v php8.4 2>/dev/null || true)"
+    "$(command -v php8.3 2>/dev/null || true)"
+    "$(command -v php8.2 2>/dev/null || true)"
+    "$(command -v php 2>/dev/null || true)"
+    "/usr/local/bin/php"
+    "/usr/bin/php"
+)
+
+for cand in "${PHP_CANDIDATES[@]}"; do
+    if [ -n "${cand}" ] && [ -x "${cand}" ]; then
+        IS_VALID=$("${cand}" -r "echo version_compare(PHP_VERSION, '8.2.0', '>=') ? '1' : '0';" 2>/dev/null || echo "0")
+        if [ "${IS_VALID}" = "1" ]; then
+            PHP_BIN="${cand}"
+            break
+        fi
+    fi
+done
+
+if [ -z "${PHP_BIN}" ]; then
+    if command -v php &>/dev/null; then
+        PHP_BIN="$(command -v php)"
+        echo "Warning: Using default system php ($(${PHP_BIN} -v 2>/dev/null | head -n 1)). PHP 8.2+ required."
+    else
+        PHP_BIN="php"
+    fi
 fi
 echo "✓ PHP CLI: $(${PHP_BIN} -v 2>/dev/null | head -n 1 || echo 'php')"
 
@@ -202,6 +242,15 @@ fi
 if [ ! -f "${TARGET_FRONTEND}/.htaccess" ] && [ -f "${REPO_DIR}/public_html/.htaccess" ]; then
     cp -f "${REPO_DIR}/public_html/.htaccess" "${TARGET_FRONTEND}/.htaccess"
 fi
+if [ ! -f "${TARGET_FRONTEND}/index.html" ] && [ -f "${REPO_DIR}/public_html/index.html" ]; then
+    cp -f "${REPO_DIR}/public_html/index.html" "${TARGET_FRONTEND}/index.html"
+fi
+
+# Write dynamic backend pointer file for public_html/index.php
+echo "${TARGET_BACKEND}" > "${TARGET_FRONTEND}/.backend_path"
+chmod 644 "${TARGET_FRONTEND}/.backend_path" 2>/dev/null || true
+chmod 644 "${TARGET_FRONTEND}/index.php" "${TARGET_FRONTEND}/.htaccess" "${TARGET_FRONTEND}/index.html" 2>/dev/null || true
+echo "✓ Backend location registered in ${TARGET_FRONTEND}/.backend_path -> ${TARGET_BACKEND}"
 
 # ------------------------------------------------------------------------------
 # 5. Backend Files Synchronization
@@ -233,6 +282,7 @@ if [ ! -f "${TARGET_BACKEND}/.env" ]; then
     if [ -f "${REPO_DIR}/.env.production.example" ]; then
         cp "${REPO_DIR}/.env.production.example" "${TARGET_BACKEND}/.env"
         echo "Notice: Created ${TARGET_BACKEND}/.env from .env.production.example."
+        echo "ATTENTION: Please update ${TARGET_BACKEND}/.env with your cPanel MySQL database credentials."
     elif [ -f "${TARGET_BACKEND}/.env.example" ]; then
         cp "${TARGET_BACKEND}/.env.example" "${TARGET_BACKEND}/.env"
         echo "Notice: Created ${TARGET_BACKEND}/.env from .env.example."
@@ -266,16 +316,25 @@ fi
 echo "--- [5/5] Executing Backend Actions (Composer, Migrations, Caches) ---"
 cd "${TARGET_BACKEND}"
 
+# Configure Composer memory
+export COMPOSER_MEMORY_LIMIT=-1
+
 # Resolve Composer
 COMPOSER_BIN=""
 if command -v composer &> /dev/null; then
     COMPOSER_BIN="$(command -v composer)"
 elif [ -x "/opt/cpanel/composer/bin/composer" ]; then
     COMPOSER_BIN="${PHP_BIN} /opt/cpanel/composer/bin/composer"
+elif [ -x "/usr/local/bin/composer" ]; then
+    COMPOSER_BIN="${PHP_BIN} /usr/local/bin/composer"
+elif [ -x "/usr/bin/composer" ]; then
+    COMPOSER_BIN="${PHP_BIN} /usr/bin/composer"
 elif [ -f "${TARGET_BACKEND}/composer.phar" ]; then
     COMPOSER_BIN="${PHP_BIN} ${TARGET_BACKEND}/composer.phar"
 elif [ -f "${USER_HOME}/composer.phar" ]; then
     COMPOSER_BIN="${PHP_BIN} ${USER_HOME}/composer.phar"
+elif [ -f "${REPO_DIR}/composer.phar" ]; then
+    COMPOSER_BIN="${PHP_BIN} ${REPO_DIR}/composer.phar"
 fi
 
 # Auto-download composer if missing and vendor is absent
@@ -300,7 +359,7 @@ fi
 
 # Key generation if APP_KEY is empty
 if [ -f "${TARGET_BACKEND}/.env" ]; then
-    if ! grep -q "^APP_KEY=.\+" "${TARGET_BACKEND}/.env"; then
+    if ! grep -q "^APP_KEY=base64:.\+" "${TARGET_BACKEND}/.env" && ! grep -q "^APP_KEY=.\+" "${TARGET_BACKEND}/.env"; then
         echo "Generating Application Key (APP_KEY)..."
         ${PHP_BIN} artisan key:generate --force 2>/dev/null || true
     fi
@@ -319,6 +378,8 @@ if [ "${SKIP_MIGRATE}" = false ] && [ -f "${TARGET_BACKEND}/vendor/autoload.php"
         ${PHP_BIN} artisan db:seed --force --no-interaction || true
     else
         ${PHP_BIN} artisan db:seed --class=SystemPermissionsSeeder --force --no-interaction 2>/dev/null || true
+        ${PHP_BIN} artisan db:seed --class=PlansAndTenantsSeeder --force --no-interaction 2>/dev/null || true
+        ${PHP_BIN} artisan db:seed --class=RolesAndPermissionsSeeder --force --no-interaction 2>/dev/null || true
         ${PHP_BIN} artisan db:seed --class=ReportDefinitionsTableSeeder --force --no-interaction 2>/dev/null || true
     fi
 fi

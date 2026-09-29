@@ -28,7 +28,23 @@ set -euo pipefail
 #           → /home/devcente/backend (legacy single-project fallback)
 #           → repo-relative (local dev fallback)
 # ------------------------------------------------------------------------------
-CPANEL_USER="${CPANEL_USER:-$(whoami 2>/dev/null || echo 'devcente')}"
+DETECTED_USER=""
+if command -v whoami &>/dev/null; then
+    DETECTED_USER="$(whoami 2>/dev/null || true)"
+fi
+if [ -z "${DETECTED_USER}" ] && [ -n "${USER:-}" ]; then
+    DETECTED_USER="${USER}"
+fi
+if [ -z "${DETECTED_USER}" ] && [ -n "${LOGNAME:-}" ]; then
+    DETECTED_USER="${LOGNAME}"
+fi
+if [ -z "${DETECTED_USER}" ] && command -v id &>/dev/null; then
+    DETECTED_USER="$(id -un 2>/dev/null || true)"
+fi
+if [ -z "${DETECTED_USER}" ]; then
+    DETECTED_USER="$(pwd | sed -n 's|^/home/\([^/]*\).*|\1|p')"
+fi
+CPANEL_USER="${CPANEL_USER:-${DETECTED_USER:-devcente}}"
 HOME_DIR="${HOME:-/home/${CPANEL_USER}}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
@@ -297,6 +313,12 @@ if [ -d "${REPO_DIR}" ] && [ "${REPO_DIR}" != "${HOME_DIR}" ]; then
         echo "Deployed: ${PUBLIC_HTML_DIR}/index.html"
     fi
 fi
+
+# Write dynamic backend pointer file for public_html/index.php
+echo "${BACKEND_DIR}" > "${PUBLIC_HTML_DIR}/.backend_path"
+chmod 644 "${PUBLIC_HTML_DIR}/.backend_path" 2>/dev/null || true
+chmod 644 "${PUBLIC_HTML_DIR}/index.php" "${PUBLIC_HTML_DIR}/.htaccess" "${PUBLIC_HTML_DIR}/index.html" 2>/dev/null || true
+echo "Backend registered: ${PUBLIC_HTML_DIR}/.backend_path -> ${BACKEND_DIR}"
 
 # Ensure storage symlink is active
 if [ ! -L "${PUBLIC_HTML_DIR}/storage" ] && [ ! -e "${PUBLIC_HTML_DIR}/storage" ]; then
