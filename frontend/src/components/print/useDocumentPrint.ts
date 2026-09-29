@@ -64,6 +64,12 @@ export function useDocumentPrint() {
           document.body.classList.remove('printing-active');
           document.title = originalTitle;
           setIsPrinting(false);
+          if (printReactRoot) {
+            printReactRoot.render(null);
+          }
+          if (container) {
+            container.className = '';
+          }
           if (options.onAfterPrint) {
             options.onAfterPrint();
           }

@@ -57,8 +57,7 @@
 
 @media print {
   /* Hide the entire web application root and any injected body portals/toasts/extensions when printing an isolated document */
-  body.printing-active > *:not(#print-root),
-  body:has(#print-root:not(:empty)) > *:not(#print-root) {
+  body.printing-active > *:not(#print-root) {
     display: none !important;
   }
 

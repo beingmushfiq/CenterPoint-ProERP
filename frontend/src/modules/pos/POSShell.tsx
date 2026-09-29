@@ -16,6 +16,7 @@ import {
   Keyboard,
   Minus,
   PauseCircle,
+  Phone,
   PlayCircle,
   Plus,
   Printer,
@@ -451,7 +452,7 @@ export function POSShell({ session, onExit }: POSShellProps) {
     return () => window.removeEventListener('keydown', onKey);
   }, []);
 
-  const addToCart = (product: Product) => {
+  const addToCart = useCallback((product: Product) => {
     updateCurrentSlot((prev) => {
       const existing = prev.cart.find((item) => String(item.product.id) === String(product.id));
       const price = parseFloat(product.default_sale_price || product.standard_cost || '100') || 100;
@@ -473,64 +474,231 @@ export function POSShell({ session, onExit }: POSShellProps) {
           ];
       return { ...prev, cart: updatedCart };
     });
-  };
+  }, [updateCurrentSlot]);
 
-  // HID Hardware Barcode Scanner Buffer (<50ms keystroke timing for USB/Bluetooth scanners)
+  // Audio synthesis for POS scanner feedback (Web Audio API)
+  const playPosBeep = useCallback((type: 'success' | 'error' = 'success') => {
+    try {
+      const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      if (type === 'success') {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(1760, ctx.currentTime);
+        gain.gain.setValueAtTime(0.12, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.12);
+        osc.start(ctx.currentTime);
+        osc.stop(ctx.currentTime + 0.12);
+      } else {
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(320, ctx.currentTime);
+        gain.gain.setValueAtTime(0.15, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.25);
+        osc.start(ctx.currentTime);
+        osc.stop(ctx.currentTime + 0.25);
+      }
+    } catch {
+      // Audio context policy fallback
+    }
+  }, []);
+
+  // Universal Barcode Scan & Search Auto-Add Engine
+  const handleBarcodeScanOrSearch = useCallback(async (barcodeRaw: string): Promise<boolean> => {
+    // 1. Sanitize incoming barcode/SKU: strip quotes, control chars, newlines, tabs, and outer whitespace
+    const code = barcodeRaw.replace(/["'\r\n\t\x00-\x1F\x7F-\x9F]/g, '').trim();
+    if (!code) return false;
+    const lower = code.toLowerCase();
+
+    const clearInput = () => {
+      setSearch('');
+      if (barcodeInputRef.current) {
+        barcodeInputRef.current.value = '';
+      }
+    };
+
+    // 2. Check in-memory products (instant zero-latency exact match)
+    const inMemoryMatch = products.find((p) => {
+      const b = p.barcode ? p.barcode.replace(/["'\r\n\t\x00-\x1F\x7F-\x9F]/g, '').trim().toLowerCase() : '';
+      const s = p.sku ? p.sku.replace(/["'\r\n\t\x00-\x1F\x7F-\x9F]/g, '').trim().toLowerCase() : '';
+      const n = p.name ? p.name.trim().toLowerCase() : '';
+      return (b && b === lower) || (s && s === lower) || (n && n === lower);
+    });
+
+    if (inMemoryMatch) {
+      addToCart(inMemoryMatch);
+      playPosBeep('success');
+      notify.success(`Added to Cart: ${inMemoryMatch.name}`, {
+        description: `SKU: ${inMemoryMatch.sku} • ${currencySymbol}${parseFloat(inMemoryMatch.default_sale_price || inMemoryMatch.standard_cost || '100').toFixed(2)}`,
+      });
+      clearInput();
+      barcodeInputRef.current?.focus();
+      return true;
+    }
+
+    // 3. Fallback: Search backend catalog for barcode / SKU
+    try {
+      const res = await api.get<{ data?: Product[] } | Product[]>(
+        `/products?search=${encodeURIComponent(code)}&per_page=5&include=category,images`
+      );
+      const raw = res.data;
+      const list: Product[] = Array.isArray(raw) ? raw : (raw?.data ?? []);
+      const exactOrFirst =
+        list.find((p) => {
+          const b = p.barcode ? p.barcode.replace(/["'\r\n\t\x00-\x1F\x7F-\x9F]/g, '').trim().toLowerCase() : '';
+          const s = p.sku ? p.sku.replace(/["'\r\n\t\x00-\x1F\x7F-\x9F]/g, '').trim().toLowerCase() : '';
+          return (b && b === lower) || (s && s === lower);
+        }) || list[0];
+
+      if (exactOrFirst) {
+        addToCart(exactOrFirst);
+        playPosBeep('success');
+        notify.success(`Added to Cart: ${exactOrFirst.name}`, {
+          description: `SKU: ${exactOrFirst.sku} • ${currencySymbol}${parseFloat(exactOrFirst.default_sale_price || exactOrFirst.standard_cost || '100').toFixed(2)}`,
+        });
+        clearInput();
+        barcodeInputRef.current?.focus();
+        return true;
+      }
+    } catch (err) {
+      console.warn('Backend barcode lookup error', err);
+    }
+
+    // 4. Fallback: If search matches exactly 1 product across catalog
+    const matches = products.filter((p) => {
+      const b = p.barcode ? p.barcode.toLowerCase() : '';
+      const s = p.sku ? p.sku.toLowerCase() : '';
+      const n = p.name ? p.name.toLowerCase() : '';
+      return n.includes(lower) || s.includes(lower) || b.includes(lower);
+    });
+    if (matches.length === 1 && matches[0]) {
+      const p = matches[0];
+      addToCart(p);
+      playPosBeep('success');
+      notify.success(`Added to Cart: ${p.name}`, {
+        description: `SKU: ${p.sku}`,
+      });
+      clearInput();
+      barcodeInputRef.current?.focus();
+      return true;
+    }
+
+    playPosBeep('error');
+    notify.error('Product Not Found', {
+      description: `No product matching barcode or SKU "${code}"`,
+    });
+    return false;
+  }, [products, addToCart, playPosBeep, currencySymbol]);
+
+  // HID Hardware Barcode Scanner Buffer & Burst Detector
   const scannerBufferRef = useRef<string>('');
   const lastKeyTimeRef = useRef<number>(0);
+  const scanBurstTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     const handleScannerKeyDown = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement | null;
       const isInput = target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA');
+      const isBarcodeInput = target === barcodeInputRef.current;
+      const isOtherInput = isInput && !isBarcodeInput;
+
+      // Don't hijack keystrokes if cashier is actively typing in Customer Name, Phone, Sale Note, or Discount
+      if (isOtherInput) return;
 
       const currentTime = Date.now();
       const timeDiff = currentTime - lastKeyTimeRef.current;
       lastKeyTimeRef.current = currentTime;
 
-      if (e.key === 'Enter') {
+      // Enter or Tab indicates end of a scanned barcode
+      if (e.key === 'Enter' || e.key === 'Tab') {
+        if (scanBurstTimerRef.current) {
+          clearTimeout(scanBurstTimerRef.current);
+          scanBurstTimerRef.current = null;
+        }
+
         const buffer = scannerBufferRef.current.trim();
+        const inputVal = isBarcodeInput ? (barcodeInputRef.current?.value || '').trim() : '';
+        const candidate = inputVal || buffer;
         scannerBufferRef.current = '';
 
-        if (buffer.length >= 3) {
-          const match = products.find(
-            (p) =>
-              (p.barcode && p.barcode.toLowerCase() === buffer.toLowerCase()) ||
-              p.sku.toLowerCase() === buffer.toLowerCase()
-          );
-
-          if (match) {
-            e.preventDefault();
-            e.stopPropagation();
-            addToCart(match);
-            notify.success(`Scanned: ${match.name}`, {
-              description: `SKU: ${match.sku} • Stock: ${match.stock_quantity ?? 'In Stock'}`,
-            });
-            if (isInput && target instanceof HTMLInputElement) {
-              target.value = '';
-              setSearch('');
-            }
+        if (candidate.length >= 2) {
+          e.preventDefault();
+          e.stopPropagation();
+          handleBarcodeScanOrSearch(candidate);
+          if (isBarcodeInput && barcodeInputRef.current) {
+            barcodeInputRef.current.value = '';
+            setSearch('');
           }
         }
         return;
       }
 
-      // Ignore non-printable keys
+      // Ignore modifier or non-character keys
       if (e.key.length !== 1 || e.ctrlKey || e.metaKey || e.altKey) {
         return;
       }
 
-      // If time interval > 65ms, it's manual human typing — reset buffer to current key
-      if (timeDiff > 65) {
+      // Scanners type at high speed (<70ms between characters)
+      if (timeDiff > 70) {
         scannerBufferRef.current = e.key;
       } else {
         scannerBufferRef.current += e.key;
       }
+
+      // Clear any pending burst timer
+      if (scanBurstTimerRef.current) {
+        clearTimeout(scanBurstTimerRef.current);
+      }
+
+      // Handle barcode scanners configured without an Enter suffix:
+      // When characters stop arriving after a rapid burst, trigger auto-add
+      if (scannerBufferRef.current.length >= 3) {
+        scanBurstTimerRef.current = setTimeout(() => {
+          const finalBuffer = scannerBufferRef.current.trim();
+          scannerBufferRef.current = '';
+          if (finalBuffer.length >= 3) {
+            handleBarcodeScanOrSearch(finalBuffer);
+            if (isBarcodeInput && barcodeInputRef.current) {
+              barcodeInputRef.current.value = '';
+              setSearch('');
+            }
+          }
+        }, 75);
+      }
     };
 
     window.addEventListener('keydown', handleScannerKeyDown, true);
-    return () => window.removeEventListener('keydown', handleScannerKeyDown, true);
-  }, [products, addToCart]);
+    return () => {
+      window.removeEventListener('keydown', handleScannerKeyDown, true);
+      if (scanBurstTimerRef.current) clearTimeout(scanBurstTimerRef.current);
+    };
+  }, [handleBarcodeScanOrSearch]);
+
+  // Global Paste Listener (Ctrl+V anywhere in POS immediately adds product)
+  useEffect(() => {
+    const handleGlobalPaste = (e: ClipboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      const isInput = target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA');
+      const isBarcodeInput = target === barcodeInputRef.current;
+      const isOtherInput = isInput && !isBarcodeInput;
+
+      // Don't hijack paste if cashier is specifically editing customer name/phone/notes/discount
+      if (isOtherInput) return;
+
+      const pasted = e.clipboardData?.getData('text');
+      if (pasted && pasted.trim()) {
+        e.preventDefault();
+        const clean = pasted.replace(/["'\r\n\t]/g, '').trim();
+        handleBarcodeScanOrSearch(clean);
+      }
+    };
+
+    window.addEventListener('paste', handleGlobalPaste);
+    return () => window.removeEventListener('paste', handleGlobalPaste);
+  }, [handleBarcodeScanOrSearch]);
 
   const updateQuantity = (productId: string | number, delta: number) => {
     updateCurrentSlot((prev) => {
@@ -1293,21 +1461,44 @@ export function POSShell({ session, onExit }: POSShellProps) {
                 type="text"
                 placeholder="Scan barcode or search products (SKU, Name)..."
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                onPaste={(e) => {
+                  const pasted = e.clipboardData.getData('text');
+                  if (pasted && pasted.trim()) {
+                    e.preventDefault();
+                    const clean = pasted.replace(/["'\r\n\t]/g, '').trim();
+                    handleBarcodeScanOrSearch(clean);
+                  }
+                }}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setSearch(val);
+
+                  const cleanVal = val.replace(/["'\r\n\t]/g, '').trim().toLowerCase();
+                  if (cleanVal.length >= 3) {
+                    // Immediate exact match check against loaded products by SKU or Barcode
+                    const exactMatch = products.find((p) => {
+                      const b = p.barcode ? p.barcode.trim().toLowerCase() : '';
+                      const s = p.sku ? p.sku.trim().toLowerCase() : '';
+                      return (b && b === cleanVal) || (s && s === cleanVal);
+                    });
+
+                    if (exactMatch) {
+                      handleBarcodeScanOrSearch(val.trim());
+                      return;
+                    }
+
+                    // Auto-detect standard 8-14 digit EAN/UPC scanned without Enter
+                    if (/^\d{8,14}$/.test(val.trim())) {
+                      handleBarcodeScanOrSearch(val.trim());
+                    }
+                  }
+                }}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {
                     e.preventDefault();
-                    const trimmed = search.trim().toLowerCase();
-                    if (!trimmed) return;
-                    const match =
-                      products.find(
-                        (p) =>
-                          (p.barcode && p.barcode.toLowerCase() === trimmed) ||
-                          p.sku.toLowerCase() === trimmed
-                      ) || (filteredProducts.length === 1 ? filteredProducts[0] : null);
-                    if (match) {
-                      addToCart(match);
-                      setSearch('');
+                    const query = (barcodeInputRef.current?.value || search).trim();
+                    if (query) {
+                      handleBarcodeScanOrSearch(query);
                     }
                   }
                 }}
@@ -1421,7 +1612,7 @@ export function POSShell({ session, onExit }: POSShellProps) {
           {/* Product Cards Grid */}
           <div className="flex-1 overflow-y-auto pr-0.5">
             {loadingProducts ? (
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-4">
                 {Array.from({ length: 10 }).map((_, i) => (
                   <div
                     key={i}
@@ -1448,7 +1639,7 @@ export function POSShell({ session, onExit }: POSShellProps) {
                 )}
               </div>
             ) : (
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-4">
                 {filteredProducts.map((p) => {
                   const imageUrl =
                     p.image_url ||
@@ -1568,11 +1759,11 @@ export function POSShell({ session, onExit }: POSShellProps) {
         </div>
 
         {/* ── RIGHT: Cart & Payment Panel ─────────────────────────── */}
-        <div className={`w-full lg:w-100 flex-col bg-(--color-surface-sunken)/40 overflow-hidden ${
+        <div className={`w-full lg:w-[460px] xl:w-[540px] 2xl:w-[600px] shrink-0 flex-col border-l border-default bg-(--color-surface-sunken)/40 overflow-hidden ${
           mobileTab === 'cart' ? 'flex' : 'hidden lg:flex'
         }`}>
           {/* Scrollable cart content */}
-          <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3">
+          <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3.5">
 
             {/* Mobile Back Button */}
             <div className="lg:hidden">
@@ -1587,26 +1778,27 @@ export function POSShell({ session, onExit }: POSShellProps) {
             </div>
 
             {/* Multi-Cart Slot Tabs */}
-            <div className="flex items-center gap-1.5 bg-surface p-1 rounded-xl border border-default">
+            <div className="flex items-center gap-1.5 bg-surface p-1 rounded-xl border border-default shadow-xs">
               {slots.map((slot, idx) => {
                 const count = slot.cart.reduce((s, i) => s + i.quantity, 0);
+                const slotTotal = slot.cart.reduce((s, i) => s + (i.quantity * i.unit_price), 0);
                 const isActive = idx === activeSlotIndex;
                 return (
                   <button
                     key={slot.id}
                     onClick={() => setActiveSlotIndex(idx)}
-                    className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                    className={`flex-1 py-2 px-2.5 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
                       isActive
                         ? 'bg-primary text-white shadow-sm'
                         : 'text-muted hover:text-default hover:bg-surface-sunken'
                     }`}
                   >
-                    <span>{slot.label}</span>
+                    <span className="truncate">{slot.label}</span>
                     {count > 0 && (
                       <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
                         isActive ? 'bg-white/20 text-white' : 'bg-surface-sunken text-emerald-500 border border-default'
                       }`}>
-                        {count}
+                        {count} {slotTotal > 0 && <span className="hidden xl:inline font-mono">({currencySymbol}{Math.round(slotTotal)})</span>}
                       </span>
                     )}
                   </button>
@@ -1615,39 +1807,55 @@ export function POSShell({ session, onExit }: POSShellProps) {
             </div>
 
             {/* Cart Header */}
-            <div className="flex items-center justify-between border-b border-default pb-2">
+            <div className="flex items-center justify-between border-b border-default pb-2.5">
               <div className="flex items-center gap-2">
-                <ShoppingBag className="h-4 w-4 text-emerald-500" />
-                <span className="font-semibold text-sm text-default">{currentSlot.label} Order</span>
-                <span className="rounded-full bg-surface-sunken border border-default px-2 py-0.5 text-[10px] font-bold text-muted">
-                  {cart.reduce((s, i) => s + i.quantity, 0)}
-                </span>
+                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-500">
+                  <ShoppingBag className="h-4 w-4" />
+                </div>
+                <div>
+                  <span className="font-bold text-sm text-default">{currentSlot.label} Order</span>
+                  <span className="ml-2 rounded-full bg-surface-sunken border border-default px-2 py-0.5 text-[10px] font-bold text-muted font-mono">
+                    {cart.reduce((s, i) => s + i.quantity, 0)} {cart.reduce((s, i) => s + i.quantity, 0) === 1 ? 'item' : 'items'}
+                  </span>
+                </div>
               </div>
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setIsParkModalOpen(true)}
                   disabled={cart.length === 0}
-                  className="text-[11px] font-medium text-amber-500 hover:underline cursor-pointer disabled:opacity-40 disabled:pointer-events-none flex items-center gap-1"
+                  className="text-xs font-semibold text-amber-500 hover:text-amber-600 bg-amber-500/10 hover:bg-amber-500/20 px-2.5 py-1 rounded-lg border border-amber-500/20 transition-all cursor-pointer disabled:opacity-40 disabled:pointer-events-none flex items-center gap-1.5"
                   title="Hold this sale"
                 >
                   <PauseCircle className="h-3.5 w-3.5" />
-                  Hold
+                  <span>Hold</span>
                 </button>
                 {cart.length > 0 && (
-                  <button onClick={clearCart} className="text-[11px] text-rose-500 hover:underline cursor-pointer">
-                    Clear
+                  <button
+                    onClick={clearCart}
+                    className="text-xs font-semibold text-rose-500 hover:text-rose-600 bg-rose-500/10 hover:bg-rose-500/20 px-2.5 py-1 rounded-lg border border-rose-500/20 transition-all cursor-pointer flex items-center gap-1"
+                    title="Clear current cart"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                    <span>Clear</span>
                   </button>
                 )}
               </div>
             </div>
 
             {/* Cart Items */}
-            <div className="divide-y divide-(--color-border)">
+            <div className="space-y-2">
               {cart.length === 0 ? (
-                <div className="flex h-40 flex-col items-center justify-center text-muted">
-                  <ShoppingBag className="h-8 w-8 stroke-1 mb-2" />
-                  <p className="text-xs font-medium">Cart is empty</p>
-                  <p className="text-[10px]">Scan barcode (F2) or click products</p>
+                <div className="flex h-44 flex-col items-center justify-center text-muted border-2 border-dashed border-default/70 rounded-2xl bg-surface/40 p-4 text-center">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-surface-sunken border border-default mb-3 text-muted">
+                    <ShoppingBag className="h-6 w-6 stroke-1.5" />
+                  </div>
+                  <p className="text-sm font-bold text-default">Your cart is empty</p>
+                  <p className="text-xs text-muted mt-0.5">Scan product barcode <span className="font-mono text-primary font-semibold">[F2]</span> or click items from catalog</p>
+                  <div className="flex items-center gap-2 mt-3 text-[10px] font-mono text-subtle">
+                    <span className="px-2 py-0.5 rounded bg-surface-sunken border border-default">F2 Search</span>
+                    <span className="px-2 py-0.5 rounded bg-surface-sunken border border-default">F4 Customer</span>
+                    <span className="px-2 py-0.5 rounded bg-surface-sunken border border-default">F10 Cash</span>
+                  </div>
                 </div>
               ) : (
                 cart.map((item) => {
@@ -1656,16 +1864,30 @@ export function POSShell({ session, onExit }: POSShellProps) {
                   const discAmt = isPct ? lineGross * (item.discount / 100) : Math.min(lineGross, item.discount || 0);
                   const lineTotal = Math.max(0, lineGross - discAmt);
                   return (
-                    <div key={item.product.id} className="pos-cart-item">
+                    <div key={item.product.id} className="pos-cart-item bg-surface rounded-xl p-3 border border-default shadow-xs">
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0 flex-1">
-                          <p className="font-semibold text-xs text-default truncate" title={item.product.name}>
-                            {item.product.name}
-                          </p>
-                          <p className="font-mono text-[10px] text-muted">{item.product.sku}</p>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <p className="font-semibold text-xs text-default truncate" title={item.product.name}>
+                              {item.product.name}
+                            </p>
+                            <span className="font-mono text-[9px] px-1.5 py-0.2 rounded bg-surface-sunken text-muted border border-default">
+                              {item.product.sku}
+                            </span>
+                          </div>
+                          <div className="text-[11px] text-muted mt-0.5 flex items-center gap-2">
+                            <span>Unit: {formatCurrency(item.unit_price)}</span>
+                            {discAmt > 0 && (
+                              <span className="text-rose-500 font-semibold font-mono text-[10px]">
+                                Discount: -{formatCurrency(discAmt)}
+                              </span>
+                            )}
+                          </div>
                         </div>
-                        <div className="flex items-center gap-1.5 shrink-0">
-                          <span className="font-mono font-bold text-xs text-emerald-500">{formatCurrency(lineTotal)}</span>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span className="font-mono font-black text-sm text-emerald-500">
+                            {formatCurrency(lineTotal)}
+                          </span>
                           <button
                             type="button"
                             onClick={() => removeFromCart(item.product.id)}
@@ -1677,15 +1899,16 @@ export function POSShell({ session, onExit }: POSShellProps) {
                         </div>
                       </div>
 
-                      {/* Qty / Price / Discount row */}
-                      <div className="mt-2 grid grid-cols-3 gap-1.5 bg-(--color-surface-sunken)/60 p-1.5 rounded-lg border border-(--color-border)/60 text-[11px]">
-                        <div className="flex flex-col gap-0.5">
+                      {/* Controls row: Quantity Stepper, Unit Price, and Item Discount */}
+                      <div className="mt-2.5 pt-2 border-t border-default/60 grid grid-cols-12 gap-2 items-center text-xs">
+                        {/* Quantity Stepper */}
+                        <div className="col-span-4 flex flex-col gap-0.5">
                           <label className="text-[10px] font-semibold text-muted">Qty</label>
                           <div className="flex items-center gap-0.5">
                             <button
                               type="button"
                               onClick={() => updateQuantity(item.product.id, -1)}
-                              className="flex h-7 w-6 shrink-0 items-center justify-center rounded-lg border border-default bg-surface text-default hover:bg-surface-sunken cursor-pointer transition-colors"
+                              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-default bg-surface-sunken hover:bg-surface text-default cursor-pointer transition-colors font-bold"
                             >
                               <Minus className="h-3 w-3" />
                             </button>
@@ -1700,45 +1923,40 @@ export function POSShell({ session, onExit }: POSShellProps) {
                             <button
                               type="button"
                               onClick={() => updateQuantity(item.product.id, 1)}
-                              className="flex h-7 w-6 shrink-0 items-center justify-center rounded-lg border border-default bg-surface text-default hover:bg-surface-sunken cursor-pointer transition-colors"
+                              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-default bg-surface-sunken hover:bg-surface text-default cursor-pointer transition-colors font-bold"
                             >
                               <Plus className="h-3 w-3" />
                             </button>
                           </div>
                         </div>
 
-                        <div className="flex flex-col gap-0.5">
-                          <label className="text-[10px] font-semibold text-muted">Price</label>
+                        {/* Unit Price input */}
+                        <div className="col-span-3 flex flex-col gap-0.5">
+                          <label className="text-[10px] font-semibold text-muted">Price ({currencySymbol})</label>
                           <input
                             type="number"
                             min="0"
                             step="any"
                             value={item.unit_price}
                             onChange={(e) => updateItemPrice(item.product.id, parseFloat(e.target.value) || 0)}
-                            className="h-7 w-full rounded border border-default bg-surface px-1 text-right font-mono font-bold text-xs text-default focus:border-primary focus:outline-none"
+                            className="h-7 w-full rounded-lg border border-default bg-surface px-1.5 text-right font-mono font-bold text-xs text-default focus:border-primary focus:outline-none"
                           />
                         </div>
 
-                        <div className="flex flex-col gap-0.5">
-                          <div className="flex items-center justify-between">
-                            <label className="text-[10px] font-semibold text-muted">
-                              Disc ({item.discount_type === 'percentage' ? '%' : currencySymbol})
-                            </label>
-                            {discAmt > 0 && (
-                              <span className="font-mono text-[9px] font-bold text-rose-500">
-                                -{formatCurrency(discAmt)}
-                              </span>
-                            )}
-                          </div>
+                        {/* Discount input & toggle */}
+                        <div className="col-span-5 flex flex-col gap-0.5">
+                          <label className="text-[10px] font-semibold text-muted">
+                            Discount ({item.discount_type === 'percentage' ? '%' : currencySymbol})
+                          </label>
                           <div className="flex items-center">
-                            <div className="inline-flex rounded-l border border-r-0 border-default bg-surface-sunken p-0.5 shrink-0">
+                            <div className="inline-flex rounded-l-lg border border-r-0 border-default bg-surface-sunken p-0.5 shrink-0">
                               <button
                                 type="button"
                                 onClick={() => {
                                   if (item.discount_type !== 'flat') toggleItemDiscountType(item.product.id);
                                 }}
                                 className={cn(
-                                  "px-1 py-0.5 text-[9px] font-bold rounded cursor-pointer transition-colors",
+                                  "px-1.5 py-0.5 text-[9px] font-bold rounded cursor-pointer transition-colors",
                                   item.discount_type !== 'percentage'
                                     ? "bg-primary text-primary-fg"
                                     : "text-muted hover:text-default"
@@ -1753,7 +1971,7 @@ export function POSShell({ session, onExit }: POSShellProps) {
                                   if (item.discount_type !== 'percentage') toggleItemDiscountType(item.product.id);
                                 }}
                                 className={cn(
-                                  "px-1 py-0.5 text-[9px] font-bold rounded cursor-pointer transition-colors",
+                                  "px-1.5 py-0.5 text-[9px] font-bold rounded cursor-pointer transition-colors",
                                   item.discount_type === 'percentage'
                                     ? "bg-primary text-primary-fg"
                                     : "text-muted hover:text-default"
@@ -1770,18 +1988,19 @@ export function POSShell({ session, onExit }: POSShellProps) {
                               placeholder="0"
                               value={item.discount === 0 ? '' : item.discount}
                               onChange={(e) => updateItemDiscount(item.product.id, Math.max(0, parseFloat(e.target.value) || 0))}
-                              className="h-7 w-full rounded-r border border-default bg-surface px-1 text-right font-mono font-bold text-xs text-rose-500 focus:border-primary focus:outline-none"
+                              className="h-7 w-full rounded-r-lg border border-default bg-surface px-1.5 text-right font-mono font-bold text-xs text-rose-500 focus:border-primary focus:outline-none"
                             />
                           </div>
-                          {item.discount_type === 'percentage' ? (
-                            <div className="flex items-center gap-1 mt-0.5">
-                              {[5, 10, 15, 20].map((pct) => (
+                          {/* Quick chips */}
+                          <div className="flex items-center gap-1 mt-0.5 overflow-x-auto no-scrollbar">
+                            {item.discount_type === 'percentage' ? (
+                              [5, 10, 15, 20].map((pct) => (
                                 <button
                                   key={pct}
                                   type="button"
                                   onClick={() => updateItemDiscount(item.product.id, pct)}
                                   className={cn(
-                                    "px-1 py-0.2 rounded border text-[9px] font-semibold transition-colors cursor-pointer",
+                                    "px-1 py-0.2 rounded border text-[9px] font-semibold transition-colors cursor-pointer shrink-0",
                                     item.discount === pct
                                       ? "bg-primary/10 border-primary text-primary font-bold"
                                       : "border-default/60 bg-surface-sunken text-muted hover:text-default"
@@ -1789,17 +2008,15 @@ export function POSShell({ session, onExit }: POSShellProps) {
                                 >
                                   {pct}%
                                 </button>
-                              ))}
-                            </div>
-                          ) : (
-                            <div className="flex items-center gap-1 mt-0.5">
-                              {[10, 20, 50].map((amt) => (
+                              ))
+                            ) : (
+                              [10, 20, 50, 100].map((amt) => (
                                 <button
                                   key={amt}
                                   type="button"
                                   onClick={() => updateItemDiscount(item.product.id, amt)}
                                   className={cn(
-                                    "px-1 py-0.2 rounded border text-[9px] font-semibold transition-colors cursor-pointer",
+                                    "px-1 py-0.2 rounded border text-[9px] font-semibold transition-colors cursor-pointer shrink-0",
                                     item.discount === amt
                                       ? "bg-primary/10 border-primary text-primary font-bold"
                                       : "border-default/60 bg-surface-sunken text-muted hover:text-default"
@@ -1807,9 +2024,9 @@ export function POSShell({ session, onExit }: POSShellProps) {
                                 >
                                   +{amt}
                                 </button>
-                              ))}
-                            </div>
-                          )}
+                              ))
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -1823,13 +2040,13 @@ export function POSShell({ session, onExit }: POSShellProps) {
               <div className="flex items-center justify-between">
                 <label className="text-[11px] font-bold uppercase tracking-wider text-muted flex items-center gap-1.5">
                   <User className="size-3.5 text-primary" />
-                  Customer
+                  <span>Customer Details</span>
                 </label>
                 {currentSlot.customerPartyId && (
                   <button
                     type="button"
                     onClick={() => updateCurrentSlot({ customerPartyId: null, customerName: '', customerPhone: '' })}
-                    className="text-[10px] text-primary hover:underline cursor-pointer"
+                    className="text-[10px] text-primary hover:underline cursor-pointer font-semibold"
                   >
                     Reset to Walk-in
                   </button>
@@ -1936,26 +2153,32 @@ export function POSShell({ session, onExit }: POSShellProps) {
 
               {/* Manual name/phone inputs for walk-in override */}
               <div className="grid grid-cols-2 gap-2">
-                <input
-                  ref={customerNameInputRef}
-                  type="text"
-                  placeholder="Name (F4)"
-                  value={customerName}
-                  onChange={(e) => updateCurrentSlot({ customerName: e.target.value })}
-                  className="h-8 rounded-xl border border-default bg-surface px-2.5 text-xs text-default placeholder:text-muted focus:border-primary focus:outline-none"
-                />
-                <input
-                  type="text"
-                  placeholder="Phone"
-                  value={customerPhone}
-                  onChange={(e) => updateCurrentSlot({ customerPhone: e.target.value })}
-                  className="h-8 rounded-xl border border-default bg-surface px-2.5 text-xs text-default placeholder:text-muted focus:border-primary focus:outline-none"
-                />
+                <div className="relative">
+                  <User className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted pointer-events-none" />
+                  <input
+                    ref={customerNameInputRef}
+                    type="text"
+                    placeholder="Name (F4)"
+                    value={customerName}
+                    onChange={(e) => updateCurrentSlot({ customerName: e.target.value })}
+                    className="h-8.5 w-full rounded-xl border border-default bg-surface pl-8 pr-2.5 text-xs text-default placeholder:text-muted focus:border-primary focus:outline-none"
+                  />
+                </div>
+                <div className="relative">
+                  <Phone className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted pointer-events-none" />
+                  <input
+                    type="text"
+                    placeholder="Phone"
+                    value={customerPhone}
+                    onChange={(e) => updateCurrentSlot({ customerPhone: e.target.value })}
+                    className="h-8.5 w-full rounded-xl border border-default bg-surface pl-8 pr-2.5 text-xs text-default placeholder:text-muted focus:border-primary focus:outline-none"
+                  />
+                </div>
               </div>
             </div>
 
             {/* Sale Note */}
-            <div className="rounded-xl border border-default bg-surface p-2.5 space-y-1.5">
+            <div className="rounded-xl border border-default bg-surface p-2.5 space-y-1.5 shadow-xs">
               <button
                 type="button"
                 onClick={() => setIsNoteExpanded(!isNoteExpanded)}
@@ -1989,10 +2212,11 @@ export function POSShell({ session, onExit }: POSShellProps) {
             </div>
 
             {/* Payment Method — 2×2 Large Icon Grid */}
-            <div className="space-y-2 border-t border-default pt-3">
+            <div className="space-y-2.5 border-t border-default pt-3">
               <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-muted">
-                  Payment Method
+                <span className="text-[11px] font-bold uppercase tracking-wider text-muted flex items-center gap-1.5">
+                  <CreditCard className="size-3.5 text-primary" />
+                  <span>Payment Method</span>
                 </span>
                 <button
                   type="button"
@@ -2006,14 +2230,14 @@ export function POSShell({ session, onExit }: POSShellProps) {
                         : (prev.splitPayments ?? []),
                     }));
                   }}
-                  className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                  className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                     isSplitPayment
                       ? 'bg-primary text-white shadow-sm'
                       : 'border border-default bg-surface text-muted hover:text-default hover:bg-surface-sunken'
                   }`}
                 >
                   <Split className="h-3 w-3" />
-                  <span>{isSplitPayment ? 'Multi-Pay' : 'Split'}</span>
+                  <span>{isSplitPayment ? 'Multi-Pay (Split)' : 'Split'}</span>
                 </button>
               </div>
 
@@ -2036,7 +2260,7 @@ export function POSShell({ session, onExit }: POSShellProps) {
                       className={`pos-payment-btn ${tenderMethod === 'card' ? 'active' : ''}`}
                     >
                       <CreditCard className="h-6 w-6" />
-                      <span>Card</span>
+                      <span>Card / POS</span>
                     </button>
                     <button
                       type="button"
@@ -2056,25 +2280,97 @@ export function POSShell({ session, onExit }: POSShellProps) {
                     </button>
                   </div>
 
-                  {/* Cash Tendered Input */}
+                  {/* Cash Tendered & Quick Cash Suggestions */}
                   {tenderMethod === 'cash' && (
-                    <div className="flex items-center justify-between gap-2 rounded-xl bg-surface-sunken border border-default p-2.5">
-                      <span className="text-[11px] text-muted">Cash Received:</span>
-                      <input
-                        ref={cashTenderedInputRef}
-                        type="number"
-                        step="1"
-                        placeholder={grandTotal.toString()}
-                        value={cashTendered}
-                        onChange={(e) => updateCurrentSlot({ cashTendered: e.target.value })}
-                        className="h-8 w-32 rounded-lg border border-default bg-surface px-2 text-right font-mono font-bold text-sm text-emerald-500 focus:border-primary focus:outline-none"
-                      />
+                    <div className="rounded-xl bg-surface border border-default p-2.5 space-y-2 shadow-xs">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-xs font-semibold text-muted flex items-center gap-1.5">
+                          <Banknote className="size-4 text-emerald-500" />
+                          <span>Cash Received:</span>
+                        </span>
+                        <div className="relative w-36">
+                          <span className="absolute left-2.5 top-1/2 -translate-y-1/2 font-mono font-bold text-xs text-muted">
+                            {currencySymbol}
+                          </span>
+                          <input
+                            ref={cashTenderedInputRef}
+                            type="number"
+                            step="any"
+                            placeholder={grandTotal > 0 ? grandTotal.toString() : '0'}
+                            value={cashTendered}
+                            onChange={(e) => updateCurrentSlot({ cashTendered: e.target.value })}
+                            className="h-8.5 w-full rounded-lg border border-default bg-surface-sunken pl-6 pr-2 text-right font-mono font-bold text-sm text-emerald-500 focus:border-primary focus:outline-none"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Quick Cash Buttons */}
+                      <div className="flex items-center gap-1.5 flex-wrap pt-1 border-t border-default/50">
+                        <span className="text-[10px] font-bold text-muted uppercase tracking-wider mr-1">Quick:</span>
+                        <button
+                          type="button"
+                          onClick={() => updateCurrentSlot({ cashTendered: grandTotal.toString() })}
+                          className="px-2 py-1 rounded-lg border border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-mono font-bold text-[10px] hover:bg-emerald-500/20 transition-all cursor-pointer"
+                          title="Exact payable amount"
+                        >
+                          Exact ({formatCurrency(grandTotal)})
+                        </button>
+                        {[100, 500, 1000, 2000].map((amt) => {
+                          if (grandTotal > amt * 2) return null;
+                          return (
+                            <button
+                              key={amt}
+                              type="button"
+                              onClick={() => updateCurrentSlot({ cashTendered: String(amt) })}
+                              className={cn(
+                                "px-2 py-1 rounded-lg border font-mono font-bold text-[10px] transition-all cursor-pointer",
+                                cashTendered === String(amt)
+                                  ? "bg-primary border-primary text-white"
+                                  : "border-default bg-surface-sunken text-muted hover:text-default hover:bg-surface"
+                              )}
+                            >
+                              {currencySymbol}{amt}
+                            </button>
+                          );
+                        })}
+                        {[50, 100, 500].map((delta) => (
+                          <button
+                            key={`add-${delta}`}
+                            type="button"
+                            onClick={() => {
+                              const curr = parseFloat(cashTendered || '0') || 0;
+                              updateCurrentSlot({ cashTendered: String(curr + delta) });
+                            }}
+                            className="px-1.5 py-1 rounded-lg border border-default bg-surface-sunken text-muted hover:text-default text-[10px] font-mono font-semibold transition-all cursor-pointer"
+                            title={`Add ${currencySymbol}${delta} to received`}
+                          >
+                            +{delta}
+                          </button>
+                        ))}
+                        {cashTendered && parseFloat(cashTendered) > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => updateCurrentSlot({ cashTendered: '' })}
+                            className="px-1.5 py-1 text-[10px] text-rose-500 hover:underline cursor-pointer ml-auto"
+                          >
+                            Clear
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Change calculation pill */}
+                      {singleChangeGiven > 0 && (
+                        <div className="flex items-center justify-between bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 px-3 py-1.5 rounded-lg text-xs font-mono font-bold">
+                          <span>Change to Return:</span>
+                          <span className="text-sm font-black">{formatCurrency(singleChangeGiven)}</span>
+                        </div>
+                      )}
                     </div>
                   )}
                 </>
               ) : (
                 /* Multi-Payment / Split Tender Panel */
-                <div className="space-y-2 rounded-xl border border-default bg-surface-sunken p-2.5">
+                <div className="space-y-2 rounded-xl border border-default bg-surface-sunken p-2.5 shadow-xs">
                   <div className="space-y-2 max-h-48 overflow-y-auto pr-0.5">
                     {splitPayments.map((payment) => (
                       <div key={payment.id} className="flex flex-col gap-1.5 p-2 rounded-lg bg-surface border border-default">
@@ -2098,7 +2394,7 @@ export function POSShell({ session, onExit }: POSShellProps) {
                             <option value="credit_adjustment">Customer Credit</option>
                           </select>
 
-                          <div className="relative w-28">
+                          <div className="relative w-32">
                             <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] text-muted font-bold">{currencySymbol}</span>
                             <input
                               type="number"
@@ -2199,22 +2495,22 @@ export function POSShell({ session, onExit }: POSShellProps) {
               )}
             </div>
 
-            {/* Order Summary */}
-            <div className="space-y-1.5 text-xs text-muted border-t border-default pt-2 font-mono">
-              <div className="flex justify-between">
+            {/* Order Summary & Financials */}
+            <div className="space-y-2 text-xs text-muted border-t border-default pt-2.5 font-mono">
+              <div className="flex justify-between items-center text-default font-medium">
                 <span>Subtotal:</span>
-                <span className="text-default">{formatCurrency(subtotal)}</span>
+                <span className="font-bold">{formatCurrency(subtotal)}</span>
               </div>
               {totalLineDiscounts > 0 && (
-                <div className="flex justify-between text-rose-500">
+                <div className="flex justify-between items-center text-rose-500">
                   <span>Item Discounts:</span>
-                  <span>-{formatCurrency(totalLineDiscounts)}</span>
+                  <span className="font-semibold">-{formatCurrency(totalLineDiscounts)}</span>
                 </div>
               )}
               {/* Promo Coupon Code Field */}
-              <div className="flex items-center justify-between gap-2 py-0.5 font-sans">
-                <span className="font-medium text-default text-[11px] flex items-center gap-1">
-                  <Tag className="size-3 text-primary" />
+              <div className="flex items-center justify-between gap-2 py-1 font-sans bg-surface rounded-xl p-2 border border-default shadow-xs">
+                <span className="font-semibold text-default text-xs flex items-center gap-1.5">
+                  <Tag className="size-3.5 text-primary" />
                   <span>Coupon Code:</span>
                 </span>
                 <div className="flex items-center gap-1">
@@ -2229,19 +2525,19 @@ export function POSShell({ session, onExit }: POSShellProps) {
                         handleApplyCoupon();
                       }
                     }}
-                    className="h-6 w-28 rounded-lg border border-default bg-surface px-1.5 font-mono text-[10px] uppercase text-default placeholder:text-muted focus:border-primary focus:outline-none"
+                    className="h-7 w-32 rounded-lg border border-default bg-surface-sunken px-2 font-mono text-xs uppercase text-default placeholder:text-muted focus:border-primary focus:outline-none"
                   />
                   <button
                     type="button"
                     onClick={handleApplyCoupon}
-                    className="h-6 px-2 rounded-lg bg-primary/10 border border-primary/20 text-[10px] font-bold text-primary hover:bg-primary/20 transition-colors cursor-pointer"
+                    className="h-7 px-2.5 rounded-lg bg-primary hover:bg-primary-hover text-white text-xs font-bold transition-colors cursor-pointer shadow-xs"
                   >
                     Apply
                   </button>
                 </div>
               </div>
               {appliedCoupon && (
-                <div className="flex justify-between items-center text-[10px] text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded-lg border border-emerald-500/20 font-sans">
+                <div className="flex justify-between items-center text-xs text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2.5 py-1.5 rounded-lg border border-emerald-500/20 font-sans">
                   <span>Promo <strong>{appliedCoupon.code}</strong>: {appliedCoupon.desc}</span>
                   <button
                     type="button"
@@ -2254,18 +2550,19 @@ export function POSShell({ session, onExit }: POSShellProps) {
                 </div>
               )}
 
+              {/* Order Discount (F8) */}
               <div className="space-y-1.5 py-1 border-t border-(--color-border)/40">
                 <div className="flex items-center justify-between gap-1">
                   <span className="font-semibold text-xs text-default font-sans flex items-center gap-1">
                     Order Discount <span className="text-[10px] text-muted font-mono font-normal">(F8)</span>:
                   </span>
                   <div className="flex items-center gap-1">
-                    <div className="inline-flex rounded-md border border-default bg-surface-sunken p-0.5 shrink-0">
+                    <div className="inline-flex rounded-lg border border-default bg-surface-sunken p-0.5 shrink-0">
                       <button
                         type="button"
                         onClick={() => updateCurrentSlot({ order_discount_type: 'flat' })}
                         className={cn(
-                          "px-1.5 py-0.5 text-[10px] font-bold rounded cursor-pointer transition-colors",
+                          "px-2 py-0.5 text-[10px] font-bold rounded cursor-pointer transition-colors",
                           (currentSlot.order_discount_type || 'flat') !== 'percentage'
                             ? "bg-primary text-primary-fg shadow-xs"
                             : "text-muted hover:text-default"
@@ -2278,7 +2575,7 @@ export function POSShell({ session, onExit }: POSShellProps) {
                         type="button"
                         onClick={() => updateCurrentSlot({ order_discount_type: 'percentage' })}
                         className={cn(
-                          "px-1.5 py-0.5 text-[10px] font-bold rounded cursor-pointer transition-colors",
+                          "px-2 py-0.5 text-[10px] font-bold rounded cursor-pointer transition-colors",
                           (currentSlot.order_discount_type || 'flat') === 'percentage'
                             ? "bg-primary text-primary-fg shadow-xs"
                             : "text-muted hover:text-default"
@@ -2296,7 +2593,7 @@ export function POSShell({ session, onExit }: POSShellProps) {
                       placeholder="0"
                       value={currentSlot.order_discount_value || ''}
                       onChange={(e) => updateCurrentSlot({ order_discount_value: e.target.value })}
-                      className="h-6 w-16 rounded border border-default bg-surface px-1 text-right font-mono font-bold text-xs text-rose-500 focus:border-primary focus:outline-none"
+                      className="h-7 w-20 rounded-lg border border-default bg-surface px-1.5 text-right font-mono font-bold text-xs text-rose-500 focus:border-primary focus:outline-none"
                     />
                   </div>
                 </div>
@@ -2309,7 +2606,7 @@ export function POSShell({ session, onExit }: POSShellProps) {
                         type="button"
                         onClick={() => updateCurrentSlot({ order_discount_value: String(pct) })}
                         className={cn(
-                          "px-1.5 py-0.5 rounded border text-[9px] font-semibold transition-colors cursor-pointer",
+                          "px-2 py-0.5 rounded-lg border text-[10px] font-semibold transition-colors cursor-pointer",
                           currentSlot.order_discount_value === String(pct)
                             ? "bg-primary/10 border-primary text-primary font-bold"
                             : "border-default bg-surface-sunken text-muted hover:text-default"
@@ -2325,7 +2622,7 @@ export function POSShell({ session, onExit }: POSShellProps) {
                         type="button"
                         onClick={() => updateCurrentSlot({ order_discount_value: String(amt) })}
                         className={cn(
-                          "px-1.5 py-0.5 rounded border text-[9px] font-semibold transition-colors cursor-pointer",
+                          "px-2 py-0.5 rounded-lg border text-[10px] font-semibold transition-colors cursor-pointer",
                           currentSlot.order_discount_value === String(amt)
                             ? "bg-primary/10 border-primary text-primary font-bold"
                             : "border-default bg-surface-sunken text-muted hover:text-default"
@@ -2339,29 +2636,24 @@ export function POSShell({ session, onExit }: POSShellProps) {
                     <button
                       type="button"
                       onClick={() => updateCurrentSlot({ order_discount_value: '' })}
-                      className="px-1 py-0.5 text-[9px] font-semibold text-rose-500 hover:underline cursor-pointer"
+                      className="px-1.5 py-0.5 text-[10px] font-semibold text-rose-500 hover:underline cursor-pointer"
                     >
                       Clear
                     </button>
                   )}
                 </div>
               </div>
+
               {orderDiscountAmount > 0 && (
                 <div className="flex justify-between text-rose-500">
                   <span>Order Disc Amount:</span>
-                  <span>-{formatCurrency(orderDiscountAmount)}</span>
+                  <span className="font-semibold">-{formatCurrency(orderDiscountAmount)}</span>
                 </div>
               )}
               {discountTotal > 0 && (
                 <div className="flex justify-between text-rose-500 font-bold border-t border-(--color-border)/40 pt-1">
-                  <span>Total Discount:</span>
+                  <span>Total Savings / Discount:</span>
                   <span>-{formatCurrency(discountTotal)}</span>
-                </div>
-              )}
-              {changeGiven > 0 && (
-                <div className="flex justify-between text-amber-500">
-                  <span>Change Return:</span>
-                  <span>{formatCurrency(changeGiven)}</span>
                 </div>
               )}
             </div>
@@ -2378,8 +2670,8 @@ export function POSShell({ session, onExit }: POSShellProps) {
               </div>
               {changeGiven > 0 && (
                 <div className="text-right">
-                  <p className="text-[10px] text-muted">Change</p>
-                  <p className="font-mono font-bold text-lg text-amber-500">{formatCurrency(changeGiven)}</p>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-amber-500">Change Due</p>
+                  <p className="font-mono font-black text-xl text-amber-500 leading-tight">{formatCurrency(changeGiven)}</p>
                 </div>
               )}
             </div>
@@ -2397,7 +2689,7 @@ export function POSShell({ session, onExit }: POSShellProps) {
             </button>
 
             {/* Shortcut hints */}
-            <div className="flex items-center justify-between text-[9px] text-subtle pt-1.5 font-mono">
+            <div className="flex items-center justify-between text-[10px] text-subtle pt-2 font-mono">
               <span>[F2] Search</span>
               <span>[F4] Customer</span>
               <span>[F8] Discount</span>
