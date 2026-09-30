@@ -43,6 +43,7 @@ import { BarcodeGeneratorModal } from '../../../components/print/labels/BarcodeG
 import { DynamicCustomFields } from '../../../components/forms/DynamicCustomFields';
 import { TableControls, type ColumnDef } from '../../../components/ui/TableControls';
 import { useTablePrefs } from '../../../hooks/useTablePrefs';
+import { DashboardKpiCard } from '../../../pages/dashboard/components/DashboardKpiCard';
 import { DestructiveConfirmationDialog } from '../../../components/ui/DestructiveConfirmationDialog';
 import { ActionMenuPortal } from '../../../components/ui/ActionMenuPortal';
 import { AuditTimelineDrawer } from '../../../components/ui/AuditTimelineDrawer';
@@ -812,55 +813,44 @@ export function ProductsSection() {
     <div className="space-y-6">
       {/* Catalog Intelligence KPI Summary Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <div className="p-3.5 rounded-2xl border border-default bg-surface shadow-2xs space-y-1">
-          <div className="flex items-center justify-between text-muted">
-            <span className="text-[11px] font-semibold uppercase tracking-wider">Total Catalog SKUs</span>
-            <Package className="size-4 text-primary" />
-          </div>
-          <div className="flex items-baseline gap-2">
-            <span className="text-xl font-black text-default">{catalogStats.total}</span>
-            <span className="text-[10px] text-muted">({catalogStats.active} Active)</span>
-          </div>
-          <p className="text-[10px] text-muted">{catalogStats.inactive} drafts or inactive</p>
-        </div>
+        <DashboardKpiCard
+          label="Total Catalog SKUs"
+          value={catalogStats.total}
+          sub={`${catalogStats.inactive} drafts or inactive`}
+          icon={<Package className="size-4" />}
+          theme="indigo"
+          badge={{ text: `${catalogStats.active} Active`, variant: 'info' }}
+        />
 
-        <div className="p-3.5 rounded-2xl border border-default bg-surface shadow-2xs space-y-1">
-          <div className="flex items-center justify-between text-muted">
-            <span className="text-[11px] font-semibold uppercase tracking-wider">Inventory Tracked</span>
-            <Activity className="size-4 text-emerald-500" />
-          </div>
-          <div className="flex items-baseline gap-2">
-            <span className="text-xl font-black text-default">{catalogStats.stockTracked}</span>
-            <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">Real-time ledger</span>
-          </div>
-          <p className="text-[10px] text-muted">Automated stock movement tracking</p>
-        </div>
+        <DashboardKpiCard
+          label="Inventory Tracked"
+          value={catalogStats.stockTracked}
+          sub="Automated stock movement tracking"
+          icon={<Activity className="size-4" />}
+          theme="emerald"
+          badge={{ text: 'Real-time', variant: 'positive' }}
+        />
 
-        <div className="p-3.5 rounded-2xl border border-default bg-surface shadow-2xs space-y-1">
-          <div className="flex items-center justify-between text-muted">
-            <span className="text-[11px] font-semibold uppercase tracking-wider">Reorder Watchlist</span>
-            <AlertTriangle className={cn('size-4', catalogStats.lowStock > 0 ? 'text-amber-500' : 'text-muted')} />
-          </div>
-          <div className="flex items-baseline gap-2">
-            <span className={cn('text-xl font-black', catalogStats.lowStock > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-default')}>
-              {catalogStats.lowStock}
-            </span>
-            <span className="text-[10px] text-muted">Items at/below min</span>
-          </div>
-          <p className="text-[10px] text-muted">Requires manufacturing or PO replenishment</p>
-        </div>
+        <DashboardKpiCard
+          label="Reorder Watchlist"
+          value={catalogStats.lowStock}
+          sub="Requires replenishment"
+          icon={<AlertTriangle className="size-4" />}
+          theme="amber"
+          badge={{
+            text: catalogStats.lowStock > 0 ? 'Low Stock' : 'Optimal',
+            variant: catalogStats.lowStock > 0 ? 'warning' : 'positive',
+          }}
+        />
 
-        <div className="p-3.5 rounded-2xl border border-default bg-surface shadow-2xs space-y-1">
-          <div className="flex items-center justify-between text-muted">
-            <span className="text-[11px] font-semibold uppercase tracking-wider">Storefront Live</span>
-            <Globe className="size-4 text-blue-500" />
-          </div>
-          <div className="flex items-baseline gap-2">
-            <span className="text-xl font-black text-default">{catalogStats.storefrontLive}</span>
-            <span className="text-[10px] text-blue-600 dark:text-blue-400 font-medium">E-Commerce</span>
-          </div>
-          <p className="text-[10px] text-muted">Published to public storefront catalog</p>
-        </div>
+        <DashboardKpiCard
+          label="Storefront Live"
+          value={catalogStats.storefrontLive}
+          sub="Published to storefront catalog"
+          icon={<Globe className="size-4" />}
+          theme="blue"
+          badge={{ text: 'E-Commerce', variant: 'info' }}
+        />
       </div>
 
       {/* Top Search & Filter Bar */}

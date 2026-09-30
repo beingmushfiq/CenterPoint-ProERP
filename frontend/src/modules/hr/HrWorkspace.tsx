@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Users,
   Building2,
@@ -7,7 +7,6 @@ import {
   Clock,
   CalendarCheck,
   Search,
-  SlidersHorizontal,
   X,
   UserPlus,
   Plus,
@@ -67,6 +66,12 @@ import { PayrollCalculationPreviewModal } from './components/PayrollCalculationP
 import { useDocumentPrint, EmployeeIdBadgeDocument, PayslipDocument } from '../../components/print';
 import { useBusinessConfig } from '../../lib/document/useBusinessConfig';
 import { ActionMenuPortal } from '../../components/ui/ActionMenuPortal';
+import {
+  WorkspaceNavigationHub,
+  WORKSPACE_THEMES,
+  type WorkspaceCategoryConfig,
+  type WorkspaceTabConfig,
+} from '../../components/common/WorkspaceNavigationHub';
 
 export type HrTab =
   | 'employees'
@@ -80,25 +85,6 @@ export type HrTab =
 
 export type HrCategory = 'people' | 'compensation';
 type EmploymentType = 'permanent' | 'contract' | 'daily_wage' | 'piece_rate';
-
-export interface HrStageConfig {
-  id: HrTab;
-  step: number;
-  label: string;
-  shortLabel: string;
-  icon: typeof Users;
-  category: HrCategory;
-  description: string;
-}
-
-export interface CategoryConfig {
-  id: HrCategory;
-  label: string;
-  tagline: string;
-  icon: typeof Users;
-  tabs: HrTab[];
-  defaultTab: HrTab;
-}
 
 function generateRandomPassword(): string {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%&*';
@@ -115,115 +101,6 @@ export const HrWorkspace: React.FC = () => {
   const { config: businessConfig } = useBusinessConfig();
   const { printDocument, isPrinting: isPrintingBadge } = useDocumentPrint();
 
-  const hrStages: HrStageConfig[] = useMemo(
-    () => [
-      {
-        id: 'employees',
-        step: 1,
-        label: t('hr.stages.employees.label'),
-        shortLabel: t('hr.stages.employees.shortLabel'),
-        icon: Users,
-        category: 'people',
-        description: t('hr.stages.employees.description'),
-      },
-      {
-        id: 'departments',
-        step: 2,
-        label: t('hr.stages.departments.label'),
-        shortLabel: t('hr.stages.departments.shortLabel'),
-        icon: Building2,
-        category: 'people',
-        description: t('hr.stages.departments.description'),
-      },
-      {
-        id: 'performance',
-        step: 3,
-        label: t('hr.stages.performance.label'),
-        shortLabel: t('hr.stages.performance.shortLabel'),
-        icon: Zap,
-        category: 'people',
-        description: t('hr.stages.performance.description'),
-      },
-      {
-        id: 'attendance',
-        step: 4,
-        label: t('hr.stages.attendance.label'),
-        shortLabel: t('hr.stages.attendance.shortLabel'),
-        icon: Clock,
-        category: 'compensation',
-        description: t('hr.stages.attendance.description'),
-      },
-      {
-        id: 'leaves',
-        step: 5,
-        label: t('hr.stages.leaves.label'),
-        shortLabel: t('hr.stages.leaves.shortLabel'),
-        icon: CalendarCheck,
-        category: 'compensation',
-        description: t('hr.stages.leaves.description'),
-      },
-      {
-        id: 'payroll',
-        step: 6,
-        label: t('hr.stages.payroll.label'),
-        shortLabel: t('hr.stages.payroll.shortLabel'),
-        icon: Wallet,
-        category: 'compensation',
-        description: t('hr.stages.payroll.description'),
-      },
-      {
-        id: 'salary-structures',
-        step: 7,
-        label: t('hr.stages.salaryStructures.label'),
-        shortLabel: t('hr.stages.salaryStructures.shortLabel'),
-        icon: DollarSign,
-        category: 'compensation',
-        description: t('hr.stages.salaryStructures.description'),
-      },
-      {
-        id: 'advances',
-        step: 8,
-        label: t('hr.stages.advances.label'),
-        shortLabel: t('hr.stages.advances.shortLabel'),
-        icon: CreditCard,
-        category: 'compensation',
-        description: t('hr.stages.advances.description'),
-      },
-    ],
-    [t]
-  );
-
-  const categories: CategoryConfig[] = useMemo(
-    () => [
-      {
-        id: 'people',
-        label: t('hr.categories.people.label'),
-        tagline: t('hr.categories.people.tagline'),
-        icon: Users,
-        tabs: ['employees', 'departments', 'performance'],
-        defaultTab: 'employees',
-      },
-      {
-        id: 'compensation',
-        label: t('hr.categories.compensation.label'),
-        tagline: t('hr.categories.compensation.tagline'),
-        icon: Wallet,
-        tabs: ['payroll', 'attendance', 'leaves', 'salary-structures', 'advances'],
-        defaultTab: 'payroll',
-      },
-    ],
-    [t]
-  );
-
-  const handlePrintPayslip = (slip: Payslip) => {
-    printDocument(
-      <PayslipDocument payslip={slip} businessConfig={businessConfig} />,
-      {
-        pageClass: 'print-page-a4',
-        documentTitle: `Payslip_${slip.payslip_number || slip.id}`,
-      }
-    );
-  };
   const [activeTab, setActiveTab] = useWorkspaceTab<HrTab>(
     'employees',
     [
@@ -237,69 +114,15 @@ export const HrWorkspace: React.FC = () => {
       'advances',
     ] as const
   );
-  const [quickJumpOpen, setQuickJumpOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const quickJumpRef = useRef<HTMLDivElement>(null);
 
-  const activeCategory = categories.find((cat) => cat.tabs.includes(activeTab))?.id ?? 'people';
-
-  const lastActivePerCategory = useRef<Record<HrCategory, HrTab>>({
-    people: 'employees',
-    compensation: 'payroll',
-  });
-
-  const currentStage = (hrStages.find((s) => s.id === activeTab) ?? hrStages[0])!;
-
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      const activeTag = (document.activeElement?.tagName || '').toLowerCase();
-      if (
-        activeTag === 'input' ||
-        activeTag === 'textarea' ||
-        activeTag === 'select' ||
-        (document.activeElement as HTMLElement)?.isContentEditable
-      ) {
-        return;
+  const handlePrintPayslip = (slip: Payslip) => {
+    printDocument(
+      <PayslipDocument payslip={slip} businessConfig={businessConfig} />,
+      {
+        pageClass: 'print-page-a4',
+        documentTitle: `Payslip_${slip.payslip_number || slip.id}`,
       }
-      const num = parseInt(e.key, 10);
-      if (num >= 1 && num <= 8) {
-        const stage = hrStages.find((s) => s.step === num);
-        if (stage) {
-          e.preventDefault();
-          setActiveTab(stage.id);
-        }
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [setActiveTab, hrStages]);
-
-  useEffect(() => {
-    const cat = categories.find((c) => c.tabs.includes(activeTab))?.id;
-    if (cat) {
-      lastActivePerCategory.current[cat] = activeTab;
-    }
-  }, [activeTab, categories]);
-
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (quickJumpRef.current && !quickJumpRef.current.contains(event.target as Node)) {
-        setQuickJumpOpen(false);
-      }
-    }
-    if (quickJumpOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-      return () => document.removeEventListener('mousedown', handleClickOutside);
-    }
-  }, [quickJumpOpen]);
-
-  const handleSelectCategory = (categoryId: HrCategory) => {
-    if (categoryId === activeCategory) return;
-    const targetTab =
-      lastActivePerCategory.current[categoryId] ??
-      categories.find((cat) => cat.id === categoryId)?.defaultTab ??
-      'payroll';
-    setActiveTab(targetTab);
+    );
   };
 
   // ─────────────────────────────────────────────────────────────────────────────
@@ -1944,6 +1767,118 @@ export const HrWorkspace: React.FC = () => {
   const pieceRateCount = employees.filter((e) => e.employment_type === 'piece_rate').length;
   const salariedCount = employees.filter((e) => e.employment_type !== 'piece_rate').length;
 
+  const categories: WorkspaceCategoryConfig<HrCategory, HrTab>[] = useMemo(
+    () => [
+      {
+        id: 'people',
+        label: t('hr.categories.people.label'),
+        tagline: t('hr.categories.people.tagline'),
+        icon: Users,
+        tabs: ['employees', 'departments', 'performance'],
+        theme: WORKSPACE_THEMES.teal,
+        defaultTab: 'employees',
+      },
+      {
+        id: 'compensation',
+        label: t('hr.categories.compensation.label'),
+        tagline: t('hr.categories.compensation.tagline'),
+        icon: Wallet,
+        tabs: ['payroll', 'attendance', 'leaves', 'salary-structures', 'advances'],
+        theme: WORKSPACE_THEMES.amber,
+        defaultTab: 'payroll',
+      },
+    ],
+    [t]
+  );
+
+  const hrStages: WorkspaceTabConfig<HrCategory, HrTab>[] = useMemo(
+    () => [
+      {
+        id: 'employees',
+        step: 1,
+        label: t('hr.stages.employees.label'),
+        shortLabel: t('hr.stages.employees.shortLabel'),
+        icon: Users,
+        category: 'people',
+        description: t('hr.stages.employees.description'),
+        count: employees.length,
+      },
+      {
+        id: 'departments',
+        step: 2,
+        label: t('hr.stages.departments.label'),
+        shortLabel: t('hr.stages.departments.shortLabel'),
+        icon: Building2,
+        category: 'people',
+        description: t('hr.stages.departments.description'),
+        count: departments.length,
+      },
+      {
+        id: 'performance',
+        step: 3,
+        label: t('hr.stages.performance.label'),
+        shortLabel: t('hr.stages.performance.shortLabel'),
+        icon: Zap,
+        category: 'people',
+        description: t('hr.stages.performance.description'),
+        count: 4,
+      },
+      {
+        id: 'attendance',
+        step: 4,
+        label: t('hr.stages.attendance.label'),
+        shortLabel: t('hr.stages.attendance.shortLabel'),
+        icon: Clock,
+        category: 'compensation',
+        description: t('hr.stages.attendance.description'),
+        count: attendances.length,
+      },
+      {
+        id: 'leaves',
+        step: 5,
+        label: t('hr.stages.leaves.label'),
+        shortLabel: t('hr.stages.leaves.shortLabel'),
+        icon: CalendarCheck,
+        category: 'compensation',
+        description: t('hr.stages.leaves.description'),
+        count: leaveRequests.length,
+      },
+      {
+        id: 'payroll',
+        step: 6,
+        label: t('hr.stages.payroll.label'),
+        shortLabel: t('hr.stages.payroll.shortLabel'),
+        icon: Wallet,
+        category: 'compensation',
+        description: t('hr.stages.payroll.description'),
+        count: payslips.length,
+      },
+      {
+        id: 'salary-structures',
+        step: 7,
+        label: t('hr.stages.salaryStructures.label'),
+        shortLabel: t('hr.stages.salaryStructures.shortLabel'),
+        icon: DollarSign,
+        category: 'compensation',
+        description: t('hr.stages.salaryStructures.description'),
+        count: 3,
+      },
+      {
+        id: 'advances',
+        step: 8,
+        label: t('hr.stages.advances.label'),
+        shortLabel: t('hr.stages.advances.shortLabel'),
+        icon: CreditCard,
+        category: 'compensation',
+        description: t('hr.stages.advances.description'),
+        count: 3,
+      },
+    ],
+    [t, employees.length, departments.length, attendances.length, leaveRequests.length, payslips.length]
+  );
+
+  const currentStage = hrStages.find((s) => s.id === activeTab) ?? hrStages[0];
+
   return (
     <div className="space-y-6 max-w-7xl mx-auto py-2">
       {/* ─────────────────────────────────────────────────────────────────────────────
@@ -1957,7 +1892,7 @@ export const HrWorkspace: React.FC = () => {
               {t('hr.workspaceTag')}
             </span>
             <span className="text-xs font-semibold text-muted">
-              {t('hr.stageCounter', { step: currentStage.step, total: 8, label: currentStage.label })}
+              {t('hr.stageCounter', { step: currentStage?.step ?? 1, total: 8, label: currentStage?.label ?? '' })}
             </span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-default">
@@ -2138,323 +2073,12 @@ export const HrWorkspace: React.FC = () => {
         </div>
       </div>
 
-      {/* ─────────────────────────────────────────────────────────────────────────────
-          Universal Workforce & HR Quick-Action Ribbon
-          ───────────────────────────────────────────────────────────────────────────── */}
-      <div className="rounded-2xl border border-primary/20 bg-linear-to-r from-primary/5 via-surface to-surface-raised p-3.5 shadow-xs">
-         <div className="space-y-3">
-        <div className="flex items-center justify-between gap-2 px-1">
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-bold uppercase tracking-wider text-muted">
-              {t('hr.pipelineTitle')}
-            </span>
-            <span className="text-[10px] font-mono text-muted bg-surface-sunken px-2 py-0.5 rounded-full border border-default">
-              {t('hr.shortcutHint')}
-            </span>
-          </div>
-          <span className="text-xs font-mono text-muted">
-            {t('hr.stageCounter', { step: currentStage.step, total: 8, label: currentStage.label })}
-          </span>
-        </div>
-
-        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2">
-          {hrStages.map((st) => {
-            const Icon = st.icon;
-            const isActive = activeTab === st.id;
-            return (
-              <button
-                key={st.id}
-                type="button"
-                onClick={() => setActiveTab(st.id)}
-                className={`p-2.5 rounded-xl border text-left transition-all relative cursor-pointer min-w-0 flex flex-col justify-between ${
-                  isActive
-                    ? 'bg-primary text-primary-fg border-primary shadow-sm ring-2 ring-primary/20'
-                    : 'bg-surface hover:bg-surface-sunken border-default text-muted hover:text-default'
-                }`}
-              >
-                <div className="flex items-center justify-between gap-1 mb-1.5 w-full">
-                  <div
-                    className={`size-6 rounded-md flex items-center justify-center shrink-0 ${
-                      isActive ? 'bg-white/20 text-white' : 'bg-surface-sunken text-primary'
-                    }`}
-                  >
-                    <Icon className="size-3.5" />
-                  </div>
-                  <span
-                    className={`text-[10px] font-mono px-1.5 py-0.2 rounded-full shrink-0 font-bold ${
-                      isActive ? 'bg-white/20 text-white' : 'bg-surface-sunken text-muted'
-                    }`}
-                  >
-                    {st.step}
-                  </span>
-                </div>
-                <div className="min-w-0 w-full">
-                  <div className="text-xs font-bold truncate leading-snug">{st.shortLabel}</div>
-                  <div
-                    className={`text-[10px] truncate ${
-                      isActive ? 'text-primary-fg/80' : 'text-muted'
-                    }`}
-                  >
-                    {st.label}
-                  </div>
-                </div>
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Tier 1: Category Pillars */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
-          {categories.map((cat) => {
-            const Icon = cat.icon;
-            const isCatActive = activeCategory === cat.id;
-            const stageRange = cat.id === 'people' ? t('hr.stagesRange', { range: '1-3' }) : t('hr.stagesRange', { range: '4-8' });
-            return (
-              <button
-                key={cat.id}
-                type="button"
-                onClick={() => handleSelectCategory(cat.id)}
-                className={`relative flex items-start gap-3.5 p-3.5 rounded-2xl border text-left transition-all duration-200 cursor-pointer ${
-                  isCatActive
-                    ? 'bg-surface border-primary/40 shadow-sm ring-1 ring-primary/20'
-                    : 'bg-surface-sunken/40 border-default hover:bg-surface hover:border-default/80 text-muted'
-                }`}
-              >
-                <div
-                  className={`size-10 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
-                    isCatActive
-                      ? 'bg-primary text-primary-fg shadow-2xs'
-                      : 'bg-surface border border-default text-muted group-hover:text-default'
-                  }`}
-                >
-                  <Icon className="size-5" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center justify-between gap-2">
-                    <span
-                      className={`text-sm font-bold tracking-tight truncate ${
-                        isCatActive ? 'text-default' : 'text-default/80'
-                      }`}
-                    >
-                      {cat.label}
-                    </span>
-                    <span
-                      className={`text-[10px] font-mono px-2 py-0.5 rounded-full border ${
-                        isCatActive
-                          ? 'bg-primary-subtle text-primary border-primary/20 font-bold'
-                          : 'bg-surface text-muted border-default'
-                      }`}
-                    >
-                      {stageRange}
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-muted truncate mt-0.5">{cat.tagline}</p>
-                </div>
-                {isCatActive && (
-                  <div className="absolute bottom-0 left-6 right-6 h-0.5 bg-primary rounded-t-full" />
-                )}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Tier 2: Contextual Sub-Navigation Bar & Quick Jump Popover */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-2 bg-surface rounded-2xl border border-default shadow-2xs">
-          {/* Sub-Tabs for Active Category */}
-          <div className="flex items-center gap-1.5 overflow-x-auto py-0.5 px-1 scrollbar-none min-w-0">
-            {hrStages
-              .filter((st) => st.category === activeCategory)
-              .map((st) => {
-                const Icon = st.icon;
-                const isActive = activeTab === st.id;
-                const count =
-                  st.id === 'payroll' ? payslips.length :
-                  st.id === 'attendance' ? attendances.length :
-                  st.id === 'leaves' ? leaveRequests.length :
-                  st.id === 'employees' ? employees.length :
-                  st.id === 'departments' ? departments.length :
-                  st.id === 'performance' ? 4 :
-                  3;
-
-                return (
-                  <button
-                    key={st.id}
-                    type="button"
-                    onClick={() => setActiveTab(st.id)}
-                    className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-medium whitespace-nowrap transition-all duration-150 cursor-pointer min-w-0 ${
-                      isActive
-                        ? 'bg-primary text-primary-fg font-semibold shadow-xs border border-primary'
-                        : 'text-muted hover:text-default hover:bg-surface-sunken border border-transparent'
-                    }`}
-                  >
-                    <Icon className={`size-3.5 shrink-0 ${isActive ? 'text-primary-fg' : 'text-muted'}`} />
-                    <span className="truncate">{st.label}</span>
-                    <span
-                      className={`text-[10px] font-mono px-1.5 py-0.2 rounded-full font-bold shrink-0 ${
-                        isActive ? 'bg-white/20 text-white' : 'bg-primary/10 text-primary'
-                      }`}
-                    >
-                      {t('hr.stageBadge', { step: st.step })}
-                    </span>
-                    <span
-                      className={`text-[10px] font-mono px-1.5 py-0.2 rounded-full shrink-0 ${
-                        isActive ? 'bg-white/20 text-white font-bold' : 'bg-surface-sunken text-muted'
-                      }`}
-                    >
-                      {count}
-                    </span>
-                  </button>
-                );
-              })}
-          </div>
-
-          {/* Quick Jump Dropdown Popover */}
-          <div className="relative shrink-0 sm:border-l sm:border-default sm:pl-3" ref={quickJumpRef}>
-            <button
-              type="button"
-              onClick={() => {
-                setQuickJumpOpen(!quickJumpOpen);
-                setSearchQuery('');
-              }}
-              className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium transition cursor-pointer w-full sm:w-auto justify-between sm:justify-start ${
-                quickJumpOpen
-                  ? 'bg-surface-sunken text-default border border-default'
-                  : 'text-muted hover:text-default hover:bg-surface-sunken/60 border border-transparent'
-              }`}
-              title={t('hr.jumpTitle')}
-            >
-              <SlidersHorizontal className="size-3.5 text-muted" />
-              <span>{t('hr.allViews')}</span>
-              <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-surface-sunken text-muted border border-default">
-                8
-              </span>
-            </button>
-
-            {quickJumpOpen && (
-              <div className="absolute right-0 top-full mt-2 w-80 max-w-[90vw] bg-surface rounded-2xl border border-default shadow-lg p-2.5 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
-                <div className="relative mb-2">
-                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted" />
-                  <input
-                    type="text"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder={t('hr.searchPlaceholder')}
-                    autoFocus
-                    className="w-full pl-8 pr-7 py-1.5 text-xs bg-surface-sunken rounded-lg border border-default focus:border-primary focus:outline-none text-default"
-                  />
-                  {searchQuery && (
-                    <button
-                      onClick={() => setSearchQuery('')}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 text-muted hover:text-default cursor-pointer"
-                    >
-                      <X className="size-3" />
-                    </button>
-                  )}
-                </div>
-
-                <div className="max-h-72 overflow-y-auto space-y-1 pr-1">
-                  {categories.map((cat) => {
-                    const allTabs = [
-                      { id: 'payroll', label: t('hr.stages.payroll.label'), category: 'compensation', icon: Wallet, count: payslips.length },
-                      { id: 'attendance', label: t('hr.stages.attendance.label'), category: 'compensation', icon: Clock, count: attendances.length },
-                      { id: 'leaves', label: t('hr.stages.leaves.label'), category: 'compensation', icon: CalendarCheck, count: leaveRequests.length },
-                      { id: 'salary-structures', label: t('hr.stages.salaryStructures.label'), category: 'compensation', icon: DollarSign, count: 3 },
-                      { id: 'advances', label: t('hr.stages.advances.label'), category: 'compensation', icon: CreditCard, count: 3 },
-                      { id: 'employees', label: t('hr.stages.employees.label'), category: 'people', icon: Users, count: employees.length },
-                      { id: 'departments', label: t('hr.stages.departments.label'), category: 'people', icon: Building2, count: departments.length },
-                      { id: 'performance', label: t('hr.stages.performance.label'), category: 'people', icon: Zap, count: 4 },
-                    ];
-                    const catTabs = allTabs
-                      .filter((tItem) => tItem.category === cat.id)
-                      .filter((tItem) =>
-                        searchQuery
-                          ? tItem.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                            tItem.id.toLowerCase().includes(searchQuery.toLowerCase())
-                          : true
-                      );
-                    if (catTabs.length === 0) return null;
-
-                    return (
-                      <div key={cat.id} className="pt-1.5 first:pt-0">
-                        <div className="px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-muted flex items-center justify-between">
-                          <span>{cat.label}</span>
-                          <span className="font-mono text-[9px]">{catTabs.length}</span>
-                        </div>
-                        <div className="space-y-0.5">
-                          {catTabs.map((tab) => {
-                            const TabIcon = tab.icon;
-                            const isTabActive = activeTab === tab.id;
-                            return (
-                              <button
-                                key={tab.id}
-                                type="button"
-                                onClick={() => {
-                                  setActiveTab(tab.id as HrTab);
-                                  setQuickJumpOpen(false);
-                                }}
-                                className={`w-full flex items-center justify-between px-2.5 py-2 rounded-lg text-xs text-left transition cursor-pointer ${
-                                  isTabActive
-                                    ? 'bg-primary text-primary-fg font-semibold'
-                                    : 'hover:bg-surface-sunken text-default'
-                                }`}
-                              >
-                                <div className="flex items-center gap-2 min-w-0">
-                                  <TabIcon
-                                    className={`size-3.5 shrink-0 ${
-                                      isTabActive ? 'text-primary-fg' : 'text-muted'
-                                    }`}
-                                  />
-                                  <span className="truncate">{tab.label}</span>
-                                </div>
-                                <span
-                                  className={`text-[9px] px-1.5 py-0.5 rounded font-mono shrink-0 ${
-                                    isTabActive
-                                      ? 'bg-primary-fg/20 text-primary-fg'
-                                      : 'bg-surface-sunken text-muted'
-                                  }`}
-                                >
-                                  {tab.count}
-                                </span>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    );
-                  })}
-
-                  {categories.every((cat) => {
-                    const allTabs = [
-                      { id: 'payroll', label: t('hr.stages.payroll.label'), category: 'compensation' },
-                      { id: 'attendance', label: t('hr.stages.attendance.label'), category: 'compensation' },
-                      { id: 'leaves', label: t('hr.stages.leaves.label'), category: 'compensation' },
-                      { id: 'salary-structures', label: t('hr.stages.salaryStructures.label'), category: 'compensation' },
-                      { id: 'advances', label: t('hr.stages.advances.label'), category: 'compensation' },
-                      { id: 'employees', label: t('hr.stages.employees.label'), category: 'people' },
-                      { id: 'departments', label: t('hr.stages.departments.label'), category: 'people' },
-                      { id: 'performance', label: t('hr.stages.performance.label'), category: 'people' },
-                    ];
-                    const catTabs = allTabs
-                      .filter((tItem) => tItem.category === cat.id)
-                      .filter((tItem) =>
-                        searchQuery
-                          ? tItem.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                            tItem.id.toLowerCase().includes(searchQuery.toLowerCase())
-                          : true
-                      );
-                    return catTabs.length === 0;
-                  }) && (
-                    <div className="py-6 text-center text-xs text-muted">
-                      {t('hr.noViewsFound', { query: searchQuery })}
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-        </div>
-      </div>
+      <WorkspaceNavigationHub<HrCategory, HrTab>
+        categories={categories}
+        tabs={hrStages}
+        activeTab={activeTab}
+        onSelectTab={setActiveTab}
+      />
 
       {/* ─────────────────────────────────────────────────────────────────────────────
           Tab 1: Payroll Runs & Payslips

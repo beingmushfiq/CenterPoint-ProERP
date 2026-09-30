@@ -17,7 +17,7 @@ import { api } from '../../../lib/api/client';
 import { useAuthStore } from '../../../lib/auth/authStore';
 import { ConfirmDialog } from '../../../components/ui/Modal';
 import { useCurrency } from '../../../hooks/useCurrency';
-import { KPICard } from '../../../components/ui/KPICard';
+import { DashboardKpiCard } from '../../../pages/dashboard/components/DashboardKpiCard';
 import type {
   IncentivePolicy,
   IncentiveCalculation,
@@ -349,30 +349,40 @@ export function IncentivesSection() {
 
           {/* KPI Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <KPICard
+            <DashboardKpiCard
               label="Calculated Pool"
               value={formatCurrency(totalCalculated)}
-              subValue={`Estimated for ${selectedMonth}`}
-              icon={<Award className="w-4 h-4 text-warning" />}
+              sub={`Estimated for ${selectedMonth}`}
+              icon={<Award className="size-4" />}
+              theme="amber"
+              badge={{ text: selectedMonth, variant: 'neutral' }}
             />
-            <KPICard
+            <DashboardKpiCard
               label="Approved Payout"
               value={formatCurrency(totalApproved)}
-              subValue="Authorized for payroll clearance"
-              alert="success"
-              icon={<FileCheck className="w-4 h-4 text-emerald-500" />}
+              sub="Authorized for payroll clearance"
+              icon={<FileCheck className="size-4" />}
+              theme="emerald"
+              badge={{ text: 'Payroll', variant: 'positive' }}
             />
-            <KPICard
+            <DashboardKpiCard
               label="Eligible Salesmen"
               value={calculations.filter((c) => parseFloat(String(c.calculated_amount)) > 0).length}
-              subValue="Met target quota threshold"
-              icon={<Percent className="w-4 h-4 text-primary" />}
+              sub="Met target quota threshold"
+              icon={<Percent className="size-4" />}
+              theme="purple"
+              badge={{ text: 'Qualifiers', variant: 'info' }}
             />
-            <KPICard
+            <DashboardKpiCard
               label="Approval Status"
               value={`${approvedCount} / ${calculations.length}`}
-              subValue="Calculations authorized"
-              icon={<CheckCircle2 className="w-4 h-4 text-info" />}
+              sub="Calculations authorized"
+              icon={<CheckCircle2 className="size-4" />}
+              theme="blue"
+              badge={{
+                text: approvedCount === calculations.length && calculations.length > 0 ? 'All Cleared' : 'In Review',
+                variant: approvedCount === calculations.length && calculations.length > 0 ? 'positive' : 'warning',
+              }}
             />
           </div>
 

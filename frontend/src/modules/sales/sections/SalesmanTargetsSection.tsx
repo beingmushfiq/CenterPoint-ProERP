@@ -24,7 +24,7 @@ import {
 import { api } from '../../../lib/api/client';
 import { useCurrency } from '../../../hooks/useCurrency';
 import { useAuthStore } from '../../../lib/auth/authStore';
-import { KPICard } from '../../../components/ui/KPICard';
+import { DashboardKpiCard } from '../../../pages/dashboard/components/DashboardKpiCard';
 import { Badge } from '../../../components/ui/Badge';
 import { cn } from '../../../lib/utils';
 import { UniversalImportModal } from '../../../components/import/UniversalImportModal';
@@ -441,30 +441,40 @@ export function SalesmanTargetsSection() {
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <KPICard
+        <DashboardKpiCard
           label="Total Monthly Quota"
           value={formatCurrency(totalTargetAmt)}
-          subValue={`Target commitment for ${selectedMonth}`}
-          icon={<Target className="w-4 h-4 text-primary" />}
+          sub={`Target commitment for ${selectedMonth}`}
+          icon={<Target className="size-4" />}
+          theme="purple"
+          badge={{ text: selectedMonth, variant: 'neutral' }}
         />
-        <KPICard
+        <DashboardKpiCard
           label="Total Revenue Achieved"
           value={formatCurrency(totalAchievedAmt)}
-          subValue={`${overallPct.toFixed(1)}% of team target`}
-          alert={overallPct >= 100 ? 'success' : overallPct >= 80 ? 'warning' : 'danger'}
-          icon={<TrendingUp className="w-4 h-4 text-emerald-500" />}
+          sub={`${overallPct.toFixed(1)}% of team target`}
+          icon={<TrendingUp className="size-4" />}
+          theme="emerald"
+          badge={{
+            text: `${overallPct.toFixed(0)}% Quota`,
+            variant: overallPct >= 100 ? 'positive' : overallPct >= 80 ? 'warning' : 'negative',
+          }}
         />
-        <KPICard
+        <DashboardKpiCard
           label="Remaining Deficit"
           value={formatCurrency(pendingAmt)}
-          subValue="Revenue pending to achieve"
-          icon={<DollarSign className="w-4 h-4 text-warning" />}
+          sub="Revenue pending to achieve"
+          icon={<DollarSign className="size-4" />}
+          theme="amber"
+          badge={{ text: pendingAmt > 0 ? 'Gap' : 'Cleared', variant: pendingAmt > 0 ? 'warning' : 'positive' }}
         />
-        <KPICard
+        <DashboardKpiCard
           label="Active Target Count"
           value={targets.length}
-          subValue="Sales personnel assigned"
-          icon={<Users className="w-4 h-4 text-info" />}
+          sub="Sales personnel assigned"
+          icon={<Users className="size-4" />}
+          theme="blue"
+          badge={{ text: 'Reps', variant: 'info' }}
         />
       </div>
 

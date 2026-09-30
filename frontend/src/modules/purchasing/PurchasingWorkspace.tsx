@@ -7,7 +7,6 @@ import {
   Receipt,
   ShoppingCart,
   Undo2,
-  ChevronRight,
   Search,
   SlidersHorizontal,
   X,
@@ -15,7 +14,6 @@ import {
   ArrowRight,
   Zap,
   AlertTriangle,
-  CheckCircle2,
   Building2,
 } from 'lucide-react';
 import { api } from '../../lib/api/client';
@@ -33,32 +31,22 @@ import type { PurchaseOrder } from '../../types/api/purchasing';
 import { FastPoModal } from './modals/FastPoModal';
 import { FastGrnModal } from './modals/FastGrnModal';
 import { FastBillModal } from './modals/FastBillModal';
+import {
+  WorkspaceNavigationHub,
+  WORKSPACE_THEMES,
+  type WorkspaceCategoryConfig,
+  type WorkspaceTabConfig,
+} from '../../components/common/WorkspaceNavigationHub';
 
 export type PurchasingTab = 'suppliers' | 'requisitions' | 'orders' | 'receipts' | 'bills' | 'returns';
-export type PurchasingCategory = 'sourcing' | 'fulfillment' | 'returns';
+export type PurchasingCategory = 'sourcing' | 'fulfillment';
+
+export interface PurchasingTabConfig extends WorkspaceTabConfig<PurchasingCategory, PurchasingTab> {
+  step?: number;
+  highlights?: string[];
+}
 
 const VALID_TABS: readonly PurchasingTab[] = ['suppliers', 'requisitions', 'orders', 'receipts', 'bills', 'returns'];
-
-interface TabConfig {
-  id: PurchasingTab;
-  category: PurchasingCategory;
-  label: string;
-  shortLabel: string;
-  step?: number;
-  badge?: string;
-  icon: typeof ShoppingCart;
-  description: string;
-  highlights: string[];
-}
-
-interface CategoryConfig {
-  id: PurchasingCategory;
-  label: string;
-  shortcut: string;
-  icon: typeof ShoppingCart;
-  description: string;
-  defaultTab: PurchasingTab;
-}
 
 export default function PurchasingWorkspace() {
   const { t } = useTranslation(['purchasing', 'common']);
@@ -88,34 +76,36 @@ export default function PurchasingWorkspace() {
     staleTime: 60_000,
   });
 
-  const categories: CategoryConfig[] = useMemo(() => [
+  const categories: WorkspaceCategoryConfig<PurchasingCategory, PurchasingTab>[] = useMemo(() => [
     {
       id: 'sourcing',
-      label: t('purchasing.catSourcingLabel'),
+      label: t('purchasing.catSourcingLabel', 'Procurement & Sourcing'),
+      tagline: t(
+        'purchasing.catSourcingDesc',
+        'Vendor directory, internal requisitions & supplier purchase orders'
+      ),
       shortcut: '1',
       icon: ShoppingCart,
-      description: t('purchasing.catSourcingDesc'),
+      tabs: ['suppliers', 'requisitions', 'orders'],
       defaultTab: 'orders',
+      theme: WORKSPACE_THEMES.indigo,
     },
     {
       id: 'fulfillment',
-      label: t('purchasing.catFulfillmentLabel'),
+      label: t('purchasing.catFulfillmentLabel', 'Receipts & Vendor Bills'),
+      tagline: t(
+        'purchasing.catFulfillmentDesc',
+        'Warehouse gate inwarding, 3-way matching bills & debit notes'
+      ),
       shortcut: '2',
       icon: PackageCheck,
-      description: t('purchasing.catFulfillmentDesc'),
+      tabs: ['receipts', 'bills', 'returns'],
       defaultTab: 'receipts',
-    },
-    {
-      id: 'returns',
-      label: t('purchasing.catReturnsLabel'),
-      shortcut: '3',
-      icon: Undo2,
-      description: t('purchasing.catReturnsDesc'),
-      defaultTab: 'returns',
+      theme: WORKSPACE_THEMES.emerald,
     },
   ], [t]);
 
-  const tabs: TabConfig[] = useMemo(() => [
+  const tabs: PurchasingTabConfig[] = useMemo(() => [
     {
       id: 'suppliers',
       category: 'sourcing',
@@ -167,7 +157,7 @@ export default function PurchasingWorkspace() {
     },
     {
       id: 'returns',
-      category: 'returns',
+      category: 'fulfillment',
       label: t('purchasing.tabReturnsLabel'),
       shortLabel: t('purchasing.tabReturnsShort'),
       step: 5,
@@ -189,41 +179,6 @@ export default function PurchasingWorkspace() {
   };
 
   const currentTab = tabs.find((t) => t.id === activeTab) ?? tabs[0]!;
-  const activeCategory = currentTab.category;
-
-  // Global Keyboard Shortcuts (1, 2, 3 to switch domain pillars)
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Avoid hotkeys when typing in form inputs
-      if (
-        e.target instanceof HTMLInputElement ||
-        e.target instanceof HTMLTextAreaElement ||
-        e.target instanceof HTMLSelectElement
-      ) {
-        return;
-      }
-
-      if (e.key === '1') {
-        e.preventDefault();
-        setActiveTab('requisitions');
-      } else if (e.key === '2') {
-        e.preventDefault();
-        setActiveTab('orders');
-      } else if (e.key === '3') {
-        e.preventDefault();
-        setActiveTab('receipts');
-      } else if (e.key === '4') {
-        e.preventDefault();
-        setActiveTab('bills');
-      } else if (e.key === '5') {
-        e.preventDefault();
-        setActiveTab('returns');
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [setActiveTab]);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -242,7 +197,7 @@ export default function PurchasingWorkspace() {
         (t) =>
           t.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
           t.shortLabel.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          t.description.toLowerCase().includes(searchQuery.toLowerCase())
+          (t.description?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false)
       )
     : tabs;
 
@@ -471,316 +426,13 @@ export default function PurchasingWorkspace() {
         </div>
       )}
 
-      {/* 5-Stage Procurement Pipeline Execution Stepper */}
-      <div className="bg-surface rounded-2xl border border-default p-4 shadow-xs">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
-          <div className="flex items-center gap-2">
-            <div className="size-6 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center text-primary text-xs font-bold">
-              5
-            </div>
-            <div>
-              <span className="text-xs font-bold text-default">{t('purchasing.p2pPipelineTitle')}</span>
-              <span className="text-[11px] text-muted ml-2 hidden sm:inline">
-                Requisition (1) &rarr; PO (2) &rarr; GRN (3) &rarr; Bill (4) &rarr; Paid (5)
-              </span>
-            </div>
-          </div>
-          <span className="text-[11px] font-mono font-medium text-muted">
-            {t('purchasing.pipelineStageSwitch', { step: currentTab.step })}
-          </span>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2">
-          {tabs.map((tab, idx) => {
-            const isTabActive = activeTab === tab.id;
-            const TabIcon = tab.icon;
-            const isPast = (currentTab.step ?? 1) > (tab.step ?? 1);
-            return (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => setActiveTab(tab.id)}
-                className={cn(
-                  'group relative flex items-center gap-2.5 p-2.5 rounded-xl border text-left transition-all cursor-pointer min-w-0',
-                  isTabActive
-                    ? 'bg-primary/10 border-primary text-primary shadow-xs ring-1 ring-primary/20'
-                    : isPast
-                    ? 'bg-emerald-500/5 hover:bg-emerald-500/10 border-emerald-500/20 text-default'
-                    : 'bg-surface-sunken hover:bg-surface border-default text-muted hover:text-default'
-                )}
-              >
-                <div
-                  className={cn(
-                    'size-6 rounded-full flex items-center justify-center text-[10px] font-bold font-mono shrink-0 transition-colors',
-                    isTabActive
-                      ? 'bg-primary text-primary-fg'
-                      : isPast
-                      ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
-                      : 'bg-surface border border-default text-muted group-hover:text-default'
-                  )}
-                >
-                  {isPast ? <CheckCircle2 className="size-3.5 text-emerald-500" /> : tab.step}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="text-xs font-semibold truncate flex items-center gap-1.5">
-                    <TabIcon className="size-3.5 shrink-0 opacity-70" />
-                    <span className="truncate">{tab.shortLabel}</span>
-                  </div>
-                </div>
-                {idx < tabs.length - 1 && (
-                  <ChevronRight className="size-3 text-muted/40 hidden lg:block shrink-0 -mr-1" />
-                )}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Primary 3 Command Pillars (with Embedded Direct Child Pills) */}
-      <div
-        role="tablist"
-        aria-label="Procurement Operational Domains"
-        className="grid grid-cols-1 lg:grid-cols-3 gap-3"
-      >
-        {categories.map((cat) => {
-          const isCatActive = activeCategory === cat.id;
-          const Icon = cat.icon;
-          const childTabs = tabs.filter((t) => t.category === cat.id);
-
-          return (
-            <div
-              key={cat.id}
-              role="tab"
-              aria-selected={isCatActive}
-              tabIndex={isCatActive ? 0 : -1}
-              onClick={() => setActiveTab(cat.defaultTab)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
-                  setActiveTab(cat.defaultTab);
-                }
-              }}
-              className={cn(
-                'group relative flex flex-col justify-between p-4 rounded-2xl border text-left transition-all duration-200 cursor-pointer shadow-2xs',
-                isCatActive
-                  ? 'bg-surface border-primary shadow-md ring-2 ring-primary/10'
-                  : 'bg-surface hover:bg-surface-sunken border-default hover:border-default/80'
-              )}
-            >
-              {/* Pillar Top Header */}
-              <div className="flex items-start gap-3 w-full">
-                <div
-                  className={cn(
-                    'size-10 rounded-xl flex items-center justify-center shrink-0 transition-transform group-hover:scale-105 shadow-2xs',
-                    isCatActive
-                      ? 'bg-primary text-primary-fg shadow-sm'
-                      : 'bg-surface-sunken border border-default text-muted group-hover:text-default'
-                  )}
-                >
-                  <Icon className={cn('size-5 shrink-0', isCatActive ? 'text-primary-fg' : 'text-muted group-hover:text-default')} />
-                </div>
-
-                <div className="min-w-0 flex-1 space-y-0.5">
-                  <div className="flex items-center justify-between gap-1.5">
-                    <div className="flex items-center gap-1.5 min-w-0">
-                      <span
-                        className={cn(
-                          'text-xs font-bold transition-colors truncate',
-                          isCatActive ? 'text-default' : 'text-default/90 group-hover:text-default'
-                        )}
-                      >
-                        {cat.label}
-                      </span>
-                      <span className="text-[10px] font-mono text-muted/70 font-semibold px-1 py-0.2 rounded bg-surface-sunken border border-default/50 select-none">
-                        [{cat.shortcut}]
-                      </span>
-                    </div>
-
-                    <span
-                      className={cn(
-                        'text-[10px] font-mono px-2 py-0.5 rounded-full font-bold border shrink-0',
-                        isCatActive
-                          ? 'bg-primary/10 text-primary border-primary/20'
-                          : 'bg-surface-sunken text-muted border-default'
-                      )}
-                    >
-                      {childTabs.length === 1 ? t('purchasing.viewCount') : t('purchasing.viewsCount', { count: childTabs.length })}
-                    </span>
-                  </div>
-
-                  <p className="text-[11px] text-muted line-clamp-2 leading-relaxed">
-                    {cat.description}
-                  </p>
-                </div>
-              </div>
-
-              {/* In-Pillar Quick Navigation Pills (100% Zero Concealed Views) */}
-              <div className="mt-3.5 pt-3 border-t border-default/60 flex flex-wrap items-center gap-1.5">
-                {childTabs.map((subTab) => {
-                  const isCurrent = activeTab === subTab.id;
-                  const SubIcon = subTab.icon;
-                  return (
-                    <button
-                      key={subTab.id}
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setActiveTab(subTab.id);
-                      }}
-                      className={cn(
-                        'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all cursor-pointer',
-                        isCurrent
-                          ? 'bg-primary text-primary-fg font-semibold shadow-xs ring-1 ring-primary'
-                          : 'bg-surface-sunken text-muted hover:text-default hover:bg-surface border border-default/70'
-                      )}
-                      title={`Open ${subTab.label}`}
-                    >
-                      {subTab.step && (
-                        <span className={cn('text-[9px] font-mono font-bold', isCurrent ? 'text-primary-fg' : 'text-primary')}>
-                          {t('purchasing.stageLabel', { step: subTab.step })}
-                        </span>
-                      )}
-                      <SubIcon className={cn('size-3', isCurrent ? 'text-primary-fg' : 'text-muted')} />
-                      <span>{subTab.shortLabel}</span>
-                      {isCurrent && <span className="size-1.5 rounded-full bg-white animate-pulse" />}
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* Active Indicator Bar */}
-              {isCatActive && (
-                <div className="absolute bottom-0 left-4 right-4 h-0.5 bg-primary rounded-full" />
-              )}
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Master Sequential Navigation Ribbon (All 5 Stages Visible Simultaneously) */}
-      <div className="bg-surface-sunken rounded-2xl border border-default p-2 shadow-2xs">
-        <div className="flex items-center justify-between px-2 pb-1.5 mb-1 text-[11px] font-semibold text-muted border-b border-default/50">
-          <div className="flex items-center gap-2">
-            <Zap className="size-3.5 text-primary" />
-            <span>{t('purchasing.p2pSequentialRibbon')}</span>
-          </div>
-          <span className="text-[10px] font-mono text-muted/70">
-            {t('purchasing.activeRibbonLabel')} <strong className="text-default">{currentTab?.label}</strong>
-          </span>
-        </div>
-
-        <nav
-          className="flex flex-wrap items-center gap-2"
-          role="tablist"
-          aria-label="All 5 Procurement Stages"
-        >
-          {/* Cluster 1: Upstream Sourcing */}
-          <div className="flex items-center gap-1.5 bg-surface/60 p-1 rounded-xl border border-default/40">
-            <span className="text-[10px] font-mono uppercase font-bold text-muted px-2 py-0.5 select-none">
-              {t('purchasing.clusterSourcing')}
-            </span>
-            {tabs.filter((t) => t.category === 'sourcing').map((tab) => {
-              const Icon = tab.icon;
-              const isActive = activeTab === tab.id;
-              return (
-                <button
-                  key={tab.id}
-                  role="tab"
-                  aria-selected={isActive}
-                  type="button"
-                  onClick={() => setActiveTab(tab.id)}
-                  className={cn(
-                    'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer',
-                    isActive
-                      ? 'bg-primary text-primary-fg shadow-xs'
-                      : 'text-muted hover:text-default hover:bg-surface border border-transparent'
-                  )}
-                >
-                  {tab.step && (
-                    <span className={cn('text-[10px] font-mono font-bold px-1 rounded', isActive ? 'bg-primary-fg/20 text-primary-fg' : 'bg-surface text-muted')}>
-                      {tab.step}
-                    </span>
-                  )}
-                  <Icon className={cn('size-3.5', isActive ? 'text-primary-fg' : 'text-muted')} />
-                  <span>{tab.shortLabel}</span>
-                </button>
-              );
-            })}
-          </div>
-
-          <ChevronRight className="size-3.5 text-muted/40 shrink-0 hidden sm:block" />
-
-          {/* Cluster 2: Inbound Gate & AP Settlement */}
-          <div className="flex items-center gap-1.5 bg-surface/60 p-1 rounded-xl border border-default/40">
-            <span className="text-[10px] font-mono uppercase font-bold text-muted px-2 py-0.5 select-none">
-              {t('purchasing.clusterSettlement')}
-            </span>
-            {tabs.filter((t) => t.category === 'fulfillment').map((tab) => {
-              const Icon = tab.icon;
-              const isActive = activeTab === tab.id;
-              return (
-                <button
-                  key={tab.id}
-                  role="tab"
-                  aria-selected={isActive}
-                  type="button"
-                  onClick={() => setActiveTab(tab.id)}
-                  className={cn(
-                    'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer',
-                    isActive
-                      ? 'bg-primary text-primary-fg shadow-xs'
-                      : 'text-muted hover:text-default hover:bg-surface border border-transparent'
-                  )}
-                >
-                  {tab.step && (
-                    <span className={cn('text-[10px] font-mono font-bold px-1 rounded', isActive ? 'bg-primary-fg/20 text-primary-fg' : 'bg-surface text-muted')}>
-                      {tab.step}
-                    </span>
-                  )}
-                  <Icon className={cn('size-3.5', isActive ? 'text-primary-fg' : 'text-muted')} />
-                  <span>{tab.shortLabel}</span>
-                </button>
-              );
-            })}
-          </div>
-
-          <div className="h-5 w-px bg-default hidden sm:block" />
-
-          {/* Cluster 3: Reversals & Debit Notes */}
-          <div className="flex items-center gap-1.5 bg-surface/60 p-1 rounded-xl border border-default/40">
-            <span className="text-[10px] font-mono uppercase font-bold text-muted px-2 py-0.5 select-none">
-              {t('purchasing.clusterClaims')}
-            </span>
-            {tabs.filter((t) => t.category === 'returns').map((tab) => {
-              const Icon = tab.icon;
-              const isActive = activeTab === tab.id;
-              return (
-                <button
-                  key={tab.id}
-                  role="tab"
-                  aria-selected={isActive}
-                  type="button"
-                  onClick={() => setActiveTab(tab.id)}
-                  className={cn(
-                    'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer',
-                    isActive
-                      ? 'bg-primary text-primary-fg shadow-xs'
-                      : 'text-muted hover:text-default hover:bg-surface border border-transparent'
-                  )}
-                >
-                  <Icon className={cn('size-3.5', isActive ? 'text-primary-fg' : 'text-muted')} />
-                  <span>{tab.shortLabel}</span>
-                  {tab.badge && (
-                    <span className={cn('text-[9px] font-mono px-1 rounded', isActive ? 'bg-primary-fg/20 text-primary-fg' : 'bg-surface-sunken text-muted')}>
-                      {tab.badge}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        </nav>
-      </div>
+      {/* 2-Tier Universal Navigation Hub */}
+      <WorkspaceNavigationHub<PurchasingCategory, PurchasingTab>
+        categories={categories}
+        tabs={tabs}
+        activeTab={activeTab}
+        onSelectTab={setActiveTab}
+      />
 
       {/* Capabilities & P2P Guide Modal */}
       <Modal
@@ -828,7 +480,7 @@ export default function PurchasingWorkspace() {
                       {tab.description}
                     </p>
                     <div className="flex flex-wrap gap-1 mb-3">
-                      {tab.highlights.map((h, i) => (
+                      {tab.highlights?.map((h, i) => (
                         <span
                           key={i}
                           className="text-[10px] px-2 py-0.5 rounded-md bg-surface-sunken text-muted border border-default/50"

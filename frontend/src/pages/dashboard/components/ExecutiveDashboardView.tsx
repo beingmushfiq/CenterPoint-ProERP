@@ -313,6 +313,52 @@ export const ExecutiveDashboardView: React.FC<ExecutiveDashboardViewProps> = ({
     return REVENUE_DATA;
   }, [chartPeriod, metrics, trends, customRangeLabel]);
 
+  // Synchronized period summary computed from the active time parameter
+  const periodSummary = useMemo(() => {
+    const totalRev = chartData.reduce((acc, d) => acc + (d.revenue || 0), 0);
+    const totalProd = chartData.reduce((acc, d) => acc + (d.production || 0), 0);
+    const count = Math.max(chartData.length, 1);
+    const avgRev = Math.round(totalRev / count);
+
+    let peak = chartData[0] || { day: '—', revenue: 0, production: 0 };
+    for (const pt of chartData) {
+      if ((pt.revenue || 0) > (peak.revenue || 0)) {
+        peak = pt;
+      }
+    }
+
+    const periodLabelMap: Record<ChartRange, string> = {
+      today: "Today's",
+      yesterday: "Yesterday's",
+      '7d': '7-Day',
+      '30d': '30-Day',
+      '90d': '90-Day',
+      year: 'Annual',
+      custom: customRangeLabel ? `Custom (${customRangeLabel})` : 'Custom Range',
+    };
+
+    const intervalUnitMap: Record<ChartRange, string> = {
+      today: '/hr',
+      yesterday: '/hr',
+      '7d': '/day',
+      '30d': '/wk',
+      '90d': '/wk',
+      year: '/mo',
+      custom: '/pt',
+    };
+
+    return {
+      periodLabel: periodLabelMap[chartPeriod] || 'Selected',
+      intervalUnit: intervalUnitMap[chartPeriod] || '/day',
+      totalRevenue: totalRev,
+      totalProduction: totalProd,
+      avgRevenue: avgRev,
+      peakDay: peak.day || '—',
+      peakRevenue: peak.revenue || 0,
+      hasData: totalRev > 0 || totalProd > 0,
+    };
+  }, [chartData, chartPeriod, customRangeLabel]);
+
   // Multi-series ApexCharts definition
   const apexSeries = useMemo(() => {
     const series: Array<{ name: string; type: string; data: number[] }> = [
@@ -419,6 +465,12 @@ export const ExecutiveDashboardView: React.FC<ExecutiveDashboardViewProps> = ({
         borderColor: 'rgba(156, 163, 175, 0.15)',
         strokeDashArray: 4,
         yaxis: { lines: { show: true } },
+        padding: {
+          top: 10,
+          right: 8,
+          bottom: 0,
+          left: 10,
+        },
       },
     };
   }, [chartData, showProductionOverlay, formatCurrency]);
@@ -561,13 +613,94 @@ export const ExecutiveDashboardView: React.FC<ExecutiveDashboardViewProps> = ({
             </div>
           </div>
 
-          {/* Interactive Multi-Series ApexChart */}
-          <div className="flex-1 min-h-55 w-full">
+          {/* Synchronized Period Metrics Summary Strip — Colorful Themed Cards */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+            {/* 1. Revenue Card — Indigo/Blue Gradient */}
+            <div className="relative overflow-hidden rounded-xl border border-indigo-500/25 bg-gradient-to-br from-indigo-500/10 via-indigo-500/[0.04] to-blue-500/10 dark:from-indigo-950/40 dark:via-surface dark:to-blue-950/30 p-3 shadow-xs hover:border-indigo-500/40 transition-all">
+              <span className="absolute inset-x-0 top-0 h-[2.5px] bg-gradient-to-r from-blue-500 via-indigo-500 to-indigo-600" />
+              <div className="flex items-center gap-1.5 mb-1">
+                <span className="size-4.5 rounded-md bg-linear-to-br from-blue-600 to-indigo-600 text-white flex items-center justify-center shadow-xs text-[10px] font-bold shrink-0">
+                  {currencySymbol}
+                </span>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-700 dark:text-indigo-300 truncate">
+                  {periodSummary.periodLabel} Rev
+                </span>
+              </div>
+              <div className="text-base font-extrabold font-mono text-indigo-950 dark:text-indigo-100 tracking-tight">
+                {formatCurrency(periodSummary.totalRevenue)}
+              </div>
+              <p className="text-[10px] font-medium text-indigo-600 dark:text-indigo-400 truncate mt-0.5">
+                Avg {formatCurrency(periodSummary.avgRevenue)}{periodSummary.intervalUnit}
+              </p>
+            </div>
+
+            {/* 2. Factory Output Card — Emerald/Teal Gradient */}
+            <div className="relative overflow-hidden rounded-xl border border-emerald-500/25 bg-gradient-to-br from-emerald-500/10 via-emerald-500/[0.04] to-teal-500/10 dark:from-emerald-950/40 dark:via-surface dark:to-teal-950/30 p-3 shadow-xs hover:border-emerald-500/40 transition-all">
+              <span className="absolute inset-x-0 top-0 h-[2.5px] bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-600" />
+              <div className="flex items-center gap-1.5 mb-1">
+                <span className="size-4.5 rounded-md bg-linear-to-br from-emerald-500 to-teal-600 text-white flex items-center justify-center shadow-xs shrink-0">
+                  <Factory className="size-2.5" />
+                </span>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-300 truncate">
+                  Factory Output
+                </span>
+              </div>
+              <div className="text-base font-extrabold font-mono text-emerald-950 dark:text-emerald-100 tracking-tight">
+                {periodSummary.totalProduction.toLocaleString()}{' '}
+                <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">pcs</span>
+              </div>
+              <p className="text-[10px] font-medium text-emerald-600 dark:text-emerald-400 truncate mt-0.5">
+                {chartPeriod === 'today' ? 'Hourly pacing' : 'Aggregated units'}
+              </p>
+            </div>
+
+            {/* 3. Peak Velocity Card — Amber/Orange Gradient */}
+            <div className="relative overflow-hidden rounded-xl border border-amber-500/25 bg-gradient-to-br from-amber-500/10 via-orange-500/[0.04] to-rose-500/10 dark:from-amber-950/40 dark:via-surface dark:to-rose-950/30 p-3 shadow-xs hover:border-amber-500/40 transition-all">
+              <span className="absolute inset-x-0 top-0 h-[2.5px] bg-gradient-to-r from-amber-500 via-orange-500 to-rose-600" />
+              <div className="flex items-center gap-1.5 mb-1">
+                <span className="size-4.5 rounded-md bg-linear-to-br from-amber-500 to-orange-600 text-white flex items-center justify-center shadow-xs shrink-0">
+                  <TrendingUp className="size-2.5" />
+                </span>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-amber-700 dark:text-amber-300 truncate">
+                  Peak Velocity
+                </span>
+              </div>
+              <div className="text-base font-extrabold font-mono text-amber-950 dark:text-amber-100 tracking-tight truncate">
+                {periodSummary.peakDay}
+              </div>
+              <p className="text-[10px] font-semibold text-amber-600 dark:text-amber-400 truncate mt-0.5">
+                {periodSummary.peakRevenue > 0 ? formatCurrency(periodSummary.peakRevenue) : 'Normal pacing'}
+              </p>
+            </div>
+
+            {/* 4. Window Sync Card — Purple/Violet Gradient */}
+            <div className="relative overflow-hidden rounded-xl border border-purple-500/25 bg-gradient-to-br from-purple-500/10 via-fuchsia-500/[0.04] to-pink-500/10 dark:from-purple-950/40 dark:via-surface dark:to-pink-950/30 p-3 shadow-xs hover:border-purple-500/40 transition-all">
+              <span className="absolute inset-x-0 top-0 h-[2.5px] bg-gradient-to-r from-purple-500 via-fuchsia-500 to-pink-600" />
+              <div className="flex items-center gap-1.5 mb-1">
+                <span className="size-4.5 rounded-md bg-linear-to-br from-purple-500 to-violet-600 text-white flex items-center justify-center shadow-xs shrink-0">
+                  <Clock className="size-2.5" />
+                </span>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-purple-700 dark:text-purple-300 truncate">
+                  Window Sync
+                </span>
+              </div>
+              <div className="text-base font-extrabold font-mono text-purple-950 dark:text-purple-100 tracking-tight uppercase">
+                {chartPeriod}
+              </div>
+              <div className="flex items-center gap-1 text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold mt-0.5">
+                <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+                <span>Live Filtered</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Interactive Multi-Series ApexChart — Balanced to Match Right Column Baseline */}
+          <div className="flex-1 w-full min-h-[290px]">
             <Chart
               options={apexOptions}
               series={apexSeries}
               type="area"
-              height={220}
+              height={290}
             />
           </div>
 

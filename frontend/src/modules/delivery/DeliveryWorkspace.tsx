@@ -18,7 +18,19 @@ import { api } from '../../lib/api/client';
 import { extractList } from '../../lib/api/apiData';
 import { notify } from '../../components/ui/Toast';
 
-type DeliveryTab = 'shipments' | 'run_sheets' | 'providers' | 'cod_reconciliation';
+import {
+  WorkspaceNavigationHub,
+  WORKSPACE_THEMES,
+  type WorkspaceCategoryConfig,
+  type WorkspaceTabConfig,
+} from '../../components/common/WorkspaceNavigationHub';
+
+export type DeliveryCategory = 'dispatch' | 'settlement';
+export type DeliveryTab = 'shipments' | 'run_sheets' | 'providers' | 'cod_reconciliation';
+
+export interface DeliveryTabConfig extends WorkspaceTabConfig<DeliveryCategory, DeliveryTab> {
+  step: number;
+}
 
 export const DeliveryWorkspace: React.FC = () => {
   const { t } = useTranslation();
@@ -629,40 +641,70 @@ export const DeliveryWorkspace: React.FC = () => {
     };
   }, [shipments]);
 
-  const stages = useMemo(
+  const categories: WorkspaceCategoryConfig<DeliveryCategory, DeliveryTab>[] = useMemo(
     () => [
       {
-        id: 'shipments' as const,
+        id: 'dispatch',
+        label: t('logistics.categories.dispatch.label', { defaultValue: 'Dispatch & Fleet Runs' }),
+        tagline: t('logistics.categories.dispatch.tagline', { defaultValue: 'Courier shipments, tracking numbers & daily driver run sheets' }),
+        shortcut: '1',
+        icon: Truck,
+        tabs: ['shipments', 'run_sheets'],
+        defaultTab: 'shipments',
+        theme: WORKSPACE_THEMES.cyan,
+      },
+      {
+        id: 'settlement',
+        label: t('logistics.categories.settlement.label', { defaultValue: 'Gateways & COD Settlement' }),
+        tagline: t('logistics.categories.settlement.tagline', { defaultValue: 'Courier API configurations & cash collection reconciliation' }),
+        shortcut: '2',
+        icon: Banknote,
+        tabs: ['providers', 'cod_reconciliation'],
+        defaultTab: 'providers',
+        theme: WORKSPACE_THEMES.emerald,
+      },
+    ],
+    [t]
+  );
+
+  const stages: DeliveryTabConfig[] = useMemo(
+    () => [
+      {
+        id: 'shipments',
         step: 1,
         label: t('logistics.stages.shipments.label'),
         shortLabel: t('logistics.stages.shipments.shortLabel'),
+        category: 'dispatch',
         icon: Truck,
         count: shipments.length,
         description: t('logistics.stages.shipments.description'),
       },
       {
-        id: 'run_sheets' as const,
+        id: 'run_sheets',
         step: 2,
         label: t('logistics.stages.run_sheets.label'),
         shortLabel: t('logistics.stages.run_sheets.shortLabel'),
+        category: 'dispatch',
         icon: Bike,
         count: runSheets.length,
         description: t('logistics.stages.run_sheets.description'),
       },
       {
-        id: 'providers' as const,
+        id: 'providers',
         step: 3,
         label: t('logistics.stages.providers.label'),
         shortLabel: t('logistics.stages.providers.shortLabel'),
+        category: 'settlement',
         icon: Building2,
         count: providers.length,
         description: t('logistics.stages.providers.description'),
       },
       {
-        id: 'cod_reconciliation' as const,
+        id: 'cod_reconciliation',
         step: 4,
         label: t('logistics.stages.cod_reconciliation.label'),
         shortLabel: t('logistics.stages.cod_reconciliation.shortLabel'),
+        category: 'settlement',
         icon: Banknote,
         count: reconciliations.length,
         description: t('logistics.stages.cod_reconciliation.description'),
@@ -852,59 +894,13 @@ export const DeliveryWorkspace: React.FC = () => {
         )}
       </div>
 
-      {/* 4-Stage Execution Ribbon (Grid with 1..4 shortcuts, non-colliding labels, zero scrollbar) */}
-      <div className="bg-surface rounded-2xl border border-default p-2 shadow-xs">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-          {stages.map((stage) => {
-            const Icon = stage.icon;
-            const isActive = activeTab === stage.id;
-            return (
-              <button
-                key={stage.id}
-                type="button"
-                onClick={() => setActiveTab(stage.id)}
-                className={cn(
-                  'flex items-center gap-2.5 p-2.5 rounded-xl border text-left transition-all cursor-pointer min-w-0',
-                  isActive
-                    ? 'bg-primary text-primary-fg border-primary shadow-sm'
-                    : 'bg-surface hover:bg-surface-sunken border-default/70 hover:border-default text-default'
-                )}
-              >
-                <div
-                  className={cn(
-                    'size-7 rounded-lg flex items-center justify-center shrink-0 font-mono text-xs font-bold transition-colors',
-                    isActive ? 'bg-primary-fg/20 text-primary-fg' : 'bg-surface-sunken text-muted'
-                  )}
-                >
-                  {stage.step}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-1.5">
-                    <Icon className={cn('size-3.5 shrink-0', isActive ? 'text-primary-fg' : 'text-primary')} />
-                    <span className="text-xs font-bold truncate">{stage.shortLabel}</span>
-                    <span
-                      className={cn(
-                        'text-[10px] font-mono px-1.5 py-0.2 rounded-full font-bold ml-auto shrink-0',
-                        isActive ? 'bg-white/20 text-white' : 'bg-surface-sunken text-muted border border-default/50'
-                      )}
-                    >
-                      {stage.count}
-                    </span>
-                  </div>
-                  <p
-                    className={cn(
-                      'text-[10px] truncate mt-0.5',
-                      isActive ? 'text-primary-fg/80' : 'text-muted'
-                    )}
-                  >
-                    {stage.description}
-                  </p>
-                </div>
-              </button>
-            );
-          })}
-        </div>
-      </div>
+      {/* Universal 2-Tier Navigation Hub */}
+      <WorkspaceNavigationHub<DeliveryCategory, DeliveryTab>
+        categories={categories}
+        tabs={stages}
+        activeTab={activeTab}
+        onSelectTab={setActiveTab}
+      />
 
       {/* Tab Panels */}
       {activeTab === 'shipments' && (

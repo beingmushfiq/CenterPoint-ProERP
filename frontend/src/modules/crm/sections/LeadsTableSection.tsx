@@ -10,6 +10,7 @@ import {
   Check,
   ShoppingCart,
   Clock,
+  ChevronDown,
 } from 'lucide-react';
 import type { Lead, LeadStatus } from '../../../types/api/crm';
 import { useCurrency } from '../../../hooks/useCurrency';
@@ -52,6 +53,7 @@ export function LeadsTableSection({
 }: LeadsTableSectionProps) {
   const { formatCurrency } = useCurrency();
   const [activeMenuLeadId, setActiveMenuLeadId] = useState<number | null>(null);
+  const [referenceTime] = useState(() => Date.now());
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -83,14 +85,14 @@ export function LeadsTableSection({
                   className="size-4 rounded border-default text-primary focus:ring-primary/20 cursor-pointer"
                 />
               </th>
-              <th className="px-4 py-3.5">Lead Contact</th>
-              <th className="px-4 py-3.5">Company</th>
-              <th className="px-4 py-3.5">Source</th>
-              <th className="px-4 py-3.5">Est. Deal Value</th>
-              <th className="px-4 py-3.5">Pipeline Stage</th>
-              <th className="px-4 py-3.5">Assigned Rep</th>
-              <th className="px-4 py-3.5">Audit Status</th>
-              <th className="px-4 py-3.5 text-right">Actions</th>
+              <th className="px-4 py-3.5 whitespace-nowrap">Lead Contact</th>
+              <th className="px-4 py-3.5 whitespace-nowrap">Company</th>
+              <th className="px-4 py-3.5 whitespace-nowrap">Source</th>
+              <th className="px-4 py-3.5 whitespace-nowrap">Est. Deal Value</th>
+              <th className="px-4 py-3.5 whitespace-nowrap min-w-[155px]">Pipeline Stage</th>
+              <th className="px-4 py-3.5 whitespace-nowrap">Assigned Rep</th>
+              <th className="px-4 py-3.5 whitespace-nowrap">Audit Status</th>
+              <th className="px-4 py-3.5 text-right whitespace-nowrap">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-default">
@@ -115,7 +117,7 @@ export function LeadsTableSection({
                   }
                   const lastDate = lead.updated_at || lead.created_at;
                   if (!lastDate) return false;
-                  return (Date.now() - new Date(lastDate).getTime()) / (1000 * 60 * 60 * 24) >= 7;
+                  return (referenceTime - new Date(lastDate).getTime()) / (1000 * 60 * 60 * 24) >= 7;
                 })();
 
                 return (
@@ -200,23 +202,33 @@ export function LeadsTableSection({
                     </td>
 
                     {/* Stage Pill */}
-                    <td className="px-4 py-3.5" onClick={(e) => e.stopPropagation()}>
-                      <select
-                        value={lead.stage || lead.status}
-                        onChange={(e) => onStageChange(lead, e.target.value as LeadStatus)}
-                        className={`rounded-full px-2.5 py-1 text-[11px] font-semibold border ${currentStage?.badgeBg} ${currentStage?.tone} bg-surface cursor-pointer focus:outline-none`}
-                      >
-                        {STAGES.map((s) => (
-                          <option key={s.id} value={s.id} className="text-default bg-surface font-normal">
-                            {s.label}
-                          </option>
-                        ))}
-                      </select>
+                    <td className="px-4 py-3.5 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                      <div className="relative inline-flex items-center">
+                        <span className={cn('absolute left-2.5 size-1.5 rounded-full pointer-events-none', currentStage?.dotBg)} />
+                        <select
+                          value={lead.stage || lead.status}
+                          onChange={(e) => onStageChange(lead, e.target.value as LeadStatus)}
+                          className={cn(
+                            'appearance-none pl-6 pr-7 py-1 text-[11px] font-semibold rounded-full border transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/20 shadow-2xs',
+                            currentStage?.badgeBg,
+                            currentStage?.tone,
+                            'bg-surface hover:bg-surface-sunken/60'
+                          )}
+                          title="Change pipeline qualification stage"
+                        >
+                          {STAGES.map((s) => (
+                            <option key={s.id} value={s.id} className="text-default bg-surface font-normal">
+                              {s.label}
+                            </option>
+                          ))}
+                        </select>
+                        <ChevronDown className={cn('pointer-events-none absolute right-2.5 size-3 opacity-60', currentStage?.tone)} />
+                      </div>
                     </td>
 
                     {/* Assigned Rep */}
-                    <td className="px-4 py-3.5 text-muted">
-                      {String(lead.assigned_to || 'Unassigned')}
+                    <td className="px-4 py-3.5 text-muted whitespace-nowrap">
+                      {lead.assigned_user_name || String(lead.assigned_to || 'Unassigned')}
                     </td>
 
                     {/* Audit Status */}

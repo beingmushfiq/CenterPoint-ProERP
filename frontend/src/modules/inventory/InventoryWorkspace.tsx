@@ -11,7 +11,6 @@ import {
   X,
   Warehouse,
   Compass,
-  Zap,
   CheckCircle2,
   ArrowRight,
 } from 'lucide-react';
@@ -26,32 +25,22 @@ import { Button } from '../../components/ui/Button';
 import { cn } from '../../lib/utils';
 import { StockTransferModal } from './modals/StockTransferModal';
 import { StockAdjustmentModal } from './modals/StockAdjustmentModal';
+import {
+  WorkspaceNavigationHub,
+  WORKSPACE_THEMES,
+  type WorkspaceCategoryConfig,
+  type WorkspaceTabConfig,
+} from '../../components/common/WorkspaceNavigationHub';
 
 export type InventoryTab = 'ledger' | 'transfers' | 'adjustments' | 'counts' | 'thresholds';
 export type InventoryCategory = 'visibility' | 'operations';
 
-const VALID_TABS: readonly InventoryTab[] = ['ledger', 'transfers', 'adjustments', 'counts', 'thresholds'];
-
-interface CategoryConfig {
-  id: InventoryCategory;
-  label: string;
-  tagline: string;
-  shortcut: string;
-  icon: typeof Boxes;
-  defaultTab: InventoryTab;
-}
-
-interface TabConfig {
-  id: InventoryTab;
+export interface InventoryTabConfig extends WorkspaceTabConfig<InventoryCategory, InventoryTab> {
   step: number;
-  label: string;
-  shortLabel: string;
-  category: InventoryCategory;
-  badge?: string;
-  icon: typeof Boxes;
-  description: string;
   highlights: string[];
 }
+
+const VALID_TABS: readonly InventoryTab[] = ['ledger', 'transfers', 'adjustments', 'counts', 'thresholds'];
 
 export default function InventoryWorkspace() {
   const { t } = useTranslation(['inventory', 'common']);
@@ -61,26 +50,30 @@ export default function InventoryWorkspace() {
   const [searchQuery, setSearchQuery] = useState('');
   const quickJumpRef = useRef<HTMLDivElement>(null);
 
-  const categories: CategoryConfig[] = useMemo(() => [
+  const categories: WorkspaceCategoryConfig<InventoryCategory, InventoryTab>[] = useMemo(() => [
     {
       id: 'visibility',
-      label: t('inventory.catVisibilityLabel'),
-      tagline: t('inventory.catVisibilityTagline'),
+      label: t('inventory.catVisibilityLabel', 'Stock Balances & Valuation'),
+      tagline: t('inventory.catVisibilityTagline', 'Real-time stock valuation, inventory ledger & reorder alerts'),
       shortcut: '1',
       icon: Boxes,
+      tabs: ['ledger', 'thresholds'],
       defaultTab: 'ledger',
+      theme: WORKSPACE_THEMES.emerald,
     },
     {
       id: 'operations',
-      label: t('inventory.catOperationsLabel'),
-      tagline: t('inventory.catOperationsTagline'),
+      label: t('inventory.catOperationsLabel', 'Warehouse Operations & Flow'),
+      tagline: t('inventory.catOperationsTagline', 'Inter-branch stock movements, scrap damage adjustments & physical audits'),
       shortcut: '2',
       icon: Warehouse,
+      tabs: ['transfers', 'adjustments', 'counts'],
       defaultTab: 'transfers',
+      theme: WORKSPACE_THEMES.cyan,
     },
   ], [t]);
 
-  const tabs: TabConfig[] = useMemo(() => [
+  const tabs: InventoryTabConfig[] = useMemo(() => [
     {
       id: 'ledger',
       step: 1,
@@ -143,40 +136,6 @@ export default function InventoryWorkspace() {
   const [showAdjustmentModal, setShowAdjustmentModal] = useState(false);
 
   const currentTab = tabs.find((t) => t.id === activeTab) ?? tabs[0]!;
-  const activeCategory = currentTab.category;
-
-  // Global Keyboard Shortcuts (1, 2 to switch domain pillars)
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (
-        e.target instanceof HTMLInputElement ||
-        e.target instanceof HTMLTextAreaElement ||
-        e.target instanceof HTMLSelectElement
-      ) {
-        return;
-      }
-
-      if (e.key === '1') {
-        e.preventDefault();
-        setActiveTab('ledger');
-      } else if (e.key === '2') {
-        e.preventDefault();
-        setActiveTab('thresholds');
-      } else if (e.key === '3') {
-        e.preventDefault();
-        setActiveTab('transfers');
-      } else if (e.key === '4') {
-        e.preventDefault();
-        setActiveTab('adjustments');
-      } else if (e.key === '5') {
-        e.preventDefault();
-        setActiveTab('counts');
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [setActiveTab]);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -195,7 +154,7 @@ export default function InventoryWorkspace() {
         (t) =>
           t.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
           t.shortLabel.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          t.description.toLowerCase().includes(searchQuery.toLowerCase())
+          (t.description?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false)
       )
     : tabs;
 
@@ -386,196 +345,13 @@ export default function InventoryWorkspace() {
         </button>
       </div>
 
-      {/* Primary 2 Command Pillars (with Embedded Direct Child Pills) */}
-      <div
-        role="tablist"
-        aria-label="Inventory Operational Domains"
-        className="grid grid-cols-1 md:grid-cols-2 gap-3"
-      >
-        {categories.map((cat) => {
-          const isCatActive = activeCategory === cat.id;
-          const Icon = cat.icon;
-          const childTabs = tabs.filter((t) => t.category === cat.id);
-
-          return (
-            <div
-              key={cat.id}
-              role="tab"
-              aria-selected={isCatActive}
-              tabIndex={isCatActive ? 0 : -1}
-              onClick={() => setActiveTab(cat.defaultTab)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
-                  setActiveTab(cat.defaultTab);
-                }
-              }}
-              className={cn(
-                'group relative flex flex-col justify-between p-4.5 rounded-2xl border text-left transition-all duration-200 cursor-pointer shadow-2xs',
-                isCatActive
-                  ? 'bg-surface border-primary shadow-md ring-2 ring-primary/10'
-                  : 'bg-surface hover:bg-surface-sunken border-default hover:border-default/80'
-              )}
-            >
-              {/* Pillar Top Header */}
-              <div className="flex items-start gap-3.5 w-full">
-                <div
-                  className={cn(
-                    'size-11 rounded-xl flex items-center justify-center shrink-0 transition-transform group-hover:scale-105 shadow-2xs',
-                    isCatActive
-                      ? 'bg-primary text-primary-fg shadow-sm'
-                      : 'bg-surface-sunken border border-default text-muted group-hover:text-default'
-                  )}
-                >
-                  <Icon className={cn('size-5 shrink-0', isCatActive ? 'text-primary-fg' : 'text-muted group-hover:text-default')} />
-                </div>
-
-                <div className="min-w-0 flex-1 space-y-0.5">
-                  <div className="flex items-center justify-between gap-1.5">
-                    <div className="flex items-center gap-1.5 min-w-0">
-                      <span
-                        className={cn(
-                          'text-sm font-bold transition-colors truncate',
-                          isCatActive ? 'text-default' : 'text-default/90 group-hover:text-default'
-                        )}
-                      >
-                        {cat.label}
-                      </span>
-                      <span className="text-[10px] font-mono text-muted/70 font-semibold px-1 py-0.2 rounded bg-surface-sunken border border-default/50 select-none">
-                        [{cat.shortcut}]
-                      </span>
-                    </div>
-
-                    <span
-                      className={cn(
-                        'text-[10px] font-mono px-2 py-0.5 rounded-full font-bold border shrink-0',
-                        isCatActive
-                          ? 'bg-primary/10 text-primary border-primary/20'
-                          : 'bg-surface-sunken text-muted border-default'
-                      )}
-                    >
-                      {childTabs.length === 1 ? t('inventory.viewCount') : t('inventory.viewsCount', { count: childTabs.length })}
-                    </span>
-                  </div>
-
-                  <p className="text-[11px] text-muted line-clamp-2 leading-relaxed">
-                    {cat.tagline}
-                  </p>
-                </div>
-              </div>
-
-              {/* In-Pillar Quick Navigation Pills (100% Zero Concealed Views) */}
-              <div className="mt-4 pt-3 border-t border-default/60 grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {childTabs.map((subTab) => {
-                  const isCurrent = activeTab === subTab.id;
-                  const SubIcon = subTab.icon;
-                  return (
-                    <button
-                      key={subTab.id}
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setActiveTab(subTab.id);
-                      }}
-                      className={cn(
-                        'flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition-all cursor-pointer min-w-0',
-                        isCurrent
-                          ? 'bg-primary text-primary-fg font-semibold shadow-xs ring-1 ring-primary'
-                          : 'bg-surface-sunken text-muted hover:text-default hover:bg-surface border border-default/70'
-                      )}
-                      title={`Open ${subTab.label}`}
-                    >
-                      <div className="flex items-center gap-2 min-w-0 truncate">
-                        <SubIcon className={cn('size-3.5 shrink-0', isCurrent ? 'text-primary-fg' : 'text-muted')} />
-                        <span className="truncate">{subTab.shortLabel}</span>
-                      </div>
-                      <span
-                        className={cn(
-                          'text-[9px] font-mono px-1.5 py-0.5 rounded font-bold shrink-0 ml-1.5',
-                          isCurrent
-                            ? 'bg-white/20 text-white'
-                            : 'bg-surface text-muted border border-default/60'
-                        )}
-                      >
-                        {t('inventory.stageLabel', { step: subTab.step })}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* Active Indicator Bar */}
-              {isCatActive && (
-                <div className="absolute bottom-0 left-6 right-6 h-0.5 bg-primary rounded-t-full" />
-              )}
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Master 5-Stage Execution Ribbon */}
-      <div className="bg-surface-sunken rounded-2xl border border-default p-2.5 shadow-2xs">
-        <div className="flex items-center justify-between px-2 pb-2 mb-2 text-[11px] font-semibold text-muted border-b border-default/50">
-          <div className="flex items-center gap-2">
-            <Zap className="size-3.5 text-primary" />
-            <span className="uppercase tracking-wider font-bold">{t('inventory.stagesRibbon')}</span>
-          </div>
-          <span className="text-[10px] font-mono text-muted/70">
-            {t('inventory.stagesAvailable')}
-          </span>
-        </div>
-
-        <nav
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2"
-          role="tablist"
-          aria-label="All 5 Inventory Stages"
-        >
-          {tabs.map((tab) => {
-            const Icon = tab.icon;
-            const isActive = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                role="tab"
-                aria-selected={isActive}
-                type="button"
-                onClick={() => setActiveTab(tab.id)}
-                className={cn(
-                  'flex items-center justify-between gap-2 px-3 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer border text-left min-w-0',
-                  isActive
-                    ? 'bg-surface border-primary text-default shadow-xs ring-1 ring-primary/20'
-                    : 'bg-surface/60 hover:bg-surface border-default/70 text-muted hover:text-default'
-                )}
-              >
-                <div className="flex items-center gap-2 min-w-0 truncate">
-                  <span
-                    className={cn(
-                      'size-5 rounded-full flex items-center justify-center text-[10px] font-mono font-bold shrink-0',
-                      isActive ? 'bg-primary text-primary-fg' : 'bg-surface-sunken border border-default text-muted'
-                    )}
-                  >
-                    {tab.step}
-                  </span>
-                  <Icon className={cn('size-3.5 shrink-0', isActive ? 'text-primary' : 'text-muted')} />
-                  <span className="truncate">{tab.shortLabel}</span>
-                </div>
-                {tab.badge && (
-                  <span
-                    className={cn(
-                      'text-[9px] px-1.5 py-0.5 rounded font-mono shrink-0 font-medium',
-                      isActive
-                        ? 'bg-primary/10 text-primary'
-                        : 'bg-surface-sunken text-muted'
-                    )}
-                  >
-                    {tab.badge}
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </nav>
-      </div>
+      {/* 2-Tier Universal Navigation Hub */}
+      <WorkspaceNavigationHub<InventoryCategory, InventoryTab>
+        categories={categories}
+        tabs={tabs}
+        activeTab={activeTab}
+        onSelectTab={setActiveTab}
+      />
 
       {/* Tab Content Section */}
       <div className="pt-1">

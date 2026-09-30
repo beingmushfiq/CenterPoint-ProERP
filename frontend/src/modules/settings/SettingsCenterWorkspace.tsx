@@ -88,6 +88,12 @@ import { SEGMENTED_OPTIONS } from './config/segmentedOptions';
 import { useWorkspaceTab } from '../../hooks/useWorkspaceTab';
 import { useAuthStore } from '../../lib/auth/authStore';
 import { useTranslation } from 'react-i18next';
+import {
+  WorkspaceNavigationHub,
+  WORKSPACE_THEMES,
+  type WorkspaceCategoryConfig,
+  type WorkspaceTabConfig,
+} from '../../components/common/WorkspaceNavigationHub';
 import type {
   SettingsSchemaDictionary,
   SettingItem,
@@ -170,6 +176,45 @@ function extractErrorMessage(err: unknown, fallback: string): string {
   return fallback;
 }
 
+export type SettingsCategory =
+  | 'governance'
+  | 'platform'
+  | 'operations'
+  | 'storefront'
+  | 'services';
+
+export type SettingsTab =
+  | 'overview'
+  | 'general'
+  | 'roles'
+  | 'audit_logs'
+  | 'profile'
+  | 'security'
+  | 'modules'
+  | 'workflows'
+  | 'terminology'
+  | 'production_stages'
+  | 'custom_fields'
+  | 'documents'
+  | 'bin'
+  | 'production'
+  | 'inventory'
+  | 'purchase'
+  | 'sales'
+  | 'pos'
+  | 'qc'
+  | 'assets'
+  | 'ecommerce'
+  | 'custom_domains'
+  | 'seo'
+  | 'delivery'
+  | 'integrations'
+  | 'webhooks'
+  | 'finance'
+  | 'hr_payroll'
+  | 'notifications'
+  | 'reports';
+
 export const SettingsCenterWorkspace: React.FC = () => {
   const { t } = useTranslation();
   const [schema, setSchema] = useState<SettingsSchemaDictionary>({});
@@ -182,72 +227,38 @@ export const SettingsCenterWorkspace: React.FC = () => {
     [t, schema]
   );
 
-  const localizedCategories = useMemo(
-    () => [
-      {
-        name: t('settings.categories.commandCenter'),
-        groups: ['overview'],
-      },
-      {
-        name: t('settings.categories.governance'),
-        groups: ['general', 'roles', 'audit_logs', 'bin', 'profile'],
-      },
-      {
-        name: t('settings.categories.customization'),
-        groups: ['modules', 'workflows', 'terminology', 'production_stages', 'custom_fields', 'documents'],
-      },
-      {
-        name: t('settings.categories.manufacturing'),
-        groups: ['production', 'inventory', 'qc', 'assets'],
-      },
-      {
-        name: t('settings.categories.commercial'),
-        groups: ['purchase', 'sales', 'pos'],
-      },
-      {
-        name: t('settings.categories.storefront'),
-        groups: ['ecommerce', 'custom_domains', 'seo'],
-      },
-      {
-        name: t('settings.categories.services'),
-        groups: ['delivery', 'integrations', 'webhooks', 'finance', 'hr_payroll', 'notifications', 'security', 'reports'],
-      },
-    ],
-    [t]
-  );
-
-  const [activeGroup, setActiveGroup] = useWorkspaceTab<string>(
+  const [activeGroup, setActiveGroup] = useWorkspaceTab<SettingsTab>(
     'overview',
     [
       'overview',
       'general',
       'roles',
       'audit_logs',
-      'bin',
       'profile',
-      'workflows',
+      'security',
       'modules',
+      'workflows',
       'terminology',
       'production_stages',
       'custom_fields',
       'documents',
+      'bin',
       'production',
       'inventory',
       'purchase',
       'sales',
       'pos',
+      'qc',
+      'assets',
       'ecommerce',
       'custom_domains',
       'seo',
       'delivery',
       'integrations',
       'webhooks',
-      'qc',
-      'hr_payroll',
-      'assets',
       'finance',
+      'hr_payroll',
       'notifications',
-      'security',
       'reports',
     ] as const,
     'tab'
@@ -681,10 +692,10 @@ export const SettingsCenterWorkspace: React.FC = () => {
 
   const handleSelectSearchResult = (groupKey: string, settingKey?: string, route?: string) => {
     if (route) {
-      setActiveGroup(groupKey);
+      setActiveGroup(groupKey as SettingsTab);
       return;
     }
-    setActiveGroup(groupKey);
+    setActiveGroup(groupKey as SettingsTab);
 
     if (settingKey) {
       setTimeout(() => {
@@ -703,6 +714,124 @@ export const SettingsCenterWorkspace: React.FC = () => {
   const activeGroupMeta = schema[activeGroup];
   const ActiveIcon = GROUP_ICONS[activeGroup] || Settings;
   const currentSubgroups = SETTINGS_SUBGROUPS[activeGroup] || [];
+
+  const handleSelectTab = useCallback(
+    (tabId: SettingsTab) => {
+      if (hasChanges) {
+        notify.info(t('settings.unsavedChangesWarning'));
+        return;
+      }
+      setActiveGroup(tabId);
+    },
+    [hasChanges, t, setActiveGroup]
+  );
+
+  const categories = useMemo<WorkspaceCategoryConfig<SettingsCategory, SettingsTab>[]>(
+    () => [
+      {
+        id: 'governance',
+        label: 'Governance & Security',
+        tagline: 'Enterprise compliance, roles, access policies & workstation security',
+        icon: ShieldCheck,
+        theme: WORKSPACE_THEMES.indigo,
+        shortcut: '1',
+        defaultTab: 'overview',
+        tabs: ['overview', 'general', 'roles', 'audit_logs', 'profile', 'security'],
+      },
+      {
+        id: 'platform',
+        label: 'Platform & Modules',
+        tagline: 'ERP modules, workflow engine, custom attributes & data recovery',
+        icon: Boxes,
+        theme: WORKSPACE_THEMES.purple,
+        shortcut: '2',
+        defaultTab: 'modules',
+        tabs: ['modules', 'workflows', 'terminology', 'production_stages', 'custom_fields', 'documents', 'bin'],
+      },
+      {
+        id: 'operations',
+        label: 'Operations & Manufacturing',
+        tagline: 'Shop-floor manufacturing, stock control, sales, POS, QC & asset registry',
+        icon: Factory,
+        theme: WORKSPACE_THEMES.emerald,
+        shortcut: '3',
+        defaultTab: 'production',
+        tabs: ['production', 'inventory', 'purchase', 'sales', 'pos', 'qc', 'assets'],
+      },
+      {
+        id: 'storefront',
+        label: 'Storefront & Web',
+        tagline: 'Online store settings, custom domains, edge SSL & SEO indexing',
+        icon: Globe,
+        theme: WORKSPACE_THEMES.cyan,
+        shortcut: '4',
+        defaultTab: 'ecommerce',
+        tabs: ['ecommerce', 'custom_domains', 'seo'],
+      },
+      {
+        id: 'services',
+        label: 'Integrations & Services',
+        tagline: 'Delivery couriers, payment APIs, webhooks, fiscal rules, alerts & reports',
+        icon: PlugZap,
+        theme: WORKSPACE_THEMES.amber,
+        shortcut: '5',
+        defaultTab: 'delivery',
+        tabs: ['delivery', 'integrations', 'webhooks', 'finance', 'hr_payroll', 'notifications', 'reports'],
+      },
+    ],
+    []
+  );
+
+  const tabs = useMemo<WorkspaceTabConfig<SettingsCategory, SettingsTab>[]>(
+    () => {
+      const baseTabs: WorkspaceTabConfig<SettingsCategory, SettingsTab>[] = [
+        // Governance
+        { id: 'overview', label: 'Command Overview', shortLabel: 'Overview', category: 'governance', icon: Sparkles },
+        { id: 'general', label: 'General Profile & Prefixes', shortLabel: 'General', category: 'governance', icon: Building2 },
+        { id: 'roles', label: 'Staff Roles & Permissions', shortLabel: 'Roles', category: 'governance', icon: ShieldCheck },
+        { id: 'audit_logs', label: 'Security Audit Trail', shortLabel: 'Audit Trail', category: 'governance', icon: Activity },
+        { id: 'profile', label: 'Workstation & Profile', shortLabel: 'Profile', category: 'governance', icon: User },
+        { id: 'security', label: 'Session & Auth Hardening', shortLabel: 'Security', category: 'governance', icon: ShieldCheck },
+
+        // Platform
+        { id: 'modules', label: 'ERP Modules & Order', shortLabel: 'Modules', category: 'platform', icon: Boxes },
+        { id: 'workflows', label: 'Flow Automation Engine', shortLabel: 'Workflows', category: 'platform', icon: Zap },
+        { id: 'terminology', label: 'Vocabulary & Terminology', shortLabel: 'Vocabulary', category: 'platform', icon: FileSpreadsheet },
+        { id: 'production_stages', label: 'Production Stages', shortLabel: 'Stages', category: 'platform', icon: Factory },
+        { id: 'custom_fields', label: 'Custom Attributes & Fields', shortLabel: 'Attributes', category: 'platform', icon: Sparkles },
+        { id: 'documents', label: 'Document Templates', shortLabel: 'Templates', category: 'platform', icon: FileSpreadsheet },
+        { id: 'bin', label: 'Data Bin & Recovery Vault', shortLabel: 'Data Bin', category: 'platform', icon: Trash2 },
+
+        // Operations
+        { id: 'production', label: 'Production & Manufacturing', shortLabel: 'Production', category: 'operations', icon: Factory },
+        { id: 'inventory', label: 'Stock & Warehousing', shortLabel: 'Inventory', category: 'operations', icon: Package },
+        { id: 'purchase', label: 'Procurement & Purchases', shortLabel: 'Purchasing', category: 'operations', icon: ShoppingCart },
+        { id: 'sales', label: 'Sales & Commercial', shortLabel: 'Sales', category: 'operations', icon: BadgePercent },
+        { id: 'pos', label: 'Point of Sale (POS)', shortLabel: 'POS', category: 'operations', icon: Monitor },
+        { id: 'qc', label: 'Quality Control (QC)', shortLabel: 'QC', category: 'operations', icon: CheckSquare },
+        { id: 'assets', label: 'Assets & Maintenance', shortLabel: 'Assets', category: 'operations', icon: Cpu },
+
+        // Storefront
+        { id: 'ecommerce', label: 'E-Commerce Storefront', shortLabel: 'Storefront', category: 'storefront', icon: ShoppingBag },
+        { id: 'custom_domains', label: 'Custom Domains & SSL', shortLabel: 'Domains', category: 'storefront', icon: Globe },
+        { id: 'seo', label: 'SEO & Discoverability', shortLabel: 'SEO', category: 'storefront', icon: Globe },
+
+        // Services
+        { id: 'delivery', label: 'Delivery & Couriers', shortLabel: 'Delivery', category: 'services', icon: Truck },
+        { id: 'integrations', label: 'API & Payment Gateways', shortLabel: 'Gateways', category: 'services', icon: PlugZap },
+        { id: 'webhooks', label: 'Webhooks & Event Streams', shortLabel: 'Webhooks', category: 'services', icon: Radio },
+        { id: 'finance', label: 'Tax & Fiscal Periods', shortLabel: 'Finance', category: 'services', icon: Landmark },
+        { id: 'hr_payroll', label: 'HR & Payroll Governance', shortLabel: 'HR & Payroll', category: 'services', icon: Users },
+        { id: 'notifications', label: 'Multi-Channel Alerts', shortLabel: 'Alerts', category: 'services', icon: Bell },
+        { id: 'reports', label: 'Reports & Export Defaults', shortLabel: 'Reports', category: 'services', icon: FileSpreadsheet },
+      ];
+      return baseTabs.map((tab) => ({
+        ...tab,
+        badge: hasChanges && activeGroup === tab.id ? `${changedKeys.length} pending` : undefined,
+      }));
+    },
+    [hasChanges, activeGroup, changedKeys.length]
+  );
 
   return (
     <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
@@ -774,130 +903,30 @@ export const SettingsCenterWorkspace: React.FC = () => {
         </div>
       </div>
 
-      {/* Mobile / Tablet Compact Domain Picker (< lg screens) */}
-      <div className="lg:hidden bg-surface border border-default rounded-(--card-radius) p-3 shadow-xs mb-4 space-y-2">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 min-w-0">
-            {React.createElement(GROUP_ICONS[activeGroup] || Settings, {
-              className: 'size-4 text-primary shrink-0',
-            })}
-            <span className="text-xs font-bold text-default truncate">
-              {getGroupLabel(activeGroup)}
-            </span>
-            {hasChanges && (
-              <span className="size-2 rounded-full bg-accent animate-pulse shrink-0" title="Unsaved changes" />
-            )}
-          </div>
-          {activeGroup !== 'overview' && (
-            <button
-              type="button"
-              onClick={() => {
-                if (hasChanges) {
-                  notify.info(t('settings.unsavedChangesWarning'));
-                  return;
-                }
-                setActiveGroup('overview');
-              }}
-              className="px-2 py-1 text-2xs font-semibold rounded-lg bg-surface-sunken hover:bg-surface-raised border border-default text-muted hover:text-default transition-colors shrink-0"
-            >
-              {t('settings.overviewHubBtn')}
-            </button>
-          )}
-        </div>
-
-        <div className="relative">
-          <select
-            value={activeGroup}
-            onChange={(e) => {
-              const next = e.target.value;
-              if (hasChanges) {
-                notify.info(t('settings.unsavedChangesWarning'));
-                return;
-              }
-              setActiveGroup(next);
-            }}
-            className="w-full appearance-none rounded-xl border border-default bg-surface-sunken/60 py-2 pl-3 pr-8 text-xs font-semibold text-default focus:border-primary focus:outline-none transition-colors"
-          >
-            {localizedCategories.map((cat) => (
-              <optgroup key={cat.name} label={cat.name}>
-                {cat.groups.map((groupKey) => (
-                  <option key={groupKey} value={groupKey}>
-                    {getGroupLabel(groupKey)}
-                  </option>
-                ))}
-              </optgroup>
-            ))}
-          </select>
-          <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2.5 text-muted">
-            <svg className="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-            </svg>
-          </div>
-        </div>
-      </div>
-
-      {/* Main Layout: High-Polish Sidebar Navigation + Right Content Panel */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
-        {/* Left Navigation Rail (Desktop) */}
-        <div className="hidden lg:block lg:col-span-1 space-y-5 bg-surface border border-default rounded-(--card-radius) p-3.5 shadow-xs sticky top-20">
-          {localizedCategories.map((cat) => (
-            <div key={cat.name} className="space-y-1">
-              <div className="px-2.5 py-1 text-3xs font-bold uppercase tracking-wider text-muted flex items-center justify-between">
-                <span>{cat.name}</span>
-                <span className="font-mono text-muted/60">{cat.groups.length}</span>
-              </div>
-              <div className="space-y-0.5">
-                {cat.groups.map((groupKey) => {
-                  const Icon = GROUP_ICONS[groupKey] || Settings;
-                  const isActive = activeGroup === groupKey;
-                  const label = getGroupLabel(groupKey);
-
-                  return (
-                    <button
-                      key={groupKey}
-                      onClick={() => {
-                        if (hasChanges) {
-                          notify.info(t('settings.unsavedChangesWarning'));
-                          return;
-                        }
-                        setActiveGroup(groupKey);
-                      }}
-                      className={cn(
-                        'w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-semibold transition-all outline-none text-left cursor-pointer group',
-                        isActive
-                          ? 'bg-primary text-primary-fg shadow-xs font-bold'
-                          : 'text-default hover:bg-surface-sunken hover:translate-x-0.5'
-                      )}
-                    >
-                      <div className="flex items-center gap-2.5 truncate">
-                        <div
-                          className={cn(
-                            'size-6 rounded-lg flex items-center justify-center shrink-0 transition-colors',
-                            isActive
-                              ? 'bg-primary-fg/20 text-primary-fg'
-                              : 'bg-surface-sunken border border-default text-muted group-hover:text-primary group-hover:border-primary/40'
-                          )}
-                        >
-                          <Icon className="size-3.5" aria-hidden="true" />
-                        </div>
-                        <span className="truncate text-xs">{label}</span>
-                      </div>
-                      {hasChanges && isActive && (
-                        <span
-                          className="size-2 rounded-full bg-accent animate-pulse shrink-0 ml-2"
-                          aria-label="Unsaved changes"
-                        />
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
+      {/* Two-Tier Centered Navigation Hub */}
+      <WorkspaceNavigationHub<SettingsCategory, SettingsTab>
+        categories={categories}
+        tabs={tabs}
+        activeTab={activeGroup as SettingsTab}
+        onSelectTab={handleSelectTab}
+        taglineRightContent={
+          hasChanges ? (
+            <div className="flex items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-2xs font-semibold bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/25">
+                <span className="size-1.5 rounded-full bg-amber-500 animate-ping" />
+                {changedKeys.length} unsaved change{changedKeys.length > 1 ? 's' : ''}
+              </span>
+              <Button variant="primary" size="sm" onClick={handleSave} loading={saving}>
+                <Save className="size-3.5 mr-1" />
+                Save (Ctrl+S)
+              </Button>
             </div>
-          ))}
-        </div>
+          ) : undefined
+        }
+      />
 
-        {/* Right Content Panel */}
-        <div className="lg:col-span-3 min-w-0">
+      {/* Main Content Area */}
+      <div className="w-full min-w-0">
           <AnimatePresence mode="wait">
             <m.div
               key={activeGroup}
@@ -912,7 +941,7 @@ export const SettingsCenterWorkspace: React.FC = () => {
                 <SettingsOverviewHub
                   schema={schema}
                   formValues={formValues}
-                  onSelectGroup={(g) => setActiveGroup(g)}
+                  onSelectGroup={(g) => setActiveGroup(g as SettingsTab)}
                   onOpenOmniSearch={() => setOmniSearchOpen(true)}
                 />
               ) : activeGroup === 'roles' ? (
@@ -1479,7 +1508,6 @@ export const SettingsCenterWorkspace: React.FC = () => {
             </m.div>
           </AnimatePresence>
         </div>
-      </div>
 
       {/* Floating Unsaved Changes Bottom Bar */}
       {hasChanges && (

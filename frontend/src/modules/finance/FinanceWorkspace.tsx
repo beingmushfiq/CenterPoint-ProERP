@@ -9,14 +9,11 @@ import {
   Scale,
   TrendingUp,
   Coins,
-  Search,
-  SlidersHorizontal,
   X,
   Copy,
   Plus,
   Trash2,
   Compass,
-  Zap,
   CheckCircle2,
   ArrowRight,
   ArrowDownRight,
@@ -28,7 +25,12 @@ import { useCurrency } from '../../hooks/useCurrency';
 import { useAuthStore } from '../../lib/auth/authStore';
 import { Modal, ConfirmDialog } from '../../components/ui/Modal';
 import { Button } from '../../components/ui/Button';
-import { cn } from '../../lib/utils';
+import {
+  WorkspaceNavigationHub,
+  WORKSPACE_THEMES,
+  type WorkspaceCategoryConfig,
+  type WorkspaceTabConfig,
+} from '../../components/common/WorkspaceNavigationHub';
 import type {
   ChartOfAccount,
   AccountType,
@@ -83,24 +85,8 @@ export type FinanceTab =
   'coa' | 'journal' | 'banking' | 'expenses' | 'costing' | 'statements' | 'due-collection';
 export type FinanceCategory = 'operations' | 'reports' | 'costing';
 
-interface CategoryConfig {
-  id: FinanceCategory;
-  label: string;
-  tagline: string;
-  shortcut: string;
-  icon: typeof BookOpen;
-  tabs: FinanceTab[];
-  defaultTab: FinanceTab;
-}
-
-export interface FinanceTabConfig {
-  id: FinanceTab;
+export interface FinanceTabConfig extends WorkspaceTabConfig<FinanceCategory, FinanceTab> {
   step: number;
-  label: string;
-  shortLabel: string;
-  category: FinanceCategory;
-  icon: typeof BookOpen;
-  description: string;
   highlights: string[];
 }
 
@@ -161,7 +147,7 @@ export const FinanceWorkspace: React.FC = () => {
     'costing',
   ] as const);
 
-  const categories: CategoryConfig[] = useMemo(
+  const categories: WorkspaceCategoryConfig<FinanceCategory, FinanceTab>[] = useMemo(
     () => [
       {
         id: 'operations',
@@ -171,6 +157,7 @@ export const FinanceWorkspace: React.FC = () => {
         icon: Landmark,
         tabs: ['banking', 'expenses', 'due-collection'],
         defaultTab: 'banking',
+        theme: WORKSPACE_THEMES.emerald,
       },
       {
         id: 'reports',
@@ -180,6 +167,7 @@ export const FinanceWorkspace: React.FC = () => {
         icon: TrendingUp,
         tabs: ['statements', 'journal', 'coa'],
         defaultTab: 'statements',
+        theme: WORKSPACE_THEMES.indigo,
       },
       {
         id: 'costing',
@@ -189,109 +177,11 @@ export const FinanceWorkspace: React.FC = () => {
         icon: Calculator,
         tabs: ['costing'],
         defaultTab: 'costing',
+        theme: WORKSPACE_THEMES.purple,
       },
     ],
     [t]
   );
-
-  const financeTabConfigs: FinanceTabConfig[] = useMemo(() => {
-    const getHighlights = (key: string): string[] => {
-      const val = (t as (k: string, opts?: { returnObjects: boolean }) => unknown)(key, { returnObjects: true });
-      return Array.isArray(val) ? (val as string[]) : [];
-    };
-
-    return [
-      {
-        id: 'banking',
-        step: 1,
-        label: t('finance.tabs.banking.label'),
-        shortLabel: t('finance.tabs.banking.shortLabel'),
-        category: 'operations',
-        icon: Landmark,
-        description: t('finance.tabs.banking.description'),
-        highlights: getHighlights('finance.tabs.banking.highlights'),
-      },
-      {
-        id: 'expenses',
-        step: 2,
-        label: t('finance.tabs.expenses.label'),
-        shortLabel: t('finance.tabs.expenses.shortLabel'),
-        category: 'operations',
-        icon: ReceiptText,
-        description: t('finance.tabs.expenses.description'),
-        highlights: getHighlights('finance.tabs.expenses.highlights'),
-      },
-      {
-        id: 'due-collection',
-        step: 3,
-        label: t('finance.tabs.dueCollection.label'),
-        shortLabel: t('finance.tabs.dueCollection.shortLabel'),
-        category: 'operations',
-        icon: Coins,
-        description: t('finance.tabs.dueCollection.description'),
-        highlights: getHighlights('finance.tabs.dueCollection.highlights'),
-      },
-      {
-        id: 'statements',
-        step: 4,
-        label: t('finance.tabs.statements.label'),
-        shortLabel: t('finance.tabs.statements.shortLabel'),
-        category: 'reports',
-        icon: TrendingUp,
-        description: t('finance.tabs.statements.description'),
-        highlights: getHighlights('finance.tabs.statements.highlights'),
-      },
-      {
-        id: 'journal',
-        step: 5,
-        label: t('finance.tabs.journal.label'),
-        shortLabel: t('finance.tabs.journal.shortLabel'),
-        category: 'reports',
-        icon: BookOpen,
-        description: t('finance.tabs.journal.description'),
-        highlights: getHighlights('finance.tabs.journal.highlights'),
-      },
-      {
-        id: 'coa',
-        step: 6,
-        label: t('finance.tabs.coa.label'),
-        shortLabel: t('finance.tabs.coa.shortLabel'),
-        category: 'reports',
-        icon: Scale,
-        description: t('finance.tabs.coa.description'),
-        highlights: getHighlights('finance.tabs.coa.highlights'),
-      },
-      {
-        id: 'costing',
-        step: 7,
-        label: t('finance.tabs.costing.label'),
-        shortLabel: t('finance.tabs.costing.shortLabel'),
-        category: 'costing',
-        icon: Calculator,
-        description: t('finance.tabs.costing.description'),
-        highlights: getHighlights('finance.tabs.costing.highlights'),
-      },
-    ];
-  }, [t]);
-
-  const [quickJumpOpen, setQuickJumpOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const quickJumpRef = useRef<HTMLDivElement>(null);
-
-  const activeCategory = categories.find((cat) => cat.tabs.includes(activeTab))?.id ?? 'operations';
-
-  const lastActivePerCategory = useRef<Record<FinanceCategory, FinanceTab>>({
-    operations: 'banking',
-    reports: 'statements',
-    costing: 'costing',
-  });
-
-  useEffect(() => {
-    const cat = categories.find((c) => c.tabs.includes(activeTab))?.id;
-    if (cat) {
-      lastActivePerCategory.current[cat] = activeTab;
-    }
-  }, [activeTab, categories]);
 
   const [isGuideOpen, setIsGuideOpen] = useState(false);
   const { hasPermission } = useAuthStore();
@@ -351,18 +241,6 @@ export const FinanceWorkspace: React.FC = () => {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [setActiveTab]);
-
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (quickJumpRef.current && !quickJumpRef.current.contains(event.target as Node)) {
-        setQuickJumpOpen(false);
-      }
-    }
-    if (quickJumpOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-      return () => document.removeEventListener('mousedown', handleClickOutside);
-    }
-  }, [quickJumpOpen]);
 
   // Chart of Accounts State
   const [accounts, setAccounts] = useState<ChartOfAccount[]>([
@@ -1424,71 +1302,92 @@ export const FinanceWorkspace: React.FC = () => {
     });
   };
 
-  const financeTabsList: Array<{
-    id: FinanceTab;
-    label: string;
-    category: FinanceCategory;
-    icon: typeof BookOpen;
-    count: string | number;
-  }> = [
-    {
-      id: 'banking',
-      label: t('finance.tabs.banking.label'),
-      category: 'operations',
-      icon: Landmark,
-      count: bankAccounts.length,
-    },
-    {
-      id: 'expenses',
-      label: t('finance.tabs.expenses.label'),
-      category: 'operations',
-      icon: ReceiptText,
-      count: expenses.length,
-    },
-    {
-      id: 'due-collection',
-      label: t('finance.tabs.dueCollection.label'),
-      category: 'operations',
-      icon: Coins,
-      count: 'Aging',
-    },
-    {
-      id: 'statements',
-      label: t('finance.tabs.statements.label'),
-      category: 'reports',
-      icon: TrendingUp,
-      count: 'Live',
-    },
-    {
-      id: 'journal',
-      label: t('finance.tabs.journal.label'),
-      category: 'reports',
-      icon: BookOpen,
-      count: journalEntries.length,
-    },
-    {
-      id: 'coa',
-      label: t('finance.tabs.coa.label'),
-      category: 'reports',
-      icon: Scale,
-      count: accounts.length,
-    },
-    {
-      id: 'costing',
-      label: t('finance.tabs.costing.label'),
-      category: 'costing',
-      icon: Calculator,
-      count: productCosts.length,
-    },
-  ];
+  const financeTabConfigs: FinanceTabConfig[] = useMemo(() => {
+    const getHighlights = (key: string): string[] => {
+      const val = (t as (k: string, opts?: { returnObjects: boolean }) => unknown)(key, { returnObjects: true });
+      return Array.isArray(val) ? (val as string[]) : [];
+    };
 
-  const filteredFinanceTabs = searchQuery.trim()
-    ? financeTabsList.filter(
-        (tabItem) =>
-          tabItem.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          tabItem.id.toLowerCase().includes(searchQuery.toLowerCase())
-      )
-    : financeTabsList;
+    return [
+      {
+        id: 'banking',
+        step: 1,
+        label: t('finance.tabs.banking.label'),
+        shortLabel: t('finance.tabs.banking.shortLabel'),
+        category: 'operations',
+        icon: Landmark,
+        count: bankAccounts.length,
+        description: t('finance.tabs.banking.description'),
+        highlights: getHighlights('finance.tabs.banking.highlights'),
+      },
+      {
+        id: 'expenses',
+        step: 2,
+        label: t('finance.tabs.expenses.label'),
+        shortLabel: t('finance.tabs.expenses.shortLabel'),
+        category: 'operations',
+        icon: ReceiptText,
+        count: expenses.length,
+        description: t('finance.tabs.expenses.description'),
+        highlights: getHighlights('finance.tabs.expenses.highlights'),
+      },
+      {
+        id: 'due-collection',
+        step: 3,
+        label: t('finance.tabs.dueCollection.label'),
+        shortLabel: t('finance.tabs.dueCollection.shortLabel'),
+        category: 'operations',
+        icon: Coins,
+        count: 'Aging',
+        description: t('finance.tabs.dueCollection.description'),
+        highlights: getHighlights('finance.tabs.dueCollection.highlights'),
+      },
+      {
+        id: 'statements',
+        step: 4,
+        label: t('finance.tabs.statements.label'),
+        shortLabel: t('finance.tabs.statements.shortLabel'),
+        category: 'reports',
+        icon: TrendingUp,
+        count: 'Live',
+        description: t('finance.tabs.statements.description'),
+        highlights: getHighlights('finance.tabs.statements.highlights'),
+      },
+      {
+        id: 'journal',
+        step: 5,
+        label: t('finance.tabs.journal.label'),
+        shortLabel: t('finance.tabs.journal.shortLabel'),
+        category: 'reports',
+        icon: BookOpen,
+        count: journalEntries.length,
+        description: t('finance.tabs.journal.description'),
+        highlights: getHighlights('finance.tabs.journal.highlights'),
+      },
+      {
+        id: 'coa',
+        step: 6,
+        label: t('finance.tabs.coa.label'),
+        shortLabel: t('finance.tabs.coa.shortLabel'),
+        category: 'reports',
+        icon: Scale,
+        count: accounts.length,
+        description: t('finance.tabs.coa.description'),
+        highlights: getHighlights('finance.tabs.coa.highlights'),
+      },
+      {
+        id: 'costing',
+        step: 7,
+        label: t('finance.tabs.costing.label'),
+        shortLabel: t('finance.tabs.costing.shortLabel'),
+        category: 'costing',
+        icon: Calculator,
+        count: productCosts.length,
+        description: t('finance.tabs.costing.description'),
+        highlights: getHighlights('finance.tabs.costing.highlights'),
+      },
+    ];
+  }, [t, bankAccounts.length, expenses.length, journalEntries.length, accounts.length, productCosts.length]);
 
   return (
     <div className="space-y-8 max-w-7xl mx-auto py-2">
@@ -1639,287 +1538,13 @@ export const FinanceWorkspace: React.FC = () => {
         </div>
       </div>
 
-      {/* Primary 3 Financial Command Pillars (with Embedded Direct Child Pills) */}
-      <div
-        role="tablist"
-        aria-label="Financial Domains"
-        className="grid grid-cols-1 lg:grid-cols-3 gap-3"
-      >
-        {categories.map((cat) => {
-          const isCatActive = activeCategory === cat.id;
-          const Icon = cat.icon;
-          const childTabs = financeTabConfigs.filter((tConfig) => tConfig.category === cat.id);
-
-          return (
-            <div
-              key={cat.id}
-              role="tab"
-              aria-selected={isCatActive}
-              tabIndex={isCatActive ? 0 : -1}
-              onClick={() => setActiveTab(cat.defaultTab)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
-                  setActiveTab(cat.defaultTab);
-                }
-              }}
-              className={cn(
-                'group relative flex flex-col justify-between p-4 rounded-2xl border text-left transition-all duration-200 cursor-pointer shadow-2xs',
-                isCatActive
-                  ? 'bg-surface border-primary shadow-md ring-2 ring-primary/10'
-                  : 'bg-surface hover:bg-surface-sunken border-default hover:border-default/80'
-              )}
-            >
-              {/* Pillar Top Header */}
-              <div className="flex items-start gap-3 w-full">
-                <div
-                  className={cn(
-                    'size-10 rounded-xl flex items-center justify-center shrink-0 transition-transform group-hover:scale-105 shadow-2xs',
-                    isCatActive
-                      ? 'bg-primary text-primary-fg shadow-sm'
-                      : 'bg-surface-sunken border border-default text-muted group-hover:text-default'
-                  )}
-                >
-                  <Icon className={cn('size-5 shrink-0', isCatActive ? 'text-primary-fg' : 'text-muted group-hover:text-default')} />
-                </div>
-
-                <div className="min-w-0 flex-1 space-y-0.5">
-                  <div className="flex items-center justify-between gap-1.5">
-                    <div className="flex items-center gap-1.5 min-w-0">
-                      <span
-                        className={cn(
-                          'text-xs font-bold transition-colors truncate',
-                          isCatActive ? 'text-default' : 'text-default/90 group-hover:text-default'
-                        )}
-                      >
-                        {cat.label}
-                      </span>
-                      <span className="text-[10px] font-mono text-muted/70 font-semibold px-1 py-0.2 rounded bg-surface-sunken border border-default/50 select-none">
-                        [{cat.shortcut}]
-                      </span>
-                    </div>
-
-                    <span
-                      className={cn(
-                        'text-[10px] font-mono px-2 py-0.5 rounded-full font-bold border shrink-0',
-                        isCatActive
-                          ? 'bg-primary/10 text-primary border-primary/20'
-                          : 'bg-surface-sunken text-muted border-default'
-                      )}
-                    >
-                      {t('finance.viewsCount', { count: childTabs.length })}
-                    </span>
-                  </div>
-
-                  <p className="text-[11px] text-muted line-clamp-2 leading-relaxed">
-                    {cat.tagline}
-                  </p>
-                </div>
-              </div>
-
-              {/* In-Pillar Quick Navigation Pills (100% Zero Concealed Views) */}
-              <div className="mt-3.5 pt-3 border-t border-default/60 flex flex-wrap items-center gap-1.5">
-                {childTabs.map((subTab) => {
-                  const isCurrent = activeTab === subTab.id;
-                  const SubIcon = subTab.icon;
-
-                  return (
-                    <button
-                      key={subTab.id}
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setActiveTab(subTab.id);
-                      }}
-                      className={cn(
-                        'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all cursor-pointer',
-                        isCurrent
-                          ? 'bg-primary text-primary-fg font-semibold shadow-xs ring-1 ring-primary'
-                          : 'bg-surface-sunken text-muted hover:text-default hover:bg-surface border border-default/70'
-                      )}
-                      title={t('finance.openStage', { label: subTab.label })}
-                    >
-                      <SubIcon className={cn('size-3', isCurrent ? 'text-primary-fg' : 'text-muted')} />
-                      <span>{subTab.shortLabel}</span>
-                      <span
-                        className={cn(
-                          'text-[9px] font-mono px-1 rounded font-bold',
-                          isCurrent ? 'bg-white/20 text-white' : 'bg-surface text-muted border border-default/50'
-                        )}
-                      >
-                        {t('finance.stagePill', { step: subTab.step })}
-                      </span>
-                      {isCurrent && <span className="size-1.5 rounded-full bg-white animate-pulse" />}
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* Active Indicator Bar */}
-              {isCatActive && (
-                <div className="absolute bottom-0 left-4 right-4 h-0.5 bg-primary rounded-full" />
-              )}
-            </div>
-          );
-        })}
-      </div>
-
-      {/* 7-Stage Execution Ribbon (Grid with 1..7 shortcuts, non-colliding labels, zero scrollbar) */}
-      <div className="bg-surface rounded-2xl border border-default p-2.5 shadow-xs space-y-2">
-        <div className="flex items-center justify-between px-1 text-[11px] font-semibold text-muted">
-          <div className="flex items-center gap-1.5">
-            <Zap className="size-3.5 text-primary" />
-            <span className="font-bold text-default">{t('finance.pipelineTitle')}</span>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <span className="text-[10px] font-mono text-muted hidden sm:inline">
-              {t('finance.shortcutPipeline')}
-            </span>
-
-            {/* Quick Jump Dropdown Popover */}
-            <div className="relative shrink-0" ref={quickJumpRef}>
-              <button
-                type="button"
-                onClick={() => {
-                  setQuickJumpOpen(!quickJumpOpen);
-                  setSearchQuery('');
-                }}
-                className={cn(
-                  'flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold border border-default bg-surface hover:bg-surface-sunken text-default transition-all shadow-2xs cursor-pointer',
-                  quickJumpOpen && 'border-primary/40 bg-surface-sunken'
-                )}
-                title={t('finance.jumpTitle')}
-              >
-                <SlidersHorizontal className="size-3 text-primary" />
-                <span>{t('finance.allViews')}</span>
-              </button>
-
-              {quickJumpOpen && (
-                <div className="absolute right-0 top-full mt-2 w-80 max-w-[90vw] bg-surface rounded-2xl border border-default shadow-lg p-2.5 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
-                  <div className="relative mb-2">
-                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted" />
-                    <input
-                      type="text"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      placeholder={t('finance.searchPlaceholder')}
-                      autoFocus
-                      className="w-full pl-8 pr-7 py-1.5 text-xs bg-surface-sunken rounded-lg border border-default focus:border-primary focus:outline-none text-default"
-                    />
-                    {searchQuery && (
-                      <button
-                        onClick={() => setSearchQuery('')}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 text-muted hover:text-default"
-                      >
-                        <X className="size-3" />
-                      </button>
-                    )}
-                  </div>
-
-                  <div className="max-h-72 overflow-y-auto space-y-1 pr-1">
-                    {categories.map((cat) => {
-                      const catTabs = filteredFinanceTabs.filter((tabItem) => tabItem.category === cat.id);
-                      if (catTabs.length === 0) return null;
-
-                      return (
-                        <div key={cat.id} className="pt-1.5 first:pt-0">
-                          <div className="px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-muted flex items-center justify-between">
-                            <span>{cat.label}</span>
-                            <span className="font-mono text-[9px]">{catTabs.length}</span>
-                          </div>
-                          <div className="space-y-0.5">
-                            {catTabs.map((tab) => {
-                              const TabIcon = tab.icon;
-                              const isTabActive = activeTab === tab.id;
-                              return (
-                                <button
-                                  key={tab.id}
-                                  type="button"
-                                  onClick={() => {
-                                    setActiveTab(tab.id);
-                                    setQuickJumpOpen(false);
-                                  }}
-                                  className={`w-full flex items-center justify-between px-2.5 py-2 rounded-lg text-xs text-left transition cursor-pointer ${
-                                    isTabActive
-                                      ? 'bg-primary text-primary-fg font-semibold'
-                                      : 'hover:bg-surface-sunken text-default'
-                                  }`}
-                                >
-                                  <div className="flex items-center gap-2 min-w-0">
-                                    <TabIcon
-                                      className={`size-3.5 shrink-0 ${
-                                        isTabActive ? 'text-primary-fg' : 'text-muted'
-                                      }`}
-                                    />
-                                    <span className="truncate">{tab.label}</span>
-                                  </div>
-                                  <span
-                                    className={`text-[9px] px-1.5 py-0.5 rounded font-mono shrink-0 ${
-                                      isTabActive
-                                        ? 'bg-primary-fg/20 text-primary-fg'
-                                        : 'bg-surface-sunken text-muted'
-                                    }`}
-                                  >
-                                    {tab.count}
-                                  </span>
-                                </button>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      );
-                    })}
-
-                    {filteredFinanceTabs.length === 0 && (
-                      <div className="py-6 text-center text-xs text-muted">
-                        {t('finance.noViewsFound', { query: searchQuery })}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2">
-          {financeTabConfigs.map((tab) => {
-            const Icon = tab.icon;
-            const isActive = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                role="tab"
-                aria-selected={isActive}
-                type="button"
-                onClick={() => setActiveTab(tab.id)}
-                className={cn(
-                  'flex items-center gap-2 p-2 rounded-xl border text-left transition-all cursor-pointer min-w-0',
-                  isActive
-                    ? 'bg-primary text-primary-fg border-primary shadow-sm'
-                    : 'bg-surface hover:bg-surface-sunken border-default/70 hover:border-default text-default'
-                )}
-              >
-                <div
-                  className={cn(
-                    'size-6 rounded-md flex items-center justify-center shrink-0 font-mono text-xs font-bold transition-colors',
-                    isActive ? 'bg-primary-fg/20 text-primary-fg' : 'bg-surface-sunken text-muted'
-                  )}
-                >
-                  {tab.step}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-1">
-                    <Icon className={cn('size-3.5 shrink-0', isActive ? 'text-primary-fg' : 'text-primary')} />
-                    <span className="text-xs font-bold truncate">{tab.shortLabel}</span>
-                  </div>
-                </div>
-              </button>
-            );
-          })}
-        </div>
-      </div>
+      {/* Universal 2-Tier Navigation Hub */}
+      <WorkspaceNavigationHub<FinanceCategory, FinanceTab>
+        categories={categories}
+        tabs={financeTabConfigs}
+        activeTab={activeTab}
+        onSelectTab={setActiveTab}
+      />
 
       {/* Main Tab Content - Lazy Loaded with SkeletonTable Fallback */}
       <Suspense fallback={<SkeletonTable rows={8} columns={6} />}>

@@ -10,6 +10,7 @@ import {
   type DynamicNavSection,
 } from '../../../lib/capabilities/navRegistry';
 import { Button } from '../../../components/ui/Button';
+import { Link } from 'react-router-dom';
 import {
   Boxes,
   Building2,
@@ -37,6 +38,7 @@ import {
   Layers,
   Search,
   GripVertical,
+  ExternalLink,
 } from 'lucide-react';
 
 interface ModuleItem {
@@ -86,10 +88,24 @@ const MODULE_DESCRIPTIONS: Record<string, string> = {
   finance: 'Double-entry accounts, journals, expense categorization, and banking ledgers.',
   assets:
     'Enterprise asset registry, plant machinery health, preventive maintenance work orders, and depreciation schedules.',
-  hr: 'Employee directory, department designations, attendance tracking, and payroll.',
-  qc: 'Quality inspection parameters, defect classifications, and scrap/loss analysis.',
   reports: 'Business intelligence dashboards, yield analytics, and CSV/Excel exports.',
   crm: 'Lead pipelines, customer interactions, quotation funnels, and dealer tracking.',
+};
+
+const MODULE_DOMAINS: Record<string, { label: string; tone: string; route: string }> = {
+  sales: { label: 'Commercial Operations', tone: 'bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border-indigo-500/30', route: '/sales' },
+  pos: { label: 'Retail & Quick Counter', tone: 'bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border-indigo-500/30', route: '/pos' },
+  crm: { label: 'Lead Funnel & Pipeline', tone: 'bg-purple-500/10 text-purple-700 dark:text-purple-300 border-purple-500/30', route: '/crm' },
+  ecommerce: { label: 'Online Store CMS', tone: 'bg-violet-500/10 text-violet-700 dark:text-violet-300 border-violet-500/30', route: '/storefront' },
+  inventory: { label: 'Warehouse & Stock', tone: 'bg-sky-500/10 text-sky-700 dark:text-sky-300 border-sky-500/30', route: '/inventory' },
+  purchasing: { label: 'Procurement POs & GRN', tone: 'bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-500/30', route: '/purchasing' },
+  delivery: { label: 'Logistics & 3PL Gateways', tone: 'bg-cyan-500/10 text-cyan-700 dark:text-cyan-300 border-cyan-500/30', route: '/logistics' },
+  production: { label: 'Shop Floor & Batches', tone: 'bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/30', route: '/production' },
+  qc: { label: 'Quality & Defect Gate', tone: 'bg-rose-500/10 text-rose-700 dark:text-rose-300 border-rose-500/30', route: '/qc' },
+  finance: { label: 'General Ledger & Cash', tone: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30', route: '/finance' },
+  assets: { label: 'Plant CMMS & Fixed Assets', tone: 'bg-teal-500/10 text-teal-700 dark:text-teal-300 border-teal-500/30', route: '/assets' },
+  hr: { label: 'Staff & Piece Payroll', tone: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30', route: '/hr' },
+  reports: { label: 'BI & Executive Analytics', tone: 'bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border-indigo-500/30', route: '/reports' },
 };
 
 const DEFAULT_MODULES: ModuleItem[] = [
@@ -916,6 +932,7 @@ export const ModuleManagerSection: React.FC = () => {
             {filteredModules.map((mod) => {
               const Icon = MODULE_ICONS[mod.module_key] || Boxes;
               const description = MODULE_DESCRIPTIONS[mod.module_key] || 'Platform operational capability.';
+              const domain = MODULE_DOMAINS[mod.module_key];
               const isBusy = savingKey === mod.module_key;
 
               return (
@@ -967,12 +984,32 @@ export const ModuleManagerSection: React.FC = () => {
                     </div>
 
                     <p className="text-xs text-muted leading-relaxed line-clamp-2">{description}</p>
+
+                    {domain && (
+                      <div className="pt-1">
+                        <span
+                          className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-semibold border ${domain.tone}`}
+                        >
+                          Domain: {domain.label}
+                        </span>
+                      </div>
+                    )}
                   </div>
 
-                  <div className="pt-4 mt-3 border-t border-default flex items-center justify-between">
-                    <span className="text-[11px] text-muted font-medium">
-                      {mod.enabled ? 'Module is active in workspace' : 'Module is turned off'}
-                    </span>
+                  <div className="pt-4 mt-3 border-t border-default flex items-center justify-between gap-2">
+                    {mod.enabled && domain ? (
+                      <Link
+                        to={domain.route}
+                        className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:text-primary-focus transition-colors"
+                      >
+                        <span>Open Workspace</span>
+                        <ExternalLink className="size-3" />
+                      </Link>
+                    ) : (
+                      <span className="text-[11px] text-muted font-medium">
+                        {mod.enabled ? 'Module is active in workspace' : 'Module is turned off'}
+                      </span>
+                    )}
                     <Button
                       variant={mod.enabled ? 'secondary' : 'primary'}
                       size="sm"

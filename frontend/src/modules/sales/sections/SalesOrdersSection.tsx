@@ -45,6 +45,7 @@ import { ConfirmDialog } from '../../../components/ui/Modal';
 import { notify } from '../../../components/ui/Toast';
 import { useAuthStore } from '../../../lib/auth/authStore';
 import { cn } from '../../../lib/utils';
+import { DashboardKpiCard } from '../../../pages/dashboard/components/DashboardKpiCard';
 import { useTablePrefs } from '../../../hooks/useTablePrefs';
 import { TableControls } from '../../../components/ui/TableControls';
 
@@ -907,157 +908,77 @@ export function SalesOrdersSection({ onNavigateToTab }: SalesOrdersSectionProps 
       {/* 4-Card Operational Intelligence Interactive KPI Strip */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         {/* Card 1: All / Total Pipeline */}
-        <button
-          type="button"
+        <DashboardKpiCard
+          label="Total Pipeline"
+          value={orderStats.total}
+          sub="All active & archived orders"
+          icon={<ShoppingCart className="size-4" />}
+          theme="indigo"
           onClick={() => setStatusFilter('all')}
+          badge={{
+            text: statusFilter === 'all' ? 'Active' : 'All',
+            variant: statusFilter === 'all' ? 'positive' : 'neutral',
+          }}
           className={cn(
-            'group relative flex flex-col justify-between gap-3 rounded-2xl border p-3.5 sm:p-4 text-left transition-all duration-150 cursor-pointer select-none active:scale-[0.99]',
+            'transition-all duration-150',
             statusFilter === 'all'
-              ? 'border-indigo-500/50 bg-gradient-to-br from-indigo-500/8 via-surface to-surface dark:from-indigo-500/15 ring-2 ring-indigo-500/20 shadow-xs'
-              : 'border-default bg-surface hover:border-indigo-500/30 hover:bg-surface-sunken/40 shadow-2xs'
+              ? 'ring-2 ring-indigo-500/80 shadow-md shadow-indigo-500/20 scale-[1.01]'
+              : 'opacity-90 hover:opacity-100'
           )}
-          title="Click to view all orders"
-        >
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div className={cn(
-                "flex size-9 items-center justify-center rounded-xl transition-colors shrink-0",
-                statusFilter === 'all' ? "bg-indigo-600 text-white shadow-xs" : "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 group-hover:bg-indigo-500/15"
-              )}>
-                <ShoppingCart className="size-4.5" />
-              </div>
-              <span className="text-xs font-semibold text-muted tracking-tight truncate">Total Pipeline</span>
-            </div>
-            <span className={cn(
-              "text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider shrink-0 transition-colors",
-              statusFilter === 'all'
-                ? "bg-indigo-600 text-white shadow-2xs"
-                : "bg-surface-sunken text-muted group-hover:text-default border border-default/50"
-            )}>
-              {statusFilter === 'all' ? 'Active' : 'All'}
-            </span>
-          </div>
-
-          <div className="mt-1">
-            <div className="text-2xl sm:text-3xl font-extrabold text-default tracking-tight leading-none">
-              {orderStats.total}
-            </div>
-            <p className="text-[11px] text-muted mt-1.5 flex items-center gap-1.5 truncate">
-              <span>All active & archived orders</span>
-            </p>
-          </div>
-        </button>
+        />
 
         {/* Card 2: Pending Review */}
-        <button
-          type="button"
+        <DashboardKpiCard
+          label="Pending Review"
+          value={orderStats.pending}
+          sub="Requires approval & validation"
+          icon={<Clock className="size-4" />}
+          theme="amber"
           onClick={() => setStatusFilter((prev) => (prev === 'pending' ? 'all' : 'pending'))}
+          badge={{
+            text: statusFilter === 'pending' ? 'Filtering' : 'Review',
+            variant: 'warning',
+          }}
           className={cn(
-            'group relative flex flex-col justify-between gap-3 rounded-2xl border p-3.5 sm:p-4 text-left transition-all duration-150 cursor-pointer select-none active:scale-[0.99]',
+            'transition-all duration-150',
             statusFilter === 'pending'
-              ? 'border-amber-500/50 bg-gradient-to-br from-amber-500/10 via-surface to-surface dark:from-amber-500/15 ring-2 ring-amber-500/25 shadow-xs'
-              : 'border-default bg-surface hover:border-amber-500/30 hover:bg-surface-sunken/40 shadow-2xs'
+              ? 'ring-2 ring-amber-500/80 shadow-md shadow-amber-500/20 scale-[1.01]'
+              : 'opacity-90 hover:opacity-100'
           )}
-          title="Click to filter orders pending review"
-        >
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div className={cn(
-                "flex size-9 items-center justify-center rounded-xl transition-colors shrink-0",
-                statusFilter === 'pending' ? "bg-amber-500 text-white shadow-xs" : "bg-amber-500/10 text-amber-600 dark:text-amber-400 group-hover:bg-amber-500/15"
-              )}>
-                <Clock className="size-4.5" />
-              </div>
-              <span className="text-xs font-semibold text-muted tracking-tight truncate">Pending Review</span>
-            </div>
-            <span className={cn(
-              "text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider shrink-0 transition-colors flex items-center gap-1",
-              statusFilter === 'pending'
-                ? "bg-amber-500 text-white shadow-2xs"
-                : "bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20"
-            )}>
-              {orderStats.pending > 0 && (
-                <span className="size-1.5 rounded-full bg-amber-400 animate-pulse" />
-              )}
-              {statusFilter === 'pending' ? 'Filtering' : 'Review'}
-            </span>
-          </div>
-
-          <div className="mt-1">
-            <div className="text-2xl sm:text-3xl font-extrabold text-amber-600 dark:text-amber-400 tracking-tight leading-none">
-              {orderStats.pending}
-            </div>
-            <p className="text-[11px] text-muted mt-1.5 flex items-center gap-1.5 truncate">
-              <span>Requires approval & validation</span>
-            </p>
-          </div>
-        </button>
+        />
 
         {/* Card 3: Confirmed / Active */}
-        <button
-          type="button"
+        <DashboardKpiCard
+          label="Confirmed / Active"
+          value={orderStats.confirmed}
+          sub="In picking, packing & dispatch"
+          icon={<TrendingUp className="size-4" />}
+          theme="blue"
           onClick={() => setStatusFilter((prev) => (prev === 'confirmed' ? 'all' : 'confirmed'))}
+          badge={{
+            text: statusFilter === 'confirmed' ? 'Filtering' : 'Active',
+            variant: 'info',
+          }}
           className={cn(
-            'group relative flex flex-col justify-between gap-3 rounded-2xl border p-3.5 sm:p-4 text-left transition-all duration-150 cursor-pointer select-none active:scale-[0.99]',
+            'transition-all duration-150',
             statusFilter === 'confirmed'
-              ? 'border-blue-500/50 bg-gradient-to-br from-blue-500/10 via-surface to-surface dark:from-blue-500/15 ring-2 ring-blue-500/25 shadow-xs'
-              : 'border-default bg-surface hover:border-blue-500/30 hover:bg-surface-sunken/40 shadow-2xs'
+              ? 'ring-2 ring-blue-500/80 shadow-md shadow-blue-500/20 scale-[1.01]'
+              : 'opacity-90 hover:opacity-100'
           )}
-          title="Click to filter confirmed / active orders"
-        >
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div className={cn(
-                "flex size-9 items-center justify-center rounded-xl transition-colors shrink-0",
-                statusFilter === 'confirmed' ? "bg-blue-600 text-white shadow-xs" : "bg-blue-500/10 text-blue-600 dark:text-blue-400 group-hover:bg-blue-500/15"
-              )}>
-                <TrendingUp className="size-4.5" />
-              </div>
-              <span className="text-xs font-semibold text-muted tracking-tight truncate">Confirmed / Active</span>
-            </div>
-            <span className={cn(
-              "text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider shrink-0 transition-colors",
-              statusFilter === 'confirmed'
-                ? "bg-blue-600 text-white shadow-2xs"
-                : "bg-blue-500/10 text-blue-700 dark:text-blue-400 border border-blue-500/20"
-            )}>
-              {statusFilter === 'confirmed' ? 'Filtering' : 'Active'}
-            </span>
-          </div>
-
-          <div className="mt-1">
-            <div className="text-2xl sm:text-3xl font-extrabold text-blue-600 dark:text-blue-400 tracking-tight leading-none">
-              {orderStats.confirmed}
-            </div>
-            <p className="text-[11px] text-muted mt-1.5 flex items-center gap-1.5 truncate">
-              <span>In picking, packing & dispatch</span>
-            </p>
-          </div>
-        </button>
+        />
 
         {/* Card 4: Gross Value */}
-        <div className="group relative flex flex-col justify-between gap-3 rounded-2xl border border-default bg-surface hover:border-emerald-500/30 hover:bg-surface-sunken/40 p-3.5 sm:p-4 text-left transition-all duration-150 shadow-2xs select-none">
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div className="flex size-9 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 shrink-0">
-                <Sparkles className="size-4.5" />
-              </div>
-              <span className="text-xs font-semibold text-muted tracking-tight truncate">Gross Value</span>
-            </div>
-            <span className="text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider shrink-0 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
-              Volume
-            </span>
-          </div>
-
-          <div className="mt-1">
-            <div className="text-2xl sm:text-3xl font-extrabold text-emerald-600 dark:text-emerald-400 tracking-tight leading-none truncate">
-              {formatCurrency(orderStats.totalAmount)}
-            </div>
-            <p className="text-[11px] text-muted mt-1.5 flex items-center gap-1.5 truncate">
-              <span>B2B dealer & retail revenue</span>
-            </p>
-          </div>
-        </div>
+        <DashboardKpiCard
+          label="Gross Value"
+          value={formatCurrency(orderStats.totalAmount)}
+          sub="B2B dealer & retail revenue"
+          icon={<Sparkles className="size-4" />}
+          theme="emerald"
+          badge={{
+            text: 'Volume',
+            variant: 'positive',
+          }}
+        />
       </div>
 
       {/* Discovery & Action Bar */}

@@ -28,6 +28,7 @@ import { useBusinessConfig } from '../../../lib/document/useBusinessConfig';
 import { SelectDropdown } from '../../../components/ui/Dropdown';
 import { useCurrency } from '../../../hooks/useCurrency';
 import { useAuthStore } from '../../../lib/auth/authStore';
+import { DashboardKpiCard } from '../../../pages/dashboard/components/DashboardKpiCard';
 
 interface DeliveryFormItem {
   product_name: string;
@@ -366,47 +367,41 @@ export function DeliveriesSection() {
     <div className="space-y-6">
       {/* Metric Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="rounded-2xl border border-default bg-surface p-4 shadow-2xs">
-          <div className="flex items-center justify-between text-muted mb-2">
-            <span className="text-xs font-semibold uppercase tracking-wider">Total Dispatches</span>
-            <Package className="size-4 text-primary" />
-          </div>
-          <div className="text-2xl font-extrabold text-default">{deliveries.length}</div>
-          <div className="mt-1 text-[11px] text-muted">All active delivery orders</div>
-        </div>
+        <DashboardKpiCard
+          label="Total Dispatches"
+          value={deliveries.length}
+          sub="All active delivery orders"
+          icon={<Package className="size-4" />}
+          theme="indigo"
+          badge={{ text: 'Dispatches', variant: 'neutral' }}
+        />
 
-        <div className="rounded-2xl border border-default bg-surface p-4 shadow-2xs">
-          <div className="flex items-center justify-between text-muted mb-2">
-            <span className="text-xs font-semibold uppercase tracking-wider">Out in Transit</span>
-            <Truck className="size-4 text-blue-500" />
-          </div>
-          <div className="text-2xl font-extrabold text-blue-600 dark:text-blue-400">
-            {deliveries.filter((d) => d.status === 'in_transit').length}
-          </div>
-          <div className="mt-1 text-[11px] text-muted">Active with courier fleet</div>
-        </div>
+        <DashboardKpiCard
+          label="Out in Transit"
+          value={deliveries.filter((d) => d.status === 'in_transit').length}
+          sub="Active with courier fleet"
+          icon={<Truck className="size-4" />}
+          theme="blue"
+          badge={{ text: 'In Transit', variant: 'info' }}
+        />
 
-        <div className="rounded-2xl border border-default bg-surface p-4 shadow-2xs">
-          <div className="flex items-center justify-between text-muted mb-2">
-            <span className="text-xs font-semibold uppercase tracking-wider">Delivered Orders</span>
-            <CheckCircle2 className="size-4 text-emerald-500" />
-          </div>
-          <div className="text-2xl font-extrabold text-emerald-600 dark:text-emerald-400">
-            {deliveries.filter((d) => d.status === 'delivered').length}
-          </div>
-          <div className="mt-1 text-[11px] text-muted">Successfully fulfilled</div>
-        </div>
+        <DashboardKpiCard
+          label="Delivered Orders"
+          value={deliveries.filter((d) => d.status === 'delivered').length}
+          sub="Successfully fulfilled"
+          icon={<CheckCircle2 className="size-4" />}
+          theme="emerald"
+          badge={{ text: 'Fulfilled', variant: 'positive' }}
+        />
 
-        <div className="rounded-2xl border border-default bg-surface p-4 shadow-2xs">
-          <div className="flex items-center justify-between text-muted mb-2">
-            <span className="text-xs font-semibold uppercase tracking-wider">Pending COD</span>
-            <DollarSign className="size-4 text-amber-500" />
-          </div>
-          <div className="text-2xl font-extrabold text-amber-600 dark:text-amber-400 font-mono">
-            {formatCurrency(totalCodPending)}
-          </div>
-          <div className="mt-1 text-[11px] text-muted">Cash on delivery collection</div>
-        </div>
+        <DashboardKpiCard
+          label="Pending COD"
+          value={formatCurrency(totalCodPending)}
+          sub="Cash on delivery collection"
+          icon={<DollarSign className="size-4" />}
+          theme="amber"
+          badge={{ text: 'COD Due', variant: 'warning' }}
+        />
       </div>
 
       {/* Action Bar */}

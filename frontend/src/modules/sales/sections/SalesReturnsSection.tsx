@@ -26,6 +26,7 @@ import { useBusinessConfig } from '../../../lib/document/useBusinessConfig';
 import { useCurrency } from '../../../hooks/useCurrency';
 import { SelectDropdown } from '../../../components/ui/Dropdown';
 import { useAuthStore } from '../../../lib/auth/authStore';
+import { DashboardKpiCard } from '../../../pages/dashboard/components/DashboardKpiCard';
 
 interface SalesReturnFormItem {
   product_id?: number | undefined;
@@ -511,47 +512,41 @@ export function SalesReturnsSection() {
     <div className="space-y-6">
       {/* Metric Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="rounded-2xl border border-default bg-surface p-4 shadow-2xs">
-          <div className="flex items-center justify-between text-muted mb-2">
-            <span className="text-xs font-semibold uppercase tracking-wider">Total Sales Returns</span>
-            <RotateCcw className="size-4 text-primary" />
-          </div>
-          <div className="text-2xl font-extrabold text-default">{returns.length}</div>
-          <div className="mt-1 text-[11px] text-muted">All customer RMA claims</div>
-        </div>
+        <DashboardKpiCard
+          label="Total Sales Returns"
+          value={returns.length}
+          sub="All customer RMA claims"
+          icon={<RotateCcw className="size-4" />}
+          theme="blue"
+          badge={{ text: 'RMAs', variant: 'neutral' }}
+        />
 
-        <div className="rounded-2xl border border-default bg-surface p-4 shadow-2xs">
-          <div className="flex items-center justify-between text-muted mb-2">
-            <span className="text-xs font-semibold uppercase tracking-wider">Pending Inspection</span>
-            <Clock className="size-4 text-amber-500" />
-          </div>
-          <div className="text-2xl font-extrabold text-amber-600 dark:text-amber-400">
-            {returns.filter((r) => r.status === 'draft').length}
-          </div>
-          <div className="mt-1 text-[11px] text-muted">Awaiting QA & restock approval</div>
-        </div>
+        <DashboardKpiCard
+          label="Pending Inspection"
+          value={returns.filter((r) => r.status === 'draft').length}
+          sub="Awaiting QA & restock approval"
+          icon={<Clock className="size-4" />}
+          theme="amber"
+          badge={{ text: 'Pending', variant: 'warning' }}
+        />
 
-        <div className="rounded-2xl border border-default bg-surface p-4 shadow-2xs">
-          <div className="flex items-center justify-between text-muted mb-2">
-            <span className="text-xs font-semibold uppercase tracking-wider">Restocked Good</span>
-            <PackageCheck className="size-4 text-emerald-500" />
-          </div>
-          <div className="text-2xl font-extrabold text-emerald-600 dark:text-emerald-400">
-            {returns.filter((r) => r.restock).length}
-          </div>
-          <div className="mt-1 text-[11px] text-muted">Restored into inventory balance</div>
-        </div>
+        <DashboardKpiCard
+          label="Restocked Good"
+          value={returns.filter((r) => r.restock).length}
+          sub="Restored into inventory balance"
+          icon={<PackageCheck className="size-4" />}
+          theme="emerald"
+          badge={{ text: 'Restocked', variant: 'positive' }}
+        />
 
-        <div className="rounded-2xl border border-default bg-surface p-4 shadow-2xs">
-          <div className="flex items-center justify-between text-muted mb-2">
-            <span className="text-xs font-semibold uppercase tracking-wider">Credit Issued</span>
-            <TrendingUp className="size-4 text-rose-500" />
-          </div>
-          <div className="text-2xl font-extrabold text-rose-600 dark:text-rose-400 font-mono">
-            {formatCurrency(totalCreditIssued)}
-          </div>
-          <div className="mt-1 text-[11px] text-muted">Total customer refund/credit value</div>
-        </div>
+        <DashboardKpiCard
+          label="Credit Issued"
+          value={formatCurrency(totalCreditIssued)}
+          sub="Total customer refund/credit value"
+          icon={<TrendingUp className="size-4" />}
+          theme="rose"
+          badge={{ text: 'Refunded', variant: 'negative' }}
+        />
       </div>
 
       {/* Action Bar */}

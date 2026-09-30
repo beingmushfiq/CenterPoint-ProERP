@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import {
   X,
   ShoppingCart,
@@ -331,15 +331,19 @@ export const TenantRoleDashboard: React.FC = () => {
     return views;
   }, [canAccessExecutive, canAccessProduction, canAccessInventory, canAccessQC, canAccessSales, canAccessFinance, canAccessWorkforce, canAccessPurchasing, canAccessLogistics]);
 
+  const [searchParams] = useSearchParams();
+  const queryView = searchParams.get('view') as DashboardRoleView | null;
+
   const [userSelectedView, setUserSelectedView] = useState<DashboardRoleView | null>(() => {
     try { return (localStorage.getItem('tenant_dashboard_role_perspective') as DashboardRoleView) || null; }
     catch { return null; }
   });
 
   const activeView: DashboardRoleView = useMemo(() => {
+    if (queryView && availableViews.some((v) => v.id === queryView)) return queryView;
     if (userSelectedView && availableViews.some((v) => v.id === userSelectedView)) return userSelectedView;
     return initialView;
-  }, [userSelectedView, availableViews, initialView]);
+  }, [queryView, userSelectedView, availableViews, initialView]);
 
   const setActiveView = (view: DashboardRoleView) => {
     setUserSelectedView(view);

@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 import { api } from '../../../lib/api/client';
 import { useCurrency } from '../../../hooks/useCurrency';
-import { KPICard } from '../../../components/ui/KPICard';
+import { DashboardKpiCard } from '../../../pages/dashboard/components/DashboardKpiCard';
 import type { SalesmanSummary } from '../../../types/api/sales';
 
 interface Props {
@@ -143,30 +143,40 @@ export function SalesmenProfilesSection({ onSelectSalesmanForDashboard }: Props)
 
       {/* KPI Cards Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <KPICard
+        <DashboardKpiCard
           label="Total Salesmen"
           value={salesmen.length}
-          subValue="Active representatives"
-          icon={<Users className="w-4 h-4 text-primary" />}
+          sub="Active representatives"
+          icon={<Users className="size-4" />}
+          theme="blue"
+          badge={{ text: 'Field Team', variant: 'info' }}
         />
-        <KPICard
+        <DashboardKpiCard
           label="Total Monthly Target"
           value={formatCurrency(totalTarget)}
-          subValue={`Target for ${selectedMonth}`}
-          icon={<Target className="w-4 h-4 text-info" />}
+          sub={`Target for ${selectedMonth}`}
+          icon={<Target className="size-4" />}
+          theme="purple"
+          badge={{ text: selectedMonth, variant: 'neutral' }}
         />
-        <KPICard
+        <DashboardKpiCard
           label="Total Achieved"
           value={formatCurrency(totalAchieved)}
-          subValue={`${overallAchievement.toFixed(1)}% team quota`}
-          alert={overallAchievement >= 100 ? 'success' : overallAchievement >= 80 ? 'warning' : 'danger'}
-          icon={<TrendingUp className="w-4 h-4 text-emerald-500" />}
+          sub={`${overallAchievement.toFixed(1)}% team quota`}
+          icon={<TrendingUp className="size-4" />}
+          theme="emerald"
+          badge={{
+            text: `${overallAchievement.toFixed(0)}% Quota`,
+            variant: overallAchievement >= 100 ? 'positive' : overallAchievement >= 80 ? 'warning' : 'negative',
+          }}
         />
-        <KPICard
+        <DashboardKpiCard
           label="Est. Incentive Pool"
           value={formatCurrency(totalIncentives)}
-          subValue="Eligible commission bonus"
-          icon={<Award className="w-4 h-4 text-warning" />}
+          sub="Eligible commission bonus"
+          icon={<Award className="size-4" />}
+          theme="amber"
+          badge={{ text: 'Incentives', variant: 'warning' }}
         />
       </div>
 

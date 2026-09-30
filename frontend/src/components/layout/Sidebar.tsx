@@ -200,8 +200,17 @@ export function Sidebar({ isOpen, onClose, isCollapsed = false, onToggleCollapse
       );
     }
 
-    // 7. Standard matching: check pathname match regardless of search/tab parameters
-    const [toPath] = to.split('?');
+    // 7. Standard matching: if target URL contains query parameters, verify query parameter values match
+    const [toPath, toQuery] = to.split('?');
+    if (toQuery) {
+      if (location.pathname !== toPath) return false;
+      const currentParams = new URLSearchParams(location.search);
+      const targetParams = new URLSearchParams(toQuery);
+      return Array.from(targetParams.entries()).every(
+        ([key, value]) => currentParams.get(key) === value
+      );
+    }
+
     if (location.pathname === toPath || location.pathname.startsWith(`${toPath}/`)) {
       return true;
     }
@@ -565,21 +574,89 @@ export function Sidebar({ isOpen, onClose, isCollapsed = false, onToggleCollapse
                                 const ChildIcon = child.icon;
                                 const isChildActive = isItemActive(child.to, location.pathname === child.to.split('?')[0]);
                                 
-                                const childTone =
-                                  child.id.includes('orders') ? 'text-indigo-500 group-hover:text-indigo-400' :
-                                  child.id.includes('invoices') ? 'text-blue-500 group-hover:text-blue-400' :
-                                  child.id.includes('deliveries') ? 'text-cyan-500 group-hover:text-cyan-400' :
-                                  child.id.includes('payments') ? 'text-emerald-500 group-hover:text-emerald-400' :
-                                  child.id.includes('returns') ? 'text-rose-500 group-hover:text-rose-400' :
-                                  child.id.includes('exchanges') ? 'text-amber-500 group-hover:text-amber-400' :
-                                  child.id.includes('leads') ? 'text-teal-500 group-hover:text-teal-400' :
-                                  child.id.includes('customers') ? 'text-violet-500 group-hover:text-violet-400' :
-                                  child.id.includes('pricelists') ? 'text-fuchsia-500 group-hover:text-fuchsia-400' :
-                                  child.id.includes('salesmen') ? 'text-sky-500 group-hover:text-sky-400' :
-                                  child.id.includes('targets') ? 'text-purple-500 group-hover:text-purple-400' :
-                                  child.id.includes('incentives') ? 'text-emerald-500 group-hover:text-emerald-400' :
-                                  child.id.includes('dashboard') ? 'text-amber-500 group-hover:text-amber-400' :
-                                  'text-primary';
+                                const getChildTone = (id: string): string => {
+                                  // Sales & CRM
+                                  if (id.includes('orders')) return 'text-indigo-500 group-hover:text-indigo-400';
+                                  if (id.includes('invoices')) return 'text-blue-500 group-hover:text-blue-400';
+                                  if (id.includes('deliveries')) return 'text-cyan-500 group-hover:text-cyan-400';
+                                  if (id.includes('payments')) return 'text-emerald-500 group-hover:text-emerald-400';
+                                  if (id.includes('returns')) return 'text-rose-500 group-hover:text-rose-400';
+                                  if (id.includes('exchanges')) return 'text-amber-500 group-hover:text-amber-400';
+                                  if (id.includes('pipeline') || id.includes('kanban')) return 'text-purple-500 group-hover:text-purple-400';
+                                  if (id.includes('stages')) return 'text-purple-500 group-hover:text-purple-400';
+                                  if (id.includes('sources')) return 'text-indigo-500 group-hover:text-indigo-400';
+                                  if (id.includes('import')) return 'text-sky-500 group-hover:text-sky-400';
+                                  if (id.includes('add') || id.includes('create')) return 'text-emerald-500 group-hover:text-emerald-400';
+                                  if (id.includes('leads') || id.includes('crm-all') || id.includes('crm-my')) return 'text-teal-500 group-hover:text-teal-400';
+                                  if (id.includes('stale') || id.includes('audit')) return 'text-amber-500 group-hover:text-amber-400';
+                                  if (id.includes('customers')) return 'text-violet-500 group-hover:text-violet-400';
+                                  if (id.includes('pricelists')) return 'text-fuchsia-500 group-hover:text-fuchsia-400';
+                                  if (id.includes('salesmen')) return 'text-sky-500 group-hover:text-sky-400';
+                                  if (id.includes('targets')) return 'text-purple-500 group-hover:text-purple-400';
+                                  if (id.includes('incentives')) return 'text-emerald-500 group-hover:text-emerald-400';
+                                  if (id.includes('dashboard')) return 'text-amber-500 group-hover:text-amber-400';
+
+                                  // Assets Management
+                                  if (id.includes('machinery')) return 'text-cyan-500 group-hover:text-cyan-400';
+                                  if (id.includes('maintenance')) return 'text-sky-500 group-hover:text-sky-400';
+                                  if (id.includes('timeline')) return 'text-blue-500 group-hover:text-blue-400';
+                                  if (id.includes('register') || id.includes('assets')) return 'text-emerald-500 group-hover:text-emerald-400';
+                                  if (id.includes('depreciation')) return 'text-amber-500 group-hover:text-amber-400';
+                                  if (id.includes('categories')) return 'text-teal-500 group-hover:text-teal-400';
+
+                                  // Workforce & HR
+                                  if (id.includes('employees') || id.includes('departments')) return 'text-teal-500 group-hover:text-teal-400';
+                                  if (id.includes('attendance')) return 'text-blue-500 group-hover:text-blue-400';
+                                  if (id.includes('leaves')) return 'text-indigo-500 group-hover:text-indigo-400';
+                                  if (id.includes('payroll')) return 'text-emerald-500 group-hover:text-emerald-400';
+                                  if (id.includes('salary')) return 'text-green-500 group-hover:text-green-400';
+                                  if (id.includes('advances')) return 'text-amber-500 group-hover:text-amber-400';
+                                  if (id.includes('performance')) return 'text-orange-500 group-hover:text-orange-400';
+
+                                  // System Settings
+                                  if (id.includes('general')) return 'text-indigo-500 group-hover:text-indigo-400';
+                                  if (id.includes('security')) return 'text-sky-500 group-hover:text-sky-400';
+                                  if (id.includes('documents')) return 'text-blue-500 group-hover:text-blue-400';
+                                  if (id.includes('modules')) return 'text-purple-500 group-hover:text-purple-400';
+                                  if (id.includes('workflows')) return 'text-fuchsia-500 group-hover:text-fuchsia-400';
+                                  if (id.includes('terminology')) return 'text-violet-500 group-hover:text-violet-400';
+                                  if (id.includes('custom_fields')) return 'text-pink-500 group-hover:text-pink-400';
+                                  if (id.includes('finance')) return 'text-amber-500 group-hover:text-amber-400';
+                                  if (id.includes('integrations')) return 'text-emerald-500 group-hover:text-emerald-400';
+                                  if (id.includes('notifications')) return 'text-teal-500 group-hover:text-teal-400';
+
+                                  // Purchasing & Inventory
+                                  if (id.includes('pur-') || id.includes('inv-')) return 'text-indigo-500 group-hover:text-indigo-400';
+                                  // Product Catalog & Recipes
+                                  if (id.includes('cat-products')) return 'text-blue-500 group-hover:text-blue-400';
+                                  if (id.includes('cat-categories')) return 'text-purple-500 group-hover:text-purple-400';
+                                  if (id.includes('cat-brands')) return 'text-amber-500 group-hover:text-amber-400';
+                                  if (id.includes('cat-units')) return 'text-cyan-500 group-hover:text-cyan-400';
+                                  if (id.includes('cat-boms')) return 'text-emerald-500 group-hover:text-emerald-400';
+                                  if (id.includes('cat-warehouses')) return 'text-teal-500 group-hover:text-teal-400';
+                                  if (id.includes('cat-parties')) return 'text-indigo-500 group-hover:text-indigo-400';
+
+                                  // Logistics & Storefront
+                                  if (id.includes('del-') || id.includes('store-')) return 'text-sky-500 group-hover:text-sky-400';
+
+                                  return 'text-primary';
+                                };
+
+                                const getGroupDotTone = (groupName?: string): string => {
+                                  if (!groupName) return 'bg-primary/60';
+                                  const g = groupName.toLowerCase();
+                                  if (g.includes('master') || g.includes('catalog')) return 'bg-blue-500';
+                                  if (g.includes('engineering') || g.includes('recipe') || g.includes('bom')) return 'bg-emerald-500';
+                                  if (g.includes('director') || g.includes('location')) return 'bg-teal-500';
+                                  if (g.includes('cash') || g.includes('valuation') || g.includes('payroll') || g.includes('fiscal') || g.includes('settlement')) return 'bg-emerald-500';
+                                  if (g.includes('governance') || g.includes('loss') || g.includes('sla')) return 'bg-amber-500';
+                                  if (g.includes('machinery') || g.includes('dispatch') || g.includes('security')) return 'bg-cyan-500';
+                                  if (g.includes('pipeline') || g.includes('automation') || g.includes('store') || g.includes('appearance')) return 'bg-purple-500';
+                                  if (g.includes('people') || g.includes('inspection') || g.includes('lead')) return 'bg-teal-500';
+                                  return 'bg-primary/60';
+                                };
+
+                                const childTone = getChildTone(child.id);
 
                                 return (
                                   <div key={child.id}>
@@ -588,7 +665,7 @@ export function Sidebar({ isOpen, onClose, isCollapsed = false, onToggleCollapse
                                         "px-2 pb-1 flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-wider text-muted/70 select-none",
                                         idx > 0 ? "pt-2 border-t border-default/40 mt-1" : "pt-0.5"
                                       )}>
-                                        <span className="size-1 rounded-full bg-primary/60 shrink-0" />
+                                        <span className={cn("size-1.5 rounded-full shrink-0 shadow-2xs", getGroupDotTone(child.group))} />
                                         <span className="truncate">{child.group}</span>
                                       </div>
                                     )}

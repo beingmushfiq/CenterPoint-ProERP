@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useMemo } from 'react';
 import {
   CheckCircle2,
   ChevronDown,
@@ -44,7 +44,14 @@ import {
   type ThemePresetId,
   type ProductCardStyle,
 } from '../../lib/storefront/storefrontDesignSystem';
-import { cn } from '../../lib/utils';
+
+
+import {
+  WorkspaceNavigationHub,
+  WORKSPACE_THEMES,
+  type WorkspaceCategoryConfig,
+  type WorkspaceTabConfig,
+} from '../../components/common/WorkspaceNavigationHub';
 
 interface PublishedProductItem {
   id: number;
@@ -59,6 +66,7 @@ interface PublishedProductItem {
   display_order: number;
 }
 
+type StorefrontSettingCategory = 'experience' | 'commerce' | 'connectivity';
 type StorefrontSettingTab = 'branding' | 'header' | 'footer' | 'products' | 'checkout' | 'coupons' | 'domains';
 
 export const StorefrontSettingsWorkspace: React.FC = () => {
@@ -73,38 +81,6 @@ export const StorefrontSettingsWorkspace: React.FC = () => {
   const [serverLegalName, setServerLegalName] = useState<string>('');
   const [seoMenuOpen, setSeoMenuOpen] = useState(false);
   const seoMenuRef = useRef<HTMLDivElement>(null);
-
-  // Keyboard shortcut listener: Press 1-7 to quickly switch tabs when not typing
-  useEffect(() => {
-    function handleQuickTabKey(e: KeyboardEvent) {
-      if (
-        e.target instanceof HTMLInputElement ||
-        e.target instanceof HTMLTextAreaElement ||
-        e.target instanceof HTMLSelectElement ||
-        (e.target as HTMLElement)?.isContentEditable
-      ) {
-        return;
-      }
-      if (e.metaKey || e.ctrlKey || e.altKey) return;
-
-      const keyTabMap: Record<string, StorefrontSettingTab> = {
-        '1': 'branding',
-        '2': 'header',
-        '3': 'footer',
-        '4': 'products',
-        '5': 'checkout',
-        '6': 'coupons',
-        '7': 'domains',
-      };
-      const targetTab = keyTabMap[e.key];
-      if (targetTab) {
-        setActiveTab(targetTab);
-      }
-    }
-
-    window.addEventListener('keydown', handleQuickTabKey);
-    return () => window.removeEventListener('keydown', handleQuickTabKey);
-  }, [setActiveTab]);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -664,6 +640,117 @@ export const StorefrontSettingsWorkspace: React.FC = () => {
     });
   };
 
+  const publishedProductsCount = products.filter((p) => p.is_published).length;
+
+  const categories: WorkspaceCategoryConfig<StorefrontSettingCategory, StorefrontSettingTab>[] = useMemo(
+    () => [
+      {
+        id: 'experience',
+        label: 'Storefront Experience',
+        tagline: 'Design presets, brand colors, typography, hero layout & navigation',
+        icon: Palette,
+        tabs: ['branding', 'header', 'footer'],
+        theme: WORKSPACE_THEMES.purple,
+        defaultTab: 'branding',
+      },
+      {
+        id: 'commerce',
+        label: 'Commerce & Conversion',
+        tagline: 'Product catalog visibility, checkout shipping rules, and promotional coupons',
+        icon: ShoppingBag,
+        tabs: ['products', 'checkout', 'coupons'],
+        theme: WORKSPACE_THEMES.emerald,
+        defaultTab: 'products',
+      },
+      {
+        id: 'connectivity',
+        label: 'Domain & Infrastructure',
+        tagline: 'CNAME verification, custom web domain bindings, and automated SSL status',
+        icon: Globe,
+        tabs: ['domains'],
+        theme: WORKSPACE_THEMES.cyan,
+        defaultTab: 'domains',
+      },
+    ],
+    []
+  );
+
+  const storefrontTabs: WorkspaceTabConfig<StorefrontSettingCategory, StorefrontSettingTab>[] = useMemo(
+    () => [
+      {
+        id: 'branding',
+        step: 1,
+        label: 'Branding & Theme',
+        shortLabel: 'Branding',
+        category: 'experience',
+        icon: Palette,
+        badge: 'Theme',
+        description: 'Design presets, brand colors, typography, hero layout & live styling',
+      },
+      {
+        id: 'header',
+        step: 2,
+        label: 'Header & Navigation',
+        shortLabel: 'Header & Nav',
+        category: 'experience',
+        icon: Menu,
+        badge: 'Menus',
+        description: 'Announcement banner, topbar contact links, logo placement & menu routing',
+      },
+      {
+        id: 'footer',
+        step: 3,
+        label: 'Footer & Marketing',
+        shortLabel: 'Footer & Mktg',
+        category: 'experience',
+        icon: Megaphone,
+        badge: 'Socials',
+        description: 'Footer columns, legal links, trust badges, WhatsApp CTA & newsletter',
+      },
+      {
+        id: 'products',
+        step: 4,
+        label: 'Catalogue Visibility',
+        shortLabel: 'Catalogue',
+        category: 'commerce',
+        icon: Tag,
+        count: `${publishedProductsCount}/${products.length} Live`,
+        description: 'Toggle which ERP catalog products and inventory are published on the storefront',
+      },
+      {
+        id: 'checkout',
+        step: 5,
+        label: 'Checkout & Payments',
+        shortLabel: 'Checkout',
+        category: 'commerce',
+        icon: Truck,
+        badge: 'Rules & COD',
+        description: 'Delivery charges, shipping zones, Cash on Delivery & online gateway rules',
+      },
+      {
+        id: 'coupons',
+        step: 6,
+        label: 'Coupons & Promo Codes',
+        shortLabel: 'Coupons',
+        category: 'commerce',
+        icon: Ticket,
+        badge: 'Discounts',
+        description: 'Promotional voucher campaigns, percentage discounts, minimum spends & limits',
+      },
+      {
+        id: 'domains',
+        step: 7,
+        label: 'Custom Domains & DNS',
+        shortLabel: 'Domains & DNS',
+        category: 'connectivity',
+        icon: Globe,
+        badge: 'SSL & Host',
+        description: 'CNAME verification, custom web domain bindings, and automated SSL certificate status',
+      },
+    ],
+    [publishedProductsCount, products.length]
+  );
+
   if (loading) {
     return (
       <div className="flex h-96 items-center justify-center">
@@ -831,193 +918,19 @@ export const StorefrontSettingsWorkspace: React.FC = () => {
         </div>
       </div>
 
-      {/* Workspace Command Deck: Zero-Scroll 7-Tile Adaptive Matrix */}
-      {(() => {
-        const publishedProductsCount = products.filter((p) => p.is_published).length;
-        const storefrontTabs = [
-          {
-            id: 'branding' as const,
-            label: 'Branding & Theme',
-            shortLabel: 'Branding',
-            cluster: 'Design',
-            badge: 'Theme',
-            badgeTone: 'default',
-            icon: Palette,
-            keyHint: '1',
-            description: 'Design presets, brand colors, typography, hero layout & live styling',
-          },
-          {
-            id: 'header' as const,
-            label: 'Header & Navigation',
-            shortLabel: 'Header & Nav',
-            cluster: 'Design',
-            badge: 'Menus',
-            badgeTone: 'default',
-            icon: Menu,
-            keyHint: '2',
-            description: 'Announcement banner, topbar contact links, logo placement & menu routing',
-          },
-          {
-            id: 'footer' as const,
-            label: 'Footer & Marketing',
-            shortLabel: 'Footer & Mktg',
-            cluster: 'Design',
-            badge: 'Socials',
-            badgeTone: 'default',
-            icon: Megaphone,
-            keyHint: '3',
-            description: 'Footer columns, legal links, trust badges, WhatsApp CTA & newsletter',
-          },
-          {
-            id: 'products' as const,
-            label: 'Catalogue Visibility',
-            shortLabel: 'Catalogue',
-            cluster: 'Commerce',
-            badge: `${publishedProductsCount}/${products.length} Live`,
-            badgeTone: 'emerald',
-            icon: Tag,
-            keyHint: '4',
-            description: 'Toggle which ERP catalog products and inventory are published on the storefront',
-          },
-          {
-            id: 'checkout' as const,
-            label: 'Checkout & Payments',
-            shortLabel: 'Checkout',
-            cluster: 'Commerce',
-            badge: 'Rules & COD',
-            badgeTone: 'default',
-            icon: Truck,
-            keyHint: '5',
-            description: 'Delivery charges, shipping zones, Cash on Delivery & online gateway rules',
-          },
-          {
-            id: 'coupons' as const,
-            label: 'Coupons & Promo Codes',
-            shortLabel: 'Coupons',
-            cluster: 'Commerce',
-            badge: 'Discounts',
-            badgeTone: 'purple',
-            icon: Ticket,
-            keyHint: '6',
-            description: 'Promotional voucher campaigns, percentage discounts, minimum spends & limits',
-          },
-          {
-            id: 'domains' as const,
-            label: 'Custom Domains & DNS',
-            shortLabel: 'Domains & DNS',
-            cluster: 'Connectivity',
-            badge: 'SSL & Host',
-            badgeTone: 'default',
-            icon: Globe,
-            keyHint: '7',
-            description: 'CNAME verification, custom web domain bindings, and automated SSL certificate status',
-          },
-        ];
-
-        const activeMeta = storefrontTabs.find((t) => t.id === activeTab);
-
-        return (
-          <div className="space-y-2">
-            {/* 7-Column Responsive Tile Grid: ZERO Horizontal Scrolling on Desktop */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2 p-2 bg-surface-sunken/80 dark:bg-slate-900/60 rounded-2xl border border-default shadow-xs">
-              {storefrontTabs.map((tab) => {
-                const Icon = tab.icon;
-                const isActive = activeTab === tab.id;
-                return (
-                  <button
-                    key={tab.id}
-                    type="button"
-                    onClick={() => setActiveTab(tab.id as typeof activeTab)}
-                    className={cn(
-                      'group relative flex flex-col items-center justify-between p-2.5 rounded-xl transition-all duration-150 cursor-pointer text-center select-none min-h-[66px]',
-                      isActive
-                        ? 'bg-primary text-primary-fg font-semibold shadow-md shadow-primary/20 ring-1 ring-primary/40'
-                        : 'bg-surface/90 hover:bg-surface text-default/80 hover:text-default border border-slate-200/70 dark:border-slate-800/80 hover:border-primary/40 hover:-translate-y-0.5 shadow-2xs'
-                    )}
-                    title={`${tab.label} — ${tab.description} (Press ${tab.keyHint})`}
-                  >
-                    {/* Top Row: Icon + Keyboard shortcut tag */}
-                    <div className="flex items-center justify-between w-full mb-1">
-                      <div
-                        className={cn(
-                          'size-6 rounded-lg flex items-center justify-center transition-transform group-hover:scale-110',
-                          isActive
-                            ? 'bg-white/20 text-primary-fg'
-                            : 'bg-surface-sunken text-muted group-hover:text-primary'
-                        )}
-                      >
-                        <Icon className="size-3.5" />
-                      </div>
-                      <span
-                        className={cn(
-                          'text-[9px] font-mono px-1 rounded transition-opacity',
-                          isActive
-                            ? 'bg-white/20 text-primary-fg/90'
-                            : 'text-muted/60 opacity-60 group-hover:opacity-100'
-                        )}
-                      >
-                        {tab.keyHint}
-                      </span>
-                    </div>
-
-                    {/* Center: Concise Primary Label */}
-                    <span className="text-xs font-semibold leading-tight tracking-tight line-clamp-1">
-                      {tab.shortLabel}
-                    </span>
-
-                    {/* Bottom: Contextual Subtitle / Badge */}
-                    <div className="mt-1 w-full flex justify-center">
-                      <span
-                        className={cn(
-                          'text-[10px] font-medium leading-none px-1.5 py-0.5 rounded-full truncate max-w-full',
-                          isActive
-                            ? 'bg-white/25 text-primary-fg font-bold'
-                            : tab.badgeTone === 'emerald'
-                            ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-bold'
-                            : tab.badgeTone === 'purple'
-                            ? 'bg-purple-500/15 text-purple-600 dark:text-purple-400 font-semibold'
-                            : 'bg-surface-sunken text-muted'
-                        )}
-                      >
-                        {tab.badge}
-                      </span>
-                    </div>
-
-                    {/* Active Indicator Bar */}
-                    {isActive && (
-                      <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-primary-fg rounded-full shadow-xs" />
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Context & Active Mission Ribbon */}
-            {activeMeta && (
-              <div className="flex flex-wrap items-center justify-between gap-2 px-3.5 py-2 rounded-xl bg-surface border border-default/70 text-xs shadow-2xs">
-                <div className="flex items-center gap-2 min-w-0">
-                  <span className="inline-flex items-center gap-1.5 font-semibold text-primary">
-                    <activeMeta.icon className="size-3.5" />
-                    <span>{activeMeta.label}</span>
-                  </span>
-                  <span className="text-muted/40 hidden sm:inline">•</span>
-                  <span className="text-muted text-[11px] truncate hidden sm:inline">{activeMeta.description}</span>
-                </div>
-                <div className="flex items-center gap-3 shrink-0 text-[11px] text-muted">
-                  <span className="hidden md:inline-flex items-center gap-1 opacity-75">
-                    <kbd className="px-1.5 py-0.5 text-[9px] font-mono bg-surface-sunken border border-default rounded">1-7</kbd>
-                    <span>Quick Switch</span>
-                  </span>
-                  <span className="inline-flex items-center gap-1.5 font-medium text-emerald-600 dark:text-emerald-400">
-                    <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                    <span>Live Preview Active</span>
-                  </span>
-                </div>
-              </div>
-            )}
-          </div>
-        );
-      })()}
+      {/* Universal 2-Tier Navigation Hub */}
+      <WorkspaceNavigationHub<StorefrontSettingCategory, StorefrontSettingTab>
+        categories={categories}
+        tabs={storefrontTabs}
+        activeTab={activeTab}
+        onSelectTab={setActiveTab}
+        taglineRightContent={
+          <span className="inline-flex items-center gap-1.5 font-medium text-emerald-600 dark:text-emerald-400 text-xs">
+            <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            <span>Live Preview Active</span>
+          </span>
+        }
+      />
 
       {/* Tab Content */}
       {activeTab === 'branding' && (

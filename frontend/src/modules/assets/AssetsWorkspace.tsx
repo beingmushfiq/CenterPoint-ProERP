@@ -53,7 +53,14 @@ import { useTranslation } from 'react-i18next';
 import { DepreciationScheduleModal } from './modals/DepreciationScheduleModal';
 import { AssetQrLabelModal } from './modals/AssetQrLabelModal';
 import { AssetTimelineSection } from './sections/AssetTimelineSection';
+import {
+  WorkspaceNavigationHub,
+  WORKSPACE_THEMES,
+  type WorkspaceCategoryConfig,
+  type WorkspaceTabConfig,
+} from '../../components/common/WorkspaceNavigationHub';
 
+type AssetDomain = 'operations' | 'finance';
 type AssetTab = 'machinery' | 'maintenance' | 'assets' | 'depreciation' | 'categories' | 'timeline';
 type PerspectiveMode = 'all' | 'operations' | 'finance';
 
@@ -1160,6 +1167,100 @@ export const AssetsWorkspace: React.FC = () => {
     [t, plantMachines.length, maintenanceOrders.length, assets.length, depreciationEntries.length, categories.length]
   );
 
+  const categoriesConfig: WorkspaceCategoryConfig<AssetDomain, AssetTab>[] = useMemo(
+    () => [
+      {
+        id: 'operations',
+        label: t('assets.perspectives.operations', 'Machinery & Maintenance'),
+        tagline: t(
+          'assets.categoryTaglines.operations',
+          'Shop floor equipment health, work orders & servicing schedule'
+        ),
+        icon: Cpu,
+        tabs: ['machinery', 'maintenance', 'timeline'],
+        defaultTab: 'machinery',
+        shortcut: '1',
+        badge: `${plantMachines.length + maintenanceOrders.length}`,
+        theme: WORKSPACE_THEMES.cyan,
+      },
+      {
+        id: 'finance',
+        label: t('assets.perspectives.finance', 'Fixed Assets & Valuation'),
+        tagline: t(
+          'assets.categoryTaglines.finance',
+          'Capital asset ledger, accumulated depreciation & asset categories'
+        ),
+        icon: Building2,
+        tabs: ['assets', 'depreciation', 'categories'],
+        defaultTab: 'assets',
+        shortcut: '2',
+        badge: `${assets.length}`,
+        theme: WORKSPACE_THEMES.emerald,
+      },
+    ],
+    [t, plantMachines.length, maintenanceOrders.length, assets.length]
+  );
+
+  const tabsConfig: WorkspaceTabConfig<AssetDomain, AssetTab>[] = useMemo(
+    () => [
+      {
+        id: 'machinery',
+        label: t('assets.stages.machinery.label'),
+        shortLabel: t('assets.stages.machinery.shortLabel'),
+        category: 'operations',
+        icon: Cpu,
+        count: plantMachines.length,
+        description: t('assets.stages.machinery.description'),
+      },
+      {
+        id: 'maintenance',
+        label: t('assets.stages.maintenance.label'),
+        shortLabel: t('assets.stages.maintenance.shortLabel'),
+        category: 'operations',
+        icon: Wrench,
+        count: maintenanceOrders.length,
+        description: t('assets.stages.maintenance.description'),
+      },
+      {
+        id: 'timeline',
+        label: t('assets.stages.timeline.label', 'Lifecycle Timeline'),
+        shortLabel: t('assets.stages.timeline.shortLabel', 'Timeline'),
+        category: 'operations',
+        icon: Clock,
+        count: assets.length,
+        description: t('assets.stages.timeline.description', 'Chronological ownership, servicing, and depreciation audit trail'),
+      },
+      {
+        id: 'assets',
+        label: t('assets.stages.assets.label'),
+        shortLabel: t('assets.stages.assets.shortLabel'),
+        category: 'finance',
+        icon: Building2,
+        count: assets.length,
+        description: t('assets.stages.assets.description'),
+      },
+      {
+        id: 'depreciation',
+        label: t('assets.stages.depreciation.label'),
+        shortLabel: t('assets.stages.depreciation.shortLabel'),
+        category: 'finance',
+        icon: TrendingDown,
+        count: depreciationEntries.length,
+        description: t('assets.stages.depreciation.description'),
+      },
+      {
+        id: 'categories',
+        label: t('assets.stages.categories.label'),
+        shortLabel: t('assets.stages.categories.shortLabel'),
+        category: 'finance',
+        icon: Tag,
+        count: categories.length,
+        description: t('assets.stages.categories.description'),
+      },
+    ],
+    [t, plantMachines.length, maintenanceOrders.length, assets.length, depreciationEntries.length, categories.length]
+  );
+
   const currentStage = (stages.find((s) => s.id === activeTab) || stages[0])!;
 
   return (
@@ -1485,65 +1586,13 @@ export const AssetsWorkspace: React.FC = () => {
         </div>
       </div>
 
-      {/* 6-Stage Execution Ribbon (Grid with 1..6 shortcuts, non-colliding labels, zero scrollbar) */}
-      <div className="bg-surface rounded-2xl border border-default p-2 shadow-xs">
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
-          {stages
-            .filter((tab) => {
-              if (perspective === 'operations') return tab.group === 'operations';
-              if (perspective === 'finance') return tab.group === 'finance';
-              return true;
-            })
-            .map((stage) => {
-              const Icon = stage.icon;
-              const isActive = activeTab === stage.id;
-              return (
-                <button
-                  key={stage.id}
-                  type="button"
-                  onClick={() => setActiveTab(stage.id)}
-                  className={cn(
-                    'flex items-center gap-2.5 p-2.5 rounded-xl border text-left transition-all cursor-pointer min-w-0',
-                    isActive
-                      ? 'bg-primary text-primary-fg border-primary shadow-sm'
-                      : 'bg-surface hover:bg-surface-sunken border-default/70 hover:border-default text-default'
-                  )}
-                >
-                  <div
-                    className={cn(
-                      'size-7 rounded-lg flex items-center justify-center shrink-0 font-mono text-xs font-bold transition-colors',
-                      isActive ? 'bg-primary-fg/20 text-primary-fg' : 'bg-surface-sunken text-muted'
-                    )}
-                  >
-                    {stage.step}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-1.5">
-                      <Icon className={cn('size-3.5 shrink-0', isActive ? 'text-primary-fg' : 'text-primary')} />
-                      <span className="text-xs font-bold truncate">{stage.shortLabel}</span>
-                      <span
-                        className={cn(
-                          'text-[10px] font-mono px-1.5 py-0.2 rounded-full font-bold ml-auto shrink-0',
-                          isActive ? 'bg-white/20 text-white' : 'bg-surface-sunken text-muted border border-default/50'
-                        )}
-                      >
-                        {stage.count}
-                      </span>
-                    </div>
-                    <p
-                      className={cn(
-                        'text-[10px] truncate mt-0.5',
-                        isActive ? 'text-primary-fg/80' : 'text-muted'
-                      )}
-                    >
-                      {stage.description}
-                    </p>
-                  </div>
-                </button>
-              );
-            })}
-        </div>
-      </div>
+      {/* 2-Tier Universal Navigation Hub */}
+      <WorkspaceNavigationHub<AssetDomain, AssetTab>
+        categories={categoriesConfig}
+        tabs={tabsConfig}
+        activeTab={activeTab}
+        onSelectTab={setActiveTab}
+      />
 
       {/* ─────────────────────────────────────────────────────────────────────────────
           Tab 1: Plant Machinery & Workstations (Operational CMMS)
@@ -1818,7 +1867,7 @@ export const AssetsWorkspace: React.FC = () => {
           )}
 
           <div className="overflow-x-auto min-h-75 bg-surface rounded-2xl shadow-2xs border border-default">
-            <table className="w-full text-left text-sm text-default">
+            <table className="w-full min-w-[1100px] text-left text-sm text-default">
               <thead className="bg-surface-sunken text-muted uppercase text-2xs font-bold border-b border-default">
                 <tr>
                   <th className="w-10 px-4 py-3 text-center">
@@ -1831,14 +1880,14 @@ export const AssetsWorkspace: React.FC = () => {
                       title="Select all maintenance orders"
                     />
                   </th>
-                  <th className="px-6 py-3">Order #</th>
-                  <th className="px-6 py-3">Asset</th>
-                  <th className="px-6 py-3">Type & Priority</th>
-                  <th className="px-6 py-3">Issue / Task</th>
-                  <th className="px-6 py-3">Scheduled</th>
-                  <th className="px-6 py-3 text-right">Cost</th>
-                  <th className="px-6 py-3 text-center">Status</th>
-                  <th className="px-6 py-3 text-right">Actions</th>
+                  <th className="px-4 py-3 whitespace-nowrap">Order #</th>
+                  <th className="px-4 py-3 min-w-[200px]">Asset</th>
+                  <th className="px-4 py-3 whitespace-nowrap">Type & Priority</th>
+                  <th className="px-4 py-3 min-w-[220px]">Issue / Task</th>
+                  <th className="px-4 py-3 whitespace-nowrap">Scheduled</th>
+                  <th className="px-4 py-3 text-right whitespace-nowrap">Cost</th>
+                  <th className="px-4 py-3 text-center whitespace-nowrap">Status</th>
+                  <th className="px-4 py-3 text-right whitespace-nowrap">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-default">
@@ -1859,21 +1908,21 @@ export const AssetsWorkspace: React.FC = () => {
                           className="size-4 rounded border-default text-primary focus:ring-primary cursor-pointer"
                         />
                       </td>
-                      <td className="px-6 py-4 font-mono font-bold text-primary">
+                      <td className="px-4 py-3.5 font-mono font-bold text-primary whitespace-nowrap">
                         {mo.order_number}
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-4 py-3.5 min-w-[200px]">
                         <div className="font-semibold text-default">
                           {mo.asset?.name}
                         </div>
-                        <div className="text-2xs font-mono text-muted">{mo.asset?.asset_code}</div>
+                        <div className="text-2xs font-mono text-muted whitespace-nowrap">{mo.asset?.asset_code}</div>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-4 py-3.5 whitespace-nowrap">
                         <div className="capitalize text-xs font-semibold text-default">
                           {mo.maintenance_type}
                         </div>
                         <span
-                          className={`text-[10px] uppercase font-bold px-1.5 py-0.5 rounded ${
+                          className={`text-[10px] uppercase font-bold px-1.5 py-0.5 rounded whitespace-nowrap ${
                             mo.priority === 'high' || mo.priority === 'critical'
                               ? 'bg-rose-100 text-rose-800 dark:bg-rose-900/40 dark:text-rose-300'
                               : 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300'
@@ -1882,51 +1931,51 @@ export const AssetsWorkspace: React.FC = () => {
                           {mo.priority}
                         </span>
                       </td>
-                      <td className="px-6 py-4 max-w-xs">
-                        <div className="truncate text-xs text-muted">{mo.description}</div>
-                        <div className="text-2xs font-medium text-default mt-0.5">
+                      <td className="px-4 py-3.5 min-w-[220px]">
+                        <div className="text-xs text-muted line-clamp-2">{mo.description}</div>
+                        <div className="text-2xs font-medium text-default mt-0.5 whitespace-nowrap">
                           Tech: {mo.performed_by || 'Unassigned'}
                         </div>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-4 py-3.5 whitespace-nowrap">
                         <div className="text-xs font-mono font-medium text-default">{mo.scheduled_date}</div>
                         {(() => {
                           const sla = getMaintenanceSlaStatus(mo);
                           if (sla.isOverdue) {
                             return (
-                              <span className="inline-flex items-center gap-1 text-[9px] font-bold text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 px-1.5 py-0.5 rounded border border-rose-200 dark:border-rose-800 mt-1">
+                              <span className="inline-flex items-center gap-1 text-[9px] font-bold text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 px-1.5 py-0.5 rounded border border-rose-200 dark:border-rose-800 mt-1 whitespace-nowrap">
                                 <AlertTriangle className="size-2.5" /> SLA Overdue ({sla.diffDays}d)
                               </span>
                             );
                           }
                           if (sla.isDueSoon) {
                             return (
-                              <span className="inline-flex items-center gap-1 text-[9px] font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 px-1.5 py-0.5 rounded border border-amber-200 dark:border-amber-800 mt-1">
+                              <span className="inline-flex items-center gap-1 text-[9px] font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 px-1.5 py-0.5 rounded border border-amber-200 dark:border-amber-800 mt-1 whitespace-nowrap">
                                 <Clock className="size-2.5" /> Due in {Math.abs(sla.diffDays)}d
                               </span>
                             );
                           }
                           if (mo.status === 'completed') {
                             return (
-                              <span className="inline-flex items-center gap-1 text-[9px] font-semibold text-emerald-600 dark:text-emerald-400 mt-1">
+                              <span className="inline-flex items-center gap-1 text-[9px] font-semibold text-emerald-600 dark:text-emerald-400 mt-1 whitespace-nowrap">
                                 <CheckCircle2 className="size-2.5" /> SLA Met
                               </span>
                             );
                           }
                           return (
-                            <span className="inline-flex items-center gap-1 text-[9px] text-muted mt-1">
+                            <span className="inline-flex items-center gap-1 text-[9px] text-muted mt-1 whitespace-nowrap">
                               On Schedule
                             </span>
                           );
                         })()}
                       </td>
-                      <td className="px-6 py-4 text-right font-mono font-semibold text-default">
+                      <td className="px-4 py-3.5 text-right font-mono font-semibold text-default whitespace-nowrap">
                         {formatCurrency(mo.cost)}
                       </td>
-                      <td className="px-6 py-4 text-center">
+                      <td className="px-4 py-3.5 text-center whitespace-nowrap">
                         <span
                           className={cn(
-                            'px-2.5 py-1 text-2xs font-bold rounded-full uppercase',
+                            'px-2.5 py-1 text-2xs font-bold rounded-full uppercase whitespace-nowrap',
                             mo.status === 'completed'
                               ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300'
                               : mo.status === 'in_progress'
@@ -2108,7 +2157,7 @@ export const AssetsWorkspace: React.FC = () => {
 
           {/* Asset Register Table */}
           <div className="overflow-x-auto min-h-75 bg-surface rounded-2xl shadow-2xs border border-default">
-            <table className="w-full text-left text-sm text-default">
+            <table className="w-full min-w-[1280px] text-left text-sm text-default">
               <thead className="bg-surface-sunken text-muted uppercase text-2xs font-bold border-b border-default">
                 <tr>
                   <th className="w-10 px-4 py-3 text-center">
@@ -2121,14 +2170,14 @@ export const AssetsWorkspace: React.FC = () => {
                       title="Select all assets"
                     />
                   </th>
-                  <th className="px-6 py-3">Asset Code</th>
-                  <th className="px-6 py-3">Name & Details</th>
-                  <th className="px-6 py-3">Category</th>
-                  <th className="px-6 py-3 text-right">Cost (BDT)</th>
-                  <th className="px-6 py-3 text-right">Accum. Depr (BDT)</th>
-                  <th className="px-6 py-3 text-right">Net Book Value (BDT)</th>
-                  <th className="px-6 py-3 text-center">Status</th>
-                  <th className="px-6 py-3 text-right">Actions</th>
+                  <th className="px-4 py-3 whitespace-nowrap">Asset Code</th>
+                  <th className="px-4 py-3 min-w-[240px]">Name & Details</th>
+                  <th className="px-4 py-3 whitespace-nowrap">Category</th>
+                  <th className="px-4 py-3 text-right whitespace-nowrap">Cost (BDT)</th>
+                  <th className="px-4 py-3 text-right whitespace-nowrap">Accum. Depr (BDT)</th>
+                  <th className="px-4 py-3 text-right whitespace-nowrap">Net Book Value (BDT)</th>
+                  <th className="px-4 py-3 text-center whitespace-nowrap">Status</th>
+                  <th className="px-4 py-3 text-right whitespace-nowrap">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-default">
@@ -2141,7 +2190,7 @@ export const AssetsWorkspace: React.FC = () => {
                 ) : (
                   filteredAssets.map((ast) => (
                     <tr key={ast.id} className="hover:bg-surface-sunken/50 transition">
-                      <td className="w-10 px-4 py-4 text-center" onClick={(e) => e.stopPropagation()}>
+                      <td className="w-10 px-4 py-3.5 text-center" onClick={(e) => e.stopPropagation()}>
                         <input
                           type="checkbox"
                           checked={selectedAssetIds.has(ast.id)}
@@ -2149,40 +2198,40 @@ export const AssetsWorkspace: React.FC = () => {
                           className="size-4 rounded border-default text-primary focus:ring-primary cursor-pointer"
                         />
                       </td>
-                      <td className="px-6 py-4 font-mono font-bold text-primary">
+                      <td className="px-4 py-3.5 font-mono font-bold text-primary whitespace-nowrap">
                         {ast.asset_code}
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-4 py-3.5 min-w-[240px]">
                         <div className="font-semibold text-default">{ast.name}</div>
-                        <div className="text-xs text-muted">
-                          {ast.location} | S/N: {ast.serial_number || 'N/A'}
+                        <div className="text-xs text-muted mt-0.5 whitespace-nowrap">
+                          {ast.location ? `${ast.location} | ` : ''}S/N: {ast.serial_number || 'N/A'}
                         </div>
                       </td>
-                      <td className="px-6 py-4">
-                        <span className="px-2 py-0.5 text-xs font-semibold bg-surface-sunken rounded text-muted border border-default">
-                          {ast.category?.name}
+                      <td className="px-4 py-3.5 whitespace-nowrap">
+                        <span className="inline-block px-2.5 py-1 text-xs font-semibold bg-surface-sunken rounded-lg text-default border border-default whitespace-nowrap">
+                          {ast.category?.name || 'Uncategorized'}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-right font-mono text-default">
+                      <td className="px-4 py-3.5 text-right font-mono text-default whitespace-nowrap">
                         {formatCurrency(ast.purchase_cost)}
                       </td>
-                      <td className="px-6 py-4 text-right font-mono text-amber-600 dark:text-amber-400">
+                      <td className="px-4 py-3.5 text-right font-mono font-semibold text-amber-600 dark:text-amber-400 whitespace-nowrap">
                         {formatCurrency(ast.accumulated_depreciation)}
                       </td>
-                      <td className="px-6 py-4 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                      <td className="px-4 py-3.5 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400 whitespace-nowrap">
                         {formatCurrency(ast.book_value)}
                       </td>
-                      <td className="px-6 py-4 text-center">
-                        <span className="px-2.5 py-1 text-xs font-semibold rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300 uppercase">
+                      <td className="px-4 py-3.5 text-center whitespace-nowrap">
+                        <span className="px-2.5 py-1 text-xs font-semibold rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300 uppercase whitespace-nowrap">
                           {ast.status}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-right">
-                        <div className="flex items-center justify-end gap-1.5">
+                      <td className="px-4 py-3.5 text-right whitespace-nowrap">
+                        <div className="flex items-center justify-end gap-1.5 whitespace-nowrap">
                           <button
                             type="button"
                             onClick={() => handleServiceAsset(ast)}
-                            className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-surface hover:bg-surface-sunken text-default border border-default shadow-2xs transition cursor-pointer flex items-center gap-1"
+                            className="shrink-0 px-2.5 py-1 text-xs font-semibold rounded-lg bg-surface hover:bg-surface-sunken text-default border border-default shadow-2xs transition cursor-pointer flex items-center gap-1"
                             title="Schedule service / maintenance"
                           >
                             <Wrench className="size-3 text-amber-500" />
@@ -2191,7 +2240,7 @@ export const AssetsWorkspace: React.FC = () => {
                           <button
                             type="button"
                             onClick={() => handleOpenQrLabel(ast)}
-                            className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-surface hover:bg-surface-sunken text-default border border-default shadow-2xs transition cursor-pointer flex items-center gap-1"
+                            className="shrink-0 px-2.5 py-1 text-xs font-semibold rounded-lg bg-surface hover:bg-surface-sunken text-default border border-default shadow-2xs transition cursor-pointer flex items-center gap-1"
                             title="Print thermal QR label"
                           >
                             <QrCode className="size-3 text-primary" />
@@ -2200,7 +2249,7 @@ export const AssetsWorkspace: React.FC = () => {
                           <button
                             type="button"
                             onClick={() => handleOpenDepreciationSchedule(ast)}
-                            className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-surface hover:bg-surface-sunken text-default border border-default shadow-2xs transition cursor-pointer flex items-center gap-1"
+                            className="shrink-0 px-2.5 py-1 text-xs font-semibold rounded-lg bg-surface hover:bg-surface-sunken text-default border border-default shadow-2xs transition cursor-pointer flex items-center gap-1"
                             title="View depreciation projection schedule"
                           >
                             <TrendingDown className="size-3 text-amber-500" />
@@ -2209,7 +2258,7 @@ export const AssetsWorkspace: React.FC = () => {
                           <button
                             type="button"
                             onClick={() => handleViewAssetDetails(ast)}
-                            className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-surface hover:bg-surface-sunken text-default border border-default shadow-2xs transition cursor-pointer flex items-center gap-1"
+                            className="shrink-0 px-2.5 py-1 text-xs font-semibold rounded-lg bg-surface hover:bg-surface-sunken text-default border border-default shadow-2xs transition cursor-pointer flex items-center gap-1"
                             title="View complete asset specifications"
                           >
                             <Eye className="size-3 text-primary" />
@@ -2219,7 +2268,7 @@ export const AssetsWorkspace: React.FC = () => {
                             <button
                               type="button"
                               onClick={() => setDeleteAssetConfirm({ open: true, isBulk: false, id: ast.id })}
-                              className="p-1.5 text-destructive/80 hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors cursor-pointer"
+                              className="shrink-0 p-1.5 text-destructive/80 hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors cursor-pointer"
                               title="Move to Data Bin"
                             >
                               <Trash2 className="size-3.5" />
@@ -2238,7 +2287,7 @@ export const AssetsWorkspace: React.FC = () => {
                               }
                             }}
                             className={cn(
-                              'inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold rounded-lg border transition-colors cursor-pointer',
+                              'shrink-0 inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-lg border transition-colors cursor-pointer',
                               openActionMenuId === ast.id
                                 ? 'bg-primary text-primary-fg border-primary shadow-xs'
                                 : 'bg-surface hover:bg-surface-sunken border-default text-default'
@@ -2409,45 +2458,45 @@ export const AssetsWorkspace: React.FC = () => {
           </div>
 
           <div className="overflow-x-auto min-h-75 bg-surface rounded-2xl shadow-2xs border border-default">
-            <table className="w-full text-left text-sm text-default">
+            <table className="w-full min-w-[1000px] text-left text-sm text-default">
               <thead className="bg-surface-sunken text-muted uppercase text-2xs font-bold border-b border-default">
                 <tr>
-                  <th className="px-6 py-3">Period</th>
-                  <th className="px-6 py-3">Asset</th>
-                  <th className="px-6 py-3 text-right">Opening Book Value</th>
-                  <th className="px-6 py-3 text-right">Monthly Depreciation</th>
-                  <th className="px-6 py-3 text-right">Closing Book Value</th>
-                  <th className="px-6 py-3">GL Reference</th>
-                  <th className="px-6 py-3">Posted At</th>
+                  <th className="px-4 py-3 whitespace-nowrap">Period</th>
+                  <th className="px-4 py-3 min-w-[200px]">Asset</th>
+                  <th className="px-4 py-3 text-right whitespace-nowrap">Opening Book Value</th>
+                  <th className="px-4 py-3 text-right whitespace-nowrap">Monthly Depreciation</th>
+                  <th className="px-4 py-3 text-right whitespace-nowrap">Closing Book Value</th>
+                  <th className="px-4 py-3 whitespace-nowrap">GL Reference</th>
+                  <th className="px-4 py-3 whitespace-nowrap">Posted At</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-default">
                 {depreciationEntries.map((dep) => (
                   <tr key={dep.id} className="hover:bg-surface-sunken/50 transition">
-                    <td className="px-6 py-4 font-semibold text-default">
+                    <td className="px-4 py-3.5 font-semibold text-default whitespace-nowrap">
                       {dep.period_year}-{String(dep.period_month).padStart(2, '0')}
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-4 py-3.5 min-w-[200px]">
                       <div className="font-medium text-default">
                         {dep.asset?.name}
                       </div>
-                      <div className="text-xs font-mono text-muted">{dep.asset?.asset_code}</div>
+                      <div className="text-xs font-mono text-muted whitespace-nowrap">{dep.asset?.asset_code}</div>
                     </td>
-                    <td className="px-6 py-4 text-right font-mono text-muted">
+                    <td className="px-4 py-3.5 text-right font-mono text-muted whitespace-nowrap">
                       {formatCurrency(dep.opening_book_value)}
                     </td>
-                    <td className="px-6 py-4 text-right font-mono font-bold text-amber-600 dark:text-amber-400">
+                    <td className="px-4 py-3.5 text-right font-mono font-bold text-amber-600 dark:text-amber-400 whitespace-nowrap">
                       {formatCurrency(dep.depreciation_amount)}
                     </td>
-                    <td className="px-6 py-4 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                    <td className="px-4 py-3.5 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400 whitespace-nowrap">
                       {formatCurrency(dep.closing_book_value)}
                     </td>
-                    <td className="px-6 py-4 font-mono text-xs text-primary">
-                      <span className="px-2 py-0.5 bg-primary-subtle text-primary border border-primary/20 rounded font-semibold">
+                    <td className="px-4 py-3.5 font-mono text-xs text-primary whitespace-nowrap">
+                      <span className="px-2 py-0.5 bg-primary-subtle text-primary border border-primary/20 rounded font-semibold whitespace-nowrap">
                         JE-202608-000{dep.journal_entry_id}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-xs text-muted">{dep.posted_at}</td>
+                    <td className="px-4 py-3.5 text-xs text-muted whitespace-nowrap">{dep.posted_at}</td>
                   </tr>
                 ))}
               </tbody>

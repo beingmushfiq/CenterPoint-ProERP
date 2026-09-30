@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import {
   Plus,
@@ -13,26 +13,36 @@ import {
   Upload,
   Download,
   List,
-  LayoutGrid,
   Trash2,
   X,
   Clock,
+  Layers,
+  Compass,
 } from 'lucide-react';
 import type { Lead, LeadStatus, LeadSource } from '../../types/api/crm';
 import { api } from '../../lib/api/client';
 import { useAuthStore } from '../../lib/auth/authStore';
 import { useCurrency } from '../../hooks/useCurrency';
-import { KPICard } from '../../components/ui/KPICard';
+import { useWorkspaceTab } from '../../hooks/useWorkspaceTab';
 import { ConfirmDialog } from '../../components/ui/Modal';
 import { UniversalImportModal } from '../../components/import/UniversalImportModal';
 import { leadImportSchema } from '../sales/schemas/leadImportSchema';
-import { cn } from '../../lib/utils';
 import { STAGES, LEAD_SOURCES } from './constants';
 import { LeadFormModal } from './components/LeadFormModal';
 import { LostReasonModal } from './components/LostReasonModal';
 import { Lead360Drawer } from './components/Lead360Drawer';
+import { LeadStagesModal } from './components/LeadStagesModal';
+import { LeadSourcesModal } from './components/LeadSourcesModal';
 import { LeadsTableSection } from './sections/LeadsTableSection';
-import { PipelineKanbanSection } from './sections/PipelineKanbanSection';
+import {
+  WorkspaceNavigationHub,
+  WORKSPACE_THEMES,
+  type WorkspaceCategoryConfig,
+  type WorkspaceTabConfig,
+} from '../../components/common/WorkspaceNavigationHub';
+
+export type CrmTab = 'all' | 'my' | 'stale' | 'audit';
+export type CrmCategory = 'commercial' | 'governance';
 
 interface RawLeadResponse {
   id: number;
@@ -80,20 +90,27 @@ export function CrmWorkspace() {
   const canDelete = hasPermission('sales.lead.delete');
   const { formatCurrency } = useCurrency();
 
-  const isManagerOrAdmin = Boolean(
-    user?.is_platform_admin ||
-    hasPermission(['crm.lead.assign', 'sales.lead.assign', 'sales.lead.manage', 'crm.lead.manage']) ||
-    ['admin', 'tenant_admin', 'super_admin', 'sales_manager', 'manager'].includes(
-      (user?.role || '').toLowerCase()
-    ) ||
-    user?.roles?.some((r) =>
-      ['admin', 'tenant_admin', 'super_admin', 'sales_manager', 'manager'].includes(r.toLowerCase())
-    )
-  );
 
-  // View & Filter States
-  const [viewMode, setViewMode] = useState<'table' | 'kanban'>('table');
-  const [scopeFilter, setScopeFilter] = useState<'my' | 'all' | 'stale'>(!isManagerOrAdmin ? 'my' : 'all');
+
+  // URL and Navigation Scope Detection
+  const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // If inside /sales?tab=leads (or if 'tab' param is owned by parent Sales workspace),
+  // use 'subtab' so we don't overwrite parent's 'tab=leads' parameter.
+  const isEmbeddedInSales =
+    location.pathname.startsWith('/sales') || searchParams.get('tab') === 'leads';
+  const crmParamKey = isEmbeddedInSales
+    ? (searchParams.has('crmTab') ? 'crmTab' : 'subtab')
+    : 'tab';
+
+  // View & Tab State
+  const [activeTab, setActiveTab] = useWorkspaceTab<CrmTab>(
+    'all',
+    ['all', 'my', 'stale', 'audit'] as const,
+    crmParamKey
+  );
+  // Filter state
   const [search, setSearch] = useState('');
   const [stageFilter, setStageFilter] = useState<string>('all');
   const [sourceFilter, setSourceFilter] = useState<string>('all');
@@ -101,9 +118,11 @@ export function CrmWorkspace() {
 
   // Modals & Drawer States
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showStagesModal, setShowStagesModal] = useState(false);
+  const [showSourcesModal, setShowSourcesModal] = useState(false);
+  const [isImportOpen, setIsImportOpen] = useState(false);
   const [editingLead, setEditingLead] = useState<Lead | null>(null);
   const [selectedLeadIdForDrawer, setSelectedLeadIdForDrawer] = useState<number | null>(null);
-  const [isImportOpen, setIsImportOpen] = useState(false);
 
   // Lost Reason Modal State
   const [leadToMarkLost, setLeadToMarkLost] = useState<Lead | null>(null);
@@ -118,6 +137,52 @@ export function CrmWorkspace() {
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [deleteConfirm, setDeleteConfirm] = useState<{ id?: number; isBulk?: boolean; title: string } | null>(null);
   const headerCheckboxRef = useRef<HTMLInputElement>(null);
+
+  // Pure reference timestamp for render-phase staleness calculation
+  const [referenceTime] = useState(() => Date.now());
+
+  // Deep-linked URL modal triggers (from Sidebar or direct links)
+  const modalParam = searchParams.get('modal');
+
+  const isStagesOpen = showStagesModal || modalParam === 'stages';
+  const isSourcesOpen = showSourcesModal || modalParam === 'sources';
+  const isCreateOpen = showCreateModal || modalParam === 'add' || modalParam === 'new';
+  const isImportModalOpen = isImportOpen || modalParam === 'import';
+
+  const closeModalParam = () => {
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        if (next.has('modal')) {
+          next.delete('modal');
+          return next;
+        }
+        return prev;
+      },
+      { replace: true }
+    );
+  };
+
+  const handleCloseStagesModal = () => {
+    setShowStagesModal(false);
+    closeModalParam();
+  };
+
+  const handleCloseSourcesModal = () => {
+    setShowSourcesModal(false);
+    closeModalParam();
+  };
+
+  const handleCloseCreateModal = () => {
+    setShowCreateModal(false);
+    setEditingLead(null);
+    closeModalParam();
+  };
+
+  const handleCloseImportModal = () => {
+    setIsImportOpen(false);
+    closeModalParam();
+  };
 
   // Fetch Sales Reps
   const { data: salesmen = [] } = useQuery<SalesmanOption[]>({
@@ -149,7 +214,8 @@ export function CrmWorkspace() {
           status: item.stage ?? item.status ?? 'new',
           stage: item.stage ?? item.status ?? 'new',
           deal_value: item.expected_value ?? item.deal_value ?? '0.00',
-          assigned_to: item.assigned_user_name ?? item.assigned_to ?? 'Unassigned',
+          assigned_to: item.assigned_to != null ? item.assigned_to : (item.assigned_user_name ?? null),
+          assigned_user_name: item.assigned_user_name ?? (item.assigned_to && typeof item.assigned_to === 'string' ? item.assigned_to : null),
         }));
       } catch {
         return [];
@@ -256,12 +322,49 @@ export function CrmWorkspace() {
   });
 
   // Matched salesman profile for current user
-  const matchedSalesman = salesmen.find((s) => {
-    if (s.user_id && user?.id && String(s.user_id) === String(user.id)) return true;
-    if (s.code && user?.id && String(s.code) === String(user.id)) return true;
-    if (s.name && user?.name && s.name.trim().toLowerCase() === user.name.trim().toLowerCase()) return true;
-    return false;
-  });
+  const matchedSalesman = useMemo(() => {
+    return salesmen.find((s) => {
+      if (s.user_id && user?.id && String(s.user_id) === String(user.id)) return true;
+      if (s.code && user?.id && String(s.code) === String(user.id)) return true;
+      if (s.name && user?.name && s.name.trim().toLowerCase() === user.name.trim().toLowerCase()) return true;
+      return false;
+    });
+  }, [salesmen, user]);
+
+  const isLeadAssignedToMe = useCallback(
+    (l: Lead): boolean => {
+      if (!user) return false;
+      const myUserId = String(user.id).trim();
+      const mySalesmanEmployeeId = matchedSalesman ? String(matchedSalesman.employee_id).trim() : '';
+      const myUserName = (user.name || '').trim().toLowerCase();
+
+      const rawAssigned = l.assigned_to != null ? String(l.assigned_to).trim() : '';
+      const assignedName = (l.assigned_user_name || '').trim().toLowerCase();
+
+      // Check numeric/string user ID match
+      if (myUserId && rawAssigned && rawAssigned === myUserId) return true;
+
+      // Check salesman employee_id match
+      if (mySalesmanEmployeeId && rawAssigned && rawAssigned === mySalesmanEmployeeId) return true;
+
+      // Check user name match against assigned user name
+      if (myUserName && assignedName && myUserName === assignedName) return true;
+
+      // Check user name match against rawAssigned (in case rawAssigned holds the rep name)
+      if (myUserName && rawAssigned && myUserName === rawAssigned.toLowerCase()) return true;
+
+      // Check matched salesman name against assigned name or rawAssigned
+      if (matchedSalesman) {
+        const salesmanName = matchedSalesman.name.trim().toLowerCase();
+        if (salesmanName && (assignedName === salesmanName || rawAssigned.toLowerCase() === salesmanName)) {
+          return true;
+        }
+      }
+
+      return false;
+    },
+    [user, matchedSalesman]
+  );
 
   // Check if a lead is stale (> 7 days without update/interaction)
   const isLeadStale = (l: Lead): boolean => {
@@ -271,25 +374,20 @@ export function CrmWorkspace() {
     }
     const lastDate = l.updated_at || l.created_at;
     if (!lastDate) return false;
-    const diff = (Date.now() - new Date(lastDate).getTime()) / (1000 * 60 * 60 * 24);
+    const diff = (referenceTime - new Date(lastDate).getTime()) / (1000 * 60 * 60 * 24);
     return diff >= 7;
   };
 
   // Filtered Leads with Scope Control
   const filteredLeads = useMemo(() => {
     return leads.filter((l) => {
-      // Scope filtering
-      if (scopeFilter === 'my') {
-        const myId = String(user?.id);
-        const mySalesmanId = matchedSalesman ? String(matchedSalesman.employee_id) : '';
-        const assigned = String(l.assigned_to || '');
-        const isMine =
-          assigned === myId ||
-          (mySalesmanId && assigned === mySalesmanId) ||
-          l.assigned_user_name === user?.name;
-        if (!isMine) return false;
-      } else if (scopeFilter === 'stale') {
+      // Tab / Scope filtering
+      if (activeTab === 'my') {
+        if (!isLeadAssignedToMe(l)) return false;
+      } else if (activeTab === 'stale') {
         if (!isLeadStale(l)) return false;
+      } else if (activeTab === 'audit') {
+        if (!l.is_fake && (l.stage || l.status) !== 'fake') return false;
       }
 
       const q = search.toLowerCase();
@@ -311,20 +409,11 @@ export function CrmWorkspace() {
 
       return matchesSearch && matchesStage && matchesSource && matchesRep;
     });
-  }, [leads, search, stageFilter, sourceFilter, salesmanFilter, scopeFilter, user, matchedSalesman]);
+  }, [leads, search, stageFilter, sourceFilter, salesmanFilter, activeTab, isLeadAssignedToMe]);
 
   const myLeadsCount = useMemo(() => {
-    const myId = String(user?.id);
-    const mySalesmanId = matchedSalesman ? String(matchedSalesman.employee_id) : '';
-    return leads.filter((l) => {
-      const assigned = String(l.assigned_to || '');
-      return (
-        assigned === myId ||
-        (mySalesmanId && assigned === mySalesmanId) ||
-        l.assigned_user_name === user?.name
-      );
-    }).length;
-  }, [leads, user, matchedSalesman]);
+    return leads.filter(isLeadAssignedToMe).length;
+  }, [leads, isLeadAssignedToMe]);
 
   const staleLeadsCount = useMemo(() => {
     return leads.filter(isLeadStale).length;
@@ -418,7 +507,7 @@ export function CrmWorkspace() {
       l.stage || l.status || 'new',
       l.deal_value || l.expected_value || '0.00',
       l.expected_close_date || '',
-      `"${String(l.assigned_to || '').replace(/"/g, '""')}"`,
+      `"${String(l.assigned_user_name || (l.assigned_to ? `User #${l.assigned_to}` : 'Unassigned')).replace(/"/g, '""')}"`,
       `"${(l.notes || '').replace(/"/g, '""')}"`,
     ]);
     const csvContent = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
@@ -447,6 +536,76 @@ export function CrmWorkspace() {
   const fakeCount = leads.filter((l) => l.is_fake || (l.stage || l.status) === 'fake').length;
   const validCount = leads.length - fakeCount;
 
+  const categories: WorkspaceCategoryConfig<CrmCategory, CrmTab>[] = useMemo(
+    () => [
+      {
+        id: 'commercial',
+        label: 'Commercial Pipeline',
+        tagline: 'Omnichannel deal acquisition, qualification, & stage movement',
+        icon: TrendingUp,
+        tabs: ['all', 'my'],
+        theme: WORKSPACE_THEMES.purple,
+        defaultTab: 'all',
+      },
+      {
+        id: 'governance',
+        label: 'Lead Governance & SLA',
+        tagline: 'Stale deals recovery, assignment hygiene, & fake lead audit',
+        icon: AlertTriangle,
+        tabs: ['stale', 'audit'],
+        theme: WORKSPACE_THEMES.amber,
+        defaultTab: 'stale',
+      },
+    ],
+    []
+  );
+
+  const crmTabs: WorkspaceTabConfig<CrmCategory, CrmTab>[] = useMemo(
+    () => [
+      {
+        id: 'all',
+        step: 1,
+        label: 'All Leads Registry',
+        shortLabel: 'All Leads',
+        icon: List,
+        category: 'commercial',
+        description: 'Omnichannel full lead registry and actions',
+        count: leads.length,
+      },
+      {
+        id: 'my',
+        step: 2,
+        label: 'My Assigned Leads',
+        shortLabel: 'My Deals',
+        icon: CheckCircle2,
+        category: 'commercial',
+        description: 'Personally assigned prospective customers',
+        count: myLeadsCount,
+      },
+      {
+        id: 'stale',
+        step: 3,
+        label: 'Stale Action Needed',
+        shortLabel: 'Stale SLA',
+        icon: Clock,
+        category: 'governance',
+        description: 'Active qualified leads untouched for 7+ days',
+        count: staleLeadsCount,
+      },
+      {
+        id: 'audit',
+        step: 4,
+        label: 'Audit Gate / Invalid',
+        shortLabel: 'Invalid Leads',
+        icon: AlertTriangle,
+        category: 'governance',
+        description: 'Suspected fake or test leads flagged by verification gate',
+        count: fakeCount,
+      },
+    ],
+    [leads.length, myLeadsCount, staleLeadsCount, fakeCount]
+  );
+
   return (
     <div className="space-y-6">
       {/* Workspace Header */}
@@ -459,6 +618,26 @@ export function CrmWorkspace() {
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
+          <button
+            type="button"
+            onClick={() => setShowStagesModal(true)}
+            className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-muted hover:text-default rounded-xl border border-default bg-surface hover:bg-surface-sunken transition-colors shadow-2xs cursor-pointer"
+            title="Configure Pipeline Stages & Probability"
+          >
+            <Layers className="size-3.5 text-purple-500" />
+            <span>Lead Stages</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setShowSourcesModal(true)}
+            className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-muted hover:text-default rounded-xl border border-default bg-surface hover:bg-surface-sunken transition-colors shadow-2xs cursor-pointer"
+            title="Configure Acquisition Channels"
+          >
+            <Compass className="size-3.5 text-indigo-500" />
+            <span>Lead Sources</span>
+          </button>
+
           <button
             type="button"
             onClick={() => setIsImportOpen(true)}
@@ -490,112 +669,95 @@ export function CrmWorkspace() {
         </div>
       </div>
 
-      {/* KPI Cards Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <KPICard
-          label="Total Pipeline Value"
-          value={formatCurrency(totalPipelineValue)}
-          subValue={`${validCount} active qualified leads`}
-          icon={<DollarSign className="w-4 h-4 text-primary" />}
-        />
-        <KPICard
-          label="Closed Won Revenue"
-          value={formatCurrency(wonDealsValue)}
-          subValue={`${wonCount} converted customer accounts`}
-          alert="success"
-          icon={<TrendingUp className="w-4 h-4 text-emerald-500" />}
-        />
-        <KPICard
-          label="Conversion Ratio"
-          value={`${leads.length > 0 ? ((wonCount / leads.length) * 100).toFixed(1) : 0}%`}
-          subValue="Won deals / total leads captured"
-          icon={<CheckCircle2 className="w-4 h-4 text-info" />}
-        />
-        <KPICard
-          label="Fake / Invalid Leads"
-          value={fakeCount}
-          subValue="Filtered by audit gate"
-          {...(fakeCount > 0 ? { alert: 'danger' as const } : {})}
-          icon={<AlertTriangle className="w-4 h-4 text-danger" />}
-        />
-      </div>
-
-      {/* Scope Pipeline Segmented Control */}
-      <div className="flex items-center justify-between border-b border-default pb-3 gap-3 flex-wrap">
-        <div className="inline-flex items-center rounded-xl bg-surface-sunken p-1 border border-default shadow-2xs">
-          <button
-            type="button"
-            onClick={() => setScopeFilter('all')}
-            className={cn(
-              'flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer',
-              scopeFilter === 'all'
-                ? 'bg-surface text-primary shadow-xs font-bold'
-                : 'text-muted hover:text-default'
-            )}
-          >
-            <span>All Pipeline</span>
-            <span
-              className={cn(
-                'px-1.5 py-0.5 rounded-full text-[10px] font-bold',
-                scopeFilter === 'all' ? 'bg-primary/10 text-primary' : 'bg-surface text-muted'
-              )}
-            >
-              {leads.length}
+      {/* 4 Colorful Themed Luxury KPI Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+        {/* 1. Total Pipeline Value — Indigo/Blue */}
+        <div className="relative overflow-hidden rounded-2xl border border-indigo-500/25 bg-gradient-to-br from-indigo-500/10 via-indigo-500/[0.04] to-blue-500/10 dark:from-indigo-950/40 dark:via-surface dark:to-blue-950/30 p-4 shadow-xs hover:border-indigo-500/40 transition-all group">
+          <span className="absolute inset-x-0 top-0 h-[2.5px] bg-gradient-to-r from-blue-600 via-indigo-600 to-indigo-700" />
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-indigo-700 dark:text-indigo-300 truncate">
+              Total Pipeline Value
             </span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setScopeFilter('my')}
-            className={cn(
-              'flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer',
-              scopeFilter === 'my'
-                ? 'bg-surface text-primary shadow-xs font-bold'
-                : 'text-muted hover:text-default'
-            )}
-          >
-            <span>My Leads</span>
-            <span
-              className={cn(
-                'px-1.5 py-0.5 rounded-full text-[10px] font-bold',
-                scopeFilter === 'my' ? 'bg-primary/10 text-primary' : 'bg-surface text-muted'
-              )}
-            >
-              {myLeadsCount}
+            <span className="size-7 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 text-white flex items-center justify-center shadow-xs shrink-0 group-hover:scale-105 transition-transform">
+              <DollarSign className="size-3.5" />
             </span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setScopeFilter('stale')}
-            className={cn(
-              'flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer',
-              scopeFilter === 'stale'
-                ? 'bg-surface text-amber-600 dark:text-amber-400 shadow-xs font-bold'
-                : 'text-muted hover:text-default'
-            )}
-          >
-            <Clock className="w-3.5 h-3.5 text-amber-500" />
-            <span>Stale Action Needed</span>
-            <span
-              className={cn(
-                'px-1.5 py-0.5 rounded-full text-[10px] font-bold',
-                staleLeadsCount > 0
-                  ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300'
-                  : 'bg-surface text-muted'
-              )}
-            >
-              {staleLeadsCount}
-            </span>
-          </button>
+          </div>
+          <div className="text-2xl font-extrabold font-mono text-default tracking-tight">
+            {formatCurrency(totalPipelineValue)}
+          </div>
+          <p className="text-xs font-medium text-indigo-600 dark:text-indigo-400 mt-1 flex items-center gap-1 truncate">
+            <span className="size-1.5 rounded-full bg-indigo-500 animate-pulse shrink-0" />
+            <span>{validCount} active qualified leads</span>
+          </p>
         </div>
 
-        {scopeFilter === 'stale' && (
-          <p className="text-xs text-amber-600 dark:text-amber-400 font-medium">
-            Showing active leads untouched for &ge; 7 days. Follow-up or reassign immediately.
+        {/* 2. Closed Won Revenue — Emerald/Teal */}
+        <div className="relative overflow-hidden rounded-2xl border border-emerald-500/25 bg-gradient-to-br from-emerald-500/10 via-emerald-500/[0.04] to-teal-500/10 dark:from-emerald-950/40 dark:via-surface dark:to-teal-950/30 p-4 shadow-xs hover:border-emerald-500/40 transition-all group">
+          <span className="absolute inset-x-0 top-0 h-[2.5px] bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-600" />
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-300 truncate">
+              Closed Won Revenue
+            </span>
+            <span className="size-7 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white flex items-center justify-center shadow-xs shrink-0 group-hover:scale-105 transition-transform">
+              <TrendingUp className="size-3.5" />
+            </span>
+          </div>
+          <div className="text-2xl font-extrabold font-mono text-default tracking-tight">
+            {formatCurrency(wonDealsValue)}
+          </div>
+          <p className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 mt-1 flex items-center gap-1 truncate">
+            <span className="size-1.5 rounded-full bg-emerald-500 shrink-0" />
+            <span>{wonCount} converted customer accounts</span>
           </p>
-        )}
+        </div>
+
+        {/* 3. Conversion Ratio — Purple/Fuchsia */}
+        <div className="relative overflow-hidden rounded-2xl border border-purple-500/25 bg-gradient-to-br from-purple-500/10 via-fuchsia-500/[0.04] to-pink-500/10 dark:from-purple-950/40 dark:via-surface dark:to-pink-950/30 p-4 shadow-xs hover:border-purple-500/40 transition-all group">
+          <span className="absolute inset-x-0 top-0 h-[2.5px] bg-gradient-to-r from-purple-500 via-fuchsia-500 to-pink-600" />
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-purple-700 dark:text-purple-300 truncate">
+              Conversion Ratio
+            </span>
+            <span className="size-7 rounded-xl bg-gradient-to-br from-purple-500 to-fuchsia-600 text-white flex items-center justify-center shadow-xs shrink-0 group-hover:scale-105 transition-transform">
+              <CheckCircle2 className="size-3.5" />
+            </span>
+          </div>
+          <div className="text-2xl font-extrabold font-mono text-default tracking-tight">
+            {leads.length > 0 ? ((wonCount / leads.length) * 100).toFixed(1) : '0'}%
+          </div>
+          <p className="text-xs font-medium text-purple-600 dark:text-purple-400 mt-1 truncate">
+            Won deals / total leads captured
+          </p>
+        </div>
+
+        {/* 4. Fake / Invalid Leads — Rose/Amber */}
+        <div className="relative overflow-hidden rounded-2xl border border-rose-500/25 bg-gradient-to-br from-rose-500/10 via-amber-500/[0.04] to-orange-500/10 dark:from-rose-950/40 dark:via-surface dark:to-amber-950/30 p-4 shadow-xs hover:border-rose-500/40 transition-all group">
+          <span className="absolute inset-x-0 top-0 h-[2.5px] bg-gradient-to-r from-rose-500 via-amber-500 to-orange-600" />
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-rose-700 dark:text-rose-300 truncate">
+              Fake / Invalid Leads
+            </span>
+            <span className="size-7 rounded-xl bg-gradient-to-br from-rose-500 to-amber-600 text-white flex items-center justify-center shadow-xs shrink-0 group-hover:scale-105 transition-transform">
+              <AlertTriangle className="size-3.5" />
+            </span>
+          </div>
+          <div className="text-2xl font-extrabold font-mono text-default tracking-tight">
+            {fakeCount}
+          </div>
+          <div className="flex items-center gap-1 text-xs text-rose-600 dark:text-rose-400 font-semibold mt-1 truncate">
+            <span className="size-1.5 rounded-full bg-rose-500 animate-pulse shrink-0" />
+            <span>Filtered by audit gate</span>
+          </div>
+        </div>
       </div>
+
+      {/* Universal 2-Tier Navigation Hub */}
+      <WorkspaceNavigationHub<CrmCategory, CrmTab>
+        categories={categories}
+        tabs={crmTabs}
+        activeTab={activeTab}
+        onSelectTab={setActiveTab}
+      />
 
       {/* Multi-Filter Bar */}
       <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
@@ -667,34 +829,26 @@ export function CrmWorkspace() {
           >
             <RefreshCw className={`size-3.5 ${isFetching ? 'animate-spin' : ''}`} />
           </button>
-        </div>
-
-        {/* View Mode Toggle: Table vs Kanban */}
-        <div className="flex items-center self-end lg:self-center rounded-xl border border-default bg-surface p-1 shadow-2xs">
-          <button
-            type="button"
-            onClick={() => setViewMode('table')}
-            className={cn(
-              'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer',
-              viewMode === 'table' ? 'bg-primary text-white shadow-xs' : 'text-muted hover:text-default'
-            )}
-            title="Table View"
-          >
-            <List className="size-3.5" />
-            <span>Table</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setViewMode('kanban')}
-            className={cn(
-              'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer',
-              viewMode === 'kanban' ? 'bg-primary text-white shadow-xs' : 'text-muted hover:text-default'
-            )}
-            title="Kanban Board View"
-          >
-            <LayoutGrid className="size-3.5" />
-            <span>Kanban</span>
-          </button>
+          {/* Reset Filters & Active Count */}
+          {(stageFilter !== 'all' || sourceFilter !== 'all' || salesmanFilter !== 'all' || search.trim() !== '') && (
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted font-medium font-mono">
+                Showing {filteredLeads.length} of {leads.length}
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  setSearch('');
+                  setStageFilter('all');
+                  setSourceFilter('all');
+                  setSalesmanFilter('all');
+                }}
+                className="text-xs font-semibold text-rose-600 hover:text-rose-700 dark:text-rose-400 hover:underline cursor-pointer"
+              >
+                Reset Filters
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -732,57 +886,41 @@ export function CrmWorkspace() {
         </div>
       )}
 
-      {/* Main View Area: Table or Kanban */}
-      {viewMode === 'kanban' ? (
-        <PipelineKanbanSection
-          leads={filteredLeads}
-          onViewLead={(lead) => setSelectedLeadIdForDrawer(lead.id)}
-          onAdvanceStage={(lead, nextStage) => handleStageChange(lead, nextStage)}
-          onConvertLead={(lead) => convertMutation.mutate(lead.id)}
-          onStageChange={handleStageChange}
-        />
-      ) : (
-        <LeadsTableSection
-          leads={filteredLeads}
-          selectedIds={selectedIds}
-          toggleSelect={toggleSelect}
-          toggleSelectAll={toggleSelectAll}
-          isAllSelected={isAllSelected}
-          headerCheckboxRef={headerCheckboxRef}
-          onViewLead={(lead) => setSelectedLeadIdForDrawer(lead.id)}
-          onEditLead={(lead) => setEditingLead(lead)}
-          onDeleteLead={(lead) =>
-            setDeleteConfirm({
-              id: lead.id,
-              title: `lead "${lead.name}"`,
-            })
-          }
-          onConvertLead={(lead) => convertMutation.mutate(lead.id)}
-          onVerifySale={(lead) => verifySaleMutation.mutate({ id: lead.id })}
-          onAuditLead={(lead) => {
-            setActiveLeadForAudit(lead);
-            setIsFakeCheck(Boolean(lead.is_fake));
-            setAuditReason(lead.validation_notes || '');
-            setAuditModalOpen(true);
-          }}
-          onStageChange={handleStageChange}
-          canDelete={canDelete}
-        />
-      )}
+      {/* Main View Area: Unified Leads Table */}
+      <LeadsTableSection
+        leads={filteredLeads}
+        selectedIds={selectedIds}
+        toggleSelect={toggleSelect}
+        toggleSelectAll={toggleSelectAll}
+        isAllSelected={isAllSelected}
+        headerCheckboxRef={headerCheckboxRef}
+        onViewLead={(lead) => setSelectedLeadIdForDrawer(lead.id)}
+        onEditLead={(lead) => setEditingLead(lead)}
+        onDeleteLead={(lead) =>
+          setDeleteConfirm({
+            id: lead.id,
+            title: `lead "${lead.name}"`,
+          })
+        }
+        onConvertLead={(lead) => convertMutation.mutate(lead.id)}
+        onVerifySale={(lead) => verifySaleMutation.mutate({ id: lead.id })}
+        onAuditLead={(lead) => {
+          setActiveLeadForAudit(lead);
+          setIsFakeCheck(Boolean(lead.is_fake));
+          setAuditReason(lead.validation_notes || '');
+          setAuditModalOpen(true);
+        }}
+        onStageChange={handleStageChange}
+        canDelete={canDelete}
+      />
 
       {/* Add / Edit Lead Modal */}
-      {(showCreateModal || editingLead) && (
+      {(isCreateOpen || Boolean(editingLead)) && (
         <LeadFormModal
-          isOpen={showCreateModal || Boolean(editingLead)}
-          onClose={() => {
-            setShowCreateModal(false);
-            setEditingLead(null);
-          }}
+          isOpen={isCreateOpen || Boolean(editingLead)}
+          onClose={handleCloseCreateModal}
           lead={editingLead}
-          onSuccess={() => {
-            setShowCreateModal(false);
-            setEditingLead(null);
-          }}
+          onSuccess={handleCloseCreateModal}
         />
       )}
 
@@ -899,10 +1037,24 @@ export function CrmWorkspace() {
         </div>
       )}
 
+      {/* Lead Stages Configuration Modal */}
+      <LeadStagesModal
+        isOpen={isStagesOpen}
+        onClose={handleCloseStagesModal}
+        leads={leads}
+      />
+
+      {/* Lead Sources Configuration Modal */}
+      <LeadSourcesModal
+        isOpen={isSourcesOpen}
+        onClose={handleCloseSourcesModal}
+        leads={leads}
+      />
+
       {/* Universal Bulk Import Modal */}
       <UniversalImportModal
-        isOpen={isImportOpen}
-        onClose={() => setIsImportOpen(false)}
+        isOpen={isImportModalOpen}
+        onClose={handleCloseImportModal}
         schema={leadImportSchema}
         onImportSuccess={() => {
           queryClient.invalidateQueries({ queryKey: ['crm', 'leads'] });
