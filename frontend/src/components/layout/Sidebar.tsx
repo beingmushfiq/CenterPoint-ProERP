@@ -47,6 +47,32 @@ export function Sidebar({ isOpen, onClose, isCollapsed = false, onToggleCollapse
     }
   });
 
+  // Expandable parent modules with sub-navigation (e.g. Sales) - default collapsed
+  const [expandedParents, setExpandedParents] = useState<Record<string, boolean>>(() => {
+    try {
+      const saved = localStorage.getItem('erp_sidebar_expanded_parents');
+      return saved ? JSON.parse(saved) : {};
+    } catch (_err) {
+      void _err;
+      return {};
+    }
+  });
+
+  const toggleParent = (itemId: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setExpandedParents((prev) => {
+      const current = prev[itemId] ?? false;
+      const next = { ...prev, [itemId]: !current };
+      try {
+        localStorage.setItem('erp_sidebar_expanded_parents', JSON.stringify(next));
+      } catch (err) {
+        void err;
+      }
+      return next;
+    });
+  };
+
   const toggleSection = (sectionTitle: string) => {
     setCollapsedSections((prev) => {
       const next = { ...prev, [sectionTitle]: !prev[sectionTitle] };
@@ -89,12 +115,14 @@ export function Sidebar({ isOpen, onClose, isCollapsed = false, onToggleCollapse
       return false;
     }
 
-    // 2. Special case for '/sales': if URL has 'tab=leads', CRM Leads is the active nav item
+    // 2. Active matching for '/sales'
     if (to === '/sales') {
-      if (location.pathname === '/sales' && location.search.includes('tab=leads')) {
-        return false;
-      }
       return location.pathname === '/sales' || location.pathname.startsWith('/sales/');
+    }
+
+    // 2a. Active matching for '/crm'
+    if (to === '/crm') {
+      return location.pathname === '/crm' || location.pathname.startsWith('/crm/');
     }
 
     // 2b. Case for '/storefront': Keep Online Store CMS active across all storefront sub-tabs
@@ -408,71 +436,191 @@ export function Sidebar({ isOpen, onClose, isCollapsed = false, onToggleCollapse
                       const Icon = item.icon;
                       const itemTransKey = `items.${item.id.replace(/-([a-z])/g, (_, c) => c.toUpperCase())}` as const;
                       const itemLabel = t(itemTransKey as unknown as string, { defaultValue: item.label });
-                      return (
-                        <NavLink
-                          key={item.id}
-                          to={item.to}
-                          onClick={onClose}
-                          title={isCollapsed ? itemLabel : undefined}
-                          className={({ isActive }) => {
-                            const active = isItemActive(item.to, isActive);
-                            return cn(
-                              'group relative flex items-center rounded-lg text-xs font-medium transition-all duration-150 focus-visible:ring-2 focus-visible:ring-primary outline-none h-9.5',
-                              isCollapsed
-                                ? 'lg:justify-center justify-between px-3'
-                                : 'justify-between px-3',
-                              active
-                                ? 'font-semibold text-primary dark:text-white bg-(--nav-active-bg) border-l-2 border-(--nav-active-marker) shadow-xs'
-                                : 'text-muted hover:text-default hover:bg-(--nav-hover-bg) border-l-2 border-transparent'
-                            );
-                          }}
-                        >
-                          {({ isActive }) => {
-                            const active = isItemActive(item.to, isActive);
-                            return (
-                              <>
-                                <div
-                                  className={cn(
-                                    'flex items-center gap-2.5 min-w-0',
-                                    isCollapsed && 'lg:justify-center'
-                                  )}
-                                >
-                                  <Icon
-                                    className={cn(
-                                      'size-4 shrink-0 transition-transform duration-150 group-hover:scale-110',
-                                      active
-                                        ? 'text-primary dark:text-indigo-400 drop-shadow-[0_0_8px_rgba(99,102,241,0.4)]'
-                                        : 'text-muted group-hover:text-default'
-                                    )}
-                                    aria-hidden="true"
-                                  />
-                                  <span
-                                    className={cn(
-                                      'truncate tracking-normal',
-                                      isCollapsed && 'lg:hidden'
-                                    )}
-                                  >
-                                    {itemLabel}
-                                  </span>
-                                </div>
+                      const hasChildren = Boolean(item.children && item.children.length > 0);
+                      const isExpanded = Boolean(expandedParents[item.id]);
 
-                                {item.badge && (
-                                  <span
-                                    className={cn(
-                                      'rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider shrink-0 shadow-xs',
-                                      isCollapsed && 'lg:hidden',
-                                      item.badgeTone === 'success'
-                                        ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30'
-                                        : 'bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30'
+                      return (
+                        <div key={item.id} className="space-y-0.5">
+                          <div className="relative flex items-center">
+                            <NavLink
+                              to={item.to}
+                              onClick={(e) => {
+                                if (hasChildren) {
+                                  const isCurrentlyExpanded = Boolean(expandedParents[item.id]);
+                                  if (isCurrentlyExpanded) {
+                                    // When expanded, clicking on the module name collapses the sub menu
+                                    setExpandedParents((prev) => {
+                                      const next = { ...prev, [item.id]: false };
+                                      try {
+                                        localStorage.setItem('erp_sidebar_expanded_parents', JSON.stringify(next));
+                                      } catch (_e) {
+                                        void _e;
+                                      }
+                                      return next;
+                                    });
+
+                                    // If already inside this module, prevent full route reload/reset
+                                    if (location.pathname === item.to || location.pathname.startsWith(`${item.to}/`)) {
+                                      e.preventDefault();
+                                    }
+                                    return;
+                                  } else {
+                                    // When collapsed, expand the sub menu and let NavLink navigate to default first page
+                                    setExpandedParents((prev) => {
+                                      const next = { ...prev, [item.id]: true };
+                                      try {
+                                        localStorage.setItem('erp_sidebar_expanded_parents', JSON.stringify(next));
+                                      } catch (_e) {
+                                        void _e;
+                                      }
+                                      return next;
+                                    });
+                                  }
+                                }
+                                onClose();
+                              }}
+                              title={isCollapsed ? itemLabel : undefined}
+                              className={({ isActive }) => {
+                                const active = isItemActive(item.to, isActive);
+                                return cn(
+                                  'group flex-1 flex items-center rounded-lg text-xs font-medium transition-all duration-150 focus-visible:ring-2 focus-visible:ring-primary outline-none h-9.5',
+                                  isCollapsed
+                                    ? 'lg:justify-center justify-between px-3'
+                                    : cn('justify-between px-3', hasChildren && !isCollapsed && 'pr-8'),
+                                  active
+                                    ? 'font-semibold text-primary dark:text-white bg-(--nav-active-bg) border-l-2 border-(--nav-active-marker) shadow-xs'
+                                    : 'text-muted hover:text-default hover:bg-(--nav-hover-bg) border-l-2 border-transparent'
+                                );
+                              }}
+                            >
+                              {({ isActive }) => {
+                                const active = isItemActive(item.to, isActive);
+                                return (
+                                  <>
+                                    <div
+                                      className={cn(
+                                        'flex items-center gap-2.5 min-w-0',
+                                        isCollapsed && 'lg:justify-center'
+                                      )}
+                                    >
+                                      <Icon
+                                        className={cn(
+                                          'size-4 shrink-0 transition-transform duration-150 group-hover:scale-110',
+                                          active
+                                            ? 'text-primary dark:text-indigo-400 drop-shadow-[0_0_8px_rgba(99,102,241,0.4)]'
+                                            : 'text-muted group-hover:text-default'
+                                        )}
+                                        aria-hidden="true"
+                                      />
+                                      <span
+                                        className={cn(
+                                          'truncate tracking-normal',
+                                          isCollapsed && 'lg:hidden'
+                                        )}
+                                      >
+                                        {itemLabel}
+                                      </span>
+                                    </div>
+
+                                    {item.badge && (
+                                      <span
+                                        className={cn(
+                                          'rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider shrink-0 shadow-xs',
+                                          isCollapsed && 'lg:hidden',
+                                          item.badgeTone === 'success'
+                                            ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30'
+                                            : 'bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30'
+                                        )}
+                                      >
+                                        {t(`badges.${item.badge.toLowerCase()}` as unknown as string, { defaultValue: item.badge })}
+                                      </span>
                                     )}
-                                  >
-                                    {t(`badges.${item.badge.toLowerCase()}` as unknown as string, { defaultValue: item.badge })}
-                                  </span>
+                                  </>
+                                );
+                              }}
+                            </NavLink>
+
+                            {hasChildren && (
+                              <button
+                                type="button"
+                                onClick={(e) => toggleParent(item.id, e)}
+                                className={cn(
+                                  "absolute right-1.5 p-1 rounded-md text-muted hover:text-default hover:bg-surface-sunken/80 transition-colors cursor-pointer z-10",
+                                  isCollapsed && "lg:hidden"
                                 )}
-                              </>
-                            );
-                          }}
-                        </NavLink>
+                                title={isExpanded ? "Collapse sub-items" : "Expand sub-items"}
+                                aria-label={isExpanded ? `Collapse ${itemLabel} sub-navigation` : `Expand ${itemLabel} sub-navigation`}
+                              >
+                                <ChevronDown className={cn("size-3.5 transition-transform duration-200 text-muted/70", !isExpanded && "-rotate-90")} />
+                              </button>
+                            )}
+                          </div>
+
+                          {/* Children Sub-Navigation with purposeful semantic group headings & color highlights */}
+                          {hasChildren && isExpanded && !isCollapsed && (
+                            <div className="ml-3.5 pl-2 my-1.5 space-y-0.5 border-l border-primary/20 dark:border-primary/30">
+                              {item.children?.map((child, idx, arr) => {
+                                const prevChild = idx > 0 ? arr[idx - 1] : null;
+                                const isNewGroup = Boolean(child.group && (!prevChild || prevChild.group !== child.group));
+                                const ChildIcon = child.icon;
+                                const isChildActive = isItemActive(child.to, location.pathname === child.to.split('?')[0]);
+                                
+                                const childTone =
+                                  child.id.includes('orders') ? 'text-indigo-500 group-hover:text-indigo-400' :
+                                  child.id.includes('invoices') ? 'text-blue-500 group-hover:text-blue-400' :
+                                  child.id.includes('deliveries') ? 'text-cyan-500 group-hover:text-cyan-400' :
+                                  child.id.includes('payments') ? 'text-emerald-500 group-hover:text-emerald-400' :
+                                  child.id.includes('returns') ? 'text-rose-500 group-hover:text-rose-400' :
+                                  child.id.includes('exchanges') ? 'text-amber-500 group-hover:text-amber-400' :
+                                  child.id.includes('leads') ? 'text-teal-500 group-hover:text-teal-400' :
+                                  child.id.includes('customers') ? 'text-violet-500 group-hover:text-violet-400' :
+                                  child.id.includes('pricelists') ? 'text-fuchsia-500 group-hover:text-fuchsia-400' :
+                                  child.id.includes('salesmen') ? 'text-sky-500 group-hover:text-sky-400' :
+                                  child.id.includes('targets') ? 'text-purple-500 group-hover:text-purple-400' :
+                                  child.id.includes('incentives') ? 'text-emerald-500 group-hover:text-emerald-400' :
+                                  child.id.includes('dashboard') ? 'text-amber-500 group-hover:text-amber-400' :
+                                  'text-primary';
+
+                                return (
+                                  <div key={child.id}>
+                                    {isNewGroup && (
+                                      <div className={cn(
+                                        "px-2 pb-1 flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-wider text-muted/70 select-none",
+                                        idx > 0 ? "pt-2 border-t border-default/40 mt-1" : "pt-0.5"
+                                      )}>
+                                        <span className="size-1 rounded-full bg-primary/60 shrink-0" />
+                                        <span className="truncate">{child.group}</span>
+                                      </div>
+                                    )}
+                                    <NavLink
+                                      to={child.to}
+                                      onClick={onClose}
+                                      className={cn(
+                                        'group flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all duration-150',
+                                        isChildActive
+                                          ? 'font-semibold text-primary dark:text-white bg-(--nav-active-bg) border-l-2 border-primary shadow-2xs'
+                                          : 'text-muted hover:text-default hover:bg-(--nav-hover-bg) border-l-2 border-transparent'
+                                      )}
+                                    >
+                                      <div className="flex items-center gap-2 min-w-0">
+                                        <ChildIcon
+                                          className={cn(
+                                            'size-3.5 shrink-0 transition-transform group-hover:scale-110',
+                                            isChildActive ? 'text-primary' : childTone
+                                          )}
+                                        />
+                                        <span className="truncate">{child.label || child.defaultLabel}</span>
+                                      </div>
+                                      {isChildActive && (
+                                        <span className="size-1.5 rounded-full bg-primary animate-pulse shrink-0" />
+                                      )}
+                                    </NavLink>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
                       );
                     })}
                   </div>

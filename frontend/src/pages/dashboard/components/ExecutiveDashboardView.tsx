@@ -562,7 +562,7 @@ export const ExecutiveDashboardView: React.FC<ExecutiveDashboardViewProps> = ({
           </div>
 
           {/* Interactive Multi-Series ApexChart */}
-          <div className="flex-1 min-h-[220px] w-full">
+          <div className="flex-1 min-h-55 w-full">
             <Chart
               options={apexOptions}
               series={apexSeries}
@@ -650,7 +650,7 @@ export const ExecutiveDashboardView: React.FC<ExecutiveDashboardViewProps> = ({
                     <FileText className="size-4" />
                   </div>
                   <p className="text-xs font-bold text-default">No Recent Invoices</p>
-                  <p className="text-[11px] text-muted max-w-[200px] mt-0.5">
+                  <p className="text-[11px] text-muted max-w-50 mt-0.5">
                     Commercial invoices will populate here automatically.
                   </p>
                   <Link

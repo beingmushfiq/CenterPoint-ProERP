@@ -98,6 +98,75 @@ interface CategoryConfig {
   badge: string;
 }
 
+const CATEGORY_THEMES: Record<
+  SalesCategory,
+  {
+    activePill: string;
+    activeIcon: string;
+    activeBadge: string;
+    inactiveText: string;
+    inactiveHover: string;
+    inactiveIcon: string;
+    inactiveBadge: string;
+    accentDot: string;
+    subTabActive: string;
+    subTabActiveIcon: string;
+    subTabActiveBadge: string;
+  }
+> = {
+  operations: {
+    activePill:
+      'bg-linear-to-r from-blue-600 via-indigo-600 to-indigo-700 text-white shadow-md shadow-indigo-500/25 ring-1 ring-white/20',
+    activeIcon: 'text-white',
+    activeBadge: 'bg-white/20 text-white border border-white/30',
+    inactiveText: 'text-default',
+    inactiveHover:
+      'hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-500/10 hover:border-indigo-500/30',
+    inactiveIcon: 'text-indigo-600 dark:text-indigo-400',
+    inactiveBadge:
+      'bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-indigo-500/25 font-semibold',
+    accentDot: 'bg-indigo-500',
+    subTabActive:
+      'bg-linear-to-r from-blue-600 to-indigo-600 text-white border-transparent shadow-xs font-semibold ring-2 ring-indigo-500/30',
+    subTabActiveIcon: 'text-white',
+    subTabActiveBadge: 'bg-white/20 text-white border border-white/25',
+  },
+  crm: {
+    activePill:
+      'bg-linear-to-r from-violet-600 via-purple-600 to-fuchsia-600 text-white shadow-md shadow-purple-500/25 ring-1 ring-white/20',
+    activeIcon: 'text-white',
+    activeBadge: 'bg-white/20 text-white border border-white/30',
+    inactiveText: 'text-default',
+    inactiveHover:
+      'hover:text-purple-600 dark:hover:text-purple-400 hover:bg-purple-500/10 hover:border-purple-500/30',
+    inactiveIcon: 'text-purple-600 dark:text-purple-400',
+    inactiveBadge:
+      'bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/25 font-semibold',
+    accentDot: 'bg-purple-500',
+    subTabActive:
+      'bg-linear-to-r from-violet-600 to-purple-600 text-white border-transparent shadow-xs font-semibold ring-2 ring-purple-500/30',
+    subTabActiveIcon: 'text-white',
+    subTabActiveBadge: 'bg-white/20 text-white border border-white/25',
+  },
+  performance: {
+    activePill:
+      'bg-linear-to-r from-amber-500 via-orange-500 to-rose-600 text-white shadow-md shadow-orange-500/25 ring-1 ring-white/20',
+    activeIcon: 'text-white',
+    activeBadge: 'bg-white/20 text-white border border-white/30',
+    inactiveText: 'text-default',
+    inactiveHover:
+      'hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-500/10 hover:border-amber-500/30',
+    inactiveIcon: 'text-amber-600 dark:text-amber-400',
+    inactiveBadge:
+      'bg-amber-500/15 text-amber-800 dark:text-amber-300 border border-amber-500/25 font-semibold',
+    accentDot: 'bg-amber-500',
+    subTabActive:
+      'bg-linear-to-r from-amber-500 to-orange-500 text-white border-transparent shadow-xs font-semibold ring-2 ring-orange-500/30',
+    subTabActiveIcon: 'text-white',
+    subTabActiveBadge: 'bg-white/20 text-white border border-white/25',
+  },
+};
+
 export default function SalesWorkspace() {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -293,6 +362,7 @@ export default function SalesWorkspace() {
     categories.find((cat) => cat.id === activeCategory) ?? categories[0]!;
   const currentTab: TabConfig = tabs.find((t) => t.id === activeTab) ?? tabs[0]!;
   const CategoryIcon = activeCategoryConfig.icon;
+  const currentCategoryTheme = CATEGORY_THEMES[activeCategory];
 
   // Remember last visited tab per category for seamless back-and-forth switching
   const lastActivePerCategory = useRef<Record<SalesCategory, SalesTab>>({
@@ -373,21 +443,21 @@ export default function SalesWorkspace() {
   return (
     <div className="space-y-6 max-w-7xl mx-auto py-2">
       {/* Workspace Header & Action Bar */}
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between border-b border-default pb-5">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between border-b border-default pb-4">
         <div>
-          <div className="flex items-center gap-2 mb-2 flex-wrap">
-            <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-primary bg-primary-subtle px-2.5 py-0.5 rounded-full border border-primary/20">
+          <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+            <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 bg-indigo-500/10 px-2.5 py-0.5 rounded-full border border-indigo-500/20">
               {t('sales.workspaceTag')}
             </span>
             <span className="text-[10px] text-muted font-medium bg-surface-sunken px-2 py-0.5 rounded-full border border-default">
               {t('sales.modulesCount')}
             </span>
-            <span className="text-muted/50 text-xs">/</span>
+            <span className="text-muted/40 text-xs">/</span>
             <span className="text-[11px] font-medium text-muted flex items-center gap-1">
               <CategoryIcon className="size-3 text-muted" />
               {activeCategoryConfig.label}
             </span>
-            <span className="text-muted/50 text-xs">/</span>
+            <span className="text-muted/40 text-xs">/</span>
             <span className="text-[11px] font-semibold text-default">
               {currentTab?.label}
             </span>
@@ -396,7 +466,7 @@ export default function SalesWorkspace() {
           <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-default flex items-center gap-3">
             <span>{currentTab?.label}</span>
             {currentTab?.badge && (
-              <span className="text-[11px] font-medium px-2 py-0.5 rounded-md bg-surface-sunken text-muted border border-default">
+              <span className="text-[11px] font-medium px-2 py-0.5 rounded-md bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20">
                 {currentTab.badge}
               </span>
             )}
@@ -407,33 +477,34 @@ export default function SalesWorkspace() {
         </div>
 
         {/* Quick External Actions & Guides */}
-        <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
-          <button
-            type="button"
-            onClick={() => setIsGuideOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-xl border border-primary/30 bg-primary-subtle hover:bg-primary/10 text-primary transition-all shadow-2xs cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-            title={t('sales.exploreCapabilitiesTitle')}
-          >
-            <Compass className="size-3.5 text-primary" />
-            <span>{t('sales.exploreCapabilities')}</span>
-          </button>
-
+        <div className="flex items-center gap-2 shrink-0 flex-wrap">
           <Link
             to="/dashboard?view=sales"
-            className="flex items-center gap-1.5 px-3.5 py-2 bg-primary/10 hover:bg-primary/20 text-primary text-xs font-semibold rounded-xl border border-primary/30 shadow-2xs transition-colors"
+            className="flex items-center gap-1.5 px-3 py-2 bg-linear-to-r from-indigo-500/10 to-violet-500/10 hover:from-indigo-500/20 hover:to-violet-500/20 text-indigo-600 dark:text-indigo-400 text-xs font-semibold rounded-xl border border-indigo-500/30 shadow-2xs transition-all"
             title="Open Executive Sales Cockpit in Dashboard"
           >
-            <TrendingUp className="size-3.5" />
+            <TrendingUp className="size-3.5 text-indigo-500" />
             <span>Sales Cockpit</span>
           </Link>
 
           <Link
             to="/pos"
-            className="flex items-center gap-2 px-3.5 py-2 bg-surface hover:bg-surface-sunken text-default text-xs font-semibold rounded-xl border border-default shadow-2xs transition-colors"
+            className="flex items-center gap-1.5 px-3 py-2 bg-linear-to-r from-emerald-500/10 to-teal-500/10 hover:from-emerald-500/20 hover:to-teal-500/20 text-emerald-600 dark:text-emerald-400 text-xs font-semibold rounded-xl border border-emerald-500/30 shadow-2xs transition-all"
+            title="Open Point of Sale Terminal"
           >
-            <Store className="size-3.5 text-primary" />
+            <Store className="size-3.5 text-emerald-500" />
             <span>{t('sales.openPos')}</span>
           </Link>
+
+          <button
+            type="button"
+            onClick={() => setIsGuideOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-xl border border-default bg-surface hover:bg-surface-sunken text-default transition-all shadow-2xs cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            title={t('sales.exploreCapabilitiesTitle')}
+          >
+            <Compass className="size-3.5 text-muted" />
+            <span>{t('sales.exploreCapabilities')}</span>
+          </button>
 
           {/* Quick Jump Dropdown Popover */}
           <div className="relative shrink-0" ref={quickJumpRef}>
@@ -444,12 +515,12 @@ export default function SalesWorkspace() {
                 setSearchQuery('');
               }}
               className={cn(
-                'flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold border border-default bg-surface hover:bg-surface-sunken text-default transition-all shadow-2xs cursor-pointer',
+                'flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold border border-default bg-surface hover:bg-surface-sunken text-default transition-all shadow-2xs cursor-pointer',
                 quickJumpOpen && 'border-primary/40 bg-surface-sunken'
               )}
               title={t('sales.jumpTitle')}
             >
-              <SlidersHorizontal className="size-3.5 text-primary" />
+              <SlidersHorizontal className="size-3.5 text-muted" />
               <span>{t('sales.allViews')}</span>
             </button>
 
@@ -512,276 +583,116 @@ export default function SalesWorkspace() {
         </div>
       </div>
 
-      {/* Universal Commercial Sales Quick-Action Ribbon */}
-      <div className="rounded-2xl border border-primary/20 bg-linear-to-r from-primary/5 via-surface to-surface-raised p-3.5 shadow-xs">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div>
-            <div className="flex items-center gap-1.5 text-xs font-bold text-default">
-              <Zap className="size-3.5 text-amber-500 fill-amber-500" />
-              <span>{t('sales.quickActionsTitle')}</span>
-            </div>
-            <p className="text-[11px] text-muted">
-              {t('sales.quickActionsSubtitle')}
-            </p>
+      {/* Two-Tier Enterprise Navigation Hub */}
+      <div className="bg-surface rounded-2xl border border-default p-3 shadow-2xs space-y-3">
+        {/* Tier 1: Domain Segmented Selector (Centered with Rich Category Theming) */}
+        <div className="flex flex-col items-center justify-center gap-2 pb-3 border-b border-default/50">
+          <div className="inline-flex items-center justify-center p-1.5 bg-surface-sunken/90 dark:bg-surface-sunken/60 rounded-2xl border border-default/60 shadow-inner gap-1.5 flex-wrap">
+            {categories.map((cat) => {
+              const CatIcon = cat.icon;
+              const isSelected = activeCategory === cat.id;
+              const catTabs = tabs.filter((tb) => tb.category === cat.id);
+              const theme = CATEGORY_THEMES[cat.id];
+
+              return (
+                <button
+                  key={cat.id}
+                  type="button"
+                  onClick={() => handleSelectCategory(cat.id)}
+                  className={cn(
+                    'group relative flex items-center gap-2.5 px-4 py-2 rounded-xl text-xs font-semibold transition-all duration-200 cursor-pointer select-none border',
+                    isSelected
+                      ? cn(theme.activePill, 'scale-[1.02]')
+                      : cn(
+                          'border-transparent bg-transparent',
+                          theme.inactiveText,
+                          theme.inactiveHover
+                        )
+                  )}
+                  title={`${cat.label} — ${cat.tagline}`}
+                >
+                  <CatIcon
+                    className={cn(
+                      'size-4 shrink-0 transition-transform duration-200 group-hover:scale-110',
+                      isSelected ? theme.activeIcon : theme.inactiveIcon
+                    )}
+                  />
+                  <span className="tracking-tight">{cat.label}</span>
+                  <span
+                    className={cn(
+                      'text-[10px] font-mono px-2 py-0.5 rounded-full transition-colors font-bold',
+                      isSelected ? theme.activeBadge : theme.inactiveBadge
+                    )}
+                  >
+                    {catTabs.length}
+                  </span>
+                </button>
+              );
+            })}
           </div>
-          <div className="flex items-center gap-2 flex-wrap">
-            <button
-              type="button"
-              onClick={() => setActiveTab('orders')}
-              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs transition-all cursor-pointer"
-            >
-              <ShoppingCart className="size-3.5" />
-              <span>{t('sales.actionNewOrder')}</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab('invoices')}
-              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-xs transition-all cursor-pointer"
-            >
-              <FileText className="size-3.5" />
-              <span>{t('sales.actionInvoices')}</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab('payments')}
-              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-surface hover:bg-surface-sunken text-default border border-default shadow-2xs transition-all cursor-pointer"
-            >
-              <Receipt className="size-3.5 text-emerald-600" />
-              <span>{t('sales.actionCollectPayment')}</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab('deliveries')}
-              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-surface hover:bg-surface-sunken text-default border border-default shadow-2xs transition-all cursor-pointer"
-            >
-              <Truck className="size-3.5 text-cyan-600" />
-              <span>{t('sales.actionDispatchDelivery')}</span>
-            </button>
+
+          {/* Centered Domain Context & Tagline */}
+          <div className="flex items-center justify-center gap-2 text-xs text-muted font-medium pt-0.5 animate-in fade-in duration-200">
+            <span className={cn('size-2 rounded-full animate-pulse', currentCategoryTheme.accentDot)} />
+            <span className="text-[11.5px] font-medium text-muted">
+              {activeCategoryConfig.tagline}
+            </span>
           </div>
         </div>
-      </div>
 
-      {/* Primary 3 Command Pillars (with Embedded Direct Child Pills) */}
-      <div
-        role="tablist"
-        aria-label="Sales Commercial Subsystems"
-        className="grid grid-cols-1 lg:grid-cols-3 gap-3"
-      >
-        {categories.map((cat) => {
-          const isCatActive = activeCategory === cat.id;
-          const Icon = cat.icon;
-          const childTabs = tabs.filter((t) => t.category === cat.id);
+        {/* Tier 2: Focused Contextual Sub-Module Tabs (Centered, single row responsive) */}
+        <div className="flex items-center justify-center pt-0.5">
+          <div
+            role="tablist"
+            aria-label={`${activeCategoryConfig.label} Sub-Modules`}
+            className="flex items-center justify-center gap-1.5 flex-wrap"
+          >
+            {tabs
+              .filter((tb) => tb.category === activeCategory)
+              .map((tab) => {
+                const Icon = tab.icon;
+                const isActive = activeTab === tab.id;
 
-          return (
-            <div
-              key={cat.id}
-              role="tab"
-              aria-selected={isCatActive}
-              tabIndex={isCatActive ? 0 : -1}
-              onClick={() => handleSelectCategory(cat.id)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
-                  handleSelectCategory(cat.id);
-                }
-              }}
-              className={cn(
-                'group relative flex flex-col justify-between p-4 rounded-2xl border text-left transition-all duration-200 cursor-pointer shadow-2xs',
-                isCatActive
-                  ? 'bg-surface border-primary shadow-md ring-2 ring-primary/10'
-                  : 'bg-surface hover:bg-surface-sunken border-default hover:border-default/80'
-              )}
-            >
-              {/* Pillar Top Header */}
-              <div className="flex items-start gap-3 w-full">
-                <div
-                  className={cn(
-                    'size-10 rounded-xl flex items-center justify-center shrink-0 transition-transform group-hover:scale-105 shadow-2xs',
-                    isCatActive
-                      ? 'bg-primary text-primary-fg shadow-sm'
-                      : 'bg-surface-sunken border border-default text-muted group-hover:text-default'
-                  )}
-                >
-                  <Icon className={cn('size-5 shrink-0', isCatActive ? 'text-primary-fg' : 'text-muted group-hover:text-default')} />
-                </div>
-
-                <div className="min-w-0 flex-1 space-y-0.5">
-                  <div className="flex items-center justify-between gap-1.5">
-                    <div className="flex items-center gap-1.5 min-w-0">
+                return (
+                  <button
+                    key={tab.id}
+                    role="tab"
+                    aria-selected={isActive}
+                    type="button"
+                    onClick={() => setActiveTab(tab.id)}
+                    className={cn(
+                      'group flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-medium transition-all duration-150 cursor-pointer shrink-0 select-none border',
+                      isActive
+                        ? cn(currentCategoryTheme.subTabActive)
+                        : 'border-default/50 bg-surface hover:bg-surface-sunken hover:border-default text-muted hover:text-default shadow-2xs'
+                    )}
+                    title={tab.description}
+                  >
+                    <Icon
+                      className={cn(
+                        'size-3.5 shrink-0 transition-transform group-hover:scale-110',
+                        isActive ? currentCategoryTheme.subTabActiveIcon : 'text-muted group-hover:text-default'
+                      )}
+                    />
+                    <span className="hidden 2xl:inline">{tab.label}</span>
+                    <span className="2xl:hidden">{tab.shortLabel}</span>
+                    {tab.badge && (
                       <span
                         className={cn(
-                          'text-xs font-bold transition-colors truncate',
-                          isCatActive ? 'text-default' : 'text-default/90 group-hover:text-default'
+                          'text-[9px] font-bold px-1.5 py-0.2 rounded-full uppercase tracking-wider',
+                          isActive
+                            ? currentCategoryTheme.subTabActiveBadge
+                            : 'bg-primary/10 text-primary'
                         )}
                       >
-                        {cat.label}
+                        {tab.badge}
                       </span>
-                      <span className="text-[10px] font-mono text-muted/70 font-semibold px-1 py-0.2 rounded bg-surface-sunken border border-default/50 select-none">
-                        [{cat.shortcut}]
-                      </span>
-                    </div>
-
-                    <span
-                      className={cn(
-                        'text-[10px] font-mono px-2 py-0.5 rounded-full font-bold border shrink-0',
-                        isCatActive
-                          ? 'bg-primary/10 text-primary border-primary/20'
-                          : 'bg-surface-sunken text-muted border-default'
-                      )}
-                    >
-                      {cat.badge}
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-muted line-clamp-1">{cat.tagline}</p>
-                </div>
-              </div>
-
-              {/* Embedded Direct Child Pills */}
-              <div className="mt-3.5 pt-2.5 border-t border-default/60 flex flex-wrap gap-1.5 w-full">
-                {childTabs.map((subTab) => {
-                  const isCurrent = activeTab === subTab.id;
-                  const SubIcon = subTab.icon;
-                  return (
-                    <button
-                      key={subTab.id}
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setActiveTab(subTab.id);
-                      }}
-                      className={cn(
-                        'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all cursor-pointer',
-                        isCurrent
-                          ? 'bg-primary text-primary-fg font-semibold shadow-xs ring-1 ring-primary/30'
-                          : 'bg-surface-sunken hover:bg-surface text-muted hover:text-default border border-default/60'
-                      )}
-                      title={subTab.description}
-                    >
-                      <SubIcon className={cn('size-3', isCurrent ? 'text-primary-fg' : 'text-muted')} />
-                      <span>{subTab.shortLabel}</span>
-                      {isCurrent && <span className="size-1.5 rounded-full bg-white animate-pulse" />}
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* Active Indicator Bar */}
-              {isCatActive && (
-                <div className="absolute bottom-0 left-4 right-4 h-0.5 bg-primary rounded-full" />
-              )}
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Master Navigation Ribbon */}
-      <div className="bg-surface-sunken rounded-2xl border border-default p-2 shadow-2xs">
-        <div className="flex items-center justify-between px-2 pb-1.5 mb-1 text-[11px] font-semibold text-muted border-b border-default/50">
-          <div className="flex items-center gap-2">
-            <Zap className="size-3.5 text-primary" />
-            <span>{t('sales.ribbonTitle')}</span>
+                    )}
+                  </button>
+                );
+              })}
           </div>
-          <span className="text-[10px] font-mono text-muted/70">
-            {t('sales.activeLabel')} <strong className="text-default">{currentTab?.label}</strong>
-          </span>
         </div>
-
-        <nav
-          className="flex flex-wrap items-center gap-2"
-          role="tablist"
-          aria-label="All 11 Sales Sub-Modules"
-        >
-          {/* Cluster 1: Order to Cash */}
-          <div className="flex items-center gap-1.5 bg-surface/60 p-1 rounded-xl border border-default/40">
-            <span className="text-[10px] font-mono uppercase font-bold text-muted px-2 py-0.5 select-none">
-              {t('sales.clusterOrderToCash')}
-            </span>
-            {tabs.filter((tb) => tb.category === 'operations').map((tab) => {
-              const Icon = tab.icon;
-              const isActive = activeTab === tab.id;
-              return (
-                <button
-                  key={tab.id}
-                  role="tab"
-                  aria-selected={isActive}
-                  type="button"
-                  onClick={() => setActiveTab(tab.id)}
-                  className={cn(
-                    'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer',
-                    isActive
-                      ? 'bg-primary text-primary-fg shadow-xs'
-                      : 'text-muted hover:text-default hover:bg-surface border border-transparent'
-                  )}
-                >
-                  <Icon className={cn('size-3.5', isActive ? 'text-primary-fg' : 'text-muted')} />
-                  <span>{tab.shortLabel}</span>
-                </button>
-              );
-            })}
-          </div>
-
-          <div className="h-5 w-px bg-default hidden sm:block" />
-
-          {/* Cluster 2: CRM & Accounts */}
-          <div className="flex items-center gap-1.5 bg-surface/60 p-1 rounded-xl border border-default/40">
-            <span className="text-[10px] font-mono uppercase font-bold text-muted px-2 py-0.5 select-none">
-              {t('sales.clusterCrm')}
-            </span>
-            {tabs.filter((tb) => tb.category === 'crm').map((tab) => {
-              const Icon = tab.icon;
-              const isActive = activeTab === tab.id;
-              return (
-                <button
-                  key={tab.id}
-                  role="tab"
-                  aria-selected={isActive}
-                  type="button"
-                  onClick={() => setActiveTab(tab.id)}
-                  className={cn(
-                    'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer',
-                    isActive
-                      ? 'bg-primary text-primary-fg shadow-xs'
-                      : 'text-muted hover:text-default hover:bg-surface border border-transparent'
-                  )}
-                >
-                  <Icon className={cn('size-3.5', isActive ? 'text-primary-fg' : 'text-muted')} />
-                  <span>{tab.shortLabel}</span>
-                </button>
-              );
-            })}
-          </div>
-
-          <div className="h-5 w-px bg-default hidden sm:block" />
-
-          {/* Cluster 3: Sales Force & Quotas */}
-          <div className="flex items-center gap-1.5 bg-surface/60 p-1 rounded-xl border border-default/40">
-            <span className="text-[10px] font-mono uppercase font-bold text-muted px-2 py-0.5 select-none">
-              {t('sales.clusterSalesForce')}
-            </span>
-            {tabs.filter((tb) => tb.category === 'performance').map((tab) => {
-              const Icon = tab.icon;
-              const isActive = activeTab === tab.id;
-              return (
-                <button
-                  key={tab.id}
-                  role="tab"
-                  aria-selected={isActive}
-                  type="button"
-                  onClick={() => setActiveTab(tab.id)}
-                  className={cn(
-                    'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer',
-                    isActive
-                      ? 'bg-primary text-primary-fg shadow-xs'
-                      : 'text-muted hover:text-default hover:bg-surface border border-transparent'
-                  )}
-                >
-                  <Icon className={cn('size-3.5', isActive ? 'text-primary-fg' : 'text-muted')} />
-                  <span>{tab.shortLabel}</span>
-                </button>
-              );
-            })}
-          </div>
-        </nav>
       </div>
 
       {/* Capabilities & Commercial Guide Modal */}

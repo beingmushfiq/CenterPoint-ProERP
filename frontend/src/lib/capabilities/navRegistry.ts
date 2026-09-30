@@ -20,6 +20,14 @@ import {
   Warehouse,
   Zap,
   Ticket,
+  FileText,
+  Receipt,
+  Undo2,
+  TrendingUp,
+  ArrowLeftRight,
+  Tag,
+  Target,
+  Award,
 } from 'lucide-react';
 
 export interface DynamicNavItem {
@@ -33,6 +41,9 @@ export interface DynamicNavItem {
   badge?: string;
   badgeTone?: 'primary' | 'success' | 'amber' | 'neutral';
   hiddenInSidebar?: boolean;
+  children?: DynamicNavItem[];
+  group?: string;
+  label?: string;
 }
 
 export interface DynamicNavSection {
@@ -117,6 +128,106 @@ export const PLATFORM_NAV_DEFINITIONS: DynamicNavSection[] = [
           'sales.order.view',
           'sales.invoice.view',
           'sales.return.view',
+        ],
+        children: [
+          // Cluster 1: Order to Cash / Commercial Operations
+          {
+            id: 'sales-orders',
+            defaultLabel: 'Sales Orders',
+            to: '/sales?tab=orders',
+            icon: ShoppingCart,
+            badgeTone: 'primary',
+            group: 'Order to Cash',
+          },
+          {
+            id: 'sales-invoices',
+            defaultLabel: 'Invoices & Billing',
+            to: '/sales?tab=invoices',
+            icon: FileText,
+            group: 'Order to Cash',
+          },
+          {
+            id: 'sales-deliveries',
+            defaultLabel: 'Deliveries & Dispatch',
+            to: '/sales?tab=deliveries',
+            icon: Truck,
+            group: 'Order to Cash',
+          },
+          {
+            id: 'sales-payments',
+            defaultLabel: 'Payments & Receipts',
+            to: '/sales?tab=payments',
+            icon: Receipt,
+            badgeTone: 'success',
+            group: 'Order to Cash',
+          },
+          {
+            id: 'sales-returns',
+            defaultLabel: 'Customer Returns & Refunds',
+            to: '/sales?tab=returns',
+            icon: Undo2,
+            group: 'Order to Cash',
+          },
+          {
+            id: 'sales-exchanges',
+            defaultLabel: 'Product Exchanges',
+            to: '/sales?tab=exchanges',
+            icon: ArrowLeftRight,
+            group: 'Order to Cash',
+          },
+
+          // Cluster 2: Customer Leads & CRM
+          {
+            id: 'sales-leads',
+            defaultLabel: 'Customer Leads',
+            to: '/sales?tab=leads',
+            icon: UserCheck,
+            group: 'Customer Leads & CRM',
+          },
+          {
+            id: 'sales-customers',
+            defaultLabel: 'Customer Directory',
+            to: '/sales?tab=customers',
+            icon: Users,
+            group: 'Customer Leads & CRM',
+          },
+          {
+            id: 'sales-pricelists',
+            defaultLabel: 'Customer Price Lists',
+            to: '/sales?tab=pricelists',
+            icon: Tag,
+            group: 'Customer Leads & CRM',
+          },
+
+          // Cluster 3: Sales Team & Commissions
+          {
+            id: 'sales-salesmen',
+            defaultLabel: 'Sales Representatives',
+            to: '/sales?tab=salesmen',
+            icon: UserCheck,
+            group: 'Sales Team & Commissions',
+          },
+          {
+            id: 'sales-targets',
+            defaultLabel: 'Monthly Targets',
+            to: '/sales?tab=targets',
+            icon: Target,
+            group: 'Sales Team & Commissions',
+          },
+          {
+            id: 'sales-incentives',
+            defaultLabel: 'Commissions & Bonuses',
+            to: '/sales?tab=incentives',
+            icon: Award,
+            group: 'Sales Team & Commissions',
+          },
+          {
+            id: 'sales-dashboard',
+            defaultLabel: 'Rep Performance Dashboard',
+            to: '/sales?tab=dashboard',
+            icon: TrendingUp,
+            group: 'Sales Team & Commissions',
+          },
         ],
       },
       {
@@ -394,6 +505,14 @@ export function buildDynamicNavSections(
         return {
           ...item,
           label,
+          ...(item.children
+            ? {
+                children: item.children.map((child) => ({
+                  ...child,
+                  label: child.defaultLabel,
+                })),
+              }
+            : {}),
         };
       });
 

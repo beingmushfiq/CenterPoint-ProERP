@@ -112,6 +112,7 @@ export function SalesOrdersSection({ onNavigateToTab }: SalesOrdersSectionProps 
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [channelFilter, setChannelFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'confirmed'>('all');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<SalesOrder | null>(null);
   const [orderToDelete, setOrderToDelete] = useState<SalesOrder | null>(null);
@@ -575,33 +576,48 @@ export function SalesOrdersSection({ onNavigateToTab }: SalesOrdersSectionProps 
     createOrderMutation.mutate();
   };
 
-  const filteredOrders = orders.filter((o) => {
-    const matchesSearch =
-      o.order_number?.toLowerCase().includes(search.toLowerCase()) ||
-      o.customer_name?.toLowerCase().includes(search.toLowerCase()) ||
-      o.channel?.toLowerCase().includes(search.toLowerCase());
+  const baseFilteredOrders = useMemo(() => {
+    return orders.filter((o) => {
+      const matchesSearch =
+        o.order_number?.toLowerCase().includes(search.toLowerCase()) ||
+        o.customer_name?.toLowerCase().includes(search.toLowerCase()) ||
+        o.channel?.toLowerCase().includes(search.toLowerCase());
 
-    const matchesChannel = channelFilter === 'all' || o.channel === channelFilter;
+      const matchesChannel = channelFilter === 'all' || o.channel === channelFilter;
 
-    return matchesSearch && matchesChannel;
-  });
+      return matchesSearch && matchesChannel;
+    });
+  }, [orders, search, channelFilter]);
 
   const orderStats = useMemo(() => {
     let pending = 0;
     let confirmed = 0;
     let totalAmt = 0;
-    for (const o of filteredOrders) {
+    for (const o of baseFilteredOrders) {
       if (o.status === 'pending' || o.status === 'draft') pending++;
       else if (o.status === 'confirmed' || o.status === 'allocated' || o.status === 'picking' || o.status === 'packed') confirmed++;
       totalAmt += parseFloat(String(o.total_amount || 0));
     }
     return {
-      total: filteredOrders.length,
+      total: baseFilteredOrders.length,
       pending,
       confirmed,
       totalAmount: totalAmt,
     };
-  }, [filteredOrders]);
+  }, [baseFilteredOrders]);
+
+  const filteredOrders = useMemo(() => {
+    if (statusFilter === 'all') return baseFilteredOrders;
+    if (statusFilter === 'pending') {
+      return baseFilteredOrders.filter((o) => o.status === 'pending' || o.status === 'draft');
+    }
+    if (statusFilter === 'confirmed') {
+      return baseFilteredOrders.filter(
+        (o) => o.status === 'confirmed' || o.status === 'allocated' || o.status === 'picking' || o.status === 'packed'
+      );
+    }
+    return baseFilteredOrders;
+  }, [baseFilteredOrders, statusFilter]);
 
   const isAllSelected = filteredOrders.length > 0 && selectedOrderIds.size === filteredOrders.length;
   const isSomeSelected = selectedOrderIds.size > 0 && !isAllSelected;
@@ -888,42 +904,158 @@ export function SalesOrdersSection({ onNavigateToTab }: SalesOrdersSectionProps 
 
   return (
     <div className="space-y-4">
-      {/* 4-Card Operational Intelligence KPI Strip */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <div className="flex items-center gap-3 rounded-2xl border border-default bg-surface p-3.5 shadow-2xs">
-          <div className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary shrink-0">
-            <ShoppingCart className="size-5" />
+      {/* 4-Card Operational Intelligence Interactive KPI Strip */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        {/* Card 1: All / Total Pipeline */}
+        <button
+          type="button"
+          onClick={() => setStatusFilter('all')}
+          className={cn(
+            'group relative flex flex-col justify-between gap-3 rounded-2xl border p-3.5 sm:p-4 text-left transition-all duration-150 cursor-pointer select-none active:scale-[0.99]',
+            statusFilter === 'all'
+              ? 'border-indigo-500/50 bg-gradient-to-br from-indigo-500/8 via-surface to-surface dark:from-indigo-500/15 ring-2 ring-indigo-500/20 shadow-xs'
+              : 'border-default bg-surface hover:border-indigo-500/30 hover:bg-surface-sunken/40 shadow-2xs'
+          )}
+          title="Click to view all orders"
+        >
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className={cn(
+                "flex size-9 items-center justify-center rounded-xl transition-colors shrink-0",
+                statusFilter === 'all' ? "bg-indigo-600 text-white shadow-xs" : "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 group-hover:bg-indigo-500/15"
+              )}>
+                <ShoppingCart className="size-4.5" />
+              </div>
+              <span className="text-xs font-semibold text-muted tracking-tight truncate">Total Pipeline</span>
+            </div>
+            <span className={cn(
+              "text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider shrink-0 transition-colors",
+              statusFilter === 'all'
+                ? "bg-indigo-600 text-white shadow-2xs"
+                : "bg-surface-sunken text-muted group-hover:text-default border border-default/50"
+            )}>
+              {statusFilter === 'all' ? 'Active' : 'All'}
+            </span>
           </div>
-          <div className="min-w-0">
-            <div className="text-[11px] font-medium text-muted uppercase tracking-wider">Filtered Orders</div>
-            <div className="text-lg font-bold text-default">{orderStats.total}</div>
+
+          <div className="mt-1">
+            <div className="text-2xl sm:text-3xl font-extrabold text-default tracking-tight leading-none">
+              {orderStats.total}
+            </div>
+            <p className="text-[11px] text-muted mt-1.5 flex items-center gap-1.5 truncate">
+              <span>All active & archived orders</span>
+            </p>
           </div>
-        </div>
-        <div className="flex items-center gap-3 rounded-2xl border border-default bg-surface p-3.5 shadow-2xs">
-          <div className="flex size-10 items-center justify-center rounded-xl bg-amber-500/10 text-amber-500 shrink-0">
-            <Clock className="size-5" />
+        </button>
+
+        {/* Card 2: Pending Review */}
+        <button
+          type="button"
+          onClick={() => setStatusFilter((prev) => (prev === 'pending' ? 'all' : 'pending'))}
+          className={cn(
+            'group relative flex flex-col justify-between gap-3 rounded-2xl border p-3.5 sm:p-4 text-left transition-all duration-150 cursor-pointer select-none active:scale-[0.99]',
+            statusFilter === 'pending'
+              ? 'border-amber-500/50 bg-gradient-to-br from-amber-500/10 via-surface to-surface dark:from-amber-500/15 ring-2 ring-amber-500/25 shadow-xs'
+              : 'border-default bg-surface hover:border-amber-500/30 hover:bg-surface-sunken/40 shadow-2xs'
+          )}
+          title="Click to filter orders pending review"
+        >
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className={cn(
+                "flex size-9 items-center justify-center rounded-xl transition-colors shrink-0",
+                statusFilter === 'pending' ? "bg-amber-500 text-white shadow-xs" : "bg-amber-500/10 text-amber-600 dark:text-amber-400 group-hover:bg-amber-500/15"
+              )}>
+                <Clock className="size-4.5" />
+              </div>
+              <span className="text-xs font-semibold text-muted tracking-tight truncate">Pending Review</span>
+            </div>
+            <span className={cn(
+              "text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider shrink-0 transition-colors flex items-center gap-1",
+              statusFilter === 'pending'
+                ? "bg-amber-500 text-white shadow-2xs"
+                : "bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20"
+            )}>
+              {orderStats.pending > 0 && (
+                <span className="size-1.5 rounded-full bg-amber-400 animate-pulse" />
+              )}
+              {statusFilter === 'pending' ? 'Filtering' : 'Review'}
+            </span>
           </div>
-          <div className="min-w-0">
-            <div className="text-[11px] font-medium text-muted uppercase tracking-wider">Pending Review</div>
-            <div className="text-lg font-bold text-amber-500">{orderStats.pending}</div>
+
+          <div className="mt-1">
+            <div className="text-2xl sm:text-3xl font-extrabold text-amber-600 dark:text-amber-400 tracking-tight leading-none">
+              {orderStats.pending}
+            </div>
+            <p className="text-[11px] text-muted mt-1.5 flex items-center gap-1.5 truncate">
+              <span>Requires approval & validation</span>
+            </p>
           </div>
-        </div>
-        <div className="flex items-center gap-3 rounded-2xl border border-default bg-surface p-3.5 shadow-2xs">
-          <div className="flex size-10 items-center justify-center rounded-xl bg-blue-500/10 text-blue-500 shrink-0">
-            <TrendingUp className="size-5" />
+        </button>
+
+        {/* Card 3: Confirmed / Active */}
+        <button
+          type="button"
+          onClick={() => setStatusFilter((prev) => (prev === 'confirmed' ? 'all' : 'confirmed'))}
+          className={cn(
+            'group relative flex flex-col justify-between gap-3 rounded-2xl border p-3.5 sm:p-4 text-left transition-all duration-150 cursor-pointer select-none active:scale-[0.99]',
+            statusFilter === 'confirmed'
+              ? 'border-blue-500/50 bg-gradient-to-br from-blue-500/10 via-surface to-surface dark:from-blue-500/15 ring-2 ring-blue-500/25 shadow-xs'
+              : 'border-default bg-surface hover:border-blue-500/30 hover:bg-surface-sunken/40 shadow-2xs'
+          )}
+          title="Click to filter confirmed / active orders"
+        >
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className={cn(
+                "flex size-9 items-center justify-center rounded-xl transition-colors shrink-0",
+                statusFilter === 'confirmed' ? "bg-blue-600 text-white shadow-xs" : "bg-blue-500/10 text-blue-600 dark:text-blue-400 group-hover:bg-blue-500/15"
+              )}>
+                <TrendingUp className="size-4.5" />
+              </div>
+              <span className="text-xs font-semibold text-muted tracking-tight truncate">Confirmed / Active</span>
+            </div>
+            <span className={cn(
+              "text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider shrink-0 transition-colors",
+              statusFilter === 'confirmed'
+                ? "bg-blue-600 text-white shadow-2xs"
+                : "bg-blue-500/10 text-blue-700 dark:text-blue-400 border border-blue-500/20"
+            )}>
+              {statusFilter === 'confirmed' ? 'Filtering' : 'Active'}
+            </span>
           </div>
-          <div className="min-w-0">
-            <div className="text-[11px] font-medium text-muted uppercase tracking-wider">Confirmed / Active</div>
-            <div className="text-lg font-bold text-blue-500">{orderStats.confirmed}</div>
+
+          <div className="mt-1">
+            <div className="text-2xl sm:text-3xl font-extrabold text-blue-600 dark:text-blue-400 tracking-tight leading-none">
+              {orderStats.confirmed}
+            </div>
+            <p className="text-[11px] text-muted mt-1.5 flex items-center gap-1.5 truncate">
+              <span>In picking, packing & dispatch</span>
+            </p>
           </div>
-        </div>
-        <div className="flex items-center gap-3 rounded-2xl border border-default bg-surface p-3.5 shadow-2xs">
-          <div className="flex size-10 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-500 shrink-0">
-            <Sparkles className="size-5" />
+        </button>
+
+        {/* Card 4: Gross Value */}
+        <div className="group relative flex flex-col justify-between gap-3 rounded-2xl border border-default bg-surface hover:border-emerald-500/30 hover:bg-surface-sunken/40 p-3.5 sm:p-4 text-left transition-all duration-150 shadow-2xs select-none">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="flex size-9 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 shrink-0">
+                <Sparkles className="size-4.5" />
+              </div>
+              <span className="text-xs font-semibold text-muted tracking-tight truncate">Gross Value</span>
+            </div>
+            <span className="text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider shrink-0 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
+              Volume
+            </span>
           </div>
-          <div className="min-w-0">
-            <div className="text-[11px] font-medium text-muted uppercase tracking-wider">Gross Value</div>
-            <div className="text-lg font-bold text-emerald-600 dark:text-emerald-400 truncate">{formatCurrency(orderStats.totalAmount)}</div>
+
+          <div className="mt-1">
+            <div className="text-2xl sm:text-3xl font-extrabold text-emerald-600 dark:text-emerald-400 tracking-tight leading-none truncate">
+              {formatCurrency(orderStats.totalAmount)}
+            </div>
+            <p className="text-[11px] text-muted mt-1.5 flex items-center gap-1.5 truncate">
+              <span>B2B dealer & retail revenue</span>
+            </p>
           </div>
         </div>
       </div>
@@ -987,6 +1119,23 @@ export function SalesOrdersSection({ onNavigateToTab }: SalesOrdersSectionProps 
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
+          {statusFilter !== 'all' && (
+            <button
+              type="button"
+              onClick={() => setStatusFilter('all')}
+              className={cn(
+                "flex h-9 items-center gap-1.5 rounded-xl border px-2.5 text-xs font-semibold transition-colors cursor-pointer animate-in fade-in",
+                statusFilter === 'pending'
+                  ? "border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20"
+                  : "border-blue-500/30 bg-blue-500/10 text-blue-600 dark:text-blue-400 hover:bg-blue-500/20"
+              )}
+              title="Click to reset filter to all orders"
+            >
+              <span>{statusFilter === 'pending' ? 'Pending Review' : 'Confirmed / Active'}</span>
+              <X className="size-3.5" />
+            </button>
+          )}
+
           <div className="relative">
             <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted" />
             <input
