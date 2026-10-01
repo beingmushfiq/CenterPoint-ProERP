@@ -57,7 +57,6 @@ import { PurchasingDashboardView } from './components/PurchasingDashboardView';
 import { LogisticsDashboardView } from './components/LogisticsDashboardView';
 import { DashboardKpiCard, type DashboardKpiTheme, type DashboardKpiDelta } from './components/DashboardKpiCard';
 import { TodayAlertsStrip } from './components/TodayAlertsStrip';
-import { EnterpriseSystemNavigator } from './components/EnterpriseSystemNavigator';
 import { useCurrency } from '../../lib/format/currency';
 
 // ── Types ──────────────────────────────────────────────────────
@@ -962,10 +961,6 @@ export const TenantRoleDashboard: React.FC = () => {
         </div>
       )}
 
-      {/* ══════════════════════════════════════════════════════════
-          ENTERPRISE SUBSYSTEM COCKPIT (ALL MODULES & WINGS)
-      ═══════════════════════════════════════════════════════════ */}
-      <EnterpriseSystemNavigator />
 
       {/* ══════════════════════════════════════════════════════════
           PWA INSTALL PROMPT

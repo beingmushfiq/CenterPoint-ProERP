@@ -334,7 +334,7 @@ describe('TenantRoleDashboard Dynamic Role Perspectives', () => {
     expect(screen.getByText('Department Headcount')).toBeInTheDocument();
   });
 
-  it('renders Enterprise Subsystem Cockpit showing all wings for Super Administrator', () => {
+  it('does not render Enterprise Subsystem Cockpit on the dashboard for Super Administrator', () => {
     useAuthStore.setState({
       user: {
         id: '1',
@@ -359,57 +359,8 @@ describe('TenantRoleDashboard Dynamic Role Perspectives', () => {
 
     renderWithProviders(<TenantRoleDashboard />);
 
-    // Cockpit is present
-    expect(screen.getByText('Enterprise Subsystem Cockpit')).toBeInTheDocument();
-    expect(screen.getByText(/Navigate any operational wing/i)).toBeInTheDocument();
-
-    // All operational wings are accessible
-    expect(screen.getByText('Commercial & Omnichannel Demand')).toBeInTheDocument();
-    expect(screen.getByText('Supply Chain, SCM & Inventory')).toBeInTheDocument();
-    expect(screen.getByText('Manufacturing & Quality Assurance')).toBeInTheDocument();
-    expect(screen.getByText('Finance, Treasury & Assets')).toBeInTheDocument();
-    expect(screen.getByText('Workforce & Human Capital')).toBeInTheDocument();
-    expect(screen.getByText('Governance, Intelligence & Security')).toBeInTheDocument();
-  });
-
-  it('restricts Enterprise Subsystem Cockpit to permitted modules for Sales Officer', () => {
-    useAuthStore.setState({
-      user: {
-        id: '5',
-        name: 'Kamal Sales Officer',
-        email: 'sales@slicemart.test',
-        is_active: true,
-        is_platform_admin: false,
-        role: 'Sales Officer',
-        roles: ['Sales Officer'],
-        locale: 'en',
-        theme: 'light',
-        density: 'comfortable',
-        landing_page: '/dashboard',
-        tenant_id: 1,
-        default_company_id: 1,
-        default_branch_id: 1,
-        default_factory_id: 1,
-        default_warehouse_id: 1,
-      },
-      permissions: new Set([
-        'sales.order.view',
-        'sales.invoice.view',
-        'pos.terminal.view',
-        'pos.sale.create',
-      ]),
-    });
-
-    renderWithProviders(<TenantRoleDashboard />);
-
-    expect(screen.getByText('Enterprise Subsystem Cockpit')).toBeInTheDocument();
-    expect(screen.getByText('Commercial & Omnichannel Demand')).toBeInTheDocument();
-
-    // Disallowed wings should not be displayed
-    expect(screen.queryByText('Manufacturing & Quality Assurance')).not.toBeInTheDocument();
-    expect(screen.queryByText('Finance, Treasury & Assets')).not.toBeInTheDocument();
-    expect(screen.queryByText('Workforce & Human Capital')).not.toBeInTheDocument();
-    expect(screen.queryByText('Governance, Intelligence & Security')).not.toBeInTheDocument();
+    // Enterprise Subsystem Cockpit should not be rendered
+    expect(screen.queryByText('Enterprise Subsystem Cockpit')).not.toBeInTheDocument();
   });
 });
 
