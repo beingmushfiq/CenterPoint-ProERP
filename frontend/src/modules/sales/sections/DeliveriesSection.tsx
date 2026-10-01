@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import {
@@ -18,8 +18,10 @@ import {
   DollarSign,
   Send,
   X,
+  Lock,
+  Check,
 } from 'lucide-react';
-import type { DeliveryOrder } from '../../../types/api/sales';
+import type { DeliveryOrder, SalesOrder } from '../../../types/api/sales';
 import { api } from '../../../lib/api/client';
 import { extractList } from '../../../lib/api/apiData';
 import { PrintPreviewModal } from '../../../components/print/PrintPreviewModal';
@@ -33,6 +35,30 @@ import { DashboardKpiCard } from '../../../pages/dashboard/components/DashboardK
 interface DeliveryFormItem {
   product_name: string;
   quantity: string;
+  product_id?: number;
+  unit_id?: number;
+  variant_id?: number | null;
+  sales_order_item_id?: number | null;
+  ordered_quantity?: string;
+  delivered_quantity?: string;
+}
+
+interface DeliveryFormState {
+  delivery_number: string;
+  sales_order_id?: number | null;
+  sales_order_number: string;
+  warehouse_id?: number;
+  party_id?: number | null;
+  recipient_name: string;
+  recipient_phone: string;
+  warehouse_name: string;
+  delivery_type: string;
+  scheduled_date: string;
+  cod_amount: string;
+  delivery_charge: string;
+  package_count: number;
+  special_instructions: string;
+  items: DeliveryFormItem[];
 }
 
 
@@ -46,6 +72,7 @@ export function DeliveriesSection() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [actionLoading, setActionLoading] = useState<number | null>(null);
+  const [isCreating, setIsCreating] = useState(false);
 
   // Bulk Selection State
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
@@ -63,7 +90,7 @@ export function DeliveriesSection() {
   const { config: businessConfig } = useBusinessConfig();
 
   // Form State
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<DeliveryFormState>({
     delivery_number: '',
     sales_order_number: 'SO-202608-001',
     recipient_name: 'Apex Footwear Ltd.',
@@ -94,6 +121,149 @@ export function DeliveriesSection() {
       }
     },
   });
+
+  const { data: salesOrders = [] } = useQuery<SalesOrder[]>({
+    queryKey: ['sales', 'orders'],
+    queryFn: async () => {
+      try {
+        const res = await api.get<SalesOrder[]>('/sales/orders?per_page=100');
+        return extractList<SalesOrder>(res);
+      } catch {
+        return [];
+      }
+    },
+  });
+
+  const selectedOrder = useMemo(() => {
+    return salesOrders.find((so) => so.order_number === formData.sales_order_number);
+  }, [salesOrders, formData.sales_order_number]);
+
+  const normalizeDeliveryType = (type?: string): 'own_delivery' | 'courier' | 'pickup' => {
+    if (type === 'own_fleet' || type === 'own_delivery') return 'own_delivery';
+    if (type === 'store_pickup' || type === 'pickup') return 'pickup';
+    return 'courier';
+  };
+
+  const handleSelectOrder = (orderNumber: string) => {
+    const selected = salesOrders.find((so) => so.order_number === orderNumber);
+    if (!selected) {
+      setFormData((prev) => ({ ...prev, sales_order_number: orderNumber }));
+      return;
+    }
+
+    const autoItems: DeliveryFormItem[] =
+      selected.items && selected.items.length > 0
+        ? selected.items.map((it) => {
+            const ordQty = parseFloat(it.quantity || '0');
+            const delQty = parseFloat(it.delivered_quantity || '0');
+            const remaining = Math.max(1, ordQty - delQty);
+            return {
+              product_id: it.product_id,
+              unit_id: it.unit_id || 1,
+              variant_id: it.variant_id ?? null,
+              sales_order_item_id: it.id,
+              product_name: it.product_name || `Product #${it.product_id}`,
+              quantity: String(remaining),
+              ordered_quantity: it.quantity,
+              delivered_quantity: it.delivered_quantity || '0',
+            };
+          })
+        : [{ product_name: 'General Dispatch Merchandise', quantity: '1', product_id: 1, unit_id: 1 }];
+
+    const remainingDue =
+      selected.payment_status === 'paid' || parseFloat(selected.due_amount || '0') <= 0
+        ? '0.00'
+        : selected.due_amount || selected.total_amount || '0.00';
+
+    setFormData((prev) => ({
+      ...prev,
+      sales_order_id: selected.id,
+      sales_order_number: selected.order_number,
+      warehouse_id: selected.warehouse_id || 1,
+      party_id: selected.party_id ?? null,
+      recipient_name: selected.customer_name || prev.recipient_name,
+      recipient_phone: selected.customer_phone || prev.recipient_phone,
+      warehouse_name: selected.warehouse_name || prev.warehouse_name,
+      delivery_type: selected.delivery_type || prev.delivery_type,
+      cod_amount: remainingDue,
+      special_instructions: selected.shipping_address
+        ? `Delivery Address: ${selected.shipping_address}. ${selected.notes || ''}`.trim()
+        : selected.notes || prev.special_instructions,
+      items: autoItems,
+    }));
+  };
+
+  const openCreateModal = () => {
+    const autoChallan = `DO-${new Date().toISOString().slice(0, 7).replace('-', '')}-${String(deliveries.length + 1).padStart(3, '0')}`;
+    const defaultOrder =
+      salesOrders.find((o) => o.status !== 'delivered' && o.status !== 'cancelled') || salesOrders[0];
+
+    if (defaultOrder) {
+      const autoItems: DeliveryFormItem[] =
+        defaultOrder.items && defaultOrder.items.length > 0
+          ? defaultOrder.items.map((it) => {
+              const ordQty = parseFloat(it.quantity || '0');
+              const delQty = parseFloat(it.delivered_quantity || '0');
+              const remaining = Math.max(1, ordQty - delQty);
+              return {
+                product_id: it.product_id,
+                unit_id: it.unit_id || 1,
+                variant_id: it.variant_id ?? null,
+                sales_order_item_id: it.id,
+                product_name: it.product_name || `Product #${it.product_id}`,
+                quantity: String(remaining),
+                ordered_quantity: it.quantity,
+                delivered_quantity: it.delivered_quantity || '0',
+              };
+            })
+          : [{ product_name: 'General Dispatch Merchandise', quantity: '1', product_id: 1, unit_id: 1 }];
+
+      const remainingDue =
+        defaultOrder.payment_status === 'paid' || parseFloat(defaultOrder.due_amount || '0') <= 0
+          ? '0.00'
+          : defaultOrder.due_amount || defaultOrder.total_amount || '0.00';
+
+      setFormData({
+        delivery_number: autoChallan,
+        sales_order_id: defaultOrder.id,
+        sales_order_number: defaultOrder.order_number,
+        warehouse_id: defaultOrder.warehouse_id || 1,
+        party_id: defaultOrder.party_id ?? null,
+        recipient_name: defaultOrder.customer_name || 'Retail Customer',
+        recipient_phone: defaultOrder.customer_phone || '',
+        warehouse_name: defaultOrder.warehouse_name || 'Main Distribution Hub (Dhaka)',
+        delivery_type: defaultOrder.delivery_type || 'express_courier',
+        scheduled_date: new Date().toISOString().slice(0, 10),
+        cod_amount: remainingDue,
+        delivery_charge: defaultOrder.shipping_amount || '150.00',
+        package_count: 1,
+        special_instructions: defaultOrder.shipping_address
+          ? `Delivery Address: ${defaultOrder.shipping_address}. ${defaultOrder.notes || ''}`.trim()
+          : defaultOrder.notes || 'Handle with care.',
+        items: autoItems,
+      });
+    } else {
+      setFormData({
+        delivery_number: autoChallan,
+        sales_order_id: null,
+        sales_order_number: '',
+        warehouse_id: 1,
+        party_id: null,
+        recipient_name: '',
+        recipient_phone: '',
+        warehouse_name: 'Main Distribution Hub (Dhaka)',
+        delivery_type: 'express_courier',
+        scheduled_date: new Date().toISOString().slice(0, 10),
+        cod_amount: '0.00',
+        delivery_charge: '150.00',
+        package_count: 1,
+        special_instructions: 'Handle with care.',
+        items: [{ product_name: '', quantity: '1', product_id: 1, unit_id: 1 }],
+      });
+    }
+
+    setShowCreateModal(true);
+  };
 
   const handleViewDelivery = async (d: DeliveryOrder) => {
     setActiveDelivery(d);
@@ -146,85 +316,116 @@ export function DeliveriesSection() {
     }
   };
 
-  const handleCreateDelivery = (e: React.FormEvent) => {
+  const handleCreateDelivery = async (e: React.FormEvent) => {
     e.preventDefault();
-    const newDel: DeliveryOrder = {
-      id: Date.now(),
-      uuid: `del-${Date.now()}`,
-      delivery_number:
-        formData.delivery_number ||
-        `DO-${new Date().toISOString().slice(0, 7).replace('-', '')}-${String(deliveries.length + 1).padStart(3, '0')}`,
-      sales_order_id: 1,
-      sales_order_number: formData.sales_order_number,
-      warehouse_id: 1,
-      warehouse_name: formData.warehouse_name,
-      recipient_name: formData.recipient_name,
-      recipient_phone: formData.recipient_phone,
-      delivery_type: formData.delivery_type,
-      scheduled_date: formData.scheduled_date,
-      status: 'pending',
-      cod_amount: formData.cod_amount,
-      cod_collected_amount: '0.00',
-      cod_status: parseFloat(formData.cod_amount) > 0 ? 'pending' : 'none',
-      delivery_charge: formData.delivery_charge,
-      package_count: formData.package_count,
-      special_instructions: formData.special_instructions,
-      items: formData.items.map((it, idx) => ({
-        id: Date.now() + idx,
-        uuid: `doi-${Date.now() + idx}`,
-        delivery_order_id: Date.now(),
-        product_id: idx + 1,
-        product_name: it.product_name,
-        quantity: it.quantity,
-        delivered_quantity: '0.00',
-        returned_quantity: '0.00',
-        unit_id: 2,
-      })),
-      created_at: new Date().toISOString(),
-    };
+    setIsCreating(true);
 
-    api.post('/sales/deliveries', newDel).catch(() => {});
-    queryClient.setQueryData<DeliveryOrder[]>(['sales', 'deliveries'], (prev = []) => [newDel, ...prev]);
-    toast.success('Dispatch challan created.');
-    setShowCreateModal(false);
+    try {
+      const targetOrder =
+        salesOrders.find(
+          (so) =>
+            (formData.sales_order_id && so.id === formData.sales_order_id) ||
+            so.order_number === formData.sales_order_number
+        ) || salesOrders[0];
+
+      const salesOrderId = formData.sales_order_id || targetOrder?.id || 1;
+      const warehouseId = formData.warehouse_id || targetOrder?.warehouse_id || 1;
+
+      const itemsPayload = formData.items.map((it, idx) => {
+        const orderItem = targetOrder?.items?.find(
+          (oi) =>
+            (it.sales_order_item_id && oi.id === it.sales_order_item_id) ||
+            (it.product_id && oi.product_id === it.product_id)
+        );
+        return {
+          product_id: it.product_id || orderItem?.product_id || (idx + 1),
+          quantity: String(Math.max(0.01, parseFloat(it.quantity || '1'))),
+          unit_id: it.unit_id || orderItem?.unit_id || 1,
+          variant_id: it.variant_id ?? (orderItem?.variant_id ?? null),
+          sales_order_item_id: it.sales_order_item_id || (orderItem?.id ?? null),
+        };
+      });
+
+      const payload = {
+        sales_order_id: salesOrderId,
+        warehouse_id: warehouseId,
+        party_id: formData.party_id ?? (targetOrder?.party_id ?? null),
+        recipient_name: formData.recipient_name.trim() || 'Retail Customer',
+        recipient_phone: formData.recipient_phone.trim() || '+880 1700-000000',
+        delivery_type: normalizeDeliveryType(formData.delivery_type),
+        scheduled_date: formData.scheduled_date || new Date().toISOString().slice(0, 10),
+        cod_amount: parseFloat(formData.cod_amount || '0') || 0,
+        delivery_charge: parseFloat(formData.delivery_charge || '0') || 0,
+        special_instructions: formData.special_instructions || null,
+        delivery_number: formData.delivery_number || undefined,
+        items: itemsPayload,
+      };
+
+      const res = await api.post<DeliveryOrder>('/sales/deliveries', payload);
+      const createdDelivery = res.data;
+
+      if (createdDelivery && createdDelivery.id) {
+        queryClient.setQueryData<DeliveryOrder[]>(['sales', 'deliveries'], (prev = []) => [
+          createdDelivery,
+          ...prev.filter((d) => d.id !== createdDelivery.id),
+        ]);
+      }
+      queryClient.invalidateQueries({ queryKey: ['sales', 'deliveries'] });
+      toast.success(`Dispatch challan ${createdDelivery?.delivery_number || formData.delivery_number} created.`);
+      setShowCreateModal(false);
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Failed to create delivery dispatch challan');
+    } finally {
+      setIsCreating(false);
+    }
   };
 
-  const handleUpdateDelivery = (e: React.FormEvent) => {
+  const handleUpdateDelivery = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!activeDelivery) return;
 
-    queryClient.setQueryData<DeliveryOrder[]>(['sales', 'deliveries'], (prev = []) =>
-      prev.map((d) =>
-        d.id === activeDelivery.id
-          ? {
-              ...d,
-              recipient_name: formData.recipient_name,
-              recipient_phone: formData.recipient_phone,
-              scheduled_date: formData.scheduled_date,
-              delivery_type: formData.delivery_type,
-              special_instructions: formData.special_instructions,
-            }
-          : d
-      )
-    );
-    api.put(`/sales/deliveries/${activeDelivery.id}`, formData).catch(() => {});
-    toast.success('Dispatch challan updated.');
-    setShowEditModal(false);
+    try {
+      const payload = {
+        recipient_name: formData.recipient_name,
+        recipient_phone: formData.recipient_phone,
+        scheduled_date: formData.scheduled_date,
+        delivery_type: normalizeDeliveryType(formData.delivery_type),
+        special_instructions: formData.special_instructions,
+      };
+      await api.put(`/sales/deliveries/${activeDelivery.id}`, payload);
+      toast.success('Dispatch challan updated.');
+      setShowEditModal(false);
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Failed to update delivery');
+    } finally {
+      queryClient.invalidateQueries({ queryKey: ['sales', 'deliveries'] });
+    }
   };
 
   const handleDeleteDelivery = async () => {
     if (!activeDelivery) return;
+    const targetId = activeDelivery.id;
     try {
-      await api.delete(`/sales/deliveries/${activeDelivery.id}`);
+      await api.delete(`/sales/deliveries/${targetId}`);
+      toast.success('Dispatch challan moved to Data Bin.');
+    } catch (err: unknown) {
+      const isNotFound =
+        (err as { status?: number })?.status === 404 ||
+        (err instanceof Error && err.message.toLowerCase().includes('no query results'));
+
+      if (isNotFound) {
+        toast.info('Challan removed from view (was not present on server).');
+      } else {
+        toast.error(err instanceof Error ? err.message : 'Failed to delete delivery order');
+        return;
+      }
+    } finally {
       queryClient.setQueryData<DeliveryOrder[]>(['sales', 'deliveries'], (prev = []) =>
-        prev.filter((d) => d.id !== activeDelivery.id)
+        prev.filter((d) => d.id !== targetId)
       );
       queryClient.invalidateQueries({ queryKey: ['sales', 'deliveries'] });
-      toast.success('Dispatch challan moved to Data Bin.');
       setShowDeleteModal(false);
       setActiveDelivery(null);
-    } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : 'Failed to delete delivery order');
     }
   };
 
@@ -305,16 +506,25 @@ export function DeliveriesSection() {
   const handleBulkDelete = async () => {
     setIsBulkDeleting(true);
     let count = 0;
+    const deletedIds = new Set(selectedIds);
     try {
       for (const id of Array.from(selectedIds)) {
         try {
           await api.delete(`/sales/deliveries/${id}`);
           count++;
-        } catch {
-          // Continue bulk loop on single record deletion error
+        } catch (err) {
+          const isNotFound =
+            (err as { status?: number })?.status === 404 ||
+            (err instanceof Error && err.message.toLowerCase().includes('no query results'));
+          if (isNotFound) {
+            count++;
+          }
         }
       }
-      toast.success(`${count} dispatch order(s) moved to Data Bin.`);
+      toast.success(`${count} dispatch order(s) processed.`);
+      queryClient.setQueryData<DeliveryOrder[]>(['sales', 'deliveries'], (prev = []) =>
+        prev.filter((d) => !deletedIds.has(d.id))
+      );
       queryClient.invalidateQueries({ queryKey: ['sales', 'deliveries'] });
       setSelectedIds(new Set());
       setShowBulkDeleteModal(false);
@@ -408,28 +618,7 @@ export function DeliveriesSection() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex flex-wrap items-center gap-2">
           <button
-            onClick={() => {
-              setFormData({
-                delivery_number: `DO-${new Date().toISOString().slice(0, 7).replace('-', '')}-${String(deliveries.length + 1).padStart(3, '0')}`,
-                sales_order_number: 'SO-202608-001',
-                recipient_name: 'Apex Footwear Ltd.',
-                recipient_phone: '+880 1711-209481',
-                warehouse_name: 'Main Distribution Hub (Dhaka)',
-                delivery_type: 'express_courier',
-                scheduled_date: new Date().toISOString().slice(0, 10),
-                cod_amount: '0.00',
-                delivery_charge: '150.00',
-                package_count: 1,
-                special_instructions: 'Handle with care. Shock-sensitive appliances.',
-                items: [
-                  {
-                    product_name: 'Infrared Cooker 2200W (SM-IC220)',
-                    quantity: '10',
-                  },
-                ],
-              });
-              setShowCreateModal(true);
-            }}
+            onClick={openCreateModal}
             className="flex items-center gap-2 rounded-xl bg-primary px-3.5 py-2 text-xs font-semibold text-primary-fg hover:opacity-90 shadow-xs transition-opacity cursor-pointer"
           >
             <Plus className="size-4" />
@@ -667,22 +856,71 @@ export function DeliveriesSection() {
             <form onSubmit={handleCreateDelivery} className="space-y-4 text-xs">
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
-                  <label className="block font-semibold text-muted mb-1">Challan #</label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="font-semibold text-muted">Challan #</label>
+                    <span className="text-[10px] text-muted flex items-center gap-1 font-mono">
+                      <Lock className="size-2.5 text-muted" /> Locked
+                    </span>
+                  </div>
                   <input
                     type="text"
                     value={formData.delivery_number}
-                    onChange={(e) => setFormData({ ...formData, delivery_number: e.target.value })}
+                    readOnly
+                    tabIndex={-1}
+                    className="w-full rounded-xl border border-default bg-surface-sunken/80 px-3 py-2 text-default font-mono cursor-not-allowed select-all"
+                    required
+                  />
+                  <p className="text-[10px] text-muted mt-1">Auto-generated sequential number</p>
+                </div>
+                <div className="sm:col-span-2">
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="font-semibold text-muted">Sales Order Ref #</label>
+                    {selectedOrder && (
+                      <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
+                        <Check className="size-3" /> Linked ({selectedOrder.status.toUpperCase()})
+                      </span>
+                    )}
+                  </div>
+                  <select
+                    value={formData.sales_order_number}
+                    onChange={(e) => handleSelectOrder(e.target.value)}
                     className="w-full rounded-xl border border-default bg-surface-sunken px-3 py-2 text-default focus:border-primary focus:outline-none font-mono"
+                    required
+                  >
+                    <option value="">-- Select Sales Order to Dispatch --</option>
+                    {salesOrders.map((so) => (
+                      <option key={so.id} value={so.order_number}>
+                        {so.order_number} • {so.customer_name || 'Retail Customer'} (Due: ৳{so.due_amount || '0.00'}) [{so.status}]
+                      </option>
+                    ))}
+                    {formData.sales_order_number && !salesOrders.some((o) => o.order_number === formData.sales_order_number) && (
+                      <option value={formData.sales_order_number}>{formData.sales_order_number} (Linked)</option>
+                    )}
+                  </select>
+                  <p className="text-[10px] text-muted mt-1">Selecting an order auto-fills recipient, items & remaining quantities</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                <div className="sm:col-span-2">
+                  <label className="block font-semibold text-muted mb-1">Recipient Name</label>
+                  <input
+                    type="text"
+                    value={formData.recipient_name}
+                    onChange={(e) => setFormData({ ...formData, recipient_name: e.target.value })}
+                    className="w-full rounded-xl border border-default bg-surface-sunken px-3 py-2 text-default focus:border-primary focus:outline-none"
+                    placeholder="Customer or recipient name"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block font-semibold text-muted mb-1">Sales Order Ref #</label>
+                  <label className="block font-semibold text-muted mb-1">Recipient Phone</label>
                   <input
                     type="text"
-                    value={formData.sales_order_number}
-                    onChange={(e) => setFormData({ ...formData, sales_order_number: e.target.value })}
+                    value={formData.recipient_phone}
+                    onChange={(e) => setFormData({ ...formData, recipient_phone: e.target.value })}
                     className="w-full rounded-xl border border-default bg-surface-sunken px-3 py-2 text-default focus:border-primary focus:outline-none font-mono"
+                    placeholder="+880..."
                     required
                   />
                 </div>
@@ -701,34 +939,36 @@ export function DeliveriesSection() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-semibold text-muted mb-1">Recipient Name</label>
-                  <input
-                    type="text"
-                    value={formData.recipient_name}
-                    onChange={(e) => setFormData({ ...formData, recipient_name: e.target.value })}
-                    className="w-full rounded-xl border border-default bg-surface-sunken px-3 py-2 text-default focus:border-primary focus:outline-none"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block font-semibold text-muted mb-1">Recipient Phone</label>
-                  <input
-                    type="text"
-                    value={formData.recipient_phone}
-                    onChange={(e) => setFormData({ ...formData, recipient_phone: e.target.value })}
-                    className="w-full rounded-xl border border-default bg-surface-sunken px-3 py-2 text-default focus:border-primary focus:outline-none font-mono"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block font-semibold text-muted mb-1">COD Collection ({currencySymbol})</label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="font-semibold text-muted">COD Collection ({currencySymbol})</label>
+                    {selectedOrder && (
+                      <span className="text-[10px] text-muted font-mono">
+                        Order Due: ৳{selectedOrder.due_amount || '0.00'}
+                      </span>
+                    )}
+                  </div>
                   <input
                     type="number"
+                    step="0.01"
                     value={formData.cod_amount}
                     onChange={(e) => setFormData({ ...formData, cod_amount: e.target.value })}
                     className="w-full rounded-xl border border-default bg-surface-sunken px-3 py-2 text-default focus:border-primary focus:outline-none font-mono"
+                  />
+                  <p className="text-[10px] text-muted mt-1">
+                    Auto-calculated from remaining order balance (editable if collecting partial cash)
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block font-semibold text-muted mb-1">Dispatch Scheduled Date</label>
+                  <input
+                    type="date"
+                    value={formData.scheduled_date}
+                    onChange={(e) => setFormData({ ...formData, scheduled_date: e.target.value })}
+                    className="w-full rounded-xl border border-default bg-surface-sunken px-3 py-2 text-default focus:border-primary focus:outline-none font-mono"
+                    required
                   />
                 </div>
               </div>
@@ -736,7 +976,10 @@ export function DeliveriesSection() {
               {/* Items Line Builder */}
               <div className="border border-default rounded-xl p-3 bg-surface-sunken/40 space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="font-semibold text-default">Challan Dispatch Items</span>
+                  <div>
+                    <span className="font-semibold text-default">Challan Dispatch Items</span>
+                    <p className="text-[10px] text-muted">Items & remaining quantities auto-populated from sales order</p>
+                  </div>
                   <button
                     type="button"
                     onClick={addItemToForm}
@@ -751,16 +994,22 @@ export function DeliveriesSection() {
                     <div className="col-span-8">
                       <input
                         type="text"
-                        placeholder="Product Description"
+                        placeholder="Product Description / SKU"
                         value={item.product_name}
                         onChange={(e) => updateFormItem(idx, { product_name: e.target.value })}
                         className="w-full rounded-lg border border-default bg-surface-sunken px-2 py-1.5 text-xs text-default"
                         required
                       />
+                      {item.ordered_quantity && (
+                        <span className="text-[9.5px] text-muted block mt-0.5">
+                          Ordered: {item.ordered_quantity} | Previously Dispatched: {item.delivered_quantity || '0'}
+                        </span>
+                      )}
                     </div>
                     <div className="col-span-3">
                       <input
                         type="number"
+                        step="any"
                         placeholder="Dispatch Qty"
                         value={item.quantity}
                         onChange={(e) => updateFormItem(idx, { quantity: e.target.value })}
@@ -804,9 +1053,10 @@ export function DeliveriesSection() {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded-xl bg-primary text-primary-fg font-semibold hover:opacity-90 cursor-pointer"
+                  disabled={isCreating}
+                  className="px-4 py-2 rounded-xl bg-primary text-primary-fg font-semibold hover:opacity-90 cursor-pointer disabled:opacity-50"
                 >
-                  Generate Challan
+                  {isCreating ? 'Generating...' : 'Generate Challan'}
                 </button>
               </div>
             </form>
