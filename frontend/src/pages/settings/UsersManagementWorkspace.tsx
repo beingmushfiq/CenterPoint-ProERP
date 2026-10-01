@@ -12,11 +12,18 @@ import {
   Check,
   Building,
   Briefcase,
-  ChevronRight,
   Filter,
   Edit,
   Trash2,
   AlertTriangle,
+  Clock,
+  X,
+  RotateCcw,
+  Activity,
+  ShoppingBag,
+  Factory,
+  Package,
+  CheckSquare,
 } from 'lucide-react';
 import { api } from '../../lib/api/client';
 import { extractList } from '../../lib/api/apiData';
@@ -24,6 +31,12 @@ import { useAuthStore } from '../../lib/auth/authStore';
 import { Button } from '../../components/ui/Button';
 import { Modal } from '../../components/ui/Modal';
 import { notify } from '../../components/ui/Toast';
+import {
+  WorkspaceNavigationHub,
+  WORKSPACE_THEMES,
+  type WorkspaceCategoryConfig,
+  type WorkspaceTabConfig,
+} from '../../components/common/WorkspaceNavigationHub';
 
 export interface UserRole {
   id: number;
@@ -84,12 +97,18 @@ export interface UnlinkedEmployeeOption {
   has_user_account?: boolean;
 }
 
+type NavCategoryKey = 'all' | 'roles' | 'staff' | 'activity';
+
 export const UsersManagementWorkspace: React.FC = () => {
   const { hasPermission, user: currentUser } = useAuthStore();
   const canManageRoles = hasPermission('core.role.manage') || hasPermission('core.role.update');
   const canCreateUser = hasPermission('core.user.create') || hasPermission('core.role.manage');
   const canUpdateUser = hasPermission('core.user.update') || hasPermission('core.role.manage');
-  const canDeleteUser = hasPermission('core.user.delete') || hasPermission('core.role.manage') || hasPermission('core.user.manage') || !!currentUser?.is_platform_admin;
+  const canDeleteUser =
+    hasPermission('core.user.delete') ||
+    hasPermission('core.role.manage') ||
+    hasPermission('core.user.manage') ||
+    !!currentUser?.is_platform_admin;
 
   const [users, setUsers] = useState<UserData[]>([]);
   const [availableRoles, setAvailableRoles] = useState<RoleOption[]>([]);
@@ -97,7 +116,10 @@ export const UsersManagementWorkspace: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  // Search and filters
+  // Navigation Hub States
+  const [activeTab, setActiveTab] = useState<string>('all__all');
+
+  // Search and toolbar filters
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedRoleFilter, setSelectedRoleFilter] = useState<string>('all');
   const [selectedStatusFilter, setSelectedStatusFilter] = useState<string>('all');
@@ -140,7 +162,12 @@ export const UsersManagementWorkspace: React.FC = () => {
       const [usersRes, rolesRes, employeesRes] = await Promise.all([
         api.get<UserData[]>('/users'),
         api.get<RoleOption[]>('/roles'),
-        api.get<{ data: Array<UnlinkedEmployeeOption & { user_id?: number | null }> } | Array<UnlinkedEmployeeOption & { user_id?: number | null }>>('/hr/employees').catch(() => ({ data: { data: [] } })),
+        api
+          .get<
+            | { data: Array<UnlinkedEmployeeOption & { user_id?: number | null }> }
+            | Array<UnlinkedEmployeeOption & { user_id?: number | null }>
+          >('/hr/employees')
+          .catch(() => ({ data: { data: [] } })),
       ]);
 
       const loadedUsers = extractList<UserData>(usersRes);
@@ -150,9 +177,12 @@ export const UsersManagementWorkspace: React.FC = () => {
       setAvailableRoles(loadedRoles);
 
       const resData = employeesRes.data;
-      const empData = (resData && 'data' in resData && Array.isArray(resData.data))
-        ? resData.data
-        : (Array.isArray(resData) ? resData : []);
+      const empData =
+        resData && 'data' in resData && Array.isArray(resData.data)
+          ? resData.data
+          : Array.isArray(resData)
+            ? resData
+            : [];
       const unlinked = empData.filter((e) => !e.has_user_account && !e.user_id);
       setUnlinkedEmployees(unlinked);
     } catch (err: unknown) {
@@ -170,7 +200,12 @@ export const UsersManagementWorkspace: React.FC = () => {
     Promise.all([
       api.get<UserData[]>('/users'),
       api.get<RoleOption[]>('/roles'),
-      api.get<{ data: Array<UnlinkedEmployeeOption & { user_id?: number | null }> } | Array<UnlinkedEmployeeOption & { user_id?: number | null }>>('/hr/employees').catch(() => ({ data: { data: [] } })),
+      api
+        .get<
+          | { data: Array<UnlinkedEmployeeOption & { user_id?: number | null }> }
+          | Array<UnlinkedEmployeeOption & { user_id?: number | null }>
+        >('/hr/employees')
+        .catch(() => ({ data: { data: [] } })),
     ])
       .then(([usersRes, rolesRes, employeesRes]) => {
         if (ignore) return;
@@ -181,9 +216,12 @@ export const UsersManagementWorkspace: React.FC = () => {
         setAvailableRoles(loadedRoles);
 
         const resData = employeesRes.data;
-        const empData = (resData && 'data' in resData && Array.isArray(resData.data))
-          ? resData.data
-          : (Array.isArray(resData) ? resData : []);
+        const empData =
+          resData && 'data' in resData && Array.isArray(resData.data)
+            ? resData.data
+            : Array.isArray(resData)
+              ? resData
+              : [];
         const unlinked = empData.filter((e) => !e.has_user_account && !e.user_id);
         setUnlinkedEmployees(unlinked);
       })
@@ -200,10 +238,138 @@ export const UsersManagementWorkspace: React.FC = () => {
     };
   }, []);
 
+  // Metrics
+  const metrics = useMemo(() => {
+    const total = users.length;
+    const active = users.filter((u) => u.status === 'active').length;
+    const suspended = users.filter((u) => u.status === 'suspended').length;
+    const linkedEmployees = users.filter((u) => !!u.employee).length;
+    const platformAdmins = users.filter((u) => !!u.is_platform_admin).length;
+    const totalRoles = availableRoles.length;
+    return { total, active, suspended, linkedEmployees, platformAdmins, totalRoles };
+  }, [users, availableRoles]);
+
+  // 2-Tier Navigation Hub Configurations
+  const categoriesConfig: WorkspaceCategoryConfig<NavCategoryKey, string>[] = useMemo(
+    () => [
+      {
+        id: 'all',
+        label: 'All Accounts',
+        tagline: 'Complete directory of operator credentials, system access, and account status',
+        icon: Users,
+        theme: WORKSPACE_THEMES.indigo,
+        defaultTab: 'all__all',
+        tabs: ['all__all', 'all__active', 'all__suspended', 'all__platform_admin'],
+        badge: metrics.total > 0 ? String(metrics.total) : undefined,
+      },
+      {
+        id: 'roles',
+        label: 'Operational Roles',
+        tagline: 'Filter accounts by functional duty assignments and security privilege levels',
+        icon: Shield,
+        theme: WORKSPACE_THEMES.purple,
+        defaultTab: 'roles__all',
+        tabs: [
+          'roles__all',
+          'roles__admin',
+          'roles__production',
+          'roles__sales',
+          'roles__inventory',
+          'roles__qc',
+        ],
+      },
+      {
+        id: 'staff',
+        label: 'Staff Linkage',
+        tagline: 'Personnel linkage between HR employee records and SliceMart system credentials',
+        icon: Briefcase,
+        theme: WORKSPACE_THEMES.emerald,
+        defaultTab: 'staff__all',
+        tabs: ['staff__all', 'staff__linked', 'staff__standalone'],
+      },
+      {
+        id: 'activity',
+        label: 'Security & Logins',
+        tagline: 'Audit recent operator sign-ins and identify dormant or unaccessed accounts',
+        icon: KeyRound,
+        theme: WORKSPACE_THEMES.amber,
+        defaultTab: 'activity__all',
+        tabs: ['activity__all', 'activity__recent', 'activity__never'],
+      },
+    ],
+    [metrics.total]
+  );
+
+  const tabsConfig: WorkspaceTabConfig<NavCategoryKey, string>[] = useMemo(
+    () => [
+      // All Domain
+      { id: 'all__all', label: 'All User Accounts', shortLabel: 'All Accounts', category: 'all', icon: Users, count: metrics.total },
+      { id: 'all__active', label: 'Active Credentials', shortLabel: 'Active', category: 'all', icon: UserCheck, count: metrics.active },
+      { id: 'all__suspended', label: 'Suspended Accounts', shortLabel: 'Suspended', category: 'all', icon: AlertCircle, count: metrics.suspended },
+      { id: 'all__platform_admin', label: 'Platform Admins', shortLabel: 'Admins', category: 'all', icon: Shield, count: metrics.platformAdmins },
+
+      // Roles Domain
+      { id: 'roles__all', label: 'All Assigned Roles', shortLabel: 'All Roles', category: 'roles', icon: Shield },
+      { id: 'roles__admin', label: 'Administrators & Executives', shortLabel: 'Admins', category: 'roles', icon: Shield },
+      { id: 'roles__production', label: 'Production & Manufacturing', shortLabel: 'Production', category: 'roles', icon: Factory },
+      { id: 'roles__sales', label: 'Commercial & Sales', shortLabel: 'Sales', category: 'roles', icon: ShoppingBag },
+      { id: 'roles__inventory', label: 'Warehouse & Inventory', shortLabel: 'Inventory', category: 'roles', icon: Package },
+      { id: 'roles__qc', label: 'Quality Assurance & QC', shortLabel: 'QC & QA', category: 'roles', icon: CheckSquare },
+
+      // Staff Domain
+      { id: 'staff__all', label: 'All Personnel Types', shortLabel: 'All Linkages', category: 'staff', icon: Briefcase },
+      { id: 'staff__linked', label: 'Linked Staff Employees', shortLabel: 'Linked Staff', category: 'staff', icon: Building, count: metrics.linkedEmployees },
+      { id: 'staff__standalone', label: 'Standalone Logins', shortLabel: 'Standalone', category: 'staff', icon: Users, count: metrics.total - metrics.linkedEmployees },
+
+      // Activity Domain
+      { id: 'activity__all', label: 'All Authentication States', shortLabel: 'All Activity', category: 'activity', icon: KeyRound },
+      { id: 'activity__recent', label: 'Logged In Previously', shortLabel: 'Logged In', category: 'activity', icon: Clock, count: users.filter((u) => !!u.last_login_at).length },
+      { id: 'activity__never', label: 'Never Signed In', shortLabel: 'Never Signed In', category: 'activity', icon: AlertTriangle, count: users.filter((u) => !u.last_login_at).length },
+    ],
+    [metrics, users]
+  );
+
+  // Tab Selection
+  const handleSelectTab = (tabId: string) => {
+    setActiveTab(tabId);
+  };
+
   // Filtered users
   const filteredUsers = useMemo(() => {
     return users.filter((u) => {
-      // Search
+      // 1. Navigation Hub Filter
+      if (activeTab === 'all__active' && u.status !== 'active') return false;
+      if (activeTab === 'all__suspended' && u.status !== 'suspended') return false;
+      if (activeTab === 'all__platform_admin' && !u.is_platform_admin) return false;
+
+      if (activeTab === 'roles__admin') {
+        const matches = u.roles.some((r) => r.slug.includes('admin') || r.slug.includes('manager') || u.is_platform_admin);
+        if (!matches) return false;
+      }
+      if (activeTab === 'roles__production') {
+        const matches = u.roles.some((r) => r.slug.includes('production') || r.slug.includes('plant'));
+        if (!matches) return false;
+      }
+      if (activeTab === 'roles__sales') {
+        const matches = u.roles.some((r) => r.slug.includes('sales') || r.slug.includes('commercial'));
+        if (!matches) return false;
+      }
+      if (activeTab === 'roles__inventory') {
+        const matches = u.roles.some((r) => r.slug.includes('store') || r.slug.includes('inventory') || r.slug.includes('warehouse'));
+        if (!matches) return false;
+      }
+      if (activeTab === 'roles__qc') {
+        const matches = u.roles.some((r) => r.slug.includes('qc') || r.slug.includes('quality') || r.slug.includes('inspector'));
+        if (!matches) return false;
+      }
+
+      if (activeTab === 'staff__linked' && !u.employee) return false;
+      if (activeTab === 'staff__standalone' && u.employee) return false;
+
+      if (activeTab === 'activity__recent' && !u.last_login_at) return false;
+      if (activeTab === 'activity__never' && u.last_login_at) return false;
+
+      // 2. Search Query
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
         const matchesName = u.name.toLowerCase().includes(q);
@@ -211,40 +377,35 @@ export const UsersManagementWorkspace: React.FC = () => {
         const matchesPhone = u.phone?.toLowerCase().includes(q) ?? false;
         const matchesEmpCode = u.employee?.employee_code.toLowerCase().includes(q) ?? false;
         const matchesEmpName = u.employee?.display_name.toLowerCase().includes(q) ?? false;
-        const matchesRole = u.roles.some((r) => r.name.toLowerCase().includes(q) || r.slug.toLowerCase().includes(q));
+        const matchesRole = u.roles.some(
+          (r) => r.name.toLowerCase().includes(q) || r.slug.toLowerCase().includes(q)
+        );
 
         if (!matchesName && !matchesEmail && !matchesPhone && !matchesEmpCode && !matchesEmpName && !matchesRole) {
           return false;
         }
       }
 
-      // Role Filter
+      // 3. Toolbar Dropdown: Role Filter
       if (selectedRoleFilter !== 'all') {
-        const hasRole = u.roles.some((r) => r.slug === selectedRoleFilter || r.id.toString() === selectedRoleFilter);
+        const hasRole = u.roles.some(
+          (r) => r.slug === selectedRoleFilter || r.id.toString() === selectedRoleFilter
+        );
         if (!hasRole) return false;
       }
 
-      // Status Filter
+      // 4. Toolbar Dropdown: Status Filter
       if (selectedStatusFilter !== 'all') {
         if (u.status !== selectedStatusFilter) return false;
       }
 
-      // Type Filter (Employee linked vs Standalone)
+      // 5. Toolbar Dropdown: Type Filter (Employee linked vs Standalone)
       if (selectedTypeFilter === 'employee' && !u.employee) return false;
       if (selectedTypeFilter === 'standalone' && u.employee) return false;
 
       return true;
     });
-  }, [users, searchQuery, selectedRoleFilter, selectedStatusFilter, selectedTypeFilter]);
-
-  // Metrics
-  const metrics = useMemo(() => {
-    const total = users.length;
-    const active = users.filter((u) => u.status === 'active').length;
-    const linkedEmployees = users.filter((u) => !!u.employee).length;
-    const totalRoles = availableRoles.length;
-    return { total, active, linkedEmployees, totalRoles };
-  }, [users, availableRoles]);
+  }, [users, activeTab, searchQuery, selectedRoleFilter, selectedStatusFilter, selectedTypeFilter]);
 
   // Open Edit Roles Modal
   const handleOpenRolesModal = (user: UserData) => {
@@ -382,9 +543,10 @@ export const UsersManagementWorkspace: React.FC = () => {
     setEditLoading(true);
     try {
       const res = await api.get<{ data?: UserData } | UserData>(`/users/${user.id}`);
-      const payload = (res.data && typeof res.data === 'object' && 'data' in res.data)
-        ? res.data.data
-        : res.data;
+      const payload =
+        res.data && typeof res.data === 'object' && 'data' in res.data
+          ? res.data.data
+          : res.data;
       setEditingUserData((payload as UserData) || user);
     } catch {
       setEditingUserData(user);
@@ -434,142 +596,231 @@ export const UsersManagementWorkspace: React.FC = () => {
 
   const getRoleBadgeStyle = (slug: string) => {
     if (slug.includes('admin')) {
-      return 'bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800';
+      return 'bg-purple-500/10 text-purple-700 dark:text-purple-300 border-purple-500/25';
     }
-    if (slug.includes('production')) {
-      return 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800';
+    if (slug.includes('production') || slug.includes('plant')) {
+      return 'bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/25';
     }
-    if (slug.includes('qc')) {
-      return 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800';
+    if (slug.includes('qc') || slug.includes('quality')) {
+      return 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/25';
     }
-    if (slug.includes('store') || slug.includes('inventory')) {
-      return 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800';
+    if (slug.includes('store') || slug.includes('inventory') || slug.includes('warehouse')) {
+      return 'bg-cyan-500/10 text-cyan-700 dark:text-cyan-300 border-cyan-500/25';
     }
-    if (slug.includes('sales')) {
-      return 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800';
+    if (slug.includes('sales') || slug.includes('commercial')) {
+      return 'bg-rose-500/10 text-rose-700 dark:text-rose-300 border-rose-500/25';
     }
-    return 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700';
+    return 'bg-surface-sunken text-muted border-default';
+  };
+
+  // Active Category & Tab derivation
+  const activeCategoryKey = (activeTab.split('__')[0] || 'all') as NavCategoryKey;
+  const activeCategoryConfig =
+    categoriesConfig.find((c) => c.id === activeCategoryKey) || categoriesConfig[0]!;
+  const ActiveCategoryIcon = activeCategoryConfig.icon;
+  const currentTabConfig = tabsConfig.find((t) => t.id === activeTab);
+
+  const hasActiveFilters =
+    searchQuery.trim() !== '' ||
+    selectedRoleFilter !== 'all' ||
+    selectedStatusFilter !== 'all' ||
+    selectedTypeFilter !== 'all' ||
+    activeTab !== 'all__all';
+
+  const handleResetFilters = () => {
+    setSearchQuery('');
+    setSelectedRoleFilter('all');
+    setSelectedStatusFilter('all');
+    setSelectedTypeFilter('all');
+    setActiveTab('all__all');
   };
 
   return (
-    <div className="space-y-6 pb-12">
-      {/* ── Page Header ───────────────────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-border/40 pb-5">
-        <div>
-          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            <span>Settings & Access</span>
-            <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/60" />
-            <span className="text-primary font-bold">Identity & RBAC</span>
+    <div className="space-y-6 pb-12 max-w-7xl mx-auto py-2">
+      {/* ── Workspace Header Surface ───────────────────────────────────── */}
+      <div className="bg-surface border border-default rounded-2xl p-5 sm:p-6 shadow-2xs">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 bg-indigo-500/10 px-2.5 py-0.5 rounded-full border border-indigo-500/20 flex items-center gap-1.5">
+                <Shield className="size-3" />
+                Identity & RBAC
+              </span>
+              <span className="text-[10px] text-muted font-medium bg-surface-sunken px-2 py-0.5 rounded-full border border-default">
+                Settings & Access
+              </span>
+              <span className="text-muted/40 text-xs">/</span>
+              <span className="text-[11px] font-medium text-muted flex items-center gap-1">
+                <ActiveCategoryIcon className="size-3 text-muted" />
+                {activeCategoryConfig.label}
+              </span>
+              <span className="text-muted/40 text-xs">/</span>
+              <span className="text-[11px] font-semibold text-default">
+                {currentTabConfig?.shortLabel || currentTabConfig?.label || 'All Accounts'}
+              </span>
+            </div>
+
+            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-default flex items-center gap-3">
+              <div className="size-10 rounded-xl bg-linear-to-br from-indigo-500/15 via-purple-500/15 to-emerald-500/15 border border-indigo-500/30 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0 shadow-2xs">
+                <Users className="size-5" />
+              </div>
+              <span>Staff & User Accounts</span>
+            </h1>
+            <p className="mt-1 text-xs text-muted max-w-2xl leading-relaxed">
+              Provision system login credentials, map workforce personnel to operational roles, and enforce
+              enterprise RBAC permissions.
+            </p>
           </div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2.5 mt-1">
-            <Users className="w-7 h-7 text-primary" />
-            Staff & User Accounts
-          </h1>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            Provision system user credentials, map staff to operational roles, and enforce RBAC permissions.
-          </p>
-        </div>
 
-        <div className="flex items-center gap-2.5">
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => loadData(true)}
-            disabled={loading || refreshing}
-            className="h-9 gap-1.5"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
-            Refresh
-          </Button>
-
-          {canCreateUser && (
+          <div className="flex items-center gap-2.5">
             <Button
-              variant="primary"
-              size="sm"
-              onClick={() => {
-                setNewUserName('');
-                setNewUserEmail('');
-                setNewUserPhone('');
-                setNewUserPassword(generatePassword());
-                setNewUserRoleIds(new Set());
-                setLinkEmployeeId('');
-                setCreateModalOpen(true);
-              }}
-              className="h-9 gap-1.5 shadow-sm"
+              variant="secondary"
+              size="md"
+              onClick={() => loadData(true)}
+              disabled={loading || refreshing}
+              className="text-xs"
             >
-              <Plus className="w-4 h-4" />
-              New User Account
+              <RefreshCw className={`size-3.5 mr-1.5 ${refreshing ? 'animate-spin' : ''}`} />
+              <span>Refresh</span>
             </Button>
-          )}
+
+            {canCreateUser && (
+              <Button
+                variant="primary"
+                size="md"
+                onClick={() => {
+                  setNewUserName('');
+                  setNewUserEmail('');
+                  setNewUserPhone('');
+                  setNewUserPassword(generatePassword());
+                  setNewUserRoleIds(new Set());
+                  setLinkEmployeeId('');
+                  setCreateModalOpen(true);
+                }}
+                className="text-xs"
+              >
+                <Plus className="size-4 mr-1.5" />
+                <span>New User Account</span>
+              </Button>
+            )}
+          </div>
         </div>
       </div>
 
       {/* ── Stats Summary Cards ────────────────────────────────────── */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="rounded-xl border border-border bg-card p-4 shadow-sm flex items-center gap-3.5">
-          <div className="w-10 h-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center font-bold">
-            <Users className="w-5 h-5" />
+        {/* Total Accounts */}
+        <div className="bg-surface rounded-2xl border border-default p-4 space-y-1 shadow-2xs transition-all hover:border-indigo-500/40">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-bold text-muted uppercase tracking-wider">
+              Total User Accounts
+            </span>
+            <div className="size-7 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 flex items-center justify-center">
+              <Users className="size-3.5" />
+            </div>
           </div>
-          <div>
-            <div className="text-2xl font-extrabold text-foreground">{metrics.total}</div>
-            <div className="text-xs text-muted-foreground font-medium">Total User Accounts</div>
-          </div>
+          <div className="text-2xl font-extrabold text-default font-mono">{metrics.total}</div>
+          <span className="text-[11px] text-muted block">Registered login profiles</span>
         </div>
 
-        <div className="rounded-xl border border-border bg-card p-4 shadow-sm flex items-center gap-3.5">
-          <div className="w-10 h-10 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold">
-            <UserCheck className="w-5 h-5" />
+        {/* Active Credentials */}
+        <div className="bg-surface rounded-2xl border border-default p-4 space-y-1 shadow-2xs transition-all hover:border-emerald-500/40">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
+              Active Credentials
+            </span>
+            <div className="size-7 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center justify-center">
+              <UserCheck className="size-3.5" />
+            </div>
           </div>
-          <div>
-            <div className="text-2xl font-extrabold text-foreground">{metrics.active}</div>
-            <div className="text-xs text-muted-foreground font-medium">Active Credentials</div>
+          <div className="text-2xl font-extrabold text-emerald-600 dark:text-emerald-400 font-mono">
+            {metrics.active}
           </div>
+          <span className="text-[11px] text-muted block">Operational & unlocked</span>
         </div>
 
-        <div className="rounded-xl border border-border bg-card p-4 shadow-sm flex items-center gap-3.5">
-          <div className="w-10 h-10 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold">
-            <Briefcase className="w-5 h-5" />
+        {/* Linked Staff */}
+        <div className="bg-surface rounded-2xl border border-default p-4 space-y-1 shadow-2xs transition-all hover:border-cyan-500/40">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-bold text-cyan-600 dark:text-cyan-400 uppercase tracking-wider">
+              Linked Staff Profiles
+            </span>
+            <div className="size-7 rounded-lg bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border border-cyan-500/20 flex items-center justify-center">
+              <Briefcase className="size-3.5" />
+            </div>
           </div>
-          <div>
-            <div className="text-2xl font-extrabold text-foreground">{metrics.linkedEmployees}</div>
-            <div className="text-xs text-muted-foreground font-medium">Linked Employees</div>
+          <div className="text-2xl font-extrabold text-cyan-600 dark:text-cyan-400 font-mono">
+            {metrics.linkedEmployees}
           </div>
+          <span className="text-[11px] text-muted block">Synced with HR directory</span>
         </div>
 
-        <div className="rounded-xl border border-border bg-card p-4 shadow-sm flex items-center gap-3.5">
-          <div className="w-10 h-10 rounded-lg bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center font-bold">
-            <Shield className="w-5 h-5" />
+        {/* Defined Roles */}
+        <div className="bg-surface rounded-2xl border border-default p-4 space-y-1 shadow-2xs transition-all hover:border-purple-500/40">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-bold text-purple-600 dark:text-purple-400 uppercase tracking-wider">
+              RBAC Security Roles
+            </span>
+            <div className="size-7 rounded-lg bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 flex items-center justify-center">
+              <Shield className="size-3.5" />
+            </div>
           </div>
-          <div>
-            <div className="text-2xl font-extrabold text-foreground">{metrics.totalRoles}</div>
-            <div className="text-xs text-muted-foreground font-medium">Defined Roles</div>
+          <div className="text-2xl font-extrabold text-purple-600 dark:text-purple-400 font-mono">
+            {metrics.totalRoles}
           </div>
+          <span className="text-[11px] text-muted block">Permission blueprints</span>
         </div>
       </div>
 
+      {/* ── 2-Tier Universal Navigation Hub ─────────────────────────── */}
+      <WorkspaceNavigationHub
+        categories={categoriesConfig}
+        tabs={tabsConfig}
+        activeTab={activeTab}
+        onSelectTab={handleSelectTab}
+        taglineRightContent={
+          <div className="flex items-center gap-1.5 text-xs text-muted">
+            <span>Showing</span>
+            <strong className="text-default font-mono">{filteredUsers.length}</strong>
+            <span>of {metrics.total} accounts</span>
+          </div>
+        }
+      />
+
       {/* ── Search & Filter Toolbar ────────────────────────────────── */}
-      <div className="rounded-xl border border-border bg-card p-4 shadow-sm space-y-3">
-        <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+      <div className="rounded-2xl border border-default bg-surface p-4 shadow-xs space-y-3">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+          {/* Search Input */}
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted pointer-events-none" />
             <input
               type="text"
               placeholder="Search by user name, email, employee code, or role..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 text-sm bg-background border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+              className="w-full rounded-xl border border-default bg-surface-sunken pl-9 pr-8 py-2 text-xs text-default placeholder-muted focus:border-primary focus:outline-none transition-colors"
             />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 size-4 rounded-full bg-surface-sunken hover:bg-surface text-muted hover:text-default flex items-center justify-center transition-colors"
+                title="Clear search"
+              >
+                <X className="size-3" />
+              </button>
+            )}
           </div>
 
           <div className="flex flex-wrap items-center gap-2.5">
             {/* Role Filter */}
-            <div className="flex items-center gap-1.5 bg-background border border-input rounded-lg px-2.5 py-1 text-xs">
-              <Filter className="w-3.5 h-3.5 text-muted-foreground" />
-              <span className="text-muted-foreground font-medium">Role:</span>
+            <div className="flex items-center gap-1.5 bg-surface-sunken border border-default rounded-xl px-2.5 py-1.5 text-xs">
+              <Filter className="size-3 text-muted" />
+              <span className="text-muted font-medium">Role:</span>
               <select
                 value={selectedRoleFilter}
                 onChange={(e) => setSelectedRoleFilter(e.target.value)}
-                className="bg-transparent border-0 text-xs font-semibold focus:outline-none text-foreground cursor-pointer"
+                className="bg-transparent border-0 text-xs font-semibold focus:outline-none text-default cursor-pointer"
               >
                 <option value="all">All Roles</option>
                 {availableRoles.map((r) => (
@@ -581,12 +832,12 @@ export const UsersManagementWorkspace: React.FC = () => {
             </div>
 
             {/* Status Filter */}
-            <div className="flex items-center gap-1.5 bg-background border border-input rounded-lg px-2.5 py-1 text-xs">
-              <span className="text-muted-foreground font-medium">Status:</span>
+            <div className="flex items-center gap-1.5 bg-surface-sunken border border-default rounded-xl px-2.5 py-1.5 text-xs">
+              <span className="text-muted font-medium">Status:</span>
               <select
                 value={selectedStatusFilter}
                 onChange={(e) => setSelectedStatusFilter(e.target.value)}
-                className="bg-transparent border-0 text-xs font-semibold focus:outline-none text-foreground cursor-pointer"
+                className="bg-transparent border-0 text-xs font-semibold focus:outline-none text-default cursor-pointer"
               >
                 <option value="all">All Status</option>
                 <option value="active">Active</option>
@@ -594,13 +845,13 @@ export const UsersManagementWorkspace: React.FC = () => {
               </select>
             </div>
 
-            {/* Type Filter */}
-            <div className="flex items-center gap-1.5 bg-background border border-input rounded-lg px-2.5 py-1 text-xs">
-              <span className="text-muted-foreground font-medium">Profile:</span>
+            {/* Profile Filter */}
+            <div className="flex items-center gap-1.5 bg-surface-sunken border border-default rounded-xl px-2.5 py-1.5 text-xs">
+              <span className="text-muted font-medium">Profile:</span>
               <select
                 value={selectedTypeFilter}
                 onChange={(e) => setSelectedTypeFilter(e.target.value)}
-                className="bg-transparent border-0 text-xs font-semibold focus:outline-none text-foreground cursor-pointer"
+                className="bg-transparent border-0 text-xs font-semibold focus:outline-none text-default cursor-pointer"
               >
                 <option value="all">All Users</option>
                 <option value="employee">Linked Employees</option>
@@ -608,56 +859,131 @@ export const UsersManagementWorkspace: React.FC = () => {
               </select>
             </div>
 
-            {(searchQuery || selectedRoleFilter !== 'all' || selectedStatusFilter !== 'all' || selectedTypeFilter !== 'all') && (
+            {hasActiveFilters && (
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => {
-                  setSearchQuery('');
-                  setSelectedRoleFilter('all');
-                  setSelectedStatusFilter('all');
-                  setSelectedTypeFilter('all');
-                }}
-                className="h-8 text-xs text-muted-foreground hover:text-foreground"
+                onClick={handleResetFilters}
+                className="text-xs h-8 px-2.5 text-muted hover:text-default"
+                title="Reset all filters"
               >
-                Clear Filters
+                <RotateCcw className="size-3 mr-1" />
+                <span>Reset</span>
               </Button>
             )}
           </div>
         </div>
+
+        {/* Active Filter Chips Ribbon */}
+        {hasActiveFilters && (
+          <div className="flex items-center gap-2 pt-2 border-t border-default/60 flex-wrap text-xs">
+            <span className="text-muted text-[11px] font-medium">Active Filters:</span>
+            {activeTab !== 'all__all' && (
+              <span className="inline-flex items-center gap-1 rounded-md bg-indigo-500/10 px-2 py-0.5 text-[11px] font-medium text-indigo-600 dark:text-indigo-400 border border-indigo-500/20">
+                <ActiveCategoryIcon className="size-3" />
+                {currentTabConfig?.label}
+              </span>
+            )}
+            {selectedRoleFilter !== 'all' && (
+              <span className="inline-flex items-center gap-1 rounded-md bg-purple-500/10 px-2 py-0.5 text-[11px] font-medium text-purple-600 dark:text-purple-400 border border-purple-500/20">
+                Role: {availableRoles.find((r) => r.slug === selectedRoleFilter)?.name || selectedRoleFilter}
+              </span>
+            )}
+            {selectedStatusFilter !== 'all' && (
+              <span className="inline-flex items-center gap-1 rounded-md bg-emerald-500/10 px-2 py-0.5 text-[11px] font-medium text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 capitalize">
+                Status: {selectedStatusFilter}
+              </span>
+            )}
+            {selectedTypeFilter !== 'all' && (
+              <span className="inline-flex items-center gap-1 rounded-md bg-cyan-500/10 px-2 py-0.5 text-[11px] font-medium text-cyan-600 dark:text-cyan-400 border border-cyan-500/20">
+                Profile: {selectedTypeFilter === 'employee' ? 'Linked Employees' : 'Standalone'}
+              </span>
+            )}
+            {searchQuery && (
+              <span className="inline-flex items-center gap-1 rounded-md bg-surface-sunken px-2 py-0.5 text-[11px] text-default border border-default">
+                Query: &quot;{searchQuery}&quot;
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={handleResetFilters}
+              className="text-[11px] text-rose-600 dark:text-rose-400 hover:underline ml-1 font-medium"
+            >
+              Clear all
+            </button>
+          </div>
+        )}
       </div>
 
       {/* ── Users Directory Table ─────────────────────────────────── */}
-      <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
+      <div className="rounded-2xl border border-default bg-surface shadow-xs overflow-hidden">
         {loading ? (
-          <div className="p-12 text-center text-muted-foreground flex flex-col items-center justify-center gap-2">
-            <RefreshCw className="w-6 h-6 animate-spin text-primary" />
-            <span className="text-sm font-medium">Loading user directory and permissions...</span>
+          <div className="flex h-64 items-center justify-center flex-col gap-3">
+            <RefreshCw className="size-8 animate-spin text-primary" />
+            <span className="text-xs text-muted">Loading user directory and permissions...</span>
           </div>
         ) : filteredUsers.length === 0 ? (
-          <div className="p-12 text-center text-muted-foreground flex flex-col items-center justify-center gap-2">
-            <AlertCircle className="w-8 h-8 text-muted-foreground/60" />
-            <div className="text-base font-semibold text-foreground">No user accounts found</div>
-            <p className="text-xs text-muted-foreground max-w-sm">
-              {searchQuery || selectedRoleFilter !== 'all'
-                ? 'Try adjusting your search criteria or resetting filters.'
+          <div className="p-12 text-center space-y-3">
+            <div className="size-12 rounded-2xl bg-surface-sunken border border-default flex items-center justify-center mx-auto text-muted">
+              <Users className="size-6" />
+            </div>
+            <h4 className="text-sm font-bold text-default">No User Accounts Found</h4>
+            <p className="text-xs text-muted max-w-sm mx-auto">
+              {hasActiveFilters
+                ? 'Try adjusting your search criteria, category tab, or resetting filters.'
                 : 'Get started by creating your first system user account or granting access from HR.'}
             </p>
+            {hasActiveFilters && (
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={handleResetFilters}
+                className="text-xs mt-2"
+              >
+                <RotateCcw className="size-3 mr-1" />
+                <span>Reset Filters</span>
+              </Button>
+            )}
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-muted/40 border-b border-border/60 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                <tr>
-                  <th className="py-3 px-4">User Account</th>
-                  <th className="py-3 px-4">Linked Staff Profile</th>
-                  <th className="py-3 px-4">Assigned Roles</th>
-                  <th className="py-3 px-4">Status</th>
-                  <th className="py-3 px-4">Last Login</th>
+            <table className="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr className="border-b border-default bg-surface-sunken text-[11px] font-bold uppercase tracking-wider text-muted">
+                  <th className="py-3 px-4">
+                    <span className="flex items-center gap-1.5">
+                      <Users className="size-3 text-muted" />
+                      User Account
+                    </span>
+                  </th>
+                  <th className="py-3 px-4">
+                    <span className="flex items-center gap-1.5">
+                      <Briefcase className="size-3 text-muted" />
+                      Linked Staff Profile
+                    </span>
+                  </th>
+                  <th className="py-3 px-4">
+                    <span className="flex items-center gap-1.5">
+                      <Shield className="size-3 text-muted" />
+                      Assigned Roles
+                    </span>
+                  </th>
+                  <th className="py-3 px-4">
+                    <span className="flex items-center gap-1.5">
+                      <Activity className="size-3 text-muted" />
+                      Status
+                    </span>
+                  </th>
+                  <th className="py-3 px-4">
+                    <span className="flex items-center gap-1.5">
+                      <Clock className="size-3 text-muted" />
+                      Last Login
+                    </span>
+                  </th>
                   <th className="py-3 px-4 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-border/40">
+              <tbody className="divide-y divide-default">
                 {filteredUsers.map((user) => {
                   const isSuspended = user.status === 'suspended';
                   const initials = user.name
@@ -670,18 +996,18 @@ export const UsersManagementWorkspace: React.FC = () => {
                   return (
                     <tr
                       key={user.id}
-                      className={`hover:bg-muted/20 transition-colors ${
-                        isSuspended ? 'opacity-70 bg-muted/10' : ''
+                      className={`hover:bg-surface-sunken/50 transition-colors ${
+                        isSuspended ? 'opacity-75 bg-surface-sunken/20' : ''
                       }`}
                     >
                       {/* User Account Details */}
                       <td className="py-3.5 px-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-full bg-primary/10 text-primary font-bold flex items-center justify-center text-xs shrink-0">
+                          <div className="size-9 rounded-full bg-linear-to-br from-indigo-500/15 to-purple-500/15 text-indigo-600 dark:text-indigo-400 font-bold border border-indigo-500/25 flex items-center justify-center text-xs shrink-0 shadow-2xs">
                             {initials}
                           </div>
                           <div className="min-w-0">
-                            <div className="font-semibold text-foreground flex items-center gap-2">
+                            <div className="font-semibold text-default flex items-center gap-2">
                               <span>{user.name}</span>
                               {user.is_platform_admin && (
                                 <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
@@ -689,9 +1015,9 @@ export const UsersManagementWorkspace: React.FC = () => {
                                 </span>
                               )}
                             </div>
-                            <div className="text-xs text-muted-foreground font-mono truncate">{user.email}</div>
+                            <div className="text-xs text-muted font-mono truncate">{user.email}</div>
                             {user.phone && (
-                              <div className="text-[11px] text-muted-foreground/80 mt-0.5">{user.phone}</div>
+                              <div className="text-[11px] text-muted/80 mt-0.5">{user.phone}</div>
                             )}
                           </div>
                         </div>
@@ -702,31 +1028,32 @@ export const UsersManagementWorkspace: React.FC = () => {
                         {user.employee ? (
                           <div className="space-y-0.5">
                             <div className="flex items-center gap-1.5">
-                              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-mono font-bold bg-muted text-foreground border border-border">
+                              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-mono font-bold bg-surface-sunken text-default border border-default">
                                 {user.employee.employee_code}
                               </span>
-                              <span className="font-medium text-foreground text-xs">
+                              <span className="font-medium text-default text-xs">
                                 {user.employee.display_name}
                               </span>
                             </div>
-                            <div className="text-[11px] text-muted-foreground flex items-center gap-2">
+                            <div className="text-[11px] text-muted flex items-center gap-2">
                               {user.employee.department && (
                                 <span className="flex items-center gap-1">
-                                  <Building className="w-3 h-3 text-muted-foreground/70" />
+                                  <Building className="size-3 text-muted/70" />
                                   {user.employee.department}
                                 </span>
                               )}
                               {user.employee.designation && (
                                 <span className="flex items-center gap-1">
-                                  <Briefcase className="w-3 h-3 text-muted-foreground/70" />
+                                  <Briefcase className="size-3 text-muted/70" />
                                   {user.employee.designation}
                                 </span>
                               )}
                             </div>
                           </div>
                         ) : (
-                          <span className="text-xs text-muted-foreground/70 italic flex items-center gap-1">
-                            Standalone Account
+                          <span className="inline-flex items-center gap-1 text-xs text-muted italic bg-surface-sunken px-2 py-0.5 rounded border border-default">
+                            <Users className="size-3 text-muted/70" />
+                            Standalone Login
                           </span>
                         )}
                       </td>
@@ -743,7 +1070,7 @@ export const UsersManagementWorkspace: React.FC = () => {
                                 )}`}
                                 title={r.designation ? `Designation: ${r.designation}` : undefined}
                               >
-                                <Shield className="w-3 h-3 mr-1 opacity-70" />
+                                <Shield className="size-3 mr-1 opacity-70" />
                                 <span>{r.name}</span>
                                 {r.designation && (
                                   <span className="opacity-75 font-normal ml-1">({r.designation})</span>
@@ -751,8 +1078,8 @@ export const UsersManagementWorkspace: React.FC = () => {
                               </span>
                             ))
                           ) : (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-amber-50 text-amber-800 border border-amber-200 dark:bg-amber-950/30 dark:text-amber-400">
-                              <AlertCircle className="w-3 h-3 mr-1" />
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/25">
+                              <AlertCircle className="size-3 mr-1" />
                               No Roles Assigned
                             </span>
                           )}
@@ -770,19 +1097,19 @@ export const UsersManagementWorkspace: React.FC = () => {
                       </td>
 
                       {/* Status */}
-                      <td className="py-3.5 px-4">
+                      <td className="py-3.5 px-4 whitespace-nowrap">
                         <button
                           type="button"
                           onClick={() => canUpdateUser && setToggleStatusUser(user)}
                           disabled={!canUpdateUser}
                           className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border transition-all ${
                             user.status === 'active'
-                              ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20 hover:bg-emerald-500/20'
-                              : 'bg-rose-500/10 text-rose-600 border-rose-500/20 hover:bg-rose-500/20'
+                              ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/25 hover:bg-emerald-500/20'
+                              : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/25 hover:bg-rose-500/20'
                           }`}
                         >
                           <span
-                            className={`w-1.5 h-1.5 rounded-full ${
+                            className={`size-1.5 rounded-full ${
                               user.status === 'active' ? 'bg-emerald-500' : 'bg-rose-500'
                             }`}
                           />
@@ -791,34 +1118,37 @@ export const UsersManagementWorkspace: React.FC = () => {
                       </td>
 
                       {/* Last Login */}
-                      <td className="py-3.5 px-4 text-xs text-muted-foreground font-mono">
+                      <td className="py-3.5 px-4 text-xs text-muted font-mono whitespace-nowrap">
                         {user.last_login_at ? (
-                          <div>
-                            <div>{new Date(user.last_login_at).toLocaleDateString()}</div>
-                            <div className="text-[10px] text-muted-foreground/70">
-                              {new Date(user.last_login_at).toLocaleTimeString([], {
-                                hour: '2-digit',
-                                minute: '2-digit',
-                              })}
+                          <div className="flex items-center gap-1.5">
+                            <Clock className="size-3 text-muted shrink-0" />
+                            <div>
+                              <div>{new Date(user.last_login_at).toLocaleDateString()}</div>
+                              <div className="text-[10px] text-muted/70">
+                                {new Date(user.last_login_at).toLocaleTimeString([], {
+                                  hour: '2-digit',
+                                  minute: '2-digit',
+                                })}
+                              </div>
                             </div>
                           </div>
                         ) : (
-                          <span className="text-muted-foreground/60 italic">Never</span>
+                          <span className="text-muted/60 italic">Never</span>
                         )}
                       </td>
 
                       {/* Actions */}
-                      <td className="py-3.5 px-4 text-right">
+                      <td className="py-3.5 px-4 text-right whitespace-nowrap">
                         <div className="flex items-center justify-end gap-1.5">
                           {canManageRoles && (
                             <Button
                               variant="secondary"
                               size="sm"
                               onClick={() => handleOpenRolesModal(user)}
-                              className="h-8 text-xs px-2.5 gap-1"
+                              className="h-7 text-xs px-2.5 gap-1 shadow-2xs hover:border-primary/40"
                               title="Assign or modify roles"
                             >
-                              <Shield className="w-3.5 h-3.5 text-primary" />
+                              <Shield className="size-3 text-primary" />
                               <span>Roles</span>
                             </Button>
                           )}
@@ -828,10 +1158,10 @@ export const UsersManagementWorkspace: React.FC = () => {
                               variant="secondary"
                               size="sm"
                               onClick={() => handleOpenEditUser(user)}
-                              className="h-8 text-xs px-2.5 gap-1"
+                              className="h-7 text-xs px-2.5 gap-1 shadow-2xs hover:border-blue-500/40"
                               title="Edit user profile & details"
                             >
-                              <Edit className="w-3.5 h-3.5 text-blue-600" />
+                              <Edit className="size-3 text-blue-600 dark:text-blue-400" />
                               <span>Edit</span>
                             </Button>
                           )}
@@ -841,24 +1171,26 @@ export const UsersManagementWorkspace: React.FC = () => {
                               variant="ghost"
                               size="sm"
                               onClick={() => handleOpenPasswordModal(user)}
-                              className="h-8 w-8 p-0"
+                              className="size-7 p-0 text-muted hover:text-default hover:bg-surface-sunken"
                               title="Reset password"
                             >
-                              <KeyRound className="w-3.5 h-3.5 text-muted-foreground hover:text-foreground" />
+                              <KeyRound className="size-3.5" />
                             </Button>
                           )}
 
-                          {canDeleteUser && String(user.id) !== String(currentUser?.id) && !user.is_platform_admin && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => setDeleteModalUser(user)}
-                              className="h-8 w-8 p-0 text-muted-foreground hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30"
-                              title="Delete user account"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </Button>
-                          )}
+                          {canDeleteUser &&
+                            String(user.id) !== String(currentUser?.id) &&
+                            !user.is_platform_admin && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setDeleteModalUser(user)}
+                                className="size-7 p-0 text-muted hover:text-rose-600 hover:bg-rose-500/10"
+                                title="Delete user account"
+                              >
+                                <Trash2 className="size-3.5" />
+                              </Button>
+                            )}
                         </div>
                       </td>
                     </tr>
@@ -881,7 +1213,7 @@ export const UsersManagementWorkspace: React.FC = () => {
         size="lg"
         footer={
           <div className="flex items-center justify-between w-full">
-            <div className="text-xs text-muted-foreground font-medium">
+            <div className="text-xs text-muted font-medium">
               {selectedRoleIds.size} {selectedRoleIds.size === 1 ? 'role' : 'roles'} selected
             </div>
             <div className="flex items-center gap-2">
@@ -897,21 +1229,23 @@ export const UsersManagementWorkspace: React.FC = () => {
       >
         <div className="space-y-4 py-2">
           {/* User Info Header in Modal */}
-          <div className="p-3 bg-muted/30 rounded-lg border border-border flex items-center justify-between text-xs">
+          <div className="p-3 bg-surface-sunken rounded-xl border border-default flex items-center justify-between text-xs">
             <div>
-              <div className="font-semibold text-foreground">{rolesModalUser?.name}</div>
-              <div className="text-muted-foreground font-mono">{rolesModalUser?.email}</div>
+              <div className="font-semibold text-default">{rolesModalUser?.name}</div>
+              <div className="text-muted font-mono">{rolesModalUser?.email}</div>
             </div>
             {rolesModalUser?.employee && (
               <div className="text-right">
-                <span className="font-mono font-bold text-primary">{rolesModalUser.employee.employee_code}</span>
-                <div className="text-muted-foreground">{rolesModalUser.employee.department}</div>
+                <span className="font-mono font-bold text-primary">
+                  {rolesModalUser.employee.employee_code}
+                </span>
+                <div className="text-muted">{rolesModalUser.employee.department}</div>
               </div>
             )}
           </div>
 
           <div className="space-y-2">
-            <label className="text-xs font-semibold text-foreground uppercase tracking-wider block">
+            <label className="text-xs font-semibold text-default uppercase tracking-wider block">
               Available System & Custom Roles
             </label>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-96 overflow-y-auto pr-1">
@@ -930,23 +1264,23 @@ export const UsersManagementWorkspace: React.FC = () => {
                       }
                       setSelectedRoleIds(next);
                     }}
-                    className={`w-full p-3.5 rounded-lg border text-left cursor-pointer transition-all flex items-start gap-3 ${
+                    className={`w-full p-3.5 rounded-xl border text-left cursor-pointer transition-all flex items-start gap-3 ${
                       isSelected
-                        ? 'border-primary bg-primary/5 dark:bg-primary/10'
-                        : 'border-border bg-card hover:bg-muted/30'
+                        ? 'border-primary bg-primary/5 dark:bg-primary/10 shadow-2xs'
+                        : 'border-default bg-surface hover:bg-surface-sunken'
                     }`}
                   >
                     <input
                       type="checkbox"
                       checked={isSelected}
                       onChange={() => {}} // Handled by container onClick
-                      className="mt-0.5 rounded border-input text-primary focus:ring-primary h-4 w-4 pointer-events-none"
+                      className="mt-0.5 rounded border-default text-primary focus:ring-primary h-4 w-4 pointer-events-none"
                     />
                     <div className="flex-1 min-w-0">
-                      <div className="font-semibold text-sm text-foreground flex items-center justify-between">
+                      <div className="font-semibold text-sm text-default flex items-center justify-between">
                         <span>{role.name}</span>
                         {role.is_system && (
-                          <span className="text-[10px] px-1.5 py-0.2 rounded bg-muted font-mono text-muted-foreground">
+                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-surface-sunken font-mono text-muted border border-default">
                             System
                           </span>
                         )}
@@ -954,9 +1288,9 @@ export const UsersManagementWorkspace: React.FC = () => {
                       {role.designation && (
                         <div className="text-xs font-semibold text-primary mt-0.5">{role.designation}</div>
                       )}
-                      <div className="text-xs text-muted-foreground font-mono mt-0.5">{role.slug}</div>
+                      <div className="text-xs text-muted font-mono mt-0.5">{role.slug}</div>
                       {role.description && (
-                        <p className="text-xs text-muted-foreground/90 mt-1 line-clamp-2">{role.description}</p>
+                        <p className="text-xs text-muted mt-1 line-clamp-2">{role.description}</p>
                       )}
                     </div>
                   </button>
@@ -993,22 +1327,34 @@ export const UsersManagementWorkspace: React.FC = () => {
         }
       >
         <div className="space-y-4 py-2">
-          <div className="text-xs text-muted-foreground">
-            Enter a new password or generate a high-entropy credential for the user. Active JWT sessions will be invalidated immediately.
+          <div className="text-xs text-muted">
+            Enter a new password or generate a high-entropy credential for the user. Active JWT
+            sessions will be invalidated immediately.
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-foreground">New Temporary or Permanent Password</label>
+            <label className="text-xs font-semibold text-default">
+              New Temporary or Permanent Password
+            </label>
             <div className="flex items-center gap-2">
               <input
                 type="text"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
-                className="flex-1 px-3 py-2 text-sm bg-background border border-input rounded-lg font-mono focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                className="flex-1 px-3 py-2 text-sm bg-surface-sunken border border-default rounded-xl font-mono focus:outline-none focus:border-primary text-default"
                 placeholder="Enter password..."
               />
-              <Button variant="secondary" size="sm" onClick={handleCopyPassword} className="h-9 px-3 gap-1">
-                {copiedPassword ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={handleCopyPassword}
+                className="h-9 px-3 gap-1"
+              >
+                {copiedPassword ? (
+                  <Check className="size-3.5 text-emerald-600" />
+                ) : (
+                  <Copy className="size-3.5" />
+                )}
                 {copiedPassword ? 'Copied' : 'Copy'}
               </Button>
               <Button
@@ -1018,7 +1364,7 @@ export const UsersManagementWorkspace: React.FC = () => {
                 className="h-9 px-3"
                 title="Generate another password"
               >
-                <RefreshCw className="w-3.5 h-3.5" />
+                <RefreshCw className="size-3.5" />
               </Button>
             </div>
           </div>
@@ -1047,25 +1393,26 @@ export const UsersManagementWorkspace: React.FC = () => {
       >
         <form onSubmit={handleCreateUser} className="space-y-4 py-2">
           {/* Link to Employee Optional Section */}
-          <div className="p-3 bg-muted/40 rounded-xl border border-border space-y-2">
+          <div className="p-3 bg-surface-sunken rounded-xl border border-default space-y-2">
             <div className="flex items-center justify-between">
-              <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-                <Briefcase className="w-3.5 h-3.5 text-primary" />
+              <label className="text-xs font-semibold text-default flex items-center gap-1.5">
+                <Briefcase className="size-3.5 text-primary" />
                 Link to an Existing Staff Employee (Optional)
               </label>
-              <span className="text-[11px] text-muted-foreground">
+              <span className="text-[11px] text-muted">
                 {unlinkedEmployees.length} staff without ERP login
               </span>
             </div>
             <select
               value={linkEmployeeId}
               onChange={(e) => handleEmployeeSelection(e.target.value)}
-              className="w-full px-3 py-2 text-xs bg-background border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary text-foreground"
+              className="w-full px-3 py-2 text-xs bg-surface border border-default rounded-xl focus:outline-none focus:border-primary text-default cursor-pointer"
             >
               <option value="">-- Standalone User (Not linked to staff directory) --</option>
               {unlinkedEmployees.map((emp) => (
                 <option key={emp.id} value={emp.id}>
-                  {emp.employee_code} — {emp.display_name} ({emp.department || 'No Dept'} / {emp.designation || 'Staff'})
+                  {emp.employee_code} — {emp.display_name} ({emp.department || 'No Dept'} /{' '}
+                  {emp.designation || 'Staff'})
                 </option>
               ))}
             </select>
@@ -1078,7 +1425,7 @@ export const UsersManagementWorkspace: React.FC = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div className="space-y-1">
-              <label className="text-xs font-semibold text-foreground">
+              <label className="text-xs font-semibold text-default">
                 Full Name <span className="text-rose-500">*</span>
               </label>
               <input
@@ -1087,12 +1434,12 @@ export const UsersManagementWorkspace: React.FC = () => {
                 value={newUserName}
                 onChange={(e) => setNewUserName(e.target.value)}
                 placeholder="e.g. John Doe"
-                className="w-full px-3 py-2 text-sm bg-background border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                className="w-full px-3 py-2 text-sm bg-surface-sunken border border-default rounded-xl focus:outline-none focus:border-primary text-default"
               />
             </div>
 
             <div className="space-y-1">
-              <label className="text-xs font-semibold text-foreground">
+              <label className="text-xs font-semibold text-default">
                 Email Address <span className="text-rose-500">*</span>
               </label>
               <input
@@ -1101,23 +1448,23 @@ export const UsersManagementWorkspace: React.FC = () => {
                 value={newUserEmail}
                 onChange={(e) => setNewUserEmail(e.target.value)}
                 placeholder="user@company.com"
-                className="w-full px-3 py-2 text-sm bg-background border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                className="w-full px-3 py-2 text-sm bg-surface-sunken border border-default rounded-xl focus:outline-none focus:border-primary text-default"
               />
             </div>
 
             <div className="space-y-1">
-              <label className="text-xs font-semibold text-foreground">Phone Number</label>
+              <label className="text-xs font-semibold text-default">Phone Number</label>
               <input
                 type="text"
                 value={newUserPhone}
                 onChange={(e) => setNewUserPhone(e.target.value)}
                 placeholder="+8801700000000"
-                className="w-full px-3 py-2 text-sm bg-background border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                className="w-full px-3 py-2 text-sm bg-surface-sunken border border-default rounded-xl focus:outline-none focus:border-primary text-default"
               />
             </div>
 
             <div className="space-y-1">
-              <label className="text-xs font-semibold text-foreground">
+              <label className="text-xs font-semibold text-default">
                 Initial Password <span className="text-rose-500">*</span>
               </label>
               <div className="flex items-center gap-1.5">
@@ -1126,7 +1473,7 @@ export const UsersManagementWorkspace: React.FC = () => {
                   required
                   value={newUserPassword}
                   onChange={(e) => setNewUserPassword(e.target.value)}
-                  className="w-full px-3 py-2 text-sm bg-background border border-input rounded-lg font-mono focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                  className="w-full px-3 py-2 text-sm bg-surface-sunken border border-default rounded-xl font-mono focus:outline-none focus:border-primary text-default"
                 />
                 <Button
                   type="button"
@@ -1136,15 +1483,15 @@ export const UsersManagementWorkspace: React.FC = () => {
                   className="h-9 px-2.5"
                   title="Generate random password"
                 >
-                  <RefreshCw className="w-3.5 h-3.5" />
+                  <RefreshCw className="size-3.5" />
                 </Button>
               </div>
             </div>
           </div>
 
           {/* Initial Role Selection */}
-          <div className="space-y-2 pt-2 border-t border-border">
-            <label className="text-xs font-semibold text-foreground uppercase tracking-wider block">
+          <div className="space-y-2 pt-2 border-t border-default">
+            <label className="text-xs font-semibold text-default uppercase tracking-wider block">
               Assign Initial Roles
             </label>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 max-h-52 overflow-y-auto pr-1">
@@ -1160,21 +1507,21 @@ export const UsersManagementWorkspace: React.FC = () => {
                       else next.add(role.id);
                       setNewUserRoleIds(next);
                     }}
-                    className={`w-full p-2.5 rounded-lg border text-left cursor-pointer transition-all flex items-start gap-2.5 ${
+                    className={`w-full p-2.5 rounded-xl border text-left cursor-pointer transition-all flex items-start gap-2.5 ${
                       isSelected
-                        ? 'border-primary bg-primary/5 dark:bg-primary/10'
-                        : 'border-border bg-card hover:bg-muted/30'
+                        ? 'border-primary bg-primary/5 dark:bg-primary/10 shadow-2xs'
+                        : 'border-default bg-surface hover:bg-surface-sunken'
                     }`}
                   >
                     <input
                       type="checkbox"
                       checked={isSelected}
                       onChange={() => {}}
-                      className="mt-0.5 rounded border-input text-primary focus:ring-primary h-3.5 w-3.5 pointer-events-none"
+                      className="mt-0.5 rounded border-default text-primary focus:ring-primary size-3.5 pointer-events-none"
                     />
                     <div className="flex-1 min-w-0">
-                      <div className="font-semibold text-xs text-foreground">{role.name}</div>
-                      <div className="text-[10px] text-muted-foreground font-mono">{role.slug}</div>
+                      <div className="font-semibold text-xs text-default">{role.name}</div>
+                      <div className="text-[10px] text-muted font-mono">{role.slug}</div>
                     </div>
                   </button>
                 );
@@ -1208,21 +1555,24 @@ export const UsersManagementWorkspace: React.FC = () => {
           </div>
         }
       >
-        <div className="py-2 text-sm text-foreground space-y-2">
+        <div className="py-2 text-sm text-default space-y-2">
           {toggleStatusUser?.status === 'active' ? (
             <p>
-              Are you sure you want to suspend <strong>{toggleStatusUser?.name}</strong>? The user will be immediately logged out of all active sessions and prevented from signing in until reactivated.
+              Are you sure you want to suspend <strong>{toggleStatusUser?.name}</strong>? The user will
+              be immediately logged out of all active sessions and prevented from signing in until
+              reactivated.
             </p>
           ) : (
             <p>
-              Are you sure you want to reactivate access for <strong>{toggleStatusUser?.name}</strong>? They will be able to log in with their existing credentials and assigned roles.
+              Are you sure you want to reactivate access for <strong>{toggleStatusUser?.name}</strong>?
+              They will be able to log in with their existing credentials and assigned roles.
             </p>
           )}
         </div>
       </Modal>
 
       {/* ═══════════════════════════════════════════════════════════════ */}
-      {/* MODAL: EDIT USER PROFILE & ACCESS                               */}
+      {/* MODAL: EDIT USER PROFILE & ACCESS                             */}
       {/* ═══════════════════════════════════════════════════════════════ */}
       <Modal
         open={editUserModalOpen}
@@ -1234,51 +1584,58 @@ export const UsersManagementWorkspace: React.FC = () => {
         {editLoading ? (
           <div className="py-12 flex flex-col items-center justify-center gap-2">
             <RefreshCw className="size-6 text-primary animate-spin" />
-            <span className="text-xs text-muted-foreground">Loading account profile...</span>
+            <span className="text-xs text-muted">Loading account profile...</span>
           </div>
         ) : editingUserData ? (
           <form onSubmit={handleSaveUserEdit} className="space-y-4 pt-2">
             <div>
-              <label className="block text-xs font-semibold text-foreground mb-1">Full Name *</label>
+              <label className="block text-xs font-semibold text-default mb-1">Full Name *</label>
               <input
                 type="text"
                 required
                 value={editingUserData.name || ''}
                 onChange={(e) => setEditingUserData({ ...editingUserData, name: e.target.value })}
-                className="w-full px-3 py-2 text-xs rounded-lg border border-border bg-background focus:outline-none focus:ring-1 focus:ring-primary"
+                className="w-full px-3 py-2 text-xs rounded-xl border border-default bg-surface-sunken focus:outline-none focus:border-primary text-default"
               />
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-semibold text-foreground mb-1">Email Address *</label>
+                <label className="block text-xs font-semibold text-default mb-1">
+                  Email Address *
+                </label>
                 <input
                   type="email"
                   required
                   value={editingUserData.email || ''}
                   onChange={(e) => setEditingUserData({ ...editingUserData, email: e.target.value })}
-                  className="w-full px-3 py-2 text-xs rounded-lg border border-border bg-background focus:outline-none focus:ring-1 focus:ring-primary"
+                  className="w-full px-3 py-2 text-xs rounded-xl border border-default bg-surface-sunken focus:outline-none focus:border-primary text-default"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-foreground mb-1">Phone Number</label>
+                <label className="block text-xs font-semibold text-default mb-1">Phone Number</label>
                 <input
                   type="tel"
                   value={editingUserData.phone || ''}
                   onChange={(e) => setEditingUserData({ ...editingUserData, phone: e.target.value })}
                   placeholder="+8801..."
-                  className="w-full px-3 py-2 text-xs rounded-lg border border-border bg-background focus:outline-none focus:ring-1 focus:ring-primary"
+                  className="w-full px-3 py-2 text-xs rounded-xl border border-default bg-surface-sunken focus:outline-none focus:border-primary text-default"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-foreground mb-1">Account Status</label>
+              <label className="block text-xs font-semibold text-default mb-1">Account Status</label>
               <select
                 value={editingUserData.status || 'active'}
-                onChange={(e) => setEditingUserData({ ...editingUserData, status: e.target.value as 'active' | 'suspended' })}
-                className="w-full px-3 py-2 text-xs rounded-lg border border-border bg-background focus:outline-none focus:ring-1 focus:ring-primary"
+                onChange={(e) =>
+                  setEditingUserData({
+                    ...editingUserData,
+                    status: e.target.value as 'active' | 'suspended',
+                  })
+                }
+                className="w-full px-3 py-2 text-xs rounded-xl border border-default bg-surface-sunken focus:outline-none focus:border-primary text-default cursor-pointer"
               >
                 <option value="active">Active (Full system login enabled)</option>
                 <option value="suspended">Suspended (Access blocked)</option>
@@ -1286,18 +1643,21 @@ export const UsersManagementWorkspace: React.FC = () => {
             </div>
 
             {editingUserData.employee && (
-              <div className="p-3 bg-muted/30 rounded-xl border border-border/70 space-y-1">
-                <span className="text-2xs font-bold uppercase tracking-wider text-muted-foreground">Linked Employee Record</span>
-                <div className="text-xs font-semibold text-foreground">
+              <div className="p-3 bg-surface-sunken rounded-xl border border-default space-y-1">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-muted">
+                  Linked Employee Record
+                </span>
+                <div className="text-xs font-semibold text-default">
                   {editingUserData.employee.display_name} ({editingUserData.employee.employee_code})
                 </div>
-                <div className="text-2xs text-muted-foreground">
-                  Dept: {editingUserData.employee.department || 'N/A'} • Role: {editingUserData.employee.designation || 'N/A'}
+                <div className="text-[11px] text-muted">
+                  Dept: {editingUserData.employee.department || 'N/A'} • Role:{' '}
+                  {editingUserData.employee.designation || 'N/A'}
                 </div>
               </div>
             )}
 
-            <div className="flex items-center justify-end gap-2 pt-4 border-t border-border">
+            <div className="flex items-center justify-end gap-2 pt-4 border-t border-default">
               <Button
                 type="button"
                 variant="secondary"
@@ -1357,12 +1717,12 @@ export const UsersManagementWorkspace: React.FC = () => {
             >
               {deletingUser ? (
                 <>
-                  <RefreshCw className="w-4 h-4 animate-spin" />
+                  <RefreshCw className="size-4 animate-spin" />
                   <span>Deleting...</span>
                 </>
               ) : (
                 <>
-                  <Trash2 className="w-4 h-4" />
+                  <Trash2 className="size-4" />
                   <span>Delete User</span>
                 </>
               )}
@@ -1371,16 +1731,19 @@ export const UsersManagementWorkspace: React.FC = () => {
         }
       >
         <div className="space-y-4 py-2">
-          <div className="p-4 rounded-xl bg-rose-50 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-900/40 text-rose-900 dark:text-rose-200 text-xs space-y-2">
-            <div className="font-bold flex items-center gap-2 text-sm text-rose-700 dark:text-rose-400">
-              <AlertTriangle className="w-4 h-4" />
+          <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/25 text-rose-700 dark:text-rose-300 text-xs space-y-2">
+            <div className="font-bold flex items-center gap-2 text-sm text-rose-600 dark:text-rose-400">
+              <AlertTriangle className="size-4" />
               <span>Confirm Account Deletion</span>
             </div>
             <p>
-              Are you sure you want to delete user account <strong>{deleteModalUser?.name}</strong> ({deleteModalUser?.email})?
+              Are you sure you want to delete user account <strong>{deleteModalUser?.name}</strong> (
+              {deleteModalUser?.email})?
             </p>
-            <p className="text-[11px] text-rose-800/80 dark:text-rose-300/80">
-              This action will revoke active JWT sessions, unlink any associated employee profile, and disable login credentials. Historic audit logs and created records will preserve data integrity.
+            <p className="text-[11px] text-rose-600/80 dark:text-rose-400/80">
+              This action will revoke active JWT sessions, unlink any associated employee profile, and
+              disable login credentials. Historic audit logs and created records will preserve data
+              integrity.
             </p>
           </div>
         </div>
