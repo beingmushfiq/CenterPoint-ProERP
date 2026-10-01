@@ -1,11 +1,10 @@
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import {
   FileText,
   Download,
   Filter,
   Bookmark,
   Clock,
-  CheckCircle,
   Calendar,
   Layers,
   Printer,
@@ -24,8 +23,6 @@ import {
   ShieldCheck,
   Sparkles,
   X,
-  LayoutGrid,
-  ListOrdered,
   Zap,
   Building2,
   Coins,
@@ -33,6 +30,11 @@ import {
   Star,
   History,
   BarChart3,
+  SlidersHorizontal,
+  Compass,
+  Check,
+  AlertTriangle,
+  Award,
 } from 'lucide-react';
 import { PrintPreviewModal } from '../../components/print/PrintPreviewModal';
 import { SelectDropdown } from '../../components/ui/Dropdown';
@@ -40,23 +42,36 @@ import { ReportPrintDocument } from '../../components/print/reports/ReportPrintD
 import { useBusinessConfig } from '../../lib/document/useBusinessConfig';
 import type {
   ReportDefinition,
-  ReportCategory,
   ReportDataResponse,
   ReportSavedView,
   ExportFormat,
-  ReportColumnDefinition,
 } from '../../types/api/reports';
 import { useCurrency } from '../../hooks/useCurrency';
 import {
-  REPORT_MODULES,
   ALL_REPORT_DEFINITIONS,
   getReportFallbackData,
 } from './reportCatalogue';
 import {
-  REPORT_HUBS,
   DOMAIN_HUBS,
   findDomainForReportCode,
+  type DomainHub,
 } from './reportHubs';
+import {
+  WorkspaceNavigationHub,
+  WORKSPACE_THEMES,
+  type WorkspaceCategoryConfig,
+  type WorkspaceTabConfig,
+} from '../../components/common/WorkspaceNavigationHub';
+import { Modal } from '../../components/ui/Modal';
+import { cn } from '../../lib/utils';
+import { api, getAccessToken } from '../../lib/api/client';
+import * as XLSX from 'xlsx';
+import { notify } from '../../components/ui/Toast';
+import { useTranslation } from 'react-i18next';
+import {
+  getLocalizedReportName,
+  getLocalizedReportDesc,
+} from './reportLocalization';
 
 const ReportChartAnalytics = React.lazy(() =>
   import('./components/ReportChartAnalytics').then((m) => ({ default: m.ReportChartAnalytics }))
@@ -89,80 +104,92 @@ const REPORT_ALIAS_MAP: Record<string, string> = {
   delivery_management: 'delivery_master',
   dispatch_queue: 'delivery_master',
 };
-import { api, getAccessToken } from '../../lib/api/client';
-import * as XLSX from 'xlsx';
-import { notify } from '../../components/ui/Toast';
-import { useTranslation } from 'react-i18next';
-import {
-  getLocalizedReportName,
-  getLocalizedReportDesc,
-  getLocalizedModuleShortName,
-  getLocalizedCategoryLabel,
-  getLocalizedPresetLabel,
-} from './reportLocalization';
 
-const MODULE_ICONS: Record<string, React.FC<{ className?: string }>> = {
-  all: Layers,
-  production: Factory,
-  inventory: Boxes,
-  purchasing: ShoppingBag,
-  sales: Receipt,
-  pos: Receipt,
-  profit: TrendingUp,
-  crm: Users,
-  salesmen: Target,
-  delivery: Truck,
-  hr: UserCheck,
-  finance: DollarSign,
-  assets: Cpu,
-  qc: ShieldCheck,
-  Zap: Zap,
-  Coins: Coins,
-  Building2: Building2,
-  Clock: Clock,
-  Factory: Factory,
-  Boxes: Boxes,
-  ShoppingBag: ShoppingBag,
-  Receipt: Receipt,
-  TrendingUp: TrendingUp,
-  Users: Users,
-  Target: Target,
-  Truck: Truck,
-  UserCheck: UserCheck,
-  DollarSign: DollarSign,
-  ShieldCheck: ShieldCheck,
-  Layers: Layers,
+export type ReportDomainId =
+  | 'operations'
+  | 'commercial'
+  | 'procurement'
+  | 'finance'
+  | 'people'
+  | 'assets'
+  | 'compliance';
+
+const REPORT_ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
+  production_output: Factory,
+  daily_production: Factory,
+  monthly_production: Factory,
+  production_yield: Factory,
+  batch_expiry_aging: Clock,
+  slow_moving_stock: AlertTriangle,
+  stock_valuation: Coins,
+  current_stock: Boxes,
+  low_stock: AlertTriangle,
+  stock_ledger: Layers,
+  sales_performance: Receipt,
+  best_selling_products: Sparkles,
+  pos_counter_sales: Receipt,
+  b2b_sales: Building2,
+  product_profit: TrendingUp,
+  lead_summary: Users,
+  salesman_quota_achievement: Target,
+  purchase_summary: ShoppingBag,
+  purchase_details: FileText,
+  supplier_scorecard: Award,
+  supplier_due: DollarSign,
+  delivery_master: Truck,
+  courier_performance: Zap,
+  cod_reconciliation: Coins,
+  income_statement: TrendingUp,
+  gl_summary: Layers,
+  customer_ar_aging: Clock,
+  supplier_ap_aging: DollarSign,
+  operating_expenses: Receipt,
+  cash_bank_ledger: Building2,
+  payroll_summary: DollarSign,
+  daily_attendance: UserCheck,
+  worker_production: Factory,
+  sales_commission_payout: Target,
+  employee_directory: Users,
+  fixed_asset_register: Cpu,
+  asset_valuation_nbv: Coins,
+  asset_maintenance_log: Clock,
+  assigned_assets: Layers,
+  asset_disposal_history: AlertTriangle,
+  qc_inspection_ratio: ShieldCheck,
+  defect_categorization: AlertTriangle,
+  compliance_audit_trail: FileText,
 };
 
-const MODULE_ORDER: readonly string[] = [
-  'production',
-  'inventory',
-  'purchasing',
-  'sales',
-  'profit',
-  'crm',
-  'salesmen',
-  'delivery',
-  'hr',
-  'finance',
-  'assets',
-  'qc',
-];
-
 export const ReportsWorkspace: React.FC = () => {
-  const { t, i18n } = useTranslation(['reports', 'common']);
+  const { i18n } = useTranslation(['reports', 'common']);
   const isBn = i18n.language === 'bn';
   const { formatCurrency } = useCurrency();
   const { config: businessConfig } = useBusinessConfig();
 
-  // Selected Module, Domain & Category
-  const [selectedModule, setSelectedModule] = useState<string>('all');
-  const [selectedDomain, setSelectedDomain] = useState<string>('all');
-  const [selectedCategory, setSelectedCategory] = useState<ReportCategory | 'all'>('all');
-  const [searchQuery, setSearchQuery] = useState<string>('');
+  // Active Report Code
+  const [selectedReportCode, setSelectedReportCode] = useState<string>('production_output');
 
-  // Selected active report
-  const [selectedReportCode, setSelectedReportCode] = useState<string>('production_yield');
+  // Definitions state (backend or fallback catalogue)
+  const [definitions, setDefinitions] = useState<ReportDefinition[]>(ALL_REPORT_DEFINITIONS);
+
+  // Quick Jump Popover state
+  const [quickJumpOpen, setQuickJumpOpen] = useState(false);
+  const [quickJumpSearch, setQuickJumpSearch] = useState('');
+  const quickJumpRef = useRef<HTMLDivElement>(null);
+
+  // Capabilities & Analytics Guide Modal state
+  const [isGuideOpen, setIsGuideOpen] = useState(false);
+
+  // Close Quick Jump popover on outside click
+  useEffect(() => {
+    const handleOutsideClick = (e: MouseEvent) => {
+      if (quickJumpRef.current && !quickJumpRef.current.contains(e.target as Node)) {
+        setQuickJumpOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, []);
 
   // Pinned Reports (localStorage sync)
   const [pinnedReports, setPinnedReports] = useState<string[]>(() => {
@@ -172,10 +199,10 @@ export const ReportsWorkspace: React.FC = () => {
         const parsed = JSON.parse(raw);
         if (Array.isArray(parsed) && parsed.length > 0) return parsed;
       }
-    } catch (err) {
-      void err;
+    } catch {
+      // ignore
     }
-    return ['sales_performance', 'stock_valuation', 'production_yield', 'current_stock'];
+    return ['sales_performance', 'stock_valuation', 'production_output', 'best_selling_products'];
   });
 
   const togglePinReport = (code: string) => {
@@ -184,8 +211,8 @@ export const ReportsWorkspace: React.FC = () => {
       const next = prev.includes(canonical) ? prev.filter((c) => c !== canonical) : [...prev, canonical];
       try {
         localStorage.setItem('reports.pinned', JSON.stringify(next));
-      } catch (err) {
-        void err;
+      } catch {
+        // ignore
       }
       return next;
     });
@@ -199,10 +226,10 @@ export const ReportsWorkspace: React.FC = () => {
         const parsed = JSON.parse(raw);
         if (Array.isArray(parsed) && parsed.length > 0) return parsed;
       }
-    } catch (err) {
-      void err;
+    } catch {
+      // ignore
     }
-    return ['production_yield'];
+    return ['production_output'];
   });
 
   const recordRecentReport = useCallback((canonical: string) => {
@@ -211,8 +238,8 @@ export const ReportsWorkspace: React.FC = () => {
       const next = [canonical, ...filtered].slice(0, 8);
       try {
         localStorage.setItem('reports.recent', JSON.stringify(next));
-      } catch (err) {
-        void err;
+      } catch {
+        // ignore
       }
       return next;
     });
@@ -230,38 +257,20 @@ export const ReportsWorkspace: React.FC = () => {
   // Analytics Chart Show/Hide Toggle
   const [showChartAnalytics, setShowChartAnalytics] = useState<boolean>(true);
 
-  // Display Mode: Consolidated Hubs vs Full Directory
-  const [displayMode, setDisplayMode] = useState<'hubs' | 'directory'>('hubs');
-
-  const [isModuleNavExpanded] = useState<boolean>(false);
-
-  // Consolidated Hubs Explorer state
-  const [collapsedHubIds, setCollapsedHubIds] = useState<Record<string, boolean>>({});
-
-  // Date filters & presets (dynamic current-month initialization)
+  // Date filters
   const [startDate, setStartDate] = useState<string>(() => {
     const d = new Date();
-    const start = new Date(d.getFullYear(), d.getMonth(), 1);
-    const y = start.getFullYear();
-    const m = String(start.getMonth() + 1).padStart(2, '0');
-    const day = String(start.getDate()).padStart(2, '0');
-    return `${y}-${m}-${day}`;
+    d.setDate(1);
+    return d.toISOString().split('T')[0] ?? '';
   });
   const [endDate, setEndDate] = useState<string>(() => {
-    const d = new Date();
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${y}-${m}-${day}`;
+    return new Date().toISOString().split('T')[0] ?? '';
   });
   const [datePreset, setDatePreset] = useState<string>('this_month');
 
-  // Definitions state (backend or fallback catalogue)
-  const [definitions, setDefinitions] = useState<ReportDefinition[]>(ALL_REPORT_DEFINITIONS);
-
   // Report runtime state
   const [reportResult, setReportResult] = useState<ReportDataResponse | null>(() =>
-    getReportFallbackData('production_yield')
+    getReportFallbackData('production_output')
   );
   const [loading, setLoading] = useState<boolean>(false);
 
@@ -298,16 +307,6 @@ export const ReportsWorkspace: React.FC = () => {
   const [newViewName, setNewViewName] = useState('');
   const [savingView, setSavingView] = useState(false);
 
-  // Categories list
-  const categories: Array<{ id: ReportCategory | 'all'; label: string }> = [
-    { id: 'all', label: 'All Reports' },
-    { id: 'operational', label: 'Operational' },
-    { id: 'financial', label: 'Financial' },
-    { id: 'analytical', label: 'Analytical' },
-    { id: 'compliance', label: 'Compliance' },
-    { id: 'executive', label: 'Executive' },
-  ];
-
   // Try fetching definitions from backend on mount
   useEffect(() => {
     let isMounted = true;
@@ -333,230 +332,185 @@ export const ReportsWorkspace: React.FC = () => {
     };
   }, []);
 
-  // Filtered definitions based on Domain, Module, Category, and Search Query
-  const filteredDefinitions = useMemo(() => {
-    return definitions
-      .filter((def) => {
-        // Domain filter
-        if (selectedDomain !== 'all') {
-          const domain = DOMAIN_HUBS.find((d) => d.id === selectedDomain);
-          if (domain && !domain.modules.includes(def.module)) {
-            return false;
-          }
-        }
-
-        // Module filter
-        if (selectedModule !== 'all') {
-          if (selectedModule === 'sales') {
-            if (def.module !== 'sales' && def.module !== 'pos') {
-              return false;
-            }
-          } else if (def.module !== selectedModule) {
-            return false;
-          }
-        }
-
-        // Category filter
-        if (selectedCategory !== 'all' && def.category !== selectedCategory) {
-          return false;
-        }
-
-        // Text search (checks code, English name/desc, and Bengali name/desc)
-        if (searchQuery.trim() !== '') {
-          const q = searchQuery.toLowerCase();
-          const bnName = getLocalizedReportName(def.code, '', true).toLowerCase();
-          const bnDesc = getLocalizedReportDesc(def.code, '', true).toLowerCase();
-          const matchName = def.name.toLowerCase().includes(q) || bnName.includes(q);
-          const matchCode = def.code.toLowerCase().includes(q);
-          const matchDesc = (def.description ?? '').toLowerCase().includes(q) || bnDesc.includes(q);
-          const matchModule = def.module.toLowerCase().includes(q);
-          if (!matchName && !matchCode && !matchDesc && !matchModule) {
-            return false;
-          }
-        }
-
-        return true;
-      })
-      .sort((a, b) => {
-        if (selectedModule === 'all') {
-          const aOrder = MODULE_ORDER.indexOf(a.module);
-          const bOrder = MODULE_ORDER.indexOf(b.module);
-          if (aOrder !== bOrder) {
-            return (aOrder === -1 ? 99 : aOrder) - (bOrder === -1 ? 99 : bOrder);
-          }
-        }
-        return a.name.localeCompare(b.name);
-      });
-  }, [definitions, selectedDomain, selectedModule, selectedCategory, searchQuery]);
-
-  // Filtered 20 Consolidated Hubs based on Domain, Module and Search
-  const filteredHubs = useMemo(() => {
-    return REPORT_HUBS.filter((hub) => {
-      // Domain filter
-      if (selectedDomain !== 'all') {
-        const domain = DOMAIN_HUBS.find((d) => d.id === selectedDomain);
-        if (domain && !domain.hubIds.includes(hub.id)) {
-          return false;
-        }
-      }
-
-      // Module filter
-      if (selectedModule !== 'all') {
-        if (selectedModule === 'sales') {
-          if (hub.module !== 'sales' && hub.module !== 'pos') return false;
-        } else if (hub.module !== selectedModule) {
-          return false;
-        }
-      }
-
-      if (searchQuery.trim() !== '') {
-        const q = searchQuery.toLowerCase();
-        const matchTitle = hub.titleEn.toLowerCase().includes(q) || hub.titleBn.toLowerCase().includes(q);
-        const matchDesc = hub.descEn.toLowerCase().includes(q) || hub.descBn.toLowerCase().includes(q);
-        const matchView = hub.views.some(
-          (v) =>
-            v.code.toLowerCase().includes(q) ||
-            v.labelEn.toLowerCase().includes(q) ||
-            v.labelBn.toLowerCase().includes(q)
-        );
-        if (!matchTitle && !matchDesc && !matchView) return false;
-      }
-
-      return true;
-    });
-  }, [selectedDomain, selectedModule, searchQuery]);
-
-  // Visible modules based on selected Domain Hub
-  const visibleModules = useMemo(() => {
-    if (selectedDomain === 'all') return REPORT_MODULES;
-    const domain = DOMAIN_HUBS.find((d) => d.id === selectedDomain);
-    if (!domain) return REPORT_MODULES;
-    return REPORT_MODULES.filter((m) => m.id === 'all' || domain.modules.includes(m.id));
-  }, [selectedDomain]);
-
-
-  // Module counts
-  const moduleCounts = useMemo(() => {
-    const counts: Record<string, number> = { all: definitions.length };
-    for (const def of definitions) {
-      counts[def.module] = (counts[def.module] || 0) + 1;
-      if (def.module === 'pos') {
-        counts['sales'] = (counts['sales'] || 0) + 1;
-      }
-    }
-    return counts;
-  }, [definitions]);
-
-  // Active definition
+  // Active Definition
   const activeDef = useMemo(() => {
-    return definitions.find((d) => d.code === selectedReportCode) || filteredDefinitions[0] || definitions[0];
-  }, [definitions, selectedReportCode, filteredDefinitions]);
+    return (
+      definitions.find((d) => d.code === selectedReportCode) ||
+      ALL_REPORT_DEFINITIONS.find((d) => d.code === selectedReportCode) ||
+      definitions[0]
+    );
+  }, [definitions, selectedReportCode]);
 
-  // Active module metadata
-  const activeModule = useMemo(() => {
-    return REPORT_MODULES.find((m) => m.id === selectedModule) || REPORT_MODULES[0];
-  }, [selectedModule]);
-
-  // Active hub & view resolution
-  const activeHub = useMemo(() => {
-    return REPORT_HUBS.find((h) => h.views.some((v) => v.code === selectedReportCode));
+  // Active Hub & Domain
+  const activeDomain = useMemo<DomainHub>(() => {
+    return findDomainForReportCode(selectedReportCode) ?? (DOMAIN_HUBS[0] as DomainHub);
   }, [selectedReportCode]);
 
+  // ═══════════════════════════════════════════════════════════════════════════
+  // WORKSPACE NAVIGATION HUB CONFIGURATION (Exact 2-Tier Standard ERP Design)
+  // ═══════════════════════════════════════════════════════════════════════════
 
+  const categories: WorkspaceCategoryConfig<ReportDomainId, string>[] = useMemo(() => [
+    {
+      id: 'operations',
+      label: isBn ? 'অপারেশনস ও কারখানা' : 'Operations & Inventory',
+      tagline: isBn ? 'উৎপাদন আউটপুট, ব্যাচ এক্সপায়ারি, স্লো-মুভিং ও স্টক ভ্যালুয়েশন' : 'Manufacturing output, batch expiry aging, slow-moving stock & inventory ledger',
+      shortcut: '1',
+      icon: Boxes,
+      tabs: [
+        'production_output',
+        'batch_expiry_aging',
+        'slow_moving_stock',
+        'stock_valuation',
+        'current_stock',
+        'low_stock',
+        'stock_ledger',
+      ],
+      defaultTab: 'production_output',
+      theme: WORKSPACE_THEMES.indigo,
+      badge: '7',
+    },
+    {
+      id: 'commercial',
+      label: isBn ? 'বাণিজ্যিক ও বিক্রয়' : 'Commercial & Sales',
+      tagline: isBn ? 'চ্যানেল রাজস্ব, সর্বাধিক বিক্রিত পণ্য, পিওএস ও সেলস ফানেল' : 'Omnichannel sales, best-selling SKUs, POS counters & leads pipeline',
+      shortcut: '2',
+      icon: Receipt,
+      tabs: [
+        'sales_performance',
+        'best_selling_products',
+        'pos_counter_sales',
+        'b2b_sales',
+        'product_profit',
+        'lead_summary',
+        'salesman_quota_achievement',
+      ],
+      defaultTab: 'sales_performance',
+      theme: WORKSPACE_THEMES.purple,
+      badge: '7',
+    },
+    {
+      id: 'procurement',
+      label: isBn ? 'ক্রয় ও সরবরাহকারী' : 'Procurement & Delivery',
+      tagline: isBn ? 'ক্রয়াদেশ, সরবরাহকারী ওটিআইএফ স্কোরকার্ড, পার্সেল ও ডেলিভারি' : 'Purchase orders, supplier OTIF scorecard, parcel dispatch & delivery SLA',
+      shortcut: '3',
+      icon: ShoppingBag,
+      tabs: [
+        'purchase_summary',
+        'purchase_details',
+        'supplier_scorecard',
+        'supplier_due',
+        'delivery_master',
+        'courier_performance',
+        'cod_reconciliation',
+      ],
+      defaultTab: 'purchase_summary',
+      theme: WORKSPACE_THEMES.amber,
+      badge: '7',
+    },
+    {
+      id: 'finance',
+      label: isBn ? 'অর্থ ও হিসাব' : 'Finance & Ledgers',
+      tagline: isBn ? 'লাভ-ক্ষতি বিবরণী, সাধারণ খতিয়ান, বকেয়া বিল ও পরিচালন ব্যয়' : 'P&L income statement, general ledger, AR/AP aging & operating expenditures',
+      shortcut: '4',
+      icon: DollarSign,
+      tabs: [
+        'income_statement',
+        'gl_summary',
+        'customer_ar_aging',
+        'supplier_ap_aging',
+        'operating_expenses',
+        'cash_bank_ledger',
+      ],
+      defaultTab: 'income_statement',
+      theme: WORKSPACE_THEMES.emerald,
+      badge: '6',
+    },
+    {
+      id: 'people',
+      label: isBn ? 'জনবল ও বেতন' : 'Workforce & HR',
+      tagline: isBn ? 'কর্মচারী উপস্থিতি, মজুরি, সেলস কমিশন ও বেতন বণ্টন' : 'Staff attendance, piece-rate wages, salesman commission & payroll payouts',
+      shortcut: '5',
+      icon: UserCheck,
+      tabs: [
+        'payroll_summary',
+        'daily_attendance',
+        'worker_production',
+        'sales_commission_payout',
+        'employee_directory',
+      ],
+      defaultTab: 'payroll_summary',
+      theme: WORKSPACE_THEMES.rose,
+      badge: '5',
+    },
+    {
+      id: 'assets',
+      label: isBn ? 'স্থায়ী সম্পদ' : 'Fixed Assets',
+      tagline: isBn ? 'সরঞ্জাম রেজিস্টার, অবচয় ও বুক ভ্যালু, অর্পিত সম্পদ ও মেরামত' : 'Equipment register, NBV depreciation, maintenance logs & asset write-offs',
+      shortcut: '6',
+      icon: Cpu,
+      tabs: [
+        'fixed_asset_register',
+        'asset_valuation_nbv',
+        'asset_maintenance_log',
+        'assigned_assets',
+        'asset_disposal_history',
+      ],
+      defaultTab: 'fixed_asset_register',
+      theme: WORKSPACE_THEMES.teal,
+      badge: '5',
+    },
+    {
+      id: 'compliance',
+      label: isBn ? 'কোয়ালিটি ও অডিট' : 'Quality & Audit',
+      tagline: isBn ? 'মান নিয়ন্ত্রণ পরিদর্শন, ত্রুটি বিশ্লেষণ ও সিস্টেম অডিট ট্রেইল' : 'QC AQL inspection pass ratios, defect categories & immutable audit trails',
+      shortcut: '7',
+      icon: ShieldCheck,
+      tabs: [
+        'qc_inspection_ratio',
+        'defect_categorization',
+        'compliance_audit_trail',
+      ],
+      defaultTab: 'qc_inspection_ratio',
+      theme: WORKSPACE_THEMES.cyan,
+      badge: '3',
+    },
+  ], [isBn]);
 
+  // Tab configurations matching canonical reports
+  const tabs: WorkspaceTabConfig<ReportDomainId, string>[] = useMemo(() => {
+    const list: WorkspaceTabConfig<ReportDomainId, string>[] = [];
 
-  const handleSelectModuleWithScroll = (modId: string, event?: React.MouseEvent<HTMLButtonElement>) => {
-    handleSelectModule(modId);
-    if (!isModuleNavExpanded && event?.currentTarget) {
-      event.currentTarget.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-    }
-  };
+    for (const cat of categories) {
+      for (const tabCode of cat.tabs) {
+        const def = definitions.find((d) => d.code === tabCode) || ALL_REPORT_DEFINITIONS.find((d) => d.code === tabCode);
+        const IconComponent = REPORT_ICON_MAP[tabCode] || cat.icon || FileText;
+        const localizedName = def ? getLocalizedReportName(def.code, def.name, isBn) : tabCode;
+        const localizedDesc = def ? getLocalizedReportDesc(def.code, def.description ?? '', isBn) : '';
+        const tierBadge = def?.tier === 'live' ? (isBn ? 'লাইভ' : 'Live') : def?.tier === 'daily' ? (isBn ? 'দৈনিক' : 'Daily') : (isBn ? 'ঘণ্টা' : 'Hourly');
 
-
-
-  const handleSelectReportView = (code: string) => {
-    const canonicalCode = REPORT_ALIAS_MAP[code] || code;
-    changeSelectedReport(canonicalCode);
-    const targetHub = REPORT_HUBS.find((h) => h.views.some((v) => v.code === canonicalCode));
-    if (targetHub && collapsedHubIds[targetHub.id]) {
-      setCollapsedHubIds((prev) => ({ ...prev, [targetHub.id]: false }));
-    }
-    if (window.innerWidth < 1024) {
-      const target = document.getElementById('report-telemetry-section');
-      if (target) {
-        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        list.push({
+          id: tabCode,
+          label: localizedName,
+          shortLabel: localizedName.split(' ')[0] ?? localizedName,
+          category: cat.id,
+          badge: tierBadge,
+          icon: IconComponent,
+          description: localizedDesc,
+        });
       }
     }
-  };
-
-  // Domain switcher handler (Phase 2 - 7 Core Navigation Hubs)
-  const handleSelectDomain = (domainId: string) => {
-    setSelectedDomain(domainId);
-    setSelectedCategory('all');
-    setSearchQuery('');
-    if (domainId === 'all') {
-      setSelectedModule('all');
-    } else {
-      const domain = DOMAIN_HUBS.find((d) => d.id === domainId);
-      if (domain && domain.modules.length > 0) {
-        setSelectedModule(domain.modules[0] ?? 'all');
-        const firstHub = REPORT_HUBS.find((h) => domain.hubIds.includes(h.id));
-        if (firstHub) {
-          changeSelectedReport(firstHub.defaultCode);
-        }
-      }
-    }
-  };
-
-  // Module switcher handler
-  const handleSelectModule = (modId: string) => {
-    setSelectedModule(modId);
-    setSelectedCategory('all');
-    setSearchQuery('');
-    // If selecting a module outside current domain, sync domain
-    if (selectedDomain !== 'all' && modId !== 'all') {
-      const parentDomain = DOMAIN_HUBS.find((d) => d.modules.includes(modId));
-      if (parentDomain && parentDomain.id !== selectedDomain) {
-        setSelectedDomain(parentDomain.id);
-      }
-    }
-    const firstInMod = definitions.find((d) => {
-      if (modId === 'all') return true;
-      if (modId === 'sales') return d.module === 'sales' || d.module === 'pos';
-      return d.module === modId;
-    });
-    if (firstInMod) {
-      changeSelectedReport(firstInMod.code);
-    }
-  };
-
-  // Category switcher handler
-  const handleSelectCategory = (catId: ReportCategory | 'all') => {
-    setSelectedCategory(catId);
-    const firstInCat = definitions.find((d) => {
-      const matchMod =
-        selectedModule === 'all' ||
-        (selectedModule === 'sales'
-          ? d.module === 'sales' || d.module === 'pos'
-          : d.module === selectedModule);
-      const matchCat = catId === 'all' || d.category === catId;
-      return matchMod && matchCat;
-    });
-    if (firstInCat) {
-      changeSelectedReport(firstInCat.code);
-    }
-  };
+    return list;
+  }, [categories, definitions, isBn]);
 
   // Helper to safely unwrap any report API response structure
   const unwrapReportData = useCallback(
     (raw: unknown, code: string): ReportDataResponse => {
       if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
         const obj = raw as Record<string, unknown>;
-        // Shape 1: Direct ReportDataResponse { columns: {...}, data: [...] }
         if ('columns' in obj && obj.columns && 'data' in obj && Array.isArray(obj.data)) {
           return obj as unknown as ReportDataResponse;
         }
-        // Shape 2: Wrapped in { data: { columns: {...}, data: [...] } }
         if (
           'data' in obj &&
           typeof obj.data === 'object' &&
@@ -568,55 +522,9 @@ export const ReportsWorkspace: React.FC = () => {
           return obj.data as unknown as ReportDataResponse;
         }
       }
-      // Shape 3: Direct array of rows [{...}]
       if (Array.isArray(raw)) {
         const fallback = getReportFallbackData(code, activeDef);
-        let columns = fallback.columns;
-
-        // If fallback has generic default columns that don't match data, infer columns from first row
-        if (raw.length > 0 && typeof raw[0] === 'object' && raw[0] !== null) {
-          const firstRow = raw[0] as Record<string, unknown>;
-          const rowKeys = Object.keys(firstRow);
-          const hasGenericFallback = Object.keys(columns).every((k) =>
-            ['id', 'date', 'title', 'amount', 'status'].includes(k)
-          );
-
-          if (hasGenericFallback && !rowKeys.includes('amount') && !rowKeys.includes('title')) {
-            const derivedColumns: Record<string, ReportColumnDefinition> = {};
-            for (const key of rowKeys) {
-              if (key === 'uuid' || key.endsWith('_uuid')) continue;
-              const val = firstRow[key];
-              let colType: 'string' | 'number' | 'currency' | 'date' | 'badge' = 'string';
-              if (typeof val === 'number') {
-                const lower = key.toLowerCase();
-                if (
-                  lower.includes('amount') ||
-                  lower.includes('total') ||
-                  lower.includes('subtotal') ||
-                  lower.includes('price') ||
-                  lower.includes('cost') ||
-                  lower.includes('tax') ||
-                  lower.includes('discount')
-                ) {
-                  colType = 'currency';
-                } else {
-                  colType = 'number';
-                }
-              } else if (key.toLowerCase().includes('date') || key.toLowerCase().endsWith('_at')) {
-                colType = 'date';
-              } else if (key === 'status' || key.endsWith('_status') || key === 'channel') {
-                colType = 'badge';
-              }
-              derivedColumns[key] = {
-                label: key.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
-                type: colType,
-                sortable: true,
-              };
-            }
-            columns = derivedColumns;
-          }
-        }
-
+        const columns = fallback.columns;
         return {
           ...fallback,
           columns,
@@ -632,7 +540,7 @@ export const ReportsWorkspace: React.FC = () => {
     [activeDef]
   );
 
-  // Fetch or resolve report data
+  // Fetch report data
   const fetchReportData = useCallback(
     async (code: string) => {
       setLoading(true);
@@ -664,7 +572,6 @@ export const ReportsWorkspace: React.FC = () => {
         if (isSubscribed) {
           setReportResult(unwrapReportData(res.data, selectedReportCode));
         }
-        // Also load schema and saved views for this report definition
         api.get(`/reports/${selectedReportCode}/schema`).catch(() => {});
         api.get<{ data: ReportSavedView[] } | ReportSavedView[]>(`/reports/${selectedReportCode}/views`).then((vRes) => {
           if (!isSubscribed) return;
@@ -689,6 +596,32 @@ export const ReportsWorkspace: React.FC = () => {
     };
   }, [selectedReportCode, startDate, endDate, activeDef, unwrapReportData]);
 
+  const handlePresetChange = (presetId: string) => {
+    setDatePreset(presetId);
+    const now = new Date();
+    let start = new Date();
+    let end = new Date();
+
+    if (presetId === 'today') {
+      start = now;
+      end = now;
+    } else if (presetId === 'this_week') {
+      const day = now.getDay();
+      const diff = now.getDate() - day + (day === 0 ? -6 : 1);
+      start = new Date(now.setDate(diff));
+      end = new Date();
+    } else if (presetId === 'this_month') {
+      start = new Date(now.getFullYear(), now.getMonth(), 1);
+      end = new Date();
+    } else if (presetId === 'last_30_days') {
+      start = new Date();
+      start.setDate(start.getDate() - 30);
+      end = new Date();
+    }
+
+    setStartDate(start.toISOString().split('T')[0] ?? '');
+    setEndDate(end.toISOString().split('T')[0] ?? '');
+  };
 
   const handleSaveCustomView = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -702,133 +635,58 @@ export const ReportsWorkspace: React.FC = () => {
           end_date: endDate,
           preset: datePreset,
         },
-        columns: reportResult?.columns ? Object.keys(reportResult.columns) : [],
+        columns: Object.keys(reportResult?.columns || {}),
         is_default: false,
       });
       const created = (res.data && typeof res.data === 'object' && 'data' in res.data)
         ? (res.data as { data: ReportSavedView }).data
         : (res.data as ReportSavedView);
-      if (created?.name) {
+      if (created) {
         setSavedViews((prev) => [...prev, created]);
         setSelectedView(created.name);
+        notify.success('View preset saved successfully');
+        setSaveViewModalOpen(false);
+        setNewViewName('');
       }
-      notify.success(`Custom view '${newViewName}' saved successfully.`);
-      setSaveViewModalOpen(false);
-      setNewViewName('');
     } catch {
-      notify.error('Failed to save view preset.');
+      notify.error('Failed to save view preset');
     } finally {
       setSavingView(false);
     }
   };
 
-  // Handle Preset Date Change
-  const handlePresetChange = (preset: string) => {
-    setDatePreset(preset);
-    const today = new Date();
-    const formatDate = (d: Date): string => {
-      const iso = d.toISOString();
-      const idx = iso.indexOf('T');
-      return idx !== -1 ? iso.substring(0, idx) : iso;
-    };
+  const exportClientSpreadsheet = (fmt: ExportFormat) => {
+    if (!reportResult || !activeDef) return;
+    const filenameBase = `${activeDef.code}_${new Date().toISOString().split('T')[0]}`;
+    const worksheet = XLSX.utils.json_to_sheet(reportResult.data);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'ReportData');
 
-    if (preset === 'today') {
-      const d = formatDate(today);
-      setStartDate(d);
-      setEndDate(d);
-    } else if (preset === 'yesterday') {
-      const y = new Date(today);
-      y.setDate(today.getDate() - 1);
-      const d = formatDate(y);
-      setStartDate(d);
-      setEndDate(d);
-    } else if (preset === 'this_week') {
-      const start = new Date(today);
-      start.setDate(today.getDate() - today.getDay());
-      setStartDate(formatDate(start));
-      setEndDate(formatDate(today));
-    } else if (preset === 'this_month') {
-      const start = new Date(today.getFullYear(), today.getMonth(), 1);
-      setStartDate(formatDate(start));
-      setEndDate(formatDate(today));
-    } else if (preset === 'last_30_days') {
-      const start = new Date(today);
-      start.setDate(today.getDate() - 30);
-      setStartDate(formatDate(start));
-      setEndDate(formatDate(today));
+    if (fmt === 'csv') {
+      const csvOutput = XLSX.utils.sheet_to_csv(worksheet);
+      const blob = new Blob([csvOutput], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${filenameBase}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } else {
+      XLSX.writeFile(workbook, `${filenameBase}.xlsx`);
     }
+
+    setExportStatus(`Export completed! ${reportResult.data.length} rows downloaded as ${fmt.toUpperCase()}.`);
+    notify.success(`Report exported to ${fmt.toUpperCase()} successfully.`);
   };
 
-  // Export handler supporting XLSX, CSV, and PDF
-  const handleExport = async () => {
+  const handleExportSubmit = async () => {
     if (!reportResult || !activeDef) return;
-
-    if (exportFormat === 'pdf') {
-      setExportModalOpen(false);
-      setExportStatus(null);
-      setIsPrintModalOpen(true);
-      notify.success('Opening official PDF print preview...');
-      return;
-    }
-
-    setExportStatus(`Generating ${exportFormat.toUpperCase()} export file...`);
-
-    const brandPrefix = businessConfig?.name?.replace(/[^a-zA-Z0-9]/g, '_') || 'ERP';
-    const filenameBase = `${brandPrefix}_${activeDef.code || 'report'}_${new Date().toISOString().split('T')[0]}`;
-
-    // Direct spreadsheet generation helper via SheetJS (for instant and fallback downloads)
-    const exportClientSpreadsheet = (fmt: 'xlsx' | 'csv' | 'json') => {
-      if (fmt === 'json') {
-        const jsonBlob = new Blob([JSON.stringify(reportResult.data, null, 2)], {
-          type: 'application/json;charset=utf-8;',
-        });
-        const url = URL.createObjectURL(jsonBlob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `${filenameBase}.json`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-        setExportStatus(`Export completed! ${reportResult.data.length} rows downloaded as JSON.`);
-        notify.success('Report exported to JSON successfully.');
-        return;
-      }
-
-      const colEntries = Object.entries(reportResult.columns);
-      const rows = reportResult.data.map((row) => {
-        const rowObj: Record<string, unknown> = {};
-        colEntries.forEach(([key, colDef]) => {
-          rowObj[colDef.label || key] = row[key] ?? '';
-        });
-        return rowObj;
-      });
-
-      const worksheet = XLSX.utils.json_to_sheet(rows);
-      const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, (activeDef.name || 'Report').slice(0, 31));
-
-      if (fmt === 'csv') {
-        const csvOutput = XLSX.utils.sheet_to_csv(worksheet);
-        const blob = new Blob(['\uFEFF' + csvOutput], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `${filenameBase}.csv`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-      } else {
-        XLSX.writeFile(workbook, `${filenameBase}.xlsx`);
-      }
-
-      setExportStatus(`Export completed! ${reportResult.data.length} rows downloaded as ${fmt.toUpperCase()}.`);
-      notify.success(`Report exported to ${fmt.toUpperCase()} successfully.`);
-    };
+    setExportStatus('Generating report export...');
+    const filenameBase = `${activeDef.code}_${new Date().toISOString().split('T')[0]}`;
 
     try {
-      // 1. Request server-side comprehensive batch query
       type ReportExportPayload = {
         download_url?: string;
         uuid?: string;
@@ -885,7 +743,6 @@ export const ReportsWorkspace: React.FC = () => {
           notify.success(`Export ready: ${expData.row_count || reportResult.data.length} rows downloaded.`);
           return;
         } catch {
-          // If server file stream had an issue, smoothly fallback to client spreadsheet generator
           exportClientSpreadsheet(exportFormat);
           return;
         }
@@ -902,110 +759,244 @@ export const ReportsWorkspace: React.FC = () => {
     }
   };
 
-  // Helper for rendering badges
   const renderBadge = (val: unknown) => {
     const s = String(val).toLowerCase();
-    let tone = 'bg-slate-100 text-slate-700';
+    let tone = 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300';
 
-    if (['completed', 'posted', 'paid', 'delivered', 'valid', 'passed', 'in_stock', 'operational'].includes(s)) {
+    if (['completed', 'posted', 'paid', 'delivered', 'valid', 'passed', 'in_stock', 'operational', 'active'].includes(s)) {
       tone = 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300';
-    } else if (['in_progress', 'partially_paid', 'in_transit', 'open', 'qualified'].includes(s)) {
+    } else if (['in_progress', 'partially_paid', 'in_transit', 'open', 'qualified', 'pending'].includes(s)) {
       tone = 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300';
-    } else if (['fake', 'lost', 'failed', 'damaged', 'overdue', 'cancelled'].includes(s)) {
+    } else if (['fake', 'lost', 'failed', 'damaged', 'overdue', 'cancelled', 'expired', 'critical'].includes(s)) {
       tone = 'bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300';
     } else if (['pos', 'storefront', 'b2b', 'pathao', 'steadfast'].includes(s)) {
       tone = 'bg-indigo-100 text-indigo-800 dark:bg-indigo-950/60 dark:text-indigo-300';
     }
 
     return (
-      <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10.5px] font-semibold uppercase tracking-wider ${tone}`}>
+      <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10.5px] font-semibold uppercase tracking-wider ${tone}`}>
         {String(val)}
       </span>
     );
   };
 
+  // Filtered reports for Quick Jump popover
+  const filteredQuickJumpReports = useMemo(() => {
+    if (!quickJumpSearch.trim()) return definitions;
+    const q = quickJumpSearch.toLowerCase();
+    return definitions.filter((d) => {
+      const enName = d.name.toLowerCase();
+      const bnName = getLocalizedReportName(d.code, d.name, true).toLowerCase();
+      return enName.includes(q) || bnName.includes(q) || d.code.toLowerCase().includes(q);
+    });
+  }, [definitions, quickJumpSearch]);
+
   return (
     <div className="space-y-6 pb-12">
-
-      {/* Page Header */}
+      {/* ── 1. Page Header with Title & ERP Quick Actions Toolbar ───────── */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 tracking-tight flex items-center gap-2.5">
-            <div className="p-2 bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 rounded-xl border border-indigo-100 dark:border-indigo-900/50">
-              <FileText className="w-6 h-6" />
+          <h1 className="text-2xl font-bold text-default tracking-tight flex items-center gap-2.5">
+            <div className="p-2 bg-primary/10 text-primary rounded-xl border border-primary/20">
+              <FileText className="size-6" />
             </div>
-            {t('reports:title')}
+            {isBn ? 'ব্যবসা প্রতিবেদন ও অ্যানালিটিক্স' : 'Business Reports & Analytics'}
           </h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">{t('reports:subtitle')}</p>
+          <p className="text-xs text-muted mt-1">
+            {isBn
+              ? 'এন্টারপ্রাইজ অপারেশনাল টেলিমেট্রি, অডিট লগ ও ব্যবসায়িক বুদ্ধিমত্তা'
+              : 'Enterprise operational telemetry, audit logs & business intelligence'}
+          </p>
         </div>
-        <div className="flex items-center gap-2.5 shrink-0">
+
+        <div className="flex items-center gap-2 shrink-0">
+          {/* Quick Jump Search Popover */}
+          <div className="relative shrink-0" ref={quickJumpRef}>
+            <button
+              type="button"
+              onClick={() => {
+                setQuickJumpOpen(!quickJumpOpen);
+                setQuickJumpSearch('');
+              }}
+              className={cn(
+                'flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold border border-default bg-surface hover:bg-surface-sunken text-default transition-all shadow-2xs cursor-pointer',
+                quickJumpOpen && 'border-primary/40 bg-surface-sunken ring-2 ring-primary/20'
+              )}
+              title={isBn ? 'সকল প্রতিবেদন খুঁজুন' : 'Search all reports'}
+            >
+              <SlidersHorizontal className="size-3.5 text-muted" />
+              <span>{isBn ? 'সকল প্রতিবেদন' : 'All Reports'}</span>
+            </button>
+
+            {quickJumpOpen && (
+              <div className="absolute right-0 top-full mt-2 w-88 rounded-2xl bg-surface border border-default shadow-2xl z-50 p-2.5 text-default animate-in fade-in-50 zoom-in-95 duration-150">
+                <div className="relative mb-2 px-1">
+                  <Search className="absolute left-3.5 top-2.5 size-3.5 text-muted" />
+                  <input
+                    type="text"
+                    placeholder={isBn ? 'প্রতিবেদন খুঁজুন…' : 'Search reports by name or SKU...'}
+                    value={quickJumpSearch}
+                    onChange={(e) => setQuickJumpSearch(e.target.value)}
+                    autoFocus
+                    className="w-full pl-9 pr-3 py-1.5 text-xs bg-surface-sunken border border-default rounded-xl outline-hidden focus:border-primary text-default placeholder:text-muted"
+                  />
+                </div>
+
+                <div className="max-h-80 overflow-y-auto space-y-2 pr-1">
+                  {categories.map((cat) => {
+                    const catReports = filteredQuickJumpReports.filter((r) => cat.tabs.includes(r.code));
+                    if (catReports.length === 0) return null;
+                    return (
+                      <div key={cat.id} className="pt-1">
+                        <div className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-muted font-mono flex items-center justify-between">
+                          <span>{cat.label}</span>
+                          <span className="text-[9px] bg-surface-sunken px-1.5 py-0.5 rounded border border-default font-normal">
+                            {catReports.length}
+                          </span>
+                        </div>
+                        {catReports.map((r) => {
+                          const Icon = REPORT_ICON_MAP[r.code] || cat.icon || FileText;
+                          const isCurrent = selectedReportCode === r.code;
+                          return (
+                            <button
+                              key={r.code}
+                              type="button"
+                              onClick={() => {
+                                changeSelectedReport(r.code);
+                                setQuickJumpOpen(false);
+                              }}
+                              className={cn(
+                                'w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs transition-colors cursor-pointer text-left',
+                                isCurrent
+                                  ? 'bg-primary/10 text-primary font-semibold'
+                                  : 'text-default hover:bg-surface-sunken'
+                              )}
+                            >
+                              <div className="flex items-center gap-2 min-w-0">
+                                <Icon className="size-3.5 shrink-0 text-muted" />
+                                <span className="truncate">{getLocalizedReportName(r.code, r.name, isBn)}</span>
+                              </div>
+                              {isCurrent && <Check className="size-3.5 text-primary shrink-0 ml-2" />}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    );
+                  })}
+                  {filteredQuickJumpReports.length === 0 && (
+                    <div className="py-6 text-center text-xs text-muted">
+                      {isBn ? 'কোনো প্রতিবেদন পাওয়া যায়নি' : 'No matching reports found'}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Capabilities Guide Modal Button */}
           <button
-            onClick={() => setIsPrintModalOpen(true)}
-            className="inline-flex items-center gap-2 px-3.5 py-2 bg-slate-900 hover:bg-slate-800 dark:bg-slate-100 dark:hover:bg-white text-white dark:text-slate-900 text-sm font-semibold rounded-lg shadow-sm transition-colors cursor-pointer"
+            type="button"
+            onClick={() => setIsGuideOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-xl border border-default bg-surface hover:bg-surface-sunken text-default transition-all shadow-2xs cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            title={isBn ? 'বিশ্লেষণ নির্দেশিকা' : 'Analytics Capabilities Guide'}
           >
-            <Printer className="w-4 h-4" />
-            {t('reports:printReport')}
+            <Compass className="size-3.5 text-muted" />
+            <span>{isBn ? 'নির্দেশিকা' : 'Guide'}</span>
           </button>
+
+          {/* Print Report Button */}
           <button
-            onClick={() => { setExportStatus(null); setExportModalOpen(true); }}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg shadow-sm transition-colors cursor-pointer"
+            type="button"
+            onClick={() => setIsPrintModalOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-xl border border-default bg-surface hover:bg-surface-sunken text-default transition-all shadow-2xs cursor-pointer"
+            title={isBn ? 'মুদ্রণ পূর্বরূপ' : 'Print Report'}
           >
-            <Download className="w-4 h-4" />
-            {t('reports:exportData')}
+            <Printer className="size-3.5 text-muted" />
+            <span>{isBn ? 'প্রিন্ট' : 'Print'}</span>
+          </button>
+
+          {/* Export Dataset Button */}
+          <button
+            type="button"
+            onClick={() => {
+              setExportStatus(null);
+              setExportModalOpen(true);
+            }}
+            className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-xl bg-primary hover:bg-primary/90 text-white transition-all shadow-2xs cursor-pointer"
+            title={isBn ? 'ডাটা এক্সপোর্ট করুন' : 'Export Dataset'}
+          >
+            <Download className="size-3.5" />
+            <span>{isBn ? 'এক্সপোর্ট' : 'Export'}</span>
           </button>
         </div>
       </div>
 
-      {/* Pinned & Recent Quick-Access Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-3 bg-white dark:bg-slate-900 px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs">
+      {/* ── 2. Pinned & Favorites Quick-Bar ──────────────────────────────── */}
+      <div className="flex flex-wrap items-center justify-between gap-3 bg-surface px-4 py-2.5 rounded-2xl border border-default shadow-xs">
         <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
           <div className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400 font-bold uppercase tracking-wider text-[11px] whitespace-nowrap">
-            <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
+            <Star className="size-3.5 fill-amber-500 text-amber-500" />
             <span>{isBn ? 'পিনকৃত:' : 'Pinned:'}</span>
           </div>
           {pinnedReports.length === 0 ? (
-            <span className="text-[11px] text-slate-400 italic">{isBn ? 'কোনো প্রতিবেদন পিন করা নেই' : 'No pinned reports yet'}</span>
+            <span className="text-[11px] text-muted italic">
+              {isBn ? 'কোনো প্রতিবেদন পিন করা নেই' : 'No pinned reports yet'}
+            </span>
           ) : (
             pinnedReports.map((pCode) => {
-              const pDef = definitions.find((d) => d.code === pCode);
+              const pDef = definitions.find((d) => d.code === pCode) || ALL_REPORT_DEFINITIONS.find((d) => d.code === pCode);
               const isCurrent = selectedReportCode === pCode;
               return (
                 <div
                   key={pCode}
-                  className={`group inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all whitespace-nowrap ${isCurrent ? 'bg-indigo-600 text-white shadow-xs font-semibold' : 'bg-slate-50 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:border-indigo-400'}`}
+                  className={cn(
+                    'group inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all whitespace-nowrap',
+                    isCurrent
+                      ? 'bg-primary text-white shadow-xs font-semibold'
+                      : 'bg-surface-sunken text-default border border-default hover:border-primary/40'
+                  )}
                 >
-                  <button type="button" onClick={() => handleSelectReportView(pCode)} className="cursor-pointer">
+                  <button type="button" onClick={() => changeSelectedReport(pCode)} className="cursor-pointer">
                     {pDef ? getLocalizedReportName(pDef.code, pDef.name, isBn) : pCode}
                   </button>
                   <button
                     type="button"
-                    onClick={(e) => { e.stopPropagation(); togglePinReport(pCode); }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      togglePinReport(pCode);
+                    }}
                     className="opacity-0 group-hover:opacity-60 hover:!opacity-100 hover:text-rose-500 cursor-pointer"
                     title="Unpin"
                   >
-                    <X className="w-2.5 h-2.5" />
+                    <X className="size-2.5" />
                   </button>
                 </div>
               );
             })
           )}
         </div>
+
         {recentReports.length > 0 && (
           <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
-            <div className="flex items-center gap-1 text-slate-400 font-medium text-[10.5px] whitespace-nowrap">
-              <History className="w-3.5 h-3.5" />
+            <div className="flex items-center gap-1 text-muted font-medium text-[10.5px] whitespace-nowrap">
+              <History className="size-3.5" />
               <span>{isBn ? 'সাম্প্রতিক:' : 'Recent:'}</span>
             </div>
             {recentReports.slice(0, 5).map((rCode) => {
-              const rDef = definitions.find((d) => d.code === rCode);
+              const rDef = definitions.find((d) => d.code === rCode) || ALL_REPORT_DEFINITIONS.find((d) => d.code === rCode);
               const isCurrent = selectedReportCode === rCode;
               if (!rDef) return null;
               return (
                 <button
                   key={rCode}
                   type="button"
-                  onClick={() => handleSelectReportView(rCode)}
-                  className={`px-2 py-0.5 rounded text-[11px] transition-colors whitespace-nowrap cursor-pointer ${isCurrent ? 'font-bold text-indigo-600 dark:text-indigo-400 underline decoration-2' : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'}`}
+                  onClick={() => changeSelectedReport(rCode)}
+                  className={cn(
+                    'px-2 py-0.5 rounded text-[11px] transition-colors whitespace-nowrap cursor-pointer',
+                    isCurrent
+                      ? 'font-bold text-primary underline decoration-2'
+                      : 'text-muted hover:text-default'
+                  )}
                 >
                   {getLocalizedReportName(rDef.code, rDef.name, isBn)}
                 </button>
@@ -1015,567 +1006,553 @@ export const ReportsWorkspace: React.FC = () => {
         )}
       </div>
 
-      {/* Two-Panel Workspace */}
-      <div className="flex gap-5 items-start">
+      {/* ── 3. Universal 2-Tier Navigation Hub (Exact ERP Standard) ───────── */}
+      <WorkspaceNavigationHub<ReportDomainId, string>
+        categories={categories}
+        tabs={tabs}
+        activeTab={selectedReportCode}
+        onSelectTab={changeSelectedReport}
+      />
 
-        {/* LEFT NAVIGATOR */}
-        <div className="w-72 shrink-0 space-y-3">
+      {/* ── 4. Main Full-Width Content Canvas ─────────────────────────────── */}
+      <div id="report-telemetry-section" className="space-y-4">
+        {/* Breadcrumb & Actions Bar */}
+        <div className="bg-surface rounded-2xl border border-default shadow-xs px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-1.5 text-xs text-muted flex-wrap min-w-0">
+            <span className="font-semibold text-default truncate">
+              {isBn ? activeDomain.titleBn : activeDomain.titleEn}
+            </span>
+            <ChevronRight className="size-3.5 text-muted/60 shrink-0" />
+            <span className="font-bold text-primary truncate">
+              {getLocalizedReportName(activeDef?.code || '', activeDef?.name ?? '', isBn)}
+            </span>
+          </div>
 
-          {/* Search */}
-          <div className="relative">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              placeholder={isBn ? 'প্রতিবেদন খুঁজুন…' : 'Search reports...'}
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-8 py-2 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:border-indigo-500 transition-colors shadow-xs"
-            />
-            {searchQuery && (
-              <button type="button" onClick={() => setSearchQuery('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer">
-                <X className="w-3.5 h-3.5" />
-              </button>
+          <div className="flex items-center gap-2 shrink-0">
+            {/* Pin Toggle */}
+            <button
+              type="button"
+              onClick={() => togglePinReport(selectedReportCode)}
+              className={cn(
+                'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-semibold transition-all cursor-pointer shadow-2xs',
+                pinnedReports.includes(selectedReportCode)
+                  ? 'bg-amber-500/10 border-amber-500/30 text-amber-700 dark:text-amber-400 font-bold'
+                  : 'bg-surface border-default text-muted hover:text-default hover:bg-surface-sunken'
+              )}
+            >
+              <Star className={cn('size-3.5', pinnedReports.includes(selectedReportCode) ? 'fill-amber-500 text-amber-500' : 'text-muted')} />
+              <span>{pinnedReports.includes(selectedReportCode) ? (isBn ? 'পিনকৃত' : 'Pinned') : (isBn ? 'পিন করুন' : 'Pin')}</span>
+            </button>
+
+            {/* Hide/Show Chart Toggle */}
+            <button
+              type="button"
+              onClick={() => setShowChartAnalytics((prev) => !prev)}
+              className={cn(
+                'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-semibold transition-all cursor-pointer shadow-2xs',
+                showChartAnalytics
+                  ? 'bg-primary/10 border-primary/30 text-primary font-bold'
+                  : 'bg-surface border-default text-muted hover:text-default hover:bg-surface-sunken'
+              )}
+            >
+              <BarChart3 className="size-3.5" />
+              <span>{showChartAnalytics ? (isBn ? 'চার্ট লুকান' : 'Hide Chart') : (isBn ? 'চার্ট দেখুন' : 'Show Chart')}</span>
+            </button>
+
+            {/* Freshness Status Pill */}
+            {reportResult && (
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-surface-sunken border border-default text-[11px] text-muted">
+                <span className="size-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+                <span className="font-semibold text-emerald-600 dark:text-emerald-400 uppercase">
+                  {reportResult.meta.freshness.tier === 'live' ? (isBn ? 'লাইভ' : 'LIVE') : reportResult.meta.freshness.tier}
+                </span>
+                <span className="text-muted/60">·</span>
+                <span>{new Date(reportResult.meta.freshness.as_of).toLocaleTimeString(isBn ? 'bn-BD' : 'en-US')}</span>
+              </div>
             )}
           </div>
-
-          {/* Domain List */}
-          <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs overflow-hidden">
-            <div className="px-3 py-2 border-b border-slate-100 dark:border-slate-800">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{isBn ? 'ডোমেন' : 'Domain'}</span>
-            </div>
-            <div className="p-1.5 flex flex-col gap-0.5">
-              <button
-                type="button"
-                onClick={() => handleSelectDomain('all')}
-                className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer text-left w-full ${selectedDomain === 'all' ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
-              >
-                <Layers className="w-3.5 h-3.5 shrink-0" />
-                <span className="flex-1">{isBn ? 'সকল ডোমেন' : 'All Domains'}</span>
-                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${selectedDomain === 'all' ? 'bg-white/20 text-white dark:bg-black/20 dark:text-slate-900' : 'bg-slate-100 dark:bg-slate-800 text-slate-500'}`}>76</span>
-              </button>
-              {DOMAIN_HUBS.map((domain) => {
-                const isSelected = selectedDomain === domain.id;
-                const DomainIcon = MODULE_ICONS[domain.iconName] || Layers;
-                const count = definitions.filter((def) => domain.modules.includes(def.module)).length;
-                return (
-                  <button
-                    key={domain.id}
-                    type="button"
-                    onClick={() => handleSelectDomain(domain.id)}
-                    className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer text-left w-full ${isSelected ? 'bg-indigo-600 text-white' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
-                  >
-                    <DomainIcon className={`w-3.5 h-3.5 shrink-0 ${isSelected ? 'text-white' : 'text-slate-400'}`} />
-                    <span className="flex-1 truncate">{isBn ? domain.titleBn : domain.titleEn}</span>
-                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${isSelected ? 'bg-white/20 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-500'}`}>{count}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Module List */}
-          {visibleModules.length > 1 && (
-            <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs overflow-hidden">
-              <div className="px-3 py-2 border-b border-slate-100 dark:border-slate-800">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{isBn ? 'মডিউল' : 'Module'}</span>
-              </div>
-              <div className="p-1.5 flex flex-col gap-0.5 max-h-52 overflow-y-auto">
-                {visibleModules.map((mod) => {
-                  const Icon = MODULE_ICONS[mod.id] || Layers;
-                  const isSelected = selectedModule === mod.id;
-                  const count = moduleCounts[mod.id] || 0;
-                  return (
-                    <button
-                      key={mod.id}
-                      type="button"
-                      onClick={(e) => handleSelectModuleWithScroll(mod.id, e)}
-                      className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer text-left w-full ${isSelected ? 'bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 font-semibold' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
-                    >
-                      <Icon className={`w-3.5 h-3.5 shrink-0 ${isSelected ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400'}`} />
-                      <span className="flex-1 truncate">{getLocalizedModuleShortName(mod.id, mod.shortName, isBn)}</span>
-                      {count > 0 && (
-                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${isSelected ? 'bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-300' : 'bg-slate-100 dark:bg-slate-800 text-slate-500'}`}>{count}</span>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* View Mode Toggle */}
-          <div className="inline-flex w-full p-0.5 bg-slate-100 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
-            <button
-              type="button"
-              onClick={() => setDisplayMode('hubs')}
-              className={`flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md transition-all cursor-pointer ${displayMode === 'hubs' ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-xs' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}`}
-            >
-              <LayoutGrid className="w-3.5 h-3.5" />
-              <span>{isBn ? 'হাব' : 'Hubs'}</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setDisplayMode('directory')}
-              className={`flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md transition-all cursor-pointer ${displayMode === 'directory' ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-xs' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}`}
-            >
-              <ListOrdered className="w-3.5 h-3.5" />
-              <span>{isBn ? 'ডিরেক্টরি' : 'Directory'}</span>
-            </button>
-          </div>
-
-          {/* Hub Cards */}
-          {displayMode === 'hubs' && (
-            <div className="space-y-2 max-h-[calc(100vh-420px)] overflow-y-auto pr-0.5">
-              {filteredHubs.length === 0 ? (
-                <div className="py-8 text-center bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
-                  <p className="text-xs text-slate-400">{isBn ? 'কোনো হাব পাওয়া যায়নি।' : 'No hubs found.'}</p>
-                  <button onClick={() => { setSearchQuery(''); setSelectedModule('all'); }} className="mt-2 text-xs text-indigo-600 hover:underline cursor-pointer">{isBn ? 'ফিল্টার রিসেট' : 'Clear filters'}</button>
-                </div>
-              ) : (
-                filteredHubs.map((hub) => {
-                  const isCurrentCodeInHub = hub.views.some((v) => v.code === selectedReportCode);
-                  const HubIcon = MODULE_ICONS[hub.iconName] || MODULE_ICONS[hub.module] || Layers;
-                  return (
-                    <div
-                      key={hub.id}
-                      className={`rounded-xl border transition-all ${isCurrentCodeInHub ? 'border-indigo-500 dark:border-indigo-600 bg-indigo-50/60 dark:bg-indigo-950/30 shadow-xs' : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-700'}`}
-                    >
-                      <div className="px-3 pt-2.5 pb-2">
-                        <div className="flex items-center gap-1.5 mb-1.5">
-                          <HubIcon className={`w-3.5 h-3.5 shrink-0 ${isCurrentCodeInHub ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400'}`} />
-                          <span className={`text-xs font-bold truncate flex-1 ${isCurrentCodeInHub ? 'text-indigo-700 dark:text-indigo-300' : 'text-slate-800 dark:text-slate-100'}`}>
-                            {isBn ? hub.titleBn : hub.titleEn}
-                          </span>
-                          {isCurrentCodeInHub && <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse shrink-0" />}
-                        </div>
-                        <div className="flex flex-wrap gap-1">
-                          {hub.views.map((v) => {
-                            const isViewActive = v.code === selectedReportCode;
-                            return (
-                              <button
-                                key={v.code}
-                                type="button"
-                                onClick={() => handleSelectReportView(v.code)}
-                                className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium transition-all cursor-pointer ${isViewActive ? 'bg-indigo-600 text-white shadow-xs' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'}`}
-                              >
-                                {isViewActive && <CheckCircle className="w-2.5 h-2.5" />}
-                                {isBn ? v.labelBn : v.labelEn}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })
-              )}
-            </div>
-          )}
-
-          {/* Directory List */}
-          {displayMode === 'directory' && (
-            <div className="space-y-1 max-h-[calc(100vh-420px)] overflow-y-auto pr-0.5">
-              <div className="flex flex-wrap gap-1 pb-1.5">
-                {categories.map((cat) => (
-                  <button
-                    key={cat.id}
-                    onClick={() => handleSelectCategory(cat.id)}
-                    className={`px-2 py-0.5 text-[11px] font-semibold rounded-md transition-all cursor-pointer ${selectedCategory === cat.id ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200'}`}
-                  >
-                    {getLocalizedCategoryLabel(cat.id, cat.label, isBn)}
-                  </button>
-                ))}
-              </div>
-              {filteredDefinitions.length === 0 ? (
-                <div className="py-8 text-center bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
-                  <p className="text-xs text-slate-400">{isBn ? 'কোনো প্রতিবেদন পাওয়া যায়নি।' : 'No reports found.'}</p>
-                  <button onClick={() => { setSearchQuery(''); setSelectedModule('all'); setSelectedCategory('all'); }} className="mt-2 text-xs text-indigo-600 hover:underline cursor-pointer">{isBn ? 'ফিল্টার রিসেট' : 'Clear filters'}</button>
-                </div>
-              ) : (
-                filteredDefinitions.map((def) => {
-                  const isSelected = def.code === selectedReportCode;
-                  const ModIcon = MODULE_ICONS[def.module] || Layers;
-                  return (
-                    <button
-                      key={def.code}
-                      type="button"
-                      onClick={() => handleSelectReportView(def.code)}
-                      className={`w-full text-left px-3 py-2.5 rounded-lg border transition-all cursor-pointer flex items-center gap-2 ${isSelected ? 'border-indigo-500 bg-indigo-50/70 dark:bg-indigo-950/40 dark:border-indigo-600' : 'border-transparent hover:border-slate-200 dark:hover:border-slate-700 hover:bg-white dark:hover:bg-slate-900'}`}
-                    >
-                      <ModIcon className={`w-3.5 h-3.5 shrink-0 ${isSelected ? 'text-indigo-600' : 'text-slate-400'}`} />
-                      <div className="flex-1 min-w-0">
-                        <p className={`text-xs font-semibold truncate ${isSelected ? 'text-indigo-700 dark:text-indigo-300' : 'text-slate-800 dark:text-slate-100'}`}>{getLocalizedReportName(def.code, def.name, isBn)}</p>
-                        <p className="text-[10.5px] text-slate-400 truncate">{getLocalizedModuleShortName(def.module, def.module, isBn)}</p>
-                      </div>
-                      <span className={`text-[9.5px] font-bold px-1.5 py-0.5 rounded uppercase shrink-0 ${def.tier === 'live' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400' : 'bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-400'}`}>
-                        {def.tier === 'live' ? (isBn ? 'লাইভ' : 'Live') : (isBn ? 'দৈনিক' : 'Daily')}
-                      </span>
-                    </button>
-                  );
-                })
-              )}
-            </div>
-          )}
         </div>
 
-        {/* RIGHT REPORT VIEW PANEL */}
-        <div id="report-telemetry-section" className="flex-1 min-w-0 space-y-4">
-
-          {/* Report Breadcrumb Header */}
-          <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs px-4 py-3 flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 flex-wrap min-w-0">
-              <span className="font-semibold text-slate-700 dark:text-slate-300 truncate">
-                {findDomainForReportCode(selectedReportCode)?.titleEn ?? 'Enterprise Reports'}
-              </span>
-              <ChevronRight className="w-3.5 h-3.5 text-slate-300 shrink-0" />
-              <span className="truncate">{activeHub?.titleEn ?? activeModule?.name ?? ''}</span>
-              <ChevronRight className="w-3.5 h-3.5 text-slate-300 shrink-0" />
-              <span className="font-bold text-indigo-600 dark:text-indigo-400 truncate">
-                {getLocalizedReportName(activeDef?.code || '', activeDef?.name ?? '', isBn)}
-              </span>
-            </div>
-            <div className="flex items-center gap-2 shrink-0">
-              <button
-                type="button"
-                onClick={() => togglePinReport(selectedReportCode)}
-                className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-semibold transition-all cursor-pointer ${pinnedReports.includes(selectedReportCode) ? 'bg-amber-50 dark:bg-amber-950/50 border-amber-300 dark:border-amber-800 text-amber-700 dark:text-amber-300' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-amber-300'}`}
-              >
-                <Star className={`w-3.5 h-3.5 ${pinnedReports.includes(selectedReportCode) ? 'fill-amber-500 text-amber-500' : 'text-slate-400'}`} />
-                {pinnedReports.includes(selectedReportCode) ? (isBn ? 'পিনকৃত' : 'Pinned') : (isBn ? 'পিন' : 'Pin')}
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowChartAnalytics((prev) => !prev)}
-                className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-semibold transition-all cursor-pointer ${showChartAnalytics ? 'bg-blue-50 dark:bg-blue-950/50 border-blue-300 dark:border-blue-800 text-blue-700 dark:text-blue-300' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-blue-300'}`}
-              >
-                <BarChart3 className="w-3.5 h-3.5 text-blue-500" />
-                {showChartAnalytics ? (isBn ? 'চার্ট লুকান' : 'Hide Chart') : (isBn ? 'চার্ট দেখুন' : 'Show Chart')}
-              </button>
-            </div>
-          </div>
-
-          {/* Filters Toolbar */}
-          <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs px-4 py-3">
-            <div className="flex flex-wrap items-center gap-3">
-              <div className="flex items-center gap-0.5 bg-slate-100 dark:bg-slate-800 p-1 rounded-lg text-xs">
-                {[
-                  { id: 'today', label: isBn ? 'আজ' : 'Today' },
-                  { id: 'this_week', label: isBn ? 'এই সপ্তাহ' : 'This Week' },
-                  { id: 'this_month', label: isBn ? 'এই মাস' : 'This Month' },
-                  { id: 'last_30_days', label: isBn ? '৩০ দিন' : '30 Days' },
-                ].map((p) => (
-                  <button
-                    key={p.id}
-                    onClick={() => handlePresetChange(p.id)}
-                    className={`px-2.5 py-1 rounded font-medium transition-colors cursor-pointer whitespace-nowrap ${datePreset === p.id ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 font-bold shadow-xs' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}`}
-                  >
-                    {p.label}
-                  </button>
-                ))}
-              </div>
-              <div className="flex items-center gap-2">
-                <Calendar className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                <input
-                  type="date"
-                  value={startDate}
-                  onChange={(e) => { setStartDate(e.target.value); setDatePreset('custom'); }}
-                  className="text-xs border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 rounded-lg px-2.5 py-1.5 text-slate-800 dark:text-slate-200 focus:outline-none focus:border-indigo-500"
-                />
-                <span className="text-xs text-slate-400">—</span>
-                <input
-                  type="date"
-                  value={endDate}
-                  onChange={(e) => { setEndDate(e.target.value); setDatePreset('custom'); }}
-                  className="text-xs border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 rounded-lg px-2.5 py-1.5 text-slate-800 dark:text-slate-200 focus:outline-none focus:border-indigo-500"
-                />
-              </div>
-              <div className="flex items-center gap-2">
-                <SelectDropdown
-                  icon={Bookmark}
-                  options={savedViews.map((v) => ({ value: v.name, label: v.name }))}
-                  value={selectedView}
-                  onChange={(val) => {
-                    setSelectedView(val);
-                    const matched = savedViews.find((v) => v.name === val);
-                    if (matched?.filters) {
-                      if (typeof matched.filters.start_date === 'string') setStartDate(matched.filters.start_date);
-                      if (typeof matched.filters.end_date === 'string') setEndDate(matched.filters.end_date);
-                      if (typeof matched.filters.preset === 'string') setDatePreset(matched.filters.preset);
-                    }
-                  }}
-                  size="sm"
-                  aria-label="Select saved report view"
-                />
+        {/* Date Filters & Views Toolbar */}
+        <div className="bg-surface rounded-2xl border border-default shadow-xs px-4 py-3">
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Quick Presets */}
+            <div className="flex items-center gap-0.5 bg-surface-sunken p-1 rounded-xl text-xs border border-default">
+              {[
+                { id: 'today', label: isBn ? 'আজ' : 'Today' },
+                { id: 'this_week', label: isBn ? 'এই সপ্তাহ' : 'This Week' },
+                { id: 'this_month', label: isBn ? 'এই মাস' : 'This Month' },
+                { id: 'last_30_days', label: isBn ? '৩০ দিন' : '30 Days' },
+              ].map((p) => (
                 <button
-                  type="button"
-                  onClick={() => setSaveViewModalOpen(true)}
-                  className="inline-flex items-center gap-1 px-2.5 py-1.5 border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-semibold rounded-lg transition-colors cursor-pointer text-slate-700 dark:text-slate-300"
+                  key={p.id}
+                  onClick={() => handlePresetChange(p.id)}
+                  className={cn(
+                    'px-2.5 py-1 rounded-lg font-medium transition-colors cursor-pointer whitespace-nowrap',
+                    datePreset === p.id
+                      ? 'bg-surface text-primary font-bold shadow-xs border border-default'
+                      : 'text-muted hover:text-default'
+                  )}
                 >
-                  <Bookmark className="w-3.5 h-3.5 text-indigo-500" />
-                  {isBn ? 'সংরক্ষণ' : 'Save View'}
+                  {p.label}
                 </button>
-              </div>
-              <button
-                onClick={() => fetchReportData(selectedReportCode)}
-                disabled={loading}
-                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg transition-colors shadow-xs disabled:opacity-50 cursor-pointer"
-              >
-                <Filter className="w-3.5 h-3.5" />
-                {loading ? (isBn ? 'প্রসেস হচ্ছে…' : 'Executing...') : (isBn ? 'ফিল্টার প্রয়োগ' : 'Apply')}
-              </button>
-              {reportResult && (
-                <div className="ml-auto flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
-                  <Clock className="w-3.5 h-3.5 text-slate-400" />
-                  <span className="font-semibold text-emerald-600 dark:text-emerald-400 uppercase">
-                    {reportResult.meta.freshness.tier === 'live' ? (isBn ? 'লাইভ' : 'LIVE') : reportResult.meta.freshness.tier}
-                  </span>
-                  <span className="text-slate-300 dark:text-slate-600">·</span>
-                  <span>{new Date(reportResult.meta.freshness.as_of).toLocaleTimeString(isBn ? 'bn-BD' : 'en-US')}</span>
-                </div>
-              )}
+              ))}
             </div>
+
+            {/* Custom Date Pickers */}
+            <div className="flex items-center gap-2">
+              <Calendar className="size-3.5 text-muted shrink-0" />
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => {
+                  setStartDate(e.target.value);
+                  setDatePreset('custom');
+                }}
+                className="text-xs border border-default bg-surface rounded-xl px-2.5 py-1.5 text-default focus:outline-none focus:border-primary shadow-2xs"
+              />
+              <span className="text-xs text-muted">—</span>
+              <input
+                type="date"
+                value={endDate}
+                onChange={(e) => {
+                  setEndDate(e.target.value);
+                  setDatePreset('custom');
+                }}
+                className="text-xs border border-default bg-surface rounded-xl px-2.5 py-1.5 text-default focus:outline-none focus:border-primary shadow-2xs"
+              />
+            </div>
+
+            {/* Saved Views Dropdown */}
+            <div className="flex items-center gap-2">
+              <SelectDropdown
+                icon={Bookmark}
+                options={savedViews.map((v) => ({ value: v.name, label: v.name }))}
+                value={selectedView}
+                onChange={(val) => {
+                  setSelectedView(val);
+                  const matched = savedViews.find((v) => v.name === val);
+                  if (matched?.filters) {
+                    if (typeof matched.filters.start_date === 'string') setStartDate(matched.filters.start_date);
+                    if (typeof matched.filters.end_date === 'string') setEndDate(matched.filters.end_date);
+                    if (typeof matched.filters.preset === 'string') setDatePreset(matched.filters.preset);
+                  }
+                }}
+                size="sm"
+                aria-label="Select saved report view"
+              />
+              <button
+                type="button"
+                onClick={() => setSaveViewModalOpen(true)}
+                className="inline-flex items-center gap-1 px-2.5 py-1.5 border border-default hover:bg-surface-sunken text-xs font-semibold rounded-xl transition-colors cursor-pointer text-default shadow-2xs"
+              >
+                <Bookmark className="size-3.5 text-primary" />
+                <span>{isBn ? 'সংরক্ষণ' : 'Save View'}</span>
+              </button>
+            </div>
+
+            {/* Apply Button */}
+            <button
+              onClick={() => fetchReportData(selectedReportCode)}
+              disabled={loading}
+              className="inline-flex items-center gap-1.5 px-4 py-1.5 bg-primary hover:bg-primary/90 text-white text-xs font-semibold rounded-xl transition-colors shadow-2xs disabled:opacity-50 cursor-pointer ml-auto"
+            >
+              <Filter className="size-3.5" />
+              <span>{loading ? (isBn ? 'প্রসেস হচ্ছে…' : 'Executing...') : (isBn ? 'ফিল্টার প্রয়োগ' : 'Apply')}</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Dynamic Summary Metric KPI Cards */}
+        {reportResult?.summary && Object.keys(reportResult.summary).length > 0 && (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3.5">
+            {Object.entries(reportResult.summary).map(([key, value]) => {
+              const formattedKey = key.replace(/_/g, ' ');
+              const isMoney =
+                key.includes('bdt') ||
+                key.includes('valuation') ||
+                key.includes('amount') ||
+                key.includes('revenue') ||
+                key.includes('profit') ||
+                key.includes('cost') ||
+                key.includes('incentive') ||
+                key.includes('cod') ||
+                key.includes('debit') ||
+                key.includes('credit') ||
+                key.includes('spend') ||
+                key.includes('value');
+              const numVal = parseFloat(String(value).replace(/,/g, ''));
+              const displayVal = isMoney && !isNaN(numVal) ? formatCurrency(numVal) : String(value);
+
+              return (
+                <div key={key} className="bg-surface p-3.5 rounded-2xl border border-default shadow-xs flex flex-col justify-between">
+                  <span className="text-[11px] font-semibold text-muted uppercase tracking-wider flex items-center gap-1.5">
+                    <Sparkles className="size-3 text-primary shrink-0" />
+                    <span className="truncate">{formattedKey}</span>
+                  </span>
+                  <p className="text-base sm:text-lg font-bold text-default mt-1.5 tracking-tight truncate">{displayVal}</p>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Collapsible Analytics Chart Panel */}
+        {showChartAnalytics && (
+          <React.Suspense
+            fallback={
+              <div className="h-64 flex items-center justify-center bg-surface rounded-2xl border border-default text-muted text-xs">
+                {isBn ? 'চার্ট লোড হচ্ছে…' : 'Loading chart analytics...'}
+              </div>
+            }
+          >
+            <ReportChartAnalytics
+              reportResult={reportResult}
+              reportDefinition={activeDef}
+              currencySymbol="৳"
+              isBn={isBn}
+            />
+          </React.Suspense>
+        )}
+
+        {/* Data Table */}
+        <div className="bg-surface rounded-2xl border border-default shadow-sm overflow-hidden">
+          <div className="px-4 py-3 border-b border-default flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Layers className="size-4 text-primary" />
+              <h2 className="text-sm font-bold text-default">
+                {getLocalizedReportName(activeDef?.code || '', activeDef?.name ?? 'Report Data', isBn)}
+              </h2>
+            </div>
+            <span className="text-xs text-muted">
+              {isBn ? 'মোট সারি:' : 'Showing'} <strong className="text-default font-semibold">{reportResult?.data?.length ?? 0}</strong> {isBn ? 'টি' : 'of'}{' '}
+              {reportResult?.pagination?.total ?? reportResult?.data?.length ?? 0} {isBn ? 'রেকর্ড' : 'rows'}
+            </span>
           </div>
 
-          {/* Analytics Chart */}
-          {showChartAnalytics && (
-            <React.Suspense
-              fallback={
-                <div className="h-48 rounded-xl border border-dashed border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40 animate-pulse flex items-center justify-center text-xs text-slate-400">
-                  Loading analytics...
-                </div>
-              }
-            >
-              <ReportChartAnalytics
-                reportResult={reportResult}
-                reportDefinition={activeDef}
-                currencySymbol={businessConfig.currencySymbol || '৳'}
-                isBn={isBn}
-              />
-            </React.Suspense>
-          )}
-
-          {/* Summary Metric Cards */}
-          {reportResult?.summary && (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              {Object.entries(reportResult.summary).map(([key, value]) => {
-                const formattedKey = key.replace(/_/g, ' ');
-                const isMoney = key.includes('bdt') || key.includes('valuation') || key.includes('amount') || key.includes('revenue') || key.includes('profit') || key.includes('cost') || key.includes('incentive') || key.includes('cod') || key.includes('debit') || key.includes('credit') || key.includes('spend') || key.includes('value');
-                const numVal = parseFloat(String(value).replace(/,/g, ''));
-                const displayVal = isMoney && !isNaN(numVal) ? formatCurrency(numVal) : String(value);
-                return (
-                  <div key={key} className="bg-white dark:bg-slate-900 p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs">
-                    <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-                      <Sparkles className="w-3 h-3 text-indigo-500" />
-                      {formattedKey}
-                    </span>
-                    <p className="text-lg font-bold text-slate-900 dark:text-slate-100 mt-1">{displayVal}</p>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-
-          {/* Data Table */}
-          <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
-            <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Layers className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-                <h2 className="text-sm font-bold text-slate-900 dark:text-slate-100">
-                  {getLocalizedReportName(activeDef?.code || '', activeDef?.name ?? 'Report Data', isBn)}
-                </h2>
-              </div>
-              <span className="text-xs text-slate-500 dark:text-slate-400">
-                {isBn ? (
-                  <>মোট {reportResult?.pagination.total || 0} টির মধ্যে <strong className="text-slate-800 dark:text-slate-200">{reportResult?.data.length || 0}</strong> টি</>
-                ) : (
-                  <>Showing <strong className="text-slate-800 dark:text-slate-200">{reportResult?.data.length || 0}</strong> of {reportResult?.pagination.total || 0} rows</>
-                )}
-              </span>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead className="bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 font-semibold">
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs text-left">
+              <thead className="bg-surface-sunken text-muted font-bold uppercase tracking-wider border-b border-default">
+                <tr>
+                  {Object.entries(reportResult?.columns || {}).map(([key, col]) => (
+                    <th key={key} className="px-4 py-2.5 whitespace-nowrap">
+                      {col.label}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-default">
+                {loading ? (
                   <tr>
-                    {reportResult && Object.entries(reportResult.columns).map(([colKey, col]) => (
-                      <th key={colKey} className="px-4 py-3 whitespace-nowrap">{col.label}</th>
-                    ))}
+                    <td colSpan={Math.max(1, Object.keys(reportResult?.columns || {}).length)} className="py-12 text-center text-muted">
+                      <div className="flex items-center justify-center gap-2">
+                        <span className="size-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                        <span>{isBn ? 'প্রতিবেদন প্রস্তুত হচ্ছে…' : 'Generating report dataset...'}</span>
+                      </div>
+                    </td>
                   </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                  {reportResult?.data.map((row, index) => (
-                    <tr key={index} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/40 transition-colors">
-                      {Object.keys(reportResult.columns).map((colKey) => {
+                ) : !reportResult?.data || reportResult.data.length === 0 ? (
+                  <tr>
+                    <td colSpan={Math.max(1, Object.keys(reportResult?.columns || {}).length)} className="py-12 text-center text-muted">
+                      <div className="flex flex-col items-center justify-center gap-2">
+                        <FileText className="size-8 text-muted/40" />
+                        <span className="font-semibold text-default">{isBn ? 'কোনো রেকর্ড পাওয়া যায়নি' : 'No Data Records Found'}</span>
+                        <span className="text-[11px] text-muted max-w-sm">
+                          {isBn ? 'নির্বাচিত ফিল্টার বা তারিখ সীমার মধ্যে কোনো তথ্য বিদ্যমান নেই।' : 'No operational records match the current filter criteria or date range.'}
+                        </span>
+                      </div>
+                    </td>
+                  </tr>
+                ) : (
+                  reportResult.data.map((row, idx) => (
+                    <tr key={idx} className="hover:bg-surface-sunken transition-colors">
+                      {Object.entries(reportResult.columns).map(([colKey, colDef]) => {
                         const val = row[colKey];
-                        const colDef = reportResult.columns[colKey];
-                        if (colDef?.type === 'badge') return <td key={colKey} className="px-4 py-3 whitespace-nowrap">{renderBadge(val)}</td>;
-                        if (colDef?.type === 'percentage') return <td key={colKey} className="px-4 py-3 font-semibold text-indigo-600 dark:text-indigo-400 whitespace-nowrap">{String(val)}</td>;
-                        if (colDef?.type === 'currency') {
-                          const num = parseFloat(String(val).replace(/,/g, '')) || 0;
-                          return <td key={colKey} className="px-4 py-3 font-mono font-semibold text-slate-800 dark:text-slate-200 whitespace-nowrap">{formatCurrency(num)}</td>;
+                        let rendered: React.ReactNode = String(val ?? '-');
+
+                        if (colDef.type === 'currency' && typeof val === 'number') {
+                          rendered = <span className="font-mono font-medium text-default">{formatCurrency(val)}</span>;
+                        } else if (colDef.type === 'badge' && val !== null && val !== undefined) {
+                          rendered = renderBadge(val);
+                        } else if (colDef.type === 'date' && typeof val === 'string' && val.length >= 10) {
+                          rendered = <span className="text-muted font-mono">{val.substring(0, 10)}</span>;
+                        } else if (colDef.type === 'number' && typeof val === 'number') {
+                          rendered = <span className="font-mono text-default">{val.toLocaleString()}</span>;
                         }
-                        return <td key={colKey} className="px-4 py-3 text-slate-700 dark:text-slate-300 whitespace-nowrap">{String(val ?? '—')}</td>;
+
+                        return (
+                          <td key={colKey} className="px-4 py-2.5 whitespace-nowrap text-default">
+                            {rendered}
+                          </td>
+                        );
                       })}
                     </tr>
-                  ))}
-                  {(!reportResult || reportResult.data.length === 0) && (
-                    <tr>
-                      <td colSpan={Object.keys(reportResult?.columns || {}).length || 1} className="px-4 py-12 text-center">
-                        <div className="flex flex-col items-center justify-center gap-2">
-                          <div className="p-3 bg-slate-100 dark:bg-slate-800 rounded-full text-slate-400">
-                            <FileText className="w-6 h-6" />
-                          </div>
-                          <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">{t('reports:empty.title')}</p>
-                          <p className="text-xs text-slate-400 max-w-sm">{t('reports:empty.description')}</p>
-                        </div>
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-            <div className="px-4 py-3 bg-slate-50 dark:bg-slate-800/60 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
-              <span>Page 1 of {reportResult?.pagination.last_page || 1}</span>
-              <div className="flex items-center gap-1">
-                <button disabled className="px-2.5 py-1 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900 disabled:opacity-40">Prev</button>
-                <button disabled className="px-2.5 py-1 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900 disabled:opacity-40">Next</button>
-              </div>
-            </div>
+                  ))
+                )}
+              </tbody>
+            </table>
           </div>
 
+          {/* Pagination Controls */}
+          {reportResult?.pagination && (
+            <div className="px-4 py-3 border-t border-default flex items-center justify-between text-xs text-muted">
+              <span>
+                {isBn ? 'পৃষ্ঠা' : 'Page'}{' '}
+                <strong className="text-default font-semibold">{reportResult.pagination.current_page}</strong>{' '}
+                {isBn ? 'এর মধ্যে' : 'of'}{' '}
+                <strong className="text-default font-semibold">{reportResult.pagination.last_page}</strong>
+              </span>
+              <div className="flex items-center gap-1.5">
+                <button
+                  disabled={reportResult.pagination.current_page <= 1}
+                  className="px-2.5 py-1 border border-default rounded-lg hover:bg-surface-sunken disabled:opacity-40 cursor-pointer"
+                >
+                  {isBn ? 'পূর্ববর্তী' : 'Prev'}
+                </button>
+                <button
+                  disabled={reportResult.pagination.current_page >= reportResult.pagination.last_page}
+                  className="px-2.5 py-1 border border-default rounded-lg hover:bg-surface-sunken disabled:opacity-40 cursor-pointer"
+                >
+                  {isBn ? 'পরবর্তী' : 'Next'}
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Export Modal */}
+      {/* ── 5. Capabilities & Analytics Guide Modal ───────────────────────── */}
+      <Modal
+        open={isGuideOpen}
+        onClose={() => setIsGuideOpen(false)}
+        title={isBn ? 'প্রতিবেদন ও বিশ্লেষণ ডিরেক্টরি' : 'Reports & Analytics Capabilities Guide'}
+        size="xl"
+      >
+        <div className="space-y-5 p-1 text-default">
+          <p className="text-xs text-muted leading-relaxed">
+            {isBn
+              ? 'SliceMart এন্টারপ্রাইজ রিপোর্টিং ইঞ্জিন বিভিন্ন অপারেশনাল ডোমেনে সুনির্দিষ্ট ও নির্ভরযোগ্য সিদ্ধান্ত গ্রহণের জন্য তৈরি। নিচের যেকোনো প্রতিবেদন সরাসরি দেখতে নির্বাচন করুন।'
+              : 'The SliceMart Enterprise Reporting engine provides operational telemetry and decision-ready intelligence across 7 core business domains. Click any report below to jump straight to its live dataset.'}
+          </p>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 max-h-96 overflow-y-auto pr-1">
+            {tabs.map((tab) => {
+              const Icon = tab.icon;
+              const isCurrent = selectedReportCode === tab.id;
+              const parentCat = categories.find((c) => c.id === tab.category);
+
+              return (
+                <div
+                  key={tab.id}
+                  className={cn(
+                    'p-3.5 rounded-2xl border transition-all text-left flex flex-col justify-between',
+                    isCurrent
+                      ? 'border-primary bg-primary/5 ring-1 ring-primary/20'
+                      : 'border-default bg-surface hover:bg-surface-sunken'
+                  )}
+                >
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <div className="flex items-center gap-2">
+                        <div className="size-7 rounded-lg bg-surface-sunken border border-default flex items-center justify-center text-primary">
+                          <Icon className="size-4" />
+                        </div>
+                        <div>
+                          <h4 className="text-xs font-bold text-default">{tab.label}</h4>
+                          <span className="text-[10px] text-muted font-mono">{tab.id}</span>
+                        </div>
+                      </div>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
+                        {tab.badge}
+                      </span>
+                    </div>
+
+                    <p className="text-[11px] text-muted mt-1 leading-relaxed">{tab.description}</p>
+                  </div>
+
+                  <div className="mt-3 pt-2 border-t border-default flex items-center justify-between">
+                    <span className="text-[10px] font-semibold text-muted uppercase tracking-wider">
+                      {parentCat?.label}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        changeSelectedReport(tab.id);
+                        setIsGuideOpen(false);
+                      }}
+                      className={cn(
+                        'px-2.5 py-1 rounded-lg text-xs font-semibold transition-colors cursor-pointer',
+                        isCurrent
+                          ? 'bg-primary text-white'
+                          : 'bg-surface-sunken text-default hover:bg-primary hover:text-white border border-default'
+                      )}
+                    >
+                      {isCurrent ? (isBn ? 'সক্রিয়' : 'Active') : (isBn ? 'প্রতিবেদন দেখুন' : 'Open Report')}
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </Modal>
+
+      {/* ── 6. Print Preview Modal ────────────────────────────────────────── */}
+      <PrintPreviewModal
+        isOpen={isPrintModalOpen}
+        onClose={() => setIsPrintModalOpen(false)}
+        title={`${activeDef ? getLocalizedReportName(activeDef.code, activeDef.name, isBn) : 'Report'} (${startDate} - ${endDate})`}
+      >
+        <ReportPrintDocument
+          businessConfig={businessConfig}
+          reportTitle={activeDef ? getLocalizedReportName(activeDef.code, activeDef.name, isBn) : 'Business Report'}
+          periodText={`Domain: ${activeDomain.titleEn} | Range: ${startDate} to ${endDate}`}
+          columns={Object.entries(reportResult?.columns || {}).map(([key, col]) => ({
+            key,
+            label: col.label,
+            type: (col.type === 'currency'
+              ? 'currency'
+              : col.type === 'date'
+              ? 'date'
+              : col.type === 'badge'
+              ? 'badge'
+              : col.type === 'number'
+              ? 'numeric'
+              : 'text') as 'text' | 'numeric' | 'currency' | 'date' | 'badge' | 'percentage',
+          }))}
+          data={reportResult?.data || []}
+          summaryCards={
+            reportResult?.summary
+              ? Object.entries(reportResult.summary).map(([k, v]) => ({
+                  label: k.replace(/_/g, ' '),
+                  value: String(v),
+                }))
+              : undefined
+          }
+        />
+      </PrintPreviewModal>
+
+      {/* ── 7. Export Dataset Modal ───────────────────────────────────────── */}
       {exportModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
-          <div className="bg-white dark:bg-slate-900 rounded-xl shadow-xl max-w-md w-full p-6 space-y-4 border border-slate-200 dark:border-slate-800">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                <Download className="w-5 h-5 text-indigo-600" />
-                {isBn ? 'প্রতিবেদন ডেটা এক্সপোর্ট' : 'Export Report Data'}
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in-50 duration-150">
+          <div className="bg-surface rounded-2xl border border-default shadow-2xl max-w-md w-full p-5 space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-default">
+              <h3 className="font-bold text-sm text-default flex items-center gap-2">
+                <Download className="size-4 text-primary" />
+                <span>{isBn ? 'প্রতিবেদন এক্সপোর্ট করুন' : 'Export Report Dataset'}</span>
               </h3>
-              <button onClick={() => { setExportModalOpen(false); setExportStatus(null); }} className="text-slate-400 hover:text-slate-600 cursor-pointer">✕</button>
-            </div>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              {isBn ? <><strong>{getLocalizedReportName(activeDef?.code || '', activeDef?.name || '', true)}</strong> এক্সপোর্ট করা হচ্ছে।</> : <>Exporting <strong>{activeDef?.name}</strong>.</>}
-            </p>
-            <div className="space-y-2">
-              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block">{isBn ? 'এক্সপোর্ট ফরম্যাট' : 'Export Format'}</label>
-              <div className="grid grid-cols-3 gap-2">
-                {(['xlsx', 'csv', 'pdf'] as ExportFormat[]).map((fmt) => (
-                  <button
-                    key={fmt}
-                    onClick={() => { setExportFormat(fmt); setExportStatus(null); }}
-                    className={`py-2 text-xs font-semibold uppercase rounded-lg border text-center transition-all cursor-pointer ${exportFormat === fmt ? 'border-indigo-600 bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 shadow-sm' : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-slate-300'}`}
-                  >
-                    {fmt}
-                  </button>
-                ))}
-              </div>
-            </div>
-            {exportStatus && (
-              <div className="p-3 bg-emerald-50 dark:bg-emerald-950/40 rounded-lg border border-emerald-200 dark:border-emerald-800 text-xs flex items-center gap-2 text-emerald-800 dark:text-emerald-300">
-                <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
-                <span>{exportStatus}</span>
-              </div>
-            )}
-            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
-              <button onClick={() => { setExportModalOpen(false); setExportStatus(null); }} className="px-3.5 py-1.5 text-xs text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg cursor-pointer">
-                {isBn ? 'বন্ধ করুন' : 'Close'}
+              <button
+                type="button"
+                onClick={() => setExportModalOpen(false)}
+                className="text-muted hover:text-default cursor-pointer"
+              >
+                <X className="size-4" />
               </button>
-              <button onClick={handleExport} className="px-4 py-1.5 text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors cursor-pointer shadow-sm flex items-center gap-1.5">
-                <Download className="w-3.5 h-3.5" />
-                {exportFormat === 'pdf' ? (isBn ? 'পিডিএফ প্রিভিউ দেখুন' : 'Open PDF Preview') : (isBn ? `${exportFormat.toUpperCase()} ডাউনলোড` : `Download ${exportFormat.toUpperCase()}`)}
+            </div>
+
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs font-semibold text-muted block mb-1.5">{isBn ? 'ফরম্যাট' : 'Format'}</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {(['xlsx', 'csv'] as ExportFormat[]).map((fmt) => (
+                    <button
+                      key={fmt}
+                      type="button"
+                      onClick={() => setExportFormat(fmt)}
+                      className={cn(
+                        'py-2 px-3 rounded-xl border text-xs font-semibold transition-all cursor-pointer text-center',
+                        exportFormat === fmt
+                          ? 'border-primary bg-primary/10 text-primary ring-2 ring-primary/20'
+                          : 'border-default bg-surface hover:bg-surface-sunken text-default'
+                      )}
+                    >
+                      {fmt.toUpperCase()}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {exportStatus && (
+                <div className="p-3 bg-surface-sunken rounded-xl border border-default text-xs text-default">
+                  {exportStatus}
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-3 border-t border-default">
+              <button
+                type="button"
+                onClick={() => setExportModalOpen(false)}
+                className="px-3.5 py-1.5 border border-default rounded-xl text-xs font-semibold hover:bg-surface-sunken text-default cursor-pointer"
+              >
+                {isBn ? 'বাতিল' : 'Cancel'}
+              </button>
+              <button
+                type="button"
+                onClick={handleExportSubmit}
+                className="px-4 py-1.5 bg-primary hover:bg-primary/90 text-white rounded-xl text-xs font-semibold transition-colors cursor-pointer"
+              >
+                {isBn ? 'ডাউনলোড' : 'Download'}
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Print Preview Modal */}
-      {isPrintModalOpen && reportResult && (
-        <PrintPreviewModal
-          isOpen={isPrintModalOpen}
-          onClose={() => setIsPrintModalOpen(false)}
-          title={`Print Report: ${activeDef?.name || 'Enterprise Ledger'}`}
-          documentNumber={`RPT-${selectedReportCode.toUpperCase()}`}
-          documentType="Official ERP Audit Report"
-          pageClass={Object.keys(reportResult.columns).length > 5 ? 'print-page-a4-landscape' : 'print-page-a4'}
-        >
-          <ReportPrintDocument
-            reportTitle={activeDef?.name || 'Enterprise Analytical Report'}
-            reportCode={selectedReportCode}
-            moduleName={activeDef?.module || 'ERP Analytics'}
-            businessConfig={businessConfig}
-            periodText={`${startDate} to ${endDate} (${datePreset.replace(/_/g, ' ').toUpperCase()})`}
-            filtersText={`Module: ${selectedModule.toUpperCase()} | Category: ${selectedCategory.toUpperCase()} | View: ${selectedView}`}
-            columns={Object.entries(reportResult.columns).map(([k, col]) => {
-              const mappedType =
-                col.type === 'number' ? ('numeric' as const)
-                : col.type === 'percentage' ? ('percentage' as const)
-                : col.type === 'currency' ? ('currency' as const)
-                : col.type === 'date' ? ('date' as const)
-                : col.type === 'badge' ? ('badge' as const)
-                : ('text' as const);
-              return {
-                key: k,
-                label: col.label,
-                type: mappedType,
-                align: mappedType === 'numeric' || mappedType === 'currency' || mappedType === 'percentage' ? ('right' as const) : ('left' as const),
-              };
-            })}
-            data={reportResult.data}
-            summaryCards={reportResult.summary ? Object.entries(reportResult.summary).map(([k, v]) => ({ label: k.replace(/_/g, ' '), value: String(v) })) : undefined}
-            orientation={Object.keys(reportResult.columns).length > 5 ? 'landscape' : 'portrait'}
-          />
-        </PrintPreviewModal>
-      )}
-
-      {/* Save Custom View Modal */}
+      {/* ── 8. Save Custom View Modal ─────────────────────────────────────── */}
       {saveViewModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
-          <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xl w-full max-w-md p-5 space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
-              <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                <Bookmark className="w-4 h-4 text-indigo-600" />
-                {isBn ? 'কাস্টম ভিউ প্রিসেট সংরক্ষণ' : 'Save Custom Report View Preset'}
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in-50 duration-150">
+          <form onSubmit={handleSaveCustomView} className="bg-surface rounded-2xl border border-default shadow-2xl max-w-md w-full p-5 space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-default">
+              <h3 className="font-bold text-sm text-default flex items-center gap-2">
+                <Bookmark className="size-4 text-primary" />
+                <span>{isBn ? 'ভিউ প্রিসেট সংরক্ষণ' : 'Save Custom View'}</span>
               </h3>
-              <button type="button" onClick={() => setSaveViewModalOpen(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer">
-                <X className="w-4 h-4" />
+              <button
+                type="button"
+                onClick={() => setSaveViewModalOpen(false)}
+                className="text-muted hover:text-default cursor-pointer"
+              >
+                <X className="size-4" />
               </button>
             </div>
-            <form onSubmit={handleSaveCustomView} className="space-y-3">
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                  {isBn ? 'প্রিসেট ভিউয়ের নাম *' : 'Preset View Name *'}
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder={isBn ? 'যেমন: চলতি মাসের নির্বাহী ভিউ' : 'e.g. Month-to-Date Executive View'}
-                  value={newViewName}
-                  onChange={(e) => setNewViewName(e.target.value)}
-                  className="w-full text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                />
-              </div>
-              <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 text-xs text-slate-600 dark:text-slate-400 space-y-1">
-                <div className="font-semibold text-slate-700 dark:text-slate-300">{isBn ? 'সংরক্ষিত ফিল্টার মান:' : 'Preset Settings Captured:'}</div>
-                <div>• {isBn ? 'তারিখের পরিসীমা:' : 'Date Range:'} {startDate} {isBn ? 'হতে' : 'to'} {endDate}</div>
-                <div>• {isBn ? 'কুইক প্রিসেট:' : 'Quick Preset:'} {getLocalizedPresetLabel(datePreset, datePreset, isBn)}</div>
-                <div>• {isBn ? 'প্রতিবেদন:' : 'Report:'} {getLocalizedReportName(activeDef?.code || '', activeDef?.name || '', isBn)}</div>
-              </div>
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-200 dark:border-slate-800">
-                <button type="button" onClick={() => setSaveViewModalOpen(false)} disabled={savingView} className="px-3 py-1.5 text-xs text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg cursor-pointer">
-                  {isBn ? 'বাতিল' : 'Cancel'}
-                </button>
-                <button type="submit" disabled={savingView || !newViewName.trim()} className="px-4 py-1.5 text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg shadow-sm disabled:opacity-50 cursor-pointer">
-                  {savingView ? (isBn ? 'সংরক্ষণ হচ্ছে…' : 'Saving...') : (isBn ? 'প্রিসেট সংরক্ষণ করুন' : 'Save Preset View')}
-                </button>
-              </div>
-            </form>
-          </div>
+
+            <div>
+              <label className="text-xs font-semibold text-muted block mb-1">
+                {isBn ? 'ভিউ এর নাম' : 'View Preset Name'}
+              </label>
+              <input
+                type="text"
+                placeholder={isBn ? 'যেমন: মাসিক অডিট ভিউ' : 'e.g., Monthly Executive Review'}
+                value={newViewName}
+                onChange={(e) => setNewViewName(e.target.value)}
+                autoFocus
+                required
+                className="w-full px-3 py-2 text-xs bg-surface border border-default rounded-xl outline-hidden focus:border-primary text-default placeholder:text-muted"
+              />
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-3 border-t border-default">
+              <button
+                type="button"
+                onClick={() => setSaveViewModalOpen(false)}
+                className="px-3.5 py-1.5 border border-default rounded-xl text-xs font-semibold hover:bg-surface-sunken text-default cursor-pointer"
+              >
+                {isBn ? 'বাতিল' : 'Cancel'}
+              </button>
+              <button
+                type="submit"
+                disabled={savingView || !newViewName.trim()}
+                className="px-4 py-1.5 bg-primary hover:bg-primary/90 text-white rounded-xl text-xs font-semibold transition-colors cursor-pointer disabled:opacity-50"
+              >
+                {savingView ? (isBn ? 'সংরক্ষণ হচ্ছে…' : 'Saving...') : (isBn ? 'সংরক্ষণ করুন' : 'Save Preset')}
+              </button>
+            </div>
+          </form>
         </div>
       )}
     </div>
   );
 };
+
+export default ReportsWorkspace;
