@@ -7,10 +7,23 @@ import {
   findDomainForReportCode,
   findDomainById,
 } from './reportHubs';
-
 describe('Phase 2 Reports Consolidation & Hub Architecture', () => {
-  it('has exactly 76 active report definitions in the consolidated catalogue', () => {
-    expect(ALL_REPORT_DEFINITIONS.length).toBe(76);
+  it('has exactly 82 active report definitions in the consolidated catalogue (including 6 new canonical reports)', () => {
+    expect(ALL_REPORT_DEFINITIONS.length).toBe(82);
+
+    const essentialCanonicalCodes = [
+      'production_output',
+      'best_selling_products',
+      'batch_expiry_aging',
+      'slow_moving_stock',
+      'supplier_scorecard',
+      'delivery_master',
+    ];
+
+    const codes = ALL_REPORT_DEFINITIONS.map((r) => r.code);
+    for (const code of essentialCanonicalCodes) {
+      expect(codes).toContain(code);
+    }
   });
 
   it('verifies all 8 duplicate/redundant reports are permanently removed from catalogue', () => {

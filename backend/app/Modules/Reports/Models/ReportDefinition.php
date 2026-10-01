@@ -79,11 +79,23 @@ class ReportDefinition extends Model
         'salesman_remaining_target' => 'salesman_sales',
         'salesman_incentive_accrual' => 'salesman_sales',
 
-        // Purchasing
+        // Purchasing & Vendor Intelligence
         'purchase_details' => 'purchase_summary',
         'supplier_due' => 'supplier_ap_aging',
         'supplier_purchase' => 'supplier_purchase',
         'product_purchase' => 'supplier_purchase',
+        'supplier_performance' => 'supplier_scorecard',
+        'vendor_lead_time' => 'supplier_scorecard',
+        'po_fulfillment_analysis' => 'supplier_scorecard',
+        'item_rejection_rate' => 'supplier_scorecard',
+
+        // Enhanced Analytics
+        'best_selling' => 'best_selling_products',
+        'top_selling' => 'best_selling_products',
+        'top_products' => 'best_selling_products',
+        'expiry_aging' => 'batch_expiry_aging',
+        'slow_moving' => 'slow_moving_stock',
+        'dead_stock' => 'slow_moving_stock',
 
         // Delivery
         'pending_deliveries' => 'delivery_master',

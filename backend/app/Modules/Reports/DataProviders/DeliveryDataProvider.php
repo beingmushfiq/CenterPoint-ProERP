@@ -450,6 +450,82 @@ class DeliveryDataProvider extends BaseDataProvider
         ];
     }
 
+    /**
+     * Master delivery operational report covering all dispatches across statuses with SLA adherence.
+     */
+    public function deliveryMaster(array $filters, int $page = 1, int $perPage = 25): array
+    {
+        $tenantId = $this->getTenantId();
+
+        $query = DB::table('delivery_orders as do')
+            ->leftJoin('sales_orders as so', 'do.sales_order_id', '=', 'so.id')
+            ->leftJoin('warehouses as w', 'do.warehouse_id', '=', 'w.id')
+            ->leftJoin('courier_providers as cp', 'do.courier_provider_id', '=', 'cp.id')
+            ->where('do.tenant_id', $tenantId)
+            ->whereNull('do.deleted_at')
+            ->select([
+                'do.id',
+                'do.delivery_number',
+                'so.order_number',
+                'do.recipient_name',
+                'do.recipient_phone',
+                'w.name as warehouse_name',
+                DB::raw("COALESCE(cp.name, 'In-House Fleet') as courier_name"),
+                'do.delivery_type',
+                'do.cod_amount',
+                'do.cod_collected_amount',
+                'do.cod_status',
+                'do.scheduled_date',
+                'do.delivered_at',
+                'do.attempt_count',
+                'do.status',
+            ]);
+
+        $this->applyDeliveryFilters($query, $filters);
+
+        $total = (clone $query)->count();
+
+        $rows = $query->orderBy('do.created_at', 'desc')
+            ->forPage($page, $perPage)
+            ->get()
+            ->map(function ($row): array {
+                $sched = $row->scheduled_date;
+                $deliv = $row->delivered_at;
+                $slaStatus = 'On Schedule';
+                if ($row->status === 'delivered') {
+                    $slaStatus = ($sched && $deliv && $deliv > $sched) ? 'Delayed SLA Breach' : 'Delivered On-Time';
+                } elseif ($sched && $sched < date('Y-m-d') && !in_array($row->status, ['delivered', 'cancelled'], true)) {
+                    $slaStatus = 'Overdue';
+                }
+
+                return [
+                    'delivery_number' => $row->delivery_number,
+                    'order_number' => $row->order_number ?? 'N/A',
+                    'recipient_name' => $row->recipient_name,
+                    'recipient_phone' => $row->recipient_phone ?? '—',
+                    'warehouse_name' => $row->warehouse_name ?? 'Primary Depot',
+                    'courier_name' => $row->courier_name,
+                    'delivery_type' => ucfirst(str_replace('_', ' ', (string) ($row->delivery_type ?? 'standard'))),
+                    'cod_amount' => (float) $row->cod_amount,
+                    'cod_collected_amount' => (float) ($row->cod_collected_amount ?? 0),
+                    'cod_status' => $row->cod_status ?? 'uncollected',
+                    'scheduled_date' => $sched ?? '—',
+                    'delivered_at' => $deliv ?? '—',
+                    'attempt_count' => (int) ($row->attempt_count ?? 1),
+                    'status' => $row->status,
+                    'sla_status' => $slaStatus,
+                ];
+            })
+            ->all();
+
+        return [
+            'data' => $rows,
+            'total' => $total,
+            'current_page' => $page,
+            'per_page' => $perPage,
+        ];
+    }
+
     protected function applyDeliveryFilters($query, array $filters): void
     {
         if (!empty($filters['start_date'])) {

@@ -119,6 +119,18 @@ export const REPORT_MODULES: ModuleCategory[] = [
 export const ALL_REPORT_DEFINITIONS: ReportDefinition[] = [
   // PRODUCTION
   {
+    id: 201,
+    uuid: 'rpt-prod-canonical-output',
+    code: 'production_output',
+    name: 'Production Output & Yield Report',
+    module: 'production',
+    category: 'operational',
+    tier: 'live',
+    supports_export: true,
+    is_active: true,
+    description: 'Consolidated factory output: planned vs actual yield, scrap rates, and worker piece rates.',
+  },
+  {
     id: 1,
     uuid: 'rpt-prod-01',
     code: 'daily_production',
@@ -205,6 +217,30 @@ export const ALL_REPORT_DEFINITIONS: ReportDefinition[] = [
 
   // INVENTORY
   {
+    id: 203,
+    uuid: 'rpt-inv-canonical-expiry',
+    code: 'batch_expiry_aging',
+    name: 'Batch Expiry Aging & Risk Report',
+    module: 'inventory',
+    category: 'compliance',
+    tier: 'live',
+    supports_export: true,
+    is_active: true,
+    description: 'Batch-level shelf-life tracking, expired stock quarantine, and value-at-risk aging brackets.',
+  },
+  {
+    id: 204,
+    uuid: 'rpt-inv-canonical-slowmoving',
+    code: 'slow_moving_stock',
+    name: 'Slow-Moving & Dead Stock Report',
+    module: 'inventory',
+    category: 'analytical',
+    tier: 'daily',
+    supports_export: true,
+    is_active: true,
+    description: 'SKUs with zero or low velocity over 30, 60, 90, and 180+ days with tied-up capital valuation.',
+  },
+  {
     id: 10,
     uuid: 'rpt-inv-01',
     code: 'stock_valuation',
@@ -279,6 +315,18 @@ export const ALL_REPORT_DEFINITIONS: ReportDefinition[] = [
 
   // PURCHASING
   {
+    id: 205,
+    uuid: 'rpt-pur-canonical-scorecard',
+    code: 'supplier_scorecard',
+    name: 'Supplier OTIF & Quality Scorecard',
+    module: 'purchasing',
+    category: 'analytical',
+    tier: 'daily',
+    supports_export: true,
+    is_active: true,
+    description: 'On-Time In-Full (OTIF) fulfillment rates, rejection percentages, and lead time SLA ratings per vendor.',
+  },
+  {
     id: 20,
     uuid: 'rpt-pur-01',
     code: 'purchase_summary',
@@ -316,6 +364,18 @@ export const ALL_REPORT_DEFINITIONS: ReportDefinition[] = [
   },
 
   // SALES & POS
+  {
+    id: 202,
+    uuid: 'rpt-sls-canonical-bestselling',
+    code: 'best_selling_products',
+    name: 'Best-Selling Products & SKU Velocity',
+    module: 'sales',
+    category: 'analytical',
+    tier: 'live',
+    supports_export: true,
+    is_active: true,
+    description: 'Top-performing SKUs ranked by revenue, volume, and gross margin with Pareto analysis.',
+  },
   {
     id: 30,
     uuid: 'rpt-sls-01',
@@ -468,6 +528,18 @@ export const ALL_REPORT_DEFINITIONS: ReportDefinition[] = [
   },
 
   // DELIVERY
+  {
+    id: 206,
+    uuid: 'rpt-del-canonical-master',
+    code: 'delivery_master',
+    name: 'Delivery Master & Logistics Hub',
+    module: 'delivery',
+    category: 'operational',
+    tier: 'live',
+    supports_export: true,
+    is_active: true,
+    description: 'Unified courier fulfillment, SLA transit times, return-to-origin (RTO) tracking, and COD reconciliation.',
+  },
   {
     id: 70,
     uuid: 'rpt-del-01',

@@ -71,6 +71,23 @@ const REPORT_ALIAS_MAP: Record<string, string> = {
   delivery_sla_history: 'courier_performance',
   converted_leads: 'lead_summary',
   lost_leads_analysis: 'lead_status_distribution',
+  // Canonical consolidations
+  production_summary: 'production_output',
+  best_selling: 'best_selling_products',
+  top_selling_products: 'best_selling_products',
+  fast_moving_products: 'best_selling_products',
+  expiry_aging: 'batch_expiry_aging',
+  expired_stock: 'batch_expiry_aging',
+  batch_expiry: 'batch_expiry_aging',
+  slow_moving: 'slow_moving_stock',
+  dead_stock: 'slow_moving_stock',
+  non_moving_stock: 'slow_moving_stock',
+  supplier_performance: 'supplier_scorecard',
+  vendor_performance: 'supplier_scorecard',
+  supplier_lead_time: 'supplier_scorecard',
+  supplier_otif: 'supplier_scorecard',
+  delivery_management: 'delivery_master',
+  dispatch_queue: 'delivery_master',
 };
 import { api, getAccessToken } from '../../lib/api/client';
 import * as XLSX from 'xlsx';
@@ -1342,7 +1359,7 @@ export const ReportsWorkspace: React.FC = () => {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {Object.entries(reportResult.summary).map(([key, value]) => {
                 const formattedKey = key.replace(/_/g, ' ');
-                const isMoney = key.includes('bdt') || key.includes('valuation') || key.includes('amount') || key.includes('revenue') || key.includes('profit') || key.includes('cost') || key.includes('incentive') || key.includes('cod') || key.includes('debit') || key.includes('credit');
+                const isMoney = key.includes('bdt') || key.includes('valuation') || key.includes('amount') || key.includes('revenue') || key.includes('profit') || key.includes('cost') || key.includes('incentive') || key.includes('cod') || key.includes('debit') || key.includes('credit') || key.includes('spend') || key.includes('value');
                 const numVal = parseFloat(String(value).replace(/,/g, ''));
                 const displayVal = isMoney && !isNaN(numVal) ? formatCurrency(numVal) : String(value);
                 return (

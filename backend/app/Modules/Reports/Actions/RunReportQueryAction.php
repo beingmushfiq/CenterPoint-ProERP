@@ -13,6 +13,8 @@ use App\Modules\Reports\Queries\AssetValuationNbvReportQuery;
 use App\Modules\Reports\Queries\AssignedAssetsReportQuery;
 use App\Modules\Reports\Queries\B2bSalesReportQuery;
 use App\Modules\Reports\Queries\B2cSalesReportQuery;
+use App\Modules\Reports\Queries\BatchExpiryAgingReportQuery;
+use App\Modules\Reports\Queries\BestSellingProductsReportQuery;
 use App\Modules\Reports\Queries\CancelledDeliveriesReportQuery;
 use App\Modules\Reports\Queries\CashBankLedgerReportQuery;
 use App\Modules\Reports\Queries\CodReconciliationReportQuery;
@@ -28,6 +30,7 @@ use App\Modules\Reports\Queries\DailySalesReportQuery;
 use App\Modules\Reports\Queries\DamagedStockReportQuery;
 use App\Modules\Reports\Queries\DefectCategorizationReportQuery;
 use App\Modules\Reports\Queries\DeliveredOrdersReportQuery;
+use App\Modules\Reports\Queries\DeliveryMasterReportQuery;
 use App\Modules\Reports\Queries\DeliverySlaHistoryReportQuery;
 use App\Modules\Reports\Queries\EmployeeDirectoryReportQuery;
 use App\Modules\Reports\Queries\FactoryWiseProductionReportQuery;
@@ -55,6 +58,7 @@ use App\Modules\Reports\Queries\ProductProfitReportQuery;
 use App\Modules\Reports\Queries\ProductPurchaseReportQuery;
 use App\Modules\Reports\Queries\ProductWiseProductionReportQuery;
 use App\Modules\Reports\Queries\ProductionEfficiencyReportQuery;
+use App\Modules\Reports\Queries\ProductionOutputReportQuery;
 use App\Modules\Reports\Queries\ProductionTargetVsAchievementReportQuery;
 use App\Modules\Reports\Queries\ProductionWastageScrapReportQuery;
 use App\Modules\Reports\Queries\ProductionYieldReportQuery;
@@ -78,6 +82,7 @@ use App\Modules\Reports\Queries\SalesmanProfitabilityReportQuery;
 use App\Modules\Reports\Queries\SalesmanQuotaAchievementReportQuery;
 use App\Modules\Reports\Queries\SalesmanRemainingTargetReportQuery;
 use App\Modules\Reports\Queries\ShiftWiseProductionReportQuery;
+use App\Modules\Reports\Queries\SlowMovingStockReportQuery;
 use App\Modules\Reports\Queries\StockLedgerReportQuery;
 use App\Modules\Reports\Queries\StockMovementReportQuery;
 use App\Modules\Reports\Queries\StockValuationReportQuery;
@@ -85,6 +90,7 @@ use App\Modules\Reports\Queries\SupplierApAgingReportQuery;
 use App\Modules\Reports\Queries\SupplierDueReportQuery;
 use App\Modules\Reports\Queries\SupplierPaymentHistoryReportQuery;
 use App\Modules\Reports\Queries\SupplierPurchaseReportQuery;
+use App\Modules\Reports\Queries\SupplierScorecardReportQuery;
 use App\Modules\Reports\Queries\TotalInputOutputReportQuery;
 use App\Modules\Reports\Queries\WarehouseStockReportQuery;
 use App\Modules\Reports\Queries\WarehouseTransferReportQuery;
@@ -108,6 +114,8 @@ class RunReportQueryAction
         'assigned_assets' => AssignedAssetsReportQuery::class,
         'b2b_sales' => B2bSalesReportQuery::class,
         'b2c_sales' => B2cSalesReportQuery::class,
+        'batch_expiry_aging' => BatchExpiryAgingReportQuery::class,
+        'best_selling_products' => BestSellingProductsReportQuery::class,
         'cancelled_deliveries' => CancelledDeliveriesReportQuery::class,
         'cash_bank_ledger' => CashBankLedgerReportQuery::class,
         'cod_reconciliation' => CodReconciliationReportQuery::class,
@@ -125,6 +133,7 @@ class RunReportQueryAction
         'damaged_stock' => DamagedStockReportQuery::class,
         'defect_categorization' => DefectCategorizationReportQuery::class,
         'delivered_orders' => DeliveredOrdersReportQuery::class,
+        'delivery_master' => DeliveryMasterReportQuery::class,
         'delivery_sla_history' => DeliverySlaHistoryReportQuery::class,
         'employee_directory' => EmployeeDirectoryReportQuery::class,
         'factory_wise_production' => FactoryWiseProductionReportQuery::class,
@@ -153,6 +162,7 @@ class RunReportQueryAction
         'product_sales' => SalesByProductReportQuery::class,
         'product_wise_production' => ProductWiseProductionReportQuery::class,
         'production_efficiency' => ProductionEfficiencyReportQuery::class,
+        'production_output' => ProductionOutputReportQuery::class,
         'production_target_vs_achievement' => ProductionTargetVsAchievementReportQuery::class,
         'production_wastage_scrap' => ProductionWastageScrapReportQuery::class,
         'production_yield' => ProductionYieldReportQuery::class,
@@ -177,6 +187,7 @@ class RunReportQueryAction
         'salesman_remaining_target' => SalesmanRemainingTargetReportQuery::class,
         'salesman_sales' => SalesBySalesmanReportQuery::class,
         'shift_wise_production' => ShiftWiseProductionReportQuery::class,
+        'slow_moving_stock' => SlowMovingStockReportQuery::class,
         'stock_ledger' => StockLedgerReportQuery::class,
         'stock_movement' => StockMovementReportQuery::class,
         'stock_valuation' => StockValuationReportQuery::class,
@@ -184,6 +195,7 @@ class RunReportQueryAction
         'supplier_due' => SupplierDueReportQuery::class,
         'supplier_payment_history' => SupplierPaymentHistoryReportQuery::class,
         'supplier_purchase' => SupplierPurchaseReportQuery::class,
+        'supplier_scorecard' => SupplierScorecardReportQuery::class,
         'total_input_output' => TotalInputOutputReportQuery::class,
         'warehouse_stock' => WarehouseStockReportQuery::class,
         'warehouse_transfer' => WarehouseTransferReportQuery::class,
@@ -193,7 +205,7 @@ class RunReportQueryAction
 
     public function execute(string $code, array $filters = [], int $page = 1, int $perPage = 25): array
     {
-        $aliases = [
+        $aliases = array_merge(ReportDefinition::CANONICAL_ALIASES, [
             'worker_piece_rate_summary' => 'worker_production',
             'salesman_profitability' => 'salesman_profit_contribution',
             'daily_sales' => 'sales_performance',
@@ -202,10 +214,12 @@ class RunReportQueryAction
             'delivery_sla_history' => 'courier_performance',
             'converted_leads' => 'lead_summary',
             'lost_leads_analysis' => 'lead_status_distribution',
-        ];
+        ]);
 
         $canonicalCode = $aliases[$code] ?? $code;
-        $definition = ReportDefinition::where('code', $canonicalCode)->first()
+        $definition = ReportDefinition::resolveDefinition($code)
+            ?? ReportDefinition::resolveDefinition($canonicalCode)
+            ?? ReportDefinition::where('code', $canonicalCode)->first()
             ?? ReportDefinition::where('code', $code)->first()
             ?? ReportDefinition::withoutTenantScope()->where('code', $canonicalCode)->first()
             ?? ReportDefinition::withoutTenantScope()->where('code', $code)->first();

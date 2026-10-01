@@ -140,6 +140,7 @@ export const REPORT_HUBS: ReportHub[] = [
     badgeTone: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/50 dark:text-blue-300',
     defaultCode: 'production_yield',
     views: [
+      { code: 'production_output', labelEn: 'Production Output & Efficiency', labelBn: 'উৎপাদন আউটপুট ও দক্ষতা' },
       { code: 'production_yield', labelEn: 'Yield Analysis', labelBn: 'ফলন বিশ্লেষণ' },
       { code: 'daily_production', labelEn: 'Daily Output', labelBn: 'দৈনিক উৎপাদন' },
       { code: 'monthly_production', labelEn: 'Monthly Trend', labelBn: 'মাসিক ধারা' },
@@ -194,6 +195,8 @@ export const REPORT_HUBS: ReportHub[] = [
     defaultCode: 'current_stock',
     views: [
       { code: 'current_stock', labelEn: 'Current Balances', labelBn: 'বর্তমান মজুদ' },
+      { code: 'batch_expiry_aging', labelEn: 'Expiry & Shelf-Life', labelBn: 'মেয়াদোত্তীর্ণ ও শেলফ-লাইফ' },
+      { code: 'slow_moving_stock', labelEn: 'Slow-Moving / Dead Stock', labelBn: 'ধীরগতির ও অবিক্রিত মজুদ' },
       { code: 'finished_goods_stock', labelEn: 'Finished Goods', labelBn: 'তৈরি পণ্য' },
       { code: 'raw_material_stock', labelEn: 'Raw Materials', labelBn: 'কাঁচামাল' },
       { code: 'warehouse_stock', labelEn: 'Warehouse Split', labelBn: 'গুদামভিত্তিক' },
@@ -260,8 +263,9 @@ export const REPORT_HUBS: ReportHub[] = [
     descBn: 'সরবরাহকারী ক্রয় ভলিউম, বকেয়া দেনা, প্রদেয় বিলের মেয়াদ ও পরিশোধের ইতিহাস।',
     iconName: 'Building2',
     badgeTone: 'bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-950/50 dark:text-orange-300',
-    defaultCode: 'supplier_purchase',
+    defaultCode: 'supplier_scorecard',
     views: [
+      { code: 'supplier_scorecard', labelEn: 'Supplier OTIF Scorecard', labelBn: 'সরবরাহকারী স্কোরকার্ড' },
       { code: 'supplier_purchase', labelEn: 'Purchases by Vendor', labelBn: 'ভেন্ডরভিত্তিক ক্রয়' },
       { code: 'supplier_due', labelEn: 'Outstanding Due', labelBn: 'বকেয়া দেনা' },
       { code: 'supplier_ap_aging', labelEn: 'AP Aging (30/60/90+)', labelBn: 'প্রদেয় বয়স বিশ্লেষণ' },
@@ -281,6 +285,7 @@ export const REPORT_HUBS: ReportHub[] = [
     badgeTone: 'bg-cyan-50 text-cyan-700 border-cyan-200 dark:bg-cyan-950/50 dark:text-cyan-300',
     defaultCode: 'sales_performance',
     views: [
+      { code: 'best_selling_products', labelEn: 'Best-Selling Products', labelBn: 'সর্বাধিক বিক্রিত পণ্য' },
       { code: 'sales_performance', labelEn: 'Overview & Daily Ledger', labelBn: 'সার্বিক ও দৈনিক খতিয়ান' },
       { code: 'monthly_sales', labelEn: 'Monthly Trend', labelBn: 'মাসিক বিক্রয়' },
       { code: 'pos_counter_sales', labelEn: 'POS Registers', labelBn: 'পিওএস কাউন্টার' },
@@ -362,8 +367,9 @@ export const REPORT_HUBS: ReportHub[] = [
     descBn: 'সম্পন্ন ডেলিভারি, ট্রানজিটে থাকা পার্সেল, রিটার্ন (RTO) ও বাতিলকৃত চালান।',
     iconName: 'Truck',
     badgeTone: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/50 dark:text-amber-300',
-    defaultCode: 'delivered_orders',
+    defaultCode: 'delivery_master',
     views: [
+      { code: 'delivery_master', labelEn: 'All Dispatches (Master)', labelBn: 'সকল চালান (মাস্টার)' },
       { code: 'delivered_orders', labelEn: 'Delivered Orders', labelBn: 'সফল ডেলিভারি' },
       { code: 'pending_deliveries', labelEn: 'Pending / In Transit', labelBn: 'অপেক্ষমাণ ও ট্রানজিট' },
       { code: 'returned_orders', labelEn: 'Returns (RTO)', labelBn: 'রিটার্ন পার্সেল' },

@@ -84,6 +84,10 @@ export const PRESET_TRANSLATIONS: Record<string, { en: string; bn: string }> = {
 
 export const REPORT_BN_TRANSLATIONS: Record<string, LocalizedMeta> = {
   // ── PRODUCTION ──
+  production_output: {
+    name: 'উৎপাদন আউটপুট ও দক্ষতা বিশ্লেষণ',
+    description: 'কারখানা, লাইন, শিফট ও পণ্যভিত্তিক সমন্বিত উৎপাদন ভলিউম, চক্র সময় ও লক্ষ্য অর্জন।',
+  },
   daily_production: {
     name: 'দৈনিক উৎপাদন প্রতিবেদন',
     description: 'লাইন ও শিফট অনুযায়ী পরিকল্পিত বনাম প্রকৃত উৎপাদনের দৈনিক হিসাব।',
@@ -134,6 +138,14 @@ export const REPORT_BN_TRANSLATIONS: Record<string, LocalizedMeta> = {
   },
 
   // ── INVENTORY ──
+  batch_expiry_aging: {
+    name: 'ব্যাচ মেয়াদোত্তীর্ণ ও শেলফ-লাইফ পর্যবেক্ষণ',
+    description: 'ইনভেন্টরি ব্যাচের মেয়াদ শেষ হওয়ার তারিখ, অবশিষ্ট শেলফ-লাইফ দিন এবং ঝুঁকিপূর্ণ মজুদের আর্থিক মূল্যায়ন।',
+  },
+  slow_moving_stock: {
+    name: 'ধীরগতির ও অবিক্রিত মজুদ বিশ্লেষণ',
+    description: 'নিষ্ক্রিয় ও অবিক্রিত ইনভেন্টরি ব্যাচ, আটকে থাকা চলতি মূলধন এবং নিষ্ক্রিয়তার ঝুঁকি পর্যায় চিহ্নিতকরণ।',
+  },
   stock_valuation: {
     name: 'মজুদ পণ্যের মূল্যায়ন ও বার্ধক্য',
     description: 'ফিফো/চলতি গড়ের ভিত্তিতে বর্তমান স্টকের আর্থিক মূল্য এবং হোল্ডিং খরচ।',
@@ -180,6 +192,10 @@ export const REPORT_BN_TRANSLATIONS: Record<string, LocalizedMeta> = {
   },
 
   // ── PURCHASING ──
+  supplier_scorecard: {
+    name: 'সরবরাহকারী পারফরম্যান্স ও ওটিআইএফ স্কোরকার্ড',
+    description: 'সময়মতো সরবরাহ %, পূর্ণমাত্রায় সরবরাহ %, সমন্বিত ওটিআইএফ রেট, গড় লিড টাইম ও পণ্য প্রত্যাখ্যান হার।',
+  },
   purchase_summary: {
     name: 'ক্রয় সারাংশ ও চালান ট্র্যাকিং',
     description: 'সরবরাহকারী পিও অনুমোদন, ডেলিভারি স্থিতি এবং পণ্য গ্রহণ নোট (জিআরএন)।',
@@ -210,6 +226,10 @@ export const REPORT_BN_TRANSLATIONS: Record<string, LocalizedMeta> = {
   },
 
   // ── SALES & POS ──
+  best_selling_products: {
+    name: 'সর্বাধিক বিক্রিত পণ্য ও এসকেইউ গতিশীলতা',
+    description: 'মোট রাজস্ব, বিক্রিত একক, মোট লাভ মার্জিন ও দৈনিক বিক্রয় গতির ভিত্তিতে সেরা পণ্যসমূহের র‍্যাঙ্কিং।',
+  },
   daily_sales: {
     name: 'দৈনিক বিক্রয় লগ',
     description: 'প্রতিদিনের সম্পন্ন বিক্রয়, ক্যাশ কালেকশন এবং চ্যানেল পারফরম্যান্স।',
@@ -326,6 +346,10 @@ export const REPORT_BN_TRANSLATIONS: Record<string, LocalizedMeta> = {
   },
 
   // ── DELIVERY & LOGISTICS ──
+  delivery_master: {
+    name: 'ডেলিভারি অপারেশনস ও এসএলএ মাস্টার',
+    description: 'অপেক্ষমাণ, সম্পন্ন, ফেরত এবং বাতিল পার্সেলের সামগ্রিক লজিস্টিক ট্র্যাকিং ও এসএলএ বিশ্লেষণ।',
+  },
   pending_deliveries: {
     name: 'অপেক্ষমাণ ডেলিভারি ও পার্সেল চালান',
     description: 'প্যাকিং সম্পন্ন কিন্তু এখনও কুরিয়ার বা গ্রাহকের কাছে না পৌঁছানো অর্ডারের তালিকা।',

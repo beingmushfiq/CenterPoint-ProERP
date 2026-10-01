@@ -1053,4 +1053,167 @@ class SalesDataProvider extends BaseDataProvider
             $query->where('so.party_id', $filters['party_id']);
         }
     }
+
+    /**
+     * Best-selling products ranked by revenue, volume, velocity, and gross margins.
+     */
+    public function bestSellingProducts(array $filters, int $page = 1, int $perPage = 25): array
+    {
+        $tenantId = $this->getTenantId();
+
+        $query = DB::table('sales_order_items as soi')
+            ->join('sales_orders as so', 'soi.sales_order_id', '=', 'so.id')
+            ->join('products as p', 'soi.product_id', '=', 'p.id')
+            ->leftJoin('categories as c', 'p.category_id', '=', 'c.id')
+            ->leftJoin('brands as b', 'p.brand_id', '=', 'b.id')
+            ->where('soi.tenant_id', $tenantId)
+            ->whereNull('so.deleted_at')
+            ->whereNull('soi.deleted_at')
+            ->groupBy(['p.id', 'p.sku', 'p.name', 'c.name', 'b.name', 'p.standard_cost'])
+            ->select([
+                'p.id as product_id',
+                'p.sku',
+                'p.name as product_name',
+                DB::raw("COALESCE(c.name, 'Uncategorized') as category_name"),
+                DB::raw("COALESCE(b.name, '—') as brand_name"),
+                'p.standard_cost',
+                DB::raw('COUNT(DISTINCT so.id) as total_orders'),
+                DB::raw('SUM(soi.quantity) as total_quantity_sold'),
+                DB::raw('SUM(soi.line_total) as total_revenue'),
+                DB::raw('SUM(soi.quantity * COALESCE(p.standard_cost, 0)) as total_cogs'),
+            ]);
+
+        $this->applyFilters($query, $filters);
+
+        if (!empty($filters['category_id'])) {
+            $query->where('p.category_id', $filters['category_id']);
+        }
+        if (!empty($filters['brand_id'])) {
+            $query->where('p.brand_id', $filters['brand_id']);
+        }
+
+        // Calculate total catalog revenue in window to determine % share
+        $catalogRevenue = (float) (DB::table(DB::raw("({$query->toSql()}) as catalog_sub"))
+            ->mergeBindings($query)
+            ->sum('total_revenue') ?: 1.0);
+
+        $totalCount = DB::table(DB::raw("({$query->toSql()}) as sub"))
+            ->mergeBindings($query)
+            ->count();
+
+        // Dynamic Sorting
+        $sortBy = $filters['sort_by'] ?? 'revenue';
+        $sortOrder = strtolower($filters['sort_order'] ?? 'desc') === 'asc' ? 'asc' : 'desc';
+
+        match ($sortBy) {
+            'quantity', 'units' => $query->orderBy('total_quantity_sold', $sortOrder),
+            'profit' => $query->orderBy(DB::raw('SUM(soi.line_total) - SUM(soi.quantity * COALESCE(p.standard_cost, 0))'), $sortOrder),
+            'orders' => $query->orderBy('total_orders', $sortOrder),
+            default => $query->orderBy('total_revenue', $sortOrder),
+        };
+
+        // Determine days in period for run-rate / velocity
+        $startDate = !empty($filters['start_date']) ? strtotime((string) $filters['start_date']) : null;
+        $endDate = !empty($filters['end_date']) ? strtotime((string) $filters['end_date']) : time();
+        $daysInPeriod = ($startDate && $endDate && $endDate >= $startDate)
+            ? max(1, (int) round(($endDate - $startDate) / 86400) + 1)
+            : 30;
+
+        $rankOffset = ($page - 1) * $perPage;
+
+        $rows = $query
+            ->forPage($page, $perPage)
+            ->get()
+            ->map(function ($row, int $idx) use ($rankOffset, $catalogRevenue, $daysInPeriod): array {
+                $revenue = (float) $row->total_revenue;
+                $cogs = (float) $row->total_cogs;
+                $profit = $revenue - $cogs;
+                $margin = $revenue > 0 ? round(($profit / $revenue) * 100, 2) : 0.0;
+                $units = (float) $row->total_quantity_sold;
+                $orders = (int) $row->total_orders;
+                $avgPrice = $units > 0 ? round($revenue / $units, 2) : 0.0;
+                $velocity = round($units / $daysInPeriod, 2);
+                $share = $catalogRevenue > 0 ? round(($revenue / $catalogRevenue) * 100, 2) : 0.0;
+                $rank = $rankOffset + $idx + 1;
+
+                $tier = 'steady';
+                if ($rank <= 5 || $velocity >= 10.0) {
+                    $tier = 'fast_moving';
+                } elseif ($velocity <= 0.5) {
+                    $tier = 'slow_moving';
+                }
+
+                return [
+                    'rank' => $rank,
+                    'sku' => $row->sku,
+                    'product_name' => $row->product_name,
+                    'category' => $row->category_name,
+                    'brand' => $row->brand_name,
+                    'orders_count' => $orders,
+                    'units_sold' => $units,
+                    'avg_selling_price' => $avgPrice,
+                    'total_revenue' => $revenue,
+                    'total_cogs' => $cogs,
+                    'gross_profit' => $profit,
+                    'margin_percent' => $margin,
+                    'sales_velocity' => $velocity,
+                    'revenue_share_percent' => $share,
+                    'velocity_tier' => $tier,
+                ];
+            })
+            ->all();
+
+        return [
+            'data' => $rows,
+            'total' => $totalCount,
+            'current_page' => $page,
+            'per_page' => $perPage,
+        ];
+    }
+
+    /**
+     * Aggregated summary for best selling products view.
+     */
+    public function bestSellingSummary(array $filters): array
+    {
+        $tenantId = $this->getTenantId();
+
+        $query = DB::table('sales_order_items as soi')
+            ->join('sales_orders as so', 'soi.sales_order_id', '=', 'so.id')
+            ->join('products as p', 'soi.product_id', '=', 'p.id')
+            ->where('soi.tenant_id', $tenantId)
+            ->whereNull('so.deleted_at')
+            ->whereNull('soi.deleted_at');
+
+        $this->applyFilters($query, $filters);
+
+        if (!empty($filters['category_id'])) {
+            $query->where('p.category_id', $filters['category_id']);
+        }
+        if (!empty($filters['brand_id'])) {
+            $query->where('p.brand_id', $filters['brand_id']);
+        }
+
+        $stats = $query->select([
+            DB::raw('COUNT(DISTINCT soi.product_id) as total_products_sold'),
+            DB::raw('COALESCE(SUM(soi.quantity), 0) as total_units_sold'),
+            DB::raw('COALESCE(SUM(soi.line_total), 0) as total_revenue'),
+            DB::raw('COALESCE(SUM(soi.quantity * COALESCE(p.standard_cost, 0)), 0) as total_cogs'),
+            DB::raw('COUNT(DISTINCT so.id) as total_orders'),
+        ])->first();
+
+        $revenue = (float) ($stats->total_revenue ?? 0);
+        $cogs = (float) ($stats->total_cogs ?? 0);
+        $profit = $revenue - $cogs;
+        $margin = $revenue > 0 ? round(($profit / $revenue) * 100, 2) : 0.0;
+
+        return [
+            'total_products_sold' => (int) ($stats->total_products_sold ?? 0),
+            'total_units_sold' => (float) ($stats->total_units_sold ?? 0),
+            'total_revenue' => $revenue,
+            'total_gross_profit' => $profit,
+            'overall_margin_percentage' => $margin,
+            'total_orders' => (int) ($stats->total_orders ?? 0),
+        ];
+    }
 }

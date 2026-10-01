@@ -744,4 +744,297 @@ class InventoryDataProvider extends BaseDataProvider
             $query->where('p.category_id', $filters['category_id']);
         }
     }
+
+    /**
+     * Batch Expiry & Shelf-Life Aging analysis.
+     * Evaluates expiration dates across goods receipt items, production outputs, and stock movements.
+     */
+    public function batchExpiryAging(array $filters, int $page = 1, int $perPage = 25): array
+    {
+        $tenantId = $this->getTenantId();
+
+        // Subquery to find earliest recorded expiry_date per batch_code
+        $expirySub = DB::table('stock_movements')
+            ->where('tenant_id', $tenantId)
+            ->whereNotNull('expiry_date')
+            ->whereNotNull('batch_code')
+            ->groupBy(['product_id', 'batch_code'])
+            ->select([
+                'product_id',
+                'batch_code',
+                DB::raw('MIN(expiry_date) as resolved_expiry_date'),
+            ]);
+
+        $query = DB::table('stock_balances as sb')
+            ->join('products as p', 'sb.product_id', '=', 'p.id')
+            ->join('warehouses as w', 'sb.warehouse_id', '=', 'w.id')
+            ->leftJoin('categories as c', 'p.category_id', '=', 'c.id')
+            ->leftJoinSub($expirySub, 'exp', function ($join) {
+                $join->on('sb.product_id', '=', 'exp.product_id')
+                    ->on('sb.batch_code', '=', 'exp.batch_code');
+            })
+            ->where('sb.tenant_id', $tenantId)
+            ->where('sb.quantity', '>', 0)
+            ->select([
+                'sb.id as balance_id',
+                'p.sku',
+                'p.name as product_name',
+                DB::raw("COALESCE(c.name, 'Uncategorized') as category_name"),
+                'w.name as warehouse_name',
+                'sb.batch_code',
+                'sb.stock_state',
+                'sb.quantity',
+                DB::raw('COALESCE(sb.average_cost, p.standard_cost, 0) as unit_cost'),
+                DB::raw('COALESCE(sb.total_value, (sb.quantity * COALESCE(p.standard_cost, 0))) as total_value'),
+                'exp.resolved_expiry_date as expiry_date',
+            ]);
+
+        $this->applyBalanceFilters($query, $filters);
+
+        if (!empty($filters['stock_state'])) {
+            $query->where('sb.stock_state', $filters['stock_state']);
+        }
+        if (!empty($filters['product_type'])) {
+            $query->where('p.type', $filters['product_type']);
+        }
+
+        // Portable date-based filtering
+        $today = date('Y-m-d');
+        $criticalDate = date('Y-m-d', strtotime('+15 days'));
+        $nearDate = date('Y-m-d', strtotime('+45 days'));
+        $bucket = $filters['expiry_bucket'] ?? 'all';
+
+        if ($bucket === 'expired') {
+            $query->whereNotNull('exp.resolved_expiry_date')
+                ->where('exp.resolved_expiry_date', '<', $today);
+        } elseif ($bucket === 'critical') {
+            $query->whereNotNull('exp.resolved_expiry_date')
+                ->where('exp.resolved_expiry_date', '>=', $today)
+                ->where('exp.resolved_expiry_date', '<=', $criticalDate);
+        } elseif ($bucket === 'near_expiry') {
+            $query->whereNotNull('exp.resolved_expiry_date')
+                ->where('exp.resolved_expiry_date', '<=', $nearDate);
+        }
+
+        $totalCount = DB::table(DB::raw("({$query->toSql()}) as sub"))
+            ->mergeBindings($query)
+            ->count();
+
+        $rows = $query
+            ->orderByRaw("CASE WHEN exp.resolved_expiry_date IS NULL THEN 1 ELSE 0 END")
+            ->orderBy('exp.resolved_expiry_date', 'asc')
+            ->forPage($page, $perPage)
+            ->get()
+            ->map(function ($row): array {
+                $days = null;
+                if (!empty($row->expiry_date) && $row->expiry_date !== '—') {
+                    $expTime = strtotime((string) $row->expiry_date);
+                    $nowTime = strtotime(date('Y-m-d'));
+                    $days = (int) round(($expTime - $nowTime) / 86400);
+                }
+
+                $status = 'healthy';
+                if ($days === null) {
+                    $status = 'shelf_stable';
+                } elseif ($days < 0) {
+                    $status = 'expired';
+                } elseif ($days <= 15) {
+                    $status = 'critical';
+                } elseif ($days <= 45) {
+                    $status = 'near_expiry';
+                }
+
+                return [
+                    'sku' => $row->sku,
+                    'product_name' => $row->product_name,
+                    'category' => $row->category_name,
+                    'warehouse' => $row->warehouse_name,
+                    'batch_code' => $row->batch_code ?? '—',
+                    'stock_state' => $row->stock_state ?? 'available',
+                    'quantity' => (float) $row->quantity,
+                    'unit_cost' => (float) $row->unit_cost,
+                    'total_value' => (float) $row->total_value,
+                    'expiry_date' => $row->expiry_date ?? '—',
+                    'days_remaining' => $days !== null ? $days : '—',
+                    'expiry_status' => $status,
+                ];
+            })
+            ->all();
+
+        return [
+            'data' => $rows,
+            'total' => $totalCount,
+            'current_page' => $page,
+            'per_page' => $perPage,
+        ];
+    }
+
+    /**
+     * Aggregated metrics for batch expiry view.
+     */
+    public function batchExpirySummary(array $filters): array
+    {
+        $tenantId = $this->getTenantId();
+        $today = date('Y-m-d');
+        $nearDate = date('Y-m-d', strtotime('+45 days'));
+
+        $expirySub = DB::table('stock_movements')
+            ->where('tenant_id', $tenantId)
+            ->whereNotNull('expiry_date')
+            ->whereNotNull('batch_code')
+            ->groupBy(['product_id', 'batch_code'])
+            ->select([
+                'product_id',
+                'batch_code',
+                DB::raw('MIN(expiry_date) as resolved_expiry_date'),
+            ]);
+
+        $query = DB::table('stock_balances as sb')
+            ->join('products as p', 'sb.product_id', '=', 'p.id')
+            ->leftJoinSub($expirySub, 'exp', function ($join) {
+                $join->on('sb.product_id', '=', 'exp.product_id')
+                    ->on('sb.batch_code', '=', 'exp.batch_code');
+            })
+            ->where('sb.tenant_id', $tenantId)
+            ->where('sb.quantity', '>', 0);
+
+        $this->applyBalanceFilters($query, $filters);
+
+        $stats = $query->select([
+            DB::raw('COUNT(DISTINCT sb.id) as total_batch_records'),
+            DB::raw('COALESCE(SUM(sb.quantity), 0) as total_quantity'),
+            DB::raw("COALESCE(SUM(CASE WHEN exp.resolved_expiry_date < '{$today}' THEN sb.total_value ELSE 0 END), 0) as expired_valuation"),
+            DB::raw("COALESCE(SUM(CASE WHEN exp.resolved_expiry_date <= '{$nearDate}' THEN sb.total_value ELSE 0 END), 0) as value_at_risk"),
+            DB::raw("COUNT(CASE WHEN exp.resolved_expiry_date < '{$today}' THEN 1 END) as expired_batches_count"),
+        ])->first();
+
+        return [
+            'total_batch_records' => (int) ($stats->total_batch_records ?? 0),
+            'total_quantity' => (float) ($stats->total_quantity ?? 0),
+            'expired_valuation' => (float) ($stats->expired_valuation ?? 0),
+            'value_at_risk' => (float) ($stats->value_at_risk ?? 0),
+            'expired_batches_count' => (int) ($stats->expired_batches_count ?? 0),
+        ];
+    }
+
+    /**
+     * Slow-Moving & Dead Stock analysis.
+     * Evaluates inventory balances where last_movement_at exceeds the idle threshold.
+     */
+    public function slowMovingStock(array $filters, int $page = 1, int $perPage = 25): array
+    {
+        $tenantId = $this->getTenantId();
+        $daysThreshold = (int) ($filters['idle_days'] ?? 30);
+        $thresholdDate = date('Y-m-d H:i:s', strtotime("-{$daysThreshold} days"));
+
+        $query = DB::table('stock_balances as sb')
+            ->join('products as p', 'sb.product_id', '=', 'p.id')
+            ->join('warehouses as w', 'sb.warehouse_id', '=', 'w.id')
+            ->leftJoin('categories as c', 'p.category_id', '=', 'c.id')
+            ->where('sb.tenant_id', $tenantId)
+            ->where('sb.quantity', '>', 0)
+            ->where(function ($q) use ($thresholdDate) {
+                $q->whereNull('sb.last_movement_at')
+                    ->orWhere('sb.last_movement_at', '<=', $thresholdDate);
+            })
+            ->select([
+                'p.sku',
+                'p.name as product_name',
+                DB::raw("COALESCE(c.name, 'Uncategorized') as category_name"),
+                'w.name as warehouse_name',
+                'sb.batch_code',
+                'sb.stock_state',
+                'sb.quantity',
+                DB::raw('COALESCE(sb.average_cost, p.standard_cost, 0) as unit_cost'),
+                DB::raw('COALESCE(sb.total_value, (sb.quantity * COALESCE(p.standard_cost, 0))) as total_value'),
+                'sb.last_movement_at',
+                'sb.created_at',
+            ]);
+
+        $this->applyBalanceFilters($query, $filters);
+
+        if (!empty($filters['product_type'])) {
+            $query->where('p.type', $filters['product_type']);
+        }
+
+        $totalCount = DB::table(DB::raw("({$query->toSql()}) as sub"))
+            ->mergeBindings($query)
+            ->count();
+
+        $rows = $query
+            ->orderBy('sb.total_value', 'desc')
+            ->forPage($page, $perPage)
+            ->get()
+            ->map(function ($row): array {
+                $lastActivity = $row->last_movement_at ?? $row->created_at;
+                $idleDays = $lastActivity
+                    ? max(0, (int) round((time() - strtotime((string) $lastActivity)) / 86400))
+                    : 90;
+
+                $risk = 'moderate';
+                if ($idleDays >= 180) {
+                    $risk = 'critical_dead';
+                } elseif ($idleDays >= 90) {
+                    $risk = 'high_risk';
+                } elseif ($idleDays >= 60) {
+                    $risk = 'elevated_risk';
+                }
+
+                return [
+                    'sku' => $row->sku,
+                    'product_name' => $row->product_name,
+                    'category' => $row->category_name,
+                    'warehouse' => $row->warehouse_name,
+                    'batch_code' => $row->batch_code ?? '—',
+                    'stock_state' => $row->stock_state ?? 'available',
+                    'quantity' => (float) $row->quantity,
+                    'unit_cost' => (float) $row->unit_cost,
+                    'total_value' => (float) $row->total_value,
+                    'last_movement_at' => $lastActivity ? date('Y-m-d', strtotime((string) $lastActivity)) : '—',
+                    'days_idle' => $idleDays,
+                    'risk_level' => $risk,
+                ];
+            })
+            ->all();
+
+        return [
+            'data' => $rows,
+            'total' => $totalCount,
+            'current_page' => $page,
+            'per_page' => $perPage,
+        ];
+    }
+
+    /**
+     * Aggregated summary for slow moving stock.
+     */
+    public function slowMovingSummary(array $filters): array
+    {
+        $tenantId = $this->getTenantId();
+        $daysThreshold = (int) ($filters['idle_days'] ?? 30);
+        $thresholdDate = date('Y-m-d H:i:s', strtotime("-{$daysThreshold} days"));
+
+        $query = DB::table('stock_balances as sb')
+            ->join('products as p', 'sb.product_id', '=', 'p.id')
+            ->where('sb.tenant_id', $tenantId)
+            ->where('sb.quantity', '>', 0)
+            ->where(function ($q) use ($thresholdDate) {
+                $q->whereNull('sb.last_movement_at')
+                    ->orWhere('sb.last_movement_at', '<=', $thresholdDate);
+            });
+
+        $this->applyBalanceFilters($query, $filters);
+
+        $stats = $query->select([
+            DB::raw('COUNT(DISTINCT sb.product_id) as total_idle_skus'),
+            DB::raw('COALESCE(SUM(sb.quantity), 0) as total_idle_quantity'),
+            DB::raw('COALESCE(SUM(sb.total_value), 0) as total_idle_value'),
+        ])->first();
+
+        return [
+            'total_idle_skus' => (int) ($stats->total_idle_skus ?? 0),
+            'total_idle_quantity' => (float) ($stats->total_idle_quantity ?? 0),
+            'total_idle_value' => (float) ($stats->total_idle_value ?? 0),
+        ];
+    }
 }

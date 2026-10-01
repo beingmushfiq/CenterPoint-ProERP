@@ -21,6 +21,15 @@ final class ReportDefinitionsTableSeeder extends Seeder
             // 1. PRODUCTION REPORTS
             // ==========================================
             [
+                'code' => 'production_output',
+                'name' => 'Production Output & Efficiency Analysis',
+                'module' => 'production',
+                'category' => 'operational',
+                'tier' => 'live',
+                'description' => 'Comprehensive manufacturing output, cycle times, efficiency, and target achievement across lines, products, and factories.',
+                'required_permission' => 'production.view',
+            ],
+            [
                 'code' => 'daily_production',
                 'name' => 'Daily Production Report',
                 'module' => 'production',
@@ -133,6 +142,24 @@ final class ReportDefinitionsTableSeeder extends Seeder
             // 2. INVENTORY & WAREHOUSE REPORTS
             // ==========================================
             [
+                'code' => 'batch_expiry_aging',
+                'name' => 'Batch Expiry & Shelf-Life Aging',
+                'module' => 'inventory',
+                'category' => 'compliance',
+                'tier' => 'daily',
+                'description' => 'Inventory batch expiration monitoring, remaining shelf-life days, critical expiry risk alerts, and valuation.',
+                'required_permission' => 'inventory.view',
+            ],
+            [
+                'code' => 'slow_moving_stock',
+                'name' => 'Slow-Moving & Dead Stock Analyzer',
+                'module' => 'inventory',
+                'category' => 'analytical',
+                'tier' => 'daily',
+                'description' => 'Identify non-moving and stagnant inventory batches, tied-up working capital, and inactivity aging tiers.',
+                'required_permission' => 'inventory.view',
+            ],
+            [
                 'code' => 'stock_valuation',
                 'name' => 'Warehouse Stock Valuation & Aging',
                 'module' => 'inventory',
@@ -236,6 +263,15 @@ final class ReportDefinitionsTableSeeder extends Seeder
             // 3. PURCHASE & PROCUREMENT REPORTS
             // ==========================================
             [
+                'code' => 'supplier_scorecard',
+                'name' => 'Supplier Performance & OTIF Scorecard',
+                'module' => 'purchasing',
+                'category' => 'executive',
+                'tier' => 'live',
+                'description' => 'Vendor evaluation tracking on-time delivery %, in-full fulfillment %, composite OTIF score, lead times, and rejection rates.',
+                'required_permission' => 'purchasing.view',
+            ],
+            [
                 'code' => 'purchase_summary',
                 'name' => 'Purchase Order (PO) Summary',
                 'module' => 'purchasing',
@@ -302,6 +338,15 @@ final class ReportDefinitionsTableSeeder extends Seeder
             // ==========================================
             // 4. SALES & POS REPORTS
             // ==========================================
+            [
+                'code' => 'best_selling_products',
+                'name' => 'Best-Selling Products & SKU Velocity',
+                'module' => 'sales',
+                'category' => 'analytical',
+                'tier' => 'live',
+                'description' => 'Top selling products ranked by revenue, units sold, gross profit margins, and daily sales velocity tier.',
+                'required_permission' => 'sales.view',
+            ],
             [
                 'code' => 'daily_sales',
                 'name' => 'Daily Sales & Revenue Ledger',
@@ -561,6 +606,15 @@ final class ReportDefinitionsTableSeeder extends Seeder
             // ==========================================
             // 8. DELIVERY & LOGISTICS REPORTS
             // ==========================================
+            [
+                'code' => 'delivery_master',
+                'name' => 'Delivery Operations & SLA Master',
+                'module' => 'delivery',
+                'category' => 'operational',
+                'tier' => 'live',
+                'description' => 'End-to-end dispatch and courier delivery tracking across pending, completed, returned, and SLA status.',
+                'required_permission' => 'delivery.view',
+            ],
             [
                 'code' => 'pending_deliveries',
                 'name' => 'Pending Deliveries & Dispatch Queue',
@@ -823,6 +877,9 @@ final class ReportDefinitionsTableSeeder extends Seeder
         ];
 
         foreach ($reports as $r) {
+            $canonicalCode = ReportDefinition::CANONICAL_ALIASES[$r['code']] ?? null;
+            $isActive = ($canonicalCode === null);
+
             ReportDefinition::updateOrCreate(
                 [
                     'tenant_id' => 1,
@@ -830,6 +887,7 @@ final class ReportDefinitionsTableSeeder extends Seeder
                 ],
                 [
                     'uuid' => (string) Str::uuid(),
+                    'canonical_code' => $canonicalCode,
                     'name' => $r['name'],
                     'module' => $r['module'],
                     'category' => $r['category'],
@@ -837,7 +895,7 @@ final class ReportDefinitionsTableSeeder extends Seeder
                     'required_permission' => $r['required_permission'],
                     'supports_export' => true,
                     'tier' => $r['tier'],
-                    'is_active' => true,
+                    'is_active' => $isActive,
                 ]
             );
         }
