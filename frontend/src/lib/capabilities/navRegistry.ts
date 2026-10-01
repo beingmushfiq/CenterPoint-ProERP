@@ -669,13 +669,6 @@ export const PLATFORM_NAV_DEFINITIONS: DynamicNavSection[] = [
             group: 'Planning & Batches',
           },
           {
-            id: 'prod-kiosk',
-            defaultLabel: 'Shop Floor Kiosk',
-            to: '/production?tab=kiosk',
-            icon: LayoutDashboard,
-            group: 'Shop Floor Execution',
-          },
-          {
             id: 'prod-timesheets',
             defaultLabel: 'Worker Run Sheets',
             to: '/production?tab=timesheets',

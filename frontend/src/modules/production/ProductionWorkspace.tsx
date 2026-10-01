@@ -5,7 +5,6 @@ import {
   ClipboardList,
   Factory,
   Users,
-  Monitor,
   Compass,
   Zap,
   Workflow,
@@ -18,7 +17,6 @@ import { ProductionPlansSection } from './sections/ProductionPlansSection';
 import { ProductionBatchesSection } from './sections/ProductionBatchesSection';
 import { WorkerProductionSection } from './sections/WorkerProductionSection';
 import { ManufacturingVarianceRadar } from './components/ManufacturingVarianceRadar';
-import { ProductionFloorKioskView } from './components/ProductionFloorKioskView';
 import { LaunchBatchModal } from './modals/LaunchBatchModal';
 import { RecordBatchOutputModal } from './modals/RecordBatchOutputModal';
 
@@ -45,7 +43,6 @@ const VALID_TABS: readonly ProductionTab[] = ['plans', 'batches', 'worker-entrie
 export default function ProductionWorkspace() {
   const { t } = useTranslation(['production', 'common']);
   const [activeTab, setActiveTab] = useWorkspaceTab<ProductionTab>('plans', VALID_TABS);
-  const [isKioskOpen, setIsKioskOpen] = useState(false);
   const [isGuideOpen, setIsGuideOpen] = useState(false);
   const [isLaunchModalOpen, setIsLaunchModalOpen] = useState(false);
   const [isOutputModalOpen, setIsOutputModalOpen] = useState(false);
@@ -140,9 +137,6 @@ export default function ProductionWorkspace() {
 
   const currentTab = tabs.find((t) => t.id === activeTab) ?? tabs[1]!;
 
-  if (isKioskOpen) {
-    return <ProductionFloorKioskView onExit={() => setIsKioskOpen(false)} />;
-  }
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto py-2">
@@ -199,16 +193,6 @@ export default function ProductionWorkspace() {
             <span>{t('production.exploreCapabilities')}</span>
           </Button>
 
-          {/* Kiosk Mode Launcher */}
-          <button
-            type="button"
-            onClick={() => setIsKioskOpen(true)}
-            className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold bg-surface-raised hover:bg-surface text-default border border-default shadow-2xs hover:border-primary/50 transition-all cursor-pointer"
-            title="Launch full-screen high-contrast display for wall-mounted TVs on the shop floor"
-          >
-            <Monitor className="size-4 text-primary" />
-            <span>{t('production.floorKioskMode')}</span>
-          </button>
         </div>
       </div>
 
@@ -319,21 +303,6 @@ export default function ProductionWorkspace() {
               </p>
             </div>
 
-            {/* Kiosk Mode */}
-            <div className="p-3 rounded-xl border border-primary/30 bg-primary-subtle/30 space-y-1.5">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-1.5 font-bold text-primary">
-                  <Monitor className="size-4 text-primary" />
-                  <span>{t('production.guideKioskTitle')}</span>
-                </div>
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-surface border border-primary/20 text-primary">
-                  {t('production.guideKioskBadge')}
-                </span>
-              </div>
-              <p className="text-muted">
-                {t('production.guideKioskDesc')}
-              </p>
-            </div>
           </div>
 
           <div className="pt-2 flex justify-between items-center border-t border-default">
