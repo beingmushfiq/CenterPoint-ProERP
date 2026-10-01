@@ -41,10 +41,39 @@ final class CreateDeliveryOrderAction
     public function execute(array $data): DeliveryOrder
     {
         return DB::transaction(function () use ($data): DeliveryOrder {
-            $deliveryNumber = $data['delivery_number'] ?? ('DO-' . date('Ymd') . '-' . strtoupper(Str::random(6)));
+            $tenantId = $data['tenant_id'];
+            $deliveryNumber = $data['delivery_number'] ?? null;
+
+            $monthPrefix = 'DO-' . date('Ym') . '-';
+            $existingNumbers = DB::table('delivery_orders')
+                ->where('tenant_id', $tenantId)
+                ->where('delivery_number', 'like', $monthPrefix . '%')
+                ->pluck('delivery_number')
+                ->all();
+
+            if (empty($deliveryNumber) || in_array($deliveryNumber, $existingNumbers, true)) {
+                $maxSeq = 0;
+                foreach ($existingNumbers as $num) {
+                    if (preg_match('/-(\d+)$/', (string) $num, $matches)) {
+                        $val = (int) $matches[1];
+                        if ($val > $maxSeq) {
+                            $maxSeq = $val;
+                        }
+                    }
+                }
+
+                $nextSeq = $maxSeq + 1;
+                $candidate = $monthPrefix . str_pad((string) $nextSeq, 3, '0', STR_PAD_LEFT);
+                while (in_array($candidate, $existingNumbers, true)) {
+                    $nextSeq++;
+                    $candidate = $monthPrefix . str_pad((string) $nextSeq, 3, '0', STR_PAD_LEFT);
+                }
+
+                $deliveryNumber = $candidate;
+            }
 
             $delivery = DeliveryOrder::create([
-                'tenant_id'           => $data['tenant_id'],
+                'tenant_id'           => $tenantId,
                 'delivery_number'     => $deliveryNumber,
                 'sales_order_id'      => $data['sales_order_id'],
                 'invoice_id'          => $data['invoice_id'] ?? null,
