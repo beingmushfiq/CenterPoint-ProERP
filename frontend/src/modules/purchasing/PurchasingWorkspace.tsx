@@ -345,7 +345,7 @@ export default function PurchasingWorkspace() {
       </div>
 
       {/* Universal Quick-Action Ribbon */}
-      <div className="flex items-center gap-2.5 p-2 rounded-2xl bg-surface border border-default shadow-xs flex-wrap">
+      <div className="flex items-center justify-center gap-2.5 p-2 rounded-2xl bg-surface border border-default shadow-xs flex-wrap">
         <button
           type="button"
           onClick={() => setShowFastPoModal(true)}
