@@ -17,26 +17,35 @@ final class StorefrontTableSeeder extends Seeder
 {
     public function run(): void
     {
-        // Clean up any misallocated storefront record under tenant #1 for demoerp
-        $misallocated = Storefront::withoutTenantScope()->where('id', 3)->where('tenant_id', 1)->first();
-        if ($misallocated) {
-            \Illuminate\Support\Facades\DB::table('carts')->where('storefront_id', 3)->delete();
-            \Illuminate\Support\Facades\DB::table('storefront_products')->where('storefront_id', 3)->delete();
-            \Illuminate\Support\Facades\DB::table('storefront_pages')->where('storefront_id', 3)->delete();
-            $misallocated->forceDelete();
+        // ── 1. CLEAN UP EXTRANEOUS STOREFRONTS AND DISARM UNIQUE CONSTRAINTS ──
+        // Purge any extraneous or duplicate storefront records beyond id 1 and 2
+        $extraStorefronts = Storefront::withoutTenantScope()->withTrashed()->whereNotIn('id', [1, 2])->get();
+        foreach ($extraStorefronts as $extra) {
+            foreach (['carts', 'storefront_products', 'storefront_pages', 'wishlists', 'product_reviews', 'shipping_zones', 'coupons'] as $table) {
+                if (\Illuminate\Support\Facades\Schema::hasTable($table)) {
+                    \Illuminate\Support\Facades\DB::table($table)->where('storefront_id', $extra->id)->delete();
+                }
+            }
+            $extra->forceDelete();
         }
 
-        // ── 1. Restore any trashed storefronts for slicemart or demoerp ──
+        // Restore any trashed storefronts for id 1 and 2
         Storefront::withoutTenantScope()
             ->withTrashed()
             ->whereIn('id', [1, 2])
             ->restore();
 
-        // Clean up legacy test tenant subdomain on storefront #2 if present
-        Storefront::withoutTenantScope()
-            ->where('subdomain', 'testtenant99')
-            ->where('id', '!=', 2)
-            ->delete();
+        // Release unique constraints (subdomain, domain, code) on existing storefronts to avoid swap deadlocks in MySQL
+        $existing = Storefront::withoutTenantScope()->withTrashed()->get();
+        foreach ($existing as $sf) {
+            \Illuminate\Support\Facades\DB::table('storefronts')
+                ->where('id', $sf->id)
+                ->update([
+                    'subdomain' => 'tmp_' . $sf->id . '_' . Str::random(8),
+                    'domain' => null,
+                    'code' => 'TMP_' . $sf->id . '_' . Str::random(8),
+                ]);
+        }
 
         $couriers = [
             [
@@ -76,7 +85,7 @@ final class StorefrontTableSeeder extends Seeder
             ?? Warehouse::first();
 
         $slicemartStorefront = Storefront::withoutTenantScope()->withTrashed()->where('id', 1)->first()
-            ?? Storefront::withoutTenantScope()->withTrashed()->where('subdomain', 'slicemart')->first();
+            ?? Storefront::withoutTenantScope()->withTrashed()->where('tenant_id', $slicemartTenant->id)->first();
 
         $slicemartData = [
             'tenant_id' => $slicemartTenant->id,
@@ -132,6 +141,31 @@ final class StorefrontTableSeeder extends Seeder
             $slicemartStorefront = Storefront::create(array_merge($slicemartData, [
                 'uuid' => (string) Str::uuid(),
             ]));
+        }
+
+        // Ensure SliceMart has default storefront pages
+        if (\App\Models\StorefrontPage::where('storefront_id', $slicemartStorefront->id)->count() === 0) {
+            $now = now();
+            $defaultPages = [
+                ['slug' => 'about', 'title' => 'About Us', 'page_type' => 'about', 'sort_order' => 1],
+                ['slug' => 'contact', 'title' => 'Contact Us', 'page_type' => 'contact', 'sort_order' => 2],
+                ['slug' => 'privacy-policy', 'title' => 'Privacy Policy', 'page_type' => 'policy', 'sort_order' => 3],
+                ['slug' => 'terms-and-conditions', 'title' => 'Terms & Conditions', 'page_type' => 'policy', 'sort_order' => 4],
+            ];
+            foreach ($defaultPages as $page) {
+                \App\Models\StorefrontPage::create([
+                    'tenant_id' => $slicemartTenant->id,
+                    'uuid' => (string) Str::uuid(),
+                    'storefront_id' => $slicemartStorefront->id,
+                    'slug' => $page['slug'],
+                    'title' => $page['title'],
+                    'page_type' => $page['page_type'],
+                    'status' => 'published',
+                    'published_at' => $now,
+                    'sort_order' => $page['sort_order'],
+                    'blocks' => [],
+                ]);
+            }
         }
 
         // Publish finished products for SliceMart
@@ -224,9 +258,18 @@ final class StorefrontTableSeeder extends Seeder
                 ]);
             }
 
+            // Clean any legacy child records on storefront #2 belonging to another tenant so foreign keys won't fail
+            foreach (['carts', 'storefront_products', 'storefront_pages', 'wishlists', 'product_reviews', 'shipping_zones', 'coupons'] as $table) {
+                if (\Illuminate\Support\Facades\Schema::hasTable($table)) {
+                    \Illuminate\Support\Facades\DB::table($table)
+                        ->where('storefront_id', 2)
+                        ->where('tenant_id', '!=', $demoTenant->id)
+                        ->delete();
+                }
+            }
+
             $demoStorefront = Storefront::withoutTenantScope()->withTrashed()->where('id', 2)->first()
-                ?? Storefront::withoutTenantScope()->withTrashed()->where('tenant_id', $demoTenant->id)->first()
-                ?? Storefront::withoutTenantScope()->withTrashed()->where('subdomain', 'demoerp')->first();
+                ?? Storefront::withoutTenantScope()->withTrashed()->where('tenant_id', $demoTenant->id)->first();
 
             $demoData = [
                 'tenant_id' => $demoTenant->id,
@@ -284,9 +327,30 @@ final class StorefrontTableSeeder extends Seeder
                 ]));
             }
 
-            // Re-assign existing pages for demo storefront to tenant #2
-            \App\Models\StorefrontPage::where('storefront_id', $demoStorefront->id)
-                ->update(['tenant_id' => $demoTenant->id]);
+            // Ensure DemoERP has storefront pages
+            if (\App\Models\StorefrontPage::where('storefront_id', $demoStorefront->id)->count() === 0) {
+                $now = now();
+                $defaultPages = [
+                    ['slug' => 'about', 'title' => 'About Us', 'page_type' => 'about', 'sort_order' => 1],
+                    ['slug' => 'contact', 'title' => 'Contact Us', 'page_type' => 'contact', 'sort_order' => 2],
+                    ['slug' => 'privacy-policy', 'title' => 'Privacy Policy', 'page_type' => 'policy', 'sort_order' => 3],
+                    ['slug' => 'terms-and-conditions', 'title' => 'Terms & Conditions', 'page_type' => 'policy', 'sort_order' => 4],
+                ];
+                foreach ($defaultPages as $page) {
+                    \App\Models\StorefrontPage::create([
+                        'tenant_id' => $demoTenant->id,
+                        'uuid' => (string) Str::uuid(),
+                        'storefront_id' => $demoStorefront->id,
+                        'slug' => $page['slug'],
+                        'title' => $page['title'],
+                        'page_type' => $page['page_type'],
+                        'status' => 'published',
+                        'published_at' => $now,
+                        'sort_order' => $page['sort_order'],
+                        'blocks' => [],
+                    ]);
+                }
+            }
 
             // Ensure DemoERP has showcase products
             $demoProductsCount = \App\Models\Product::where('tenant_id', $demoTenant->id)->count();
