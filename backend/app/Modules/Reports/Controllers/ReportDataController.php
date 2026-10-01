@@ -18,12 +18,11 @@ class ReportDataController extends Controller
         $user = $request->user();
         $tenantId = $user?->tenant_id ?? (TenantContext::isBound() ? TenantContext::current()->tenantId() : 1);
 
-        $definition = ReportDefinition::withoutTenantScope()
-            ->where('code', $code)
-            ->where(function ($q) use ($tenantId) {
-                $q->whereNull('tenant_id')->orWhere('tenant_id', $tenantId);
-            })
-            ->firstOrFail();
+        $definition = ReportDefinition::resolveDefinition($code, $tenantId);
+
+        if (!$definition) {
+            abort(404, "Report definition with code '{$code}' not found.");
+        }
 
         if ($user && method_exists($user, 'hasPermission')) {
             $isSuperAdmin = !empty($user->is_platform_admin)
@@ -86,8 +85,6 @@ class ReportDataController extends Controller
 
         $result = $action->execute($code, $filters, $page, $perPage);
 
-        return response()->json([
-            'data' => $result,
-        ]);
+        return response()->json($result);
     }
 }

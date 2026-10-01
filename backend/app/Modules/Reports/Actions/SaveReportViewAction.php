@@ -6,6 +6,7 @@ namespace App\Modules\Reports\Actions;
 
 use App\Modules\Reports\Models\ReportDefinition;
 use App\Modules\Reports\Models\ReportSavedView;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
@@ -13,17 +14,17 @@ class SaveReportViewAction
 {
     public function execute(string $code, string $name, array $filters = [], array $columns = [], bool $isDefault = false): ReportSavedView
     {
-        $definition = ReportDefinition::where('code', $code)->first();
+        $user = Auth::user();
+        $tenantId = $user?->tenant_id ?? 1;
+        $userId = $user?->id ?? 1;
+
+        $definition = ReportDefinition::resolveDefinition($code, $tenantId);
 
         if (!$definition) {
             throw ValidationException::withMessages([
                 'code' => ["Report definition with code '{$code}' not found."],
             ]);
         }
-
-        $user = auth()->user();
-        $tenantId = $user?->tenant_id ?? 1;
-        $userId = $user?->id ?? 1;
 
         if ($isDefault) {
             ReportSavedView::where('tenant_id', $tenantId)

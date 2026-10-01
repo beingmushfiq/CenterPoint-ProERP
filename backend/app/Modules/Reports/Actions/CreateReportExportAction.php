@@ -18,17 +18,17 @@ class CreateReportExportAction
 
     public function execute(string $code, array $filters = [], string $format = 'csv'): ReportExport
     {
-        $definition = ReportDefinition::where('code', $code)->first();
+        $user = \Illuminate\Support\Facades\Auth::user();
+        $tenantId = $user?->tenant_id ?? 1;
+        $userId = $user?->id ?? 1;
+
+        $definition = ReportDefinition::resolveDefinition($code, $tenantId);
 
         if (!$definition) {
             throw ValidationException::withMessages([
                 'code' => ["Report definition with code '{$code}' not found."],
             ]);
         }
-
-        $user = \Illuminate\Support\Facades\Auth::user();
-        $tenantId = $user?->tenant_id ?? 1;
-        $userId = $user?->id ?? 1;
 
         // 1. Run actual query against live database (fetch up to 10,000 records for export)
         $queryResult = $this->queryAction->execute($code, $filters, 1, 10000);
