@@ -17,85 +17,27 @@ final class StorefrontTableSeeder extends Seeder
 {
     public function run(): void
     {
-        $tenant = Tenant::findOrFail(1);
-        TenantContext::bind($tenant->toArray());
-
-        $company = Company::first();
-        $branch = Branch::first();
-        $warehouse = Warehouse::where('type', 'finished_goods')->first() ?? Warehouse::first();
-
-        // Purge any legacy slicemart storefront records
-        Storefront::where('subdomain', 'slicemart')
-            ->orWhere('domain', 'slicemart.devcenterpoint.com')
-            ->delete();
-
-        $storefrontConfigs = [
-            [
-                'code' => 'SF-DEMOERP',
-                'name' => 'CenterPoint ProERP Direct Storefront',
-                'domain' => 'demoerp.devcenterpoint.com',
-                'subdomain' => 'demoerp',
-                'meta_title' => 'CenterPoint ProERP — Next-Gen Manufacturing & Electronics Direct',
-                'meta_description' => 'Direct manufacturer showcase powered by CenterPoint ProERP. High quality cookers, appliances and electronics.',
-                'theme' => [
-                    'primary_color' => '#2563eb',
-                    'accent_color' => '#1d4ed8',
-                    'hero_title' => 'Next-Gen Infrared Cookers & Premium Stoves',
-                    'hero_subtitle' => 'High performance, energy-efficient smokeless infrared cookers and heavy-duty gas stoves direct from manufacturer.',
-                ],
-            ],
-        ];
-
-        // Sync and publish all finished goods to storefront_products table
-        $finishedProducts = \App\Models\Product::where('tenant_id', $tenant->id)
-            ->where('type', 'finished')
-            ->get();
-
-        foreach ($storefrontConfigs as $sfConfig) {
-            $sf = Storefront::updateOrCreate(
-                ['tenant_id' => $tenant->id, 'subdomain' => $sfConfig['subdomain']],
-                [
-                    'uuid' => (string) Str::uuid(),
-                    'code' => $sfConfig['code'],
-                    'name' => $sfConfig['name'],
-                    'domain' => $sfConfig['domain'],
-                    'subdomain' => $sfConfig['subdomain'],
-                    'company_id' => $company->id,
-                    'default_branch_id' => $branch->id,
-                    'default_warehouse_id' => $warehouse->id,
-                    'currency' => 'BDT',
-                    'locale' => 'en',
-                    'theme' => $sfConfig['theme'],
-                    'meta_title' => $sfConfig['meta_title'],
-                    'meta_description' => $sfConfig['meta_description'],
-                    'guest_checkout_enabled' => true,
-                    'cod_enabled' => true,
-                    'online_payment_enabled' => true,
-                    'min_order_amount' => '100.0000',
-                    'status' => 'live',
-                    'published_at' => now(),
-                ]
-            );
-
-            foreach ($finishedProducts as $index => $prod) {
-                \App\Models\StorefrontProduct::firstOrCreate(
-                    [
-                        'tenant_id' => $tenant->id,
-                        'storefront_id' => $sf->id,
-                        'product_id' => $prod->id,
-                    ],
-                    [
-                        'uuid' => (string) Str::uuid(),
-                        'seo_slug' => Str::slug($prod->name) . '-' . strtolower($prod->sku),
-                        'is_available' => true,
-                        'is_featured' => true,
-                        'sort_order' => $index + 1,
-                    ]
-                );
-            }
+        // Clean up any misallocated storefront record under tenant #1 for demoerp
+        $misallocated = Storefront::withoutTenantScope()->where('id', 3)->where('tenant_id', 1)->first();
+        if ($misallocated) {
+            \Illuminate\Support\Facades\DB::table('carts')->where('storefront_id', 3)->delete();
+            \Illuminate\Support\Facades\DB::table('storefront_products')->where('storefront_id', 3)->delete();
+            \Illuminate\Support\Facades\DB::table('storefront_pages')->where('storefront_id', 3)->delete();
+            $misallocated->forceDelete();
         }
 
-        // Seed default couriers for tenant #1
+        // ── 1. Restore any trashed storefronts for slicemart or demoerp ──
+        Storefront::withoutTenantScope()
+            ->withTrashed()
+            ->whereIn('id', [1, 2])
+            ->restore();
+
+        // Clean up legacy test tenant subdomain on storefront #2 if present
+        Storefront::withoutTenantScope()
+            ->where('subdomain', 'testtenant99')
+            ->where('id', '!=', 2)
+            ->delete();
+
         $couriers = [
             [
                 'code' => 'STEADFAST',
@@ -120,10 +62,104 @@ final class StorefrontTableSeeder extends Seeder
             ],
         ];
 
+        // ── 2. SEED SLICEMART STOREFRONT (TENANT #1) ──────────────────────
+        $slicemartTenant = Tenant::where('slug', 'slicemart')->orWhere('id', 1)->firstOrFail();
+        TenantContext::bind($slicemartTenant->toArray());
+
+        $slicemartCompany = Company::withoutTenantScope()->where('tenant_id', $slicemartTenant->id)->first() ?? Company::first();
+        $slicemartBranch = Branch::withoutTenantScope()->where('tenant_id', $slicemartTenant->id)->first() ?? Branch::first();
+        $slicemartWarehouse = Warehouse::withoutTenantScope()
+            ->where('tenant_id', $slicemartTenant->id)
+            ->where('type', 'finished_goods')
+            ->first()
+            ?? Warehouse::withoutTenantScope()->where('tenant_id', $slicemartTenant->id)->first()
+            ?? Warehouse::first();
+
+        $slicemartStorefront = Storefront::withoutTenantScope()->withTrashed()->where('id', 1)->first()
+            ?? Storefront::withoutTenantScope()->withTrashed()->where('subdomain', 'slicemart')->first();
+
+        $slicemartData = [
+            'tenant_id' => $slicemartTenant->id,
+            'code' => 'SF-SLICEMART',
+            'name' => 'SliceMart Online Store',
+            'domain' => 'slicemart.devcenterpoint.com',
+            'subdomain' => 'slicemart',
+            'company_id' => $slicemartCompany->id,
+            'default_branch_id' => $slicemartBranch->id,
+            'default_warehouse_id' => $slicemartWarehouse->id,
+            'currency' => 'BDT',
+            'locale' => 'en',
+            'status' => 'live',
+            'published_at' => now(),
+            'guest_checkout_enabled' => true,
+            'cod_enabled' => true,
+            'online_payment_enabled' => true,
+            'min_order_amount' => '100.0000',
+            'meta_title' => 'SliceMart — Official Online Electronics & Appliances Store',
+            'meta_description' => 'Official online store for SliceMart Industries. Premium infrared cookers, gas stoves, and appliances delivered direct from factory.',
+            'theme' => [
+                'primary_color' => '#10b981',
+                'accent_color' => '#059669',
+                'hero_title' => 'Factory Fresh Goods & High-Performance Appliances',
+                'hero_subtitle' => 'Industrial quality delivered straight to your door with full manufacturer warranty.',
+                'theme_preset' => 'editorial',
+                'card_style' => 'editorial',
+                'announcement_enabled' => true,
+                'announcement_text' => 'SliceMart Official Storefront • Factory Direct Fulfillment • Nationwide Warranty',
+                'legal_name' => 'SliceMart Industries Ltd.',
+                'brand_name' => 'SliceMart Industries',
+                'navbar_bg' => '#0f172a',
+                'navbar_text_color' => '#ffffff',
+                'footer_bg' => '#0f172a',
+                'footer_text_color' => '#94a3b8',
+                'footer_contact_title' => 'SliceMart Factory Support',
+                'footer_address' => 'Tejgaon Industrial Area, Dhaka',
+                'footer_phone' => '+880 1700-000000',
+                'footer_email' => 'sales@slicemart.devcenterpoint.com',
+                'footer_show_whatsapp' => true,
+                'footer_whatsapp_label' => 'WhatsApp Order Desk',
+                'footer_show_payments' => true,
+                'footer_payment_methods' => ['bKash', 'Nagad', 'Visa / Mastercard', 'Cash on Delivery'],
+            ],
+        ];
+
+        if ($slicemartStorefront) {
+            if ($slicemartStorefront->trashed()) {
+                $slicemartStorefront->restore();
+            }
+            $slicemartStorefront->update($slicemartData);
+        } else {
+            $slicemartStorefront = Storefront::create(array_merge($slicemartData, [
+                'uuid' => (string) Str::uuid(),
+            ]));
+        }
+
+        // Publish finished products for SliceMart
+        $slicemartProducts = \App\Models\Product::where('tenant_id', $slicemartTenant->id)
+            ->where('type', 'finished')
+            ->get();
+
+        foreach ($slicemartProducts as $index => $prod) {
+            \App\Models\StorefrontProduct::updateOrCreate(
+                [
+                    'tenant_id' => $slicemartTenant->id,
+                    'storefront_id' => $slicemartStorefront->id,
+                    'product_id' => $prod->id,
+                ],
+                [
+                    'uuid' => (string) Str::uuid(),
+                    'seo_slug' => Str::slug($prod->name) . '-' . strtolower($prod->sku),
+                    'is_available' => true,
+                    'is_featured' => true,
+                    'sort_order' => $index + 1,
+                ]
+            );
+        }
+
         foreach ($couriers as $courier) {
             \App\Modules\Delivery\Models\CourierProvider::firstOrCreate(
                 [
-                    'tenant_id' => $tenant->id,
+                    'tenant_id' => $slicemartTenant->id,
                     'code' => $courier['code'],
                 ],
                 [
@@ -137,5 +173,286 @@ final class StorefrontTableSeeder extends Seeder
                 ]
             );
         }
+
+        // ── 3. SEED DEMOERP STOREFRONT (TENANT #2) ────────────────────────
+        $demoTenant = Tenant::where('slug', 'demoerp')->orWhere('id', 2)->first();
+        if ($demoTenant) {
+            TenantContext::bind($demoTenant->toArray());
+
+            $demoCompany = Company::withoutTenantScope()->where('tenant_id', $demoTenant->id)->first();
+            if (! $demoCompany) {
+                $demoCompany = Company::create([
+                    'tenant_id' => $demoTenant->id,
+                    'uuid' => (string) Str::uuid(),
+                    'name' => 'CenterPoint ProERP Direct Ltd.',
+                    'legal_name' => 'CenterPoint ProERP Direct Ltd.',
+                    'is_default' => true,
+                    'is_active' => true,
+                ]);
+            }
+
+            $demoBranch = Branch::withoutTenantScope()->where('tenant_id', $demoTenant->id)->first();
+            if (! $demoBranch) {
+                $demoBranch = Branch::create([
+                    'tenant_id' => $demoTenant->id,
+                    'uuid' => (string) Str::uuid(),
+                    'company_id' => $demoCompany->id,
+                    'name' => 'Dhaka Main Operational Branch',
+                    'code' => 'DEMO-BR',
+                    'type' => 'mixed',
+                    'is_default' => true,
+                    'is_active' => true,
+                ]);
+            }
+
+            $demoWarehouse = Warehouse::withoutTenantScope()
+                ->where('tenant_id', $demoTenant->id)
+                ->where('type', 'finished_goods')
+                ->first()
+                ?? Warehouse::withoutTenantScope()->where('tenant_id', $demoTenant->id)->first();
+            if (! $demoWarehouse) {
+                $demoWarehouse = Warehouse::create([
+                    'tenant_id' => $demoTenant->id,
+                    'uuid' => (string) Str::uuid(),
+                    'company_id' => $demoCompany->id,
+                    'branch_id' => $demoBranch->id,
+                    'name' => 'Demo Finished Goods Hub',
+                    'code' => 'DEMO-WH',
+                    'type' => 'finished_goods',
+                    'is_default' => true,
+                    'is_active' => true,
+                ]);
+            }
+
+            $demoStorefront = Storefront::withoutTenantScope()->withTrashed()->where('id', 2)->first()
+                ?? Storefront::withoutTenantScope()->withTrashed()->where('tenant_id', $demoTenant->id)->first()
+                ?? Storefront::withoutTenantScope()->withTrashed()->where('subdomain', 'demoerp')->first();
+
+            $demoData = [
+                'tenant_id' => $demoTenant->id,
+                'code' => 'SF-DEMOERP',
+                'name' => 'CenterPoint ProERP Direct Storefront',
+                'domain' => 'demoerp.devcenterpoint.com',
+                'subdomain' => 'demoerp',
+                'company_id' => $demoCompany->id,
+                'default_branch_id' => $demoBranch->id,
+                'default_warehouse_id' => $demoWarehouse->id,
+                'currency' => 'BDT',
+                'locale' => 'en',
+                'status' => 'live',
+                'published_at' => now(),
+                'guest_checkout_enabled' => true,
+                'cod_enabled' => true,
+                'online_payment_enabled' => true,
+                'min_order_amount' => '100.0000',
+                'meta_title' => 'CenterPoint ProERP — Next-Gen Manufacturing & Electronics Direct',
+                'meta_description' => 'Direct manufacturer showcase powered by CenterPoint ProERP. High quality cookers, appliances and electronics.',
+                'theme' => [
+                    'primary_color' => '#2563eb',
+                    'accent_color' => '#1d4ed8',
+                    'hero_title' => 'Next-Gen Infrared Cookers & Premium Stoves',
+                    'hero_subtitle' => 'High performance, energy-efficient smokeless infrared cookers and heavy-duty gas stoves direct from manufacturer.',
+                    'theme_preset' => 'modern',
+                    'card_style' => 'minimal',
+                    'announcement_enabled' => true,
+                    'announcement_text' => 'Official Storefront • Verified Authentic Products & Direct Fulfillment',
+                    'legal_name' => 'CenterPoint ProERP Direct Ltd.',
+                    'brand_name' => 'CenterPoint ProERP',
+                    'navbar_bg' => '#0f172a',
+                    'navbar_text_color' => '#ffffff',
+                    'footer_bg' => '#0f172a',
+                    'footer_text_color' => '#94a3b8',
+                    'footer_contact_title' => 'CenterPoint Direct Support',
+                    'footer_address' => 'Corporate Tower, Dhaka',
+                    'footer_phone' => '+880 1800-000000',
+                    'footer_email' => 'support@demoerp.devcenterpoint.com',
+                    'footer_show_whatsapp' => true,
+                    'footer_whatsapp_label' => 'WhatsApp Live Chat',
+                    'footer_show_payments' => true,
+                    'footer_payment_methods' => ['bKash', 'Nagad', 'Visa / Mastercard', 'Cash on Delivery'],
+                ],
+            ];
+
+            if ($demoStorefront) {
+                if ($demoStorefront->trashed()) {
+                    $demoStorefront->restore();
+                }
+                $demoStorefront->update($demoData);
+            } else {
+                $demoStorefront = Storefront::create(array_merge($demoData, [
+                    'uuid' => (string) Str::uuid(),
+                ]));
+            }
+
+            // Re-assign existing pages for demo storefront to tenant #2
+            \App\Models\StorefrontPage::where('storefront_id', $demoStorefront->id)
+                ->update(['tenant_id' => $demoTenant->id]);
+
+            // Ensure DemoERP has showcase products
+            $demoProductsCount = \App\Models\Product::where('tenant_id', $demoTenant->id)->count();
+            if ($demoProductsCount === 0) {
+                // Clone units for demo tenant
+                $unitMap = [];
+                foreach (\App\Models\Unit::withoutTenantScope()->where('tenant_id', $slicemartTenant->id)->get() as $u) {
+                    $newU = \App\Models\Unit::create([
+                        'tenant_id' => $demoTenant->id,
+                        'uuid' => (string) Str::uuid(),
+                        'code' => $u->code,
+                        'name' => $u->name,
+                        'type' => $u->type,
+                        'is_base' => $u->is_base,
+                        'precision' => $u->precision,
+                        'is_active' => true,
+                    ]);
+                    $unitMap[$u->id] = $newU->id;
+                }
+
+                // Clone categories for demo tenant
+                $catMap = [];
+                foreach (\App\Models\Category::withoutTenantScope()->where('tenant_id', $slicemartTenant->id)->get() as $c) {
+                    $newC = \App\Models\Category::create([
+                        'tenant_id' => $demoTenant->id,
+                        'uuid' => (string) Str::uuid(),
+                        'code' => $c->code,
+                        'name' => $c->name,
+                        'path' => $c->path,
+                        'is_active' => true,
+                    ]);
+                    $catMap[$c->id] = $newC->id;
+                }
+
+                // Clone brands for demo tenant
+                $brandMap = [];
+                foreach (\App\Models\Brand::withoutTenantScope()->where('tenant_id', $slicemartTenant->id)->get() as $b) {
+                    $newB = \App\Models\Brand::create([
+                        'tenant_id' => $demoTenant->id,
+                        'uuid' => (string) Str::uuid(),
+                        'code' => $b->code,
+                        'name' => $b->name,
+                        'is_active' => true,
+                    ]);
+                    $brandMap[$b->id] = $newB->id;
+                }
+
+                // Clone tax profiles for demo tenant
+                $taxMap = [];
+                foreach (\App\Models\TaxProfile::withoutTenantScope()->where('tenant_id', $slicemartTenant->id)->get() as $tp) {
+                    $newTp = \App\Models\TaxProfile::create([
+                        'tenant_id' => $demoTenant->id,
+                        'uuid' => (string) Str::uuid(),
+                        'code' => $tp->code,
+                        'name' => $tp->name,
+                        'rate' => $tp->rate,
+                        'type' => $tp->type,
+                        'is_compound' => $tp->is_compound ?? false,
+                        'is_active' => true,
+                    ]);
+                    $taxMap[$tp->id] = $newTp->id;
+                }
+
+                foreach ($slicemartProducts as $prod) {
+                    $newProd = \App\Models\Product::create([
+                        'tenant_id' => $demoTenant->id,
+                        'uuid' => (string) Str::uuid(),
+                        'sku' => $prod->sku . '-DEMO',
+                        'barcode' => $prod->barcode ? $prod->barcode . '0' : null,
+                        'name' => $prod->name,
+                        'description' => $prod->description,
+                        'type' => $prod->type,
+                        'category_id' => $catMap[$prod->category_id] ?? null,
+                        'brand_id' => $brandMap[$prod->brand_id] ?? null,
+                        'base_unit_id' => $unitMap[$prod->base_unit_id] ?? null,
+                        'purchase_unit_id' => $unitMap[$prod->purchase_unit_id] ?? null,
+                        'sales_unit_id' => $unitMap[$prod->sales_unit_id] ?? null,
+                        'tax_profile_id' => $taxMap[$prod->tax_profile_id] ?? null,
+                        'is_produced' => $prod->is_produced,
+                        'is_purchased' => $prod->is_purchased,
+                        'is_sold' => $prod->is_sold,
+                        'is_stock_tracked' => $prod->is_stock_tracked,
+                        'has_variants' => false,
+                        'tracking_mode' => $prod->tracking_mode ?? 'none',
+                        'standard_cost' => $prod->standard_cost,
+                        'default_sale_price' => $prod->default_sale_price,
+                        'weight' => $prod->weight,
+                        'dimensions' => $prod->dimensions,
+                        'is_online' => true,
+                        'status' => 'active',
+                    ]);
+
+                    \App\Models\StorefrontProduct::updateOrCreate(
+                        [
+                            'tenant_id' => $demoTenant->id,
+                            'storefront_id' => $demoStorefront->id,
+                            'product_id' => $newProd->id,
+                        ],
+                        [
+                            'uuid' => (string) Str::uuid(),
+                            'seo_slug' => Str::slug($newProd->name) . '-' . strtolower($newProd->sku),
+                            'is_available' => true,
+                            'is_featured' => true,
+                            'sort_order' => 1,
+                        ]
+                    );
+                }
+            } else {
+                $demoFinishedProducts = \App\Models\Product::where('tenant_id', $demoTenant->id)
+                    ->where('type', 'finished')
+                    ->get();
+                foreach ($demoFinishedProducts as $index => $prod) {
+                    \App\Models\StorefrontProduct::updateOrCreate(
+                        [
+                            'tenant_id' => $demoTenant->id,
+                            'storefront_id' => $demoStorefront->id,
+                            'product_id' => $prod->id,
+                        ],
+                        [
+                            'uuid' => (string) Str::uuid(),
+                            'seo_slug' => Str::slug($prod->name) . '-' . strtolower($prod->sku),
+                            'is_available' => true,
+                            'is_featured' => true,
+                            'sort_order' => $index + 1,
+                        ]
+                    );
+                }
+            }
+
+            foreach ($couriers as $courier) {
+                \App\Modules\Delivery\Models\CourierProvider::firstOrCreate(
+                    [
+                        'tenant_id' => $demoTenant->id,
+                        'code' => $courier['code'],
+                    ],
+                    [
+                        'uuid' => (string) Str::uuid(),
+                        'name' => $courier['name'],
+                        'adapter_class' => $courier['adapter_class'],
+                        'is_active' => true,
+                        'credentials' => ['api_key' => 'live_demo_key'],
+                        'capabilities' => $courier['capabilities'],
+                        'default_charge' => $courier['default_charge'],
+                    ]
+                );
+            }
+        }
+
+        // ── 4. SYNCHRONIZE TENANT DOMAINS ─────────────────────────────────
+        \Illuminate\Support\Facades\DB::table('tenant_domains')
+            ->where('tenant_id', $slicemartTenant->id)
+            ->where('domain', 'slicemart.devcenterpoint.com')
+            ->update(['is_primary' => 1]);
+
+        if ($demoTenant) {
+            \Illuminate\Support\Facades\DB::table('tenant_domains')
+                ->where('tenant_id', $demoTenant->id)
+                ->where('domain', 'demoerp.devcenterpoint.com')
+                ->update(['is_primary' => 1]);
+
+            \Illuminate\Support\Facades\DB::table('tenant_domains')
+                ->where('tenant_id', $demoTenant->id)
+                ->where('domain', 'testtenant99.devcenterpoint.com')
+                ->update(['is_primary' => 0]);
+        }
+
+        TenantContext::bind($slicemartTenant->toArray());
     }
 }

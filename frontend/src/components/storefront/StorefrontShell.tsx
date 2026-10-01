@@ -82,7 +82,7 @@ export const StorefrontShell: React.FC = () => {
         });
 
         const initialConfig = response.data;
-        const resolvedSubdomain = initialConfig.subdomain || paramSubdomain || tenantSubdomain || 'store';
+        const resolvedSubdomain = hostSubdomain || initialConfig.subdomain || paramSubdomain || tenantSubdomain || 'store';
         setActiveSubdomain(resolvedSubdomain);
         setSubdomain(resolvedSubdomain);
         useStorefrontWishlistStore.getState().setSubdomain(resolvedSubdomain);

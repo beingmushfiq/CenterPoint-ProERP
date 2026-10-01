@@ -245,7 +245,7 @@ final class PlansAndTenantsSeeder extends Seeder
                 'tenant_id' => isset($demoTenant) ? $demoTenant->id : $tenant->id,
                 'uuid' => (string) Str::uuid(),
                 'type' => 'platform_subdomain',
-                'is_primary' => false,
+                'is_primary' => true,
                 'verification_status' => 'verified',
                 'ssl_status' => 'active',
                 'verified_at' => now(),
@@ -254,5 +254,12 @@ final class PlansAndTenantsSeeder extends Seeder
                 'updated_at' => now(),
             ]
         );
+
+        if (isset($demoTenant)) {
+            DB::table('tenant_domains')
+                ->where('tenant_id', $demoTenant->id)
+                ->where('domain', 'testtenant99.devcenterpoint.com')
+                ->update(['is_primary' => false]);
+        }
     }
 }

@@ -31,6 +31,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { api } from '../../lib/api/client';
+import { useAuthStore } from '../../lib/auth/authStore';
 import type { StorefrontConfig } from '../../types/api/storefront';
 import { getStorefrontExternalUrl } from '../../lib/storefront/storefrontUrl';
 import { DomainSettingsTab } from './DomainSettingsTab';
@@ -71,6 +72,8 @@ type StorefrontSettingTab = 'branding' | 'header' | 'footer' | 'products' | 'che
 
 export const StorefrontSettingsWorkspace: React.FC = () => {
   const { currencyCode } = useCurrency();
+  const activeTenant = useAuthStore((state) => state.tenant);
+  const activeTenantSlug = activeTenant?.subdomain || activeTenant?.slug || '';
   const [activeTab, setActiveTab] = useWorkspaceTab<StorefrontSettingTab>(
     'branding',
     ['branding', 'header', 'footer', 'products', 'checkout', 'coupons', 'domains'] as const
@@ -97,7 +100,7 @@ export const StorefrontSettingsWorkspace: React.FC = () => {
   // Form State
   const [form, setForm] = useState({
     name: '',
-    subdomain: '',
+    subdomain: activeTenantSlug || '',
     currency: currencyCode,
     theme_preset: 'editorial' as ThemePresetId,
     card_style: 'editorial' as ProductCardStyle,
@@ -164,6 +167,8 @@ export const StorefrontSettingsWorkspace: React.FC = () => {
     min_order_amount: '',
     status: 'live' as 'draft' | 'live' | 'maintenance' | 'suspended',
   });
+
+  const effectiveSubdomain = (form.subdomain && form.subdomain !== 'store') ? form.subdomain : (activeTenantSlug || 'store');
 
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const erpBrandLogo = typeof window !== 'undefined' ? localStorage.getItem('brand_logo_url') : null;
@@ -245,7 +250,7 @@ export const StorefrontSettingsWorkspace: React.FC = () => {
 
             setForm({
               name: conf.name ?? '',
-              subdomain: conf.subdomain ?? '',
+              subdomain: conf.subdomain || activeTenantSlug || '',
               currency: conf.currency ?? currencyCode,
               theme_preset: ((conf.theme as Record<string, unknown>)?.theme_preset as ThemePresetId) || 'editorial',
               card_style: ((conf.theme as Record<string, unknown>)?.card_style as ProductCardStyle) || 'editorial',
@@ -353,7 +358,7 @@ export const StorefrontSettingsWorkspace: React.FC = () => {
     return () => {
       ignore = true;
     };
-  }, [currencyCode]);
+  }, [activeTenantSlug, currencyCode]);
 
   // Real-time live synchronization with open storefront tabs & previews
   useEffect(() => {
@@ -897,7 +902,7 @@ export const StorefrontSettingsWorkspace: React.FC = () => {
           </div>
 
           <a
-            href={getStorefrontExternalUrl(form.subdomain as string)}
+            href={getStorefrontExternalUrl(effectiveSubdomain)}
             target="_blank"
             rel="noreferrer"
             className="inline-flex items-center gap-1.5 rounded-xl border border-default bg-surface px-3.5 py-2 text-xs font-semibold text-default hover:border-emerald-500 hover:text-emerald-600 dark:hover:text-emerald-400 transition-all shadow-xs"
