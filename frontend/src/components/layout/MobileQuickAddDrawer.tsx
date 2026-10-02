@@ -93,16 +93,20 @@ export const MobileQuickAddDrawer: React.FC<MobileQuickAddDrawerProps> = ({
 
   // Robust module capability checking
   const checkModule = useCallback((moduleKey: string) => {
+    const isEnabled = (key: string) => {
+      const mod = modules[key];
+      return mod !== undefined ? Boolean(mod.enabled && mod.plan_allowed) : isModuleEnabled(key);
+    };
     if (moduleKey === 'catalogue' || moduleKey === 'stock' || moduleKey === 'warehouse') {
-      return isModuleEnabled('inventory');
+      return isEnabled('inventory');
     }
     if (moduleKey === 'logistics') {
-      return isModuleEnabled('delivery') || isModuleEnabled('logistics');
+      return isEnabled('delivery') || isEnabled('logistics');
     }
     if (moduleKey === 'procurement') {
-      return isModuleEnabled('purchasing') || isModuleEnabled('procurement');
+      return isEnabled('purchasing') || isEnabled('procurement');
     }
-    return isModuleEnabled(moduleKey);
+    return isEnabled(moduleKey);
   }, [isModuleEnabled, modules]);
 
   const canAccess = useCallback((moduleKey: string, allowedPermissions?: string[]) => {

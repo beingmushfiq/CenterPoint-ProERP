@@ -109,7 +109,11 @@ export function AppHeader({
     const items: SearchResultItem[] = [];
     for (const section of PLATFORM_NAV_DEFINITIONS) {
       for (const navItem of section.items) {
-        if (navItem.moduleKey && !isModuleEnabled(navItem.moduleKey)) continue;
+        if (navItem.moduleKey) {
+          const mod = modules[navItem.moduleKey];
+          const enabled = mod !== undefined ? Boolean(mod.enabled && mod.plan_allowed) : isModuleEnabled(navItem.moduleKey);
+          if (!enabled) continue;
+        }
         if (navItem.permission && !hasPermission(navItem.permission)) continue;
         const title = navItem.labelKey ? getTerm(navItem.labelKey, navItem.defaultLabel) : navItem.defaultLabel;
         items.push({

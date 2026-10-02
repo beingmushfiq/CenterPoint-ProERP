@@ -557,8 +557,10 @@ export const EnterpriseSystemNavigator: React.FC = () => {
   // Filter items strictly by role permissions and module flags
   const permittedItems = useMemo(() => {
     return SUBSYSTEM_ITEMS.filter((item) => {
-      if (item.moduleKey && !isModuleEnabled(item.moduleKey)) {
-        return false;
+      if (item.moduleKey) {
+        const mod = modules[item.moduleKey];
+        const enabled = mod !== undefined ? Boolean(mod.enabled && mod.plan_allowed) : isModuleEnabled(item.moduleKey);
+        if (!enabled) return false;
       }
       if (item.permission && !hasPermission(item.permission)) {
         return false;

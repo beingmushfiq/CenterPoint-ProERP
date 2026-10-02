@@ -791,7 +791,16 @@ export function Sidebar({ isOpen, onClose, isCollapsed = false, onToggleCollapse
   };
 
   const navSections = useMemo(
-    () => buildDynamicNavSections(isModuleEnabled, hasPermission, getTerm, navOrder),
+    () =>
+      buildDynamicNavSections(
+        (key) => {
+          const mod = modules[key];
+          return mod !== undefined ? Boolean(mod.enabled && mod.plan_allowed) : isModuleEnabled(key);
+        },
+        hasPermission,
+        getTerm,
+        navOrder
+      ),
     [isModuleEnabled, hasPermission, getTerm, navOrder, modules]
   );
 
