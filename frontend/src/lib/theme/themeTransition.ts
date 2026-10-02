@@ -7,7 +7,7 @@
 export type ThemeMode = 'light' | 'dark' | 'system';
 
 export function getStoredThemeMode(): ThemeMode {
-  if (typeof window === 'undefined') return 'system';
+  if (typeof window === 'undefined') return 'light';
   try {
     const stored = localStorage.getItem('ui.theme') || localStorage.getItem('theme');
     if (stored === 'light' || stored === 'dark' || stored === 'system') {
@@ -16,7 +16,7 @@ export function getStoredThemeMode(): ThemeMode {
   } catch {
     // Ignore storage errors
   }
-  return 'system';
+  return 'light';
 }
 
 export function resolveEffectiveTheme(mode: ThemeMode): 'light' | 'dark' {

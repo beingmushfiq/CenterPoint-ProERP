@@ -261,8 +261,8 @@ export const StorefrontSettingsWorkspace: React.FC = () => {
               hero_title: conf.theme?.hero_title ?? 'Designed for Excellence, Crafted for Longevity',
               hero_subtitle:
                 conf.theme?.hero_subtitle ?? 'Explore curated collections built to the highest commercial standards with direct-to-consumer value.',
-              navbar_bg: conf.theme?.navbar_bg ?? '#0f172a',
-              navbar_text_color: conf.theme?.navbar_text_color ?? '#ffffff',
+              navbar_bg: conf.theme?.navbar_bg ?? '#ffffff',
+              navbar_text_color: conf.theme?.navbar_text_color ?? '#0f172a',
               announcement_enabled: conf.theme?.announcement_enabled ?? false,
               announcement_text:
                 conf.theme?.announcement_text ?? 'Complimentary shipping on qualifying orders • Direct warranty protection',
@@ -279,8 +279,8 @@ export const StorefrontSettingsWorkspace: React.FC = () => {
                       { label: 'Home', url: '/', is_external: false },
                       { label: 'All Products', url: '/products', is_external: false },
                     ],
-              footer_bg: conf.theme?.footer_bg ?? '#0f172a',
-              footer_text_color: conf.theme?.footer_text_color ?? '#94a3b8',
+              footer_bg: conf.theme?.footer_bg ?? '#f8fafc',
+              footer_text_color: conf.theme?.footer_text_color ?? '#64748b',
               footer_columns:
                 conf.theme?.footer_columns && conf.theme.footer_columns.length > 0
                   ? conf.theme.footer_columns

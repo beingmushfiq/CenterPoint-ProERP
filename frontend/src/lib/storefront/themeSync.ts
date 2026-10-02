@@ -57,10 +57,10 @@ export function applyStorefrontThemeVariables(theme?: Partial<StorefrontThemeCon
 
   const primary = theme?.primary_color || preset.colors.primary || '#10b981';
   const accent = theme?.accent_color || preset.colors.accent || '#14b8a6';
-  const navbarBg = theme?.navbar_bg || preset.colors.surface || '#0f172a';
-  const navbarText = theme?.navbar_text_color || (preset.colors.surface === '#ffffff' ? '#0f172a' : '#ffffff');
-  const footerBg = theme?.footer_bg || preset.colors.surfaceSunken || '#0f172a';
-  const footerText = theme?.footer_text_color || preset.colors.textMuted || '#94a3b8';
+  const navbarBg = theme?.navbar_bg || preset.colors.surface || '#ffffff';
+  const navbarText = theme?.navbar_text_color || (getContrastColor(navbarBg) === '#ffffff' ? '#ffffff' : '#0f172a');
+  const footerBg = theme?.footer_bg || preset.colors.surfaceSunken || '#f8fafc';
+  const footerText = theme?.footer_text_color || preset.colors.textMuted || '#64748b';
   const announcementBg = theme?.announcement_bg || preset.announcementBg || '#10b981';
   const announcementText = theme?.announcement_text_color || preset.announcementText || '#ffffff';
 

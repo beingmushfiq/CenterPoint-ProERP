@@ -127,7 +127,28 @@ export function AppHeader({
   }, [isModuleEnabled, hasPermission, getTerm]);
 
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
-  const [themeMode, setThemeMode] = useState<ThemeMode>(() => getStoredThemeMode());
+  const [themeMode, setThemeMode] = useState<ThemeMode>(() => {
+    const stored = getStoredThemeMode();
+    return stored === 'dark' ? 'dark' : 'light';
+  });
+
+  // Ensure initial theme consistency (default to light mode unless explicitly dark)
+  useEffect(() => {
+    try {
+      const stored = getStoredThemeMode();
+      if (stored === 'dark') {
+        document.documentElement.classList.add('dark');
+        document.documentElement.setAttribute('data-theme', 'dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+        document.documentElement.setAttribute('data-theme', 'light');
+      }
+    } catch {
+      // Fallback safe default
+      document.documentElement.classList.remove('dark');
+      document.documentElement.setAttribute('data-theme', 'light');
+    }
+  }, []);
 
   // Real-time system theme change listener when user is in 'system' mode
   useEffect(() => {

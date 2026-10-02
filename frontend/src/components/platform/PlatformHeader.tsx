@@ -11,10 +11,33 @@ export const PlatformHeader: React.FC<PlatformHeaderProps> = ({ onToggleSidebar 
   const { user, logout } = usePlatformAuthStore();
 
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
-    return document.documentElement.classList.contains('dark') ? 'dark' : 'light';
+    try {
+      const stored = localStorage.getItem('ui.theme') || localStorage.getItem('theme');
+      if (stored === 'dark') return 'dark';
+      return 'light';
+    } catch {
+      return 'light';
+    }
   });
 
   useEffect(() => {
+    try {
+      const stored = localStorage.getItem('ui.theme') || localStorage.getItem('theme');
+      if (stored === 'dark') {
+        document.documentElement.classList.add('dark');
+        document.documentElement.setAttribute('data-theme', 'dark');
+        setTheme('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+        document.documentElement.setAttribute('data-theme', 'light');
+        setTheme('light');
+      }
+    } catch {
+      document.documentElement.classList.remove('dark');
+      document.documentElement.setAttribute('data-theme', 'light');
+      setTheme('light');
+    }
+
     const observer = new MutationObserver(() => {
       setTheme(document.documentElement.classList.contains('dark') ? 'dark' : 'light');
     });
@@ -28,13 +51,21 @@ export const PlatformHeader: React.FC<PlatformHeaderProps> = ({ onToggleSidebar 
     if (next === 'dark') {
       document.documentElement.classList.add('dark');
       document.documentElement.setAttribute('data-theme', 'dark');
-      localStorage.setItem('theme', 'dark');
-      localStorage.setItem('ui.theme', 'dark');
+      try {
+        localStorage.setItem('theme', 'dark');
+        localStorage.setItem('ui.theme', 'dark');
+      } catch {
+        // safe ignore
+      }
     } else {
       document.documentElement.classList.remove('dark');
       document.documentElement.setAttribute('data-theme', 'light');
-      localStorage.setItem('theme', 'light');
-      localStorage.setItem('ui.theme', 'light');
+      try {
+        localStorage.setItem('theme', 'light');
+        localStorage.setItem('ui.theme', 'light');
+      } catch {
+        // safe ignore
+      }
     }
   };
 

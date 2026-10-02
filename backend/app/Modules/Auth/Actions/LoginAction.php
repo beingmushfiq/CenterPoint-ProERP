@@ -211,7 +211,7 @@ class LoginAction extends Action
                 'email' => $user->email,
                 'is_platform_admin' => $user->is_platform_admin,
                 'locale' => $user->locale ?? 'en',
-                'theme' => 'dark',
+                'theme' => $user->theme ?? 'light',
                 'reduced_motion' => false,
                 'density' => 'comfortable',
                 'landing_page' => '/dashboard',

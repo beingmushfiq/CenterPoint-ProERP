@@ -95,7 +95,13 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   const handleQuickViewClick = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (onQuickView) onQuickView(product);
+    if (onQuickView && !e.metaKey && !e.ctrlKey) {
+      onQuickView(product);
+    } else if (e.metaKey || e.ctrlKey) {
+      window.open(productUrl, '_blank');
+    } else {
+      navigate(productUrl);
+    }
   };
 
   const handleWishlistClick = (e: React.MouseEvent) => {

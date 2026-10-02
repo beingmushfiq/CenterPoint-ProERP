@@ -105,7 +105,7 @@
         }
 
         /* ── Theme ─────────────────────────────────────────────────────────── */
-        var theme = read('ui.theme') || read('theme') || 'system';
+        var theme = read('ui.theme') || read('theme') || 'light';
         var dark = theme === 'dark' || (theme === 'system' && media('(prefers-color-scheme: dark)'));
         if (dark) {
           el.classList.add('dark');
@@ -128,7 +128,7 @@
           var mql = window.matchMedia('(prefers-color-scheme: dark)');
           if (mql && mql.addEventListener) {
             mql.addEventListener('change', function (e) {
-              var currentMode = read('ui.theme') || read('theme') || 'system';
+              var currentMode = read('ui.theme') || read('theme') || 'light';
               if (currentMode === 'system') {
                 if (e.matches) {
                   el.classList.add('dark');
@@ -338,7 +338,7 @@
         }
       }
     </style>
-    <script type="module" crossorigin src="/assets/index-C4O04FM5.js"></script>
+    <script type="module" crossorigin src="/assets/index-UH-keAKa.js"></script>
     <link rel="modulepreload" crossorigin href="/assets/rolldown-runtime-hePW80VL.js">
     <link rel="modulepreload" crossorigin href="/assets/createLucideIcon-CyrWxPaY.js">
     <link rel="modulepreload" crossorigin href="/assets/query-CGhxzULL.js">
@@ -386,7 +386,7 @@
     <link rel="modulepreload" crossorigin href="/assets/layout-dashboard-DPvE7Vx2.js">
     <link rel="modulepreload" crossorigin href="/assets/Button-D9Dmy_xB.js">
     <link rel="modulepreload" crossorigin href="/assets/microscope-ZMpCsThC.js">
-    <link rel="modulepreload" crossorigin href="/assets/themeTransition-D_a4W67b.js">
+    <link rel="modulepreload" crossorigin href="/assets/themeTransition-CAQMsf9K.js">
     <link rel="modulepreload" crossorigin href="/assets/package-check-BBS9EmPJ.js">
     <link rel="modulepreload" crossorigin href="/assets/palette-C-nbfn77.js">
     <link rel="modulepreload" crossorigin href="/assets/plus-BINSReyN.js">
@@ -418,7 +418,7 @@
     <link rel="modulepreload" crossorigin href="/assets/wrench-D5nPt0fi.js">
     <link rel="modulepreload" crossorigin href="/assets/zap-D496Du1X.js">
     <link rel="modulepreload" crossorigin href="/assets/dist-C6eneP1Q.js">
-    <link rel="stylesheet" crossorigin href="/assets/index-DN9b3sRZ.css">
+    <link rel="stylesheet" crossorigin href="/assets/index-Becj8bXI.css">
   </head>
 
   <body>

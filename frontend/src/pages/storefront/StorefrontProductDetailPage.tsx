@@ -91,6 +91,15 @@ export const StorefrontProductDetailPage: React.FC = () => {
     window.open(`https://wa.me/${config?.whatsapp_number?.replace(/[^0-9]/g, '') || '8801700000000'}?text=${text}`, '_blank');
   };
 
+  // Always ensure viewport is scrolled to top on mount or product change
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+    setActiveImageIndex(0);
+    setQuantity(1);
+  }, [idOrSku]);
+
   useEffect(() => {
     const fetchProduct = async () => {
       if (!idOrSku) return;
@@ -111,6 +120,11 @@ export const StorefrontProductDetailPage: React.FC = () => {
         if (prod?.variants && prod.variants.length > 0) {
           setSelectedVariant(prod.variants[0] ?? null);
         }
+
+        // Ensure viewport remains at top when full product layout renders
+        window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+        document.documentElement.scrollTop = 0;
+        document.body.scrollTop = 0;
 
         // Track ViewContent for Digital Marketing Analytics (Meta Pixel + GA4)
         if (prod) {

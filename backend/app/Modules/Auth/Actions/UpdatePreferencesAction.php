@@ -41,7 +41,7 @@ class UpdatePreferencesAction extends Action
 
         return [
             'locale' => $user->locale ?? 'en',
-            'theme' => (string) ($input['theme'] ?? 'dark'),
+            'theme' => (string) ($input['theme'] ?? 'light'),
             'reduced_motion' => (bool) ($input['reduced_motion'] ?? false),
             'density' => (string) ($input['density'] ?? 'comfortable'),
             'landing_page' => (string) ($input['landing_page'] ?? '/dashboard'),

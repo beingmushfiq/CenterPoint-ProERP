@@ -1,4 +1,4 @@
-import { useState, Suspense, useMemo } from 'react';
+import { useState, useEffect, Suspense, useMemo } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import { RouteLoadingFallback } from '../routing/RouteLoadingFallback';
 import { AppHeader } from './AppHeader';
@@ -39,6 +39,23 @@ function getRouteTitle(pathname: string): string {
 export function AppShell() {
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const location = useLocation();
+
+  // Enforce Light Mode by default unless explicitly set to dark
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('ui.theme') || localStorage.getItem('theme');
+      if (stored === 'dark') {
+        document.documentElement.classList.add('dark');
+        document.documentElement.setAttribute('data-theme', 'dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+        document.documentElement.setAttribute('data-theme', 'light');
+      }
+    } catch {
+      document.documentElement.classList.remove('dark');
+      document.documentElement.setAttribute('data-theme', 'light');
+    }
+  }, []);
   const { companyName } = useTenantBranding();
   const tenantName = useAuthStore((s) => s.tenant?.name);
   const brandName =

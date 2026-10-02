@@ -76,7 +76,7 @@ class PlatformAdminController extends Controller
             'status' => 'active',
             'token_version' => 1,
             'locale' => 'en',
-            'theme' => 'system',
+            'theme' => 'light',
             'density' => 'comfortable',
             'landing_page' => 'platform',
         ]);

@@ -198,7 +198,8 @@ function safeGetLocalStorage(key: string): string | null {
       appNameMeta.setAttribute('content', pwaErpName);
       appleTitleMeta.setAttribute('content', pwaErpName);
       appleIconLink.setAttribute('href', storedLogo);
-      themeColorMeta.setAttribute('content', '#0F172A');
+      const isDark = document.documentElement.classList.contains('dark');
+      themeColorMeta.setAttribute('content', isDark ? '#020617' : '#f8fafc');
 
       setAppBranding(pwaErpName, storedLogo);
     }

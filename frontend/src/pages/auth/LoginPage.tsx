@@ -45,12 +45,13 @@ export default function LoginPage() {
 
   // Theme support: default to light mode unless explicitly set to dark
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
-    if (typeof window !== 'undefined') {
+    try {
       const stored = localStorage.getItem('ui.theme') || localStorage.getItem('theme');
-      if (stored === 'dark' || stored === 'light') return stored;
-      return document.documentElement.classList.contains('dark') ? 'dark' : 'light';
+      if (stored === 'dark') return 'dark';
+      return 'light';
+    } catch {
+      return 'light';
     }
-    return 'light';
   });
 
   useEffect(() => {

@@ -142,6 +142,38 @@ export const StorefrontShell: React.FC = () => {
     };
   }, [subdomain]);
 
+  // 3. Default to Light Mode unless explicitly set to dark
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('ui.theme') || localStorage.getItem('theme');
+      if (stored === 'dark') {
+        document.documentElement.classList.add('dark');
+        document.documentElement.setAttribute('data-theme', 'dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+        document.documentElement.setAttribute('data-theme', 'light');
+      }
+    } catch {
+      document.documentElement.classList.remove('dark');
+      document.documentElement.setAttribute('data-theme', 'light');
+    }
+  }, []);
+
+  // Scroll to top on route change unless an anchor hash is present
+  useEffect(() => {
+    if (location.hash) {
+      const id = location.hash.replace('#', '');
+      const element = document.getElementById(id);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth' });
+        return;
+      }
+    }
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+  }, [location.pathname, location.hash]);
+
   // Track page view on route transitions
   useEffect(() => {
     trackStorefrontPageView(location.pathname);
@@ -150,13 +182,13 @@ export const StorefrontShell: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-zinc-950 text-zinc-400">
+      <div className="flex min-h-screen items-center justify-center bg-slate-50 dark:bg-zinc-950 text-slate-600 dark:text-zinc-400">
         <div className="flex flex-col items-center gap-3">
           <div
             style={{ borderColor: 'var(--store-primary, #10b981)', borderTopColor: 'transparent' }}
             className="h-8 w-8 animate-spin rounded-full border-2"
           />
-          <span className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
+          <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-zinc-500">
             Loading Storefront...
           </span>
         </div>
@@ -166,10 +198,10 @@ export const StorefrontShell: React.FC = () => {
 
   if (error || !config) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-zinc-950 p-4 text-center">
-        <div className="max-w-md rounded-2xl border border-zinc-800 bg-zinc-900/60 p-8">
-          <h2 className="text-lg font-bold text-zinc-100">Storefront Unavailable</h2>
-          <p className="mt-2 text-xs text-zinc-400">
+      <div className="flex min-h-screen items-center justify-center bg-slate-50 dark:bg-zinc-950 p-4 text-center">
+        <div className="max-w-md rounded-2xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/60 p-8 shadow-sm">
+          <h2 className="text-lg font-bold text-slate-900 dark:text-zinc-100">Storefront Unavailable</h2>
+          <p className="mt-2 text-xs text-slate-500 dark:text-zinc-400">
             {error || 'This storefront does not exist or has been temporarily suspended.'}
           </p>
         </div>
