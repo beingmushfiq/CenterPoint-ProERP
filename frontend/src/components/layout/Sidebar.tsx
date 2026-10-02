@@ -24,6 +24,571 @@ interface SidebarProps {
   onToggleCollapse?: () => void;
 }
 
+/**
+ * Resolves semantic category dots for sidebar section headers.
+ */
+function getSectionDotTone(sectionId: string): string {
+  switch (sectionId) {
+    case 'overview':
+      return 'bg-indigo-500 shadow-xs shadow-indigo-500/50';
+    case 'supply':
+      return 'bg-amber-500 shadow-xs shadow-amber-500/50';
+    case 'production':
+      return 'bg-orange-500 shadow-xs shadow-orange-500/50';
+    case 'sales':
+      return 'bg-emerald-500 shadow-xs shadow-emerald-500/50';
+    case 'crm':
+      return 'bg-purple-500 shadow-xs shadow-purple-500/50';
+    case 'finance':
+      return 'bg-emerald-500 shadow-xs shadow-emerald-500/50';
+    case 'hr':
+      return 'bg-teal-500 shadow-xs shadow-teal-500/50';
+    case 'system':
+      return 'bg-blue-500 shadow-xs shadow-blue-500/50';
+    default:
+      return 'bg-primary/70';
+  }
+}
+
+/**
+ * Resolves semantic, accessible Lucide icon color classes for top-level sidebar items.
+ * Each module domain receives a dedicated, brand-appropriate color tone with glow on active.
+ */
+function getParentTone(id: string, active: boolean): string {
+  const normId = id.toLowerCase();
+
+  // 1. Overview & Monitoring
+  if (normId === 'dashboard') {
+    return active
+      ? 'text-indigo-600 dark:text-indigo-400 drop-shadow-[0_0_8px_rgba(99,102,241,0.5)]'
+      : 'text-indigo-500 dark:text-indigo-400 group-hover:text-indigo-600 dark:group-hover:text-indigo-300';
+  }
+  if (normId === 'reports') {
+    return active
+      ? 'text-purple-600 dark:text-purple-400 drop-shadow-[0_0_8px_rgba(168,85,247,0.5)]'
+      : 'text-purple-500 dark:text-purple-400 group-hover:text-purple-600 dark:group-hover:text-purple-300';
+  }
+
+  // 2. Inventory & Supply
+  if (normId === 'catalogue' || normId.includes('catalog')) {
+    return active
+      ? 'text-amber-600 dark:text-amber-400 drop-shadow-[0_0_8px_rgba(245,158,11,0.5)]'
+      : 'text-amber-500 dark:text-amber-400 group-hover:text-amber-600 dark:group-hover:text-amber-300';
+  }
+  if (normId === 'purchasing') {
+    return active
+      ? 'text-blue-600 dark:text-blue-400 drop-shadow-[0_0_8px_rgba(59,130,246,0.5)]'
+      : 'text-blue-500 dark:text-blue-400 group-hover:text-blue-600 dark:group-hover:text-blue-300';
+  }
+  if (normId === 'inventory' || normId.includes('stock') || normId.includes('warehouse')) {
+    return active
+      ? 'text-sky-600 dark:text-sky-400 drop-shadow-[0_0_8px_rgba(14,165,233,0.5)]'
+      : 'text-sky-500 dark:text-sky-400 group-hover:text-sky-600 dark:group-hover:text-sky-300';
+  }
+  if (normId === 'delivery' || normId.includes('logistics')) {
+    return active
+      ? 'text-teal-600 dark:text-teal-400 drop-shadow-[0_0_8px_rgba(20,184,166,0.5)]'
+      : 'text-teal-500 dark:text-teal-400 group-hover:text-teal-600 dark:group-hover:text-teal-300';
+  }
+
+  // 3. Production & Quality
+  if (normId === 'production') {
+    return active
+      ? 'text-orange-600 dark:text-orange-400 drop-shadow-[0_0_8px_rgba(249,115,22,0.5)]'
+      : 'text-orange-500 dark:text-orange-400 group-hover:text-orange-600 dark:group-hover:text-orange-300';
+  }
+  if (normId === 'qc' || normId.includes('quality')) {
+    return active
+      ? 'text-emerald-600 dark:text-emerald-400 drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]'
+      : 'text-emerald-500 dark:text-emerald-400 group-hover:text-emerald-600 dark:group-hover:text-emerald-300';
+  }
+
+  // 4. Sales & Commercials
+  if (normId === 'sales') {
+    return active
+      ? 'text-emerald-600 dark:text-emerald-400 drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]'
+      : 'text-emerald-500 dark:text-emerald-400 group-hover:text-emerald-600 dark:group-hover:text-emerald-300';
+  }
+  if (normId === 'pos') {
+    return active
+      ? 'text-cyan-600 dark:text-cyan-400 drop-shadow-[0_0_8px_rgba(6,182,212,0.5)]'
+      : 'text-cyan-500 dark:text-cyan-400 group-hover:text-cyan-600 dark:group-hover:text-cyan-300';
+  }
+  if (normId === 'ecommerce' || normId.includes('store')) {
+    return active
+      ? 'text-pink-600 dark:text-pink-400 drop-shadow-[0_0_8px_rgba(236,72,153,0.5)]'
+      : 'text-pink-500 dark:text-pink-400 group-hover:text-pink-600 dark:group-hover:text-pink-300';
+  }
+  if (normId === 'coupons') {
+    return active
+      ? 'text-amber-600 dark:text-amber-400 drop-shadow-[0_0_8px_rgba(245,158,11,0.5)]'
+      : 'text-amber-500 dark:text-amber-400 group-hover:text-amber-600 dark:group-hover:text-amber-300';
+  }
+
+  // 5. CRM & Customer Pipeline
+  if (normId === 'crm-leads' || normId === 'crm' || normId.includes('lead')) {
+    return active
+      ? 'text-purple-600 dark:text-purple-400 drop-shadow-[0_0_8px_rgba(168,85,247,0.5)]'
+      : 'text-purple-500 dark:text-purple-400 group-hover:text-purple-600 dark:group-hover:text-purple-300';
+  }
+
+  // 6. Finance & Accounts
+  if (normId === 'finance') {
+    return active
+      ? 'text-emerald-600 dark:text-emerald-400 drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]'
+      : 'text-emerald-500 dark:text-emerald-400 group-hover:text-emerald-600 dark:group-hover:text-emerald-300';
+  }
+  if (normId === 'assets') {
+    return active
+      ? 'text-blue-600 dark:text-blue-400 drop-shadow-[0_0_8px_rgba(59,130,246,0.5)]'
+      : 'text-blue-500 dark:text-blue-400 group-hover:text-blue-600 dark:group-hover:text-blue-300';
+  }
+
+  // 7. Team & Workforce
+  if (normId === 'hr' || normId.includes('workforce') || normId.includes('team')) {
+    return active
+      ? 'text-teal-600 dark:text-teal-400 drop-shadow-[0_0_8px_rgba(20,184,166,0.5)]'
+      : 'text-teal-500 dark:text-teal-400 group-hover:text-teal-600 dark:group-hover:text-teal-300';
+  }
+
+  // 8. Intelligence & System
+  if (normId === 'roles') {
+    return active
+      ? 'text-indigo-600 dark:text-indigo-400 drop-shadow-[0_0_8px_rgba(99,102,241,0.5)]'
+      : 'text-indigo-500 dark:text-indigo-400 group-hover:text-indigo-600 dark:group-hover:text-indigo-300';
+  }
+  if (normId === 'audit') {
+    return active
+      ? 'text-amber-600 dark:text-amber-400 drop-shadow-[0_0_8px_rgba(245,158,11,0.5)]'
+      : 'text-amber-500 dark:text-amber-400 group-hover:text-amber-600 dark:group-hover:text-amber-300';
+  }
+  if (normId === 'users') {
+    return active
+      ? 'text-sky-600 dark:text-sky-400 drop-shadow-[0_0_8px_rgba(14,165,233,0.5)]'
+      : 'text-sky-500 dark:text-sky-400 group-hover:text-sky-600 dark:group-hover:text-sky-300';
+  }
+  if (normId === 'bin') {
+    return active
+      ? 'text-rose-600 dark:text-rose-400 drop-shadow-[0_0_8px_rgba(244,63,94,0.5)]'
+      : 'text-rose-500 dark:text-rose-400 group-hover:text-rose-600 dark:group-hover:text-rose-300';
+  }
+  if (normId === 'workflows') {
+    return active
+      ? 'text-amber-500 dark:text-amber-300 drop-shadow-[0_0_8px_rgba(245,158,11,0.5)]'
+      : 'text-amber-500 dark:text-amber-400 group-hover:text-amber-600 dark:group-hover:text-amber-300';
+  }
+  if (normId === 'settings') {
+    return active
+      ? 'text-slate-600 dark:text-slate-300 drop-shadow-[0_0_8px_rgba(100,116,139,0.5)]'
+      : 'text-slate-500 dark:text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-300';
+  }
+
+  // Fallback
+  return active
+    ? 'text-primary dark:text-indigo-400 drop-shadow-[0_0_8px_rgba(99,102,241,0.4)]'
+    : 'text-muted group-hover:text-default';
+}
+
+/**
+ * Resolves semantic, accessible Lucide icon color classes for sub-navigation items.
+ */
+function getChildTone(id: string, active: boolean): string {
+  const normId = id.toLowerCase();
+
+  // Sales & CRM
+  if (normId.includes('order')) {
+    return active
+      ? 'text-indigo-600 dark:text-indigo-400 drop-shadow-[0_0_6px_rgba(99,102,241,0.4)]'
+      : 'text-indigo-500 dark:text-indigo-400 group-hover:text-indigo-600 dark:group-hover:text-indigo-300';
+  }
+  if (normId.includes('invoice')) {
+    return active
+      ? 'text-blue-600 dark:text-blue-400 drop-shadow-[0_0_6px_rgba(59,130,246,0.4)]'
+      : 'text-blue-500 dark:text-blue-400 group-hover:text-blue-600 dark:group-hover:text-blue-300';
+  }
+  if (normId.includes('deliver') || normId.includes('dispatch')) {
+    return active
+      ? 'text-cyan-600 dark:text-cyan-400 drop-shadow-[0_0_6px_rgba(6,182,212,0.4)]'
+      : 'text-cyan-500 dark:text-cyan-400 group-hover:text-cyan-600 dark:group-hover:text-cyan-300';
+  }
+  if (normId.includes('payment') || normId.includes('receipt')) {
+    return active
+      ? 'text-emerald-600 dark:text-emerald-400 drop-shadow-[0_0_6px_rgba(16,185,129,0.4)]'
+      : 'text-emerald-500 dark:text-emerald-400 group-hover:text-emerald-600 dark:group-hover:text-emerald-300';
+  }
+  if (normId.includes('return') || normId.includes('scrap') || normId.includes('defect') || normId.includes('wastage') || normId.includes('trash') || normId.includes('bin')) {
+    return active
+      ? 'text-rose-600 dark:text-rose-400 drop-shadow-[0_0_6px_rgba(244,63,94,0.4)]'
+      : 'text-rose-500 dark:text-rose-400 group-hover:text-rose-600 dark:group-hover:text-rose-300';
+  }
+  if (normId.includes('exchange')) {
+    return active
+      ? 'text-amber-600 dark:text-amber-400 drop-shadow-[0_0_6px_rgba(245,158,11,0.4)]'
+      : 'text-amber-500 dark:text-amber-400 group-hover:text-amber-600 dark:group-hover:text-amber-300';
+  }
+  if (normId.includes('pipeline') || normId.includes('kanban') || normId.includes('stage')) {
+    return active
+      ? 'text-purple-600 dark:text-purple-400 drop-shadow-[0_0_6px_rgba(168,85,247,0.4)]'
+      : 'text-purple-500 dark:text-purple-400 group-hover:text-purple-600 dark:group-hover:text-purple-300';
+  }
+  if (normId.includes('lead') || normId.includes('crm')) {
+    return active
+      ? 'text-purple-600 dark:text-purple-400 drop-shadow-[0_0_6px_rgba(168,85,247,0.4)]'
+      : 'text-purple-500 dark:text-purple-400 group-hover:text-purple-600 dark:group-hover:text-purple-300';
+  }
+  if (normId.includes('customer')) {
+    return active
+      ? 'text-violet-600 dark:text-violet-400 drop-shadow-[0_0_6px_rgba(139,92,246,0.4)]'
+      : 'text-violet-500 dark:text-violet-400 group-hover:text-violet-600 dark:group-hover:text-violet-300';
+  }
+  if (normId.includes('pricelist')) {
+    return active
+      ? 'text-fuchsia-600 dark:text-fuchsia-400 drop-shadow-[0_0_6px_rgba(217,70,239,0.4)]'
+      : 'text-fuchsia-500 dark:text-fuchsia-400 group-hover:text-fuchsia-600 dark:group-hover:text-fuchsia-300';
+  }
+  if (normId.includes('salesmen') || normId.includes('rep')) {
+    return active
+      ? 'text-sky-600 dark:text-sky-400 drop-shadow-[0_0_6px_rgba(14,165,233,0.4)]'
+      : 'text-sky-500 dark:text-sky-400 group-hover:text-sky-600 dark:group-hover:text-sky-300';
+  }
+  if (normId.includes('target')) {
+    return active
+      ? 'text-purple-600 dark:text-purple-400 drop-shadow-[0_0_6px_rgba(168,85,247,0.4)]'
+      : 'text-purple-500 dark:text-purple-400 group-hover:text-purple-600 dark:group-hover:text-purple-300';
+  }
+  if (normId.includes('incentive') || normId.includes('bonus') || normId.includes('commission')) {
+    return active
+      ? 'text-emerald-600 dark:text-emerald-400 drop-shadow-[0_0_6px_rgba(16,185,129,0.4)]'
+      : 'text-emerald-500 dark:text-emerald-400 group-hover:text-emerald-600 dark:group-hover:text-emerald-300';
+  }
+
+  // Assets Management
+  if (normId.includes('machinery') || normId.includes('plant')) {
+    return active
+      ? 'text-cyan-600 dark:text-cyan-400 drop-shadow-[0_0_6px_rgba(6,182,212,0.4)]'
+      : 'text-cyan-500 dark:text-cyan-400 group-hover:text-cyan-600 dark:group-hover:text-cyan-300';
+  }
+  if (normId.includes('maintenance')) {
+    return active
+      ? 'text-amber-600 dark:text-amber-400 drop-shadow-[0_0_6px_rgba(245,158,11,0.4)]'
+      : 'text-amber-500 dark:text-amber-400 group-hover:text-amber-600 dark:group-hover:text-amber-300';
+  }
+  if (normId.includes('timeline') || normId.includes('history')) {
+    return active
+      ? 'text-blue-600 dark:text-blue-400 drop-shadow-[0_0_6px_rgba(59,130,246,0.4)]'
+      : 'text-blue-500 dark:text-blue-400 group-hover:text-blue-600 dark:group-hover:text-blue-300';
+  }
+  if (normId.includes('register') || normId.includes('asset')) {
+    return active
+      ? 'text-emerald-600 dark:text-emerald-400 drop-shadow-[0_0_6px_rgba(16,185,129,0.4)]'
+      : 'text-emerald-500 dark:text-emerald-400 group-hover:text-emerald-600 dark:group-hover:text-emerald-300';
+  }
+  if (normId.includes('depreciation')) {
+    return active
+      ? 'text-rose-600 dark:text-rose-400 drop-shadow-[0_0_6px_rgba(244,63,94,0.4)]'
+      : 'text-rose-500 dark:text-rose-400 group-hover:text-rose-600 dark:group-hover:text-rose-300';
+  }
+
+  // Workforce & HR
+  if (normId.includes('employee') || normId.includes('department') || normId.includes('people') || normId.includes('staff')) {
+    return active
+      ? 'text-teal-600 dark:text-teal-400 drop-shadow-[0_0_6px_rgba(20,184,166,0.4)]'
+      : 'text-teal-500 dark:text-teal-400 group-hover:text-teal-600 dark:group-hover:text-teal-300';
+  }
+  if (normId.includes('attendance')) {
+    return active
+      ? 'text-blue-600 dark:text-blue-400 drop-shadow-[0_0_6px_rgba(59,130,246,0.4)]'
+      : 'text-blue-500 dark:text-blue-400 group-hover:text-blue-600 dark:group-hover:text-blue-300';
+  }
+  if (normId.includes('leave')) {
+    return active
+      ? 'text-amber-600 dark:text-amber-400 drop-shadow-[0_0_6px_rgba(245,158,11,0.4)]'
+      : 'text-amber-500 dark:text-amber-400 group-hover:text-amber-600 dark:group-hover:text-amber-300';
+  }
+  if (normId.includes('payroll') || normId.includes('salary')) {
+    return active
+      ? 'text-emerald-600 dark:text-emerald-400 drop-shadow-[0_0_6px_rgba(16,185,129,0.4)]'
+      : 'text-emerald-500 dark:text-emerald-400 group-hover:text-emerald-600 dark:group-hover:text-emerald-300';
+  }
+  if (normId.includes('advance')) {
+    return active
+      ? 'text-orange-600 dark:text-orange-400 drop-shadow-[0_0_6px_rgba(249,115,22,0.4)]'
+      : 'text-orange-500 dark:text-orange-400 group-hover:text-orange-600 dark:group-hover:text-orange-300';
+  }
+  if (normId.includes('performance') || normId.includes('piece')) {
+    return active
+      ? 'text-purple-600 dark:text-purple-400 drop-shadow-[0_0_6px_rgba(168,85,247,0.4)]'
+      : 'text-purple-500 dark:text-purple-400 group-hover:text-purple-600 dark:group-hover:text-purple-300';
+  }
+
+  // Product Catalog & Recipes
+  if (normId.includes('product')) {
+    return active
+      ? 'text-sky-600 dark:text-sky-400 drop-shadow-[0_0_6px_rgba(14,165,233,0.4)]'
+      : 'text-sky-500 dark:text-sky-400 group-hover:text-sky-600 dark:group-hover:text-sky-300';
+  }
+  if (normId.includes('categor')) {
+    return active
+      ? 'text-purple-600 dark:text-purple-400 drop-shadow-[0_0_6px_rgba(168,85,247,0.4)]'
+      : 'text-purple-500 dark:text-purple-400 group-hover:text-purple-600 dark:group-hover:text-purple-300';
+  }
+  if (normId.includes('brand')) {
+    return active
+      ? 'text-amber-600 dark:text-amber-400 drop-shadow-[0_0_6px_rgba(245,158,11,0.4)]'
+      : 'text-amber-500 dark:text-amber-400 group-hover:text-amber-600 dark:group-hover:text-amber-300';
+  }
+  if (normId.includes('unit')) {
+    return active
+      ? 'text-cyan-600 dark:text-cyan-400 drop-shadow-[0_0_6px_rgba(6,182,212,0.4)]'
+      : 'text-cyan-500 dark:text-cyan-400 group-hover:text-cyan-600 dark:group-hover:text-cyan-300';
+  }
+  if (normId.includes('bom') || normId.includes('recipe')) {
+    return active
+      ? 'text-emerald-600 dark:text-emerald-400 drop-shadow-[0_0_6px_rgba(16,185,129,0.4)]'
+      : 'text-emerald-500 dark:text-emerald-400 group-hover:text-emerald-600 dark:group-hover:text-emerald-300';
+  }
+  if (normId.includes('warehouse')) {
+    return active
+      ? 'text-teal-600 dark:text-teal-400 drop-shadow-[0_0_6px_rgba(20,184,166,0.4)]'
+      : 'text-teal-500 dark:text-teal-400 group-hover:text-teal-600 dark:group-hover:text-teal-300';
+  }
+  if (normId.includes('part')) {
+    return active
+      ? 'text-indigo-600 dark:text-indigo-400 drop-shadow-[0_0_6px_rgba(99,102,241,0.4)]'
+      : 'text-indigo-500 dark:text-indigo-400 group-hover:text-indigo-600 dark:group-hover:text-indigo-300';
+  }
+
+  // Purchasing & Inventory
+  if (normId.includes('pur-') || normId.includes('requisition')) {
+    return active
+      ? 'text-blue-600 dark:text-blue-400 drop-shadow-[0_0_6px_rgba(59,130,246,0.4)]'
+      : 'text-blue-500 dark:text-blue-400 group-hover:text-blue-600 dark:group-hover:text-blue-300';
+  }
+  if (normId.includes('grn') || normId.includes('receipt')) {
+    return active
+      ? 'text-emerald-600 dark:text-emerald-400 drop-shadow-[0_0_6px_rgba(16,185,129,0.4)]'
+      : 'text-emerald-500 dark:text-emerald-400 group-hover:text-emerald-600 dark:group-hover:text-emerald-300';
+  }
+  if (normId.includes('ledger') || normId.includes('balance')) {
+    return active
+      ? 'text-sky-600 dark:text-sky-400 drop-shadow-[0_0_6px_rgba(14,165,233,0.4)]'
+      : 'text-sky-500 dark:text-sky-400 group-hover:text-sky-600 dark:group-hover:text-sky-300';
+  }
+  if (normId.includes('threshold') || normId.includes('reorder')) {
+    return active
+      ? 'text-amber-600 dark:text-amber-400 drop-shadow-[0_0_6px_rgba(245,158,11,0.4)]'
+      : 'text-amber-500 dark:text-amber-400 group-hover:text-amber-600 dark:group-hover:text-amber-300';
+  }
+  if (normId.includes('transfer')) {
+    return active
+      ? 'text-blue-600 dark:text-blue-400 drop-shadow-[0_0_6px_rgba(59,130,246,0.4)]'
+      : 'text-blue-500 dark:text-blue-400 group-hover:text-blue-600 dark:group-hover:text-blue-300';
+  }
+  if (normId.includes('adjustment')) {
+    return active
+      ? 'text-violet-600 dark:text-violet-400 drop-shadow-[0_0_6px_rgba(139,92,246,0.4)]'
+      : 'text-violet-500 dark:text-violet-400 group-hover:text-violet-600 dark:group-hover:text-violet-300';
+  }
+  if (normId.includes('count')) {
+    return active
+      ? 'text-emerald-600 dark:text-emerald-400 drop-shadow-[0_0_6px_rgba(16,185,129,0.4)]'
+      : 'text-emerald-500 dark:text-emerald-400 group-hover:text-emerald-600 dark:group-hover:text-emerald-300';
+  }
+
+  // Logistics & Delivery
+  if (normId.includes('shipment')) {
+    return active
+      ? 'text-teal-600 dark:text-teal-400 drop-shadow-[0_0_6px_rgba(20,184,166,0.4)]'
+      : 'text-teal-500 dark:text-teal-400 group-hover:text-teal-600 dark:group-hover:text-teal-300';
+  }
+  if (normId.includes('runsheet') || normId.includes('run_sheet')) {
+    return active
+      ? 'text-sky-600 dark:text-sky-400 drop-shadow-[0_0_6px_rgba(14,165,233,0.4)]'
+      : 'text-sky-500 dark:text-sky-400 group-hover:text-sky-600 dark:group-hover:text-sky-300';
+  }
+  if (normId.includes('provider') || normId.includes('courier')) {
+    return active
+      ? 'text-indigo-600 dark:text-indigo-400 drop-shadow-[0_0_6px_rgba(99,102,241,0.4)]'
+      : 'text-indigo-500 dark:text-indigo-400 group-hover:text-indigo-600 dark:group-hover:text-indigo-300';
+  }
+  if (normId.includes('cod')) {
+    return active
+      ? 'text-emerald-600 dark:text-emerald-400 drop-shadow-[0_0_6px_rgba(16,185,129,0.4)]'
+      : 'text-emerald-500 dark:text-emerald-400 group-hover:text-emerald-600 dark:group-hover:text-emerald-300';
+  }
+
+  // Production & QC
+  if (normId.includes('plan')) {
+    return active
+      ? 'text-indigo-600 dark:text-indigo-400 drop-shadow-[0_0_6px_rgba(99,102,241,0.4)]'
+      : 'text-indigo-500 dark:text-indigo-400 group-hover:text-indigo-600 dark:group-hover:text-indigo-300';
+  }
+  if (normId.includes('batch')) {
+    return active
+      ? 'text-orange-600 dark:text-orange-400 drop-shadow-[0_0_6px_rgba(249,115,22,0.4)]'
+      : 'text-orange-500 dark:text-orange-400 group-hover:text-orange-600 dark:group-hover:text-orange-300';
+  }
+  if (normId.includes('timesheet')) {
+    return active
+      ? 'text-blue-600 dark:text-blue-400 drop-shadow-[0_0_6px_rgba(59,130,246,0.4)]'
+      : 'text-blue-500 dark:text-blue-400 group-hover:text-blue-600 dark:group-hover:text-blue-300';
+  }
+  if (normId.includes('inspection')) {
+    return active
+      ? 'text-teal-600 dark:text-teal-400 drop-shadow-[0_0_6px_rgba(20,184,166,0.4)]'
+      : 'text-teal-500 dark:text-teal-400 group-hover:text-teal-600 dark:group-hover:text-teal-300';
+  }
+  if (normId.includes('parameter')) {
+    return active
+      ? 'text-cyan-600 dark:text-cyan-400 drop-shadow-[0_0_6px_rgba(6,182,212,0.4)]'
+      : 'text-cyan-500 dark:text-cyan-400 group-hover:text-cyan-600 dark:group-hover:text-cyan-300';
+  }
+
+  // Online Storefront CMS
+  if (normId.includes('branding') || normId.includes('theme')) {
+    return active
+      ? 'text-pink-600 dark:text-pink-400 drop-shadow-[0_0_6px_rgba(236,72,153,0.4)]'
+      : 'text-pink-500 dark:text-pink-400 group-hover:text-pink-600 dark:group-hover:text-pink-300';
+  }
+  if (normId.includes('header') || normId.includes('footer')) {
+    return active
+      ? 'text-purple-600 dark:text-purple-400 drop-shadow-[0_0_6px_rgba(168,85,247,0.4)]'
+      : 'text-purple-500 dark:text-purple-400 group-hover:text-purple-600 dark:group-hover:text-purple-300';
+  }
+  if (normId.includes('checkout')) {
+    return active
+      ? 'text-blue-600 dark:text-blue-400 drop-shadow-[0_0_6px_rgba(59,130,246,0.4)]'
+      : 'text-blue-500 dark:text-blue-400 group-hover:text-blue-600 dark:group-hover:text-blue-300';
+  }
+  if (normId.includes('coupon')) {
+    return active
+      ? 'text-amber-600 dark:text-amber-400 drop-shadow-[0_0_6px_rgba(245,158,11,0.4)]'
+      : 'text-amber-500 dark:text-amber-400 group-hover:text-amber-600 dark:group-hover:text-amber-300';
+  }
+  if (normId.includes('domain')) {
+    return active
+      ? 'text-teal-600 dark:text-teal-400 drop-shadow-[0_0_6px_rgba(20,184,166,0.4)]'
+      : 'text-teal-500 dark:text-teal-400 group-hover:text-teal-600 dark:group-hover:text-teal-300';
+  }
+
+  // Finance & Accounts
+  if (normId.includes('banking') || normId.includes('cash')) {
+    return active
+      ? 'text-emerald-600 dark:text-emerald-400 drop-shadow-[0_0_6px_rgba(16,185,129,0.4)]'
+      : 'text-emerald-500 dark:text-emerald-400 group-hover:text-emerald-600 dark:group-hover:text-emerald-300';
+  }
+  if (normId.includes('expense')) {
+    return active
+      ? 'text-rose-600 dark:text-rose-400 drop-shadow-[0_0_6px_rgba(244,63,94,0.4)]'
+      : 'text-rose-500 dark:text-rose-400 group-hover:text-rose-600 dark:group-hover:text-rose-300';
+  }
+  if (normId.includes('due')) {
+    return active
+      ? 'text-amber-600 dark:text-amber-400 drop-shadow-[0_0_6px_rgba(245,158,11,0.4)]'
+      : 'text-amber-500 dark:text-amber-400 group-hover:text-amber-600 dark:group-hover:text-amber-300';
+  }
+  if (normId.includes('statement') || normId.includes('p&l') || normId.includes('pl')) {
+    return active
+      ? 'text-indigo-600 dark:text-indigo-400 drop-shadow-[0_0_6px_rgba(99,102,241,0.4)]'
+      : 'text-indigo-500 dark:text-indigo-400 group-hover:text-indigo-600 dark:group-hover:text-indigo-300';
+  }
+  if (normId.includes('journal')) {
+    return active
+      ? 'text-blue-600 dark:text-blue-400 drop-shadow-[0_0_6px_rgba(59,130,246,0.4)]'
+      : 'text-blue-500 dark:text-blue-400 group-hover:text-blue-600 dark:group-hover:text-blue-300';
+  }
+  if (normId.includes('coa')) {
+    return active
+      ? 'text-teal-600 dark:text-teal-400 drop-shadow-[0_0_6px_rgba(20,184,166,0.4)]'
+      : 'text-teal-500 dark:text-teal-400 group-hover:text-teal-600 dark:group-hover:text-teal-300';
+  }
+  if (normId.includes('costing')) {
+    return active
+      ? 'text-purple-600 dark:text-purple-400 drop-shadow-[0_0_6px_rgba(168,85,247,0.4)]'
+      : 'text-purple-500 dark:text-purple-400 group-hover:text-purple-600 dark:group-hover:text-purple-300';
+  }
+
+  // System Settings
+  if (normId.includes('overview') || normId.includes('hub')) {
+    return active
+      ? 'text-amber-500 dark:text-amber-300 drop-shadow-[0_0_6px_rgba(245,158,11,0.4)]'
+      : 'text-amber-500 dark:text-amber-400 group-hover:text-amber-600 dark:group-hover:text-amber-300';
+  }
+  if (normId.includes('security')) {
+    return active
+      ? 'text-rose-600 dark:text-rose-400 drop-shadow-[0_0_6px_rgba(244,63,94,0.4)]'
+      : 'text-rose-500 dark:text-rose-400 group-hover:text-rose-600 dark:group-hover:text-rose-300';
+  }
+  if (normId.includes('profile')) {
+    return active
+      ? 'text-teal-600 dark:text-teal-400 drop-shadow-[0_0_6px_rgba(20,184,166,0.4)]'
+      : 'text-teal-500 dark:text-teal-400 group-hover:text-teal-600 dark:group-hover:text-teal-300';
+  }
+  if (normId.includes('module')) {
+    return active
+      ? 'text-blue-600 dark:text-blue-400 drop-shadow-[0_0_6px_rgba(59,130,246,0.4)]'
+      : 'text-blue-500 dark:text-blue-400 group-hover:text-blue-600 dark:group-hover:text-blue-300';
+  }
+  if (normId.includes('workflow') || normId.includes('flow')) {
+    return active
+      ? 'text-amber-500 dark:text-amber-300 drop-shadow-[0_0_6px_rgba(245,158,11,0.4)]'
+      : 'text-amber-500 dark:text-amber-400 group-hover:text-amber-600 dark:group-hover:text-amber-300';
+  }
+  if (normId.includes('terminology')) {
+    return active
+      ? 'text-fuchsia-600 dark:text-fuchsia-400 drop-shadow-[0_0_6px_rgba(217,70,239,0.4)]'
+      : 'text-fuchsia-500 dark:text-fuchsia-400 group-hover:text-fuchsia-600 dark:group-hover:text-fuchsia-300';
+  }
+  if (normId.includes('custom_field')) {
+    return active
+      ? 'text-violet-600 dark:text-violet-400 drop-shadow-[0_0_6px_rgba(139,92,246,0.4)]'
+      : 'text-violet-500 dark:text-violet-400 group-hover:text-violet-600 dark:group-hover:text-violet-300';
+  }
+  if (normId.includes('document')) {
+    return active
+      ? 'text-blue-600 dark:text-blue-400 drop-shadow-[0_0_6px_rgba(59,130,246,0.4)]'
+      : 'text-blue-500 dark:text-blue-400 group-hover:text-blue-600 dark:group-hover:text-blue-300';
+  }
+  if (normId.includes('integration')) {
+    return active
+      ? 'text-indigo-600 dark:text-indigo-400 drop-shadow-[0_0_6px_rgba(99,102,241,0.4)]'
+      : 'text-indigo-500 dark:text-indigo-400 group-hover:text-indigo-600 dark:group-hover:text-indigo-300';
+  }
+  if (normId.includes('notification')) {
+    return active
+      ? 'text-teal-600 dark:text-teal-400 drop-shadow-[0_0_6px_rgba(20,184,166,0.4)]'
+      : 'text-teal-500 dark:text-teal-400 group-hover:text-teal-600 dark:group-hover:text-teal-300';
+  }
+  if (normId.includes('backup')) {
+    return active
+      ? 'text-rose-600 dark:text-rose-400 drop-shadow-[0_0_6px_rgba(244,63,94,0.4)]'
+      : 'text-rose-500 dark:text-rose-400 group-hover:text-rose-600 dark:group-hover:text-rose-300';
+  }
+  if (normId.includes('general')) {
+    return active
+      ? 'text-indigo-600 dark:text-indigo-400 drop-shadow-[0_0_6px_rgba(99,102,241,0.4)]'
+      : 'text-indigo-500 dark:text-indigo-400 group-hover:text-indigo-600 dark:group-hover:text-indigo-300';
+  }
+
+  return active
+    ? 'text-primary dark:text-indigo-400 drop-shadow-[0_0_6px_rgba(99,102,241,0.4)]'
+    : 'text-muted-foreground group-hover:text-default';
+}
+
+function getGroupDotTone(groupName?: string): string {
+  if (!groupName) return 'bg-primary/60';
+  const g = groupName.toLowerCase();
+  if (g.includes('master') || g.includes('catalog')) return 'bg-blue-500';
+  if (g.includes('engineering') || g.includes('recipe') || g.includes('bom')) return 'bg-emerald-500';
+  if (g.includes('director') || g.includes('location')) return 'bg-teal-500';
+  if (g.includes('cash') || g.includes('valuation') || g.includes('payroll') || g.includes('fiscal') || g.includes('settlement')) return 'bg-emerald-500';
+  if (g.includes('governance') || g.includes('loss') || g.includes('sla')) return 'bg-amber-500';
+  if (g.includes('machinery') || g.includes('dispatch') || g.includes('security')) return 'bg-cyan-500';
+  if (g.includes('pipeline') || g.includes('automation') || g.includes('store') || g.includes('appearance')) return 'bg-purple-500';
+  if (g.includes('people') || g.includes('inspection') || g.includes('lead')) return 'bg-teal-500';
+  return 'bg-primary/60';
+}
+
 export function Sidebar({ isOpen, onClose, isCollapsed = false, onToggleCollapse }: SidebarProps) {
   const { t, i18n } = useTranslation(['navigation', 'common']);
   const user = useAuthStore((state) => state.user);
@@ -423,7 +988,7 @@ export function Sidebar({ isOpen, onClose, isCollapsed = false, onToggleCollapse
                   )}
                 >
                   <div className="flex items-center gap-1.5 truncate">
-                    <span className="size-1 rounded-full bg-primary/60" />
+                    <span className={cn("size-1.5 rounded-full shrink-0", getSectionDotTone(section.id))} />
                     <span className="truncate">{t(`sections.${section.id}` as unknown as string, { defaultValue: section.title })}</span>
                     {hasActiveChild && isSectionCollapsed && (
                       <span className="size-1.5 rounded-full bg-primary animate-pulse" title="Active module inside" />
@@ -521,9 +1086,7 @@ export function Sidebar({ isOpen, onClose, isCollapsed = false, onToggleCollapse
                                       <Icon
                                         className={cn(
                                           'size-4 shrink-0 transition-transform duration-150 group-hover:scale-110',
-                                          active
-                                            ? 'text-primary dark:text-indigo-400 drop-shadow-[0_0_8px_rgba(99,102,241,0.4)]'
-                                            : 'text-muted group-hover:text-default'
+                                          getParentTone(item.id, active)
                                         )}
                                         aria-hidden="true"
                                       />
@@ -579,90 +1142,6 @@ export function Sidebar({ isOpen, onClose, isCollapsed = false, onToggleCollapse
                                 const isNewGroup = Boolean(child.group && (!prevChild || prevChild.group !== child.group));
                                 const ChildIcon = child.icon;
                                 const isChildActive = isItemActive(child.to, location.pathname === child.to.split('?')[0]);
-                                
-                                const getChildTone = (id: string): string => {
-                                  // Sales & CRM
-                                  if (id.includes('orders')) return 'text-indigo-500 group-hover:text-indigo-400';
-                                  if (id.includes('invoices')) return 'text-blue-500 group-hover:text-blue-400';
-                                  if (id.includes('deliveries')) return 'text-cyan-500 group-hover:text-cyan-400';
-                                  if (id.includes('payments')) return 'text-emerald-500 group-hover:text-emerald-400';
-                                  if (id.includes('returns')) return 'text-rose-500 group-hover:text-rose-400';
-                                  if (id.includes('exchanges')) return 'text-amber-500 group-hover:text-amber-400';
-                                  if (id.includes('pipeline') || id.includes('kanban')) return 'text-purple-500 group-hover:text-purple-400';
-                                  if (id.includes('stages')) return 'text-purple-500 group-hover:text-purple-400';
-                                  if (id.includes('sources')) return 'text-indigo-500 group-hover:text-indigo-400';
-                                  if (id.includes('import')) return 'text-sky-500 group-hover:text-sky-400';
-                                  if (id.includes('add') || id.includes('create')) return 'text-emerald-500 group-hover:text-emerald-400';
-                                  if (id.includes('leads') || id.includes('crm-all') || id.includes('crm-my')) return 'text-teal-500 group-hover:text-teal-400';
-                                  if (id.includes('stale') || id.includes('audit')) return 'text-amber-500 group-hover:text-amber-400';
-                                  if (id.includes('customers')) return 'text-violet-500 group-hover:text-violet-400';
-                                  if (id.includes('pricelists')) return 'text-fuchsia-500 group-hover:text-fuchsia-400';
-                                  if (id.includes('salesmen')) return 'text-sky-500 group-hover:text-sky-400';
-                                  if (id.includes('targets')) return 'text-purple-500 group-hover:text-purple-400';
-                                  if (id.includes('incentives')) return 'text-emerald-500 group-hover:text-emerald-400';
-                                  if (id.includes('dashboard')) return 'text-amber-500 group-hover:text-amber-400';
-
-                                  // Assets Management
-                                  if (id.includes('machinery')) return 'text-cyan-500 group-hover:text-cyan-400';
-                                  if (id.includes('maintenance')) return 'text-sky-500 group-hover:text-sky-400';
-                                  if (id.includes('timeline')) return 'text-blue-500 group-hover:text-blue-400';
-                                  if (id.includes('register') || id.includes('assets')) return 'text-emerald-500 group-hover:text-emerald-400';
-                                  if (id.includes('depreciation')) return 'text-amber-500 group-hover:text-amber-400';
-                                  if (id.includes('categories')) return 'text-teal-500 group-hover:text-teal-400';
-
-                                  // Workforce & HR
-                                  if (id.includes('employees') || id.includes('departments')) return 'text-teal-500 group-hover:text-teal-400';
-                                  if (id.includes('attendance')) return 'text-blue-500 group-hover:text-blue-400';
-                                  if (id.includes('leaves')) return 'text-indigo-500 group-hover:text-indigo-400';
-                                  if (id.includes('payroll')) return 'text-emerald-500 group-hover:text-emerald-400';
-                                  if (id.includes('salary')) return 'text-green-500 group-hover:text-green-400';
-                                  if (id.includes('advances')) return 'text-amber-500 group-hover:text-amber-400';
-                                  if (id.includes('performance')) return 'text-orange-500 group-hover:text-orange-400';
-
-                                  // System Settings
-                                  if (id.includes('general')) return 'text-indigo-500 group-hover:text-indigo-400';
-                                  if (id.includes('security')) return 'text-sky-500 group-hover:text-sky-400';
-                                  if (id.includes('documents')) return 'text-blue-500 group-hover:text-blue-400';
-                                  if (id.includes('modules')) return 'text-purple-500 group-hover:text-purple-400';
-                                  if (id.includes('workflows')) return 'text-fuchsia-500 group-hover:text-fuchsia-400';
-                                  if (id.includes('terminology')) return 'text-violet-500 group-hover:text-violet-400';
-                                  if (id.includes('custom_fields')) return 'text-pink-500 group-hover:text-pink-400';
-                                  if (id.includes('finance')) return 'text-amber-500 group-hover:text-amber-400';
-                                  if (id.includes('integrations')) return 'text-emerald-500 group-hover:text-emerald-400';
-                                  if (id.includes('notifications')) return 'text-teal-500 group-hover:text-teal-400';
-
-                                  // Purchasing & Inventory
-                                  if (id.includes('pur-') || id.includes('inv-')) return 'text-indigo-500 group-hover:text-indigo-400';
-                                  // Product Catalog & Recipes
-                                  if (id.includes('cat-products')) return 'text-blue-500 group-hover:text-blue-400';
-                                  if (id.includes('cat-categories')) return 'text-purple-500 group-hover:text-purple-400';
-                                  if (id.includes('cat-brands')) return 'text-amber-500 group-hover:text-amber-400';
-                                  if (id.includes('cat-units')) return 'text-cyan-500 group-hover:text-cyan-400';
-                                  if (id.includes('cat-boms')) return 'text-emerald-500 group-hover:text-emerald-400';
-                                  if (id.includes('cat-warehouses')) return 'text-teal-500 group-hover:text-teal-400';
-                                  if (id.includes('cat-parties')) return 'text-indigo-500 group-hover:text-indigo-400';
-
-                                  // Logistics & Storefront
-                                  if (id.includes('del-') || id.includes('store-')) return 'text-sky-500 group-hover:text-sky-400';
-
-                                  return 'text-primary';
-                                };
-
-                                const getGroupDotTone = (groupName?: string): string => {
-                                  if (!groupName) return 'bg-primary/60';
-                                  const g = groupName.toLowerCase();
-                                  if (g.includes('master') || g.includes('catalog')) return 'bg-blue-500';
-                                  if (g.includes('engineering') || g.includes('recipe') || g.includes('bom')) return 'bg-emerald-500';
-                                  if (g.includes('director') || g.includes('location')) return 'bg-teal-500';
-                                  if (g.includes('cash') || g.includes('valuation') || g.includes('payroll') || g.includes('fiscal') || g.includes('settlement')) return 'bg-emerald-500';
-                                  if (g.includes('governance') || g.includes('loss') || g.includes('sla')) return 'bg-amber-500';
-                                  if (g.includes('machinery') || g.includes('dispatch') || g.includes('security')) return 'bg-cyan-500';
-                                  if (g.includes('pipeline') || g.includes('automation') || g.includes('store') || g.includes('appearance')) return 'bg-purple-500';
-                                  if (g.includes('people') || g.includes('inspection') || g.includes('lead')) return 'bg-teal-500';
-                                  return 'bg-primary/60';
-                                };
-
-                                const childTone = getChildTone(child.id);
 
                                 return (
                                   <div key={child.id}>
@@ -689,7 +1168,7 @@ export function Sidebar({ isOpen, onClose, isCollapsed = false, onToggleCollapse
                                         <ChildIcon
                                           className={cn(
                                             'size-3.5 shrink-0 transition-transform group-hover:scale-110',
-                                            isChildActive ? 'text-primary' : childTone
+                                            getChildTone(child.id, isChildActive)
                                           )}
                                         />
                                         <span className="truncate">{child.label || child.defaultLabel}</span>
