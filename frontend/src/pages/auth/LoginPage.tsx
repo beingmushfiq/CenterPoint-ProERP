@@ -9,7 +9,6 @@ import { api } from '../../lib/api/client';
 import { isApiError } from '../../lib/api/errors';
 import { applyThemeMode } from '../../lib/theme/themeTransition';
 import { useTenantBranding } from '../../lib/theme/useTenantBranding';
-import { LanguageSwitcher } from '../../components/ui/LanguageSwitcher';
 import { usePwaInstall } from '../../hooks/usePwaInstall';
 import { cn } from '../../lib/utils';
 
@@ -224,9 +223,8 @@ export default function LoginPage() {
 
   return (
     <div className="relative flex min-h-dvh w-full items-center justify-center bg-base px-3 sm:px-6 lg:px-8 py-8 sm:py-12 text-default transition-colors duration-200 overflow-x-hidden">
-      {/* Top-Right Theme & Language Controls */}
+      {/* Top-Right Theme Control */}
       <div className="absolute top-4 right-4 sm:top-6 sm:right-6 flex items-center gap-2">
-        <LanguageSwitcher />
         <button
           type="button"
           onClick={handleToggleTheme}

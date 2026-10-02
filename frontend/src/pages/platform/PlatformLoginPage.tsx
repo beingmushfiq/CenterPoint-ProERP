@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { usePlatformAuthStore } from '../../lib/auth/platformAuthStore';
 import { ShieldCheck, Lock, Mail, AlertCircle, Layers, ArrowRight, Sun, Moon } from 'lucide-react';
-import { LanguageSwitcher } from '../../components/ui/LanguageSwitcher';
 import { applyThemeMode } from '../../lib/theme/themeTransition';
 import { cn } from '../../lib/utils';
 
@@ -42,9 +41,8 @@ export const PlatformLoginPage: React.FC = () => {
 
   return (
     <div className="relative min-h-screen bg-base text-default flex flex-col justify-center items-center px-3 sm:px-4 py-8 overflow-x-hidden selection:bg-amber-500 selection:text-slate-950">
-      {/* Top-Right Theme & Language Controls */}
+      {/* Top-Right Theme Control */}
       <div className="absolute top-4 right-4 sm:top-6 sm:right-6 flex items-center gap-2">
-        <LanguageSwitcher />
         <button
           type="button"
           onClick={handleToggleTheme}
