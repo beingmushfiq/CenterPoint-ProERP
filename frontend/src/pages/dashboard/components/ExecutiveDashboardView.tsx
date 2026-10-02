@@ -616,8 +616,8 @@ export const ExecutiveDashboardView: React.FC<ExecutiveDashboardViewProps> = ({
           {/* Synchronized Period Metrics Summary Strip — Colorful Themed Cards */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
             {/* 1. Revenue Card — Indigo/Blue Gradient */}
-            <div className="relative overflow-hidden rounded-xl border border-indigo-500/25 bg-gradient-to-br from-indigo-500/10 via-indigo-500/[0.04] to-blue-500/10 dark:from-indigo-950/40 dark:via-surface dark:to-blue-950/30 p-3 shadow-xs hover:border-indigo-500/40 transition-all">
-              <span className="absolute inset-x-0 top-0 h-[2.5px] bg-gradient-to-r from-blue-500 via-indigo-500 to-indigo-600" />
+            <div className="relative overflow-hidden rounded-xl border border-indigo-500/25 bg-linear-to-br from-indigo-500/10 via-indigo-500/4 to-blue-500/10 dark:from-indigo-950/40 dark:via-surface dark:to-blue-950/30 p-3 shadow-xs hover:border-indigo-500/40 transition-all">
+              <span className="absolute inset-x-0 top-0 h-[2.5px] bg-linear-to-r from-blue-500 via-indigo-500 to-indigo-600" />
               <div className="flex items-center gap-1.5 mb-1">
                 <span className="size-4.5 rounded-md bg-linear-to-br from-blue-600 to-indigo-600 text-white flex items-center justify-center shadow-xs text-[10px] font-bold shrink-0">
                   {currencySymbol}
@@ -635,8 +635,8 @@ export const ExecutiveDashboardView: React.FC<ExecutiveDashboardViewProps> = ({
             </div>
 
             {/* 2. Factory Output Card — Emerald/Teal Gradient */}
-            <div className="relative overflow-hidden rounded-xl border border-emerald-500/25 bg-gradient-to-br from-emerald-500/10 via-emerald-500/[0.04] to-teal-500/10 dark:from-emerald-950/40 dark:via-surface dark:to-teal-950/30 p-3 shadow-xs hover:border-emerald-500/40 transition-all">
-              <span className="absolute inset-x-0 top-0 h-[2.5px] bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-600" />
+            <div className="relative overflow-hidden rounded-xl border border-emerald-500/25 bg-linear-to-br from-emerald-500/10 via-emerald-500/4 to-teal-500/10 dark:from-emerald-950/40 dark:via-surface dark:to-teal-950/30 p-3 shadow-xs hover:border-emerald-500/40 transition-all">
+              <span className="absolute inset-x-0 top-0 h-[2.5px] bg-linear-to-r from-emerald-500 via-teal-500 to-cyan-600" />
               <div className="flex items-center gap-1.5 mb-1">
                 <span className="size-4.5 rounded-md bg-linear-to-br from-emerald-500 to-teal-600 text-white flex items-center justify-center shadow-xs shrink-0">
                   <Factory className="size-2.5" />
@@ -655,8 +655,8 @@ export const ExecutiveDashboardView: React.FC<ExecutiveDashboardViewProps> = ({
             </div>
 
             {/* 3. Peak Velocity Card — Amber/Orange Gradient */}
-            <div className="relative overflow-hidden rounded-xl border border-amber-500/25 bg-gradient-to-br from-amber-500/10 via-orange-500/[0.04] to-rose-500/10 dark:from-amber-950/40 dark:via-surface dark:to-rose-950/30 p-3 shadow-xs hover:border-amber-500/40 transition-all">
-              <span className="absolute inset-x-0 top-0 h-[2.5px] bg-gradient-to-r from-amber-500 via-orange-500 to-rose-600" />
+            <div className="relative overflow-hidden rounded-xl border border-amber-500/25 bg-linear-to-br from-amber-500/10 via-orange-500/4 to-rose-500/10 dark:from-amber-950/40 dark:via-surface dark:to-rose-950/30 p-3 shadow-xs hover:border-amber-500/40 transition-all">
+              <span className="absolute inset-x-0 top-0 h-[2.5px] bg-linear-to-r from-amber-500 via-orange-500 to-rose-600" />
               <div className="flex items-center gap-1.5 mb-1">
                 <span className="size-4.5 rounded-md bg-linear-to-br from-amber-500 to-orange-600 text-white flex items-center justify-center shadow-xs shrink-0">
                   <TrendingUp className="size-2.5" />
@@ -674,8 +674,8 @@ export const ExecutiveDashboardView: React.FC<ExecutiveDashboardViewProps> = ({
             </div>
 
             {/* 4. Window Sync Card — Purple/Violet Gradient */}
-            <div className="relative overflow-hidden rounded-xl border border-purple-500/25 bg-gradient-to-br from-purple-500/10 via-fuchsia-500/[0.04] to-pink-500/10 dark:from-purple-950/40 dark:via-surface dark:to-pink-950/30 p-3 shadow-xs hover:border-purple-500/40 transition-all">
-              <span className="absolute inset-x-0 top-0 h-[2.5px] bg-gradient-to-r from-purple-500 via-fuchsia-500 to-pink-600" />
+            <div className="relative overflow-hidden rounded-xl border border-purple-500/25 bg-linear-to-br from-purple-500/10 via-fuchsia-500/4 to-pink-500/10 dark:from-purple-950/40 dark:via-surface dark:to-pink-950/30 p-3 shadow-xs hover:border-purple-500/40 transition-all">
+              <span className="absolute inset-x-0 top-0 h-[2.5px] bg-linear-to-r from-purple-500 via-fuchsia-500 to-pink-600" />
               <div className="flex items-center gap-1.5 mb-1">
                 <span className="size-4.5 rounded-md bg-linear-to-br from-purple-500 to-violet-600 text-white flex items-center justify-center shadow-xs shrink-0">
                   <Clock className="size-2.5" />
@@ -695,7 +695,7 @@ export const ExecutiveDashboardView: React.FC<ExecutiveDashboardViewProps> = ({
           </div>
 
           {/* Interactive Multi-Series ApexChart — Balanced to Match Right Column Baseline */}
-          <div className="flex-1 w-full min-h-[290px]">
+          <div className="flex-1 w-full min-h-72.5">
             <Chart
               options={apexOptions}
               series={apexSeries}

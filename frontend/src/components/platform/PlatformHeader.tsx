@@ -28,16 +28,13 @@ export const PlatformHeader: React.FC<PlatformHeaderProps> = ({ onToggleSidebar 
       if (stored === 'dark') {
         document.documentElement.classList.add('dark');
         document.documentElement.setAttribute('data-theme', 'dark');
-        setTheme('dark');
       } else {
         document.documentElement.classList.remove('dark');
         document.documentElement.setAttribute('data-theme', 'light');
-        setTheme('light');
       }
     } catch {
       document.documentElement.classList.remove('dark');
       document.documentElement.setAttribute('data-theme', 'light');
-      setTheme('light');
     }
 
     const observer = new MutationObserver(() => {
