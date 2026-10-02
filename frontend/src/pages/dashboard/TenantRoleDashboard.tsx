@@ -679,8 +679,8 @@ export const TenantRoleDashboard: React.FC = () => {
         </div>
 
         {/* Elevated KPI Cards Grid */}
-        <div className="p-3 bg-surface-sunken/30 border-t border-default">
-          <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-2.5">
+        <div className="p-2 sm:p-3 bg-surface-sunken/30 border-t border-default">
+          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-2 sm:gap-2.5">
             <ElevatedKpiCard
               label="Today Revenue"
               value={metrics ? formatCurrency(metrics.commercial.today_revenue) : '—'}
@@ -899,14 +899,14 @@ export const TenantRoleDashboard: React.FC = () => {
               <p className="text-xs text-muted mt-0.5">Rapid operational workflows and shortcut launch tiles</p>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3.5 w-full justify-center">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2.5 sm:gap-3.5 w-full justify-center">
               {quickActions.map((action) => {
                 const isExternal = action.to.startsWith('http');
                 const thm = (action.theme && QUICK_ACTION_THEMES[action.theme]) ? QUICK_ACTION_THEMES[action.theme]! : DEFAULT_ACTION_THEME;
                 const inner = (
                   <div
                     className={cn(
-                      'group relative flex flex-col items-center justify-center p-4 rounded-2xl border transition-all duration-200 cursor-pointer text-center h-full overflow-hidden hover:-translate-y-1',
+                      'group relative flex flex-col items-center justify-center p-3 sm:p-4 rounded-2xl border transition-all duration-200 cursor-pointer text-center h-full overflow-hidden hover:-translate-y-1',
                       thm.card
                     )}
                   >
@@ -921,7 +921,7 @@ export const TenantRoleDashboard: React.FC = () => {
                     {action.shortcut && (
                       <span
                         className={cn(
-                          'absolute top-2.5 right-2.5 px-1.5 py-0.5 rounded-md text-[9px] font-mono font-bold bg-surface/90 text-muted border border-default/70 shadow-2xs transition-colors',
+                          'hidden sm:inline-block absolute top-2.5 right-2.5 px-1.5 py-0.5 rounded-md text-[9px] font-mono font-bold bg-surface/90 text-muted border border-default/70 shadow-2xs transition-colors',
                           thm.shortcut
                         )}
                       >

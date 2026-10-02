@@ -558,7 +558,7 @@ export const MobileQuickAddDrawer: React.FC<MobileQuickAddDrawerProps> = ({
           </div>
 
           {/* Category Filter Pills */}
-          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pt-2.5 pb-0.5">
+          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pt-2.5 pb-1 px-1 -mx-1 scroll-smooth">
             {categories.map((cat) => {
               if (cat.count === 0 && cat.id !== 'all') return null;
               const isActive = activeCategory === cat.id;
@@ -599,7 +599,7 @@ export const MobileQuickAddDrawer: React.FC<MobileQuickAddDrawerProps> = ({
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
               {filteredActions.map((item) => {
                 const Icon = item.icon;
                 return (
@@ -609,24 +609,24 @@ export const MobileQuickAddDrawer: React.FC<MobileQuickAddDrawerProps> = ({
                     onClick={() => handleSelect(item.path)}
                     className="flex items-center justify-between p-3 rounded-2xl border border-default bg-surface hover:bg-surface-sunken active:scale-[0.98] transition-all text-left group cursor-pointer shadow-2xs hover:border-primary/40"
                   >
-                    <div className="flex items-center gap-3 min-w-0">
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
                       <div
                         className={`flex size-10 items-center justify-center rounded-xl shrink-0 ${item.bgClass} ${item.colorClass} shadow-2xs group-hover:scale-105 transition-transform`}
                       >
                         <Icon className="size-5" />
                       </div>
-                      <div className="min-w-0 pr-1">
+                      <div className="min-w-0 pr-1 flex-1">
                         <div className="flex items-center gap-1.5 flex-wrap">
-                          <span className="text-xs font-bold text-default group-hover:text-primary transition-colors truncate">
+                          <span className="text-xs font-bold text-default group-hover:text-primary transition-colors">
                             {isBn && item.titleBn ? item.titleBn : item.title}
                           </span>
                           {item.badge && (
-                            <span className="px-1.5 py-0.2 rounded-md text-[9px] font-bold uppercase bg-primary-subtle text-primary border border-primary/20">
+                            <span className="px-1.5 py-0.2 rounded-md text-[9px] font-bold uppercase bg-primary-subtle text-primary border border-primary/20 shrink-0">
                               {isBn && item.badgeBn ? item.badgeBn : item.badge}
                             </span>
                           )}
                         </div>
-                        <p className="text-[11px] text-muted truncate mt-0.5">
+                        <p className="text-[11px] text-muted mt-0.5 leading-snug">
                           {isBn && item.subtitleBn ? item.subtitleBn : item.subtitle}
                         </p>
                       </div>

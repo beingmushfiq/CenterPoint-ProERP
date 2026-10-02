@@ -38,7 +38,6 @@ import {
   Layers,
   Monitor,
   Languages,
-  MoreVertical,
 } from 'lucide-react';
 import { SliceMartBrainModal } from './SliceMartBrainModal';
 import { MotionActionSheet } from '../motion/MotionActionSheet';
@@ -534,14 +533,13 @@ export function AppHeader({
           <span>{t('navigation.systemTour', 'System Tour')}</span>
         </button>
 
-        {/* ── POS (Point of Sale) Register Direct Action Button ──── */}
+        {/* ── POS (Point of Sale) Register Direct Action Button (Desktop only >= lg; Mobile uses BottomNav POS) ──── */}
         <Link
           to="/pos"
-          className="hidden sm:flex items-center gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-600 dark:hover:bg-emerald-500 px-2 sm:px-2.5 py-1.5 text-xs font-bold text-white shadow-xs transition-colors cursor-pointer shrink-0"
+          className="hidden lg:flex items-center gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-600 dark:hover:bg-emerald-500 px-2 sm:px-2.5 py-1.5 text-xs font-bold text-white shadow-xs transition-colors cursor-pointer shrink-0"
           title="Open Point of Sale Counter Terminal"
         >
           <Store className="size-3.5" />
-          <span className="hidden md:inline xl:hidden">POS</span>
           <span className="hidden xl:inline">{t('navigation.posTerminal', 'POS Terminal')}</span>
         </Link>
 
@@ -591,8 +589,8 @@ export function AppHeader({
           </div>
         )}
 
-        {/* ── Comprehensive + Quick Add Dropdown (Desktop & Tablet >= sm; Mobile uses BottomNav center +) ── */}
-        <div className="relative shrink-0 hidden sm:block">
+        {/* ── Comprehensive + Quick Add Dropdown (Desktop >= lg; Mobile uses BottomNav center +) ── */}
+        <div className="relative shrink-0 hidden lg:block">
           <button
             type="button"
             onClick={() => setIsQuickAddOpen(!isQuickAddOpen)}
@@ -863,16 +861,16 @@ export function AppHeader({
           <Trash2 className="size-4" />
         </Link>
 
-        {/* Language Switcher (EN / বাংলা) */}
-        <div className="hidden sm:block">
+        {/* Language Switcher (EN / বাংলা) (Desktop >= lg) */}
+        <div className="hidden lg:block">
           <LanguageSwitcher />
         </div>
 
-        {/* Theme Toggle with Smooth Ripple and Rotating Morph */}
+        {/* Theme Toggle with Smooth Ripple and Rotating Morph (Desktop >= lg) */}
         <button
           type="button"
           onClick={toggleTheme}
-          className="hidden sm:relative sm:flex size-9 items-center justify-center rounded-xl p-1.5 sm:p-2 text-muted hover:bg-surface-sunken hover:text-default transition-all duration-300 focus-visible:ring-focus cursor-pointer shrink-0 group overflow-hidden border border-transparent hover:border-default shadow-2xs"
+          className="hidden lg:relative lg:flex size-9 items-center justify-center rounded-xl p-1.5 sm:p-2 text-muted hover:bg-surface-sunken hover:text-default transition-all duration-300 focus-visible:ring-focus cursor-pointer shrink-0 group overflow-hidden border border-transparent hover:border-default shadow-2xs"
           aria-label={
             themeMode === 'light'
               ? 'Switch to Dark Mode'
@@ -899,34 +897,25 @@ export function AppHeader({
           )}
         </button>
 
-        {/* Mobile Overflow Kebab Menu Button (< 640px) */}
-        <button
-          type="button"
-          onClick={() => setIsKebabOpen(true)}
-          className="sm:hidden flex min-h-11 min-w-11 items-center justify-center rounded-xl p-2 text-muted hover:bg-surface-sunken hover:text-default transition-token-colors focus-visible:ring-focus cursor-pointer shrink-0"
-          aria-label="More quick options"
-          title="More tools & preferences"
-        >
-          <MoreVertical className="size-5" />
-        </button>
-
-        {/* User Profile Dropdown */}
+        {/* User Profile Dropdown (Always visible on mobile & desktop) */}
         <div className="relative shrink-0">
           <button
             type="button"
             onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-            className="flex items-center gap-1.5 rounded-lg p-1 hover:bg-surface-sunken transition-token-colors focus-visible:ring-focus border border-transparent hover:border-default cursor-pointer"
+            className="flex items-center gap-1.5 rounded-xl p-1 hover:bg-surface-sunken transition-token-colors focus-visible:ring-focus border border-transparent hover:border-default cursor-pointer shrink-0"
+            title={user?.name ?? 'User Profile & Preferences'}
+            aria-label="User Profile"
           >
-            <div className="flex size-7 items-center justify-center rounded-lg bg-surface-sunken text-default font-bold text-xs border border-default shadow-xs">
+            <div className="flex size-8 items-center justify-center rounded-lg bg-surface-sunken text-default font-bold text-xs border border-default shadow-xs shrink-0">
               {user?.name ? user.name.split(' ').map((n) => n[0]).slice(0, 2).join('') : 'MR'}
             </div>
-            <div className="hidden text-left sm:block">
+            <div className="hidden text-left lg:block">
               <div className="text-xs font-semibold text-default leading-tight">{user?.name ?? 'System User'}</div>
               <div className="text-[10px] text-muted truncate max-w-36">
                 {user?.designation || user?.role_label || user?.role || (user?.is_platform_admin ? 'Platform Administrator' : 'Operations Member')}
               </div>
             </div>
-            <ChevronDown className="hidden size-3 text-muted sm:block" />
+            <ChevronDown className="hidden size-3 text-muted lg:block" />
           </button>
 
           {isUserMenuOpen && (
@@ -941,8 +930,8 @@ export function AppHeader({
               </div>
 
               <div className="mt-1 space-y-0.5">
-                {/* Mobile-only shortcuts */}
-                <div className="sm:hidden flex items-center justify-between px-3 py-2 border-b border-default/70 mb-1">
+                {/* Mobile & Tablet preferences (< lg) */}
+                <div className="lg:hidden flex items-center justify-between px-3 py-2 border-b border-default/70 mb-1">
                   <span className="text-xs text-muted font-medium flex items-center gap-1.5">
                     <Sun className="size-3.5" />
                     <span>Theme</span>
@@ -956,7 +945,7 @@ export function AppHeader({
                   </button>
                 </div>
 
-                <div className="sm:hidden flex items-center justify-between px-3 py-2 border-b border-default/70 mb-1">
+                <div className="lg:hidden flex items-center justify-between px-3 py-2 border-b border-default/70 mb-1">
                   <span className="text-xs text-muted font-medium flex items-center gap-1.5">
                     <Languages className="size-3.5 text-primary" />
                     <span>Language</span>
@@ -969,7 +958,7 @@ export function AppHeader({
                     setIsUserMenuOpen(false);
                     setIsBrainOpen(true);
                   }}
-                  className="sm:hidden flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-medium text-purple-600 dark:text-purple-400 hover:bg-purple-500/10 transition-token-colors cursor-pointer"
+                  className="lg:hidden flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-medium text-purple-600 dark:text-purple-400 hover:bg-purple-500/10 transition-token-colors cursor-pointer"
                 >
                   <Brain className="size-3.5" />
                   <span>Operations AI Brain</span>
@@ -981,7 +970,7 @@ export function AppHeader({
                     setIsUserMenuOpen(false);
                     openTutorial();
                   }}
-                  className="sm:hidden flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:bg-indigo-500/10 transition-token-colors cursor-pointer"
+                  className="lg:hidden flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:bg-indigo-500/10 transition-token-colors cursor-pointer"
                 >
                   <Compass className="size-3.5" />
                   <span>{t('navigation.systemTour', 'Interactive System Tour')}</span>

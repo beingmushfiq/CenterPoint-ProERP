@@ -1973,8 +1973,8 @@ export function POSShell({ session, onExit }: POSShellProps) {
                     <ShoppingBag className="h-6 w-6 stroke-1.5" />
                   </div>
                   <p className="text-sm font-bold text-default">Your cart is empty</p>
-                  <p className="text-xs text-muted mt-0.5">Scan product barcode <span className="font-mono text-primary font-semibold">[F2]</span> or click items from catalog</p>
-                  <div className="flex items-center gap-2 mt-3 text-[10px] font-mono text-subtle">
+                  <p className="text-xs text-muted mt-0.5">Scan product barcode <span className="hidden sm:inline font-mono text-primary font-semibold">[F2]</span> or click items from catalog</p>
+                  <div className="hidden sm:flex items-center gap-2 mt-3 text-[10px] font-mono text-subtle">
                     <span className="px-2 py-0.5 rounded bg-surface-sunken border border-default">F2 Search</span>
                     <span className="px-2 py-0.5 rounded bg-surface-sunken border border-default">F4 Customer</span>
                     <span className="px-2 py-0.5 rounded bg-surface-sunken border border-default">F10 Cash</span>
@@ -2373,7 +2373,7 @@ export function POSShell({ session, onExit }: POSShellProps) {
                       onClick={() => updateCurrentSlot({ tenderMethod: 'cash' })}
                       className={`pos-payment-btn ${tenderMethod === 'cash' ? 'active' : ''}`}
                     >
-                      <span className="pos-payment-shortcut">F10</span>
+                      <span className="hidden sm:block pos-payment-shortcut">F10</span>
                       <Banknote className="h-6 w-6" />
                       <span>Cash</span>
                     </button>
@@ -2812,7 +2812,7 @@ export function POSShell({ session, onExit }: POSShellProps) {
             </button>
 
             {/* Shortcut hints */}
-            <div className="flex items-center justify-between text-[10px] text-subtle pt-2 font-mono">
+            <div className="hidden sm:flex items-center justify-between text-[10px] text-subtle pt-2 font-mono">
               <span>[F2] Search</span>
               <span>[F4] Customer</span>
               <span>[F8] Discount</span>

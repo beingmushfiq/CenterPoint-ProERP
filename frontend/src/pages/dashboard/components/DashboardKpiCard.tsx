@@ -206,7 +206,7 @@ export const DashboardKpiCard: React.FC<DashboardKpiCardProps> = ({
   const sparkId = useId().replace(/:/g, '');
 
   const commonClasses = cn(
-    'group relative flex flex-col justify-between rounded-2xl border p-4 transition-all duration-200 overflow-hidden min-w-0 shadow-2xs text-left',
+    'group relative flex flex-col justify-between rounded-2xl border p-3 sm:p-4 transition-all duration-200 overflow-hidden min-w-0 shadow-2xs text-left',
     isInteractive && 'cursor-pointer hover:-translate-y-0.5',
     styles.bg,
     styles.border,
@@ -225,12 +225,12 @@ export const DashboardKpiCard: React.FC<DashboardKpiCardProps> = ({
       />
 
       <div className="flex items-center justify-between gap-1.5 mb-1.5">
-        <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted truncate">
+        <span className="text-[10px] font-bold uppercase tracking-[0.08em] text-muted truncate">
           {label}
         </span>
         <div
           className={cn(
-            'flex size-8 items-center justify-center rounded-xl border shrink-0 transition-transform duration-200 group-hover:scale-110',
+            'flex size-7 sm:size-8 items-center justify-center rounded-xl border shrink-0 transition-transform duration-200 group-hover:scale-110',
             styles.icon
           )}
         >
@@ -241,7 +241,7 @@ export const DashboardKpiCard: React.FC<DashboardKpiCardProps> = ({
       <div className="my-1">
         <div
           className={cn(
-            'text-xl sm:text-2xl font-extrabold font-mono text-default tracking-tight truncate transition-colors duration-200',
+            'text-base sm:text-xl lg:text-2xl font-extrabold font-mono text-default tracking-tight truncate transition-colors duration-200',
             styles.textAccent
           )}
         >

@@ -336,8 +336,10 @@ export const StorefrontHeader: React.FC<StorefrontHeaderProps> = ({ config, subd
               </button>
             )}
 
-            {/* Language Switcher */}
-            <LanguageSwitcher variant="storefront" isDark={isDarkNavbar} />
+            {/* Language Switcher (hidden on mobile, accessible in mobile menu) */}
+            <div className="hidden sm:block">
+              <LanguageSwitcher variant="storefront" isDark={isDarkNavbar} />
+            </div>
 
             {/* Theme Toggler (Adapts cleanly to dark or light navbar) */}
             <StorefrontThemeToggle isDarkNavbar={isDarkNavbar} />
@@ -467,6 +469,11 @@ export const StorefrontHeader: React.FC<StorefrontHeaderProps> = ({ config, subd
               <div className="flex items-center justify-between px-3 py-1.5 rounded-xl text-xs font-semibold">
                 <span className={isDarkNavbar ? 'text-white/70' : 'text-muted'}>Language / ভাষা:</span>
                 <LanguageSwitcher variant="storefront" isDark={isDarkNavbar} />
+              </div>
+
+              <div className="flex items-center justify-between px-3 py-1.5 rounded-xl text-xs font-semibold">
+                <span className={isDarkNavbar ? 'text-white/70' : 'text-muted'}>Appearance / থিম:</span>
+                <StorefrontThemeToggle isDarkNavbar={isDarkNavbar} />
               </div>
 
               <button

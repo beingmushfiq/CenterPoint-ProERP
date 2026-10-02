@@ -850,21 +850,21 @@ export function PosExchangeModal({
 
         {/* Footer Actions */}
         {!completedExchangeNumber && (
-          <div className="border-t border-default px-6 py-4 bg-surface-sunken flex items-center justify-between">
+          <div className="border-t border-default p-3.5 sm:px-6 sm:py-4 bg-surface-sunken flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-2.5 pb-[calc(env(safe-area-inset-bottom,0px)+0.75rem)] sm:pb-4">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-xs font-medium text-default border border-default rounded-xl hover:bg-surface transition-colors cursor-pointer"
+              className="w-full sm:w-auto px-4 py-2.5 sm:py-2 text-xs font-medium text-default border border-default rounded-xl hover:bg-surface transition-colors cursor-pointer text-center"
             >
               Cancel
             </button>
 
-            <div className="flex items-center gap-2.5">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-2.5 w-full sm:w-auto">
               <button
                 type="button"
                 disabled={processing || returnItems.length === 0 || replacementItems.length === 0}
                 onClick={() => handleProcessExchange(false)}
-                className="px-4 py-2 text-xs font-semibold text-default border border-default rounded-xl hover:bg-surface transition-colors cursor-pointer disabled:opacity-50"
+                className="w-full sm:w-auto px-4 py-2.5 sm:py-2 text-xs font-semibold text-default border border-default rounded-xl hover:bg-surface transition-colors cursor-pointer disabled:opacity-50 text-center"
               >
                 Save as Draft
               </button>
@@ -873,7 +873,7 @@ export function PosExchangeModal({
                 type="button"
                 disabled={processing || returnItems.length === 0 || replacementItems.length === 0}
                 onClick={() => handleProcessExchange(true)}
-                className="px-5 py-2 text-xs font-bold text-white bg-primary hover:bg-primary-hover rounded-xl shadow-xs transition-colors cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
+                className="w-full sm:w-auto px-5 py-2.5 sm:py-2 text-xs font-bold text-white bg-primary hover:bg-primary-hover rounded-xl shadow-xs transition-colors cursor-pointer disabled:opacity-50 flex items-center justify-center gap-1.5"
               >
                 {processing ? (
                   <>

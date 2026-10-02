@@ -384,9 +384,9 @@ export const StorefrontFooter: React.FC<StorefrontFooterProps> = ({ config }) =>
         </div>
 
         {/* Accepted Payment Badges & Copyright */}
-        <div className="mt-12 pt-6 border-t border-black/5 dark:border-white/5 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs">
+        <div className="mt-12 pt-6 border-t border-black/5 dark:border-white/5 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-center sm:text-left">
           {showPayments && paymentMethods.length > 0 && (
-            <div className="flex flex-wrap items-center gap-2 text-[11px] font-mono opacity-75">
+            <div className="flex flex-wrap items-center justify-center sm:justify-start gap-1.5 sm:gap-2 text-[11px] font-mono opacity-75">
               <span>Accepted Payments:</span>
               {paymentMethods.map((method, mIdx) => (
                 <span
@@ -399,9 +399,9 @@ export const StorefrontFooter: React.FC<StorefrontFooterProps> = ({ config }) =>
             </div>
           )}
 
-          <div className="flex items-center gap-3 sm:ml-auto">
+          <div className="flex flex-col sm:flex-row items-center justify-center sm:justify-end gap-3 sm:ml-auto">
             <LanguageSwitcher variant="footer" />
-            <div className="opacity-70 text-[11px] flex flex-wrap items-center gap-1.5">
+            <div className="opacity-70 text-[11px] flex flex-wrap items-center justify-center sm:justify-start gap-1.5">
               <span>{copyright}</span>
               <span className="opacity-40">•</span>
               <a
