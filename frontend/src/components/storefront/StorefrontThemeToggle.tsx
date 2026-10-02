@@ -50,13 +50,13 @@ export const StorefrontThemeToggle: React.FC<StorefrontThemeToggleProps> = ({
       className={`relative inline-flex items-center justify-center size-8.5 rounded-xl border shadow-xs transition-all duration-300 cursor-pointer active:scale-95 group overflow-hidden ${defaultStyles} ${className}`}
     >
       <Sun
-        className={`size-4 text-amber-400 transition-all duration-500 transform absolute ${
-          theme === 'dark' ? 'rotate-0 scale-100 opacity-100 group-hover:rotate-45' : 'rotate-90 scale-0 opacity-0'
+        className={`size-4 text-amber-500 transition-all duration-500 transform absolute ${
+          theme === 'dark' ? 'rotate-90 scale-0 opacity-0' : 'rotate-0 scale-100 opacity-100 group-hover:rotate-45'
         }`}
       />
       <Moon
-        className={`size-4 text-inherit transition-all duration-500 transform absolute ${
-          theme === 'dark' ? '-rotate-90 scale-0 opacity-0' : 'rotate-0 scale-100 opacity-100 group-hover:-rotate-12'
+        className={`size-4 text-indigo-400 dark:text-indigo-300 transition-all duration-500 transform absolute ${
+          theme === 'dark' ? 'rotate-0 scale-100 opacity-100 group-hover:-rotate-12' : '-rotate-90 scale-0 opacity-0'
         }`}
       />
     </button>
