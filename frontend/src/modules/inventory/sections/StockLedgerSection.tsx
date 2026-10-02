@@ -37,6 +37,7 @@ import { TableControls, type ColumnDef } from '../../../components/ui/TableContr
 import { useTablePrefs } from '../../../hooks/useTablePrefs';
 import { DestructiveConfirmationDialog } from '../../../components/ui/DestructiveConfirmationDialog';
 import { AuditTimelineDrawer } from '../../../components/ui/AuditTimelineDrawer';
+import { ResponsiveDataTable } from '../../../components/ui/ResponsiveDataTable';
 
 const BALANCE_COLUMNS: ColumnDef[] = [
   { key: 'select', label: 'Select', required: true },
@@ -684,192 +685,205 @@ export function StockLedgerSection() {
       )}
 
       {/* Modern Data Grid Container */}
-      <div className="rounded-2xl border border-default bg-surface shadow-xs overflow-hidden">
+      <div className="space-y-4">
         {viewMode === 'balances' ? (
-          <div className="overflow-hidden max-h-[70vh] overflow-y-auto">
-            <div className="overflow-x-auto min-h-75">
-              <table className="w-full text-left text-xs text-default border-collapse">
-                <thead className="sticky top-0 z-10 border-b border-default bg-surface-sunken/95 backdrop-blur-xs text-[11px] font-semibold uppercase tracking-wider text-muted">
-                  <tr>
-                    {isVisible('select') && (
-                      <th className={cn("w-10 text-center", cellClass)}>
-                        <input
-                          ref={headerCheckboxRef}
-                          type="checkbox"
-                          checked={isAllSelected}
-                          onChange={toggleSelectAll}
-                          className="size-4 rounded border-default text-primary focus:ring-primary cursor-pointer"
-                          title="Select all visible balances"
-                        />
-                      </th>
-                    )}
-                    {isVisible('product') && <th className={cn("px-4", cellClass)}>Product / SKU</th>}
-                    {isVisible('warehouse') && <th className={cn("px-4", cellClass)}>Warehouse</th>}
-                    {isVisible('lot') && <th className={cn("px-4", cellClass)}>Lot / Batch</th>}
-                    {isVisible('state') && <th className={cn("px-4", cellClass)}>State</th>}
-                    {isVisible('quantity') && <th className={cn("px-4 text-right", cellClass)}>Available Qty</th>}
-                    {isVisible('cost') && <th className={cn("px-4 text-right", cellClass)}>Avg Unit Cost</th>}
-                    {isVisible('value') && <th className={cn("px-4 text-right", cellClass)}>Total Value</th>}
-                    {isVisible('actions') && <th className={cn("px-4 text-right", cellClass)}>Actions</th>}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-default">
-                  {filteredBalances.length === 0 ? (
-                    <tr>
-                      <td colSpan={9} className="px-4 py-12 text-center text-muted">
-                        {loading ? 'Loading current inventory...' : 'No stock balance records found'}
-                      </td>
-                    </tr>
-                  ) : (
-                    filteredBalances.map((b) => (
-                      <tr
-                        key={b.id}
-                        className={cn(
-                          "hover:bg-surface-sunken/40 transition-colors",
-                          selectedBalanceIds.has(b.id) && "bg-primary/5 dark:bg-primary/10"
-                        )}
+          <>
+            <ResponsiveDataTable<StockBalance>
+              data={filteredBalances}
+              isLoading={loading}
+              keyExtractor={(b) => b.id}
+              emptyMessage="No stock balance records found"
+              emptyIcon={Boxes}
+              selectedIds={selectedBalanceIds}
+              onSelectRow={(id) => toggleSelectBalance(Number(id))}
+              onSelectAll={toggleSelectAll}
+              mobileCardBreakpoint="sm"
+              mobileActions={(b) => [
+                {
+                  id: 'transfer',
+                  label: 'Transfer Stock',
+                  icon: ArrowRightLeft,
+                  onClick: () => {
+                    setQuickTransferItem(b);
+                    setQuickTransferData({
+                      targetWarehouse: 'Cooker Assembly Line 1 Floor Buffer',
+                      quantity: String(b.quantity),
+                      notes: '',
+                    });
+                  },
+                },
+                {
+                  id: 'adjust',
+                  label: 'Adjust Stock',
+                  icon: Scale,
+                  onClick: () => {
+                    setQuickAdjustItem(b);
+                    setQuickAdjustData({
+                      direction: 'out',
+                      quantity: '1',
+                      reason: 'CYCLE_COUNT_VARIANCE',
+                      notes: '',
+                    });
+                  },
+                },
+                {
+                  id: 'details',
+                  label: 'Inspect Lot Details',
+                  icon: Eye,
+                  onClick: () => setViewingBalance(b),
+                },
+                {
+                  id: 'audit',
+                  label: 'View Audit History',
+                  icon: History,
+                  onClick: () => setAuditingBalance(b),
+                },
+                {
+                  id: 'delete',
+                  label: 'Delete Position',
+                  icon: Trash2,
+                  variant: 'danger' as const,
+                  onClick: () => setDeletingBalance(b),
+                },
+              ]}
+              columns={[
+                {
+                  id: 'product',
+                  header: 'Product / SKU',
+                  isPrimary: true,
+                  cell: (b) => (
+                    <div>
+                      <div className="font-semibold text-default">{b.product_name ?? '—'}</div>
+                      <div className="text-[11px] font-mono text-muted">{b.product_sku ?? '—'}</div>
+                    </div>
+                  ),
+                },
+                ...(isVisible('warehouse') ? [{
+                  id: 'warehouse',
+                  header: 'Warehouse',
+                  cell: (b: StockBalance) => <span className="text-muted">{b.warehouse_name ?? '—'}</span>,
+                }] : []),
+                ...(isVisible('lot') ? [{
+                  id: 'lot',
+                  header: 'Lot / Batch',
+                  priority: 'low' as const,
+                  cell: (b: StockBalance) => <span className="font-mono text-muted">{b.batch_code ?? '—'}</span>,
+                }] : []),
+                ...(isVisible('state') ? [{
+                  id: 'state',
+                  header: 'State',
+                  isStatus: true,
+                  cell: (b: StockBalance) => (
+                    <span
+                      className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider ${
+                        b.stock_state === 'available'
+                          ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30'
+                          : b.stock_state === 'quarantine'
+                            ? 'bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30'
+                            : b.stock_state === 'damaged'
+                              ? 'bg-rose-500/15 text-rose-700 dark:text-rose-300 border border-rose-500/30'
+                              : 'bg-surface-sunken text-muted border border-default'
+                      }`}
+                    >
+                      {b.stock_state}
+                    </span>
+                  ),
+                }] : []),
+                ...(isVisible('quantity') ? [{
+                  id: 'quantity',
+                  header: 'Available Qty',
+                  align: 'right' as const,
+                  cell: (b: StockBalance) => (
+                    <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                      {parseFloat(b.quantity).toFixed(2)}
+                    </span>
+                  ),
+                }] : []),
+                ...(isVisible('cost') ? [{
+                  id: 'cost',
+                  header: 'Avg Unit Cost',
+                  priority: 'low' as const,
+                  align: 'right' as const,
+                  cell: (b: StockBalance) => (
+                    <span className="font-mono text-default">{formatCurrency(b.average_cost)}</span>
+                  ),
+                }] : []),
+                ...(isVisible('value') ? [{
+                  id: 'value',
+                  header: 'Total Value',
+                  align: 'right' as const,
+                  cell: (b: StockBalance) => (
+                    <span className="font-mono font-bold text-default">{formatCurrency(b.total_value)}</span>
+                  ),
+                }] : []),
+                ...(isVisible('actions') ? [{
+                  id: 'actions',
+                  header: 'Actions',
+                  isAction: true,
+                  align: 'right' as const,
+                  cell: (b: StockBalance) => (
+                    <div className="flex items-center justify-end gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => setViewingBalance(b)}
+                        className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-lg bg-surface-sunken hover:bg-surface border border-default text-default transition-colors cursor-pointer"
+                        title="Inspect Lot Details"
                       >
-                        {isVisible('select') && (
-                          <td className={cn("w-10 text-center", cellClass)}>
-                            <input
-                              type="checkbox"
-                              checked={selectedBalanceIds.has(b.id)}
-                              onChange={() => toggleSelectBalance(b.id)}
-                              className="size-4 rounded border-default text-primary focus:ring-primary cursor-pointer"
-                              aria-label={`Select ${b.product_name}`}
-                            />
-                          </td>
-                        )}
-                        {isVisible('product') && (
-                          <td className={cn("px-4", cellClass)}>
-                            <div className="font-semibold text-default">{b.product_name ?? '—'}</div>
-                            <div className="text-[11px] font-mono text-muted">
-                              {b.product_sku ?? '—'}
-                            </div>
-                          </td>
-                        )}
-                        {isVisible('warehouse') && <td className={cn("px-4 text-muted", cellClass)}>{b.warehouse_name ?? '—'}</td>}
-                        {isVisible('lot') && <td className={cn("px-4 font-mono text-muted", cellClass)}>{b.batch_code ?? '—'}</td>}
-                        {isVisible('state') && (
-                          <td className={cn("px-4", cellClass)}>
-                            <span
-                              className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider ${
-                                b.stock_state === 'available'
-                                  ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30'
-                                  : b.stock_state === 'quarantine'
-                                    ? 'bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30'
-                                    : b.stock_state === 'damaged'
-                                      ? 'bg-rose-500/15 text-rose-700 dark:text-rose-300 border border-rose-500/30'
-                                      : 'bg-surface-sunken text-muted border border-default'
-                              }`}
-                            >
-                              {b.stock_state}
-                            </span>
-                          </td>
-                        )}
-                        {isVisible('quantity') && (
-                          <td className={cn("px-4 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400", cellClass)}>
-                            {parseFloat(b.quantity).toFixed(2)}
-                          </td>
-                        )}
-                        {isVisible('cost') && (
-                          <td className={cn("px-4 text-right font-mono text-default", cellClass)}>
-                            {formatCurrency(b.average_cost)}
-                          </td>
-                        )}
-                        {isVisible('value') && (
-                          <td className={cn("px-4 text-right font-mono font-bold text-default", cellClass)}>
-                            {formatCurrency(b.total_value)}
-                          </td>
-                        )}
-                        {isVisible('actions') && (
-                          <td className={cn("px-4 text-right", cellClass)}>
-                            <div className="flex items-center justify-end gap-1.5">
-                              <button
-                                onClick={() => setViewingBalance(b)}
-                                className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-lg bg-surface-sunken hover:bg-surface border border-default text-default transition-colors cursor-pointer"
-                                title="Inspect Lot Details"
-                              >
-                                <Eye className="size-3.5 text-muted" />
-                                <span>Details</span>
-                              </button>
+                        <Eye className="size-3.5 text-muted" />
+                        <span className="hidden sm:inline">Details</span>
+                      </button>
 
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  if (openActionMenuId === b.id) {
-                                    setOpenActionMenuId(null);
-                                    setActionMenuAnchor(null);
-                                  } else {
-                                    setOpenActionMenuId(b.id);
-                                    setActionMenuAnchor(e.currentTarget);
-                                  }
-                                }}
-                                className={cn(
-                                  'inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold rounded-lg border transition-colors cursor-pointer',
-                                  openActionMenuId === b.id
-                                    ? 'bg-primary text-primary-fg border-primary shadow-xs'
-                                    : 'bg-surface hover:bg-surface-sunken border-default text-default'
-                                )}
-                              >
-                                <span>Actions</span>
-                                <ChevronDown className="size-3 text-muted" />
-                              </button>
-                            </div>
-                          </td>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (openActionMenuId === b.id) {
+                            setOpenActionMenuId(null);
+                            setActionMenuAnchor(null);
+                          } else {
+                            setOpenActionMenuId(b.id);
+                            setActionMenuAnchor(e.currentTarget);
+                          }
+                        }}
+                        className={cn(
+                          'inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold rounded-lg border transition-colors cursor-pointer',
+                          openActionMenuId === b.id
+                            ? 'bg-primary text-primary-fg border-primary shadow-xs'
+                            : 'bg-surface hover:bg-surface-sunken border-default text-default'
                         )}
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-                {filteredBalances.length > 0 && (
-                  <tfoot className="sticky bottom-0 z-10 border-t-2 border-default bg-surface-sunken/95 backdrop-blur-xs font-semibold text-xs text-default">
-                    <tr>
-                      <td
-                        colSpan={
-                          (isVisible('select') ? 1 : 0) +
-                          (isVisible('product') ? 1 : 0) +
-                          (isVisible('warehouse') ? 1 : 0) +
-                          (isVisible('lot') ? 1 : 0) +
-                          (isVisible('state') ? 1 : 0)
-                        }
-                        className={cn("px-4 font-medium text-muted", cellClass)}
                       >
-                        Total ({filteredBalances.length} Positions)
-                      </td>
-                      {isVisible('quantity') && (
-                        <td className={cn("px-4 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400", cellClass)}>
-                          {filteredBalances
-                            .reduce((sum, b) => sum + parseFloat(b.quantity || '0'), 0)
-                            .toFixed(2)}
-                        </td>
-                      )}
-                      {isVisible('cost') && (
-                        <td className={cn("px-4 text-right font-mono text-muted text-2xs", cellClass)}>
-                          Avg: {formatCurrency(
-                            filteredBalances.length > 0
-                              ? filteredBalances.reduce((sum, b) => sum + parseFloat(b.average_cost || '0'), 0) / filteredBalances.length
-                              : 0
-                          )}
-                        </td>
-                      )}
-                      {isVisible('value') && (
-                        <td className={cn("px-4 text-right font-mono font-bold text-default", cellClass)}>
-                          {formatCurrency(
-                            filteredBalances.reduce((sum, b) => sum + parseFloat(b.total_value || '0'), 0)
-                          )}
-                        </td>
-                      )}
-                      {isVisible('actions') && (
-                        <td className={cn("px-4 text-right text-2xs text-muted font-normal", cellClass)}>
-                          Summary
-                        </td>
-                      )}
-                    </tr>
-                  </tfoot>
-                )}
-              </table>
+                        <span>Actions</span>
+                        <ChevronDown className="size-3 text-muted" />
+                      </button>
+                    </div>
+                  ),
+                }] : []),
+              ]}
+            />
+
+            {/* Balances Summary Ribbon */}
+            {filteredBalances.length > 0 && (
+              <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 rounded-2xl border border-default bg-surface-sunken/80 text-xs text-default shadow-2xs">
+                <div className="flex items-center gap-2 font-bold">
+                  <span>Total Positions:</span>
+                  <span className="font-mono text-primary font-bold">{filteredBalances.length}</span>
+                </div>
+                <div className="flex items-center gap-4 font-mono text-xs flex-wrap">
+                  <div>
+                    <span className="text-muted mr-1 font-sans text-[11px]">Total Qty:</span>
+                    <span className="font-bold text-emerald-600 dark:text-emerald-400">
+                      {filteredBalances.reduce((sum, b) => sum + parseFloat(b.quantity || '0'), 0).toFixed(2)}
+                    </span>
+                  </div>
+                  <div className="border-l border-default pl-4">
+                    <span className="text-muted mr-1 font-sans text-[11px]">Total Valuation:</span>
+                    <span className="font-bold text-primary text-sm">
+                      {formatCurrency(filteredBalances.reduce((sum, b) => sum + parseFloat(b.total_value || '0'), 0))}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {openActionMenuId && (() => {
               const b = filteredBalances.find((item) => item.id === openActionMenuId);
@@ -961,102 +975,154 @@ export function StockLedgerSection() {
                 </ActionMenuPortal>
               );
             })()}
-            </div>
-          </div>
+          </>
         ) : (
-          <div className="overflow-x-auto min-h-75">
-            <table className="w-full text-left text-xs text-default">
-              <thead className="bg-surface-sunken/70 text-[11px] font-semibold text-muted uppercase tracking-wider border-b border-default">
-                <tr>
-                  <th className="px-4 py-3.5">Movement #</th>
-                  <th className="px-4 py-3.5">Type</th>
-                  <th className="px-4 py-3.5">Product</th>
-                  <th className="px-4 py-3.5">Warehouse</th>
-                  <th className="px-4 py-3.5">Batch</th>
-                  <th className="px-4 py-3.5 text-right">Quantity</th>
-                  <th className="px-4 py-3.5 text-right">Balance After</th>
-                  <th className="px-4 py-3.5 text-right">Timestamp</th>
-                  <th className="px-4 py-3.5 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-default">
-                {filteredMovements.length === 0 ? (
-                  <tr>
-                    <td colSpan={9} className="px-4 py-12 text-center text-muted">
-                      {loading ? 'Loading ledger movements...' : 'No ledger movements found'}
-                    </td>
-                  </tr>
-                ) : (
-                  filteredMovements.map((m) => (
-                    <tr key={m.id} className="hover:bg-surface-sunken/40 transition-colors">
-                      <td className="px-4 py-3.5 font-mono font-semibold text-default">
-                        {m.movement_number}
-                      </td>
-                      <td className="px-4 py-3.5">
-                        <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-default">
-                          {m.direction === 'in' ? (
-                            <ArrowDownLeft className="size-3.5 text-emerald-600 dark:text-emerald-400" />
-                          ) : (
-                            <ArrowUpRight className="size-3.5 text-rose-600 dark:text-rose-400" />
-                          )}
-                          <span className="capitalize">{m.movement_type.replace('_', ' ')}</span>
-                        </span>
-                      </td>
-                      <td className="px-4 py-3.5">
-                        <div className="font-semibold text-default">{m.product_name ?? '—'}</div>
-                        <div className="text-[11px] font-mono text-muted">
-                          {m.product_sku ?? '—'}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3.5 text-muted">{m.warehouse_name ?? '—'}</td>
-                      <td className="px-4 py-3.5 font-mono text-muted">{m.batch_code ?? '—'}</td>
-                      <td
-                        className={`px-4 py-3.5 text-right font-mono font-bold ${
-                          m.direction === 'in'
-                            ? 'text-emerald-600 dark:text-emerald-400'
-                            : 'text-rose-600 dark:text-rose-400'
-                        }`}
-                      >
-                        {m.direction === 'in' ? '+' : '-'}
-                        {parseFloat(m.quantity).toFixed(2)}
-                      </td>
-                      <td className="px-4 py-3.5 text-right font-mono text-default">
-                        {parseFloat(m.balance_after).toFixed(2)}
-                      </td>
-                      <td className="px-4 py-3.5 text-right text-[11px] text-muted font-mono">
-                        {m.moved_at ? new Date(m.moved_at).toLocaleString() : '—'}
-                      </td>
-                      <td className="px-4 py-3.5 text-right">
-                        <div className="flex items-center justify-end gap-1.5">
-                          <button
-                            onClick={() => {
-                              setViewingMovement(m);
-                              void api.get<StockMovement>(`/inventory/movements/${m.id}`).then((res) => {
-                                if (res.data) setViewingMovement(res.data);
-                              }).catch(() => {});
-                            }}
-                            className="p-1.5 text-muted hover:text-default hover:bg-surface-sunken rounded-lg transition-colors cursor-pointer"
-                            title="Inspect Movement Voucher"
-                          >
-                            <Eye className="size-3.5" />
-                          </button>
-                          <button
-                            onClick={() => {
-                              window.print();
-                            }}
-                            className="p-1.5 text-muted hover:text-default hover:bg-surface-sunken rounded-lg transition-colors cursor-pointer"
-                            title="Print Movement Slip"
-                          >
-                            <Printer className="size-3.5" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+          <ResponsiveDataTable<StockMovement>
+            data={filteredMovements}
+            isLoading={loading}
+            keyExtractor={(m) => m.id}
+            emptyMessage="No ledger movements found"
+            emptyIcon={Layers}
+            mobileCardBreakpoint="sm"
+            mobileActions={(m) => [
+              {
+                id: 'voucher',
+                label: 'Inspect Movement Voucher',
+                icon: Eye,
+                onClick: () => {
+                  setViewingMovement(m);
+                  void api.get<StockMovement>(`/inventory/movements/${m.id}`).then((res) => {
+                    if (res.data) setViewingMovement(res.data);
+                  }).catch(() => {});
+                },
+              },
+              {
+                id: 'print',
+                label: 'Print Movement Slip',
+                icon: Printer,
+                onClick: () => {
+                  window.print();
+                },
+              },
+            ]}
+            columns={[
+              {
+                id: 'movement_number',
+                header: 'Movement #',
+                isPrimary: true,
+                cell: (m) => (
+                  <span className="font-mono font-semibold text-default">{m.movement_number}</span>
+                ),
+              },
+              {
+                id: 'type',
+                header: 'Type',
+                isStatus: true,
+                cell: (m) => (
+                  <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-default">
+                    {m.direction === 'in' ? (
+                      <ArrowDownLeft className="size-3.5 text-emerald-600 dark:text-emerald-400" />
+                    ) : (
+                      <ArrowUpRight className="size-3.5 text-rose-600 dark:text-rose-400" />
+                    )}
+                    <span className="capitalize">{m.movement_type.replace('_', ' ')}</span>
+                  </span>
+                ),
+              },
+              {
+                id: 'product',
+                header: 'Product',
+                cell: (m) => (
+                  <div>
+                    <div className="font-semibold text-default">{m.product_name ?? '—'}</div>
+                    <div className="text-[11px] font-mono text-muted">{m.product_sku ?? '—'}</div>
+                  </div>
+                ),
+              },
+              {
+                id: 'warehouse',
+                header: 'Warehouse',
+                priority: 'medium',
+                cell: (m) => <span className="text-muted">{m.warehouse_name ?? '—'}</span>,
+              },
+              {
+                id: 'batch',
+                header: 'Batch',
+                priority: 'low',
+                cell: (m) => <span className="font-mono text-muted">{m.batch_code ?? '—'}</span>,
+              },
+              {
+                id: 'quantity',
+                header: 'Quantity',
+                align: 'right',
+                cell: (m) => (
+                  <span
+                    className={`font-mono font-bold ${
+                      m.direction === 'in'
+                        ? 'text-emerald-600 dark:text-emerald-400'
+                        : 'text-rose-600 dark:text-rose-400'
+                    }`}
+                  >
+                    {m.direction === 'in' ? '+' : '-'}
+                    {parseFloat(m.quantity).toFixed(2)}
+                  </span>
+                ),
+              },
+              {
+                id: 'balance_after',
+                header: 'Balance After',
+                priority: 'low',
+                align: 'right',
+                cell: (m) => (
+                  <span className="font-mono text-default">{parseFloat(m.balance_after).toFixed(2)}</span>
+                ),
+              },
+              {
+                id: 'moved_at',
+                header: 'Timestamp',
+                priority: 'low',
+                align: 'right',
+                cell: (m) => (
+                  <span className="text-[11px] text-muted font-mono">
+                    {m.moved_at ? new Date(m.moved_at).toLocaleString() : '—'}
+                  </span>
+                ),
+              },
+              {
+                id: 'actions',
+                header: 'Actions',
+                isAction: true,
+                align: 'right',
+                cell: (m) => (
+                  <div className="flex items-center justify-end gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setViewingMovement(m);
+                        void api.get<StockMovement>(`/inventory/movements/${m.id}`).then((res) => {
+                          if (res.data) setViewingMovement(res.data);
+                        }).catch(() => {});
+                      }}
+                      className="p-1.5 text-muted hover:text-default hover:bg-surface-sunken rounded-lg transition-colors cursor-pointer"
+                      title="Inspect Movement Voucher"
+                    >
+                      <Eye className="size-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        window.print();
+                      }}
+                      className="p-1.5 text-muted hover:text-default hover:bg-surface-sunken rounded-lg transition-colors cursor-pointer"
+                      title="Print Movement Slip"
+                    >
+                      <Printer className="size-3.5" />
+                    </button>
+                  </div>
+                ),
+              },
+            ]}
+          />
         )}
       </div>
 

@@ -37,6 +37,8 @@ import {
   type WorkspaceCategoryConfig,
   type WorkspaceTabConfig,
 } from '../../components/common/WorkspaceNavigationHub';
+import { ResponsiveDataTable, type ResponsiveColumn } from '../../components/ui/ResponsiveDataTable';
+import { type ActionSheetItem } from '../../components/motion/MotionActionSheet';
 
 export interface UserRole {
   id: number;
@@ -635,6 +637,295 @@ export const UsersManagementWorkspace: React.FC = () => {
     setActiveTab('all__all');
   };
 
+  const userColumns: ResponsiveColumn<UserData>[] = [
+    {
+      id: 'user',
+      header: (
+        <span className="flex items-center gap-1.5">
+          <Users className="size-3 text-muted" />
+          User Account
+        </span>
+      ),
+      isPrimary: true,
+      priority: 'high',
+      accessor: (user) => {
+        const initials = user.name
+          .split(' ')
+          .map((n) => n[0])
+          .slice(0, 2)
+          .join('')
+          .toUpperCase();
+        return (
+          <div className="flex items-center gap-3">
+            <div className="size-9 rounded-full bg-linear-to-br from-indigo-500/15 to-purple-500/15 text-indigo-600 dark:text-indigo-400 font-bold border border-indigo-500/25 flex items-center justify-center text-xs shrink-0 shadow-2xs">
+              {initials}
+            </div>
+            <div className="min-w-0">
+              <div className="font-semibold text-default flex items-center gap-2">
+                <span>{user.name}</span>
+                {user.is_platform_admin && (
+                  <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                    Platform Admin
+                  </span>
+                )}
+              </div>
+              <div className="text-xs text-muted font-mono truncate">{user.email}</div>
+              {user.phone && (
+                <div className="text-[11px] text-muted/80 mt-0.5">{user.phone}</div>
+              )}
+            </div>
+          </div>
+        );
+      },
+    },
+    {
+      id: 'employee',
+      header: (
+        <span className="flex items-center gap-1.5">
+          <Briefcase className="size-3 text-muted" />
+          Linked Staff Profile
+        </span>
+      ),
+      priority: 'medium',
+      accessor: (user) => {
+        return user.employee ? (
+          <div className="space-y-0.5">
+            <div className="flex items-center gap-1.5">
+              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-mono font-bold bg-surface-sunken text-default border border-default">
+                {user.employee.employee_code}
+              </span>
+              <span className="font-medium text-default text-xs">
+                {user.employee.display_name}
+              </span>
+            </div>
+            <div className="text-[11px] text-muted flex items-center gap-2">
+              {user.employee.department && (
+                <span className="flex items-center gap-1">
+                  <Building className="size-3 text-muted/70" />
+                  {user.employee.department}
+                </span>
+              )}
+              {user.employee.designation && (
+                <span className="flex items-center gap-1">
+                  <Briefcase className="size-3 text-muted/70" />
+                  {user.employee.designation}
+                </span>
+              )}
+            </div>
+          </div>
+        ) : (
+          <span className="inline-flex items-center gap-1 text-xs text-muted italic bg-surface-sunken px-2 py-0.5 rounded border border-default">
+            <Users className="size-3 text-muted/70" />
+            Standalone Login
+          </span>
+        );
+      },
+    },
+    {
+      id: 'roles',
+      header: (
+        <span className="flex items-center gap-1.5">
+          <Shield className="size-3 text-muted" />
+          Assigned Roles
+        </span>
+      ),
+      priority: 'low',
+      accessor: (user) => (
+        <div className="flex flex-wrap items-center gap-1.5 max-w-xs">
+          {user.roles && user.roles.length > 0 ? (
+            user.roles.map((r) => (
+              <span
+                key={r.id}
+                className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium border ${getRoleBadgeStyle(
+                  r.slug
+                )}`}
+                title={r.designation ? `Designation: ${r.designation}` : undefined}
+              >
+                <Shield className="size-3 mr-1 opacity-70" />
+                <span>{r.name}</span>
+                {r.designation && (
+                  <span className="opacity-75 font-normal ml-1">({r.designation})</span>
+                )}
+              </span>
+            ))
+          ) : (
+            <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/25">
+              <AlertCircle className="size-3 mr-1" />
+              No Roles Assigned
+            </span>
+          )}
+
+          {canManageRoles && (
+            <button
+              type="button"
+              onClick={() => handleOpenRolesModal(user)}
+              className="text-xs font-semibold text-primary hover:underline ml-1 inline-flex items-center gap-0.5 touch-target"
+            >
+              Edit Roles
+            </button>
+          )}
+        </div>
+      ),
+    },
+    {
+      id: 'status',
+      header: (
+        <span className="flex items-center gap-1.5">
+          <Activity className="size-3 text-muted" />
+          Status
+        </span>
+      ),
+      priority: 'high',
+      isStatus: true,
+      accessor: (user) => (
+        <button
+          type="button"
+          onClick={() => canUpdateUser && setToggleStatusUser(user)}
+          disabled={!canUpdateUser}
+          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border transition-all touch-target ${
+            user.status === 'active'
+              ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/25 hover:bg-emerald-500/20'
+              : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/25 hover:bg-rose-500/20'
+          }`}
+        >
+          <span
+            className={`size-1.5 rounded-full ${
+              user.status === 'active' ? 'bg-emerald-500' : 'bg-rose-500'
+            }`}
+          />
+          {user.status === 'active' ? 'Active' : 'Suspended'}
+        </button>
+      ),
+    },
+    {
+      id: 'last_login',
+      header: (
+        <span className="flex items-center gap-1.5">
+          <Clock className="size-3 text-muted" />
+          Last Login
+        </span>
+      ),
+      priority: 'low',
+      accessor: (user) => (
+        user.last_login_at ? (
+          <div className="flex items-center gap-1.5 text-xs text-muted font-mono">
+            <Clock className="size-3 text-muted shrink-0" />
+            <div>
+              <div>{new Date(user.last_login_at).toLocaleDateString()}</div>
+              <div className="text-[10px] text-muted/70">
+                {new Date(user.last_login_at).toLocaleTimeString([], {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })}
+              </div>
+            </div>
+          </div>
+        ) : (
+          <span className="text-muted/60 italic text-xs">Never</span>
+        )
+      ),
+    },
+    {
+      id: 'actions',
+      header: 'Actions',
+      priority: 'high',
+      isAction: true,
+      align: 'right',
+      accessor: (user) => (
+        <div className="flex items-center justify-end gap-1.5">
+          {canManageRoles && (
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => handleOpenRolesModal(user)}
+              className="h-7 text-xs px-2.5 gap-1 shadow-2xs hover:border-primary/40 touch-target"
+              title="Assign or modify roles"
+            >
+              <Shield className="size-3 text-primary" />
+              <span>Roles</span>
+            </Button>
+          )}
+
+          {canUpdateUser && (
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => handleOpenEditUser(user)}
+              className="h-7 text-xs px-2.5 gap-1 shadow-2xs hover:border-blue-500/40 touch-target"
+              title="Edit user profile & details"
+            >
+              <Edit className="size-3 text-blue-600 dark:text-blue-400" />
+              <span>Edit</span>
+            </Button>
+          )}
+
+          {canUpdateUser && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => handleOpenPasswordModal(user)}
+              className="size-7 p-0 text-muted hover:text-default hover:bg-surface-sunken touch-target"
+              title="Reset password"
+            >
+              <KeyRound className="size-3.5" />
+            </Button>
+          )}
+
+          {canDeleteUser &&
+            String(user.id) !== String(currentUser?.id) &&
+            !user.is_platform_admin && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setDeleteModalUser(user)}
+                className="size-7 p-0 text-muted hover:text-rose-600 hover:bg-rose-500/10 touch-target"
+                title="Delete user account"
+              >
+                <Trash2 className="size-3.5" />
+              </Button>
+            )}
+        </div>
+      ),
+    },
+  ];
+
+  const getMobileActions = (user: UserData): ActionSheetItem[] => {
+    const actions: ActionSheetItem[] = [];
+    if (canManageRoles) {
+      actions.push({
+        label: 'Manage Roles',
+        icon: Shield,
+        onClick: () => handleOpenRolesModal(user),
+      });
+    }
+    if (canUpdateUser) {
+      actions.push({
+        label: 'Edit User Profile',
+        icon: Edit,
+        onClick: () => handleOpenEditUser(user),
+      });
+      actions.push({
+        label: 'Reset Password',
+        icon: KeyRound,
+        onClick: () => handleOpenPasswordModal(user),
+      });
+      actions.push({
+        label: user.status === 'active' ? 'Suspend Account' : 'Activate Account',
+        icon: Activity,
+        onClick: () => setToggleStatusUser(user),
+      });
+    }
+    if (canDeleteUser && String(user.id) !== String(currentUser?.id) && !user.is_platform_admin) {
+      actions.push({
+        label: 'Delete Account',
+        icon: Trash2,
+        variant: 'destructive',
+        onClick: () => setDeleteModalUser(user),
+      });
+    }
+    return actions;
+  };
+
   return (
     <div className="space-y-6 pb-12 max-w-7xl mx-auto py-2">
       {/* ── Workspace Header Surface ───────────────────────────────────── */}
@@ -916,291 +1207,19 @@ export const UsersManagementWorkspace: React.FC = () => {
       </div>
 
       {/* ── Users Directory Table ─────────────────────────────────── */}
-      <div className="rounded-2xl border border-default bg-surface shadow-xs overflow-hidden">
-        {loading ? (
-          <div className="flex h-64 items-center justify-center flex-col gap-3">
-            <RefreshCw className="size-8 animate-spin text-primary" />
-            <span className="text-xs text-muted">Loading user directory and permissions...</span>
-          </div>
-        ) : filteredUsers.length === 0 ? (
-          <div className="p-12 text-center space-y-3">
-            <div className="size-12 rounded-2xl bg-surface-sunken border border-default flex items-center justify-center mx-auto text-muted">
-              <Users className="size-6" />
-            </div>
-            <h4 className="text-sm font-bold text-default">No User Accounts Found</h4>
-            <p className="text-xs text-muted max-w-sm mx-auto">
-              {hasActiveFilters
-                ? 'Try adjusting your search criteria, category tab, or resetting filters.'
-                : 'Get started by creating your first system user account or granting access from HR.'}
-            </p>
-            {hasActiveFilters && (
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={handleResetFilters}
-                className="text-xs mt-2"
-              >
-                <RotateCcw className="size-3 mr-1" />
-                <span>Reset Filters</span>
-              </Button>
-            )}
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs border-collapse">
-              <thead>
-                <tr className="border-b border-default bg-surface-sunken text-[11px] font-bold uppercase tracking-wider text-muted">
-                  <th className="py-3 px-4">
-                    <span className="flex items-center gap-1.5">
-                      <Users className="size-3 text-muted" />
-                      User Account
-                    </span>
-                  </th>
-                  <th className="py-3 px-4">
-                    <span className="flex items-center gap-1.5">
-                      <Briefcase className="size-3 text-muted" />
-                      Linked Staff Profile
-                    </span>
-                  </th>
-                  <th className="py-3 px-4">
-                    <span className="flex items-center gap-1.5">
-                      <Shield className="size-3 text-muted" />
-                      Assigned Roles
-                    </span>
-                  </th>
-                  <th className="py-3 px-4">
-                    <span className="flex items-center gap-1.5">
-                      <Activity className="size-3 text-muted" />
-                      Status
-                    </span>
-                  </th>
-                  <th className="py-3 px-4">
-                    <span className="flex items-center gap-1.5">
-                      <Clock className="size-3 text-muted" />
-                      Last Login
-                    </span>
-                  </th>
-                  <th className="py-3 px-4 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-default">
-                {filteredUsers.map((user) => {
-                  const isSuspended = user.status === 'suspended';
-                  const initials = user.name
-                    .split(' ')
-                    .map((n) => n[0])
-                    .slice(0, 2)
-                    .join('')
-                    .toUpperCase();
-
-                  return (
-                    <tr
-                      key={user.id}
-                      className={`hover:bg-surface-sunken/50 transition-colors ${
-                        isSuspended ? 'opacity-75 bg-surface-sunken/20' : ''
-                      }`}
-                    >
-                      {/* User Account Details */}
-                      <td className="py-3.5 px-4">
-                        <div className="flex items-center gap-3">
-                          <div className="size-9 rounded-full bg-linear-to-br from-indigo-500/15 to-purple-500/15 text-indigo-600 dark:text-indigo-400 font-bold border border-indigo-500/25 flex items-center justify-center text-xs shrink-0 shadow-2xs">
-                            {initials}
-                          </div>
-                          <div className="min-w-0">
-                            <div className="font-semibold text-default flex items-center gap-2">
-                              <span>{user.name}</span>
-                              {user.is_platform_admin && (
-                                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
-                                  Platform Admin
-                                </span>
-                              )}
-                            </div>
-                            <div className="text-xs text-muted font-mono truncate">{user.email}</div>
-                            {user.phone && (
-                              <div className="text-[11px] text-muted/80 mt-0.5">{user.phone}</div>
-                            )}
-                          </div>
-                        </div>
-                      </td>
-
-                      {/* Linked Staff Profile */}
-                      <td className="py-3.5 px-4">
-                        {user.employee ? (
-                          <div className="space-y-0.5">
-                            <div className="flex items-center gap-1.5">
-                              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-mono font-bold bg-surface-sunken text-default border border-default">
-                                {user.employee.employee_code}
-                              </span>
-                              <span className="font-medium text-default text-xs">
-                                {user.employee.display_name}
-                              </span>
-                            </div>
-                            <div className="text-[11px] text-muted flex items-center gap-2">
-                              {user.employee.department && (
-                                <span className="flex items-center gap-1">
-                                  <Building className="size-3 text-muted/70" />
-                                  {user.employee.department}
-                                </span>
-                              )}
-                              {user.employee.designation && (
-                                <span className="flex items-center gap-1">
-                                  <Briefcase className="size-3 text-muted/70" />
-                                  {user.employee.designation}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 text-xs text-muted italic bg-surface-sunken px-2 py-0.5 rounded border border-default">
-                            <Users className="size-3 text-muted/70" />
-                            Standalone Login
-                          </span>
-                        )}
-                      </td>
-
-                      {/* Assigned Roles */}
-                      <td className="py-3.5 px-4">
-                        <div className="flex flex-wrap items-center gap-1.5 max-w-xs">
-                          {user.roles && user.roles.length > 0 ? (
-                            user.roles.map((r) => (
-                              <span
-                                key={r.id}
-                                className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium border ${getRoleBadgeStyle(
-                                  r.slug
-                                )}`}
-                                title={r.designation ? `Designation: ${r.designation}` : undefined}
-                              >
-                                <Shield className="size-3 mr-1 opacity-70" />
-                                <span>{r.name}</span>
-                                {r.designation && (
-                                  <span className="opacity-75 font-normal ml-1">({r.designation})</span>
-                                )}
-                              </span>
-                            ))
-                          ) : (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/25">
-                              <AlertCircle className="size-3 mr-1" />
-                              No Roles Assigned
-                            </span>
-                          )}
-
-                          {canManageRoles && (
-                            <button
-                              type="button"
-                              onClick={() => handleOpenRolesModal(user)}
-                              className="text-xs font-semibold text-primary hover:underline ml-1 inline-flex items-center gap-0.5"
-                            >
-                              Edit Roles
-                            </button>
-                          )}
-                        </div>
-                      </td>
-
-                      {/* Status */}
-                      <td className="py-3.5 px-4 whitespace-nowrap">
-                        <button
-                          type="button"
-                          onClick={() => canUpdateUser && setToggleStatusUser(user)}
-                          disabled={!canUpdateUser}
-                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border transition-all ${
-                            user.status === 'active'
-                              ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/25 hover:bg-emerald-500/20'
-                              : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/25 hover:bg-rose-500/20'
-                          }`}
-                        >
-                          <span
-                            className={`size-1.5 rounded-full ${
-                              user.status === 'active' ? 'bg-emerald-500' : 'bg-rose-500'
-                            }`}
-                          />
-                          {user.status === 'active' ? 'Active' : 'Suspended'}
-                        </button>
-                      </td>
-
-                      {/* Last Login */}
-                      <td className="py-3.5 px-4 text-xs text-muted font-mono whitespace-nowrap">
-                        {user.last_login_at ? (
-                          <div className="flex items-center gap-1.5">
-                            <Clock className="size-3 text-muted shrink-0" />
-                            <div>
-                              <div>{new Date(user.last_login_at).toLocaleDateString()}</div>
-                              <div className="text-[10px] text-muted/70">
-                                {new Date(user.last_login_at).toLocaleTimeString([], {
-                                  hour: '2-digit',
-                                  minute: '2-digit',
-                                })}
-                              </div>
-                            </div>
-                          </div>
-                        ) : (
-                          <span className="text-muted/60 italic">Never</span>
-                        )}
-                      </td>
-
-                      {/* Actions */}
-                      <td className="py-3.5 px-4 text-right whitespace-nowrap">
-                        <div className="flex items-center justify-end gap-1.5">
-                          {canManageRoles && (
-                            <Button
-                              variant="secondary"
-                              size="sm"
-                              onClick={() => handleOpenRolesModal(user)}
-                              className="h-7 text-xs px-2.5 gap-1 shadow-2xs hover:border-primary/40"
-                              title="Assign or modify roles"
-                            >
-                              <Shield className="size-3 text-primary" />
-                              <span>Roles</span>
-                            </Button>
-                          )}
-
-                          {canUpdateUser && (
-                            <Button
-                              variant="secondary"
-                              size="sm"
-                              onClick={() => handleOpenEditUser(user)}
-                              className="h-7 text-xs px-2.5 gap-1 shadow-2xs hover:border-blue-500/40"
-                              title="Edit user profile & details"
-                            >
-                              <Edit className="size-3 text-blue-600 dark:text-blue-400" />
-                              <span>Edit</span>
-                            </Button>
-                          )}
-
-                          {canUpdateUser && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleOpenPasswordModal(user)}
-                              className="size-7 p-0 text-muted hover:text-default hover:bg-surface-sunken"
-                              title="Reset password"
-                            >
-                              <KeyRound className="size-3.5" />
-                            </Button>
-                          )}
-
-                          {canDeleteUser &&
-                            String(user.id) !== String(currentUser?.id) &&
-                            !user.is_platform_admin && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => setDeleteModalUser(user)}
-                                className="size-7 p-0 text-muted hover:text-rose-600 hover:bg-rose-500/10"
-                                title="Delete user account"
-                              >
-                                <Trash2 className="size-3.5" />
-                              </Button>
-                            )}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+      <ResponsiveDataTable<UserData>
+        data={filteredUsers}
+        columns={userColumns}
+        keyExtractor={(user) => user.id}
+        loading={loading}
+        emptyMessage={
+          hasActiveFilters
+            ? 'No user accounts match your filter criteria. Try adjusting or resetting filters.'
+            : 'No user accounts found. Get started by creating your first system user account or granting access from HR.'
+        }
+        emptyIcon={Users}
+        mobileActions={getMobileActions}
+      />
 
       {/* ═══════════════════════════════════════════════════════════════ */}
       {/* MODAL: ASSIGN / EDIT ROLES                                    */}

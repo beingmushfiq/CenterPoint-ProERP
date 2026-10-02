@@ -109,7 +109,7 @@ describe('Finance Action Modals', () => {
   });
 
   describe('MoneyInModal', () => {
-    it('renders customer collection prefilled and outputs balanced journal entry', () => {
+    it('renders customer collection prefilled and outputs balanced journal entry', async () => {
       const onSuccess = vi.fn();
       const onClose = vi.fn();
 
@@ -133,7 +133,9 @@ describe('Finance Action Modals', () => {
       const submitBtn = screen.getByRole('button', { name: /Record Money In/i });
       fireEvent.click(submitBtn);
 
-      expect(onSuccess).toHaveBeenCalledTimes(1);
+      await waitFor(() => {
+        expect(onSuccess).toHaveBeenCalledTimes(1);
+      });
       const payload = onSuccess.mock.calls[0]![0];
       expect(payload.collectedCustomerName).toBe('Aarong Retail');
       expect(payload.collectedAmount).toBe(12500);
@@ -142,7 +144,7 @@ describe('Finance Action Modals', () => {
       expect(onClose).toHaveBeenCalled();
     });
 
-    it('supports splitting customer due across multiple tenders and auto-balances GL', () => {
+    it('supports splitting customer due across multiple tenders and auto-balances GL', async () => {
       const onSuccess = vi.fn();
       const onClose = vi.fn();
 
@@ -169,7 +171,9 @@ describe('Finance Action Modals', () => {
       const submitBtn = screen.getByRole('button', { name: /Record Money In/i });
       fireEvent.click(submitBtn);
 
-      expect(onSuccess).toHaveBeenCalledTimes(1);
+      await waitFor(() => {
+        expect(onSuccess).toHaveBeenCalledTimes(1);
+      });
       const payload = onSuccess.mock.calls[0]![0];
       expect(payload.collectedCustomerName).toBe('Dhaka Garments');
       expect(payload.collectedAmount).toBe(10000);
@@ -181,7 +185,7 @@ describe('Finance Action Modals', () => {
   });
 
   describe('TransferMoneyModal', () => {
-    it('allows moving money between cash and bank accounts', () => {
+    it('allows moving money between cash and bank accounts', async () => {
       const onSuccess = vi.fn();
       const onClose = vi.fn();
 
@@ -204,7 +208,9 @@ describe('Finance Action Modals', () => {
       const transferBtn = screen.getByRole('button', { name: /Transfer Funds/i });
       fireEvent.click(transferBtn);
 
-      expect(onSuccess).toHaveBeenCalledTimes(1);
+      await waitFor(() => {
+        expect(onSuccess).toHaveBeenCalledTimes(1);
+      });
       const payload = onSuccess.mock.calls[0]![0];
       expect(payload.journalEntry.total_debit).toBe('5000.0000');
       expect(payload.journalEntry.total_credit).toBe('5000.0000');

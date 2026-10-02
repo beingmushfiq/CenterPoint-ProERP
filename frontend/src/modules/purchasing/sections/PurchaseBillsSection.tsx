@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import {
@@ -17,6 +17,7 @@ import {
   Printer,
   CreditCard,
   ChevronDown,
+  Eye,
 } from 'lucide-react';
 import type { PurchaseBill } from '../../../types/api/purchasing';
 import { api } from '../../../lib/api/client';
@@ -24,6 +25,7 @@ import { extractList } from '../../../lib/api/apiData';
 import { useCurrency } from '../../../hooks/useCurrency';
 import { SelectDropdown } from '../../../components/ui/Dropdown';
 import { ActionMenuPortal } from '../../../components/ui/ActionMenuPortal';
+import { ResponsiveDataTable, type ResponsiveColumn } from '../../../components/ui/ResponsiveDataTable';
 import { cn } from '../../../lib/utils';
 import { PaymentSplitEditor } from '../../../components/payment/PaymentSplitEditor';
 import type { PaymentSplitRow, BankAccountOption } from '../../../components/payment/PaymentSplitEditor';
@@ -502,6 +504,183 @@ export function PurchaseBillsSection() {
     );
   };
 
+  const billColumns: ResponsiveColumn<PurchaseBill>[] = useMemo(() => [
+    {
+      id: 'bill_number',
+      header: 'Bill # / Bill Date',
+      isPrimary: true,
+      accessor: (b) => (
+        <div>
+          <div className="flex items-center gap-1.5 font-mono font-medium text-default">
+            <FileSpreadsheet className="size-3.5 text-primary shrink-0" />
+            <span>{b.bill_number}</span>
+          </div>
+          <div className="text-[10px] text-muted font-sans mt-0.5">{b.bill_date}</div>
+        </div>
+      ),
+    },
+    {
+      id: 'supplier',
+      header: 'Supplier & Vendor Invoice #',
+      accessor: (b) => (
+        <div>
+          <div className="font-semibold text-default">{b.supplier_name ?? '—'}</div>
+          <div className="text-[10px] font-mono text-muted">Inv: {b.supplier_invoice_number}</div>
+        </div>
+      ),
+    },
+    {
+      id: 'po_number',
+      header: 'PO / GRN Reference',
+      priority: 'low',
+      accessor: (b) => (
+        <span className="font-mono text-primary font-medium">
+          {b.po_number ?? 'Direct Voucher'}
+        </span>
+      ),
+    },
+    {
+      id: 'due_date',
+      header: 'Due Date',
+      priority: 'medium',
+      accessor: (b) => <span className="font-mono text-muted">{b.due_date}</span>,
+    },
+    {
+      id: 'grand_total',
+      header: 'Grand Total',
+      align: 'right',
+      priority: 'medium',
+      accessor: (b) => (
+        <span className="font-mono font-semibold text-default">
+          {formatCurrency(b.grand_total)}
+        </span>
+      ),
+    },
+    {
+      id: 'status',
+      header: 'Status',
+      priority: 'medium',
+      accessor: (b) => getStatusBadge(b.status, b.payment_status),
+    },
+    {
+      id: 'actions',
+      header: 'Actions',
+      align: 'right',
+      priority: 'low',
+      accessor: (b) => (
+        <div className="flex items-center justify-end gap-1.5">
+          <button
+            type="button"
+            onClick={() => handleViewBill(b)}
+            className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-surface hover:bg-surface-sunken border border-default text-default transition-colors cursor-pointer touch-target"
+          >
+            View
+          </button>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (openActionMenuId === b.id) {
+                setOpenActionMenuId(null);
+                setActionMenuAnchor(null);
+              } else {
+                setOpenActionMenuId(b.id);
+                setActionMenuAnchor(e.currentTarget);
+              }
+            }}
+            className={cn(
+              'inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold rounded-lg border transition-colors cursor-pointer touch-target',
+              openActionMenuId === b.id
+                ? 'bg-primary text-primary-fg border-primary shadow-xs'
+                : 'bg-surface hover:bg-surface-sunken border-default text-default'
+            )}
+          >
+            <span>Actions</span>
+            <ChevronDown className="size-3 text-muted" />
+          </button>
+        </div>
+      ),
+    },
+  ], [formatCurrency, openActionMenuId]);
+
+  const getMobileActions = (bill: PurchaseBill) => {
+    const actions = [
+      {
+        label: 'View Bill Details',
+        icon: <Eye className="size-4" />,
+        onClick: () => handleViewBill(bill),
+      },
+      {
+        label: 'Edit Bill',
+        icon: <Edit2 className="size-4" />,
+        onClick: () => {
+          setActiveBill(bill);
+          setFormData({
+            bill_number: bill.bill_number,
+            po_number: bill.po_number || '',
+            supplier_name: bill.supplier_name || '',
+            supplier_invoice_number: bill.supplier_invoice_number,
+            bill_date: bill.bill_date,
+            due_date: bill.due_date,
+            currency_code: bill.currency_code,
+            notes: bill.notes || '',
+            order_discount_type: 'flat',
+            order_discount_value: '',
+            items: bill.items?.map((it) => ({
+              product_name: it.product_name || '',
+              product_sku: it.product_sku || '',
+              quantity: it.quantity,
+              unit_code: it.unit_code || 'KG',
+              unit_price: it.unit_price,
+              discount_type: 'flat',
+              discount_amount: it.discount_amount || '0.00',
+              tax_rate: it.tax_rate,
+            })) || [],
+          });
+          setShowEditModal(true);
+        },
+      },
+    ];
+
+    if (bill.status === 'pending') {
+      actions.push({
+        label: 'Approve Bill',
+        icon: <CheckCircle2 className="size-4 text-emerald-500" />,
+        onClick: () => handleApprove(bill.id),
+      });
+    }
+
+    if (bill.payment_status !== 'paid') {
+      actions.push({
+        label: 'Record Payment',
+        icon: <CreditCard className="size-4 text-primary" />,
+        onClick: () => handleOpenPayModal(bill),
+      });
+    }
+
+    actions.push(
+      {
+        label: 'Print Bill Voucher',
+        icon: <Printer className="size-4" />,
+        onClick: () => {
+          setActiveBill(bill);
+          window.print();
+        },
+      },
+      {
+        label: 'Void Bill',
+        icon: <Trash2 className="size-4 text-rose-500" />,
+        variant: 'destructive' as const,
+        onClick: () => {
+          setActiveBill(bill);
+          setShowDeleteModal(true);
+        },
+      }
+    );
+
+    return actions;
+  };
+
   return (
     <div className="space-y-6">
       {/* Metric Cards */}
@@ -624,89 +803,28 @@ export function PurchaseBillsSection() {
         </div>
       </div>
 
-      {/* Bills Table */}
-      <div className="rounded-2xl border border-default bg-surface shadow-2xs overflow-hidden">
-        <div className="overflow-x-auto min-h-75">
-          <table className="w-full text-left text-xs text-default">
-            <thead className="bg-surface-sunken text-[11px] font-semibold text-muted uppercase tracking-wider border-b border-default">
-              <tr>
-                <th className="px-4 py-3.5">Bill # / Bill Date</th>
-                <th className="px-4 py-3.5">Supplier & Vendor Invoice #</th>
-                <th className="px-4 py-3.5">PO / GRN Reference</th>
-                <th className="px-4 py-3.5">Due Date</th>
-                <th className="px-4 py-3.5 text-right">Grand Total</th>
-                <th className="px-4 py-3.5">Status</th>
-                <th className="px-4 py-3.5 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-default">
-              {filteredBills.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="px-4 py-12 text-center text-muted">
-                    {isLoading ? 'Loading purchase bills...' : 'No bills found matching your criteria.'}
-                  </td>
-                </tr>
-              ) : (
-                filteredBills.map((b) => (
-                  <tr key={b.id} className="hover:bg-surface-sunken/60 transition-colors">
-                    <td className="px-4 py-3.5 font-mono font-medium text-default">
-                      <div className="flex items-center gap-1.5">
-                        <FileSpreadsheet className="size-3.5 text-primary" />
-                        <span>{b.bill_number}</span>
-                      </div>
-                      <div className="text-[10px] text-muted font-sans mt-0.5">{b.bill_date}</div>
-                    </td>
-                    <td className="px-4 py-3.5">
-                      <div className="font-semibold text-default">{b.supplier_name ?? '—'}</div>
-                      <div className="text-[10px] font-mono text-muted">Inv: {b.supplier_invoice_number}</div>
-                    </td>
-                    <td className="px-4 py-3.5 font-mono text-primary font-medium">
-                      {b.po_number ?? 'Direct Voucher'}
-                    </td>
-                    <td className="px-4 py-3.5 font-mono text-muted">{b.due_date}</td>
-                    <td className="px-4 py-3.5 text-right font-mono font-semibold text-default">
-                      {formatCurrency(b.grand_total)}
-                    </td>
-                    <td className="px-4 py-3.5">{getStatusBadge(b.status, b.payment_status)}</td>
-                    <td className="px-4 py-3.5 text-right">
-                      <div className="flex items-center justify-end gap-1.5">
-                        <button
-                          type="button"
-                          onClick={() => handleViewBill(b)}
-                          className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-surface hover:bg-surface-sunken border border-default text-default transition-colors cursor-pointer"
-                        >
-                          View
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (openActionMenuId === b.id) {
-                              setOpenActionMenuId(null);
-                              setActionMenuAnchor(null);
-                            } else {
-                              setOpenActionMenuId(b.id);
-                              setActionMenuAnchor(e.currentTarget);
-                            }
-                          }}
-                          className={cn(
-                            'inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold rounded-lg border transition-colors cursor-pointer',
-                            openActionMenuId === b.id
-                              ? 'bg-primary text-primary-fg border-primary shadow-xs'
-                              : 'bg-surface hover:bg-surface-sunken border-default text-default'
-                          )}
-                        >
-                          <span>Actions</span>
-                          <ChevronDown className="size-3 text-muted" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+      {/* Bills Responsive Data Table */}
+      <ResponsiveDataTable<PurchaseBill>
+        data={filteredBills}
+        columns={billColumns}
+        keyExtractor={(b) => b.id}
+        isLoading={isLoading}
+        loadingRows={6}
+        mobileActions={getMobileActions}
+        isFiltered={Boolean(search || statusFilter !== 'all')}
+        searchEmptyState={
+          <div className="py-12 text-center text-muted">
+            <p className="font-semibold text-default">No purchase bills match your filters</p>
+            <p className="text-xs text-muted mt-1">Try resetting the status filter or modifying the search terms.</p>
+          </div>
+        }
+        emptyState={
+          <div className="py-12 text-center text-muted">
+            <p className="font-semibold text-default">No purchase bills recorded</p>
+            <p className="text-xs text-muted mt-1">Direct vouchers and PO invoices will appear here once booked.</p>
+          </div>
+        }
+      />
 
           {openActionMenuId && (() => {
             const bill = filteredBills.find((x) => x.id === openActionMenuId);

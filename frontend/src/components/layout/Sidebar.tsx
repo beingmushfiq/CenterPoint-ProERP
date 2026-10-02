@@ -117,11 +117,17 @@ export function Sidebar({ isOpen, onClose, isCollapsed = false, onToggleCollapse
 
     // 2. Active matching for '/sales'
     if (to === '/sales') {
+      if (location.pathname === '/sales' && location.search.includes('tab=leads')) {
+        return false;
+      }
       return location.pathname === '/sales' || location.pathname.startsWith('/sales/');
     }
 
     // 2a. Active matching for '/crm'
     if (to === '/crm') {
+      if (location.pathname === '/sales' && location.search.includes('tab=leads')) {
+        return true;
+      }
       return location.pathname === '/crm' || location.pathname.startsWith('/crm/');
     }
 

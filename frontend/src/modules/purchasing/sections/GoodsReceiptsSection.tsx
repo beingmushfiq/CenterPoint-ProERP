@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import {
@@ -17,6 +17,7 @@ import {
   ChevronDown,
   ShieldCheck,
   ShieldAlert,
+  Eye,
 } from 'lucide-react';
 import type { GoodsReceipt } from '../../../types/api/purchasing';
 import { api } from '../../../lib/api/client';
@@ -27,6 +28,7 @@ import { useBusinessConfig } from '../../../lib/document/useBusinessConfig';
 import { useCurrency } from '../../../hooks/useCurrency';
 import { SelectDropdown } from '../../../components/ui/Dropdown';
 import { ActionMenuPortal } from '../../../components/ui/ActionMenuPortal';
+import { ResponsiveDataTable, type ResponsiveColumn } from '../../../components/ui/ResponsiveDataTable';
 import { cn } from '../../../lib/utils';
 
 interface GrnFormItem {
@@ -300,6 +302,183 @@ export function GoodsReceiptsSection() {
     }
   };
 
+  const grnColumns: ResponsiveColumn<GoodsReceipt>[] = useMemo(() => [
+    {
+      id: 'grn_number',
+      header: 'GRN # / Receipt Date',
+      isPrimary: true,
+      accessor: (r) => (
+        <div>
+          <div className="flex items-center gap-1.5 font-mono font-medium text-default">
+            <Layers className="size-3.5 text-primary shrink-0" />
+            <span>{r.grn_number}</span>
+          </div>
+          <div className="text-[10px] text-muted font-sans mt-0.5">{r.receipt_date}</div>
+        </div>
+      ),
+    },
+    {
+      id: 'supplier',
+      header: 'Supplier & Challan #',
+      accessor: (r) => (
+        <div>
+          <div className="font-semibold text-default">{r.supplier_name ?? '—'}</div>
+          <div className="text-[10px] font-mono text-muted">Doc: {r.supplier_document_number ?? '—'}</div>
+        </div>
+      ),
+    },
+    {
+      id: 'po_number',
+      header: 'Reference PO',
+      priority: 'low',
+      accessor: (r) => (
+        <span className="font-mono text-primary font-medium">
+          {r.po_number ?? 'Direct Receipt'}
+        </span>
+      ),
+    },
+    {
+      id: 'warehouse',
+      header: 'Target Warehouse',
+      priority: 'low',
+      accessor: (r) => <span className="text-muted">{r.warehouse_name ?? 'Central Silo'}</span>,
+    },
+    {
+      id: 'accepted_value',
+      header: 'Accepted Value',
+      align: 'right',
+      priority: 'medium',
+      accessor: (r) => {
+        const grnTotal = (r.items ?? []).reduce(
+          (s, it) => s + parseFloat(it.total_cost || '0'),
+          0
+        );
+        return (
+          <span className="font-mono font-semibold text-default">
+            {formatCurrency(grnTotal)}
+          </span>
+        );
+      },
+    },
+    {
+      id: 'status',
+      header: 'Status',
+      priority: 'medium',
+      accessor: (r) => getStatusBadge(r.status),
+    },
+    {
+      id: 'actions',
+      header: 'Actions',
+      align: 'right',
+      priority: 'low',
+      accessor: (r) => (
+        <div className="flex items-center justify-end gap-1.5">
+          <button
+            type="button"
+            onClick={() => handleViewGrn(r)}
+            className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-surface hover:bg-surface-sunken border border-default text-default transition-colors cursor-pointer touch-target"
+          >
+            View
+          </button>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (openActionMenuId === r.id) {
+                setOpenActionMenuId(null);
+                setActionMenuAnchor(null);
+              } else {
+                setOpenActionMenuId(r.id);
+                setActionMenuAnchor(e.currentTarget);
+              }
+            }}
+            className={cn(
+              'inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold rounded-lg border transition-colors cursor-pointer touch-target',
+              openActionMenuId === r.id
+                ? 'bg-primary text-primary-fg border-primary shadow-xs'
+                : 'bg-surface hover:bg-surface-sunken border-default text-default'
+            )}
+          >
+            <span>Actions</span>
+            <ChevronDown className="size-3 text-muted" />
+          </button>
+        </div>
+      ),
+    },
+  ], [formatCurrency, openActionMenuId]);
+
+  const getMobileActions = (receipt: GoodsReceipt) => {
+    const actions = [
+      {
+        label: 'View GRN Details',
+        icon: <Eye className="size-4" />,
+        onClick: () => handleViewGrn(receipt),
+      },
+    ];
+
+    if (receipt.status === 'draft') {
+      actions.push(
+        {
+          label: 'Edit GRN',
+          icon: <Edit2 className="size-4" />,
+          onClick: () => {
+            setActiveGrn(receipt);
+            setFormData({
+              grn_number: receipt.grn_number,
+              po_number: receipt.po_number || '',
+              supplier_name: receipt.supplier_name || '',
+              warehouse_name: receipt.warehouse_name || '',
+              receipt_date: receipt.receipt_date,
+              supplier_document_number: receipt.supplier_document_number || '',
+              notes: receipt.notes || '',
+              items: receipt.items?.map((it) => ({
+                product_name: it.product_name || '',
+                product_sku: it.product_sku || '',
+                batch_code: it.batch_code || '',
+                received_quantity: it.received_quantity,
+                rejected_quantity: it.rejected_quantity,
+                accepted_quantity: it.accepted_quantity,
+                unit_code: it.unit_code || 'KG',
+                unit_cost: it.unit_cost,
+              })) || [],
+            });
+            setShowEditModal(true);
+          },
+        },
+        {
+          label: 'Send to QC Inspection',
+          icon: <ShieldCheck className="size-4 text-sky-500" />,
+          onClick: () => handleSendToQc(receipt),
+        },
+        {
+          label: 'Ingest Stock into Ledger',
+          icon: <CheckCircle2 className="size-4 text-emerald-500" />,
+          onClick: () => handleCompleteGrn(receipt.id),
+        }
+      );
+    }
+
+    actions.push({
+      label: 'Print GRN Document',
+      icon: <Printer className="size-4" />,
+      onClick: () => setPrintGrn(receipt),
+    });
+
+    if (receipt.status === 'draft') {
+      actions.push({
+        label: 'Void / Delete GRN',
+        icon: <Trash2 className="size-4 text-rose-500" />,
+        variant: 'destructive' as const,
+        onClick: () => {
+          setActiveGrn(receipt);
+          setShowDeleteModal(true);
+        },
+      });
+    }
+
+    return actions;
+  };
+
   return (
     <div className="space-y-6">
       {/* Metric Cards */}
@@ -416,96 +595,28 @@ export function GoodsReceiptsSection() {
         </div>
       </div>
 
-      {/* Receipts Table */}
-      <div className="rounded-2xl border border-default bg-surface shadow-2xs overflow-hidden">
-        <div className="overflow-x-auto min-h-75">
-          <table className="w-full text-left text-xs text-default">
-            <thead className="bg-surface-sunken text-[11px] font-semibold text-muted uppercase tracking-wider border-b border-default">
-              <tr>
-                <th className="px-4 py-3.5">GRN # / Receipt Date</th>
-                <th className="px-4 py-3.5">Supplier & Challan #</th>
-                <th className="px-4 py-3.5">Reference PO</th>
-                <th className="px-4 py-3.5">Target Warehouse</th>
-                <th className="px-4 py-3.5 text-right">Accepted Value</th>
-                <th className="px-4 py-3.5">Status</th>
-                <th className="px-4 py-3.5 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-default">
-              {filteredReceipts.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="px-4 py-12 text-center text-muted">
-                    {isLoading ? 'Loading goods receipts...' : 'No goods receipts found matching your criteria.'}
-                  </td>
-                </tr>
-              ) : (
-                filteredReceipts.map((r) => {
-                  const grnTotal = (r.items ?? []).reduce(
-                    (s, it) => s + parseFloat(it.total_cost || '0'),
-                    0
-                  );
-
-                  return (
-                    <tr key={r.id} className="hover:bg-surface-sunken/60 transition-colors">
-                      <td className="px-4 py-3.5 font-mono font-medium text-default">
-                        <div className="flex items-center gap-1.5">
-                          <Layers className="size-3.5 text-primary" />
-                          <span>{r.grn_number}</span>
-                        </div>
-                        <div className="text-[10px] text-muted font-sans mt-0.5">{r.receipt_date}</div>
-                      </td>
-                      <td className="px-4 py-3.5">
-                        <div className="font-semibold text-default">{r.supplier_name ?? '—'}</div>
-                        <div className="text-[10px] font-mono text-muted">Doc: {r.supplier_document_number ?? '—'}</div>
-                      </td>
-                      <td className="px-4 py-3.5 font-mono text-primary font-medium">
-                        {r.po_number ?? 'Direct Receipt'}
-                      </td>
-                      <td className="px-4 py-3.5 text-muted">{r.warehouse_name ?? 'Central Silo'}</td>
-                      <td className="px-4 py-3.5 text-right font-mono font-semibold text-default">
-                        {formatCurrency(grnTotal)}
-                      </td>
-                      <td className="px-4 py-3.5">{getStatusBadge(r.status)}</td>
-                      <td className="px-4 py-3.5 text-right">
-                        <div className="flex items-center justify-end gap-1.5">
-                          <button
-                            type="button"
-                            onClick={() => handleViewGrn(r)}
-                            className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-surface hover:bg-surface-sunken border border-default text-default transition-colors cursor-pointer"
-                          >
-                            View
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              if (openActionMenuId === r.id) {
-                                setOpenActionMenuId(null);
-                                setActionMenuAnchor(null);
-                              } else {
-                                setOpenActionMenuId(r.id);
-                                setActionMenuAnchor(e.currentTarget);
-                              }
-                            }}
-                            className={cn(
-                              'inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold rounded-lg border transition-colors cursor-pointer',
-                              openActionMenuId === r.id
-                                ? 'bg-primary text-primary-fg border-primary shadow-xs'
-                                : 'bg-surface hover:bg-surface-sunken border-default text-default'
-                            )}
-                          >
-                            <span>Actions</span>
-                            <ChevronDown className="size-3 text-muted" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
+      {/* Receipts Responsive Data Table */}
+      <ResponsiveDataTable<GoodsReceipt>
+        data={filteredReceipts}
+        columns={grnColumns}
+        keyExtractor={(r) => r.id}
+        isLoading={isLoading}
+        loadingRows={6}
+        mobileActions={getMobileActions}
+        isFiltered={Boolean(search || statusFilter !== 'all')}
+        searchEmptyState={
+          <div className="py-12 text-center text-muted">
+            <p className="font-semibold text-default">No goods receipts match your filters</p>
+            <p className="text-xs text-muted mt-1">Adjust search parameters or clear the active status filter.</p>
+          </div>
+        }
+        emptyState={
+          <div className="py-12 text-center text-muted">
+            <p className="font-semibold text-default">No goods receipts found</p>
+            <p className="text-xs text-muted mt-1">Direct receipts and purchase order inward shipments will be listed here.</p>
+          </div>
+        }
+      />
 
           {openActionMenuId && (() => {
             const receipt = filteredReceipts.find((x) => x.id === openActionMenuId);

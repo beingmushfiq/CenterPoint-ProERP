@@ -151,7 +151,7 @@ export const StorefrontHeader: React.FC<StorefrontHeaderProps> = ({ config, subd
               type="button"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               style={{ color: navbarTextColor || undefined }}
-              className={`md:hidden p-1.5 rounded-xl transition-colors shrink-0 ${
+              className={`md:hidden p-2 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl transition-colors shrink-0 touch-target ${
                 isDarkNavbar ? 'hover:bg-white/10 text-white' : 'hover:bg-black/5 text-slate-900 dark:text-white'
               }`}
               aria-label="Toggle Navigation Menu"

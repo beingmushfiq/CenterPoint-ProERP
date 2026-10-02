@@ -13,6 +13,8 @@ import {
   CreditCard,
   FileText,
   Filter,
+  History,
+  Package,
   Keyboard,
   Minus,
   PauseCircle,
@@ -95,7 +97,22 @@ export function POSShell({ session, onExit }: POSShellProps) {
   const { formatCurrency, currencySymbol, currencyCode } = useCurrency();
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
-  const [mobileTab, setMobileTab] = useState<'catalog' | 'cart' | 'held' | 'shift'>('catalog');
+  const [mobileTab, setMobileTab] = useState<'catalog' | 'cart' | 'recent' | 'held' | 'shift'>('catalog');
+
+  // Recent Sales & Invoices in POS
+  const { data: recentInvoices = [], isLoading: loadingRecentInvoices, refetch: refetchRecentInvoices } = useQuery<Invoice[]>({
+    queryKey: ['pos', 'recent-sales', session.id],
+    queryFn: async () => {
+      try {
+        const res = await api.get<{ data?: Invoice[] } | Invoice[]>('/sales/invoices?per_page=15');
+        const raw = res.data;
+        return Array.isArray(raw) ? raw : (raw?.data ?? []);
+      } catch {
+        return [];
+      }
+    },
+    enabled: mobileTab === 'recent',
+  });
 
   // Terminal Drawer (left slide-in overlay)
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -1369,19 +1386,19 @@ export function POSShell({ session, onExit }: POSShellProps) {
 
         {/* Right: Actions */}
         <div className="flex items-center gap-2">
-          {/* Mobile: Catalog/Cart switcher */}
-          <div className="lg:hidden flex items-center bg-surface-sunken p-0.5 rounded-xl border border-default">
+          {/* Mobile: Segmented View Controller (< 1024px) */}
+          <div className="lg:hidden flex items-center bg-surface-sunken p-1 rounded-xl border border-default gap-1">
             <button
               type="button"
               onClick={() => setMobileTab('catalog')}
-              className={`px-3 py-1 text-[11px] font-bold rounded-lg transition-all cursor-pointer ${mobileTab === 'catalog' ? 'bg-primary text-white shadow-sm' : 'text-muted hover:text-default'}`}
+              className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition-all cursor-pointer ${mobileTab === 'catalog' ? 'bg-primary text-white shadow-sm' : 'text-muted hover:text-default'}`}
             >
               Catalog
             </button>
             <button
               type="button"
               onClick={() => setMobileTab('cart')}
-              className={`px-3 py-1 text-[11px] font-bold rounded-lg transition-all flex items-center gap-1 cursor-pointer ${mobileTab === 'cart' ? 'bg-primary text-white shadow-sm' : 'text-muted hover:text-default'}`}
+              className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition-all flex items-center gap-1 cursor-pointer ${mobileTab === 'cart' ? 'bg-primary text-white shadow-sm' : 'text-muted hover:text-default'}`}
             >
               <ShoppingBag className="size-3" />
               <span>Cart</span>
@@ -1390,6 +1407,14 @@ export function POSShell({ session, onExit }: POSShellProps) {
                   {cart.reduce((s, i) => s + i.quantity, 0)}
                 </span>
               )}
+            </button>
+            <button
+              type="button"
+              onClick={() => setMobileTab('recent')}
+              className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition-all flex items-center gap-1 cursor-pointer ${mobileTab === 'recent' ? 'bg-primary text-white shadow-sm' : 'text-muted hover:text-default'}`}
+            >
+              <History className="size-3" />
+              <span>Recent</span>
             </button>
           </div>
 
@@ -1737,7 +1762,7 @@ export function POSShell({ session, onExit }: POSShellProps) {
 
           {/* Mobile Sticky Quick-Checkout Bar */}
           {cart.length > 0 && (
-            <div className="lg:hidden mt-3 p-3 bg-surface rounded-2xl border border-(--color-primary)/30 shadow-lg flex items-center justify-between gap-3">
+            <div className="lg:hidden sticky bottom-2 z-20 mt-3 p-3 bg-surface/95 backdrop-blur-md rounded-2xl border border-primary/30 shadow-xl flex items-center justify-between gap-3">
               <div className="min-w-0">
                 <p className="text-[11px] text-muted font-medium truncate">
                   {cart.length} line item{cart.length > 1 ? 's' : ''} in cart
@@ -1758,8 +1783,83 @@ export function POSShell({ session, onExit }: POSShellProps) {
           )}
         </div>
 
+        {/* ── MOBILE: Recent Sales / Invoices View (< 1024px) ──────── */}
+        {mobileTab === 'recent' && (
+          <div className="flex-1 lg:hidden flex flex-col p-3 sm:p-4 overflow-y-auto bg-surface space-y-3">
+            <div className="flex items-center justify-between border-b border-default pb-2.5">
+              <div className="flex items-center gap-2">
+                <History className="h-4 w-4 text-primary" />
+                <h3 className="font-bold text-sm text-default">Recent Terminal Invoices</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => refetchRecentInvoices()}
+                className="p-1.5 rounded-lg border border-default text-muted hover:text-default bg-surface-sunken cursor-pointer"
+                title="Refresh sales list"
+              >
+                <RefreshCw className={cn('size-3.5', loadingRecentInvoices && 'animate-spin')} />
+              </button>
+            </div>
+
+            {loadingRecentInvoices ? (
+              <div className="py-12 flex flex-col items-center justify-center gap-2 text-muted text-xs">
+                <RefreshCw className="size-5 animate-spin text-primary" />
+                <span>Loading recent terminal sales...</span>
+              </div>
+            ) : recentInvoices.length === 0 ? (
+              <div className="py-12 flex flex-col items-center justify-center gap-2 text-muted text-xs">
+                <FileText className="size-8 text-muted/40" />
+                <span>No recent sales recorded yet.</span>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {recentInvoices.map((inv) => (
+                  <div key={inv.id} className="p-3 rounded-xl border border-default bg-surface-sunken/40 space-y-2 shadow-2xs">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="font-mono font-bold text-xs text-primary">{inv.invoice_number}</span>
+                        <div className="text-[10px] text-muted">
+                          {inv.invoice_date || new Date().toLocaleDateString()}
+                          {inv.customer_name ? ` • ${inv.customer_name}` : ' • Walk-in'}
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="font-mono font-bold text-xs text-emerald-500">
+                          {formatCurrency(inv.total_amount || 0)}
+                        </div>
+                        <span className="inline-block text-[9px] font-bold px-1.5 py-0.5 rounded bg-surface border border-default text-muted uppercase">
+                          {inv.status || 'posted'}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 pt-1 border-t border-default/40">
+                      <button
+                        type="button"
+                        onClick={() => printDocument('pos-thermal', { invoice: inv, session })}
+                        className="flex-1 min-h-[38px] px-2.5 rounded-lg bg-surface border border-default text-default hover:bg-surface-raised text-xs font-semibold flex items-center justify-center gap-1.5 cursor-pointer"
+                      >
+                        <Printer className="size-3.5 text-muted" />
+                        <span>Print Receipt</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleOpenReturnModal(inv.id, inv.invoice_number)}
+                        className="flex-1 min-h-[38px] px-2.5 rounded-lg bg-surface border border-default text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 text-xs font-semibold flex items-center justify-center gap-1.5 cursor-pointer"
+                      >
+                        <RotateCcw className="size-3.5" />
+                        <span>Return</span>
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* ── RIGHT: Cart & Payment Panel ─────────────────────────── */}
-        <div className={`w-full lg:w-[460px] xl:w-[540px] 2xl:w-[600px] shrink-0 flex-col border-l border-default bg-(--color-surface-sunken)/40 overflow-hidden ${
+        <div className={`w-full lg:w-96 xl:w-112 2xl:w-128 shrink-0 flex-col border-l border-default bg-(--color-surface-sunken)/40 overflow-hidden ${
           mobileTab === 'cart' ? 'flex' : 'hidden lg:flex'
         }`}>
           {/* Scrollable cart content */}

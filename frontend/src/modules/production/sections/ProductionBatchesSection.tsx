@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -22,6 +22,7 @@ import {
   ChevronDown,
   RotateCcw,
   AlertTriangle,
+  Eye,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { api } from '../../../lib/api/client';
@@ -31,6 +32,7 @@ import { SelectDropdown } from '../../../components/ui/Dropdown';
 import { Badge, StatusBadge } from '../../../components/ui/Badge';
 import { QueryBoundary } from '../../../components/patterns/QueryBoundary';
 import { ActionMenuPortal } from '../../../components/ui/ActionMenuPortal';
+import { ResponsiveDataTable, type ResponsiveColumn } from '../../../components/ui/ResponsiveDataTable';
 import { isApiError } from '../../../lib/api/errors';
 import { cn } from '../../../lib/utils';
 import type { ProductionBatch } from '../../../types/api/production';
@@ -452,6 +454,348 @@ export function ProductionBatchesSection() {
     }
   };
 
+  const batchColumns: ResponsiveColumn<ProductionBatch>[] = useMemo(() => [
+    {
+      id: 'select',
+      header: (
+        <input
+          ref={headerCheckboxRef}
+          type="checkbox"
+          checked={isAllSelected}
+          onChange={toggleSelectAll}
+          aria-label="Select all batches"
+          className="size-4 rounded border-default text-primary focus:ring-primary/20 cursor-pointer"
+        />
+      ),
+      className: 'w-10 text-center',
+      accessor: (b) => (
+        <input
+          type="checkbox"
+          checked={selectedBatchIds.has(b.id)}
+          onChange={() => toggleSelectBatch(b.id)}
+          aria-label={`Select batch ${b.batch_number}`}
+          className="size-4 rounded border-default text-primary focus:ring-primary/20 cursor-pointer"
+        />
+      ),
+    },
+    {
+      id: 'batch_number',
+      header: 'Batch No',
+      isPrimary: true,
+      accessor: (b) => (
+        <div className="font-mono font-bold text-primary">
+          {b.batch_number}
+        </div>
+      ),
+    },
+    {
+      id: 'product',
+      header: 'Product / BOM',
+      accessor: (b) => (
+        <div>
+          <div className="font-semibold text-default">
+            {b.product_name ?? b.product_id}
+          </div>
+          <div className="flex items-center gap-2 text-[10px] text-muted mt-0.5">
+            {b.product_sku && (
+              <span className="font-mono">{b.product_sku}</span>
+            )}
+            {b.bom_name && (
+              <span>• BOM: {b.bom_name}</span>
+            )}
+          </div>
+        </div>
+      ),
+    },
+    {
+      id: 'qty',
+      header: 'Target / Actual',
+      align: 'right',
+      priority: 'medium',
+      accessor: (b) => (
+        <div>
+          <div className="font-mono text-default font-semibold flex items-baseline justify-end gap-1">
+            <span className="text-emerald-600 dark:text-emerald-400 font-bold">{b.actual_quantity}</span>
+            <span className="text-muted text-[11px]">/</span>
+            <span className="text-muted font-normal">{b.target_quantity}</span>
+          </div>
+          <div className="mt-1 w-24 ml-auto h-1.5 rounded-full bg-surface-sunken overflow-hidden border border-default/50">
+            <div
+              className="h-full bg-emerald-500 rounded-full transition-all"
+              style={{
+                width: `${Math.min(100, Math.max(0, (Number(b.actual_quantity || 0) / (Number(b.target_quantity) || 1)) * 100))}%`,
+              }}
+            />
+          </div>
+        </div>
+      ),
+    },
+    {
+      id: 'yield',
+      header: 'Yield',
+      align: 'center',
+      priority: 'medium',
+      accessor: (b) => (
+        b.actual_yield_pct !== null ? (
+          <div className="inline-flex items-center gap-1 font-mono text-xs text-emerald-600 dark:text-emerald-400 font-bold">
+            <TrendingUp className="size-3.5" />
+            <span>{b.actual_yield_pct}%</span>
+            {b.yield_variance_pct && (
+              <span className="text-[10px] text-muted font-normal">
+                ({b.yield_variance_pct}%)
+              </span>
+            )}
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => analyzeMutation.mutate(b.id)}
+            disabled={analyzeMutation.isPending}
+            className="group inline-flex items-center gap-1 text-[11px] text-muted hover:text-primary transition-colors cursor-pointer py-0.5 px-2 rounded-lg hover:bg-surface-sunken border border-dashed border-default touch-target"
+            title="Click to calculate and analyze yield"
+          >
+            <Sparkles className="size-3 text-amber-500 group-hover:scale-110 transition-transform" />
+            <span>Yield</span>
+          </button>
+        )
+      ),
+    },
+    {
+      id: 'status',
+      header: 'Status',
+      align: 'center',
+      priority: 'medium',
+      accessor: (b) => (
+        <div className="flex flex-col items-center gap-1">
+          <StatusBadge status={b.status} />
+          {hasQcDefect(b) && (
+            <span className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/30">
+              <AlertTriangle className="size-3 text-amber-500" />
+              QC Defect
+            </span>
+          )}
+        </div>
+      ),
+    },
+    {
+      id: 'context',
+      header: 'Context',
+      align: 'center',
+      priority: 'low',
+      accessor: (b) => getCompletenessBadge(b.context_completeness),
+    },
+    {
+      id: 'actions',
+      header: 'Actions',
+      align: 'right',
+      priority: 'low',
+      accessor: (b) => (
+        <div className="flex items-center justify-end gap-1.5 relative">
+          {(b.status === 'draft' || b.status === 'scheduled') && (
+            <button
+              type="button"
+              onClick={() => startMutation.mutate(b.id)}
+              disabled={startMutation.isPending}
+              className="px-2.5 py-1 text-xs bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700 hover:bg-emerald-100 rounded-lg font-bold transition cursor-pointer flex items-center gap-1 shadow-2xs touch-target"
+              title="Start Production Run"
+            >
+              <Play className="size-3 fill-emerald-600 dark:fill-emerald-400 shrink-0" />
+              <span>Start</span>
+            </button>
+          )}
+
+          {b.status === 'in_progress' && (
+            <button
+              type="button"
+              onClick={() => {
+                setErrorMsg(null);
+                setOutputDraft({
+                  product_id: b.product_id,
+                  warehouse_id: warehouses[0]?.id ?? '',
+                  output_type: 'finished_good',
+                  good_quantity: b.target_quantity,
+                  rejected_quantity: '0.0000',
+                  unit_cost: '15.0000',
+                });
+                setActiveBatchModal({ batch: b, type: 'output' });
+              }}
+              className="px-2.5 py-1 text-xs bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700 hover:bg-emerald-100 rounded-lg font-bold transition cursor-pointer flex items-center gap-1 shadow-2xs touch-target"
+              title="Record Finished Output"
+            >
+              <CheckCircle2 className="size-3 text-emerald-600 dark:text-emerald-400 shrink-0" />
+              <span>Output</span>
+            </button>
+          )}
+
+          {hasQcDefect(b) && (
+            <button
+              type="button"
+              onClick={() => {
+                const rejected = b.outputs?.reduce((acc, o) => acc + (parseFloat(o.rejected_quantity) || 0), 0) || 0;
+                setReworkDraft({
+                  defect_category: 'Workmanship / Dimension Defect',
+                  defect_notes: `Batch ${b.batch_number} failed QC with ${rejected > 0 ? `${rejected} units rejected` : 'excess process loss'}. Requires inspection and rework.`,
+                  qty_defective: rejected > 0 ? String(rejected) : '5.0000',
+                  assigned_station: 'Rework Station 1',
+                  assigned_operator: 'Floor Supervisor',
+                  rework_cost: '25.0000',
+                });
+                setReworkModalBatch(b);
+              }}
+              className="px-2 py-1 text-xs bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-700 hover:bg-amber-100 rounded-lg font-bold transition cursor-pointer flex items-center gap-1 shadow-2xs touch-target"
+              title="Send batch to QC Rework"
+            >
+              <RotateCcw className="size-3 text-amber-600 dark:text-amber-400 shrink-0" />
+              <span>Rework</span>
+            </button>
+          )}
+
+          {b.status === 'completed' && (
+            <Link
+              to={`/qc?tab=inspections`}
+              className="px-2.5 py-1 text-xs font-bold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700 hover:bg-emerald-100 rounded-lg transition-colors shadow-2xs flex items-center gap-1 touch-target"
+              title="Route finished batch to Quality Control for inspection"
+            >
+              <ShieldCheck className="size-3 shrink-0" />
+              <span>QC</span>
+            </Link>
+          )}
+
+          {b.status === 'closed' && (
+            <button
+              type="button"
+              onClick={() => handleOpenBatchDetails(b)}
+              className="px-2.5 py-1 text-xs bg-surface border border-default hover:bg-surface-sunken text-default rounded-lg font-medium transition cursor-pointer flex items-center gap-1 shadow-2xs touch-target"
+              title="View batch details"
+            >
+              <Layers className="size-3 text-primary shrink-0" />
+              <span>Details</span>
+            </button>
+          )}
+
+          <div className="relative inline-block text-left">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (openActionMenuId === b.id) {
+                  setOpenActionMenuId(null);
+                  setActionMenuAnchor(null);
+                } else {
+                  setOpenActionMenuId(b.id);
+                  setActionMenuAnchor(e.currentTarget);
+                }
+              }}
+              className={`px-2.5 py-1 text-xs rounded-lg border font-medium transition cursor-pointer flex items-center gap-1 shadow-2xs touch-target ${
+                openActionMenuId === b.id
+                  ? 'border-primary bg-primary/10 text-primary'
+                  : 'border-default bg-surface hover:bg-surface-sunken text-default'
+              }`}
+              title={`More actions for batch ${b.batch_number}`}
+            >
+              <span>Actions</span>
+              <ChevronDown className="size-3 text-muted" />
+            </button>
+          </div>
+        </div>
+      ),
+    },
+  ], [warehouses, openActionMenuId, analyzeMutation.isPending, startMutation.isPending, selectedBatchIds, isAllSelected]);
+
+  const getMobileActions = (b: ProductionBatch) => {
+    const actions = [
+      {
+        label: 'View Batch Details',
+        icon: <Layers className="size-4 text-primary" />,
+        onClick: () => handleOpenBatchDetails(b),
+      },
+    ];
+
+    if (b.status === 'draft' || b.status === 'scheduled') {
+      actions.push({
+        label: 'Start Production Run',
+        icon: <Play className="size-4 text-emerald-500 fill-emerald-500" />,
+        onClick: () => startMutation.mutate(b.id),
+      });
+    }
+
+    if (b.status === 'in_progress') {
+      actions.push(
+        {
+          label: 'Record Finished Output',
+          icon: <CheckCircle2 className="size-4 text-emerald-500" />,
+          onClick: () => {
+            setErrorMsg(null);
+            setOutputDraft({
+              product_id: b.product_id,
+              warehouse_id: warehouses[0]?.id ?? '',
+              output_type: 'finished_good',
+              good_quantity: b.target_quantity,
+              rejected_quantity: '0.0000',
+              unit_cost: '15.0000',
+            });
+            setActiveBatchModal({ batch: b, type: 'output' });
+          },
+        },
+        {
+          label: 'Record Raw Material Input',
+          icon: <Box className="size-4 text-primary" />,
+          onClick: () => {
+            setErrorMsg(null);
+            setInputDraft({
+              product_id: b.product_id,
+              warehouse_id: warehouses[0]?.id ?? '',
+              planned_quantity: '50.0000',
+              actual_quantity: '50.0000',
+              unit_cost: '10.0000',
+            });
+            setActiveBatchModal({ batch: b, type: 'input' });
+          },
+        }
+      );
+    }
+
+    if (hasQcDefect(b)) {
+      actions.push({
+        label: 'Send to QC Rework',
+        icon: <RotateCcw className="size-4 text-amber-500" />,
+        variant: 'warning' as const,
+        onClick: () => {
+          const rejected = b.outputs?.reduce((acc, o) => acc + (parseFloat(o.rejected_quantity) || 0), 0) || 0;
+          setReworkDraft({
+            defect_category: 'Workmanship / Dimension Defect',
+            defect_notes: `Batch ${b.batch_number} failed QC with ${rejected > 0 ? `${rejected} units rejected` : 'excess process loss'}. Requires inspection and rework.`,
+            qty_defective: rejected > 0 ? String(rejected) : '5.0000',
+            assigned_station: 'Rework Station 1',
+            assigned_operator: 'Floor Supervisor',
+            rework_cost: '25.0000',
+          });
+          setReworkModalBatch(b);
+        },
+      });
+    }
+
+    actions.push({
+      label: 'Analyze Yield & Variance',
+      icon: <Sparkles className="size-4 text-amber-500" />,
+      onClick: () => analyzeMutation.mutate(b.id),
+    });
+
+    if (b.status !== 'in_progress') {
+      actions.push({
+        label: 'Delete Batch',
+        icon: <Trash2 className="size-4 text-rose-500" />,
+        variant: 'destructive' as const,
+        onClick: () => {
+          setSelectedBatchForDelete(b);
+          setShowDeleteModal(true);
+        },
+      });
+    }
+
+    return actions;
+  };
+
   return (
     <div className="space-y-6">
       {/* Controls & Filter Toolbar */}
@@ -584,410 +928,17 @@ export function ProductionBatchesSection() {
         data={batchesQuery.data}
         isFetching={batchesQuery.isFetching}
       >
-        <div className="overflow-hidden rounded-2xl border border-default bg-surface shadow-2xs">
-          <div className="overflow-x-auto min-h-75">
-            <table className="w-full text-left text-xs text-default border-collapse">
-              <thead className="border-b border-default bg-surface-sunken text-[11px] font-semibold uppercase tracking-wider text-muted">
-                <tr>
-                  <th className="w-10 px-4 py-3.5 text-center">
-                    <input
-                      ref={headerCheckboxRef}
-                      type="checkbox"
-                      checked={isAllSelected}
-                      onChange={toggleSelectAll}
-                      aria-label="Select all batches"
-                      className="size-4 rounded border-default text-primary focus:ring-primary/20 cursor-pointer"
-                    />
-                  </th>
-                  <th className="px-4 py-3.5 whitespace-nowrap">Batch No</th>
-                  <th className="px-4 py-3.5">Product / BOM</th>
-                  <th className="px-4 py-3.5 text-right whitespace-nowrap">Target / Actual</th>
-                  <th className="px-4 py-3.5 text-center whitespace-nowrap">Yield</th>
-                  <th className="px-4 py-3.5 text-center whitespace-nowrap">Status</th>
-                  <th className="px-4 py-3.5 text-center whitespace-nowrap">Context</th>
-                  <th className="px-4 py-3.5 text-right whitespace-nowrap">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-default">
-                {batches.length === 0 ? (
-                  <tr>
-                    <td colSpan={8} className="py-12 text-center text-muted">
-                      <div className="mx-auto flex size-10 items-center justify-center rounded-xl bg-surface-sunken mb-2 border border-default">
-                        <Factory className="size-5 text-muted" />
-                      </div>
-                      <div className="text-sm font-medium text-default">
-                        No production batches found
-                      </div>
-                      <div className="text-xs text-muted mt-1">
-                        Create your first batch to start tracking shop floor execution.
-                      </div>
-                    </td>
-                  </tr>
-                ) : (
-                  batches.map((batch) => {
-                    const isSelected = selectedBatchIds.has(batch.id);
-                    return (
-                      <tr
-                        key={batch.id}
-                        className={cn(
-                          'hover:bg-surface-sunken/60 transition-colors',
-                          isSelected && 'bg-primary/5'
-                        )}
-                      >
-                        <td className="w-10 px-4 py-3.5 text-center">
-                          <input
-                            type="checkbox"
-                            checked={isSelected}
-                            onChange={() => toggleSelectBatch(batch.id)}
-                            aria-label={`Select batch ${batch.batch_number}`}
-                            className="size-4 rounded border-default text-primary focus:ring-primary/20 cursor-pointer"
-                          />
-                        </td>
-                        <td className="px-4 py-3.5 whitespace-nowrap">
-                          <div className="font-mono font-bold text-primary">
-                            {batch.batch_number}
-                          </div>
-                        </td>
-                        <td className="px-4 py-3.5">
-                          <div className="font-semibold text-default">
-                            {batch.product_name ?? batch.product_id}
-                          </div>
-                          <div className="flex items-center gap-2 text-[10px] text-muted mt-0.5">
-                            {batch.product_sku && (
-                              <span className="font-mono">{batch.product_sku}</span>
-                            )}
-                            {batch.bom_name && (
-                              <span>• BOM: {batch.bom_name}</span>
-                            )}
-                          </div>
-                        </td>
-                        <td className="px-4 py-3.5 text-right whitespace-nowrap">
-                          <div className="font-mono text-default font-semibold flex items-baseline justify-end gap-1">
-                            <span className="text-emerald-600 dark:text-emerald-400 font-bold">{batch.actual_quantity}</span>
-                            <span className="text-muted text-[11px]">/</span>
-                            <span className="text-muted font-normal">{batch.target_quantity}</span>
-                          </div>
-                          <div className="mt-1 w-24 ml-auto h-1.5 rounded-full bg-surface-sunken overflow-hidden border border-default/50">
-                            <div
-                              className="h-full bg-emerald-500 rounded-full transition-all"
-                              style={{
-                                width: `${Math.min(100, Math.max(0, (Number(batch.actual_quantity || 0) / (Number(batch.target_quantity) || 1)) * 100))}%`,
-                              }}
-                            />
-                          </div>
-                        </td>
-                        <td className="px-4 py-3.5 text-center whitespace-nowrap">
-                          {batch.actual_yield_pct !== null ? (
-                            <div className="inline-flex items-center gap-1 font-mono text-xs text-emerald-600 dark:text-emerald-400 font-bold">
-                              <TrendingUp className="size-3.5" />
-                              <span>{batch.actual_yield_pct}%</span>
-                              {batch.yield_variance_pct && (
-                                <span className="text-[10px] text-muted font-normal">
-                                  ({batch.yield_variance_pct}%)
-                                </span>
-                              )}
-                            </div>
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={() => analyzeMutation.mutate(batch.id)}
-                              disabled={analyzeMutation.isPending}
-                              className="group inline-flex items-center gap-1 text-[11px] text-muted hover:text-primary transition-colors cursor-pointer py-0.5 px-2 rounded-lg hover:bg-surface-sunken border border-dashed border-default"
-                              title="Click to calculate and analyze yield"
-                            >
-                              <Sparkles className="size-3 text-amber-500 group-hover:scale-110 transition-transform" />
-                              <span>Yield</span>
-                            </button>
-                          )}
-                        </td>
-                        <td className="px-4 py-3.5 text-center whitespace-nowrap">
-                          <div className="flex flex-col items-center gap-1">
-                            <StatusBadge status={batch.status} />
-                            {hasQcDefect(batch) && (
-                              <span className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/30">
-                                <AlertTriangle className="size-3 text-amber-500" />
-                                QC Defect
-                              </span>
-                            )}
-                          </div>
-                        </td>
-                        <td className="px-4 py-3.5 text-center whitespace-nowrap">
-                          {getCompletenessBadge(batch.context_completeness)}
-                        </td>
-                        <td className="px-4 py-3.5 text-right whitespace-nowrap">
-                          <div className="flex items-center justify-end gap-1.5 relative">
-                            {/* 1. Context-Sensitive Primary Action */}
-                            {(batch.status === 'draft' || batch.status === 'scheduled') && (
-                              <button
-                                type="button"
-                                onClick={() => startMutation.mutate(batch.id)}
-                                disabled={startMutation.isPending}
-                                className="px-2.5 py-1 text-xs bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700 hover:bg-emerald-100 rounded-lg font-bold transition cursor-pointer flex items-center gap-1 shadow-2xs"
-                                title="Start Production Run"
-                              >
-                                <Play className="size-3 fill-emerald-600 dark:fill-emerald-400 shrink-0" />
-                                <span>Start</span>
-                              </button>
-                            )}
-
-                            {batch.status === 'in_progress' && (
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setErrorMsg(null);
-                                  setOutputDraft({
-                                    product_id: batch.product_id,
-                                    warehouse_id: warehouses[0]?.id ?? '',
-                                    output_type: 'finished_good',
-                                    good_quantity: batch.target_quantity,
-                                    rejected_quantity: '0.0000',
-                                    unit_cost: '15.0000',
-                                  });
-                                  setActiveBatchModal({ batch, type: 'output' });
-                                }}
-                                className="px-2.5 py-1 text-xs bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700 hover:bg-emerald-100 rounded-lg font-bold transition cursor-pointer flex items-center gap-1 shadow-2xs"
-                                title="Record Finished Output"
-                              >
-                                <CheckCircle2 className="size-3 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                                <span>Output</span>
-                              </button>
-                            )}
-
-                            {hasQcDefect(batch) && (
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const rejected = batch.outputs?.reduce((acc, o) => acc + (parseFloat(o.rejected_quantity) || 0), 0) || 0;
-                                  setReworkDraft({
-                                    defect_category: 'Workmanship / Dimension Defect',
-                                    defect_notes: `Batch ${batch.batch_number} failed QC with ${rejected > 0 ? `${rejected} units rejected` : 'excess process loss'}. Requires inspection and rework.`,
-                                    qty_defective: rejected > 0 ? String(rejected) : '5.0000',
-                                    assigned_station: 'Rework Station 1',
-                                    assigned_operator: 'Floor Supervisor',
-                                    rework_cost: '25.0000',
-                                  });
-                                  setReworkModalBatch(batch);
-                                }}
-                                className="px-2 py-1 text-xs bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-700 hover:bg-amber-100 rounded-lg font-bold transition cursor-pointer flex items-center gap-1 shadow-2xs"
-                                title="Send batch to QC Rework"
-                              >
-                                <RotateCcw className="size-3 text-amber-600 dark:text-amber-400 shrink-0" />
-                                <span>Rework</span>
-                              </button>
-                            )}
-
-                            {batch.status === 'completed' && (
-                              <Link
-                                to={`/qc?tab=inspections`}
-                                className="px-2.5 py-1 text-xs font-bold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700 hover:bg-emerald-100 rounded-lg transition-colors shadow-2xs flex items-center gap-1"
-                                title="Route finished batch to Quality Control for inspection"
-                              >
-                                <ShieldCheck className="size-3 shrink-0" />
-                                <span>QC</span>
-                              </Link>
-                            )}
-
-                            {batch.status === 'closed' && (
-                              <button
-                                type="button"
-                                onClick={() => handleOpenBatchDetails(batch)}
-                                className="px-2.5 py-1 text-xs bg-surface border border-default hover:bg-surface-sunken text-default rounded-lg font-medium transition cursor-pointer flex items-center gap-1 shadow-2xs"
-                                title="View batch details"
-                              >
-                                <Layers className="size-3 text-primary shrink-0" />
-                                <span>Details</span>
-                              </button>
-                            )}
-
-                            {/* 2. Prominent Actions Dropdown Button */}
-                            <div className="relative inline-block text-left">
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  if (openActionMenuId === batch.id) {
-                                    setOpenActionMenuId(null);
-                                    setActionMenuAnchor(null);
-                                  } else {
-                                    setOpenActionMenuId(batch.id);
-                                    setActionMenuAnchor(e.currentTarget);
-                                  }
-                                }}
-                                className={`px-2.5 py-1 text-xs rounded-lg border font-medium transition cursor-pointer flex items-center gap-1 shadow-2xs ${
-                                  openActionMenuId === batch.id
-                                    ? 'border-primary bg-primary/10 text-primary'
-                                    : 'border-default bg-surface hover:bg-surface-sunken text-default'
-                                }`}
-                                title={`More actions for batch ${batch.batch_number}`}
-                                aria-label={`More options for batch ${batch.batch_number}`}
-                              >
-                                <span>Actions</span>
-                                <ChevronDown className="size-3 text-muted" />
-                              </button>
-
-                              {/* Dropdown Menu via Portal */}
-                              <ActionMenuPortal
-                                isOpen={openActionMenuId === batch.id}
-                                anchorEl={actionMenuAnchor}
-                                onClose={() => {
-                                  setOpenActionMenuId(null);
-                                  setActionMenuAnchor(null);
-                                }}
-                                width={208}
-                              >
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setOpenActionMenuId(null);
-                                    setActionMenuAnchor(null);
-                                    handleOpenBatchDetails(batch);
-                                  }}
-                                  className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs text-default hover:bg-surface-sunken transition-colors cursor-pointer"
-                                >
-                                  <Layers className="size-3.5 text-primary shrink-0" />
-                                  <span>Batch Details</span>
-                                </button>
-
-                                {batch.status === 'in_progress' && (
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      setOpenActionMenuId(null);
-                                      setActionMenuAnchor(null);
-                                      setErrorMsg(null);
-                                      setInputDraft({
-                                        product_id: batch.product_id,
-                                        warehouse_id: warehouses[0]?.id ?? '',
-                                        planned_quantity: '50.0000',
-                                        actual_quantity: '50.0000',
-                                        unit_cost: '10.0000',
-                                      });
-                                      setActiveBatchModal({ batch, type: 'input' });
-                                    }}
-                                    className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs text-blue-600 dark:text-blue-400 hover:bg-surface-sunken transition-colors cursor-pointer"
-                                  >
-                                    <Box className="size-3.5 text-blue-500 shrink-0" />
-                                    <span>Issue Raw Materials</span>
-                                  </button>
-                                )}
-
-                                {batch.status === 'in_progress' && (
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      setOpenActionMenuId(null);
-                                      setActionMenuAnchor(null);
-                                      completeMutation.mutate(batch.id);
-                                    }}
-                                    disabled={completeMutation.isPending}
-                                    className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 transition-colors cursor-pointer"
-                                  >
-                                    <CheckCircle2 className="size-3.5 text-emerald-600 shrink-0" />
-                                    <span>Mark Complete</span>
-                                  </button>
-                                )}
-
-                                {batch.status === 'completed' && (
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      setOpenActionMenuId(null);
-                                      setActionMenuAnchor(null);
-                                      closeMutation.mutate(batch.id);
-                                    }}
-                                    disabled={closeMutation.isPending}
-                                    className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs text-purple-600 dark:text-purple-400 hover:bg-surface-sunken transition-colors cursor-pointer"
-                                  >
-                                    <CheckSquare className="size-3.5 text-purple-500 shrink-0" />
-                                    <span>Close Batch</span>
-                                  </button>
-                                )}
-
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setOpenActionMenuId(null);
-                                    setActionMenuAnchor(null);
-                                    analyzeMutation.mutate(batch.id);
-                                  }}
-                                  disabled={analyzeMutation.isPending}
-                                  className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs text-amber-600 dark:text-amber-400 hover:bg-surface-sunken transition-colors cursor-pointer"
-                                >
-                                  <Sparkles className="size-3.5 text-amber-500 shrink-0" />
-                                  <span>Analyze Yield</span>
-                                </button>
-
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setOpenActionMenuId(null);
-                                    setActionMenuAnchor(null);
-                                    const rejected = batch.outputs?.reduce((acc, o) => acc + (parseFloat(o.rejected_quantity) || 0), 0) || 0;
-                                    setReworkDraft({
-                                      defect_category: 'Workmanship / Dimension Defect',
-                                      defect_notes: `Batch ${batch.batch_number} flagged for rework.`,
-                                      qty_defective: rejected > 0 ? String(rejected) : '5.0000',
-                                      assigned_station: 'Rework Station 1',
-                                      assigned_operator: 'Floor Supervisor',
-                                      rework_cost: '25.0000',
-                                    });
-                                    setReworkModalBatch(batch);
-                                  }}
-                                  className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs text-amber-600 dark:text-amber-400 hover:bg-surface-sunken transition-colors cursor-pointer"
-                                >
-                                  <RotateCcw className="size-3.5 text-amber-500 shrink-0" />
-                                  <span>Send to QC Rework</span>
-                                </button>
-
-                                <div className="px-2.5 py-1.5">
-                                  <span className="text-[10px] uppercase font-semibold text-muted block mb-1">Set Status</span>
-                                  <select
-                                    value={batch.status}
-                                    onChange={(e) => {
-                                      setOpenActionMenuId(null);
-                                      setActionMenuAnchor(null);
-                                      updateStatusMutation.mutate({ batchId: batch.id, status: e.target.value });
-                                    }}
-                                    className="w-full h-7 rounded-lg border border-default bg-surface-sunken px-2 text-[11px] font-medium text-default focus:border-primary focus:outline-none cursor-pointer"
-                                  >
-                                    <option value="draft">Draft</option>
-                                    <option value="scheduled">Scheduled</option>
-                                    <option value="in_progress">In Progress</option>
-                                    <option value="completed">Completed</option>
-                                    <option value="closed">Closed</option>
-                                    <option value="cancelled">Cancelled</option>
-                                  </select>
-                                </div>
-
-                                <div className="my-1 border-t border-default/50" />
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setOpenActionMenuId(null);
-                                    setActionMenuAnchor(null);
-                                    setDeleteConfirm({
-                                      open: true,
-                                      id: batch.id,
-                                      name: batch.batch_number,
-                                    });
-                                  }}
-                                  className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer"
-                                >
-                                  <Trash2 className="size-3.5 text-rose-600 shrink-0" />
-                                  <span>Delete Batch</span>
-                                </button>
-                              </ActionMenuPortal>
-                            </div>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
+        <ResponsiveDataTable<ProductionBatch>
+          data={batches}
+          columns={batchColumns}
+          keyExtractor={(b) => b.id}
+          mobileActions={getMobileActions}
+          emptyState={{
+            icon: <Factory className="size-6 text-muted" />,
+            title: 'No production batches found',
+            description: 'Create your first batch to start tracking shop floor execution.',
+          }}
+        />
       </QueryBoundary>
 
       {/* Create Batch Modal */}

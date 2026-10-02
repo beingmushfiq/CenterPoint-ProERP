@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { CreditCard, Search, Plus, CheckCircle2, RefreshCw, Trash2, CheckSquare, Square, AlertTriangle, Upload, Download, ChevronDown } from 'lucide-react';
 import { Modal } from '../../../components/ui/Modal';
 import { notify } from '../../../components/ui/Toast';
@@ -6,6 +6,7 @@ import { hrApi, type ApiPayrollAdvance } from '../services/hrApi';
 import { UniversalImportModal } from '../../../components/import/UniversalImportModal';
 import { salaryAdvanceImportSchema } from '../schemas/salaryAdvanceImportSchema';
 import { ActionMenuPortal } from '../../../components/ui/ActionMenuPortal';
+import { ResponsiveDataTable, type ResponsiveColumn } from '../../../components/ui/ResponsiveDataTable';
 
 export interface AdvanceRecord {
   id: number;
@@ -400,6 +401,239 @@ export const SalaryAdvancesSection: React.FC = () => {
     }
   };
 
+  const advanceColumns: ResponsiveColumn<AdvanceRecord>[] = useMemo(() => [
+    {
+      id: 'select',
+      header: (
+        <button
+          type="button"
+          onClick={toggleSelectAll}
+          className="text-muted hover:text-primary transition-colors cursor-pointer"
+          title="Select All"
+        >
+          {selectedIds.length === filteredAdvances.length && filteredAdvances.length > 0 ? (
+            <CheckSquare className="w-4 h-4 text-primary" />
+          ) : (
+            <Square className="w-4 h-4 text-muted/60" />
+          )}
+        </button>
+      ),
+      className: 'w-10 text-center',
+      accessor: (adv) => (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            toggleSelect(adv.id);
+          }}
+          className="text-muted hover:text-primary transition-colors cursor-pointer"
+        >
+          {selectedIds.includes(adv.id) ? (
+            <CheckSquare className="w-4 h-4 text-primary" />
+          ) : (
+            <Square className="w-4 h-4 text-muted/60" />
+          )}
+        </button>
+      ),
+    },
+    {
+      id: 'advanceNumber',
+      header: 'Advance Ref',
+      isPrimary: true,
+      accessor: (adv) => (
+        <span className="font-mono font-semibold text-primary">{adv.advanceNumber}</span>
+      ),
+    },
+    {
+      id: 'employee',
+      header: 'Employee',
+      accessor: (adv) => (
+        <div>
+          <p className="font-semibold text-default">{adv.employeeName}</p>
+          <span className="text-[11px] text-muted font-mono">{adv.employeeCode} • {adv.department}</span>
+        </div>
+      ),
+    },
+    {
+      id: 'amount',
+      header: 'Loan Principal',
+      align: 'right',
+      priority: 'medium',
+      accessor: (adv) => (
+        <span className="font-mono font-bold text-default">
+          ৳{adv.amount.toLocaleString()}
+        </span>
+      ),
+    },
+    {
+      id: 'installment',
+      header: 'Installment / Mo',
+      align: 'right',
+      priority: 'low',
+      accessor: (adv) => (
+        <span className="font-mono text-muted">
+          ৳{adv.installmentAmount.toLocaleString()}
+        </span>
+      ),
+    },
+    {
+      id: 'recovered',
+      header: 'Recovered',
+      align: 'right',
+      priority: 'medium',
+      accessor: (adv) => (
+        <span className="font-mono text-emerald-600 font-semibold">
+          ৳{adv.recoveredAmount.toLocaleString()}
+        </span>
+      ),
+    },
+    {
+      id: 'remaining',
+      header: 'Remaining',
+      align: 'right',
+      priority: 'medium',
+      accessor: (adv) => {
+        const remaining = adv.amount - adv.recoveredAmount;
+        return (
+          <span className="font-mono font-bold text-amber-600">
+            ৳{remaining.toLocaleString()}
+          </span>
+        );
+      },
+    },
+    {
+      id: 'auto_deduct',
+      header: 'Auto-Deduct',
+      align: 'center',
+      priority: 'low',
+      accessor: (adv) => (
+        adv.autoDeductNextPayroll !== false ? (
+          <span
+            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800"
+            title="Scheduled for auto-deduction in next payroll"
+          >
+            <CheckCircle2 className="size-3 text-emerald-600" />
+            Next Run
+          </span>
+        ) : (
+          <span
+            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-surface-sunken text-muted border border-default"
+            title="Manual collection or offline recovery"
+          >
+            Manual
+          </span>
+        )
+      ),
+    },
+    {
+      id: 'status',
+      header: 'Status',
+      align: 'center',
+      priority: 'medium',
+      accessor: (adv) => {
+        const remaining = adv.amount - adv.recoveredAmount;
+        const isRecovered = adv.status === 'recovered' || remaining <= 0;
+        return (
+          <span
+            className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold ${
+              isRecovered
+                ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
+                : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
+            }`}
+          >
+            {isRecovered ? 'Recovered' : 'Active Recovery'}
+          </span>
+        );
+      },
+    },
+    {
+      id: 'actions',
+      header: 'Action',
+      align: 'right',
+      priority: 'low',
+      accessor: (adv) => {
+        const remaining = adv.amount - adv.recoveredAmount;
+        const isRecovered = adv.status === 'recovered' || remaining <= 0;
+        return (
+          <div className="flex items-center justify-end gap-1.5 whitespace-nowrap">
+            {!isRecovered ? (
+              <button
+                type="button"
+                onClick={() => handleManualRecovery(adv.id)}
+                className="px-2.5 py-1 rounded text-2xs font-semibold border border-default hover:bg-surface-sunken text-default transition-colors shadow-2xs cursor-pointer touch-target"
+              >
+                Deduct Cycle
+              </button>
+            ) : (
+              <span className="text-muted inline-flex items-center gap-1 text-[11px] mr-1">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> Settled
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (openActionMenuId === adv.id) {
+                  setOpenActionMenuId(null);
+                  setActionMenuAnchor(null);
+                } else {
+                  setOpenActionMenuId(adv.id);
+                  setActionMenuAnchor(e.currentTarget);
+                }
+              }}
+              className={`px-2.5 py-1 text-2xs rounded-lg border font-medium transition cursor-pointer flex items-center gap-1 shadow-2xs touch-target ${
+                openActionMenuId === adv.id
+                  ? 'border-primary bg-primary/10 text-primary'
+                  : 'border-default bg-surface hover:bg-surface-sunken text-default'
+              }`}
+              title={`Actions for ${adv.advanceNumber}`}
+            >
+              <span>Actions</span>
+              <ChevronDown className="size-3 text-muted" />
+            </button>
+          </div>
+        );
+      },
+    },
+  ], [selectedIds, filteredAdvances, openActionMenuId]);
+
+  const getMobileActions = (adv: AdvanceRecord) => {
+    const remaining = adv.amount - adv.recoveredAmount;
+    const isRecovered = adv.status === 'recovered' || remaining <= 0;
+    const actions = [];
+    if (!isRecovered) {
+      actions.push(
+        {
+          label: 'Deduct Next Installment',
+          icon: <CreditCard className="size-4 text-primary" />,
+          onClick: () => handleManualRecovery(adv.id),
+        },
+        {
+          label: adv.autoDeductNextPayroll !== false ? 'Disable Auto-Deduct' : 'Enable Auto-Deduct',
+          icon: <CheckCircle2 className="size-4 text-emerald-500" />,
+          onClick: () => handleToggleAutoDeduct(adv.id),
+        }
+      );
+    }
+    actions.push(
+      {
+        label: 'Copy Advance Ref',
+        icon: <Search className="size-4 text-muted" />,
+        onClick: () => {
+          void navigator.clipboard.writeText(adv.advanceNumber);
+          notify.success(`Copied ${adv.advanceNumber} to clipboard`);
+        },
+      },
+      {
+        label: 'Delete Advance',
+        icon: <Trash2 className="size-4 text-rose-500" />,
+        variant: 'destructive' as const,
+        onClick: () => setDeleteConfirm({ open: true, id: adv.id, ref: adv.advanceNumber }),
+      }
+    );
+    return actions;
+  };
+
   return (
     <div className="space-y-6 relative">
       {/* Floating Bulk Actions Ribbon */}
@@ -542,233 +776,90 @@ export const SalaryAdvancesSection: React.FC = () => {
       </div>
 
       {/* Register Table */}
-      <div className="overflow-x-auto min-h-75 rounded-xl border border-default bg-surface shadow-xs">
-        <table className="w-full text-left border-collapse">
-          <thead>
-            <tr className="border-b border-default bg-surface-sunken text-[11px] font-bold text-muted uppercase tracking-wider">
-              <th className="p-3 w-10 text-center">
+      <ResponsiveDataTable<AdvanceRecord>
+        data={filteredAdvances}
+        columns={advanceColumns}
+        keyExtractor={(adv) => adv.id}
+        mobileActions={getMobileActions}
+        emptyState={{
+          icon: <CreditCard className="size-6 text-muted" />,
+          title: 'No salary advance records match the selected criteria',
+          description: 'Try adjusting filters or grant a new employee salary advance.',
+        }}
+      />
+
+      {actionMenuAnchor && openActionMenuId !== null && (() => {
+        const adv = filteredAdvances.find((a) => a.id === openActionMenuId);
+        if (!adv) return null;
+        const remaining = adv.amount - adv.recoveredAmount;
+        const isRecovered = adv.status === 'recovered' || remaining <= 0;
+        return (
+          <ActionMenuPortal
+            isOpen={true}
+            anchorEl={actionMenuAnchor}
+            onClose={() => {
+              setOpenActionMenuId(null);
+              setActionMenuAnchor(null);
+            }}
+            className="w-48"
+          >
+            {!isRecovered && (
+              <>
                 <button
                   type="button"
-                  onClick={toggleSelectAll}
-                  className="text-muted hover:text-primary transition-colors cursor-pointer"
-                  title="Select All"
+                  onClick={() => {
+                    setOpenActionMenuId(null);
+                    setActionMenuAnchor(null);
+                    handleManualRecovery(adv.id);
+                  }}
+                  className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs text-default hover:bg-surface-sunken transition-colors cursor-pointer"
                 >
-                  {selectedIds.length === filteredAdvances.length && filteredAdvances.length > 0 ? (
-                    <CheckSquare className="w-4 h-4 text-primary" />
-                  ) : (
-                    <Square className="w-4 h-4 text-muted/60" />
-                  )}
+                  <CreditCard className="size-3.5 text-primary shrink-0" />
+                  <span>Deduct Next Installment</span>
                 </button>
-              </th>
-              <th className="p-3">Advance Ref</th>
-              <th className="p-3">Employee</th>
-              <th className="p-3 text-right">Loan Principal</th>
-              <th className="p-3 text-right">Installment / Mo</th>
-              <th className="p-3 text-right">Recovered</th>
-              <th className="p-3 text-right">Remaining</th>
-              <th className="p-3 text-center">Auto-Deduct</th>
-              <th className="p-3 text-center">Status</th>
-              <th className="p-3 text-right">Action</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-default text-xs">
-            {filteredAdvances.length === 0 ? (
-              <tr>
-                <td colSpan={10} className="p-8 text-center text-muted">
-                  No salary advance records match the selected criteria.
-                </td>
-              </tr>
-            ) : (
-              filteredAdvances.map((adv) => {
-                const remaining = adv.amount - adv.recoveredAmount;
-                const isRecovered = adv.status === 'recovered' || remaining <= 0;
-                const isChecked = selectedIds.includes(adv.id);
-
-                return (
-                  <tr
-                    key={adv.id}
-                    className={`transition-colors ${
-                      isChecked ? 'bg-primary/5 hover:bg-primary/10' : 'hover:bg-surface-sunken/50'
-                    }`}
-                  >
-                    <td className="p-3 text-center">
-                      <button
-                        type="button"
-                        onClick={() => toggleSelect(adv.id)}
-                        className="text-muted hover:text-primary transition-colors cursor-pointer"
-                      >
-                        {isChecked ? (
-                          <CheckSquare className="w-4 h-4 text-primary" />
-                        ) : (
-                          <Square className="w-4 h-4 text-muted/60" />
-                        )}
-                      </button>
-                    </td>
-                    <td className="p-3 font-mono font-semibold text-primary">{adv.advanceNumber}</td>
-                    <td className="p-3">
-                      <p className="font-semibold text-default">{adv.employeeName}</p>
-                      <span className="text-[11px] text-muted font-mono">{adv.employeeCode} • {adv.department}</span>
-                    </td>
-                    <td className="p-3 text-right font-mono font-bold text-default">
-                      ৳{adv.amount.toLocaleString()}
-                    </td>
-                    <td className="p-3 text-right font-mono text-muted">
-                      ৳{adv.installmentAmount.toLocaleString()}
-                    </td>
-                    <td className="p-3 text-right font-mono text-emerald-600 font-semibold">
-                      ৳{adv.recoveredAmount.toLocaleString()}
-                    </td>
-                    <td className="p-3 text-right font-mono font-bold text-amber-600">
-                      ৳{remaining.toLocaleString()}
-                    </td>
-                    <td className="p-3 text-center">
-                      {adv.autoDeductNextPayroll !== false ? (
-                        <span
-                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800"
-                          title="Scheduled for auto-deduction in next payroll"
-                        >
-                          <CheckCircle2 className="size-3 text-emerald-600" />
-                          Next Run
-                        </span>
-                      ) : (
-                        <span
-                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-surface-sunken text-muted border border-default"
-                          title="Manual collection or offline recovery"
-                        >
-                          Manual
-                        </span>
-                      )}
-                    </td>
-                    <td className="p-3 text-center">
-                      <span
-                        className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold ${
-                          isRecovered
-                            ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
-                            : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
-                        }`}
-                      >
-                        {isRecovered ? 'Recovered' : 'Active Recovery'}
-                      </span>
-                    </td>
-                    <td className="p-3 text-right whitespace-nowrap">
-                      <div className="flex items-center justify-end gap-1.5">
-                        {!isRecovered ? (
-                          <button
-                            type="button"
-                            onClick={() => handleManualRecovery(adv.id)}
-                            className="px-2.5 py-1 rounded text-2xs font-semibold border border-default hover:bg-surface-sunken text-default transition-colors shadow-2xs cursor-pointer"
-                          >
-                            Deduct Cycle
-                          </button>
-                        ) : (
-                          <span className="text-muted inline-flex items-center gap-1 text-[11px] mr-1">
-                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> Settled
-                          </span>
-                        )}
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (openActionMenuId === adv.id) {
-                              setOpenActionMenuId(null);
-                              setActionMenuAnchor(null);
-                            } else {
-                              setOpenActionMenuId(adv.id);
-                              setActionMenuAnchor(e.currentTarget);
-                            }
-                          }}
-                          className={`px-2.5 py-1 text-2xs rounded-lg border font-medium transition cursor-pointer flex items-center gap-1 shadow-2xs ${
-                            openActionMenuId === adv.id
-                              ? 'border-primary bg-primary/10 text-primary'
-                              : 'border-default bg-surface hover:bg-surface-sunken text-default'
-                          }`}
-                          title={`Actions for ${adv.advanceNumber}`}
-                        >
-                          <span>Actions</span>
-                          <ChevronDown className="size-3 text-muted" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOpenActionMenuId(null);
+                    setActionMenuAnchor(null);
+                    handleToggleAutoDeduct(adv.id);
+                  }}
+                  className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs text-default hover:bg-surface-sunken transition-colors cursor-pointer"
+                >
+                  <CheckCircle2 className="size-3.5 text-emerald-600 shrink-0" />
+                  <span>{adv.autoDeductNextPayroll !== false ? 'Disable Auto-Deduct' : 'Enable Auto-Deduct'}</span>
+                </button>
+              </>
             )}
-          </tbody>
-        </table>
-
-        {actionMenuAnchor && openActionMenuId !== null && (() => {
-          const adv = filteredAdvances.find((a) => a.id === openActionMenuId);
-          if (!adv) return null;
-          const remaining = adv.amount - adv.recoveredAmount;
-          const isRecovered = adv.status === 'recovered' || remaining <= 0;
-          return (
-            <ActionMenuPortal
-              isOpen={true}
-              anchorEl={actionMenuAnchor}
-              onClose={() => {
+            <button
+              type="button"
+              onClick={() => {
                 setOpenActionMenuId(null);
                 setActionMenuAnchor(null);
+                void navigator.clipboard.writeText(adv.advanceNumber);
+                notify.success(`Copied ${adv.advanceNumber} to clipboard`);
               }}
-              className="w-48"
+              className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs text-default hover:bg-surface-sunken transition-colors cursor-pointer"
             >
-              {!isRecovered && (
-                <>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setOpenActionMenuId(null);
-                      setActionMenuAnchor(null);
-                      handleManualRecovery(adv.id);
-                    }}
-                    className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs text-default hover:bg-surface-sunken transition-colors cursor-pointer"
-                  >
-                    <CreditCard className="size-3.5 text-primary shrink-0" />
-                    <span>Deduct Next Installment</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setOpenActionMenuId(null);
-                      setActionMenuAnchor(null);
-                      handleToggleAutoDeduct(adv.id);
-                    }}
-                    className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs text-default hover:bg-surface-sunken transition-colors cursor-pointer"
-                  >
-                    <CheckCircle2 className="size-3.5 text-emerald-600 shrink-0" />
-                    <span>{adv.autoDeductNextPayroll !== false ? 'Disable Auto-Deduct' : 'Enable Auto-Deduct'}</span>
-                  </button>
-                </>
-              )}
-              <button
-                type="button"
-                onClick={() => {
-                  setOpenActionMenuId(null);
-                  setActionMenuAnchor(null);
-                  void navigator.clipboard.writeText(adv.advanceNumber);
-                  notify.success(`Copied ${adv.advanceNumber} to clipboard`);
-                }}
-                className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs text-default hover:bg-surface-sunken transition-colors cursor-pointer"
-              >
-                <Search className="size-3.5 text-muted shrink-0" />
-                <span>Copy Advance Ref</span>
-              </button>
-              <div className="my-1 border-t border-default/50" />
-              <button
-                type="button"
-                onClick={() => {
-                  setOpenActionMenuId(null);
-                  setActionMenuAnchor(null);
-                  setDeleteConfirm({ open: true, id: adv.id, ref: adv.advanceNumber });
-                }}
-                className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer"
-              >
-                <Trash2 className="size-3.5 text-rose-600 shrink-0" />
-                <span>Delete Advance</span>
-              </button>
-            </ActionMenuPortal>
-          );
-        })()}
-      </div>
+              <Search className="size-3.5 text-muted shrink-0" />
+              <span>Copy Advance Ref</span>
+            </button>
+            <div className="my-1 border-t border-default/50" />
+            <button
+              type="button"
+              onClick={() => {
+                setOpenActionMenuId(null);
+                setActionMenuAnchor(null);
+                setDeleteConfirm({ open: true, id: adv.id, ref: adv.advanceNumber });
+              }}
+              className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer"
+            >
+              <Trash2 className="size-3.5 text-rose-600 shrink-0" />
+              <span>Delete Advance</span>
+            </button>
+          </ActionMenuPortal>
+        );
+      })()}
 
       {/* Grant Advance Modal */}
       <Modal

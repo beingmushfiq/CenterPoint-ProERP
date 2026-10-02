@@ -13,6 +13,7 @@ import { useCurrency } from '../../../hooks/useCurrency';
 import { SelectDropdown } from '../../../components/ui/Dropdown';
 import { PaymentSplitEditor } from '../../../components/payment/PaymentSplitEditor';
 import type { PaymentSplitRow, BankAccountOption } from '../../../components/payment/PaymentSplitEditor';
+import { ResponsiveDataTable } from '../../../components/ui/ResponsiveDataTable';
 
 export function PaymentsSection() {
   const { hasPermission } = useAuthStore();
@@ -213,14 +214,14 @@ export function PaymentsSection() {
       {/* Controls */}
       <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
         <div className="flex flex-wrap items-center gap-2">
-          <div className="relative">
+          <div className="relative flex-1 sm:flex-none">
             <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted" />
             <input
               type="text"
               placeholder="Search by payment #, ref..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="h-9 w-64 rounded-xl border border-default bg-surface-sunken pl-8 pr-3 text-xs text-default placeholder:text-muted focus:border-primary focus:outline-none"
+              className="h-10 sm:h-9 w-full sm:w-64 rounded-xl border border-default bg-surface-sunken pl-8 pr-3 text-xs text-default placeholder:text-muted focus:border-primary focus:outline-none"
             />
           </div>
 
@@ -239,19 +240,19 @@ export function PaymentsSection() {
           <button
             onClick={() => refetch()}
             disabled={isFetching}
-            className="flex h-9 items-center gap-1.5 rounded-xl border border-default bg-surface-sunken px-3 text-xs font-medium text-muted hover:bg-surface hover:text-default disabled:opacity-50 transition-colors cursor-pointer"
+            className="flex min-h-[44px] sm:min-h-9 items-center gap-1.5 rounded-xl border border-default bg-surface-sunken px-3 text-xs font-medium text-muted hover:bg-surface hover:text-default disabled:opacity-50 transition-colors cursor-pointer"
           >
             <RefreshCw className={`h-3.5 w-3.5 ${isFetching ? 'animate-spin' : ''}`} />
-            Refresh
+            <span className="hidden sm:inline">Refresh</span>
           </button>
         </div>
 
         <button
           onClick={() => setShowCreateModal(true)}
-          className="flex h-9 items-center gap-1.5 rounded-xl bg-primary px-3.5 text-xs font-medium text-primary-fg hover:opacity-90 transition-all cursor-pointer shadow-xs"
+          className="flex min-h-[44px] sm:min-h-9 items-center justify-center gap-1.5 rounded-xl bg-primary px-3.5 text-xs font-medium text-primary-fg hover:opacity-90 transition-all cursor-pointer shadow-xs"
         >
           <Plus className="h-3.5 w-3.5" />
-          Record Payment
+          <span>Record Payment</span>
         </button>
       </div>
 
@@ -289,137 +290,150 @@ export function PaymentsSection() {
         </div>
       )}
 
-      {/* Payments Table */}
-      <div className="overflow-hidden rounded-2xl border border-default bg-surface shadow-2xs">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs text-default">
-            <thead className="border-b border-default bg-surface-sunken text-[11px] font-semibold uppercase tracking-wider text-muted">
-              <tr>
-                <th className="w-10 px-4 py-3.5 text-center">
-                  <input
-                    ref={headerCheckboxRef}
-                    type="checkbox"
-                    checked={isAllSelected}
-                    onChange={toggleSelectAll}
-                    aria-label="Select all payments"
-                    className="size-4 rounded border-default text-primary focus:ring-primary/20 cursor-pointer"
-                  />
-                </th>
-                <th className="px-4 py-3.5">Payment #</th>
-                <th className="px-4 py-3.5">Date</th>
-                <th className="px-4 py-3.5">Type</th>
-                <th className="px-4 py-3.5">Method</th>
-                <th className="px-4 py-3.5">Customer / Entity</th>
-                <th className="px-4 py-3.5">Reference</th>
-                <th className="px-4 py-3.5">Amount</th>
-                <th className="px-4 py-3.5">Status</th>
-                <th className="px-4 py-3.5 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-default">
-              {isLoading ? (
-                <tr>
-                  <td colSpan={10} className="px-4 py-12 text-center text-muted">
-                    <div className="flex flex-col items-center justify-center gap-2">
-                      <RefreshCw className="size-5 animate-spin text-primary" />
-                      <span>Loading payments & receipts...</span>
-                    </div>
-                  </td>
-                </tr>
-              ) : filteredPayments.length === 0 ? (
-                <tr>
-                  <td colSpan={10} className="px-4 py-12 text-center text-muted">
-                    <div className="flex flex-col items-center justify-center gap-2">
-                      <DollarSign className="size-8 text-muted/50" />
-                      <span className="font-medium">No payments recorded.</span>
-                    </div>
-                  </td>
-                </tr>
+      {/* Responsive Payments Table */}
+      <ResponsiveDataTable<Payment>
+        data={filteredPayments}
+        isLoading={isLoading}
+        keyExtractor={(p) => p.id}
+        emptyMessage="No payments recorded."
+        emptyIcon={DollarSign}
+        selectedIds={selectedIds}
+        onSelectRow={(id) => toggleSelect(Number(id))}
+        onSelectAll={toggleSelectAll}
+        mobileCardBreakpoint="sm"
+        mobileActions={(p) => [
+          {
+            id: 'print',
+            label: 'Print Money Receipt',
+            icon: Printer,
+            onClick: () => handlePrintPayment(p),
+          },
+          ...(canDelete ? [{
+            id: 'delete',
+            label: 'Move to Data Bin',
+            icon: Trash2,
+            variant: 'danger' as const,
+            onClick: () =>
+              setDeleteConfirm({
+                id: p.id,
+                title: `payment ${p.payment_number}`,
+              }),
+          }] : []),
+        ]}
+        columns={[
+          {
+            id: 'payment_number',
+            header: 'Payment #',
+            isPrimary: true,
+            cell: (p) => (
+              <span className="font-mono font-medium text-default">{p.payment_number}</span>
+            ),
+          },
+          {
+            id: 'date',
+            header: 'Date',
+            priority: 'medium',
+            cell: (p) => <span className="text-muted">{p.payment_date}</span>,
+          },
+          {
+            id: 'type',
+            header: 'Type',
+            cell: (p) =>
+              p.direction === 'in' ? (
+                <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-600 dark:text-emerald-400">
+                  <ArrowDownLeft className="h-3.5 w-3.5" /> Inflow
+                </span>
               ) : (
-                filteredPayments.map((p) => {
-                  const isSelected = selectedIds.has(p.id);
-                  return (
-                  <tr key={p.id} className={`hover:bg-surface-sunken/60 transition-colors ${isSelected ? 'bg-primary/5' : ''}`}>
-                    <td className="w-10 px-4 py-3.5 text-center" onClick={(e) => e.stopPropagation()}>
-                      <input
-                        type="checkbox"
-                        checked={isSelected}
-                        onChange={() => toggleSelect(p.id)}
-                        aria-label={`Select payment ${p.payment_number}`}
-                        className="size-4 rounded border-default text-primary focus:ring-primary/20 cursor-pointer"
-                      />
-                    </td>
-                    <td className="px-4 py-3.5 font-mono font-medium text-default">{p.payment_number}</td>
-                    <td className="px-4 py-3.5 text-muted">{p.payment_date}</td>
-                    <td className="px-4 py-3.5">
-                      {p.direction === 'in' ? (
-                        <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-600 dark:text-emerald-400">
-                          <ArrowDownLeft className="h-3.5 w-3.5" /> Inflow
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 text-[11px] font-medium text-rose-600 dark:text-rose-400">
-                          <ArrowUpRight className="h-3.5 w-3.5" /> Outflow
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3.5 font-mono text-[11px] text-muted">
-                      {p.method === 'split' ? (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-primary/10 text-primary font-semibold text-[10px] tracking-wide border border-primary/20" title={p.splits?.map(s => `${s.method}: ${s.amount}`).join(', ')}>
-                          <Split className="h-3 w-3" /> Multi-Split {p.splits?.length ? `(${p.splits.length})` : ''}
-                        </span>
-                      ) : (
-                        <span className="uppercase">{p.method.replace('_', ' ')}</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3.5 text-default font-medium">
-                      {p.customer_name ?? 'Counter Customer / Direct'}
-                    </td>
-                    <td className="px-4 py-3.5 font-mono text-muted text-[11px]">
-                      {p.reference_number || '-'}
-                    </td>
-                    <td className="px-4 py-3.5 font-mono font-bold text-default">
-                      {formatCurrency(p.amount)}
-                    </td>
-                    <td className="px-4 py-3.5">
-                      <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                        {p.status}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3.5 text-right space-x-1.5">
-                      <button
-                        type="button"
-                        onClick={() => handlePrintPayment(p)}
-                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-default text-muted hover:text-default hover:bg-surface text-xs transition-colors cursor-pointer"
-                        title="Print Money Receipt"
-                      >
-                        <Printer className="size-3.5 text-primary" />
-                        <span>Print</span>
-                      </button>
-                      {canDelete && (
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setDeleteConfirm({
-                              id: p.id,
-                              title: `payment ${p.payment_number}`,
-                            })
-                          }
-                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 hover:bg-rose-500/20 text-xs font-medium transition-colors cursor-pointer"
-                          title="Move payment to Data Bin"
-                        >
-                          <Trash2 className="size-3" />
-                          <span>Move to Bin</span>
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+                <span className="inline-flex items-center gap-1 text-[11px] font-medium text-rose-600 dark:text-rose-400">
+                  <ArrowUpRight className="h-3.5 w-3.5" /> Outflow
+                </span>
+              ),
+          },
+          {
+            id: 'method',
+            header: 'Method',
+            priority: 'low',
+            cell: (p) =>
+              p.method === 'split' ? (
+                <span
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-primary/10 text-primary font-semibold text-[10px] tracking-wide border border-primary/20"
+                  title={p.splits?.map((s) => `${s.method}: ${s.amount}`).join(', ')}
+                >
+                  <Split className="h-3 w-3" /> Multi-Split {p.splits?.length ? `(${p.splits.length})` : ''}
+                </span>
+              ) : (
+                <span className="uppercase font-mono text-[11px] text-muted">{p.method.replace('_', ' ')}</span>
+              ),
+          },
+          {
+            id: 'customer',
+            header: 'Customer / Entity',
+            cell: (p) => (
+              <span className="text-default font-medium">
+                {p.customer_name ?? 'Counter Customer / Direct'}
+              </span>
+            ),
+          },
+          {
+            id: 'reference',
+            header: 'Reference',
+            priority: 'low',
+            cell: (p) => <span className="font-mono text-muted text-[11px]">{p.reference_number || '—'}</span>,
+          },
+          {
+            id: 'amount',
+            header: 'Amount',
+            cell: (p) => (
+              <span className="font-mono font-bold text-default">{formatCurrency(p.amount)}</span>
+            ),
+          },
+          {
+            id: 'status',
+            header: 'Status',
+            isStatus: true,
+            cell: (p) => (
+              <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                {p.status}
+              </span>
+            ),
+          },
+          {
+            id: 'actions',
+            header: 'Actions',
+            isAction: true,
+            align: 'right',
+            cell: (p) => (
+              <div className="flex items-center justify-end gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => handlePrintPayment(p)}
+                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-default text-muted hover:text-default hover:bg-surface text-xs transition-colors cursor-pointer"
+                  title="Print Money Receipt"
+                >
+                  <Printer className="size-3.5 text-primary" />
+                  <span className="hidden sm:inline">Print</span>
+                </button>
+                {canDelete && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setDeleteConfirm({
+                        id: p.id,
+                        title: `payment ${p.payment_number}`,
+                      })
+                    }
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 hover:bg-rose-500/20 text-xs font-medium transition-colors cursor-pointer"
+                    title="Move payment to Data Bin"
+                  >
+                    <Trash2 className="size-3" />
+                    <span className="hidden sm:inline">Bin</span>
+                  </button>
+                )}
+              </div>
+            ),
+          },
+        ]}
+      />
 
       {/* Record Payment Modal */}
       {showCreateModal && (

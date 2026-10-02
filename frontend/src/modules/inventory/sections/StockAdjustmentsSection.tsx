@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import {
@@ -27,6 +27,7 @@ import { useCurrency } from '../../../hooks/useCurrency';
 import { SelectDropdown } from '../../../components/ui/Dropdown';
 import { ActionMenuPortal } from '../../../components/ui/ActionMenuPortal';
 import { cn } from '../../../lib/utils';
+import { ResponsiveDataTable, type ResponsiveColumn } from '../../../components/ui/ResponsiveDataTable';
 
 interface AdjFormItem {
   product_name: string;
@@ -366,6 +367,131 @@ export function StockAdjustmentsSection() {
     }
   };
 
+  const adjustmentColumns = useMemo<ResponsiveColumn<StockAdjustment>[]>(() => [
+    {
+      key: 'adjustment_number',
+      header: 'Adjustment # / Date',
+      priority: 'high',
+      isPrimary: true,
+      render: (a) => (
+        <div>
+          <div className="flex items-center gap-1.5 font-mono font-medium text-default">
+            <Sliders className="size-3.5 text-primary" />
+            <span>{a.adjustment_number}</span>
+          </div>
+          <div className="text-[10px] text-muted font-sans mt-0.5">{a.adjustment_date}</div>
+        </div>
+      ),
+    },
+    {
+      key: 'warehouse_name',
+      header: 'Warehouse Location',
+      priority: 'high',
+      render: (a) => <span className="font-semibold text-default">{a.warehouse_name}</span>,
+    },
+    {
+      key: 'reason',
+      header: 'Reason Category',
+      priority: 'medium',
+      render: (a) => (
+        <span className="text-muted max-w-xs truncate">{a.reason_name ?? 'Variance write-off'}</span>
+      ),
+    },
+    {
+      key: 'items',
+      header: 'Items / Direction',
+      priority: 'medium',
+      render: (a) => (
+        <div className="flex items-center gap-1.5 font-mono">
+          {a.items?.[0]?.direction === 'in' ? (
+            <span className="inline-flex items-center gap-0.5 text-emerald-600 dark:text-emerald-400 font-semibold">
+              <ArrowUpRight className="size-3" /> +{a.items?.[0]?.quantity}
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-0.5 text-rose-600 dark:text-rose-400 font-semibold">
+              <ArrowDownRight className="size-3" /> -{a.items?.[0]?.quantity}
+            </span>
+          )}
+          <span className="text-muted text-[11px] truncate max-w-xs">{a.items?.[0]?.product_name}</span>
+        </div>
+      ),
+    },
+    {
+      key: 'status',
+      header: 'Status',
+      priority: 'high',
+      render: (a) => (
+        <div onClick={(e) => e.stopPropagation()}>
+          <select
+            value={a.status}
+            onChange={(e) => handleStatusChange(a.id, e.target.value as StockAdjustment['status'])}
+            className={`rounded-lg border px-2 py-1 text-[11px] font-bold focus:outline-none transition-colors cursor-pointer ${
+              a.status === 'approved'
+                ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30'
+                : a.status === 'rejected'
+                ? 'bg-rose-500/10 text-rose-700 dark:text-rose-300 border-rose-500/30'
+                : a.status === 'cancelled'
+                ? 'bg-gray-500/10 text-gray-700 dark:text-gray-300 border-gray-500/30'
+                : 'bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/30'
+            }`}
+          >
+            <option value="draft">Draft</option>
+            <option value="approved">Approved</option>
+            <option value="rejected">Rejected</option>
+            <option value="cancelled">Cancelled</option>
+          </select>
+        </div>
+      ),
+    },
+    {
+      key: 'actions',
+      header: 'Actions',
+      align: 'right',
+      priority: 'high',
+      render: (a) => (
+        <div className="flex items-center justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
+          <button
+            onClick={() => {
+              setActiveAdjustment(a);
+              setShowViewModal(true);
+              void api.get<StockAdjustment>(`/inventory/adjustments/${a.id}`).then((res) => {
+                if (res.data) setActiveAdjustment(res.data);
+              }).catch(() => {});
+            }}
+            className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-lg bg-surface-sunken hover:bg-surface border border-default text-default transition-colors cursor-pointer"
+            title="View Voucher"
+          >
+            <Eye className="size-3.5 text-muted" />
+            <span>View</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (openActionMenuId === a.id) {
+                setOpenActionMenuId(null);
+                setActionMenuAnchor(null);
+              } else {
+                setOpenActionMenuId(a.id);
+                setActionMenuAnchor(e.currentTarget);
+              }
+            }}
+            className={cn(
+              'inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold rounded-lg border transition-colors cursor-pointer',
+              openActionMenuId === a.id
+                ? 'bg-primary text-primary-fg border-primary shadow-xs'
+                : 'bg-surface hover:bg-surface-sunken border-default text-default'
+            )}
+          >
+            <span>Actions</span>
+            <ChevronDown className="size-3 text-muted" />
+          </button>
+        </div>
+      ),
+    },
+  ], [openActionMenuId, handleStatusChange]);
+
   return (
     <div className="space-y-6">
       {/* Metric Cards */}
@@ -526,143 +652,83 @@ export function StockAdjustmentsSection() {
         </div>
       )}
 
-      {/* Adjustments Table */}
-      <div className="rounded-2xl border border-default bg-surface shadow-2xs overflow-hidden">
-        <div className="overflow-x-auto min-h-75">
-          <table className="w-full text-left text-xs text-default">
-            <thead className="bg-surface-sunken text-[11px] font-semibold text-muted uppercase tracking-wider border-b border-default">
-              <tr>
-                <th className="w-10 px-4 py-3.5 text-center">
-                  <input
-                    ref={headerCheckboxRef}
-                    type="checkbox"
-                    checked={isAllSelected}
-                    onChange={toggleSelectAll}
-                    className="rounded border-default text-primary focus:ring-primary h-4 w-4 cursor-pointer"
-                    aria-label="Select all adjustments"
-                  />
-                </th>
-                <th className="px-4 py-3.5">Adjustment # / Date</th>
-                <th className="px-4 py-3.5">Warehouse Location</th>
-                <th className="px-4 py-3.5">Reason Category</th>
-                <th className="px-4 py-3.5">Items / Direction</th>
-                <th className="px-4 py-3.5">Status</th>
-                <th className="px-4 py-3.5 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-default">
-              {filteredAdjustments.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="px-4 py-12 text-center text-muted">
-                    {isLoading ? 'Loading adjustments...' : 'No stock adjustments found matching your criteria.'}
-                  </td>
-                </tr>
-              ) : (
-                filteredAdjustments.map((a) => (
-                  <tr
-                    key={a.id}
-                    className={`hover:bg-surface-sunken/60 transition-colors ${
-                      selectedAdjustmentIds.has(a.id) ? 'bg-primary/5 dark:bg-primary/10' : ''
-                    }`}
-                  >
-                    <td className="w-10 px-4 py-3 text-center" onClick={(e) => e.stopPropagation()}>
-                      <input
-                        type="checkbox"
-                        checked={selectedAdjustmentIds.has(a.id)}
-                        onChange={() => toggleSelectAdjustment(a.id)}
-                        className="rounded border-default text-primary focus:ring-primary h-4 w-4 cursor-pointer"
-                        aria-label={`Select adjustment ${a.adjustment_number}`}
-                      />
-                    </td>
-                    <td className="px-4 py-3.5 font-mono font-medium text-default">
-                      <div className="flex items-center gap-1.5">
-                        <Sliders className="size-3.5 text-primary" />
-                        <span>{a.adjustment_number}</span>
-                      </div>
-                      <div className="text-[10px] text-muted font-sans mt-0.5">{a.adjustment_date}</div>
-                    </td>
-                    <td className="px-4 py-3.5 font-semibold text-default">{a.warehouse_name}</td>
-                    <td className="px-4 py-3.5 text-muted max-w-xs truncate">{a.reason_name ?? 'Variance write-off'}</td>
-                    <td className="px-4 py-3.5">
-                      <div className="flex items-center gap-1.5 font-mono">
-                        {a.items?.[0]?.direction === 'in' ? (
-                          <span className="inline-flex items-center gap-0.5 text-emerald-600 dark:text-emerald-400 font-semibold">
-                            <ArrowUpRight className="size-3" /> +{a.items?.[0]?.quantity}
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-0.5 text-rose-600 dark:text-rose-400 font-semibold">
-                            <ArrowDownRight className="size-3" /> -{a.items?.[0]?.quantity}
-                          </span>
-                        )}
-                        <span className="text-muted text-[11px] truncate max-w-xs">{a.items?.[0]?.product_name}</span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3.5">
-                      <select
-                        value={a.status}
-                        onChange={(e) => handleStatusChange(a.id, e.target.value as StockAdjustment['status'])}
-                        className={`rounded-lg border px-2 py-1 text-[11px] font-bold focus:outline-none transition-colors cursor-pointer ${
-                          a.status === 'approved'
-                            ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30'
-                            : a.status === 'rejected'
-                            ? 'bg-rose-500/10 text-rose-700 dark:text-rose-300 border-rose-500/30'
-                            : a.status === 'cancelled'
-                            ? 'bg-gray-500/10 text-gray-700 dark:text-gray-300 border-gray-500/30'
-                            : 'bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/30'
-                        }`}
-                      >
-                        <option value="draft">Draft</option>
-                        <option value="approved">Approved</option>
-                        <option value="rejected">Rejected</option>
-                        <option value="cancelled">Cancelled</option>
-                      </select>
-                    </td>
-                    <td className="px-4 py-3.5 text-right">
-                      <div className="flex items-center justify-end gap-1.5">
-                        <button
-                          onClick={() => {
-                            setActiveAdjustment(a);
-                            setShowViewModal(true);
-                            void api.get<StockAdjustment>(`/inventory/adjustments/${a.id}`).then((res) => {
-                              if (res.data) setActiveAdjustment(res.data);
-                            }).catch(() => {});
-                          }}
-                          className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-lg bg-surface-sunken hover:bg-surface border border-default text-default transition-colors cursor-pointer"
-                          title="View Voucher"
-                        >
-                          <Eye className="size-3.5 text-muted" />
-                          <span>View</span>
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (openActionMenuId === a.id) {
-                              setOpenActionMenuId(null);
-                              setActionMenuAnchor(null);
-                            } else {
-                              setOpenActionMenuId(a.id);
-                              setActionMenuAnchor(e.currentTarget);
-                            }
-                          }}
-                          className={cn(
-                            'inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold rounded-lg border transition-colors cursor-pointer',
-                            openActionMenuId === a.id
-                              ? 'bg-primary text-primary-fg border-primary shadow-xs'
-                              : 'bg-surface hover:bg-surface-sunken border-default text-default'
-                          )}
-                        >
-                          <span>Actions</span>
-                          <ChevronDown className="size-3 text-muted" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+      {/* Adjustments Responsive Data Table */}
+      <ResponsiveDataTable<StockAdjustment>
+        data={filteredAdjustments}
+        isLoading={isLoading}
+        keyExtractor={(a) => a.id}
+        emptyMessage="No stock adjustments found matching your criteria."
+        emptyIcon={Sliders}
+        selectedIds={selectedAdjustmentIds}
+        onSelectRow={(id) => toggleSelectAdjustment(Number(id))}
+        onSelectAll={toggleSelectAll}
+        mobileCardBreakpoint="sm"
+        mobileActions={(a) => [
+          {
+            id: 'view',
+            label: 'View Voucher',
+            icon: Eye,
+            onClick: () => {
+              setActiveAdjustment(a);
+              setShowViewModal(true);
+              void api.get<StockAdjustment>(`/inventory/adjustments/${a.id}`).then((res) => {
+                if (res.data) setActiveAdjustment(res.data);
+              }).catch(() => {});
+            },
+          },
+          {
+            id: 'edit',
+            label: 'Edit Adjustment',
+            icon: Edit2,
+            onClick: () => {
+              setActiveAdjustment(a);
+              setFormData({
+                adjustment_number: a.adjustment_number,
+                warehouse_name: a.warehouse_name || '',
+                adjustment_date: a.adjustment_date,
+                reason_name: a.reason_name || '',
+                reason_code: a.reason_code || 'VARIANCE',
+                notes: a.notes || '',
+                items: a.items?.map((it) => ({
+                  product_name: it.product_name || '',
+                  product_sku: it.product_sku || '',
+                  direction: it.direction,
+                  quantity: it.quantity,
+                  unit_cost: it.unit_cost,
+                  batch_code: it.batch_code || '',
+                })) || [],
+              });
+              setShowEditModal(true);
+            },
+          },
+          ...(a.status === 'draft' ? [{
+            id: 'approve',
+            label: 'Approve & Post',
+            icon: CheckCircle2,
+            onClick: () => handleApprove(a.id),
+          }] : []),
+          {
+            id: 'print',
+            label: 'Print Voucher',
+            icon: Printer,
+            onClick: () => {
+              setActiveAdjustment(a);
+              window.print();
+            },
+          },
+          ...(canDelete ? [{
+            id: 'delete',
+            label: 'Void / Delete',
+            icon: Trash2,
+            variant: 'danger' as const,
+            onClick: () => {
+              setActiveAdjustment(a);
+              setShowDeleteModal(true);
+            },
+          }] : []),
+        ]}
+        columns={adjustmentColumns}
+      />
 
           {openActionMenuId && (() => {
             const a = filteredAdjustments.find((item) => item.id === openActionMenuId);
@@ -758,8 +824,6 @@ export function StockAdjustmentsSection() {
               </ActionMenuPortal>
             );
           })()}
-        </div>
-      </div>
 
       {/* CREATE ADJUSTMENT MODAL */}
       {showCreateModal && (

@@ -61,6 +61,8 @@ import {
   type WorkspaceCategoryConfig,
   type WorkspaceTabConfig,
 } from '../../components/common/WorkspaceNavigationHub';
+import { ResponsiveDataTable, type ResponsiveColumn } from '../../components/ui/ResponsiveDataTable';
+import { type ActionSheetItem } from '../../components/motion/MotionActionSheet';
 
 export interface DataBinItem {
   id: number | string;
@@ -1582,6 +1584,210 @@ export const DataBinWorkspace: React.FC = () => {
   const ActiveCategoryIcon = activeCategoryConfig.icon;
   const currentTabConfig = tabsConfig.find((t) => t.id === resolvedActiveTab);
 
+  const binColumns: ResponsiveColumn<DataBinItem>[] = [
+    {
+      id: 'select',
+      header: (
+        <input
+          type="checkbox"
+          ref={headerCheckboxRef}
+          checked={isAllSelected}
+          onChange={toggleSelectAll}
+          className="rounded border-default text-primary focus:ring-primary size-4 cursor-pointer touch-target"
+          aria-label="Select all"
+        />
+      ),
+      priority: 'high',
+      align: 'center',
+      className: 'w-10 text-center',
+      accessor: (item) => {
+        const itemKey = `${item.type}:${item.id}`;
+        const isSelected = selectedKeys.has(itemKey);
+        return (
+          <input
+            type="checkbox"
+            checked={isSelected}
+            onChange={() => toggleSelect(itemKey)}
+            className="rounded border-default text-primary focus:ring-primary size-4 cursor-pointer touch-target"
+            aria-label={`Select ${item.identifier}`}
+          />
+        );
+      },
+    },
+    {
+      id: 'type',
+      header: 'Entity Type',
+      priority: 'high',
+      isStatus: true,
+      accessor: (item) => {
+        const style = TYPE_COLORS[item.type] || {
+          bg: 'bg-surface-sunken',
+          text: 'text-default',
+          border: 'border-default',
+        };
+        return (
+          <span
+            className={cn(
+              'inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold border',
+              style.bg,
+              style.text,
+              style.border
+            )}
+          >
+            {item.type_label}
+          </span>
+        );
+      },
+    },
+    {
+      id: 'identifier',
+      header: 'Item Identifier',
+      isPrimary: true,
+      priority: 'high',
+      accessor: (item) => (
+        <div className="font-semibold text-default flex items-center gap-2">
+          <span>{item.identifier}</span>
+          <span className="text-xs text-muted font-mono">#{item.id}</span>
+        </div>
+      ),
+    },
+    {
+      id: 'metadata',
+      header: 'Context / Metadata',
+      priority: 'medium',
+      accessor: (item) => (
+        <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted">
+          {Boolean(item.details?.code) && (
+            <span className="px-2 py-0.5 rounded bg-surface-sunken text-default font-mono font-medium border border-default/50">
+              #{String(item.details.code)}
+            </span>
+          )}
+          {Boolean(item.details?.status) && (
+            <span className="px-2 py-0.5 rounded bg-surface-sunken text-muted font-medium border border-default/50">
+              status: {String(item.details.status)}
+            </span>
+          )}
+          {item.details?.amount !== undefined && item.details?.amount !== null && (
+            <span className="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-semibold border border-emerald-500/20">
+              ৳{Number(item.details.amount).toLocaleString()}
+            </span>
+          )}
+          {item.details?.quantity !== undefined && item.details?.quantity !== null && (
+            <span className="px-2 py-0.5 rounded bg-blue-500/10 text-blue-600 dark:text-blue-400 font-medium border border-blue-500/20">
+              qty: {Number(item.details.quantity).toLocaleString()}
+            </span>
+          )}
+          {Boolean(item.details?.department) && (
+            <span className="px-2 py-0.5 rounded bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20">
+              dept: {String(item.details.department)}
+            </span>
+          )}
+          {Boolean(item.details?.category) && (
+            <span className="px-2 py-0.5 rounded bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20">
+              cat: {String(item.details.category)}
+            </span>
+          )}
+          {Boolean(item.details?.reason) && (
+            <span
+              className="px-2 py-0.5 rounded bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 italic max-w-xs truncate"
+              title={String(item.details?.reason)}
+            >
+              &quot;{String(item.details?.reason)}&quot;
+            </span>
+          )}
+          {Boolean(item.details?.date) && (
+            <span className="px-2 py-0.5 rounded bg-surface-sunken text-muted font-mono text-[11px] border border-default/50">
+              {String(item.details?.date)}
+            </span>
+          )}
+        </div>
+      ),
+    },
+    {
+      id: 'deleted_at',
+      header: 'Deleted At',
+      priority: 'low',
+      accessor: (item) => (
+        <span className="text-xs text-muted" title={item.deleted_at}>
+          {formatDeletedDate(item.deleted_at)}
+        </span>
+      ),
+    },
+    {
+      id: 'actions',
+      header: 'Actions',
+      priority: 'high',
+      isAction: true,
+      align: 'right',
+      accessor: (item) => {
+        const isActing = actionLoadingId === item.id;
+        if (pendingPurge?.item.id === item.id && pendingPurge?.item.type === item.type) {
+          return (
+            <div className="flex items-center justify-end gap-1.5">
+              <span className="font-mono text-xs font-bold text-rose-500 bg-rose-500/10 px-2 py-0.5 rounded border border-rose-500/20 animate-pulse">
+                Purging in {pendingPurge.remainingSeconds}s
+              </span>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={handleCancelSafePurge}
+                className="text-xs h-7 px-2 touch-target"
+              >
+                Undo
+              </Button>
+              <Button
+                variant="danger"
+                size="sm"
+                onClick={() => executePermanentDelete(item)}
+                className="text-xs h-7 px-2 touch-target"
+              >
+                Purge Now
+              </Button>
+            </div>
+          );
+        }
+        return (
+          <div className="flex items-center justify-end gap-2">
+            <Button
+              variant="secondary"
+              size="sm"
+              disabled={isActing}
+              onClick={() => setRestoreConfirmItem(item)}
+              leftIcon={<RotateCcw className="size-3.5 text-emerald-600 dark:text-emerald-400" />}
+              className="touch-target"
+            >
+              Restore
+            </Button>
+            <Button
+              variant="danger"
+              size="sm"
+              disabled={isActing}
+              onClick={() => setPurgeConfirmItem(item)}
+              leftIcon={<Trash2 className="size-3.5" />}
+              className="touch-target"
+            >
+              Purge
+            </Button>
+          </div>
+        );
+      },
+    },
+  ];
+
+  const getMobileActions = (item: DataBinItem): ActionSheetItem[] => [
+    {
+      label: 'Restore Record',
+      icon: RotateCcw,
+      onClick: () => setRestoreConfirmItem(item),
+    },
+    {
+      label: 'Purge Permanently',
+      icon: Trash2,
+      variant: 'destructive',
+      onClick: () => setPurgeConfirmItem(item),
+    },
+  ];
+
   return (
     <div className="space-y-6">
       {/* Workspace Header Surface */}
@@ -1801,214 +2007,24 @@ export const DataBinWorkspace: React.FC = () => {
       )}
 
       {/* Main Table / Empty State */}
-      <div className="bg-surface rounded-2xl border border-default overflow-hidden shadow-2xs">
-        {loading ? (
-          <div className="py-20 flex flex-col items-center justify-center text-center">
-            <RefreshCw className="size-8 text-primary animate-spin" />
-            <p className="mt-3 text-sm text-muted font-medium">Scanning enterprise recovery vault...</p>
-          </div>
-        ) : displayedItems.length === 0 ? (
-          <div className="py-20 px-6 text-center flex flex-col items-center justify-center">
-            <div className="size-16 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shadow-xs">
-              <CheckCircle2 className="size-8" />
-            </div>
-            <h3 className="mt-4 text-base font-bold text-default">
-              Recovery Vault is Pristine
-            </h3>
-            <p className="mt-1 text-sm text-muted max-w-md">
-              {searchQuery
-                ? `No trashed items matched "${searchQuery}". Try a different search term or category.`
-                : selectedType !== 'all'
-                ? `No deleted items found under this entity type. Everything is active in the live workspace.`
-                : selectedDomain !== 'all'
-                ? `No deleted items found under "${DOMAIN_CONFIG[selectedDomain].label}". Everything is active in the live workspace.`
-                : 'No deleted records found in the Data Bin. Any item deleted across the ERP will appear here for recovery.'}
-            </p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm border-collapse">
-              <thead>
-                <tr className="border-b border-default bg-surface-sunken/60 text-xs font-semibold text-muted uppercase tracking-wider">
-                  <th className="py-3 px-4 w-10 text-center">
-                    <input
-                      type="checkbox"
-                      ref={headerCheckboxRef}
-                      checked={isAllSelected}
-                      onChange={toggleSelectAll}
-                      className="rounded border-default text-primary focus:ring-primary size-4 cursor-pointer"
-                      aria-label="Select all"
-                    />
-                  </th>
-                  <th className="py-3 px-4">Entity Type</th>
-                  <th className="py-3 px-4">Item Identifier</th>
-                  <th className="py-3 px-4">Context / Metadata</th>
-                  <th className="py-3 px-4">Deleted At</th>
-                  <th className="py-3 px-4 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-default/60">
-                {displayedItems.map((item) => {
-                  const itemKey = `${item.type}:${item.id}`;
-                  const isSelected = selectedKeys.has(itemKey);
-                  const style = TYPE_COLORS[item.type] || {
-                    bg: 'bg-surface-sunken',
-                    text: 'text-default',
-                    border: 'border-default',
-                  };
-
-                  const isActing = actionLoadingId === item.id;
-
-                  return (
-                    <tr
-                      key={itemKey}
-                      className={cn(
-                        'hover:bg-surface-sunken/50 transition-colors group',
-                        isSelected && 'bg-primary/5 dark:bg-primary/10'
-                      )}
-                    >
-                      {/* Selection Checkbox */}
-                      <td className="py-3.5 px-4 text-center">
-                        <input
-                          type="checkbox"
-                          checked={isSelected}
-                          onChange={() => toggleSelect(itemKey)}
-                          className="rounded border-default text-primary focus:ring-primary size-4 cursor-pointer"
-                          aria-label={`Select ${item.identifier}`}
-                        />
-                      </td>
-                      {/* Entity Type Badge */}
-                      <td className="py-3.5 px-4 whitespace-nowrap">
-                        <span
-                          className={cn(
-                            'inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold border',
-                            style.bg,
-                            style.text,
-                            style.border
-                          )}
-                        >
-                          {item.type_label}
-                        </span>
-                      </td>
-
-                      {/* Identifier */}
-                      <td className="py-3.5 px-4">
-                        <div className="font-semibold text-default flex items-center gap-2">
-                          <span>{item.identifier}</span>
-                          <span className="text-xs text-muted font-mono">#{item.id}</span>
-                        </div>
-                      </td>
-
-                      {/* Details / Context */}
-                      <td className="py-3.5 px-4 text-xs text-muted">
-                        <div className="flex flex-wrap items-center gap-1.5">
-                          {Boolean(item.details?.code) && (
-                            <span className="px-2 py-0.5 rounded bg-surface-sunken text-default font-mono font-medium border border-default/50">
-                              #{String(item.details.code)}
-                            </span>
-                          )}
-                          {Boolean(item.details?.status) && (
-                            <span className="px-2 py-0.5 rounded bg-surface-sunken text-muted font-medium border border-default/50">
-                              status: {String(item.details.status)}
-                            </span>
-                          )}
-                          {item.details?.amount !== undefined && item.details?.amount !== null && (
-                            <span className="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-semibold border border-emerald-500/20">
-                              ৳{Number(item.details.amount).toLocaleString()}
-                            </span>
-                          )}
-                          {item.details?.quantity !== undefined && item.details?.quantity !== null && (
-                            <span className="px-2 py-0.5 rounded bg-blue-500/10 text-blue-600 dark:text-blue-400 font-medium border border-blue-500/20">
-                              qty: {Number(item.details.quantity).toLocaleString()}
-                            </span>
-                          )}
-                          {Boolean(item.details?.department) && (
-                            <span className="px-2 py-0.5 rounded bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20">
-                              dept: {String(item.details.department)}
-                            </span>
-                          )}
-                          {Boolean(item.details?.category) && (
-                            <span className="px-2 py-0.5 rounded bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20">
-                              cat: {String(item.details.category)}
-                            </span>
-                          )}
-                          {Boolean(item.details?.reason) && (
-                            <span
-                              className="px-2 py-0.5 rounded bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 italic max-w-xs truncate"
-                              title={String(item.details?.reason)}
-                            >
-                              &quot;{String(item.details?.reason)}&quot;
-                            </span>
-                          )}
-                          {Boolean(item.details?.date) && (
-                            <span className="px-2 py-0.5 rounded bg-surface-sunken text-muted font-mono text-[11px] border border-default/50">
-                              {String(item.details?.date)}
-                            </span>
-                          )}
-                        </div>
-                      </td>
-
-                      {/* Deleted Timestamp */}
-                      <td className="py-3.5 px-4 whitespace-nowrap text-xs text-muted">
-                        <span title={item.deleted_at}>{formatDeletedDate(item.deleted_at)}</span>
-                      </td>
-
-                      {/* Action Buttons */}
-                      <td className="py-3.5 px-4 whitespace-nowrap text-right">
-                        {pendingPurge?.item.id === item.id && pendingPurge?.item.type === item.type ? (
-                          <div className="flex items-center justify-end gap-1.5">
-                            <span className="font-mono text-xs font-bold text-rose-500 bg-rose-500/10 px-2 py-0.5 rounded border border-rose-500/20 animate-pulse">
-                              Purging in {pendingPurge.remainingSeconds}s
-                            </span>
-                            <Button
-                              variant="secondary"
-                              size="sm"
-                              onClick={handleCancelSafePurge}
-                              className="text-xs h-7 px-2"
-                            >
-                              Undo
-                            </Button>
-                            <Button
-                              variant="danger"
-                              size="sm"
-                              onClick={() => executePermanentDelete(item)}
-                              className="text-xs h-7 px-2"
-                            >
-                              Purge Now
-                            </Button>
-                          </div>
-                        ) : (
-                          <div className="flex items-center justify-end gap-2">
-                            <Button
-                              variant="secondary"
-                              size="sm"
-                              disabled={isActing}
-                              onClick={() => setRestoreConfirmItem(item)}
-                              leftIcon={<RotateCcw className="size-3.5 text-emerald-600 dark:text-emerald-400" />}
-                            >
-                              Restore
-                            </Button>
-
-                            <Button
-                              variant="danger"
-                              size="sm"
-                              disabled={isActing}
-                              onClick={() => setPurgeConfirmItem(item)}
-                              leftIcon={<Trash2 className="size-3.5" />}
-                            >
-                              Purge
-                            </Button>
-                          </div>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+      <ResponsiveDataTable<DataBinItem>
+        data={displayedItems}
+        columns={binColumns}
+        keyExtractor={(item) => `${item.type}:${item.id}`}
+        loading={loading}
+        emptyTitle="Recovery Vault is Pristine"
+        emptyMessage={
+          searchQuery
+            ? `No trashed items matched "${searchQuery}". Try a different search term or category.`
+            : selectedType !== 'all'
+            ? `No deleted items found under this entity type. Everything is active in the live workspace.`
+            : selectedDomain !== 'all'
+            ? `No deleted items found under "${DOMAIN_CONFIG[selectedDomain].label}". Everything is active in the live workspace.`
+            : 'No deleted records found in the Data Bin. Any item deleted across the ERP will appear here for recovery.'
+        }
+        emptyIcon={CheckCircle2}
+        mobileActions={getMobileActions}
+      />
 
       {/* Single Item Restore Confirmation Dialog */}
       {restoreConfirmItem && (

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import {
@@ -31,6 +31,7 @@ import { useBusinessConfig } from '../../../lib/document/useBusinessConfig';
 import { SelectDropdown } from '../../../components/ui/Dropdown';
 import { ActionMenuPortal } from '../../../components/ui/ActionMenuPortal';
 import { cn } from '../../../lib/utils';
+import { ResponsiveDataTable, type ResponsiveColumn } from '../../../components/ui/ResponsiveDataTable';
 
 interface TransferFormItem {
   product_name: string;
@@ -364,6 +365,120 @@ export function StockTransfersSection() {
     }
   };
 
+  const transferColumns = useMemo<ResponsiveColumn<StockTransfer>[]>(() => [
+    {
+      key: 'transfer_number',
+      header: 'Transfer # / Date',
+      priority: 'high',
+      isPrimary: true,
+      render: (t) => (
+        <div>
+          <div className="flex items-center gap-1.5 font-mono font-medium text-default">
+            <Layers className="size-3.5 text-primary" />
+            <span>{t.transfer_number}</span>
+          </div>
+          <div className="text-[10px] text-muted font-sans mt-0.5">{t.transfer_date}</div>
+        </div>
+      ),
+    },
+    {
+      key: 'from_warehouse_name',
+      header: 'Source Warehouse',
+      priority: 'medium',
+      render: (t) => <span className="text-muted font-medium">{t.from_warehouse_name}</span>,
+    },
+    {
+      key: 'to_warehouse_name',
+      header: 'Destination Warehouse',
+      priority: 'high',
+      render: (t) => (
+        <span className="text-default font-semibold flex items-center gap-1">
+          <ArrowRight className="size-3 text-muted" />
+          <span>{t.to_warehouse_name}</span>
+        </span>
+      ),
+    },
+    {
+      key: 'items',
+      header: 'Items Transferred',
+      priority: 'medium',
+      render: (t) => (
+        <div>
+          <div className="font-semibold text-default">{t.items?.length || 0} Line Item(s)</div>
+          <div className="text-[10px] text-muted truncate max-w-xs">{t.items?.[0]?.product_name}</div>
+        </div>
+      ),
+    },
+    {
+      key: 'status',
+      header: 'Status',
+      priority: 'high',
+      render: (t) => (
+        <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+          {getStatusBadge(t.status, t.transfer_date, t.dispatched_at)}
+          <select
+            value={t.status}
+            onChange={(e) => handleStatusChange(t.id, e.target.value as StockTransfer['status'])}
+            className="text-[10px] bg-transparent text-muted hover:text-default border-0 focus:ring-0 cursor-pointer"
+            title="Change transfer state"
+          >
+            <option value="draft">Draft</option>
+            <option value="in_transit">In Transit</option>
+            <option value="received">Delivered / Received</option>
+            <option value="cancelled">Cancelled</option>
+          </select>
+        </div>
+      ),
+    },
+    {
+      key: 'actions',
+      header: 'Actions',
+      align: 'right',
+      priority: 'high',
+      render: (t) => (
+        <div className="flex items-center justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
+          <button
+            onClick={() => {
+              setActiveTransfer(t);
+              setShowViewModal(true);
+              void api.get<StockTransfer>(`/inventory/transfers/${t.id}`).then((res) => {
+                if (res.data) setActiveTransfer(res.data);
+              }).catch(() => {});
+            }}
+            className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-lg bg-surface-sunken hover:bg-surface border border-default text-default transition-colors cursor-pointer"
+            title="View Manifest"
+          >
+            <Eye className="size-3.5 text-muted" />
+            <span>View</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (openActionMenuId === t.id) {
+                setOpenActionMenuId(null);
+                setActionMenuAnchor(null);
+              } else {
+                setOpenActionMenuId(t.id);
+                setActionMenuAnchor(e.currentTarget);
+              }
+            }}
+            className={cn(
+              'inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold rounded-lg border transition-colors cursor-pointer',
+              openActionMenuId === t.id
+                ? 'bg-primary text-primary-fg border-primary shadow-xs'
+                : 'bg-surface hover:bg-surface-sunken border-default text-default'
+            )}
+          >
+            <span>Actions</span>
+            <ChevronDown className="size-3 text-muted" />
+          </button>
+        </div>
+      ),
+    },
+  ], [openActionMenuId, getStatusBadge, handleStatusChange]);
+
   return (
     <div className="space-y-6">
       {/* Metric Cards */}
@@ -506,133 +621,86 @@ export function StockTransfersSection() {
         </div>
       )}
 
-      {/* Transfers Table */}
-      <div className="rounded-2xl border border-default bg-surface shadow-2xs overflow-hidden">
-        <div className="overflow-x-auto min-h-75">
-          <table className="w-full text-left text-xs text-default">
-            <thead className="bg-surface-sunken text-[11px] font-semibold text-muted uppercase tracking-wider border-b border-default">
-              <tr>
-                <th className="w-10 px-4 py-3.5 text-center">
-                  <input
-                    ref={headerCheckboxRef}
-                    type="checkbox"
-                    checked={isAllSelected}
-                    onChange={toggleSelectAll}
-                    aria-label="Select all transfers"
-                    className="rounded border-default text-primary focus:ring-primary/20 cursor-pointer"
-                  />
-                </th>
-                <th className="px-4 py-3.5">Transfer # / Date</th>
-                <th className="px-4 py-3.5">Source Warehouse</th>
-                <th className="px-4 py-3.5">Destination Warehouse</th>
-                <th className="px-4 py-3.5">Items Transferred</th>
-                <th className="px-4 py-3.5">Status</th>
-                <th className="px-4 py-3.5 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-default">
-              {filteredTransfers.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="px-4 py-12 text-center text-muted">
-                    {isLoading ? 'Loading transfers...' : 'No stock transfers found matching your criteria.'}
-                  </td>
-                </tr>
-              ) : (
-                filteredTransfers.map((t) => (
-                  <tr
-                    key={t.id}
-                    className={cn(
-                      'hover:bg-surface-sunken/60 transition-colors',
-                      selectedIds.has(t.id) && 'bg-primary/5'
-                    )}
-                  >
-                    <td className="w-10 px-4 py-3.5 text-center">
-                      <input
-                        type="checkbox"
-                        checked={selectedIds.has(t.id)}
-                        onChange={() => toggleSelect(t.id)}
-                        aria-label={`Select transfer ${t.transfer_number}`}
-                        className="rounded border-default text-primary focus:ring-primary/20 cursor-pointer"
-                      />
-                    </td>
-                    <td className="px-4 py-3.5 font-mono font-medium text-default">
-                      <div className="flex items-center gap-1.5">
-                        <Layers className="size-3.5 text-primary" />
-                        <span>{t.transfer_number}</span>
-                      </div>
-                      <div className="text-[10px] text-muted font-sans mt-0.5">{t.transfer_date}</div>
-                    </td>
-                    <td className="px-4 py-3.5 text-muted font-medium">{t.from_warehouse_name}</td>
-                    <td className="px-4 py-3.5 text-default font-semibold flex items-center gap-1">
-                      <ArrowRight className="size-3 text-muted" />
-                      <span>{t.to_warehouse_name}</span>
-                    </td>
-                    <td className="px-4 py-3.5">
-                      <div className="font-semibold text-default">{t.items?.length || 0} Line Item(s)</div>
-                      <div className="text-[10px] text-muted truncate max-w-xs">{t.items?.[0]?.product_name}</div>
-                    </td>
-                    <td className="px-4 py-3.5">
-                      <div className="flex items-center gap-2">
-                        {getStatusBadge(t.status, t.transfer_date, t.dispatched_at)}
-                        <select
-                          value={t.status}
-                          onChange={(e) => handleStatusChange(t.id, e.target.value as StockTransfer['status'])}
-                          className="text-[10px] bg-transparent text-muted hover:text-default border-0 focus:ring-0 cursor-pointer"
-                          title="Change transfer state"
-                        >
-                          <option value="draft">Draft</option>
-                          <option value="in_transit">In Transit</option>
-                          <option value="received">Delivered / Received</option>
-                          <option value="cancelled">Cancelled</option>
-                        </select>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3.5 text-right">
-                      <div className="flex items-center justify-end gap-1.5">
-                        <button
-                          onClick={() => {
-                            setActiveTransfer(t);
-                            setShowViewModal(true);
-                            void api.get<StockTransfer>(`/inventory/transfers/${t.id}`).then((res) => {
-                              if (res.data) setActiveTransfer(res.data);
-                            }).catch(() => {});
-                          }}
-                          className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-lg bg-surface-sunken hover:bg-surface border border-default text-default transition-colors cursor-pointer"
-                          title="View Manifest"
-                        >
-                          <Eye className="size-3.5 text-muted" />
-                          <span>View</span>
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (openActionMenuId === t.id) {
-                              setOpenActionMenuId(null);
-                              setActionMenuAnchor(null);
-                            } else {
-                              setOpenActionMenuId(t.id);
-                              setActionMenuAnchor(e.currentTarget);
-                            }
-                          }}
-                          className={cn(
-                            'inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold rounded-lg border transition-colors cursor-pointer',
-                            openActionMenuId === t.id
-                              ? 'bg-primary text-primary-fg border-primary shadow-xs'
-                              : 'bg-surface hover:bg-surface-sunken border-default text-default'
-                          )}
-                        >
-                          <span>Actions</span>
-                          <ChevronDown className="size-3 text-muted" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+      {/* Transfers Responsive Data Table */}
+      <ResponsiveDataTable<StockTransfer>
+        data={filteredTransfers}
+        isLoading={isLoading}
+        keyExtractor={(t) => t.id}
+        emptyMessage="No stock transfers found matching your criteria."
+        emptyIcon={Truck}
+        selectedIds={selectedIds}
+        onSelectRow={(id) => toggleSelect(Number(id))}
+        onSelectAll={toggleSelectAll}
+        mobileCardBreakpoint="sm"
+        mobileActions={(t) => [
+          {
+            id: 'view',
+            label: 'View Manifest',
+            icon: Eye,
+            onClick: () => {
+              setActiveTransfer(t);
+              setShowViewModal(true);
+              void api.get<StockTransfer>(`/inventory/transfers/${t.id}`).then((res) => {
+                if (res.data) setActiveTransfer(res.data);
+              }).catch(() => {});
+            },
+          },
+          {
+            id: 'edit',
+            label: 'Edit Transfer',
+            icon: Edit2,
+            onClick: () => {
+              setActiveTransfer(t);
+              setFormData({
+                transfer_number: t.transfer_number,
+                from_warehouse_name: t.from_warehouse_name || '',
+                to_warehouse_name: t.to_warehouse_name || '',
+                transfer_date: t.transfer_date,
+                notes: t.notes || '',
+                items: t.items?.map((it) => ({
+                  product_name: it.product_name || '',
+                  batch_code: it.batch_code || '',
+                  sent_quantity: it.sent_quantity,
+                  unit_code: it.unit_code || 'KG',
+                })) || [],
+              });
+              setShowEditModal(true);
+            },
+          },
+          ...(t.status === 'draft' ? [{
+            id: 'dispatch',
+            label: 'Dispatch Transfer',
+            icon: Truck,
+            onClick: () => handleDispatch(t.id),
+          }] : []),
+          ...(t.status === 'in_transit' ? [{
+            id: 'receive',
+            label: 'Confirm Receipt',
+            icon: CheckCircle2,
+            onClick: () => handleReceive(t.id),
+          }] : []),
+          {
+            id: 'print',
+            label: 'Print Waybill',
+            icon: Printer,
+            onClick: () => {
+              setActiveTransfer(t);
+              window.print();
+            },
+          },
+          ...(canDelete ? [{
+            id: 'delete',
+            label: 'Move to Bin',
+            icon: Trash2,
+            variant: 'danger' as const,
+            onClick: () => {
+              setActiveTransfer(t);
+              setShowDeleteModal(true);
+            },
+          }] : []),
+        ]}
+        columns={transferColumns}
+      />
 
           {openActionMenuId && (() => {
             const t = filteredTransfers.find((item) => item.id === openActionMenuId);
@@ -744,8 +812,6 @@ export function StockTransfersSection() {
               </ActionMenuPortal>
             );
           })()}
-        </div>
-      </div>
 
       {/* CREATE TRANSFER MODAL */}
       {showCreateModal && (

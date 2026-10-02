@@ -55,6 +55,8 @@ import {
   type WorkspaceCategoryConfig,
   type WorkspaceTabConfig,
 } from '../../components/common/WorkspaceNavigationHub';
+import { ResponsiveDataTable, type ResponsiveColumn } from '../../components/ui/ResponsiveDataTable';
+import { type ActionSheetItem } from '../../components/motion/MotionActionSheet';
 
 interface PaginationMeta {
   total: number;
@@ -541,6 +543,272 @@ export const ActivityLogWorkspace: React.FC = () => {
     startDate !== '' ||
     endDate !== '';
 
+  const handleInspectLog = (log: AuditLogEntry) => {
+    setSelectedLog(log);
+    void api
+      .get<AuditLogEntry>(`/audit-logs/${log.id}`)
+      .then((res) => {
+        if (res.data) setSelectedLog(res.data);
+      })
+      .catch(() => {});
+  };
+
+  const logColumns: ResponsiveColumn<AuditLogEntry>[] = [
+    {
+      id: 'entity',
+      header: (
+        <span className="flex items-center gap-1.5">
+          <Layers className="size-3 text-muted" />
+          Entity Model
+        </span>
+      ),
+      isPrimary: true,
+      priority: 'high',
+      accessor: (log) => {
+        const entityClean = log.auditable_type
+          ? log.auditable_type.split('\\').pop() || log.auditable_type
+          : 'System Record';
+        const entityMeta = getEntityMeta(log.auditable_type);
+        const EntityIcon = entityMeta.icon;
+        return (
+          <div className="flex items-center gap-1.5 font-medium text-xs text-default">
+            <div className={`p-1 rounded-md bg-surface-sunken border border-default ${entityMeta.color}`}>
+              <EntityIcon className="size-3.5" />
+            </div>
+            <span className="font-semibold">{entityClean}</span>
+            {log.auditable_id && (
+              <span className="text-primary font-mono text-[11px] font-semibold">
+                #{log.auditable_id}
+              </span>
+            )}
+          </div>
+        );
+      },
+    },
+    {
+      id: 'action',
+      header: (
+        <span className="flex items-center gap-1.5">
+          <Activity className="size-3 text-muted" />
+          Action
+        </span>
+      ),
+      isStatus: true,
+      priority: 'high',
+      accessor: (log) => {
+        const actionMeta = getActionBadge(log.action);
+        const ActionIcon = actionMeta.icon;
+        return (
+          <span
+            className={`inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider border ${actionMeta.className}`}
+          >
+            <ActionIcon className="size-3" />
+            <span>{actionMeta.label}</span>
+          </span>
+        );
+      },
+    },
+    {
+      id: 'operator',
+      header: (
+        <span className="flex items-center gap-1.5">
+          <Users className="size-3 text-muted" />
+          Operator / Actor
+        </span>
+      ),
+      priority: 'medium',
+      accessor: (log) => (
+        <div className="flex items-center gap-2">
+          <div className="flex size-7 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold text-[11px] border border-emerald-500/20 shrink-0">
+            {log.user?.name ? log.user.name.charAt(0).toUpperCase() : 'S'}
+          </div>
+          <div>
+            <span className="font-semibold text-default block text-xs">
+              {log.user?.name || (log.user_id ? `User #${log.user_id}` : 'System Administrator')}
+            </span>
+            {log.user?.email && (
+              <span className="text-[10px] text-muted block font-mono">
+                {log.user.email}
+              </span>
+            )}
+          </div>
+        </div>
+      ),
+    },
+    {
+      id: 'timestamp',
+      header: (
+        <span className="flex items-center gap-1.5">
+          <Clock className="size-3 text-muted" />
+          Timestamp
+        </span>
+      ),
+      priority: 'medium',
+      accessor: (log) => (
+        <div className="flex items-center gap-1.5 font-mono text-[11px] text-muted">
+          <Clock className="size-3 text-muted shrink-0" />
+          <span>{log.created_at ? new Date(log.created_at).toLocaleString() : 'N/A'}</span>
+        </div>
+      ),
+    },
+    {
+      id: 'changes',
+      header: (
+        <span className="flex items-center gap-1.5">
+          <FileEdit className="size-3 text-muted" />
+          Field Changes
+        </span>
+      ),
+      priority: 'low',
+      accessor: (log) => {
+        const act = log.action.toLowerCase();
+        const effectiveChanged =
+          log.changed_fields && log.changed_fields.length > 0
+            ? log.changed_fields
+            : log.before && log.after
+              ? Object.keys({ ...log.before, ...log.after }).filter(
+                  (k) =>
+                    JSON.stringify(log.before?.[k]) !==
+                    JSON.stringify(log.after?.[k])
+                )
+              : [];
+
+        if (
+          act.includes('create') ||
+          act.includes('store') ||
+          act.includes('insert')
+        ) {
+          return (
+            <span className="inline-flex items-center gap-1 rounded-md bg-emerald-500/10 px-2.5 py-1 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-mono">
+              <Sparkles className="size-3" />
+              Initial Record Created
+            </span>
+          );
+        }
+
+        if (act.includes('approve') || act.includes('verify')) {
+          return (
+            <span className="inline-flex items-center gap-1 rounded-md bg-blue-500/10 px-2.5 py-1 text-[10px] font-semibold text-blue-600 dark:text-blue-400 border border-blue-500/20 font-mono">
+              <CheckCircle2 className="size-3" />
+              Status Authorized / Approved
+            </span>
+          );
+        }
+
+        if (
+          act.includes('delete') ||
+          act.includes('destroy') ||
+          act.includes('void')
+        ) {
+          return (
+            <span className="inline-flex items-center gap-1 rounded-md bg-rose-500/10 px-2.5 py-1 text-[10px] font-semibold text-rose-600 dark:text-rose-400 border border-rose-500/20 font-mono">
+              <Trash2 className="size-3" />
+              Record Removed / Voided
+            </span>
+          );
+        }
+
+        if (effectiveChanged.length > 0) {
+          return (
+            <div className="flex items-center gap-1.5 flex-wrap max-w-md">
+              {effectiveChanged.slice(0, 3).map((f) => {
+                const beforeVal = log.before?.[f];
+                const afterVal = log.after?.[f];
+                const hasBoth = beforeVal !== undefined || afterVal !== undefined;
+                const humanField = f
+                  .replace(/_/g, ' ')
+                  .replace(/\b\w/g, (c) => c.toUpperCase());
+
+                const formatBrief = (val: unknown): string => {
+                  if (val === null || val === undefined) return 'none';
+                  if (typeof val === 'boolean') return val ? 'Yes' : 'No';
+                  if (typeof val === 'number') {
+                    if (
+                      f.includes('price') ||
+                      f.includes('amount') ||
+                      f.includes('cost') ||
+                      f.includes('total')
+                    ) {
+                      return `৳ ${val.toLocaleString('en-US')}`;
+                    }
+                    return val.toLocaleString('en-US');
+                  }
+                  if (typeof val === 'object')
+                    return Array.isArray(val) ? `[${val.length}]` : '{...}';
+                  const str = String(val);
+                  return str.length > 14 ? `${str.slice(0, 12)}...` : str;
+                };
+
+                return (
+                  <span
+                    key={f}
+                    className="inline-flex items-center gap-1 font-mono text-[10px] bg-amber-500/10 text-amber-700 dark:text-amber-300 px-2 py-0.5 rounded-md border border-amber-500/25"
+                    title={`${f}: ${JSON.stringify(beforeVal)} → ${JSON.stringify(afterVal)}`}
+                  >
+                    <span className="font-semibold text-default">
+                      {humanField}:
+                    </span>
+                    {hasBoth ? (
+                      <>
+                        <span className="line-through opacity-75 text-rose-600 dark:text-rose-400">
+                          {formatBrief(beforeVal)}
+                        </span>
+                        <span className="text-muted">→</span>
+                        <span className="font-bold text-emerald-600 dark:text-emerald-400">
+                          {formatBrief(afterVal)}
+                        </span>
+                      </>
+                    ) : (
+                      <span>modified</span>
+                    )}
+                  </span>
+                );
+              })}
+              {effectiveChanged.length > 3 && (
+                <span className="text-[10px] text-muted font-mono bg-surface-sunken px-1.5 py-0.5 rounded border border-default">
+                  +{effectiveChanged.length - 3} more
+                </span>
+              )}
+            </div>
+          );
+        }
+
+        return <span className="text-[11px] text-muted italic">No state changes</span>;
+      },
+    },
+    {
+      id: 'actions',
+      header: (
+        <span className="flex items-center gap-1.5 justify-end">
+          <Eye className="size-3 text-muted" />
+          Version Inspection
+        </span>
+      ),
+      priority: 'high',
+      isAction: true,
+      align: 'right',
+      accessor: (log) => (
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={() => handleInspectLog(log)}
+          className="text-[11px] h-7 px-2.5 shadow-2xs hover:border-primary/40 touch-target"
+        >
+          <Eye className="size-3 mr-1 text-primary" />
+          <span>View Version Diff</span>
+        </Button>
+      ),
+    },
+  ];
+
+  const getMobileActions = (log: AuditLogEntry): ActionSheetItem[] => [
+    {
+      label: 'View Version Diff',
+      icon: Eye,
+      onClick: () => handleInspectLog(log),
+    },
+  ];
+
   return (
     <div className="space-y-6 max-w-7xl mx-auto py-2">
       {/* Workspace Header Surface */}
@@ -882,291 +1150,16 @@ export const ActivityLogWorkspace: React.FC = () => {
       </form>
 
       {/* Activity Table */}
-      <div className="rounded-2xl border border-default bg-surface overflow-hidden shadow-xs">
-        {loading ? (
-          <div className="flex h-64 items-center justify-center flex-col gap-3">
-            <div className="h-8 w-8 animate-spin rounded-full border-2 border-emerald-500 border-t-transparent" />
-            <span className="text-xs text-muted">Retrieving audit timeline...</span>
-          </div>
-        ) : displayedLogs.length === 0 ? (
-          <div className="p-12 text-center space-y-3">
-            <div className="size-12 rounded-2xl bg-surface-sunken border border-default flex items-center justify-center mx-auto text-muted">
-              <History className="size-6" />
-            </div>
-            <h4 className="text-sm font-bold text-default">No Activity Logs Found</h4>
-            <p className="text-xs text-muted max-w-sm mx-auto">
-              No recorded events match your current search, domain, or timeframe filters.
-            </p>
-            {hasActiveFilters && (
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={handleResetFilter}
-                className="text-xs mt-2"
-              >
-                <RotateCcw className="size-3 mr-1" />
-                <span>Reset Filters</span>
-              </Button>
-            )}
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs border-collapse">
-              <thead>
-                <tr className="border-b border-default bg-surface-sunken text-[11px] font-bold uppercase tracking-wider text-muted">
-                  <th className="py-3 px-4">
-                    <span className="flex items-center gap-1.5">
-                      <Clock className="size-3 text-muted" />
-                      Timestamp
-                    </span>
-                  </th>
-                  <th className="py-3 px-4">
-                    <span className="flex items-center gap-1.5">
-                      <Users className="size-3 text-muted" />
-                      Operator / Actor
-                    </span>
-                  </th>
-                  <th className="py-3 px-4">
-                    <span className="flex items-center gap-1.5">
-                      <Activity className="size-3 text-muted" />
-                      Action
-                    </span>
-                  </th>
-                  <th className="py-3 px-4">
-                    <span className="flex items-center gap-1.5">
-                      <Layers className="size-3 text-muted" />
-                      Entity Model
-                    </span>
-                  </th>
-                  <th className="py-3 px-4">
-                    <span className="flex items-center gap-1.5">
-                      <FileEdit className="size-3 text-muted" />
-                      Field Changes
-                    </span>
-                  </th>
-                  <th className="py-3 px-4 text-right">
-                    <span className="flex items-center gap-1.5 justify-end">
-                      <Eye className="size-3 text-muted" />
-                      Version Inspection
-                    </span>
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-default">
-                {displayedLogs.map((log) => {
-                  const entityClean = log.auditable_type
-                    ? log.auditable_type.split('\\').pop() || log.auditable_type
-                    : 'System Record';
-                  const entityMeta = getEntityMeta(log.auditable_type);
-                  const EntityIcon = entityMeta.icon;
-                  const actionMeta = getActionBadge(log.action);
-                  const ActionIcon = actionMeta.icon;
-
-                  return (
-                    <tr key={log.id} className="hover:bg-surface-sunken/50 transition-colors">
-                      {/* Timestamp */}
-                      <td className="py-3.5 px-4 whitespace-nowrap font-mono text-[11px] text-muted">
-                        <div className="flex items-center gap-1.5">
-                          <Clock className="size-3 text-muted shrink-0" />
-                          <span>
-                            {log.created_at ? new Date(log.created_at).toLocaleString() : 'N/A'}
-                          </span>
-                        </div>
-                      </td>
-
-                      {/* Operator */}
-                      <td className="py-3.5 px-4 whitespace-nowrap">
-                        <div className="flex items-center gap-2">
-                          <div className="flex size-7 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold text-[11px] border border-emerald-500/20 shrink-0">
-                            {log.user?.name ? log.user.name.charAt(0).toUpperCase() : 'S'}
-                          </div>
-                          <div>
-                            <span className="font-semibold text-default block text-xs">
-                              {log.user?.name ||
-                                (log.user_id ? `User #${log.user_id}` : 'System Administrator')}
-                            </span>
-                            {log.user?.email && (
-                              <span className="text-[10px] text-muted block font-mono">
-                                {log.user.email}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </td>
-
-                      {/* Action */}
-                      <td className="py-3.5 px-4 whitespace-nowrap">
-                        <span
-                          className={`inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider border ${actionMeta.className}`}
-                        >
-                          <ActionIcon className="size-3" />
-                          <span>{actionMeta.label}</span>
-                        </span>
-                      </td>
-
-                      {/* Entity Model */}
-                      <td className="py-3.5 px-4 whitespace-nowrap">
-                        <div className="flex items-center gap-1.5 font-medium text-xs text-default">
-                          <div className={`p-1 rounded-md bg-surface-sunken border border-default ${entityMeta.color}`}>
-                            <EntityIcon className="size-3.5" />
-                          </div>
-                          <span className="font-semibold">{entityClean}</span>
-                          {log.auditable_id && (
-                            <span className="text-primary font-mono text-[11px] font-semibold">
-                              #{log.auditable_id}
-                            </span>
-                          )}
-                        </div>
-                      </td>
-
-                      {/* Changed Fields Badges */}
-                      <td className="py-3.5 px-4">
-                        {(() => {
-                          const act = log.action.toLowerCase();
-                          const effectiveChanged =
-                            log.changed_fields && log.changed_fields.length > 0
-                              ? log.changed_fields
-                              : log.before && log.after
-                                ? Object.keys({ ...log.before, ...log.after }).filter(
-                                    (k) =>
-                                      JSON.stringify(log.before?.[k]) !==
-                                      JSON.stringify(log.after?.[k])
-                                  )
-                                : [];
-
-                          if (
-                            act.includes('create') ||
-                            act.includes('store') ||
-                            act.includes('insert')
-                          ) {
-                            return (
-                              <span className="inline-flex items-center gap-1 rounded-md bg-emerald-500/10 px-2.5 py-1 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-mono">
-                                <Sparkles className="size-3" />
-                                Initial Record Created
-                              </span>
-                            );
-                          }
-
-                          if (act.includes('approve') || act.includes('verify')) {
-                            return (
-                              <span className="inline-flex items-center gap-1 rounded-md bg-blue-500/10 px-2.5 py-1 text-[10px] font-semibold text-blue-600 dark:text-blue-400 border border-blue-500/20 font-mono">
-                                <CheckCircle2 className="size-3" />
-                                Status Authorized / Approved
-                              </span>
-                            );
-                          }
-
-                          if (
-                            act.includes('delete') ||
-                            act.includes('destroy') ||
-                            act.includes('void')
-                          ) {
-                            return (
-                              <span className="inline-flex items-center gap-1 rounded-md bg-rose-500/10 px-2.5 py-1 text-[10px] font-semibold text-rose-600 dark:text-rose-400 border border-rose-500/20 font-mono">
-                                <Trash2 className="size-3" />
-                                Record Removed / Voided
-                              </span>
-                            );
-                          }
-
-                          if (effectiveChanged.length > 0) {
-                            return (
-                              <div className="flex items-center gap-1.5 flex-wrap max-w-md">
-                                {effectiveChanged.slice(0, 3).map((f) => {
-                                  const beforeVal = log.before?.[f];
-                                  const afterVal = log.after?.[f];
-                                  const hasBoth = beforeVal !== undefined || afterVal !== undefined;
-                                  const humanField = f
-                                    .replace(/_/g, ' ')
-                                    .replace(/\b\w/g, (c) => c.toUpperCase());
-
-                                  const formatBrief = (val: unknown): string => {
-                                    if (val === null || val === undefined) return 'none';
-                                    if (typeof val === 'boolean') return val ? 'Yes' : 'No';
-                                    if (typeof val === 'number') {
-                                      if (
-                                        f.includes('price') ||
-                                        f.includes('amount') ||
-                                        f.includes('cost') ||
-                                        f.includes('total')
-                                      ) {
-                                        return `৳ ${val.toLocaleString('en-US')}`;
-                                      }
-                                      return val.toLocaleString('en-US');
-                                    }
-                                    if (typeof val === 'object')
-                                      return Array.isArray(val) ? `[${val.length}]` : '{...}';
-                                    const str = String(val);
-                                    return str.length > 14 ? `${str.slice(0, 12)}...` : str;
-                                  };
-
-                                  return (
-                                    <span
-                                      key={f}
-                                      className="inline-flex items-center gap-1 font-mono text-[10px] bg-amber-500/10 text-amber-700 dark:text-amber-300 px-2 py-0.5 rounded-md border border-amber-500/25"
-                                      title={`${f}: ${JSON.stringify(beforeVal)} → ${JSON.stringify(afterVal)}`}
-                                    >
-                                      <span className="font-semibold text-default">
-                                        {humanField}:
-                                      </span>
-                                      {hasBoth ? (
-                                        <>
-                                          <span className="line-through opacity-75 text-rose-600 dark:text-rose-400">
-                                            {formatBrief(beforeVal)}
-                                          </span>
-                                          <span className="text-muted">→</span>
-                                          <span className="font-bold text-emerald-600 dark:text-emerald-400">
-                                            {formatBrief(afterVal)}
-                                          </span>
-                                        </>
-                                      ) : (
-                                        <span>modified</span>
-                                      )}
-                                    </span>
-                                  );
-                                })}
-                                {effectiveChanged.length > 3 && (
-                                  <span className="text-[10px] text-muted font-mono bg-surface-sunken px-1.5 py-0.5 rounded border border-default">
-                                    +{effectiveChanged.length - 3} more
-                                  </span>
-                                )}
-                              </div>
-                            );
-                          }
-
-                          return (
-                            <span className="text-[11px] text-muted italic">No state changes</span>
-                          );
-                        })()}
-                      </td>
-
-                      {/* Action Button */}
-                      <td className="py-3.5 px-4 text-right whitespace-nowrap">
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          onClick={() => {
-                            setSelectedLog(log);
-                            void api
-                              .get<AuditLogEntry>(`/audit-logs/${log.id}`)
-                              .then((res) => {
-                                if (res.data) setSelectedLog(res.data);
-                              })
-                              .catch(() => {});
-                          }}
-                          className="text-[11px] h-7 px-2.5 shadow-2xs hover:border-primary/40"
-                        >
-                          <Eye className="size-3 mr-1 text-primary" />
-                          <span>View Version Diff</span>
-                        </Button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
+      <div className="space-y-3">
+        <ResponsiveDataTable<AuditLogEntry>
+          data={displayedLogs}
+          columns={logColumns}
+          keyExtractor={(log) => log.id}
+          loading={loading}
+          emptyMessage="No recorded events match your current search, domain, or timeframe filters."
+          emptyIcon={History}
+          mobileActions={getMobileActions}
+        />
 
         {/* Pagination Controls */}
         <div className="flex items-center justify-between px-4 py-3 border-t border-default bg-surface-sunken text-xs">

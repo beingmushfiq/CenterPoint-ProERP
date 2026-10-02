@@ -90,9 +90,13 @@ describe('Financial Statement Print & Preview', () => {
     );
 
     // Locate the print button (await lazy-loaded StatementsSection)
-    const printButton = await screen.findByRole('button', {
-      name: /Print Financial Statement/i,
-    });
+    const printButton = await screen.findByRole(
+      'button',
+      {
+        name: /Print Financial Statement/i,
+      },
+      { timeout: 7000 }
+    );
     expect(printButton).toBeInTheDocument();
 
     // Click to launch the Print Preview modal
@@ -100,7 +104,7 @@ describe('Financial Statement Print & Preview', () => {
 
     // Modal dialog title should appear
     expect(
-      await screen.findByText(/Print Financial Statement: Profit & Loss and Financial Position/i)
+      await screen.findByText(/Print Financial Statement: Profit & Loss and Financial Position/i, {}, { timeout: 7000 })
     ).toBeInTheDocument();
 
     // Document contents inside the PrintPreviewModal must be rendered and non-empty

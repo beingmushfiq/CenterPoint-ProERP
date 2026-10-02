@@ -9,8 +9,9 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import React, { useState } from 'react';
-import { ChevronDown, ChevronUp, ChevronsUpDown, Inbox } from 'lucide-react';
+import { ChevronDown, ChevronUp, ChevronsUpDown, Inbox, MoreVertical } from 'lucide-react';
 import { cn } from '../../lib/utils';
+import { MotionActionSheet, type ActionSheetItem } from '../motion/MotionActionSheet';
 
 export type ColumnPriority = 'high' | 'medium' | 'low';
 
@@ -38,7 +39,9 @@ export interface ResponsiveDataTableProps<T> {
   keyExtractor: (row: T, index: number) => string | number;
   loading?: boolean;
   isLoading?: boolean; // alias for loading
+  emptyTitle?: string;
   emptyMessage?: string;
+  emptySubtitle?: string;
   emptyIcon?: React.ElementType;
   className?: string;
   tableClassName?: string;
@@ -59,6 +62,7 @@ export interface ResponsiveDataTableProps<T> {
     actions?: React.ReactNode;
   };
   mobileCardBreakpoint?: 'sm' | 'md'; // Breakpoint below which cards are rendered (default: 'sm')
+  mobileActions?: (row: T, index: number) => ActionSheetItem[];
 }
 
 export function ResponsiveDataTable<T>({
@@ -67,7 +71,9 @@ export function ResponsiveDataTable<T>({
   keyExtractor,
   loading = false,
   isLoading = false,
+  emptyTitle,
   emptyMessage = 'No records found',
+  emptySubtitle,
   emptyIcon: EmptyIcon = Inbox,
   className,
   tableClassName,
@@ -81,9 +87,16 @@ export function ResponsiveDataTable<T>({
   renderMobileCard,
   mobileCardRenderer,
   mobileCardBreakpoint = 'sm',
+  mobileActions,
 }: ResponsiveDataTableProps<T>) {
   const isTableLoading = loading || isLoading;
   const [expandedCards, setExpandedCards] = useState<Record<string | number, boolean>>({});
+  const [activeActionSheetRow, setActiveActionSheetRow] = useState<{
+    row: T;
+    index: number;
+    items: ActionSheetItem[];
+    title: string;
+  } | null>(null);
 
   const toggleExpand = (id: string | number, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -137,8 +150,9 @@ export function ResponsiveDataTable<T>({
         <div className="flex size-12 items-center justify-center rounded-2xl bg-surface-sunken mx-auto mb-3 text-muted">
           <EmptyIcon className="size-6 text-muted" />
         </div>
+        {emptyTitle && <h3 className="text-base font-bold text-default mb-1">{emptyTitle}</h3>}
         <p className="text-sm font-semibold text-default">{emptyMessage}</p>
-        <p className="text-xs text-muted mt-1">There are currently no items matching your criteria.</p>
+        <p className="text-xs text-muted mt-1">{emptySubtitle || 'There are currently no items matching your criteria.'}</p>
       </div>
     );
   }
@@ -281,13 +295,32 @@ export function ResponsiveDataTable<T>({
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 shrink-0">
+                <div className="flex items-center gap-1.5 shrink-0">
                   {statusVal && <div className="shrink-0">{statusVal}</div>}
-                  {actionVal && (
+                  {mobileActions ? (
+                    <button
+                      type="button"
+                      data-prevent-row-click
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const items = mobileActions(row, idx);
+                        setActiveActionSheetRow({
+                          row,
+                          index: idx,
+                          items,
+                          title: typeof primaryVal === 'string' ? primaryVal : 'Record Actions',
+                        });
+                      }}
+                      className="min-h-[44px] min-w-[44px] -mr-2 flex items-center justify-center rounded-xl text-muted hover:text-default hover:bg-surface-sunken transition-colors cursor-pointer shrink-0"
+                      aria-label="More actions"
+                    >
+                      <MoreVertical className="size-4" />
+                    </button>
+                  ) : actionVal ? (
                     <div data-prevent-row-click className="shrink-0">
                       {actionVal}
                     </div>
-                  )}
+                  ) : null}
                 </div>
               </div>
 
@@ -459,6 +492,17 @@ export function ResponsiveDataTable<T>({
           </table>
         </div>
       </div>
+
+      {/* Mobile Action Sheet Drawer */}
+      {activeActionSheetRow && (
+        <MotionActionSheet
+          isOpen={Boolean(activeActionSheetRow)}
+          onClose={() => setActiveActionSheetRow(null)}
+          title={activeActionSheetRow.title}
+          subtitle="Record options and actions"
+          items={activeActionSheetRow.items}
+        />
+      )}
     </div>
   );
 }

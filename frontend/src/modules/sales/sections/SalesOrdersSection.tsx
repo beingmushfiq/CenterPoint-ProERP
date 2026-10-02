@@ -48,6 +48,7 @@ import { cn } from '../../../lib/utils';
 import { DashboardKpiCard } from '../../../pages/dashboard/components/DashboardKpiCard';
 import { useTablePrefs } from '../../../hooks/useTablePrefs';
 import { TableControls } from '../../../components/ui/TableControls';
+import { ResponsiveDataTable, type ResponsiveColumn } from '../../../components/ui/ResponsiveDataTable';
 
 interface SalesOrdersSectionProps {
   onNavigateToTab?: (tab: string) => void;
@@ -903,6 +904,360 @@ export function SalesOrdersSection({ onNavigateToTab }: SalesOrdersSectionProps 
     }
   };
 
+  const orderColumns = useMemo<ResponsiveColumn<SalesOrder>[]>(() => [
+    {
+      key: 'order_number',
+      header: 'Order Number',
+      priority: 'high',
+      isPrimary: true,
+      render: (order) => (
+        <span
+          onClick={() => setSelectedOrder(order)}
+          className="font-mono font-medium text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer"
+        >
+          {order.order_number}
+        </span>
+      ),
+    },
+    ...(isVisible('date') ? [{
+      key: 'order_date',
+      header: 'Date',
+      priority: 'low' as const,
+      render: (order: SalesOrder) => (
+        <span className="text-muted">{order.order_date}</span>
+      ),
+    }] : []),
+    ...(isVisible('channel') ? [{
+      key: 'channel',
+      header: 'Channel',
+      priority: 'medium' as const,
+      render: (order: SalesOrder) => getChannelBadge(order.channel),
+    }] : []),
+    ...(isVisible('customer') ? [{
+      key: 'customer',
+      header: 'Customer',
+      priority: 'high' as const,
+      render: (order: SalesOrder) => (
+        <div>
+          <div className="font-medium text-default">{order.customer_name ?? 'Walk-in / Direct'}</div>
+          {order.lead ? (
+            <div className="flex items-center gap-1 mt-0.5">
+              {order.lead.validated_at || order.lead.stage === 'won' ? (
+                <span className="inline-flex items-center gap-1 rounded-md bg-emerald-500/10 px-1.5 py-0.5 text-[9px] font-semibold text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                  <CheckCircle2 className="size-2.5" /> Verified Sold
+                </span>
+              ) : order.lead.is_fake ? (
+                <span className="inline-flex items-center gap-1 rounded-md bg-rose-500/10 px-1.5 py-0.5 text-[9px] font-semibold text-rose-600 dark:text-rose-400 border border-rose-500/20">
+                  <XCircle className="size-2.5" /> Fake / Invalid
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 rounded-md bg-amber-500/10 px-1.5 py-0.5 text-[9px] font-semibold text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                  <Clock className="size-2.5" /> Lead Pending Verification
+                </span>
+              )}
+            </div>
+          ) : order.lead_id ? (
+            <div className="flex items-center gap-1 mt-0.5">
+              <span className="inline-flex items-center gap-1 rounded-md bg-amber-500/10 px-1.5 py-0.5 text-[9px] font-semibold text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                <Clock className="size-2.5" /> Lead #{order.lead_id}
+              </span>
+            </div>
+          ) : null}
+        </div>
+      ),
+    }] : []),
+    ...(isVisible('amount') ? [{
+      key: 'total_amount',
+      header: 'Amount',
+      priority: 'high' as const,
+      render: (order: SalesOrder) => (
+        <span className="font-mono font-medium text-default">
+          {formatCurrency(order.total_amount)}
+        </span>
+      ),
+    }] : []),
+    ...(isVisible('status') ? [{
+      key: 'status',
+      header: 'Status',
+      priority: 'high' as const,
+      render: (order: SalesOrder) => (
+        <div onClick={(e) => e.stopPropagation()}>
+          {canChangeStatus ? (
+            <div className="order-status-dropdown-container relative inline-block">
+              <button
+                type="button"
+                onClick={() => {
+                  setActivePaymentMenuId(null);
+                  setActiveStatusMenuId(activeStatusMenuId === order.id ? null : order.id);
+                }}
+                className={cn(
+                  "inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-semibold uppercase border transition-all cursor-pointer hover:brightness-95 dark:hover:brightness-110",
+                  ORDER_STATUS_CONFIG[order.status]?.tone || "bg-surface-sunken text-muted border-default",
+                  activeStatusMenuId === order.id && "ring-1 ring-primary shadow-xs"
+                )}
+                title="Click to change order status"
+              >
+                {updateStatusMutation.isPending && updateStatusMutation.variables?.orderId === order.id ? (
+                  <RefreshCw className="size-3 animate-spin" />
+                ) : (
+                  (() => {
+                    const Icon = ORDER_STATUS_CONFIG[order.status]?.icon || Clock;
+                    return <Icon className="size-3" />;
+                  })()
+                )}
+                <span>{ORDER_STATUS_CONFIG[order.status]?.label || order.status}</span>
+                <ChevronDown className="size-2.5 opacity-60 ml-0.5" />
+              </button>
+
+              {activeStatusMenuId === order.id && (
+                <div
+                  className="absolute left-0 z-50 w-44 rounded-xl border border-default bg-surface p-1 shadow-xl ring-1 ring-black/5 animate-in fade-in zoom-in-95 mt-1.5"
+                >
+                  <div className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-muted border-b border-default/50 mb-1">
+                    Set Order Status
+                  </div>
+                  <div className="space-y-0.5 max-h-56 overflow-y-auto pr-0.5">
+                    {Object.entries(ORDER_STATUS_CONFIG).map(([key, config]) => {
+                      const isCurrent = order.status === key;
+                      const Icon = config.icon;
+                      return (
+                        <button
+                          key={key}
+                          type="button"
+                          onClick={() => {
+                            updateStatusMutation.mutate({ orderId: order.id, status: key as SalesOrderStatus });
+                            setActiveStatusMenuId(null);
+                          }}
+                          className={cn(
+                            "flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-xs font-medium transition-colors cursor-pointer text-left",
+                            isCurrent
+                              ? "bg-primary/10 text-primary font-bold"
+                              : "text-default hover:bg-surface-sunken"
+                          )}
+                        >
+                          <div className="flex items-center gap-2 truncate">
+                            <Icon className="size-3.5 shrink-0 opacity-80" />
+                            <span className="truncate capitalize">{config.label}</span>
+                          </div>
+                          {isCurrent && <Check className="size-3 text-primary shrink-0" />}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            getStatusBadge(order.status)
+          )}
+        </div>
+      ),
+    }] : []),
+    ...(isVisible('payment') ? [{
+      key: 'payment_status',
+      header: 'Payment',
+      priority: 'medium' as const,
+      render: (order: SalesOrder) => (
+        <div onClick={(e) => e.stopPropagation()}>
+          {canChangeStatus ? (
+            <div className="order-payment-dropdown-container relative inline-block">
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveStatusMenuId(null);
+                  setActivePaymentMenuId(activePaymentMenuId === order.id ? null : order.id);
+                }}
+                className={cn(
+                  "inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-semibold uppercase border transition-all cursor-pointer hover:brightness-95 dark:hover:brightness-110",
+                  PAYMENT_STATUS_CONFIG[order.payment_status as SalesOrderPaymentStatus]?.tone ||
+                    (order.payment_status === 'paid'
+                      ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
+                      : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20'),
+                  activePaymentMenuId === order.id && "ring-1 ring-primary shadow-xs"
+                )}
+                title="Click to change payment status"
+              >
+                {updatePaymentMutation.isPending && updatePaymentMutation.variables?.orderId === order.id ? (
+                  <RefreshCw className="size-2.5 animate-spin" />
+                ) : null}
+                <span>{PAYMENT_STATUS_CONFIG[order.payment_status as SalesOrderPaymentStatus]?.label || order.payment_status || 'Unpaid'}</span>
+                <ChevronDown className="size-2.5 opacity-60 ml-0.5" />
+              </button>
+
+              {activePaymentMenuId === order.id && (
+                <div
+                  className="absolute left-0 z-50 w-40 rounded-xl border border-default bg-surface p-1 shadow-xl ring-1 ring-black/5 animate-in fade-in zoom-in-95 mt-1.5"
+                >
+                  <div className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-muted border-b border-default/50 mb-1">
+                    Set Payment Status
+                  </div>
+                  <div className="space-y-0.5">
+                    {Object.entries(PAYMENT_STATUS_CONFIG).map(([key, config]) => {
+                      const isCurrent = order.payment_status === key;
+                      return (
+                        <button
+                          key={key}
+                          type="button"
+                          onClick={() => {
+                            updatePaymentMutation.mutate({ orderId: order.id, paymentStatus: key as SalesOrderPaymentStatus });
+                            setActivePaymentMenuId(null);
+                          }}
+                          className={cn(
+                            "flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-xs font-medium transition-colors cursor-pointer text-left",
+                            isCurrent
+                              ? "bg-primary/10 text-primary font-bold"
+                              : "text-default hover:bg-surface-sunken"
+                          )}
+                        >
+                          <div className="flex items-center gap-2 truncate">
+                            <span
+                              className={cn(
+                                "size-2 rounded-full shrink-0",
+                                key === 'paid'
+                                  ? 'bg-emerald-500'
+                                  : key === 'unpaid'
+                                    ? 'bg-rose-500'
+                                    : key === 'partially_paid'
+                                      ? 'bg-amber-500'
+                                      : key === 'pending'
+                                        ? 'bg-blue-500'
+                                        : 'bg-rose-600'
+                              )}
+                            />
+                            <span className="truncate">{config.label}</span>
+                          </div>
+                          {isCurrent && <Check className="size-3 text-primary shrink-0" />}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <span
+              className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase ${
+                order.payment_status === 'paid'
+                  ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
+                  : order.payment_status === 'partially_paid'
+                    ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20'
+                    : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20'
+              }`}
+            >
+              {order.payment_status}
+            </span>
+          )}
+        </div>
+      ),
+    }] : []),
+    {
+      key: 'actions',
+      header: 'Actions',
+      align: 'right',
+      priority: 'high',
+      render: (order) => (
+        <div className="flex items-center justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
+          {canApproveOrder && (order.status === 'draft' || order.status === 'pending') && (
+            <button
+              type="button"
+              onClick={() => approveMutation.mutate(order.id)}
+              disabled={approveMutation.isPending}
+              className="rounded-lg bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 disabled:opacity-50 cursor-pointer transition-colors flex items-center gap-1"
+              title="Confirm order immediately"
+            >
+              <CheckCircle2 className="size-3" />
+              {approveMutation.isPending ? 'Confirming...' : 'Confirm'}
+            </button>
+          )}
+          {order.status !== 'cancelled' ? (
+            <button
+              type="button"
+              onClick={() => setSelectedOrder(order)}
+              className="rounded-lg bg-primary/10 border border-primary/20 px-2.5 py-1 text-[11px] font-semibold text-primary hover:bg-primary/20 cursor-pointer transition-colors flex items-center gap-1"
+              title="Open order processing workflow"
+            >
+              <SlidersHorizontal className="size-3" />
+              <span>Process</span>
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setSelectedOrder(order)}
+              className="rounded-lg bg-surface-sunken border border-default px-2.5 py-1 text-[11px] font-semibold text-muted hover:text-default cursor-pointer transition-colors flex items-center gap-1"
+              title="View cancelled order details"
+            >
+              <Eye className="size-3" />
+              <span>View</span>
+            </button>
+          )}
+          {onNavigateToTab && (order.status === 'confirmed' || order.status === 'allocated' || order.status === 'packed') && (
+            <button
+              type="button"
+              onClick={() => onNavigateToTab('deliveries')}
+              className="rounded-lg bg-cyan-500/10 border border-cyan-500/20 px-2 py-1 text-[11px] font-semibold text-cyan-600 dark:text-cyan-400 hover:bg-cyan-500/20 cursor-pointer transition-colors flex items-center gap-1"
+              title="Jump to Deliveries tab to dispatch this order"
+            >
+              <Truck className="size-3" />
+              <span>Dispatch</span>
+            </button>
+          )}
+          {onNavigateToTab && (order.status === 'dispatched' || order.status === 'delivered') && (
+            <button
+              type="button"
+              onClick={() => onNavigateToTab('invoices')}
+              className="rounded-lg bg-blue-500/10 border border-blue-500/20 px-2 py-1 text-[11px] font-semibold text-blue-600 dark:text-blue-400 hover:bg-blue-500/20 cursor-pointer transition-colors flex items-center gap-1"
+              title="Jump to Invoices tab for billing"
+            >
+              <FileText className="size-3" />
+              <span>Invoice</span>
+            </button>
+          )}
+          {onNavigateToTab && order.payment_status !== 'paid' && (order.status === 'dispatched' || order.status === 'delivered') && (
+            <button
+              type="button"
+              onClick={() => onNavigateToTab('payments')}
+              className="rounded-lg bg-emerald-500/10 border border-emerald-500/20 px-2 py-1 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 cursor-pointer transition-colors flex items-center gap-1"
+              title="Jump to Payments tab to record customer collection"
+            >
+              <DollarSign className="size-3" />
+              <span>Collect</span>
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => handlePrintOrderInvoice(order)}
+            className="rounded-lg bg-surface-sunken border border-default px-2.5 py-1 text-[11px] font-semibold text-default hover:bg-surface cursor-pointer transition-colors flex items-center gap-1"
+            title="Print tenant-branded invoice PDF slip"
+          >
+            <Printer className="size-3 text-primary" />
+            <span>Print Slip</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => handleDuplicateOrder(order)}
+            className="rounded-lg bg-amber-500/10 border border-amber-500/20 px-2.5 py-1 text-[11px] font-semibold text-amber-600 dark:text-amber-400 hover:bg-amber-500/20 cursor-pointer transition-colors flex items-center gap-1"
+            title="Duplicate this order into a new draft"
+          >
+            <Copy className="size-3" />
+            <span>Duplicate</span>
+          </button>
+          {canDeleteOrder && (
+            <button
+              type="button"
+              onClick={() => setOrderToDelete(order)}
+              disabled={deleteMutation.isPending}
+              className="rounded-lg bg-rose-500/10 border border-rose-500/20 px-2 py-1 text-[11px] font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-500/20 disabled:opacity-50 cursor-pointer transition-colors flex items-center gap-1"
+              title="Delete sales order"
+            >
+              <Trash2 className="size-3" />
+              <span>Delete</span>
+            </button>
+          )}
+        </div>
+      ),
+    },
+  ], [isVisible, canChangeStatus, activeStatusMenuId, activePaymentMenuId, updateStatusMutation, updatePaymentMutation, canApproveOrder, approveMutation, onNavigateToTab, canDeleteOrder, deleteMutation, formatCurrency, getChannelBadge, getStatusBadge, handleDuplicateOrder, handlePrintOrderInvoice]);
+
   return (
     <div className="space-y-4">
       {/* 4-Card Operational Intelligence Interactive KPI Strip */}
@@ -1129,386 +1484,70 @@ export function SalesOrdersSection({ onNavigateToTab }: SalesOrdersSectionProps 
         </div>
       </div>
 
-      {/* Orders Table */}
-      <div className="overflow-hidden rounded-2xl border border-default bg-surface shadow-2xs">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs text-default">
-            <thead className="border-b border-default bg-surface-sunken text-[11px] font-semibold uppercase tracking-wider text-muted">
-              <tr>
-                <th className={`w-10 ${cellClass} text-center`}>
-                  <input
-                    ref={headerCheckboxRef}
-                    type="checkbox"
-                    checked={isAllSelected}
-                    onChange={toggleSelectAll}
-                    className="size-4 rounded border-default text-primary focus:ring-primary cursor-pointer"
-                    title="Select all visible orders"
-                  />
-                </th>
-                <th className={cellClass}>Order Number</th>
-                {isVisible('date')     && <th className={cellClass}>Date</th>}
-                {isVisible('channel')  && <th className={cellClass}>Channel</th>}
-                {isVisible('customer') && <th className={cellClass}>Customer</th>}
-                {isVisible('amount')   && <th className={cellClass}>Amount</th>}
-                {isVisible('status')   && <th className={cellClass}>Status</th>}
-                {isVisible('payment')  && <th className={cellClass}>Payment</th>}
-                <th className={`${cellClass} text-right`}>Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-default">
-              {isLoading ? (
-                <tr>
-                  <td colSpan={3 + (isVisible('date') ? 1 : 0) + (isVisible('channel') ? 1 : 0) + (isVisible('customer') ? 1 : 0) + (isVisible('amount') ? 1 : 0) + (isVisible('status') ? 1 : 0) + (isVisible('payment') ? 1 : 0)} className="px-4 py-12 text-center text-muted">
-                    <div className="flex flex-col items-center justify-center gap-2">
-                      <RefreshCw className="size-5 animate-spin text-primary" />
-                      <span>Loading sales orders...</span>
-                    </div>
-                  </td>
-                </tr>
-              ) : filteredOrders.length === 0 ? (
-                <tr>
-                  <td colSpan={3 + (isVisible('date') ? 1 : 0) + (isVisible('channel') ? 1 : 0) + (isVisible('customer') ? 1 : 0) + (isVisible('amount') ? 1 : 0) + (isVisible('status') ? 1 : 0) + (isVisible('payment') ? 1 : 0)} className="px-4 py-12 text-center text-muted">
-                    <div className="flex flex-col items-center justify-center gap-2">
-                      <ShoppingCart className="size-8 text-muted/50" />
-                      <span className="font-medium">No sales orders found.</span>
-                    </div>
-                  </td>
-                </tr>
-              ) : (
-                filteredOrders.map((order, idx) => (
-                  <tr
-                    key={order.id}
-                    onClick={() => setSelectedOrder(order)}
-                    className={cn(
-                      "hover:bg-surface-sunken/70 transition-colors cursor-pointer group",
-                      selectedOrderIds.has(order.id) && "bg-primary/5 dark:bg-primary/10"
-                    )}
-                    title="Click row to view and process order"
-                  >
-                    <td className={`w-10 ${cellClass} text-center`} onClick={(e) => e.stopPropagation()}>
-                      <input
-                        type="checkbox"
-                        checked={selectedOrderIds.has(order.id)}
-                        onChange={() => toggleSelectOrder(order.id)}
-                        className="size-4 rounded border-default text-primary focus:ring-primary cursor-pointer"
-                        title="Select order"
-                      />
-                    </td>
-                    <td className={`${cellClass} font-mono font-medium text-emerald-600 dark:text-emerald-400 group-hover:underline`}>
-                      {order.order_number}
-                    </td>
-                    {isVisible('date') && <td className={`${cellClass} text-muted`}>{order.order_date}</td>}
-                    {isVisible('channel') && <td className={cellClass}>{getChannelBadge(order.channel)}</td>}
-                    {isVisible('customer') && (
-                    <td className={`${cellClass} text-default font-medium`}>
-                      <div>{order.customer_name ?? 'Walk-in / Direct'}</div>
-                      {order.lead ? (
-                        <div className="flex items-center gap-1 mt-0.5">
-                          {order.lead.validated_at || order.lead.stage === 'won' ? (
-                            <span className="inline-flex items-center gap-1 rounded-md bg-emerald-500/10 px-1.5 py-0.5 text-[9px] font-semibold text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                              <CheckCircle2 className="size-2.5" /> Verified Sold
-                            </span>
-                          ) : order.lead.is_fake ? (
-                            <span className="inline-flex items-center gap-1 rounded-md bg-rose-500/10 px-1.5 py-0.5 text-[9px] font-semibold text-rose-600 dark:text-rose-400 border border-rose-500/20">
-                              <XCircle className="size-2.5" /> Fake / Invalid
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 rounded-md bg-amber-500/10 px-1.5 py-0.5 text-[9px] font-semibold text-amber-600 dark:text-amber-400 border border-amber-500/20">
-                              <Clock className="size-2.5" /> Lead Pending Verification
-                            </span>
-                          )}
-                        </div>
-                      ) : order.lead_id ? (
-                        <div className="flex items-center gap-1 mt-0.5">
-                          <span className="inline-flex items-center gap-1 rounded-md bg-amber-500/10 px-1.5 py-0.5 text-[9px] font-semibold text-amber-600 dark:text-amber-400 border border-amber-500/20">
-                            <Clock className="size-2.5" /> Lead #{order.lead_id}
-                          </span>
-                        </div>
-                      ) : null}
-                    </td>
-                    )}
-                    {isVisible('amount') && (
-                    <td className={`${cellClass} font-mono font-medium text-default`}>
-                      {formatCurrency(order.total_amount)}
-                    </td>
-                    )}
-                    {isVisible('status') && (
-                    <td className={`${cellClass} relative`} onClick={(e) => e.stopPropagation()}>
-                      {canChangeStatus ? (
-                        <div className="order-status-dropdown-container relative inline-block">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setActivePaymentMenuId(null);
-                              setActiveStatusMenuId(activeStatusMenuId === order.id ? null : order.id);
-                            }}
-                            className={cn(
-                              "inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-semibold uppercase border transition-all cursor-pointer hover:brightness-95 dark:hover:brightness-110",
-                              ORDER_STATUS_CONFIG[order.status]?.tone || "bg-surface-sunken text-muted border-default",
-                              activeStatusMenuId === order.id && "ring-1 ring-primary shadow-xs"
-                            )}
-                            title="Click to change order status"
-                          >
-                            {updateStatusMutation.isPending && updateStatusMutation.variables?.orderId === order.id ? (
-                              <RefreshCw className="size-3 animate-spin" />
-                            ) : (
-                              (() => {
-                                const Icon = ORDER_STATUS_CONFIG[order.status]?.icon || Clock;
-                                return <Icon className="size-3" />;
-                              })()
-                            )}
-                            <span>{ORDER_STATUS_CONFIG[order.status]?.label || order.status}</span>
-                            <ChevronDown className="size-2.5 opacity-60 ml-0.5" />
-                          </button>
-
-                          {activeStatusMenuId === order.id && (
-                            <div
-                              className={cn(
-                                "absolute left-0 z-50 w-44 rounded-xl border border-default bg-surface p-1 shadow-xl ring-1 ring-black/5 animate-in fade-in zoom-in-95",
-                                idx >= filteredOrders.length - 2 ? "bottom-full mb-1.5" : "top-full mt-1.5"
-                              )}
-                            >
-                              <div className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-muted border-b border-default/50 mb-1">
-                                Set Order Status
-                              </div>
-                              <div className="space-y-0.5 max-h-56 overflow-y-auto pr-0.5">
-                                {Object.entries(ORDER_STATUS_CONFIG).map(([key, config]) => {
-                                  const isCurrent = order.status === key;
-                                  const Icon = config.icon;
-                                  return (
-                                    <button
-                                      key={key}
-                                      type="button"
-                                      onClick={() => {
-                                        updateStatusMutation.mutate({ orderId: order.id, status: key as SalesOrderStatus });
-                                        setActiveStatusMenuId(null);
-                                      }}
-                                      className={cn(
-                                        "flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-xs font-medium transition-colors cursor-pointer text-left",
-                                        isCurrent
-                                          ? "bg-primary/10 text-primary font-bold"
-                                          : "text-default hover:bg-surface-sunken"
-                                      )}
-                                    >
-                                      <div className="flex items-center gap-2 truncate">
-                                        <Icon className="size-3.5 shrink-0 opacity-80" />
-                                        <span className="truncate capitalize">{config.label}</span>
-                                      </div>
-                                      {isCurrent && <Check className="size-3 text-primary shrink-0" />}
-                                    </button>
-                                  );
-                                })}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      ) : (
-                        getStatusBadge(order.status)
-                      )}
-                    </td>
-                    )}
-                    {isVisible('payment') && (
-                    <td className={`${cellClass} relative`} onClick={(e) => e.stopPropagation()}>
-                      {canChangeStatus ? (
-                        <div className="order-payment-dropdown-container relative inline-block">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setActiveStatusMenuId(null);
-                              setActivePaymentMenuId(activePaymentMenuId === order.id ? null : order.id);
-                            }}
-                            className={cn(
-                              "inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-semibold uppercase border transition-all cursor-pointer hover:brightness-95 dark:hover:brightness-110",
-                              PAYMENT_STATUS_CONFIG[order.payment_status as SalesOrderPaymentStatus]?.tone ||
-                                (order.payment_status === 'paid'
-                                  ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
-                                  : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20'),
-                              activePaymentMenuId === order.id && "ring-1 ring-primary shadow-xs"
-                            )}
-                            title="Click to change payment status"
-                          >
-                            {updatePaymentMutation.isPending && updatePaymentMutation.variables?.orderId === order.id ? (
-                              <RefreshCw className="size-2.5 animate-spin" />
-                            ) : null}
-                            <span>{PAYMENT_STATUS_CONFIG[order.payment_status as SalesOrderPaymentStatus]?.label || order.payment_status || 'Unpaid'}</span>
-                            <ChevronDown className="size-2.5 opacity-60 ml-0.5" />
-                          </button>
-
-                          {activePaymentMenuId === order.id && (
-                            <div
-                              className={cn(
-                                "absolute left-0 z-50 w-40 rounded-xl border border-default bg-surface p-1 shadow-xl ring-1 ring-black/5 animate-in fade-in zoom-in-95",
-                                idx >= filteredOrders.length - 2 ? "bottom-full mb-1.5" : "top-full mt-1.5"
-                              )}
-                            >
-                              <div className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-muted border-b border-default/50 mb-1">
-                                Set Payment Status
-                              </div>
-                              <div className="space-y-0.5">
-                                {Object.entries(PAYMENT_STATUS_CONFIG).map(([key, config]) => {
-                                  const isCurrent = order.payment_status === key;
-                                  return (
-                                    <button
-                                      key={key}
-                                      type="button"
-                                      onClick={() => {
-                                        updatePaymentMutation.mutate({ orderId: order.id, paymentStatus: key as SalesOrderPaymentStatus });
-                                        setActivePaymentMenuId(null);
-                                      }}
-                                      className={cn(
-                                        "flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-xs font-medium transition-colors cursor-pointer text-left",
-                                        isCurrent
-                                          ? "bg-primary/10 text-primary font-bold"
-                                          : "text-default hover:bg-surface-sunken"
-                                      )}
-                                    >
-                                      <div className="flex items-center gap-2 truncate">
-                                        <span
-                                          className={cn(
-                                            "size-2 rounded-full shrink-0",
-                                            key === 'paid'
-                                              ? 'bg-emerald-500'
-                                              : key === 'unpaid'
-                                                ? 'bg-rose-500'
-                                                : key === 'partially_paid'
-                                                  ? 'bg-amber-500'
-                                                  : key === 'pending'
-                                                    ? 'bg-blue-500'
-                                                    : 'bg-rose-600'
-                                          )}
-                                        />
-                                        <span className="truncate">{config.label}</span>
-                                      </div>
-                                      {isCurrent && <Check className="size-3 text-primary shrink-0" />}
-                                    </button>
-                                  );
-                                })}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      ) : (
-                        <span
-                          className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase ${
-                            order.payment_status === 'paid'
-                              ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
-                              : order.payment_status === 'partially_paid'
-                                ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20'
-                                : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20'
-                          }`}
-                        >
-                          {order.payment_status}
-                        </span>
-                      )}
-                    </td>
-                    )}
-                    <td className={`${cellClass} text-right`} onClick={(e) => e.stopPropagation()}>
-                      <div className="flex items-center justify-end gap-1.5">
-                        {canApproveOrder && (order.status === 'draft' || order.status === 'pending') && (
-                          <button
-                            type="button"
-                            onClick={() => approveMutation.mutate(order.id)}
-                            disabled={approveMutation.isPending}
-                            className="rounded-lg bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 disabled:opacity-50 cursor-pointer transition-colors flex items-center gap-1"
-                            title="Confirm order immediately"
-                          >
-                            <CheckCircle2 className="size-3" />
-                            {approveMutation.isPending ? 'Confirming...' : 'Confirm'}
-                          </button>
-                        )}
-                        {order.status !== 'cancelled' ? (
-                          <button
-                            type="button"
-                            onClick={() => setSelectedOrder(order)}
-                            className="rounded-lg bg-primary/10 border border-primary/20 px-2.5 py-1 text-[11px] font-semibold text-primary hover:bg-primary/20 cursor-pointer transition-colors flex items-center gap-1"
-                            title="Open order processing workflow"
-                          >
-                            <SlidersHorizontal className="size-3" />
-                            <span>Process</span>
-                          </button>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => setSelectedOrder(order)}
-                            className="rounded-lg bg-surface-sunken border border-default px-2.5 py-1 text-[11px] font-semibold text-muted hover:text-default cursor-pointer transition-colors flex items-center gap-1"
-                            title="View cancelled order details"
-                          >
-                            <Eye className="size-3" />
-                            <span>View</span>
-                          </button>
-                        )}
-                        {onNavigateToTab && (order.status === 'confirmed' || order.status === 'allocated' || order.status === 'packed') && (
-                          <button
-                            type="button"
-                            onClick={() => onNavigateToTab('deliveries')}
-                            className="rounded-lg bg-cyan-500/10 border border-cyan-500/20 px-2 py-1 text-[11px] font-semibold text-cyan-600 dark:text-cyan-400 hover:bg-cyan-500/20 cursor-pointer transition-colors flex items-center gap-1"
-                            title="Jump to Deliveries tab to dispatch this order"
-                          >
-                            <Truck className="size-3" />
-                            <span>Dispatch</span>
-                          </button>
-                        )}
-                        {onNavigateToTab && (order.status === 'dispatched' || order.status === 'delivered') && (
-                          <button
-                            type="button"
-                            onClick={() => onNavigateToTab('invoices')}
-                            className="rounded-lg bg-blue-500/10 border border-blue-500/20 px-2 py-1 text-[11px] font-semibold text-blue-600 dark:text-blue-400 hover:bg-blue-500/20 cursor-pointer transition-colors flex items-center gap-1"
-                            title="Jump to Invoices tab for billing"
-                          >
-                            <FileText className="size-3" />
-                            <span>Invoice</span>
-                          </button>
-                        )}
-                        {onNavigateToTab && order.payment_status !== 'paid' && (order.status === 'dispatched' || order.status === 'delivered') && (
-                          <button
-                            type="button"
-                            onClick={() => onNavigateToTab('payments')}
-                            className="rounded-lg bg-emerald-500/10 border border-emerald-500/20 px-2 py-1 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 cursor-pointer transition-colors flex items-center gap-1"
-                            title="Jump to Payments tab to record customer collection"
-                          >
-                            <DollarSign className="size-3" />
-                            <span>Collect</span>
-                          </button>
-                        )}
-                        <button
-                          type="button"
-                          onClick={() => handlePrintOrderInvoice(order)}
-                          className="rounded-lg bg-surface-sunken border border-default px-2.5 py-1 text-[11px] font-semibold text-default hover:bg-surface cursor-pointer transition-colors flex items-center gap-1"
-                          title="Print tenant-branded invoice PDF slip"
-                        >
-                          <Printer className="size-3 text-primary" />
-                          <span>Print Slip</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleDuplicateOrder(order)}
-                          className="rounded-lg bg-amber-500/10 border border-amber-500/20 px-2.5 py-1 text-[11px] font-semibold text-amber-600 dark:text-amber-400 hover:bg-amber-500/20 cursor-pointer transition-colors flex items-center gap-1"
-                          title="Duplicate this order into a new draft"
-                        >
-                          <Copy className="size-3" />
-                          <span>Duplicate</span>
-                        </button>
-                        {canDeleteOrder && (
-                          <button
-                            type="button"
-                            onClick={() => setOrderToDelete(order)}
-                            disabled={deleteMutation.isPending}
-                            className="rounded-lg bg-rose-500/10 border border-rose-500/20 px-2 py-1 text-[11px] font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-500/20 disabled:opacity-50 cursor-pointer transition-colors flex items-center gap-1"
-                            title="Delete sales order"
-                          >
-                            <Trash2 className="size-3" />
-                            <span>Delete</span>
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      {/* Orders Table with Responsive Card Reflow */}
+      <ResponsiveDataTable<SalesOrder>
+        data={filteredOrders}
+        isLoading={isLoading}
+        keyExtractor={(order) => order.id}
+        emptyMessage="No sales orders found."
+        emptyIcon={ShoppingCart}
+        selectedIds={selectedOrderIds}
+        onSelectRow={(id) => toggleSelectOrder(Number(id))}
+        onSelectAll={toggleSelectAll}
+        mobileCardBreakpoint="sm"
+        mobileActions={(order) => [
+          {
+            id: 'process',
+            label: order.status !== 'cancelled' ? 'Process Order Workflow' : 'View Order Details',
+            icon: order.status !== 'cancelled' ? SlidersHorizontal : Eye,
+            onClick: () => setSelectedOrder(order),
+          },
+          ...(canApproveOrder && (order.status === 'draft' || order.status === 'pending') ? [{
+            id: 'confirm',
+            label: 'Confirm Order',
+            icon: CheckCircle2,
+            onClick: () => approveMutation.mutate(order.id),
+          }] : []),
+          ...(onNavigateToTab && (order.status === 'confirmed' || order.status === 'allocated' || order.status === 'packed') ? [{
+            id: 'dispatch',
+            label: 'Dispatch (Deliveries)',
+            icon: Truck,
+            onClick: () => onNavigateToTab('deliveries'),
+          }] : []),
+          ...(onNavigateToTab && (order.status === 'dispatched' || order.status === 'delivered') ? [{
+            id: 'invoice',
+            label: 'Generate Invoice',
+            icon: FileText,
+            onClick: () => onNavigateToTab('invoices'),
+          }] : []),
+          ...(onNavigateToTab && order.payment_status !== 'paid' && (order.status === 'dispatched' || order.status === 'delivered') ? [{
+            id: 'collect',
+            label: 'Collect Payment',
+            icon: DollarSign,
+            onClick: () => onNavigateToTab('payments'),
+          }] : []),
+          {
+            id: 'print',
+            label: 'Print Invoice Slip',
+            icon: Printer,
+            onClick: () => handlePrintOrderInvoice(order),
+          },
+          {
+            id: 'duplicate',
+            label: 'Duplicate Order',
+            icon: Copy,
+            onClick: () => handleDuplicateOrder(order),
+          },
+          ...(canDeleteOrder ? [{
+            id: 'delete',
+            label: 'Delete Order',
+            icon: Trash2,
+            variant: 'danger' as const,
+            onClick: () => setOrderToDelete(order),
+          }] : []),
+        ]}
+        columns={orderColumns}
+      />
 
       {/* Floating Bottom Docked Action Toolbar */}
       {selectedOrderIds.size > 0 && (

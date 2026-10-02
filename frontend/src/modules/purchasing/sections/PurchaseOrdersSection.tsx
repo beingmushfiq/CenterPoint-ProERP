@@ -29,6 +29,7 @@ import {
   Download,
   ChevronDown,
   History,
+  Eye,
 } from 'lucide-react';
 import type { PurchaseOrder } from '../../../types/api/purchasing';
 import type { Product } from '../../../types/api/catalog';
@@ -42,6 +43,7 @@ import { useBusinessConfig } from '../../../lib/document/useBusinessConfig';
 import { SelectDropdown } from '../../../components/ui/Dropdown';
 import { useCurrency } from '../../../hooks/useCurrency';
 import { ActionMenuPortal } from '../../../components/ui/ActionMenuPortal';
+import { ResponsiveDataTable, type ResponsiveColumn } from '../../../components/ui/ResponsiveDataTable';
 import { cn } from '../../../lib/utils';
 import { TableControls, type ColumnDef } from '../../../components/ui/TableControls';
 import { useTablePrefs } from '../../../hooks/useTablePrefs';
@@ -797,6 +799,268 @@ export function PurchaseOrdersSection({ onReceivePo, onCreateBill }: PurchaseOrd
     }
   };
 
+  const { hasPermission } = useAuthStore();
+  const canDelete = hasPermission ? hasPermission('purchasing.order.delete') : true;
+  const canCreate = hasPermission ? hasPermission('purchasing.order.create') : true;
+
+  const poColumns: ResponsiveColumn<PurchaseOrder>[] = useMemo(() => {
+    const cols: ResponsiveColumn<PurchaseOrder>[] = [];
+
+    if (isVisible('po_number')) {
+      cols.push({
+        id: 'po_number',
+        header: 'PO Number',
+        isPrimary: true,
+        accessor: (o) => (
+          <div>
+            <div className="flex items-center gap-1.5 font-mono font-medium text-default">
+              <FileSpreadsheet className="size-3.5 text-primary shrink-0" />
+              <span>{o.po_number}</span>
+            </div>
+            <div className="text-[10px] text-muted font-sans mt-0.5">Exp. Delivery: {o.expected_delivery_date || '—'}</div>
+          </div>
+        ),
+      });
+    }
+
+    if (isVisible('supplier')) {
+      cols.push({
+        id: 'supplier',
+        header: 'Vendor / Supplier',
+        accessor: (o) => <span className="font-semibold text-default">{o.supplier_name ?? '—'}</span>,
+      });
+    }
+
+    if (isVisible('warehouse')) {
+      cols.push({
+        id: 'warehouse',
+        header: 'Warehouse',
+        priority: 'low',
+        accessor: (o) => <span className="text-muted">{o.warehouse_name ?? '—'}</span>,
+      });
+    }
+
+    if (isVisible('order_date')) {
+      cols.push({
+        id: 'order_date',
+        header: 'Order Date',
+        priority: 'medium',
+        accessor: (o) => <span className="font-mono text-muted">{o.order_date}</span>,
+      });
+    }
+
+    if (isVisible('grand_total')) {
+      cols.push({
+        id: 'grand_total',
+        header: 'Grand Total',
+        align: 'right',
+        priority: 'medium',
+        accessor: (o) => (
+          <span className="font-mono font-semibold text-default">
+            {formatCurrency(o.grand_total)}
+          </span>
+        ),
+      });
+    }
+
+    if (isVisible('status')) {
+      cols.push({
+        id: 'status',
+        header: 'Status',
+        priority: 'medium',
+        accessor: (o) => getStatusBadge(o.status),
+      });
+    }
+
+    if (isVisible('actions')) {
+      cols.push({
+        id: 'actions',
+        header: 'Actions',
+        align: 'right',
+        priority: 'low',
+        accessor: (o) => (
+          <div className="flex items-center justify-end gap-1.5">
+            <button
+              type="button"
+              onClick={() => handleViewOrder(o)}
+              className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-surface hover:bg-surface-sunken border border-default text-default transition-colors cursor-pointer touch-target"
+            >
+              View
+            </button>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (openActionMenuId === o.id) {
+                  setOpenActionMenuId(null);
+                  setActionMenuAnchor(null);
+                } else {
+                  setOpenActionMenuId(o.id);
+                  setActionMenuAnchor(e.currentTarget);
+                }
+              }}
+              className={cn(
+                'inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold rounded-lg border transition-colors cursor-pointer touch-target',
+                openActionMenuId === o.id
+                  ? 'bg-primary text-primary-fg border-primary shadow-xs'
+                  : 'bg-surface hover:bg-surface-sunken border-default text-default'
+              )}
+            >
+              <span>Actions</span>
+              <ChevronDown className="size-3 text-muted" />
+            </button>
+          </div>
+        ),
+      });
+    }
+
+    return cols;
+  }, [isVisible, formatCurrency, openActionMenuId]);
+
+  const getMobileActions = (order: PurchaseOrder) => {
+    const actions = [
+      {
+        label: 'View PO Details',
+        icon: <Eye className="size-4" />,
+        onClick: () => handleViewOrder(order),
+      },
+      {
+        label: 'Duplicate / Reorder PO',
+        icon: <Copy className="size-4" />,
+        onClick: () => {
+          setFormData({
+            po_number: '',
+            party_id: order.party_id || '',
+            supplier_name: order.supplier_name || '',
+            warehouse_id: order.warehouse_id || '',
+            warehouse_name: order.warehouse_name || '',
+            order_date: new Date().toISOString().slice(0, 10),
+            expected_delivery_date: new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10),
+            currency_code: order.currency_code || currencyCode,
+            terms_and_conditions: order.terms_and_conditions || 'Net 30 Days upon inspection pass.',
+            notes: `Repeat of PO #${order.po_number}${order.notes ? ' - ' + order.notes : ''}`,
+            order_discount_type: (order as unknown as { order_discount_type?: 'flat' | 'percentage' }).order_discount_type || 'flat',
+            order_discount_value: order.discount_amount || '0.00',
+            items: order.items?.map((it) => ({
+              product_id: it.product_id,
+              product_name: it.product_name || '',
+              product_sku: it.product_sku || '',
+              quantity: it.quantity,
+              unit_id: it.unit_id,
+              unit_code: it.unit_code || 'PCS',
+              unit_price: it.unit_price,
+              discount_type: 'flat' as const,
+              discount_amount: it.discount_amount || '0.00',
+              tax_rate: it.tax_rate || '0.00',
+            })) || [],
+          });
+          setShowCreateModal(true);
+          toast.info(`Duplicating PO #${order.po_number}. Review line items and submit.`);
+        },
+      },
+    ];
+
+    if (order.status === 'draft') {
+      actions.push(
+        {
+          label: 'Edit PO Contract',
+          icon: <Edit2 className="size-4" />,
+          onClick: () => {
+            setActiveOrder(order);
+            setFormData({
+              po_number: order.po_number,
+              party_id: order.party_id || '',
+              supplier_name: order.supplier_name || '',
+              warehouse_id: order.warehouse_id || '',
+              warehouse_name: order.warehouse_name || '',
+              order_date: order.order_date,
+              expected_delivery_date: order.expected_delivery_date || '',
+              currency_code: order.currency_code,
+              terms_and_conditions: order.terms_and_conditions || '',
+              notes: order.notes || '',
+              order_discount_type: (order as unknown as { order_discount_type?: 'flat' | 'percentage' }).order_discount_type || 'flat',
+              order_discount_value: order.discount_amount || '0.00',
+              items: order.items?.map((it) => ({
+                product_id: it.product_id,
+                product_name: it.product_name || '',
+                product_sku: it.product_sku || '',
+                quantity: it.quantity,
+                unit_id: it.unit_id,
+                unit_code: it.unit_code || 'KG',
+                unit_price: it.unit_price,
+                discount_type: 'flat' as const,
+                discount_amount: it.discount_amount || '0.00',
+                tax_rate: it.tax_rate,
+              })) || [],
+            });
+            setShowEditModal(true);
+          },
+        },
+        {
+          label: 'Approve PO Contract',
+          icon: <ShieldCheck className="size-4 text-emerald-500" />,
+          onClick: () => handleApprove(order.id),
+        }
+      );
+    }
+
+    if (order.status === 'approved' || order.status === 'partially_received') {
+      actions.push({
+        label: 'Inward Receive Goods (GRN)',
+        icon: <PackageCheck className="size-4 text-emerald-500" />,
+        onClick: () => onReceivePo?.(order),
+      });
+    }
+
+    if (order.status === 'received' || order.status === 'partially_received') {
+      actions.push({
+        label: 'Enter Supplier Bill',
+        icon: <Receipt className="size-4 text-indigo-500" />,
+        onClick: () => onCreateBill?.(order),
+      });
+    }
+
+    actions.push(
+      {
+        label: 'Print Purchase Order',
+        icon: <Printer className="size-4" />,
+        onClick: () => setPrintOrder(order),
+      },
+      {
+        label: 'View Audit History...',
+        icon: <History className="size-4" />,
+        onClick: () => setAuditingOrder(order),
+      }
+    );
+
+    if (canDelete && !['completed', 'received'].includes(order.status)) {
+      actions.push(
+        {
+          label: 'Move to Data Bin',
+          icon: <Trash2 className="size-4 text-amber-500" />,
+          variant: 'warning' as const,
+          onClick: () => {
+            setActiveOrder(order);
+            setIsPermanentDelete(false);
+            setShowDeleteModal(true);
+          },
+        },
+        {
+          label: 'Delete Permanently',
+          icon: <Trash2 className="size-4 text-rose-500" />,
+          variant: 'destructive' as const,
+          onClick: () => {
+            setActiveOrder(order);
+            setIsPermanentDelete(true);
+            setShowDeleteModal(true);
+          },
+        }
+      );
+    }
+
+    return actions;
+  };
+
   return (
     <div className="space-y-6">
       {/* Metric Cards */}
@@ -997,185 +1261,46 @@ export function PurchaseOrdersSection({ onReceivePo, onCreateBill }: PurchaseOrd
         </div>
       </div>
 
-      {/* Orders Table */}
-      <div className="overflow-hidden rounded-2xl border border-default bg-surface shadow-2xs max-h-[70vh] overflow-y-auto">
-        <div className="overflow-x-auto min-h-75">
-          <table className="w-full text-left text-xs text-default border-collapse">
-            <thead className="sticky top-0 z-10 border-b border-default bg-surface-sunken/95 backdrop-blur-xs text-[11px] font-semibold uppercase tracking-wider text-muted">
-              <tr>
-                {isVisible('select') && (
-                  <th className={cn("w-10 text-center", cellClass)}>
-                    <input
-                      ref={headerCheckboxRef}
-                      type="checkbox"
-                      checked={isAllSelected}
-                      onChange={toggleSelectAll}
-                      className="size-4 rounded border-default text-primary focus:ring-primary cursor-pointer"
-                      title="Select all visible POs"
-                    />
-                  </th>
-                )}
-                {isVisible('po_number') && <th className={cn("px-4", cellClass)}>PO Number</th>}
-                {isVisible('supplier') && <th className={cn("px-4", cellClass)}>Vendor / Supplier</th>}
-                {isVisible('warehouse') && <th className={cn("px-4", cellClass)}>Warehouse</th>}
-                {isVisible('order_date') && <th className={cn("px-4", cellClass)}>Order Date</th>}
-                {isVisible('grand_total') && <th className={cn("px-4 text-right", cellClass)}>Grand Total</th>}
-                {isVisible('status') && <th className={cn("px-4", cellClass)}>Status</th>}
-                {isVisible('actions') && <th className={cn("px-4 text-right", cellClass)}>Actions</th>}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-default">
-              {filteredOrders.length === 0 ? (
-                <tr>
-                  <td colSpan={8} className="px-4 py-8 text-center text-muted">
-                    {isLoading ? (
-                      <div className="py-8 space-y-3 flex flex-col items-center justify-center">
-                        <SkeletonLine width="75%" height={4} />
-                        <SkeletonLine width="50%" height={4} />
-                        <SkeletonLine width="65%" height={4} />
-                      </div>
-                    ) : (search || statusFilter !== 'all') ? (
-                      <EmptyState
-                        compact
-                        icon={<SearchX className="size-8 text-muted" />}
-                        title="No purchase orders match your filters"
-                        description="Try adjusting your search query or reset the active status filters."
-                        action={{
-                          label: 'Reset Filters',
-                          onClick: () => {
-                            setSearch('');
-                            setStatusFilter('all');
-                          },
-                        }}
-                      />
-                    ) : (
-                      <EmptyState
-                        compact
-                        icon={<PackageX className="size-8 text-muted" />}
-                        title="No purchase orders found"
-                        description="There are currently no purchase orders recorded in the system. Issue your first vendor contract to begin procurement."
-                        action={{
-                          label: 'Create Purchase Order',
-                          onClick: () => setShowCreateModal(true),
-                        }}
-                      />
-                    )}
-                  </td>
-                </tr>
-              ) : (
-                filteredOrders.map((o) => (
-                  <tr
-                    key={o.id}
-                    className={cn(
-                      "hover:bg-surface-sunken/60 transition-colors",
-                      selectedPoIds.has(o.id) && "bg-primary/5 dark:bg-primary/10"
-                    )}
-                  >
-                    {isVisible('select') && (
-                      <td className={cn("w-10 text-center", cellClass)} onClick={(e) => e.stopPropagation()}>
-                        <input
-                          type="checkbox"
-                          checked={selectedPoIds.has(o.id)}
-                          onChange={() => toggleSelectPo(o.id)}
-                          className="size-4 rounded border-default text-primary focus:ring-primary cursor-pointer"
-                          title="Select PO"
-                        />
-                      </td>
-                    )}
-                    {isVisible('po_number') && (
-                      <td className={cn("px-4 font-mono font-medium text-default", cellClass)}>
-                        <div className="flex items-center gap-1.5">
-                          <FileSpreadsheet className="size-3.5 text-primary" />
-                          <span>{o.po_number}</span>
-                        </div>
-                        <div className="text-[10px] text-muted font-sans mt-0.5">Exp. Delivery: {o.expected_delivery_date || '—'}</div>
-                      </td>
-                    )}
-                    {isVisible('supplier') && <td className={cn("px-4 font-semibold text-default", cellClass)}>{o.supplier_name ?? '—'}</td>}
-                    {isVisible('warehouse') && <td className={cn("px-4 text-muted", cellClass)}>{o.warehouse_name ?? '—'}</td>}
-                    {isVisible('order_date') && <td className={cn("px-4 font-mono text-muted", cellClass)}>{o.order_date}</td>}
-                    {isVisible('grand_total') && (
-                      <td className={cn("px-4 text-right font-mono font-semibold text-default", cellClass)}>
-                        {formatCurrency(o.grand_total)}
-                      </td>
-                    )}
-                    {isVisible('status') && <td className={cn("px-4", cellClass)}>{getStatusBadge(o.status)}</td>}
-                    {isVisible('actions') && (
-                      <td className={cn("px-4 text-right", cellClass)}>
-                        <div className="flex items-center justify-end gap-1.5">
-                          <button
-                            type="button"
-                            onClick={() => handleViewOrder(o)}
-                            className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-surface hover:bg-surface-sunken border border-default text-default transition-colors cursor-pointer"
-                          >
-                            View
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              if (openActionMenuId === o.id) {
-                                setOpenActionMenuId(null);
-                                setActionMenuAnchor(null);
-                              } else {
-                                setOpenActionMenuId(o.id);
-                                setActionMenuAnchor(e.currentTarget);
-                              }
-                            }}
-                            className={cn(
-                              'inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold rounded-lg border transition-colors cursor-pointer',
-                              openActionMenuId === o.id
-                                ? 'bg-primary text-primary-fg border-primary shadow-xs'
-                                : 'bg-surface hover:bg-surface-sunken border-default text-default'
-                            )}
-                          >
-                            <span>Actions</span>
-                            <ChevronDown className="size-3 text-muted" />
-                          </button>
-                        </div>
-                      </td>
-                    )}
-                  </tr>
-                ))
-              )}
-            </tbody>
-            {filteredOrders.length > 0 && (
-              <tfoot className="sticky bottom-0 z-10 border-t-2 border-default bg-surface-sunken/95 backdrop-blur-xs font-semibold text-xs text-default">
-                <tr>
-                  <td
-                    colSpan={
-                      (isVisible('select') ? 1 : 0) +
-                      (isVisible('po_number') ? 1 : 0) +
-                      (isVisible('supplier') ? 1 : 0) +
-                      (isVisible('warehouse') ? 1 : 0) +
-                      (isVisible('order_date') ? 1 : 0)
-                    }
-                    className={cn("px-4 font-medium text-muted", cellClass)}
-                  >
-                    Total ({filteredOrders.length} Purchase Orders)
-                  </td>
-                  {isVisible('grand_total') && (
-                    <td className={cn("px-4 text-right font-mono font-bold text-default", cellClass)}>
-                      {formatCurrency(
-                        filteredOrders.reduce((sum, o) => sum + parseFloat(o.grand_total || '0'), 0)
-                      )}
-                    </td>
-                  )}
-                  {isVisible('status') && (
-                    <td className={cn("px-4 text-muted text-2xs", cellClass)}>
-                      {filteredOrders.filter((o) => o.status === 'received').length} Fulfilled
-                    </td>
-                  )}
-                  {isVisible('actions') && (
-                    <td className={cn("px-4 text-right text-2xs text-muted font-normal", cellClass)}>
-                      Summary
-                    </td>
-                  )}
-                </tr>
-              </tfoot>
-            )}
-          </table>
+      {/* Orders Responsive Data Table */}
+      <ResponsiveDataTable<PurchaseOrder>
+        data={filteredOrders}
+        columns={poColumns}
+        keyExtractor={(o) => o.id}
+        isLoading={isLoading}
+        loadingRows={6}
+        selectedIds={selectedPoIds}
+        onSelectRow={(id) => toggleSelectPo(Number(id))}
+        onSelectAll={toggleSelectAll}
+        mobileActions={getMobileActions}
+        isFiltered={Boolean(search || statusFilter !== 'all')}
+        searchEmptyState={
+          <EmptyState
+            compact
+            icon={<SearchX className="size-8 text-muted" />}
+            title="No purchase orders match your filters"
+            description="Try adjusting your search query or reset the active status filters."
+            action={{
+              label: 'Reset Filters',
+              onClick: () => {
+                setSearch('');
+                setStatusFilter('all');
+              },
+            }}
+          />
+        }
+        emptyState={
+          <EmptyState
+            compact
+            icon={<PackageX className="size-8 text-muted" />}
+            title="No purchase orders found"
+            description="There are currently no purchase orders recorded in the system. Issue your first vendor contract to begin procurement."
+            action={{
+              label: 'Create Purchase Order',
+              onClick: () => setShowCreateModal(true),
+            }}
+          />
+        }
+      />
 
           {openActionMenuId && (() => {
             const order = filteredOrders.find((x) => x.id === openActionMenuId);

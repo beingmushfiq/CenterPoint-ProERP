@@ -12,6 +12,8 @@ import { cn } from '../../lib/utils';
 import { useTenantBranding, isStaleEngineName } from '../../lib/theme/useTenantBranding';
 import { useAuthStore } from '../../lib/auth/authStore';
 import { InteractiveTutorialModal } from '../../modules/tutorial/InteractiveTutorialModal';
+import { AnimatePresence } from 'framer-motion';
+import { MotionPage } from '../motion/MotionPage';
 import { TenantSuspendedScreen } from './TenantSuspendedScreen';
 
 function getRouteTitle(pathname: string): string {
@@ -120,9 +122,13 @@ export function AppShell() {
             onToggleCollapse={toggleSidebarCollapse}
           />
 
-          <main className="flex-1 p-(--page-padding-mobile) pb-20 sm:p-(--page-padding) sm:pb-24 lg:pb-(--page-padding) overflow-x-hidden min-w-0 w-full max-w-full">
+          <main className="flex-1 p-(--page-padding-mobile) pb-24 sm:p-(--page-padding) sm:pb-24 lg:pb-(--page-padding) pb-safe overflow-x-hidden min-w-0 w-full max-w-full">
             <Suspense fallback={<RouteLoadingFallback />}>
-              <Outlet />
+              <AnimatePresence mode="wait">
+                <MotionPage key={location.pathname}>
+                  <Outlet />
+                </MotionPage>
+              </AnimatePresence>
             </Suspense>
           </main>
         </div>

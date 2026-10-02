@@ -1,4 +1,5 @@
-import { ArrowRight, UserCheck, Eye, Tag, Clock } from 'lucide-react';
+import { useState } from 'react';
+import { ArrowRight, UserCheck, Eye, Tag, Clock, Layers } from 'lucide-react';
 import type { Lead, LeadStatus } from '../../../types/api/crm';
 import { useCurrency } from '../../../hooks/useCurrency';
 import { cn } from '../../../lib/utils';
@@ -20,11 +21,65 @@ export function PipelineKanbanSection({
   onStageChange,
 }: PipelineKanbanSectionProps) {
   const { formatCurrency } = useCurrency();
+  const [activeMobileStage, setActiveMobileStage] = useState<string>('all');
   const pipelineStages = STAGES.filter((s) => s.id !== 'fake');
 
+  const visibleStages = activeMobileStage === 'all'
+    ? pipelineStages
+    : pipelineStages.filter((s) => s.id === activeMobileStage);
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7 gap-3.5 overflow-x-auto pb-4 items-start">
-      {pipelineStages.map((stage, sIdx, allStages) => {
+    <div className="space-y-4">
+      {/* Mobile Stage Selector Ribbon (< 768px) */}
+      <div className="md:hidden flex items-center gap-1.5 overflow-x-auto pb-2 scrollbar-none">
+        <button
+          type="button"
+          onClick={() => setActiveMobileStage('all')}
+          className={cn(
+            'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold shrink-0 transition-all touch-target',
+            activeMobileStage === 'all'
+              ? 'bg-primary text-primary-foreground shadow-2xs'
+              : 'bg-surface border border-default text-muted hover:text-default'
+          )}
+        >
+          <Layers className="size-3" />
+          <span>All Stages</span>
+          <span className="ml-1 text-[10px] font-mono px-1.5 py-0.2 rounded-full bg-black/10 dark:bg-white/10">
+            {leads.filter((l) => !l.is_fake).length}
+          </span>
+        </button>
+
+        {pipelineStages.map((stage) => {
+          const count = leads.filter(
+            (l) => (l.stage === stage.id || l.status === stage.id) && !l.is_fake
+          ).length;
+          const isActive = activeMobileStage === stage.id;
+
+          return (
+            <button
+              key={stage.id}
+              type="button"
+              onClick={() => setActiveMobileStage(stage.id)}
+              className={cn(
+                'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold shrink-0 transition-all touch-target',
+                isActive
+                  ? 'bg-primary text-primary-foreground shadow-2xs'
+                  : 'bg-surface border border-default text-muted hover:text-default'
+              )}
+            >
+              <span className={cn('size-2 rounded-full', stage.dotBg)} />
+              <span>{stage.label}</span>
+              <span className="text-[10px] font-mono px-1.5 py-0.2 rounded-full bg-black/10 dark:bg-white/10">
+                {count}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Kanban Columns Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7 gap-3.5 overflow-x-auto pb-4 items-start">
+        {(activeMobileStage === 'all' ? pipelineStages : visibleStages).map((stage, sIdx, allStages) => {
         const stageLeads = leads.filter(
           (l) => (l.stage === stage.id || l.status === stage.id) && !l.is_fake
         );
@@ -195,6 +250,7 @@ export function PipelineKanbanSection({
           </div>
         );
       })}
+      </div>
     </div>
   );
 }

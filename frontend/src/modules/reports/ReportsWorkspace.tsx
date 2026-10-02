@@ -1074,10 +1074,10 @@ export const ReportsWorkspace: React.FC = () => {
         </div>
 
         {/* Date Filters & Views Toolbar */}
-        <div className="bg-surface rounded-2xl border border-default shadow-xs px-4 py-3">
-          <div className="flex flex-wrap items-center gap-3">
-            {/* Quick Presets */}
-            <div className="flex items-center gap-0.5 bg-surface-sunken p-1 rounded-xl text-xs border border-default">
+        <div className="bg-surface rounded-2xl border border-default shadow-xs p-3 sm:px-4 sm:py-3">
+          <div className="flex flex-col md:flex-row md:items-center md:flex-wrap gap-3">
+            {/* Quick Presets (Scrollable ribbon on mobile) */}
+            <div className="flex items-center gap-1 bg-surface-sunken p-1 rounded-xl text-xs border border-default overflow-x-auto scrollbar-none w-full md:w-auto">
               {[
                 { id: 'today', label: isBn ? 'আজ' : 'Today' },
                 { id: 'this_week', label: isBn ? 'এই সপ্তাহ' : 'This Week' },
@@ -1088,7 +1088,7 @@ export const ReportsWorkspace: React.FC = () => {
                   key={p.id}
                   onClick={() => handlePresetChange(p.id)}
                   className={cn(
-                    'px-2.5 py-1 rounded-lg font-medium transition-colors cursor-pointer whitespace-nowrap',
+                    'px-3 py-1.5 min-h-[36px] md:min-h-0 md:py-1 rounded-lg font-medium transition-colors cursor-pointer whitespace-nowrap text-xs flex items-center justify-center',
                     datePreset === p.id
                       ? 'bg-surface text-primary font-bold shadow-xs border border-default'
                       : 'text-muted hover:text-default'
@@ -1100,8 +1100,8 @@ export const ReportsWorkspace: React.FC = () => {
             </div>
 
             {/* Custom Date Pickers */}
-            <div className="flex items-center gap-2">
-              <Calendar className="size-3.5 text-muted shrink-0" />
+            <div className="flex items-center gap-2 w-full sm:w-auto flex-1">
+              <Calendar className="size-3.5 text-muted shrink-0 hidden xs:block" />
               <input
                 type="date"
                 value={startDate}
@@ -1109,9 +1109,10 @@ export const ReportsWorkspace: React.FC = () => {
                   setStartDate(e.target.value);
                   setDatePreset('custom');
                 }}
-                className="text-xs border border-default bg-surface rounded-xl px-2.5 py-1.5 text-default focus:outline-none focus:border-primary shadow-2xs"
+                aria-label="Start date"
+                className="text-xs border border-default bg-surface rounded-xl px-2.5 py-1.5 min-h-[38px] md:min-h-0 text-default focus:outline-none focus:border-primary shadow-2xs flex-1 sm:flex-initial"
               />
-              <span className="text-xs text-muted">—</span>
+              <span className="text-xs text-muted shrink-0">—</span>
               <input
                 type="date"
                 value={endDate}
@@ -1119,12 +1120,13 @@ export const ReportsWorkspace: React.FC = () => {
                   setEndDate(e.target.value);
                   setDatePreset('custom');
                 }}
-                className="text-xs border border-default bg-surface rounded-xl px-2.5 py-1.5 text-default focus:outline-none focus:border-primary shadow-2xs"
+                aria-label="End date"
+                className="text-xs border border-default bg-surface rounded-xl px-2.5 py-1.5 min-h-[38px] md:min-h-0 text-default focus:outline-none focus:border-primary shadow-2xs flex-1 sm:flex-initial"
               />
             </div>
 
-            {/* Saved Views Dropdown */}
-            <div className="flex items-center gap-2">
+            {/* Saved Views Dropdown & Action */}
+            <div className="flex items-center gap-2 w-full sm:w-auto">
               <SelectDropdown
                 icon={Bookmark}
                 options={savedViews.map((v) => ({ value: v.name, label: v.name }))}
@@ -1144,7 +1146,7 @@ export const ReportsWorkspace: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setSaveViewModalOpen(true)}
-                className="inline-flex items-center gap-1 px-2.5 py-1.5 border border-default hover:bg-surface-sunken text-xs font-semibold rounded-xl transition-colors cursor-pointer text-default shadow-2xs"
+                className="inline-flex items-center justify-center gap-1 px-3 py-1.5 min-h-[38px] md:min-h-0 border border-default hover:bg-surface-sunken text-xs font-semibold rounded-xl transition-colors cursor-pointer text-default shadow-2xs shrink-0"
               >
                 <Bookmark className="size-3.5 text-primary" />
                 <span>{isBn ? 'সংরক্ষণ' : 'Save View'}</span>
@@ -1155,7 +1157,7 @@ export const ReportsWorkspace: React.FC = () => {
             <button
               onClick={() => fetchReportData(selectedReportCode)}
               disabled={loading}
-              className="inline-flex items-center gap-1.5 px-4 py-1.5 bg-primary hover:bg-primary/90 text-white text-xs font-semibold rounded-xl transition-colors shadow-2xs disabled:opacity-50 cursor-pointer ml-auto"
+              className="inline-flex items-center justify-center gap-1.5 px-4 py-2 min-h-[38px] md:min-h-0 bg-primary hover:bg-primary/90 text-white text-xs font-semibold rounded-xl transition-colors shadow-2xs disabled:opacity-50 cursor-pointer w-full md:w-auto md:ml-auto"
             >
               <Filter className="size-3.5" />
               <span>{loading ? (isBn ? 'প্রসেস হচ্ছে…' : 'Executing...') : (isBn ? 'ফিল্টার প্রয়োগ' : 'Apply')}</span>

@@ -36,6 +36,7 @@ import { SelectDropdown } from '../../../components/ui/Dropdown';
 import { useCurrency } from '../../../hooks/useCurrency';
 import { useAuthStore } from '../../../lib/auth/authStore';
 import { DashboardKpiCard } from '../../../pages/dashboard/components/DashboardKpiCard';
+import { ResponsiveDataTable } from '../../../components/ui/ResponsiveDataTable';
 
 interface DeliveryFormItem {
   product_name: string;
@@ -847,160 +848,231 @@ export function DeliveriesSection() {
         </div>
       )}
 
-      {/* Deliveries Table */}
-      <div className="rounded-2xl border border-default bg-surface shadow-2xs overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs text-default">
-            <thead className="bg-surface-sunken text-[11px] font-semibold text-muted uppercase tracking-wider border-b border-default">
-              <tr>
-                <th className="w-10 px-4 py-3.5 text-center">
-                  <input
-                    ref={headerCheckboxRef}
-                    type="checkbox"
-                    checked={isAllSelected}
-                    onChange={toggleSelectAll}
-                    aria-label="Select all deliveries"
-                    className="size-4 rounded border-default text-primary focus:ring-primary/20 cursor-pointer"
-                  />
-                </th>
-                <th className="px-4 py-3.5">Challan # / Date</th>
-                <th className="px-4 py-3.5">Recipient & Contact</th>
-                <th className="px-4 py-3.5">Ref Sales Order</th>
-                <th className="px-4 py-3.5">Dispatch Mode</th>
-                <th className="px-4 py-3.5 text-right">COD Amount</th>
-                <th className="px-4 py-3.5">Status</th>
-                <th className="px-4 py-3.5 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-default">
-              {filteredDeliveries.length === 0 ? (
-                <tr>
-                  <td colSpan={8} className="px-4 py-12 text-center text-muted">
-                    {isLoading ? 'Loading deliveries...' : 'No delivery dispatches found matching your criteria.'}
-                  </td>
-                </tr>
-              ) : (
-                filteredDeliveries.map((d) => (
-                  <tr key={d.id} className={`hover:bg-surface-sunken/60 transition-colors ${selectedIds.has(d.id) ? 'bg-primary/5' : ''}`}>
-                    <td className="w-10 px-4 py-3.5 text-center" onClick={(e) => e.stopPropagation()}>
-                      <input
-                        type="checkbox"
-                        checked={selectedIds.has(d.id)}
-                        onChange={() => toggleSelect(d.id)}
-                        aria-label={`Select delivery ${d.delivery_number}`}
-                        className="size-4 rounded border-default text-primary focus:ring-primary/20 cursor-pointer"
-                      />
-                    </td>
-                    <td className="px-4 py-3.5 font-mono font-medium text-default">
-                      <div className="flex items-center gap-1.5">
-                        <Truck className="size-3.5 text-primary" />
-                        <span>{d.delivery_number}</span>
-                      </div>
-                      <div className="text-[10px] text-muted font-sans mt-0.5">{d.scheduled_date || 'Immediate'}</div>
-                    </td>
-                    <td className="px-4 py-3.5">
-                      <div className="font-semibold text-default">{d.recipient_name}</div>
-                      <div className="text-[10px] text-muted font-mono">{d.recipient_phone}</div>
-                    </td>
-                    <td className="px-4 py-3.5 font-mono text-primary font-medium">
-                      {d.sales_order_number ?? 'Direct Order'}
-                    </td>
-                    <td className="px-4 py-3.5 text-muted uppercase font-mono text-[10px]">
-                      {d.delivery_type.replace('_', ' ')}
-                    </td>
-                    <td className="px-4 py-3.5 text-right font-mono font-semibold text-default">
-                      {formatCurrency(d.cod_amount || '0')}
-                    </td>
-                    <td className="px-4 py-3.5">{getStatusBadge(d.status)}</td>
-                    <td className="px-4 py-3.5 text-right">
-                      <div className="flex items-center justify-end gap-1.5">
-                        <button
-                          onClick={() => handleViewDelivery(d)}
-                          className="p-1.5 text-muted hover:text-default hover:bg-surface-sunken rounded-lg transition-colors cursor-pointer"
-                          title="View Delivery Challan"
-                        >
-                          <Eye className="size-3.5" />
-                        </button>
+      {/* Responsive Deliveries Table */}
+      <ResponsiveDataTable<DeliveryOrder>
+        data={filteredDeliveries}
+        isLoading={isLoading}
+        keyExtractor={(d) => d.id}
+        emptyMessage="No delivery dispatches found matching your criteria."
+        emptyIcon={Truck}
+        selectedIds={selectedIds}
+        onSelectRow={(id) => toggleSelect(Number(id))}
+        onSelectAll={toggleSelectAll}
+        mobileCardBreakpoint="sm"
+        mobileActions={(d) => [
+          {
+            id: 'view',
+            label: 'View Delivery Challan',
+            icon: Eye,
+            onClick: () => handleViewDelivery(d),
+          },
+          ...(d.status === 'pending' ? [{
+            id: 'dispatch',
+            label: 'Dispatch for Delivery',
+            icon: Send,
+            onClick: () => handleDispatch(d.id),
+          }] : []),
+          ...(d.status === 'in_transit' ? [{
+            id: 'deliver',
+            label: 'Mark as Delivered (Collect COD)',
+            icon: CheckCircle2,
+            onClick: () => handleMarkDelivered(d.id),
+          }] : []),
+          {
+            id: 'edit',
+            label: 'Edit Delivery Details',
+            icon: Edit2,
+            onClick: () => {
+              setActiveDelivery(d);
+              setFormData({
+                delivery_number: d.delivery_number,
+                sales_order_number: d.sales_order_number || '',
+                recipient_name: d.recipient_name,
+                recipient_phone: d.recipient_phone,
+                warehouse_name: d.warehouse_name || '',
+                delivery_type: d.delivery_type,
+                scheduled_date: d.scheduled_date || '',
+                cod_amount: d.cod_amount,
+                delivery_charge: d.delivery_charge,
+                package_count: d.package_count,
+                special_instructions: d.special_instructions || '',
+                items: d.items?.map((it) => ({
+                  product_name: it.product_name || '',
+                  quantity: it.quantity,
+                })) || [],
+                courier_code: 'STEADFAST',
+                tracking_number: '',
+                rider_name: '',
+                rider_phone: '',
+                vehicle_ref: '',
+                pickup_point: '',
+                dispatch_type: 'full',
+                auto_print: autoPrintPref,
+              });
+              setShowEditModal(true);
+            },
+          },
+          ...(canDelete ? [{
+            id: 'delete',
+            label: 'Move to Bin',
+            icon: Trash2,
+            variant: 'danger' as const,
+            onClick: () => {
+              setActiveDelivery(d);
+              setShowDeleteModal(true);
+            },
+          }] : []),
+        ]}
+        columns={[
+          {
+            id: 'delivery_number',
+            header: 'Challan # / Date',
+            isPrimary: true,
+            cell: (d) => (
+              <div>
+                <div className="flex items-center gap-1.5 font-mono font-medium text-default">
+                  <Truck className="size-3.5 text-primary" />
+                  <span>{d.delivery_number}</span>
+                </div>
+                <div className="text-[10px] text-muted font-sans mt-0.5">{d.scheduled_date || 'Immediate'}</div>
+              </div>
+            ),
+          },
+          {
+            id: 'recipient',
+            header: 'Recipient & Contact',
+            cell: (d) => (
+              <div>
+                <div className="font-semibold text-default">{d.recipient_name}</div>
+                <div className="text-[10px] text-muted font-mono">{d.recipient_phone}</div>
+              </div>
+            ),
+          },
+          {
+            id: 'so',
+            header: 'Ref Sales Order',
+            priority: 'medium',
+            cell: (d) => (
+              <span className="font-mono text-primary font-medium">{d.sales_order_number ?? 'Direct Order'}</span>
+            ),
+          },
+          {
+            id: 'delivery_type',
+            header: 'Dispatch Mode',
+            priority: 'low',
+            cell: (d) => (
+              <span className="text-muted uppercase font-mono text-[10px]">{d.delivery_type.replace('_', ' ')}</span>
+            ),
+          },
+          {
+            id: 'cod_amount',
+            header: 'COD Amount',
+            align: 'right',
+            cell: (d) => (
+              <span className="font-mono font-semibold text-default">{formatCurrency(d.cod_amount || '0')}</span>
+            ),
+          },
+          {
+            id: 'status',
+            header: 'Status',
+            isStatus: true,
+            cell: (d) => getStatusBadge(d.status),
+          },
+          {
+            id: 'actions',
+            header: 'Actions',
+            isAction: true,
+            align: 'right',
+            cell: (d) => (
+              <div className="flex items-center justify-end gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => handleViewDelivery(d)}
+                  className="p-1.5 text-muted hover:text-default hover:bg-surface-sunken rounded-lg transition-colors cursor-pointer"
+                  title="View Delivery Challan"
+                >
+                  <Eye className="size-3.5" />
+                </button>
 
-                        {d.status === 'pending' && (
-                          <button
-                            onClick={() => handleDispatch(d.id)}
-                            disabled={actionLoading === d.id}
-                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-blue-500/10 text-blue-600 dark:text-blue-400 hover:bg-blue-500/20 border border-blue-500/20 transition-colors cursor-pointer"
-                          >
-                            <Send className="size-3" />
-                            {actionLoading === d.id ? 'Dispatching...' : 'Dispatch'}
-                          </button>
-                        )}
+                {d.status === 'pending' && (
+                  <button
+                    type="button"
+                    onClick={() => handleDispatch(d.id)}
+                    disabled={actionLoading === d.id}
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-blue-500/10 text-blue-600 dark:text-blue-400 hover:bg-blue-500/20 border border-blue-500/20 transition-colors cursor-pointer"
+                  >
+                    <Send className="size-3" />
+                    <span>{actionLoading === d.id ? '...' : 'Dispatch'}</span>
+                  </button>
+                )}
 
-                        {d.status === 'in_transit' && (
-                          <button
-                            onClick={() => handleMarkDelivered(d.id)}
-                            disabled={actionLoading === d.id}
-                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/20 transition-colors cursor-pointer"
-                          >
-                            <CheckCircle2 className="size-3" />
-                            {actionLoading === d.id ? 'Delivering...' : 'Delivered'}
-                          </button>
-                        )}
+                {d.status === 'in_transit' && (
+                  <button
+                    type="button"
+                    onClick={() => handleMarkDelivered(d.id)}
+                    disabled={actionLoading === d.id}
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/20 transition-colors cursor-pointer"
+                  >
+                    <CheckCircle2 className="size-3" />
+                    <span>{actionLoading === d.id ? '...' : 'Delivered'}</span>
+                  </button>
+                )}
 
-                        <button
-                          onClick={() => {
-                            setActiveDelivery(d);
-                            setFormData({
-                              delivery_number: d.delivery_number,
-                              sales_order_number: d.sales_order_number || '',
-                              recipient_name: d.recipient_name,
-                              recipient_phone: d.recipient_phone,
-                              warehouse_name: d.warehouse_name || '',
-                              delivery_type: d.delivery_type,
-                              scheduled_date: d.scheduled_date || '',
-                              cod_amount: d.cod_amount,
-                              delivery_charge: d.delivery_charge,
-                              package_count: d.package_count,
-                              special_instructions: d.special_instructions || '',
-                              items: d.items?.map((it) => ({
-                                product_name: it.product_name || '',
-                                quantity: it.quantity,
-                              })) || [],
-                              courier_code: 'STEADFAST',
-                              tracking_number: '',
-                              rider_name: '',
-                              rider_phone: '',
-                              vehicle_ref: '',
-                              pickup_point: '',
-                              dispatch_type: 'full',
-                              auto_print: autoPrintPref,
-                            });
-                            setShowEditModal(true);
-                          }}
-                          className="p-1.5 text-muted hover:text-default hover:bg-surface-sunken rounded-lg transition-colors cursor-pointer"
-                          title="Edit Delivery"
-                        >
-                          <Edit2 className="size-3.5" />
-                        </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveDelivery(d);
+                    setFormData({
+                      delivery_number: d.delivery_number,
+                      sales_order_number: d.sales_order_number || '',
+                      recipient_name: d.recipient_name,
+                      recipient_phone: d.recipient_phone,
+                      warehouse_name: d.warehouse_name || '',
+                      delivery_type: d.delivery_type,
+                      scheduled_date: d.scheduled_date || '',
+                      cod_amount: d.cod_amount,
+                      delivery_charge: d.delivery_charge,
+                      package_count: d.package_count,
+                      special_instructions: d.special_instructions || '',
+                      items: d.items?.map((it) => ({
+                        product_name: it.product_name || '',
+                        quantity: it.quantity,
+                      })) || [],
+                      courier_code: 'STEADFAST',
+                      tracking_number: '',
+                      rider_name: '',
+                      rider_phone: '',
+                      vehicle_ref: '',
+                      pickup_point: '',
+                      dispatch_type: 'full',
+                      auto_print: autoPrintPref,
+                    });
+                    setShowEditModal(true);
+                  }}
+                  className="p-1.5 text-muted hover:text-default hover:bg-surface-sunken rounded-lg transition-colors cursor-pointer"
+                  title="Edit Delivery"
+                >
+                  <Edit2 className="size-3.5" />
+                </button>
 
-                        {canDelete && (
-                          <button
-                            onClick={() => {
-                              setActiveDelivery(d);
-                              setShowDeleteModal(true);
-                            }}
-                            className="p-1.5 text-rose-500 hover:bg-rose-500/10 rounded-lg transition-colors cursor-pointer"
-                            title="Move to Bin"
-                          >
-                            <Trash2 className="size-3.5" />
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+                {canDelete && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveDelivery(d);
+                      setShowDeleteModal(true);
+                    }}
+                    className="p-1.5 text-rose-500 hover:bg-rose-500/10 rounded-lg transition-colors cursor-pointer"
+                    title="Move to Bin"
+                  >
+                    <Trash2 className="size-3.5" />
+                  </button>
+                )}
+              </div>
+            ),
+          },
+        ]}
+      />
 
       {/* CREATE DELIVERY MODAL */}
       {showCreateModal && (

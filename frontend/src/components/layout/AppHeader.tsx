@@ -38,8 +38,10 @@ import {
   Layers,
   Monitor,
   Languages,
+  MoreVertical,
 } from 'lucide-react';
 import { SliceMartBrainModal } from './SliceMartBrainModal';
+import { MotionActionSheet } from '../motion/MotionActionSheet';
 import { LanguageSwitcher } from '../ui/LanguageSwitcher';
 import { useAuthStore } from '../../lib/auth/authStore';
 import { useTutorialStore } from '../../modules/tutorial/tutorialStore';
@@ -87,6 +89,7 @@ export function AppHeader({
   const [isNotifMenuOpen, setIsNotifMenuOpen] = useState(false);
   const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
   const [isBrainOpen, setIsBrainOpen] = useState(false);
+  const [isKebabOpen, setIsKebabOpen] = useState(false);
   const openTutorial = useTutorialStore((s) => s.openTutorial);
   
   // Search state
@@ -868,6 +871,17 @@ export function AppHeader({
           )}
         </button>
 
+        {/* Mobile Overflow Kebab Menu Button (< 640px) */}
+        <button
+          type="button"
+          onClick={() => setIsKebabOpen(true)}
+          className="sm:hidden flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl p-2 text-muted hover:bg-surface-sunken hover:text-default transition-token-colors focus-visible:ring-focus cursor-pointer shrink-0"
+          aria-label="More quick options"
+          title="More tools & preferences"
+        >
+          <MoreVertical className="size-5" />
+        </button>
+
         {/* User Profile Dropdown */}
         <div className="relative shrink-0">
           <button
@@ -1049,6 +1063,113 @@ export function AppHeader({
 
       {/* SliceMart Brain Agent Modal */}
       <SliceMartBrainModal open={isBrainOpen} onClose={() => setIsBrainOpen(false)} />
+
+      {/* Mobile Overflow Kebab Action Sheet (< 640px) */}
+      <MotionActionSheet
+        isOpen={isKebabOpen}
+        onClose={() => setIsKebabOpen(false)}
+        title="Quick Tools & Preferences"
+        subtitle="Operational controls and workspace settings"
+      >
+        <div className="space-y-3">
+          {/* Branch Switcher on Mobile */}
+          {branches.length > 1 && (
+            <div className="p-3 rounded-2xl bg-surface-sunken border border-default">
+              <div className="text-xs font-semibold text-muted mb-2 flex items-center gap-1.5">
+                <Building2 className="size-3.5 text-primary" />
+                <span>Active Branch</span>
+              </div>
+              <div className="grid grid-cols-1 gap-1.5">
+                {branches.map((b) => (
+                  <button
+                    key={b.id}
+                    type="button"
+                    onClick={() => {
+                      switchBranch(b.id);
+                      setIsKebabOpen(false);
+                    }}
+                    className={cn(
+                      'w-full min-h-[44px] px-3 rounded-xl flex items-center justify-between text-xs font-semibold transition-colors cursor-pointer',
+                      activeBranch?.id === b.id
+                        ? 'bg-primary text-primary-fg'
+                        : 'bg-surface hover:bg-surface-raised text-default border border-default'
+                    )}
+                  >
+                    <span>{b.name}</span>
+                    {activeBranch?.id === b.id && <Check className="size-4" />}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Theme Toggle */}
+          <div className="p-3 rounded-2xl bg-surface-sunken border border-default flex items-center justify-between">
+            <span className="text-xs text-default font-medium flex items-center gap-2">
+              {themeMode === 'dark' ? <Moon className="size-4 text-indigo-400" /> : <Sun className="size-4 text-amber-500" />}
+              <span>Appearance Mode</span>
+            </span>
+            <button
+              type="button"
+              onClick={toggleTheme}
+              className="min-h-[44px] px-3.5 rounded-xl bg-surface border border-default text-xs font-bold text-default hover:bg-surface-raised transition-colors cursor-pointer flex items-center gap-1.5"
+            >
+              <span>{themeMode === 'dark' ? 'Dark Mode' : themeMode === 'light' ? 'Light Mode' : 'System'}</span>
+            </button>
+          </div>
+
+          {/* Language Switcher */}
+          <div className="p-3 rounded-2xl bg-surface-sunken border border-default flex items-center justify-between">
+            <span className="text-xs text-default font-medium flex items-center gap-2">
+              <Languages className="size-4 text-primary" />
+              <span>Language</span>
+            </span>
+            <LanguageSwitcher />
+          </div>
+
+          {/* Operations AI Brain */}
+          <button
+            type="button"
+            onClick={() => {
+              setIsKebabOpen(false);
+              setIsBrainOpen(true);
+            }}
+            className="w-full min-h-[48px] px-3.5 rounded-2xl bg-purple-500/10 border border-purple-500/25 text-purple-600 dark:text-purple-400 hover:bg-purple-500/20 flex items-center justify-between font-semibold text-xs transition-colors cursor-pointer"
+          >
+            <span className="flex items-center gap-2">
+              <Brain className="size-4" />
+              <span>Operations AI Brain</span>
+            </span>
+            <span className="size-2 rounded-full bg-purple-500 animate-pulse" />
+          </button>
+
+          {/* Interactive Tutorial */}
+          <button
+            type="button"
+            onClick={() => {
+              setIsKebabOpen(false);
+              openTutorial();
+            }}
+            className="w-full min-h-[48px] px-3.5 rounded-2xl bg-indigo-500/10 border border-indigo-500/25 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-500/20 flex items-center gap-2 font-semibold text-xs transition-colors cursor-pointer"
+          >
+            <Compass className="size-4" />
+            <span>Interactive System Tour</span>
+          </button>
+
+          {/* Data Bin Quick Link */}
+          <button
+            type="button"
+            onClick={() => {
+              setIsKebabOpen(false);
+              navigate('/settings/bin');
+            }}
+            className="w-full min-h-[48px] px-3.5 rounded-2xl bg-surface-sunken border border-default text-muted hover:text-default flex items-center gap-2 font-medium text-xs transition-colors cursor-pointer"
+          >
+            <Trash2 className="size-4" />
+            <span>Data Bin & Recovery Vault</span>
+          </button>
+        </div>
+      </MotionActionSheet>
     </header>
   );
 }

@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import {
@@ -23,6 +23,7 @@ import { extractList } from '../../../lib/api/apiData';
 import { SelectDropdown } from '../../../components/ui/Dropdown';
 import { ActionMenuPortal } from '../../../components/ui/ActionMenuPortal';
 import { cn } from '../../../lib/utils';
+import { ResponsiveDataTable, type ResponsiveColumn } from '../../../components/ui/ResponsiveDataTable';
 
 interface CountFormItem {
   product_name: string;
@@ -391,6 +392,118 @@ export function StockCountsSection() {
     }
   };
 
+  const countColumns = useMemo<ResponsiveColumn<StockCount>[]>(() => [
+    {
+      key: 'count_number',
+      header: 'Audit # / Date',
+      priority: 'high',
+      isPrimary: true,
+      render: (c) => (
+        <div>
+          <div className="flex items-center gap-1.5 font-mono font-medium text-default">
+            <ClipboardList className="size-3.5 text-primary" />
+            <span>{c.count_number}</span>
+          </div>
+          <div className="text-[10px] text-muted font-sans mt-0.5">{c.count_date}</div>
+        </div>
+      ),
+    },
+    {
+      key: 'warehouse_name',
+      header: 'Warehouse',
+      priority: 'high',
+      render: (c) => <span className="font-semibold text-default">{c.warehouse_name}</span>,
+    },
+    {
+      key: 'count_type',
+      header: 'Audit Type',
+      priority: 'medium',
+      render: (c) => (
+        <span className="text-muted uppercase font-mono text-[10px]">
+          {c.count_type} Check
+        </span>
+      ),
+    },
+    {
+      key: 'items',
+      header: 'Items Audited',
+      priority: 'medium',
+      render: (c) => (
+        <div>
+          <div className="font-semibold text-default">{c.items?.length || 0} SKU(s) Audited</div>
+          <div className="text-[10px] text-muted truncate max-w-xs">{c.items?.[0]?.product_name}</div>
+        </div>
+      ),
+    },
+    {
+      key: 'status',
+      header: 'Status',
+      priority: 'high',
+      render: (c) => (
+        <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+          {getStatusBadge(c.status, c.items)}
+          <select
+            value={c.status}
+            onChange={(e) => handleStatusChange(c.id, e.target.value as StockCount['status'])}
+            className="text-[10px] bg-transparent text-muted hover:text-default border-0 focus:ring-0 cursor-pointer"
+            title="Change audit state"
+          >
+            <option value="draft">Draft</option>
+            <option value="counting">Counting</option>
+            <option value="completed">Approved &amp; Reconciled</option>
+            <option value="cancelled">Cancelled</option>
+          </select>
+        </div>
+      ),
+    },
+    {
+      key: 'actions',
+      header: 'Actions',
+      align: 'right',
+      priority: 'high',
+      render: (c) => (
+        <div className="flex items-center justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
+          <button
+            type="button"
+            onClick={() => {
+              setActiveCount(c);
+              setShowViewModal(true);
+              void api.get<StockCount>(`/inventory/counts/${c.id}`).then((res) => {
+                if (res.data) setActiveCount(res.data);
+              }).catch(() => {});
+            }}
+            className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-surface hover:bg-surface-sunken border border-default text-default transition-colors cursor-pointer"
+          >
+            View
+          </button>
+
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (openActionMenuId === c.id) {
+                setOpenActionMenuId(null);
+                setActionMenuAnchor(null);
+              } else {
+                setOpenActionMenuId(c.id);
+                setActionMenuAnchor(e.currentTarget);
+              }
+            }}
+            className={cn(
+              'inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold rounded-lg border transition-colors cursor-pointer',
+              openActionMenuId === c.id
+                ? 'bg-primary text-primary-fg border-primary shadow-xs'
+                : 'bg-surface hover:bg-surface-sunken border-default text-default'
+            )}
+          >
+            <span>Actions</span>
+            <ChevronDown className="size-3 text-muted" />
+          </button>
+        </div>
+      ),
+    },
+  ], [openActionMenuId, getStatusBadge, handleStatusChange]);
+
   return (
     <div className="space-y-6">
       {/* Metric Cards */}
@@ -551,130 +664,81 @@ export function StockCountsSection() {
         </div>
       )}
 
-      {/* Counts Table */}
-      <div className="rounded-2xl border border-default bg-surface shadow-2xs overflow-hidden">
-        <div className="overflow-x-auto min-h-75">
-          <table className="w-full text-left text-xs text-default">
-            <thead className="bg-surface-sunken text-[11px] font-semibold text-muted uppercase tracking-wider border-b border-default">
-              <tr>
-                <th className="w-10 px-4 py-3.5 text-center">
-                  <input
-                    ref={headerCheckboxRef}
-                    type="checkbox"
-                    checked={isAllSelected}
-                    onChange={toggleSelectAll}
-                    className="rounded border-default text-primary focus:ring-primary h-4 w-4 cursor-pointer"
-                    aria-label="Select all audits"
-                  />
-                </th>
-                <th className="px-4 py-3.5">Audit # / Date</th>
-                <th className="px-4 py-3.5">Warehouse</th>
-                <th className="px-4 py-3.5">Audit Type</th>
-                <th className="px-4 py-3.5">Items Audited</th>
-                <th className="px-4 py-3.5">Status</th>
-                <th className="px-4 py-3.5 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-default">
-              {filteredCounts.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="px-4 py-12 text-center text-muted">
-                    {isLoading ? 'Loading audits...' : 'No stock count audits found matching your criteria.'}
-                  </td>
-                </tr>
-              ) : (
-                filteredCounts.map((c) => (
-                  <tr
-                    key={c.id}
-                    className={`hover:bg-surface-sunken/60 transition-colors ${
-                      selectedCountIds.has(c.id) ? 'bg-primary/5 dark:bg-primary/10' : ''
-                    }`}
-                  >
-                    <td className="w-10 px-4 py-3 text-center" onClick={(e) => e.stopPropagation()}>
-                      <input
-                        type="checkbox"
-                        checked={selectedCountIds.has(c.id)}
-                        onChange={() => toggleSelectCount(c.id)}
-                        className="rounded border-default text-primary focus:ring-primary h-4 w-4 cursor-pointer"
-                        aria-label={`Select audit ${c.count_number}`}
-                      />
-                    </td>
-                    <td className="px-4 py-3.5 font-mono font-medium text-default">
-                      <div className="flex items-center gap-1.5">
-                        <ClipboardList className="size-3.5 text-primary" />
-                        <span>{c.count_number}</span>
-                      </div>
-                      <div className="text-[10px] text-muted font-sans mt-0.5">{c.count_date}</div>
-                    </td>
-                    <td className="px-4 py-3.5 font-semibold text-default">{c.warehouse_name}</td>
-                    <td className="px-4 py-3.5 text-muted uppercase font-mono text-[10px]">
-                      {c.count_type} Check
-                    </td>
-                    <td className="px-4 py-3.5">
-                      <div className="font-semibold text-default">{c.items?.length || 0} SKU(s) Audited</div>
-                      <div className="text-[10px] text-muted truncate max-w-xs">{c.items?.[0]?.product_name}</div>
-                    </td>
-                    <td className="px-4 py-3.5">
-                      <div className="flex items-center gap-2">
-                        {getStatusBadge(c.status, c.items)}
-                        <select
-                          value={c.status}
-                          onChange={(e) => handleStatusChange(c.id, e.target.value as StockCount['status'])}
-                          className="text-[10px] bg-transparent text-muted hover:text-default border-0 focus:ring-0 cursor-pointer"
-                          title="Change audit state"
-                        >
-                          <option value="draft">Draft</option>
-                          <option value="counting">Counting</option>
-                          <option value="completed">Approved &amp; Reconciled</option>
-                          <option value="cancelled">Cancelled</option>
-                        </select>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3.5 text-right">
-                      <div className="flex items-center justify-end gap-1.5">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setActiveCount(c);
-                            setShowViewModal(true);
-                            void api.get<StockCount>(`/inventory/counts/${c.id}`).then((res) => {
-                              if (res.data) setActiveCount(res.data);
-                            }).catch(() => {});
-                          }}
-                          className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-surface hover:bg-surface-sunken border border-default text-default transition-colors cursor-pointer"
-                        >
-                          View
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (openActionMenuId === c.id) {
-                              setOpenActionMenuId(null);
-                              setActionMenuAnchor(null);
-                            } else {
-                              setOpenActionMenuId(c.id);
-                              setActionMenuAnchor(e.currentTarget);
-                            }
-                          }}
-                          className={cn(
-                            'inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold rounded-lg border transition-colors cursor-pointer',
-                            openActionMenuId === c.id
-                              ? 'bg-primary text-primary-fg border-primary shadow-xs'
-                              : 'bg-surface hover:bg-surface-sunken border-default text-default'
-                          )}
-                        >
-                          <span>Actions</span>
-                          <ChevronDown className="size-3 text-muted" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+      {/* Counts Responsive Data Table */}
+      <ResponsiveDataTable<StockCount>
+        data={filteredCounts}
+        isLoading={isLoading}
+        keyExtractor={(c) => c.id}
+        emptyMessage="No stock count audits found matching your criteria."
+        emptyIcon={ClipboardList}
+        selectedIds={selectedCountIds}
+        onSelectRow={(id) => toggleSelectCount(Number(id))}
+        onSelectAll={toggleSelectAll}
+        mobileCardBreakpoint="sm"
+        mobileActions={(c) => [
+          {
+            id: 'view',
+            label: 'View Audit Breakdown',
+            icon: Eye,
+            onClick: () => {
+              setActiveCount(c);
+              setShowViewModal(true);
+              void api.get<StockCount>(`/inventory/counts/${c.id}`).then((res) => {
+                if (res.data) setActiveCount(res.data);
+              }).catch(() => {});
+            },
+          },
+          {
+            id: 'edit',
+            label: 'Edit Count Figures',
+            icon: Edit2,
+            onClick: () => {
+              setActiveCount(c);
+              setFormData({
+                count_number: c.count_number,
+                warehouse_name: c.warehouse_name || '',
+                count_date: c.count_date,
+                count_type: c.count_type,
+                notes: c.notes || '',
+                items: c.items?.map((it) => ({
+                  product_name: it.product_name || '',
+                  product_sku: it.product_sku || '',
+                  snapshot_quantity: it.snapshot_quantity,
+                  counted_quantity: it.counted_quantity || it.snapshot_quantity,
+                  unit_code: it.unit_code || 'KG',
+                })) || [],
+              });
+              setShowEditModal(true);
+            },
+          },
+          ...(c.status === 'counting' ? [{
+            id: 'reconcile',
+            label: 'Reconcile Variances',
+            icon: CheckCircle2,
+            onClick: () => handleReconcile(c.id),
+          }] : []),
+          {
+            id: 'print',
+            label: 'Print Count Sheet',
+            icon: Printer,
+            onClick: () => {
+              setActiveCount(c);
+              window.print();
+            },
+          },
+          {
+            id: 'delete',
+            label: 'Cancel / Delete Audit',
+            icon: Trash2,
+            variant: 'danger' as const,
+            onClick: () => {
+              setActiveCount(c);
+              setShowDeleteModal(true);
+            },
+          },
+        ]}
+        columns={countColumns}
+      />
 
           {openActionMenuId && (() => {
             const count = filteredCounts.find((x) => x.id === openActionMenuId);
@@ -766,8 +830,6 @@ export function StockCountsSection() {
               </ActionMenuPortal>
             );
           })()}
-        </div>
-      </div>
 
       {/* CREATE COUNT MODAL */}
       {showCreateModal && (

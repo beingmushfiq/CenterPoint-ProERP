@@ -102,8 +102,8 @@ describe('DataBinWorkspace - Enterprise Recovery Vault', () => {
 
     // Verify items appear
     await waitFor(() => {
-      expect(screen.getByText('PO-TEST-101')).toBeInTheDocument();
-      expect(screen.getByText('Vanilla Sponge Cake')).toBeInTheDocument();
+      expect(screen.getAllByText('PO-TEST-101').length).toBeGreaterThanOrEqual(1);
+      expect(screen.getAllByText('Vanilla Sponge Cake').length).toBeGreaterThanOrEqual(1);
     });
   });
 
@@ -119,7 +119,7 @@ describe('DataBinWorkspace - Enterprise Recovery Vault', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText('PO-TEST-101')).toBeInTheDocument();
+      expect(screen.getAllByText('PO-TEST-101').length).toBeGreaterThanOrEqual(1);
     });
 
     // Click restore on first item
@@ -153,7 +153,7 @@ describe('DataBinWorkspace - Enterprise Recovery Vault', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText('PO-TEST-101')).toBeInTheDocument();
+      expect(screen.getAllByText('PO-TEST-101').length).toBeGreaterThanOrEqual(1);
     });
 
     // Click purge on first item
@@ -209,13 +209,13 @@ describe('DataBinWorkspace - Enterprise Recovery Vault', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText('PO-TEST-101')).toBeInTheDocument();
-      expect(screen.getByText('Vanilla Sponge Cake')).toBeInTheDocument();
+      expect(screen.getAllByText('PO-TEST-101').length).toBeGreaterThanOrEqual(1);
+      expect(screen.getAllByText('Vanilla Sponge Cake').length).toBeGreaterThanOrEqual(1);
     });
 
     // Check header checkbox to select all
-    const selectAllCheckbox = screen.getByLabelText('Select all');
-    fireEvent.click(selectAllCheckbox);
+    const selectAllCheckboxes = screen.getAllByLabelText('Select all');
+    fireEvent.click(selectAllCheckboxes[0]!);
 
     // Bulk ribbon appears
     await waitFor(() => {
@@ -257,12 +257,12 @@ describe('DataBinWorkspace - Enterprise Recovery Vault', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText('PO-TEST-101')).toBeInTheDocument();
+      expect(screen.getAllByText('PO-TEST-101').length).toBeGreaterThanOrEqual(1);
     });
 
     // Select first item
-    const itemCheckbox = screen.getByLabelText('Select PO-TEST-101');
-    fireEvent.click(itemCheckbox);
+    const itemCheckboxes = screen.getAllByLabelText('Select PO-TEST-101');
+    fireEvent.click(itemCheckboxes[0]!);
 
     // Ribbon displays 1 selected
     await waitFor(() => {
@@ -301,7 +301,7 @@ describe('DataBinWorkspace - Enterprise Recovery Vault', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText('PO-TEST-101')).toBeInTheDocument();
+      expect(screen.getAllByText('PO-TEST-101').length).toBeGreaterThanOrEqual(1);
     });
 
     // Click purge on first item

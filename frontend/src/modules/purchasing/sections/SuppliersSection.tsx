@@ -28,6 +28,7 @@ import { DestructiveConfirmationDialog } from '../../../components/ui/Destructiv
 import { useCurrency } from '../../../hooks/useCurrency';
 import { cn } from '../../../lib/utils';
 import { ActionMenuPortal } from '../../../components/ui/ActionMenuPortal';
+import { ResponsiveDataTable, type ResponsiveColumn } from '../../../components/ui/ResponsiveDataTable';
 
 export const SuppliersSection: React.FC = () => {
   const { formatCurrency } = useCurrency();
@@ -209,6 +210,202 @@ export const SuppliersSection: React.FC = () => {
     toast.success(`Exported ${dataToExport.length} suppliers to CSV.`);
   };
 
+  const supplierColumns: ResponsiveColumn<Party>[] = useMemo(() => [
+    {
+      id: 'code',
+      header: 'Vendor Code',
+      priority: 'low',
+      accessor: (s) => (
+        <div className="flex items-center gap-1.5">
+          <span className="font-mono font-bold text-default">{s.code}</span>
+          <span className="text-[10px] px-1.5 py-0.5 rounded bg-surface-sunken text-muted border border-default/60 uppercase">
+            {s.type}
+          </span>
+        </div>
+      ),
+    },
+    {
+      id: 'name',
+      header: 'Supplier / Entity Name',
+      isPrimary: true,
+      accessor: (s) => (
+        <div>
+          <div className="font-semibold text-default text-[13px]">{s.name}</div>
+          {s.legal_name && (
+            <div className="text-[11px] text-muted">{s.legal_name}</div>
+          )}
+          {s.tax_identifier && (
+            <div className="text-[10px] font-mono text-muted/80">TIN: {s.tax_identifier}</div>
+          )}
+        </div>
+      ),
+    },
+    {
+      id: 'contact',
+      header: 'Key Contact & Comm',
+      priority: 'medium',
+      accessor: (s) => {
+        const primaryContact = s.contacts?.[0];
+        return (
+          <div className="space-y-0.5">
+            {primaryContact?.name && (
+              <div className="flex items-center gap-1 text-default font-medium">
+                <User className="size-3 text-muted" />
+                <span>{primaryContact.name}</span>
+              </div>
+            )}
+            {s.phone && (
+              <div className="flex items-center gap-1 text-muted text-[11px]">
+                <Phone className="size-3 text-muted" />
+                <a href={`tel:${s.phone}`} className="hover:text-primary transition-colors">
+                  {s.phone}
+                </a>
+              </div>
+            )}
+            {s.email && (
+              <div className="flex items-center gap-1 text-muted text-[11px]">
+                <Mail className="size-3 text-muted" />
+                <a href={`mailto:${s.email}`} className="hover:text-primary transition-colors truncate max-w-[160px]">
+                  {s.email}
+                </a>
+              </div>
+            )}
+          </div>
+        );
+      },
+    },
+    {
+      id: 'location',
+      header: 'Location',
+      priority: 'low',
+      accessor: (s) => {
+        const primaryAddress = s.addresses?.[0];
+        return (
+          <div className="flex items-center gap-1 text-default">
+            <MapPin className="size-3 text-muted shrink-0" />
+            <span>{primaryAddress?.city || '—'}</span>
+            {primaryAddress?.district && (
+              <span className="text-muted text-[11px]">({primaryAddress.district})</span>
+            )}
+          </div>
+        );
+      },
+    },
+    {
+      id: 'credit',
+      header: 'Payment Terms',
+      priority: 'medium',
+      accessor: (s) => (
+        <div>
+          <div className="flex items-center gap-1 text-default font-medium">
+            <Clock className="size-3 text-muted" />
+            <span>Net {s.credit_days ?? 30} Days</span>
+          </div>
+          {parseFloat(s.credit_limit || '0') > 0 && (
+            <div className="text-[11px] font-mono text-muted">
+              Limit: {formatCurrency(s.credit_limit)}
+            </div>
+          )}
+        </div>
+      ),
+    },
+    {
+      id: 'status',
+      header: 'Status',
+      priority: 'medium',
+      accessor: (s) => (
+        <span
+          className={cn(
+            'inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border',
+            s.status === 'active'
+              ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
+              : s.status === 'blacklisted'
+              ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20'
+              : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20'
+          )}
+        >
+          <span
+            className={cn(
+              'size-1.5 rounded-full',
+              s.status === 'active'
+                ? 'bg-emerald-500'
+                : s.status === 'blacklisted'
+                ? 'bg-rose-500'
+                : 'bg-amber-500'
+            )}
+          />
+          {s.status}
+        </span>
+      ),
+    },
+    {
+      id: 'actions',
+      header: 'Actions',
+      align: 'right',
+      priority: 'low',
+      accessor: (s) => (
+        <div className="flex items-center justify-end gap-1">
+          <button
+            type="button"
+            onClick={() => {
+              setEditingSupplier(s);
+              setShowCreateModal(true);
+            }}
+            className="flex size-7 items-center justify-center rounded-lg border border-default bg-surface hover:bg-surface-sunken text-muted hover:text-default transition-colors cursor-pointer touch-target"
+            title="Edit Supplier"
+          >
+            <Edit2 className="size-3.5" />
+          </button>
+          <button
+            type="button"
+            onClick={(e) => {
+              if (activeMenuId === s.id) {
+                setActiveMenuId(null);
+                setActionMenuAnchor(null);
+              } else {
+                setActiveMenuId(s.id);
+                setActionMenuAnchor(e.currentTarget);
+              }
+            }}
+            className="flex size-7 items-center justify-center rounded-lg border border-default bg-surface hover:bg-surface-sunken text-muted hover:text-default transition-colors cursor-pointer touch-target"
+            title="More Actions"
+          >
+            <MoreVertical className="size-3.5" />
+          </button>
+        </div>
+      ),
+    },
+  ], [formatCurrency, activeMenuId]);
+
+  const getMobileActions = (s: Party) => [
+    {
+      label: 'Edit Profile...',
+      icon: <Edit2 className="size-4" />,
+      onClick: () => {
+        setEditingSupplier(s);
+        setShowCreateModal(true);
+      },
+    },
+    {
+      label: 'Move to Data Bin',
+      icon: <Trash2 className="size-4 text-amber-500" />,
+      variant: 'warning' as const,
+      onClick: () => {
+        setDeletingSupplier(s);
+        setIsPermanentDelete(false);
+      },
+    },
+    {
+      label: 'Delete Permanently',
+      icon: <Trash2 className="size-4 text-rose-500" />,
+      variant: 'destructive' as const,
+      onClick: () => {
+        setDeletingSupplier(s);
+        setIsPermanentDelete(true);
+      },
+    },
+  ];
+
   return (
     <div className="space-y-6 pb-20">
       {/* SECTION HEADER & KPIS */}
@@ -310,216 +507,44 @@ export const SuppliersSection: React.FC = () => {
         </div>
       </div>
 
-      {/* SUPPLIER MASTER TABLE */}
-      <div className="rounded-2xl border border-default bg-surface shadow-xs overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse text-xs">
-            <thead>
-              <tr className="border-b border-default bg-surface-raised/50 text-[11px] font-bold text-muted uppercase tracking-wider">
-                <th className="py-3 px-4 w-10 text-center">
-                  <input
-                    type="checkbox"
-                    checked={filteredSuppliers.length > 0 && selectedIds.size === filteredSuppliers.length}
-                    onChange={toggleSelectAll}
-                    className="rounded border-default text-primary focus:ring-primary size-3.5 cursor-pointer"
-                  />
-                </th>
-                <th className="py-3 px-4">Vendor Code</th>
-                <th className="py-3 px-4">Supplier / Entity Name</th>
-                <th className="py-3 px-4">Key Contact & Comm</th>
-                <th className="py-3 px-4">Location</th>
-                <th className="py-3 px-4">Payment Terms</th>
-                <th className="py-3 px-4">Status</th>
-                <th className="py-3 px-4 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-default">
-              {isLoading ? (
-                <tr>
-                  <td colSpan={8} className="py-12 text-center text-muted">
-                    <RefreshCw className="size-6 animate-spin mx-auto mb-2 text-primary" />
-                    <span>Loading supplier directory...</span>
-                  </td>
-                </tr>
-              ) : filteredSuppliers.length === 0 ? (
-                <tr>
-                  <td colSpan={8} className="py-12 text-center text-muted">
-                    <Building2 className="size-8 mx-auto mb-2 opacity-40 text-muted" />
-                    <p className="font-semibold text-default text-sm">No suppliers found</p>
-                    <p className="text-xs text-muted mt-1">
-                      {search ? 'Try adjusting your search filters.' : 'Get started by creating your first supplier profile.'}
-                    </p>
-                    {!search && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setEditingSupplier(null);
-                          setShowCreateModal(true);
-                        }}
-                        className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-primary text-primary-fg text-xs font-semibold cursor-pointer"
-                      >
-                        <Plus className="size-3.5" />
-                        Create Supplier
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ) : (
-                filteredSuppliers.map((supplier) => {
-                  const isSelected = selectedIds.has(supplier.id);
-                  const primaryContact = supplier.contacts?.[0];
-                  const primaryAddress = supplier.addresses?.[0];
-
-                  return (
-                    <tr
-                      key={supplier.id}
-                      className={cn(
-                        'hover:bg-surface-sunken/40 transition-colors',
-                        isSelected && 'bg-primary/5'
-                      )}
-                    >
-                      <td className="py-3.5 px-4 text-center">
-                        <input
-                          type="checkbox"
-                          checked={isSelected}
-                          onChange={() => toggleSelect(supplier.id)}
-                          className="rounded border-default text-primary focus:ring-primary size-3.5 cursor-pointer"
-                        />
-                      </td>
-
-                      <td className="py-3.5 px-4">
-                        <div className="flex items-center gap-1.5">
-                          <span className="font-mono font-bold text-default">{supplier.code}</span>
-                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-surface-sunken text-muted border border-default/60 uppercase">
-                            {supplier.type}
-                          </span>
-                        </div>
-                      </td>
-
-                      <td className="py-3.5 px-4">
-                        <div className="font-semibold text-default text-[13px]">{supplier.name}</div>
-                        {supplier.legal_name && (
-                          <div className="text-[11px] text-muted">{supplier.legal_name}</div>
-                        )}
-                        {supplier.tax_identifier && (
-                          <div className="text-[10px] font-mono text-muted/80">TIN: {supplier.tax_identifier}</div>
-                        )}
-                      </td>
-
-                      <td className="py-3.5 px-4">
-                        <div className="space-y-0.5">
-                          {primaryContact?.name && (
-                            <div className="flex items-center gap-1 text-default font-medium">
-                              <User className="size-3 text-muted" />
-                              <span>{primaryContact.name}</span>
-                            </div>
-                          )}
-                          {supplier.phone && (
-                            <div className="flex items-center gap-1 text-muted text-[11px]">
-                              <Phone className="size-3 text-muted" />
-                              <a href={`tel:${supplier.phone}`} className="hover:text-primary transition-colors">
-                                {supplier.phone}
-                              </a>
-                            </div>
-                          )}
-                          {supplier.email && (
-                            <div className="flex items-center gap-1 text-muted text-[11px]">
-                              <Mail className="size-3 text-muted" />
-                              <a href={`mailto:${supplier.email}`} className="hover:text-primary transition-colors truncate max-w-[160px]">
-                                {supplier.email}
-                              </a>
-                            </div>
-                          )}
-                        </div>
-                      </td>
-
-                      <td className="py-3.5 px-4">
-                        <div className="flex items-center gap-1 text-default">
-                          <MapPin className="size-3 text-muted shrink-0" />
-                          <span>{primaryAddress?.city || '—'}</span>
-                          {primaryAddress?.district && (
-                            <span className="text-muted text-[11px]">({primaryAddress.district})</span>
-                          )}
-                        </div>
-                      </td>
-
-                      <td className="py-3.5 px-4">
-                        <div className="flex items-center gap-1 text-default font-medium">
-                          <Clock className="size-3 text-muted" />
-                          <span>Net {supplier.credit_days ?? 30} Days</span>
-                        </div>
-                        {parseFloat(supplier.credit_limit || '0') > 0 && (
-                          <div className="text-[11px] font-mono text-muted">
-                            Limit: {formatCurrency(supplier.credit_limit)}
-                          </div>
-                        )}
-                      </td>
-
-                      <td className="py-3.5 px-4">
-                        <span
-                          className={cn(
-                            'inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border',
-                            supplier.status === 'active'
-                              ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
-                              : supplier.status === 'blacklisted'
-                              ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20'
-                              : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20'
-                          )}
-                        >
-                          <span
-                            className={cn(
-                              'size-1.5 rounded-full',
-                              supplier.status === 'active'
-                                ? 'bg-emerald-500'
-                                : supplier.status === 'blacklisted'
-                                ? 'bg-rose-500'
-                                : 'bg-amber-500'
-                            )}
-                          />
-                          {supplier.status}
-                        </span>
-                      </td>
-
-                      <td className="py-3.5 px-4 text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setEditingSupplier(supplier);
-                              setShowCreateModal(true);
-                            }}
-                            className="flex size-7 items-center justify-center rounded-lg border border-default bg-surface hover:bg-surface-sunken text-muted hover:text-default transition-colors cursor-pointer"
-                            title="Edit Supplier"
-                          >
-                            <Edit2 className="size-3.5" />
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              if (activeMenuId === supplier.id) {
-                                setActiveMenuId(null);
-                                setActionMenuAnchor(null);
-                              } else {
-                                setActiveMenuId(supplier.id);
-                                setActionMenuAnchor(e.currentTarget);
-                              }
-                            }}
-                            className="flex size-7 items-center justify-center rounded-lg border border-default bg-surface hover:bg-surface-sunken text-muted hover:text-default transition-colors cursor-pointer"
-                            title="More Actions"
-                          >
-                            <MoreVertical className="size-3.5" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      {/* SUPPLIER MASTER RESPONSIVE DATA TABLE */}
+      <ResponsiveDataTable<Party>
+        data={filteredSuppliers}
+        columns={supplierColumns}
+        keyExtractor={(s) => s.id}
+        isLoading={isLoading}
+        loadingRows={6}
+        selectedIds={selectedIds}
+        onSelectRow={(id) => toggleSelect(String(id))}
+        onSelectAll={toggleSelectAll}
+        mobileActions={getMobileActions}
+        isFiltered={Boolean(search || statusFilter !== 'all')}
+        searchEmptyState={
+          <div className="py-12 text-center text-muted">
+            <Building2 className="size-8 mx-auto mb-2 opacity-40 text-muted" />
+            <p className="font-semibold text-default text-sm">No suppliers match your filters</p>
+            <p className="text-xs text-muted mt-1">Try adjusting your search query or reset status filter.</p>
+          </div>
+        }
+        emptyState={
+          <div className="py-12 text-center text-muted">
+            <Building2 className="size-8 mx-auto mb-2 opacity-40 text-muted" />
+            <p className="font-semibold text-default text-sm">No suppliers found</p>
+            <p className="text-xs text-muted mt-1">Get started by creating your first supplier profile.</p>
+            <button
+              type="button"
+              onClick={() => {
+                setEditingSupplier(null);
+                setShowCreateModal(true);
+              }}
+              className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-primary text-primary-fg text-xs font-semibold cursor-pointer"
+            >
+              <Plus className="size-3.5" />
+              Create Supplier
+            </button>
+          </div>
+        }
+      />
 
       {/* ACTION MENU PORTAL FOR ROW ACTIONS */}
       {activeMenuId && actionMenuAnchor && (() => {

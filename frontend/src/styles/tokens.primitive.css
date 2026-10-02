@@ -232,4 +232,20 @@
   --shadow-md: 0 4px 12px -2px rgb(2 6 23 / 0.1), 0 2px 4px -2px rgb(2 6 23 / 0.06);
   --shadow-lg: 0 12px 24px -6px rgb(2 6 23 / 0.12), 0 4px 8px -4px rgb(2 6 23 / 0.08);
   --shadow-overlay: 0 25px 50px -12px rgb(2 6 23 / 0.25);
+
+  /* ─── Unified Breakpoint Matrix Scale ──────────────────────────────────────
+     xs: Ultra-Compact (320px–360px)
+     sm: Standard Mobile (361px–639px)
+     md: Small Tablet / Fold (640px–767px)
+     lg: Tablet Landscape (768px–1023px)
+     xl: Laptop / Desktop (1024px–1439px)
+     2xl+: Ultrawide & 4K (1440px–3840px)
+     ──────────────────────────────────────────────────────────────────────── */
+  --breakpoint-xs: 320px;
+  --breakpoint-sm: 361px;
+  --breakpoint-md: 640px;
+  --breakpoint-lg: 768px;
+  --breakpoint-xl: 1024px;
+  --breakpoint-2xl: 1440px;
+  --breakpoint-3xl: 1920px;
 }

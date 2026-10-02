@@ -437,3 +437,23 @@ html.dark .storefront-rich-content td,
   border-color: #27272a !important;
 }
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   UNIFIED FLUID CONTAINER & TOUCH ERGONOMICS UTILITIES
+   ─────────────────────────────────────────────────────────────────────────── */
+@utility container-fluid {
+  width: 100%;
+  max-width: 100%;
+  padding-left: clamp(1rem, 2.5vw, 2.5rem);
+  padding-right: clamp(1rem, 2.5vw, 2.5rem);
+}
+
+@utility touch-target {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+@utility touch-target-pos {
+  min-height: 52px;
+  min-width: 52px;
+}
+

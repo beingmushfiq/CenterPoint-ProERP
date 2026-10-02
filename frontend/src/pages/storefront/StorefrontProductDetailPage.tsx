@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useOutletContext, useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, Minus, Package, Plus, ShoppingBag, ShieldCheck, ChevronLeft, ChevronRight, Share2, Check, Heart, Zap } from 'lucide-react';
+import { ArrowLeft, Minus, Package, Plus, ShoppingBag, ShieldCheck, ChevronLeft, ChevronRight, Share2, Check, Heart, Zap, MessageCircle } from 'lucide-react';
 import { api } from '../../lib/api/client';
 import { useStorefrontCartStore } from '../../lib/storefront/storefrontCartStore';
 import { useStorefrontWishlistStore } from '../../lib/storefront/storefrontWishlistStore';
@@ -55,6 +55,40 @@ export const StorefrontProductDetailPage: React.FC = () => {
     } catch {
       notify.error('Failed to proceed to checkout');
     }
+  };
+
+  const handleWhatsAppOrder = async () => {
+    if (!product) return;
+    try {
+      const res = await api.post<{ data: { whatsapp_url: string } }>(
+        '/storefront/whatsapp/order-link',
+        {
+          product_id: product.id,
+          quantity,
+        },
+        {
+          headers: {
+            'X-Storefront-Subdomain': subdomain,
+          },
+        }
+      );
+      const whatsappPayload = res.data as unknown;
+      const whatsappUrl =
+        (whatsappPayload as { whatsapp_url?: string })?.whatsapp_url ??
+        (whatsappPayload as { data?: { whatsapp_url?: string } })?.data?.whatsapp_url;
+      if (whatsappUrl) {
+        window.open(whatsappUrl, '_blank');
+        return;
+      }
+    } catch {
+      // Fallback
+    }
+    const text = encodeURIComponent(
+      `Hello ${config?.name ?? 'Storefront'}, I would like to order ${quantity}x ${product.name} (${formatCurrency(
+        parseFloat(price) * quantity
+      )}).`
+    );
+    window.open(`https://wa.me/${config?.whatsapp_number?.replace(/[^0-9]/g, '') || '8801700000000'}?text=${text}`, '_blank');
   };
 
   useEffect(() => {
@@ -174,7 +208,7 @@ export const StorefrontProductDetailPage: React.FC = () => {
 
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto pb-20 md:pb-6">
+    <div className="space-y-6 max-w-5xl mx-auto pb-28 md:pb-8">
       <SeoHead
         title={product.seo?.title || product.name}
         description={product.seo?.description || stripHtml(product.description) || ''}
@@ -491,37 +525,7 @@ export const StorefrontProductDetailPage: React.FC = () => {
             {/* Direct WhatsApp Ordering */}
             <button
               type="button"
-              onClick={async () => {
-                try {
-                  const res = await api.post<{ data: { whatsapp_url: string } }>(
-                    '/storefront/whatsapp/order-link',
-                    {
-                      product_id: product.id,
-                      quantity,
-                    },
-                    {
-                      headers: {
-                        'X-Storefront-Subdomain': subdomain,
-                      },
-                    }
-                  );
-                  const whatsappPayload = res.data as unknown;
-                  const whatsappUrl =
-                    (whatsappPayload as { whatsapp_url?: string })?.whatsapp_url ??
-                    (whatsappPayload as { data?: { whatsapp_url?: string } })?.data?.whatsapp_url;
-                  if (whatsappUrl) {
-                    window.open(whatsappUrl, '_blank');
-                  }
-                } catch {
-                  // Fallback
-                  const text = encodeURIComponent(
-                    `Hello ${config?.name ?? 'Storefront'}, I would like to order ${quantity}x ${product.name} (${formatCurrency(
-                      parseFloat(price) * quantity
-                    )}).`
-                  );
-                  window.open(`https://wa.me/${config?.whatsapp_number?.replace(/[^0-9]/g, '') || '8801700000000'}?text=${text}`, '_blank');
-                }
-              }}
+              onClick={handleWhatsAppOrder}
               style={{
                 backgroundColor: 'var(--store-primary-subtle, rgba(16,185,129,0.1))',
                 borderColor: 'var(--store-primary-border, rgba(16,185,129,0.3))',
@@ -529,54 +533,49 @@ export const StorefrontProductDetailPage: React.FC = () => {
               }}
               className="w-full flex items-center justify-center gap-2 rounded-xl border py-3 text-xs font-bold transition-all shadow-xs cursor-pointer hover:opacity-90"
             >
-              <span>{t('storefront.instantOrderWhatsApp')}</span>
+              <MessageCircle className="size-4" />
+              <span>{t('storefront.instantOrderWhatsApp', 'Order via WhatsApp')}</span>
             </button>
           </div>
         </div>
       </div>
 
-      {/* Sticky Mobile Add-to-Cart & WhatsApp Action Bar for High Ad Conversions */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-white/95 dark:bg-zinc-950/95 backdrop-blur-md border-t border-slate-200 dark:border-zinc-800 p-3 pb-safe shadow-2xl flex items-center justify-between gap-3 animate-in slide-in-from-bottom-2">
-        <div className="flex items-center gap-2.5 min-w-0">
-          {activeImage && (
-            <img src={activeImage} alt={product.name} className="size-10 rounded-lg object-contain bg-slate-100 dark:bg-zinc-900 shrink-0" />
-          )}
-          <div className="min-w-0">
-            <div className="text-xs font-bold text-slate-900 dark:text-white truncate">{product.name}</div>
-            <div
-              style={{ color: 'var(--store-primary, #10b981)' }}
-              className="text-xs font-extrabold font-mono"
-            >
-              {currency} {price}
-            </div>
-          </div>
-        </div>
+      {/* Sticky Mobile Add-to-Cart & WhatsApp Action Bar (Steering Choice #8: WhatsApp + Add to Cart + Buy Now) */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-zinc-950/95 backdrop-blur-md border-t border-slate-200 dark:border-zinc-800 p-2.5 pb-safe shadow-2xl flex items-center gap-2 animate-in slide-in-from-bottom-2">
+        {/* WhatsApp direct order */}
+        <button
+          type="button"
+          onClick={handleWhatsAppOrder}
+          className="size-11 min-w-[44px] min-h-[44px] rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 flex items-center justify-center shrink-0 hover:bg-emerald-500/20 transition-colors cursor-pointer touch-target"
+          title={t('storefront.instantOrderWhatsApp', 'Order via WhatsApp')}
+          aria-label="WhatsApp Order"
+        >
+          <MessageCircle className="size-5" />
+        </button>
 
-        <div className="flex items-center gap-2 shrink-0">
-          <button
-            type="button"
-            onClick={handleAddToCart}
-            style={{
-              backgroundColor: 'var(--store-primary, #10b981)',
-              color: 'var(--store-primary-fg, #ffffff)',
-            }}
-            className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-extrabold shadow-md active:scale-95 cursor-pointer hover:opacity-90"
-          >
-            <ShoppingBag className="size-3.5 stroke-[2.5]" />
-            <span>{t('common.add', 'Add')}</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              const text = encodeURIComponent(`Hello ${config?.name ?? 'Storefront'}, I would like to order ${product.name}.`);
-              window.open(`https://wa.me/${config?.whatsapp_number?.replace(/[^0-9]/g, '') || '8801700000000'}?text=${text}`, '_blank');
-            }}
-            className="flex items-center justify-center size-9 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 cursor-pointer"
-            title="Order via WhatsApp"
-          >
-            💬
-          </button>
-        </div>
+        {/* Add to Cart */}
+        <button
+          type="button"
+          onClick={handleAddToCart}
+          className="flex-1 min-h-[44px] px-3 py-2 rounded-xl border border-slate-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-slate-800 dark:text-zinc-200 text-xs font-bold flex items-center justify-center gap-1.5 shadow-2xs hover:bg-slate-50 dark:hover:bg-zinc-800 transition-all cursor-pointer active:scale-95 touch-target"
+        >
+          <ShoppingBag className="size-4 shrink-0" />
+          <span className="truncate">{t('storefront.addToCart', 'Add')}</span>
+        </button>
+
+        {/* Buy Now (Direct Checkout) */}
+        <button
+          type="button"
+          onClick={handleOrderNow}
+          style={{
+            backgroundColor: 'var(--store-primary, #10b981)',
+            color: 'var(--store-primary-fg, #ffffff)',
+          }}
+          className="flex-1 min-h-[44px] px-3 py-2 rounded-xl text-xs font-extrabold flex items-center justify-center gap-1.5 shadow-md hover:opacity-90 transition-all cursor-pointer active:scale-95 touch-target"
+        >
+          <Zap className="size-4 shrink-0 fill-current" />
+          <span className="truncate">{t('orderNow', 'Buy Now')}</span>
+        </button>
       </div>
 
 

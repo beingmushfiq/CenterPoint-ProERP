@@ -21,6 +21,7 @@ import { SelectDropdown } from '../../../components/ui/Dropdown';
 import { StatusBadge } from '../../../components/ui/Badge';
 import { QueryBoundary } from '../../../components/patterns/QueryBoundary';
 import { ActionMenuPortal } from '../../../components/ui/ActionMenuPortal';
+import { ResponsiveDataTable, type ResponsiveColumn } from '../../../components/ui/ResponsiveDataTable';
 import { isApiError } from '../../../lib/api/errors';
 import { UniversalImportModal } from '../../../components/import/UniversalImportModal';
 import { pieceRateLogImportSchema } from '../schemas/pieceRateLogImportSchema';
@@ -451,6 +452,297 @@ export function WorkerProductionSection() {
     URL.revokeObjectURL(url);
   };
 
+  const entryColumns: ResponsiveColumn<WorkerProductionEntry>[] = useMemo(() => [
+    {
+      id: 'select',
+      header: (
+        <input
+          ref={headerCheckboxRef}
+          type="checkbox"
+          checked={isAllSelected}
+          onChange={toggleSelectAll}
+          aria-label="Select all entries"
+          className="size-4 rounded border-default text-primary focus:ring-primary/20 cursor-pointer"
+        />
+      ),
+      className: 'w-10 text-center',
+      accessor: (entry) => (
+        <div onClick={(e) => e.stopPropagation()}>
+          <input
+            type="checkbox"
+            checked={selectedEntryIds.has(entry.id)}
+            onChange={() => toggleSelectEntry(entry.id)}
+            aria-label={`Select entry for ${entry.employee_name ?? entry.employee_id}`}
+            className="size-4 rounded border-default text-primary focus:ring-primary/20 cursor-pointer"
+          />
+        </div>
+      ),
+    },
+    {
+      id: 'worker',
+      header: 'Worker',
+      isPrimary: true,
+      accessor: (entry) => (
+        <div className="whitespace-nowrap">
+          <div className="font-semibold text-default flex items-center gap-1.5" title={entry.employee_name ?? entry.employee_id}>
+            <UserCheck className="size-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+            <span>{entry.employee_name ?? entry.employee_id}</span>
+          </div>
+          {entry.employee_code && (
+            <div className="text-[10px] text-muted font-mono mt-0.5">{entry.employee_code}</div>
+          )}
+        </div>
+      ),
+    },
+    {
+      id: 'batch_product',
+      header: 'Batch & Product',
+      accessor: (entry) => (
+        <div>
+          <div className="font-mono font-medium text-primary whitespace-nowrap">
+            {entry.batch_number ?? entry.batch_id}
+          </div>
+          <div className="text-[10px] text-muted mt-0.5" title={entry.product_name ?? entry.product_id}>
+            {entry.product_name ?? entry.product_id}
+          </div>
+        </div>
+      ),
+    },
+    {
+      id: 'shift_date',
+      header: 'Shift & Date',
+      priority: 'medium',
+      accessor: (entry) => (
+        <div className="whitespace-nowrap">
+          <div className="font-medium text-default text-xs">{formatDateDisplay(entry.work_date)}</div>
+          <div className="text-[10px] uppercase font-semibold text-muted mt-0.5">
+            {formatShiftDisplay(entry.shift)}
+          </div>
+        </div>
+      ),
+    },
+    {
+      id: 'quantities',
+      header: 'Good / Rew / Rej',
+      align: 'center',
+      priority: 'medium',
+      accessor: (entry) => (
+        <div className="font-mono text-center whitespace-nowrap">
+          <span className="text-emerald-600 dark:text-emerald-400 font-bold">{entry.good_quantity}</span>
+          <span className="text-muted/60"> / </span>
+          <span className="text-amber-600 dark:text-amber-400 font-medium">{entry.rework_quantity}</span>
+          <span className="text-muted/60"> / </span>
+          <span className="text-rose-600 dark:text-rose-400 font-medium">{entry.rejected_quantity}</span>
+        </div>
+      ),
+    },
+    {
+      id: 'earned',
+      header: 'Earned',
+      align: 'right',
+      priority: 'medium',
+      accessor: (entry) => (
+        <div className="font-mono text-default font-bold text-right whitespace-nowrap">
+          {entry.total_earned
+            ? formatCurrency(Number(entry.total_earned))
+            : formatCurrency(Number(entry.good_quantity || 0) * Number(entry.piece_rate || 2.5))}
+        </div>
+      ),
+    },
+    {
+      id: 'status',
+      header: 'Status',
+      align: 'center',
+      priority: 'medium',
+      accessor: (entry) => <StatusBadge status={entry.status} />,
+    },
+    {
+      id: 'actions',
+      header: 'Actions',
+      align: 'right',
+      priority: 'low',
+      accessor: (entry) => (
+        <div className="flex items-center justify-end gap-1.5 relative">
+          {entry.status === 'draft' ? (
+            <button
+              type="button"
+              onClick={() => verifyMutation.mutate(entry.id)}
+              disabled={verifyMutation.isPending}
+              className="px-2.5 py-1 text-xs bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700 hover:bg-emerald-100 rounded-lg font-bold transition cursor-pointer flex items-center gap-1 shadow-2xs touch-target"
+              title="Verify and Lock Entry"
+            >
+              <ShieldCheck className="size-3 text-emerald-600 dark:text-emerald-400 shrink-0" />
+              <span>Verify</span>
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => {
+                setEditDraft({
+                  id: entry.id,
+                  worker_name: entry.employee_name,
+                  batch_number: entry.batch_number,
+                  product_name: entry.product_name,
+                  good_quantity: entry.good_quantity,
+                  rework_quantity: entry.rework_quantity,
+                  rejected_quantity: entry.rejected_quantity,
+                  piece_rate: entry.piece_rate || '2.5000',
+                  hours_worked: entry.hours_worked || '',
+                  wage_type: entry.wage_type || 'piece_rate',
+                });
+                setEditErrorMsg(null);
+              }}
+              className="px-2.5 py-1 text-xs bg-surface border border-default hover:bg-surface-sunken text-default rounded-lg font-medium transition cursor-pointer flex items-center gap-1 shadow-2xs touch-target"
+              title="Edit Worker Entry"
+            >
+              <Edit3 className="size-3 text-primary shrink-0" />
+              <span>Edit</span>
+            </button>
+          )}
+
+          <div className="relative inline-block text-left">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (openActionMenuId === entry.id) {
+                  setOpenActionMenuId(null);
+                  setActionMenuAnchor(null);
+                } else {
+                  setOpenActionMenuId(entry.id);
+                  setActionMenuAnchor(e.currentTarget);
+                }
+              }}
+              className={`px-2 py-1 text-xs rounded-lg border font-medium transition cursor-pointer flex items-center gap-1 shadow-2xs touch-target ${
+                openActionMenuId === entry.id
+                  ? 'border-primary bg-primary/10 text-primary'
+                  : 'border-default bg-surface hover:bg-surface-sunken text-default'
+              }`}
+              title="More actions for entry"
+              aria-label="More options for worker entry"
+            >
+              <span>Actions</span>
+              <ChevronDown className="size-3 text-muted" />
+            </button>
+
+            <ActionMenuPortal
+              isOpen={openActionMenuId === entry.id}
+              anchorEl={actionMenuAnchor}
+              onClose={() => {
+                setOpenActionMenuId(null);
+                setActionMenuAnchor(null);
+              }}
+              width={192}
+            >
+              <button
+                type="button"
+                onClick={() => {
+                  setOpenActionMenuId(null);
+                  setActionMenuAnchor(null);
+                  setEditDraft({
+                    id: entry.id,
+                    worker_name: entry.employee_name,
+                    batch_number: entry.batch_number,
+                    product_name: entry.product_name,
+                    good_quantity: entry.good_quantity,
+                    rework_quantity: entry.rework_quantity,
+                    rejected_quantity: entry.rejected_quantity,
+                    piece_rate: entry.piece_rate || '2.5000',
+                    hours_worked: entry.hours_worked || '',
+                    wage_type: entry.wage_type || 'piece_rate',
+                  });
+                  setEditErrorMsg(null);
+                }}
+                className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs text-default hover:bg-surface-sunken transition-colors cursor-pointer"
+              >
+                <Edit3 className="size-3.5 text-primary shrink-0" />
+                <span>Edit Quantities</span>
+              </button>
+
+              {entry.status === 'draft' && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOpenActionMenuId(null);
+                    setActionMenuAnchor(null);
+                    verifyMutation.mutate(entry.id);
+                  }}
+                  disabled={verifyMutation.isPending}
+                  className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 transition-colors cursor-pointer"
+                >
+                  <ShieldCheck className="size-3.5 text-emerald-600 shrink-0" />
+                  <span>Verify and Lock</span>
+                </button>
+              )}
+
+              <div className="my-1 border-t border-default/50" />
+              <button
+                type="button"
+                onClick={() => {
+                  setOpenActionMenuId(null);
+                  setActionMenuAnchor(null);
+                  setDeleteConfirm({
+                    open: true,
+                    id: entry.id,
+                    name: `${entry.employee_name ?? 'Worker'} (${entry.good_quantity} units)`,
+                  });
+                }}
+                className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer"
+              >
+                <Trash2 className="size-3.5 text-rose-600 shrink-0" />
+                <span>Delete Entry</span>
+              </button>
+            </ActionMenuPortal>
+          </div>
+        </div>
+      ),
+    },
+  ], [isAllSelected, selectedEntryIds, openActionMenuId, actionMenuAnchor, verifyMutation.isPending, formatCurrency]);
+
+  const getMobileActions = (entry: WorkerProductionEntry) => {
+    const actions = [
+      {
+        label: 'Edit Quantities',
+        icon: <Edit3 className="size-4 text-primary" />,
+        onClick: () => {
+          setEditDraft({
+            id: entry.id,
+            worker_name: entry.employee_name,
+            batch_number: entry.batch_number,
+            product_name: entry.product_name,
+            good_quantity: entry.good_quantity,
+            rework_quantity: entry.rework_quantity,
+            rejected_quantity: entry.rejected_quantity,
+            piece_rate: entry.piece_rate || '2.5000',
+            hours_worked: entry.hours_worked || '',
+            wage_type: entry.wage_type || 'piece_rate',
+          });
+          setEditErrorMsg(null);
+        },
+      },
+    ];
+    if (entry.status === 'draft') {
+      actions.push({
+        label: 'Verify and Lock',
+        icon: <ShieldCheck className="size-4 text-emerald-500" />,
+        onClick: () => verifyMutation.mutate(entry.id),
+      });
+    }
+    actions.push({
+      label: 'Delete Entry',
+      icon: <Trash2 className="size-4 text-rose-500" />,
+      variant: 'destructive' as const,
+      onClick: () => {
+        setDeleteConfirm({
+          open: true,
+          id: entry.id,
+          name: `${entry.employee_name ?? 'Worker'} (${entry.good_quantity} units)`,
+        });
+      },
+    });
+    return actions;
+  };
+
   return (
     <div className="space-y-6">
       {/* KPI Stats Summary Bar */}
@@ -637,245 +929,17 @@ export function WorkerProductionSection() {
         data={entriesQuery.data}
         isFetching={entriesQuery.isFetching}
       >
-        <div className="overflow-hidden rounded-2xl border border-default bg-surface shadow-2xs">
-          <div className="overflow-x-auto min-h-75">
-            <table className="w-full text-left text-xs text-default border-collapse">
-              <thead className="border-b border-default bg-surface-sunken text-[11px] font-semibold uppercase tracking-wider text-muted">
-                <tr>
-                  <th className="w-10 px-4 py-3.5 text-center">
-                    <input
-                      ref={headerCheckboxRef}
-                      type="checkbox"
-                      checked={isAllSelected}
-                      onChange={toggleSelectAll}
-                      aria-label="Select all entries"
-                      className="size-4 rounded border-default text-primary focus:ring-primary/20 cursor-pointer"
-                    />
-                  </th>
-                  <th className="px-4 py-3.5 whitespace-nowrap">Worker</th>
-                  <th className="px-4 py-3.5">Batch & Product</th>
-                  <th className="px-4 py-3.5 whitespace-nowrap">Shift & Date</th>
-                  <th className="px-4 py-3.5 text-center whitespace-nowrap">Good / Rew / Rej</th>
-                  <th className="px-4 py-3.5 text-right whitespace-nowrap">Earned</th>
-                  <th className="px-4 py-3.5 text-center whitespace-nowrap">Status</th>
-                  <th className="px-4 py-3.5 text-right whitespace-nowrap">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-default">
-                {entries.length === 0 ? (
-                  <tr>
-                    <td colSpan={8} className="py-12 text-center text-muted">
-                      <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-xl bg-surface-sunken border border-default mb-2">
-                        <Users className="h-5 w-5 text-muted" />
-                      </div>
-                      <div className="text-sm font-medium text-default">
-                        No worker production entries found
-                      </div>
-                      <div className="text-xs text-muted mt-1">
-                        Log daily worker unit output on the shop floor.
-                      </div>
-                    </td>
-                  </tr>
-                ) : (
-                  entries.map((entry) => (
-                    <tr
-                      key={entry.id}
-                      className={`hover:bg-surface-sunken/60 transition-colors ${
-                        selectedEntryIds.has(entry.id) ? 'bg-primary/5' : ''
-                      }`}
-                    >
-                      <td className="w-10 px-4 py-3.5 text-center" onClick={(e) => e.stopPropagation()}>
-                        <input
-                          type="checkbox"
-                          checked={selectedEntryIds.has(entry.id)}
-                          onChange={() => toggleSelectEntry(entry.id)}
-                          aria-label={`Select entry for ${entry.employee_name ?? entry.employee_id}`}
-                          className="size-4 rounded border-default text-primary focus:ring-primary/20 cursor-pointer"
-                        />
-                      </td>
-                      <td className="px-4 py-3.5 whitespace-nowrap">
-                        <div className="font-semibold text-default flex items-center gap-1.5" title={entry.employee_name ?? entry.employee_id}>
-                          <UserCheck className="size-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                          <span>{entry.employee_name ?? entry.employee_id}</span>
-                        </div>
-                        {entry.employee_code && (
-                          <div className="text-[10px] text-muted font-mono mt-0.5">{entry.employee_code}</div>
-                        )}
-                      </td>
-                      <td className="px-4 py-3.5">
-                        <div className="font-mono font-medium text-primary whitespace-nowrap">
-                          {entry.batch_number ?? entry.batch_id}
-                        </div>
-                        <div className="text-[10px] text-muted mt-0.5" title={entry.product_name ?? entry.product_id}>
-                          {entry.product_name ?? entry.product_id}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3.5 text-muted whitespace-nowrap">
-                        <div className="font-medium text-default text-xs">{formatDateDisplay(entry.work_date)}</div>
-                        <div className="text-[10px] uppercase font-semibold text-muted mt-0.5">
-                          {formatShiftDisplay(entry.shift)}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3.5 font-mono text-center whitespace-nowrap">
-                        <span className="text-emerald-600 dark:text-emerald-400 font-bold">{entry.good_quantity}</span>
-                        <span className="text-muted/60"> / </span>
-                        <span className="text-amber-600 dark:text-amber-400 font-medium">{entry.rework_quantity}</span>
-                        <span className="text-muted/60"> / </span>
-                        <span className="text-rose-600 dark:text-rose-400 font-medium">{entry.rejected_quantity}</span>
-                      </td>
-                      <td className="px-4 py-3.5 font-mono text-default font-bold text-right whitespace-nowrap">
-                        {entry.total_earned
-                          ? formatCurrency(Number(entry.total_earned))
-                          : formatCurrency(Number(entry.good_quantity || 0) * Number(entry.piece_rate || 2.5))}
-                      </td>
-                      <td className="px-4 py-3.5 text-center whitespace-nowrap">
-                        <StatusBadge status={entry.status} />
-                      </td>
-                      <td className="px-4 py-3.5 text-right whitespace-nowrap">
-                        <div className="flex items-center justify-end gap-1.5 relative">
-                          {/* 1. Context-Sensitive Primary Action */}
-                          {entry.status === 'draft' ? (
-                            <button
-                              type="button"
-                              onClick={() => verifyMutation.mutate(entry.id)}
-                              disabled={verifyMutation.isPending}
-                              className="px-2.5 py-1 text-xs bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700 hover:bg-emerald-100 rounded-lg font-bold transition cursor-pointer flex items-center gap-1 shadow-2xs"
-                              title="Verify and Lock Entry"
-                            >
-                              <ShieldCheck className="size-3 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                              <span>Verify</span>
-                            </button>
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setEditDraft({
-                                  id: entry.id,
-                                  worker_name: entry.employee_name,
-                                  batch_number: entry.batch_number,
-                                  product_name: entry.product_name,
-                                  good_quantity: entry.good_quantity,
-                                  rework_quantity: entry.rework_quantity,
-                                  rejected_quantity: entry.rejected_quantity,
-                                  piece_rate: entry.piece_rate || '2.5000',
-                                  hours_worked: entry.hours_worked || '',
-                                  wage_type: entry.wage_type || 'piece_rate',
-                                });
-                                setEditErrorMsg(null);
-                              }}
-                              className="px-2.5 py-1 text-xs bg-surface border border-default hover:bg-surface-sunken text-default rounded-lg font-medium transition cursor-pointer flex items-center gap-1 shadow-2xs"
-                              title="Edit Worker Entry"
-                            >
-                              <Edit3 className="size-3 text-primary shrink-0" />
-                              <span>Edit</span>
-                            </button>
-                          )}
-
-                          {/* 2. Prominent Actions Dropdown Button */}
-                          <div className="relative inline-block text-left">
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                if (openActionMenuId === entry.id) {
-                                  setOpenActionMenuId(null);
-                                  setActionMenuAnchor(null);
-                                } else {
-                                  setOpenActionMenuId(entry.id);
-                                  setActionMenuAnchor(e.currentTarget);
-                                }
-                              }}
-                              className={`px-2 py-1 text-xs rounded-lg border font-medium transition cursor-pointer flex items-center gap-1 shadow-2xs ${
-                                openActionMenuId === entry.id
-                                  ? 'border-primary bg-primary/10 text-primary'
-                                  : 'border-default bg-surface hover:bg-surface-sunken text-default'
-                              }`}
-                              title={`More actions for entry`}
-                              aria-label={`More options for worker entry`}
-                            >
-                              <span>Actions</span>
-                              <ChevronDown className="size-3 text-muted" />
-                            </button>
-
-                            {/* Dropdown Menu via Portal */}
-                            <ActionMenuPortal
-                              isOpen={openActionMenuId === entry.id}
-                              anchorEl={actionMenuAnchor}
-                              onClose={() => {
-                                setOpenActionMenuId(null);
-                                setActionMenuAnchor(null);
-                              }}
-                              width={192}
-                            >
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setOpenActionMenuId(null);
-                                  setActionMenuAnchor(null);
-                                  setEditDraft({
-                                    id: entry.id,
-                                    worker_name: entry.employee_name,
-                                    batch_number: entry.batch_number,
-                                    product_name: entry.product_name,
-                                    good_quantity: entry.good_quantity,
-                                    rework_quantity: entry.rework_quantity,
-                                    rejected_quantity: entry.rejected_quantity,
-                                    piece_rate: entry.piece_rate || '2.5000',
-                                    hours_worked: entry.hours_worked || '',
-                                    wage_type: entry.wage_type || 'piece_rate',
-                                  });
-                                  setEditErrorMsg(null);
-                                }}
-                                className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs text-default hover:bg-surface-sunken transition-colors cursor-pointer"
-                              >
-                                <Edit3 className="size-3.5 text-primary shrink-0" />
-                                <span>Edit Quantities</span>
-                              </button>
-
-                              {entry.status === 'draft' && (
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setOpenActionMenuId(null);
-                                    setActionMenuAnchor(null);
-                                    verifyMutation.mutate(entry.id);
-                                  }}
-                                  disabled={verifyMutation.isPending}
-                                  className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 transition-colors cursor-pointer"
-                                >
-                                  <ShieldCheck className="size-3.5 text-emerald-600 shrink-0" />
-                                  <span>Verify and Lock</span>
-                                </button>
-                              )}
-
-                              <div className="my-1 border-t border-default/50" />
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setOpenActionMenuId(null);
-                                  setActionMenuAnchor(null);
-                                  setDeleteConfirm({
-                                    open: true,
-                                    id: entry.id,
-                                    name: `${entry.employee_name ?? 'Worker'} (${entry.good_quantity} units)`,
-                                  });
-                                }}
-                                className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer"
-                              >
-                                <Trash2 className="size-3.5 text-rose-600 shrink-0" />
-                                <span>Delete Entry</span>
-                              </button>
-                            </ActionMenuPortal>
-                          </div>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
+        <ResponsiveDataTable<WorkerProductionEntry>
+          data={entries}
+          columns={entryColumns}
+          keyExtractor={(entry) => entry.id}
+          mobileActions={getMobileActions}
+          emptyState={{
+            icon: <Users className="size-6 text-muted" />,
+            title: 'No worker production entries found',
+            description: 'Log your first worker output or run a bulk piece-rate shift.',
+          }}
+        />
       </QueryBoundary>
 
       {/* Log Output Modal */}

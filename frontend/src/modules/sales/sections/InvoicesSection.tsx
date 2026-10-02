@@ -16,7 +16,8 @@ import { useTablePrefs } from '../../../hooks/useTablePrefs';
 import { DestructiveConfirmationDialog } from '../../../components/ui/DestructiveConfirmationDialog';
 import { ActionMenuPortal } from '../../../components/ui/ActionMenuPortal';
 import { AuditTimelineDrawer } from '../../../components/ui/AuditTimelineDrawer';
-import { cn } from '../../../lib/utils';
+import { ResponsiveDataTable, type ResponsiveColumn } from '../../../components/ui/ResponsiveDataTable';
+import type { ActionSheetItem } from '../../../components/motion/MotionActionSheet';
 
 interface InvoicesSectionProps {
   onNavigateToTab?: (tab: string) => void;
@@ -298,14 +299,14 @@ export function InvoicesSection({ onNavigateToTab }: InvoicesSectionProps = {}) 
       {/* Controls */}
       <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
         <div className="flex flex-wrap items-center gap-2">
-          <div className="relative">
+          <div className="relative flex-1 sm:flex-none">
             <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted" />
             <input
               type="text"
               placeholder="Search by invoice #, customer..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="h-9 w-64 rounded-xl border border-default bg-surface-sunken pl-8 pr-3 text-xs text-default placeholder:text-muted focus:border-primary focus:outline-none"
+              className="h-10 sm:h-9 w-full sm:w-64 rounded-xl border border-default bg-surface-sunken pl-8 pr-3 text-xs text-default placeholder:text-muted focus:border-primary focus:outline-none"
             />
           </div>
 
@@ -326,10 +327,10 @@ export function InvoicesSection({ onNavigateToTab }: InvoicesSectionProps = {}) 
           <button
             onClick={() => refetch()}
             disabled={isFetching}
-            className="flex h-9 items-center gap-1.5 rounded-xl border border-default bg-surface-sunken px-3 text-xs font-medium text-muted hover:bg-surface hover:text-default disabled:opacity-50 transition-colors cursor-pointer"
+            className="flex min-h-[44px] sm:min-h-9 items-center gap-1.5 rounded-xl border border-default bg-surface-sunken px-3 text-xs font-medium text-muted hover:bg-surface hover:text-default disabled:opacity-50 transition-colors cursor-pointer"
           >
             <RefreshCw className={`h-3.5 w-3.5 ${isFetching ? 'animate-spin' : ''}`} />
-            Refresh
+            <span className="hidden sm:inline">Refresh</span>
           </button>
         </div>
 
@@ -337,21 +338,21 @@ export function InvoicesSection({ onNavigateToTab }: InvoicesSectionProps = {}) 
           <button
             type="button"
             onClick={() => setIsImportOpen(true)}
-            className="flex h-9 items-center gap-1.5 rounded-xl border border-default bg-surface-sunken px-3 text-xs font-medium text-muted hover:bg-surface hover:text-default transition-colors cursor-pointer"
+            className="flex min-h-[44px] sm:min-h-9 items-center gap-1.5 rounded-xl border border-default bg-surface-sunken px-3 text-xs font-medium text-muted hover:bg-surface hover:text-default transition-colors cursor-pointer"
             title="Import historical opening invoices from Excel (.xlsx) or CSV"
           >
             <Upload className="h-3.5 w-3.5 text-primary" />
-            <span>Import Invoices</span>
+            <span>Import</span>
           </button>
 
           <button
             type="button"
             onClick={handleExportCsv}
-            className="flex h-9 items-center gap-1.5 rounded-xl border border-default bg-surface-sunken px-3 text-xs font-medium text-muted hover:bg-surface hover:text-default transition-colors cursor-pointer"
+            className="flex min-h-[44px] sm:min-h-9 items-center gap-1.5 rounded-xl border border-default bg-surface-sunken px-3 text-xs font-medium text-muted hover:bg-surface hover:text-default transition-colors cursor-pointer"
             title="Export invoices to CSV"
           >
             <Download className="h-3.5 w-3.5 text-muted" />
-            <span>Export CSV</span>
+            <span>Export</span>
           </button>
 
           <button
@@ -364,7 +365,7 @@ export function InvoicesSection({ onNavigateToTab }: InvoicesSectionProps = {}) 
               });
             }}
             disabled={createInvoiceMutation.isPending}
-            className="flex h-9 items-center gap-1.5 rounded-xl bg-primary/10 border border-primary/20 px-3 text-xs font-semibold text-primary hover:bg-primary/20 transition-colors cursor-pointer disabled:opacity-50"
+            className="flex min-h-[44px] sm:min-h-9 items-center gap-1.5 rounded-xl bg-primary/10 border border-primary/20 px-3 text-xs font-semibold text-primary hover:bg-primary/20 transition-colors cursor-pointer disabled:opacity-50"
             title="Create Direct Sales Invoice"
           >
             <FileText className="h-3.5 w-3.5" />
@@ -373,10 +374,10 @@ export function InvoicesSection({ onNavigateToTab }: InvoicesSectionProps = {}) 
 
           <button
             onClick={() => setShowDesigner(true)}
-            className="flex h-9 items-center gap-1.5 rounded-xl bg-surface-sunken border border-default px-3.5 text-xs font-medium text-default hover:bg-surface hover:text-primary transition-colors cursor-pointer"
+            className="flex min-h-[44px] sm:min-h-9 items-center gap-1.5 rounded-xl bg-surface-sunken border border-default px-3 text-xs font-medium text-default hover:bg-surface hover:text-primary transition-colors cursor-pointer"
           >
             <Sliders className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
-            Template Designer & Preview
+            <span className="hidden md:inline">Template Designer</span>
           </button>
 
           <TableControls
@@ -423,302 +424,323 @@ export function InvoicesSection({ onNavigateToTab }: InvoicesSectionProps = {}) 
         </div>
       )}
 
-      {/* Invoices Table */}
-      <div className="overflow-hidden rounded-2xl border border-default bg-surface shadow-2xs max-h-[70vh] overflow-y-auto">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs text-default border-collapse">
-            <thead className="sticky top-0 z-10 border-b border-default bg-surface-sunken/95 backdrop-blur-xs text-[11px] font-semibold uppercase tracking-wider text-muted">
-              <tr>
-                <th className={cn("w-10 text-center", cellClass)}>
-                  <input
-                    ref={headerCheckboxRef}
-                    type="checkbox"
-                    checked={isAllSelected}
-                    onChange={toggleSelectAll}
-                    aria-label="Select all invoices"
-                    className="size-4 rounded border-default text-primary focus:ring-primary/20 cursor-pointer"
-                  />
-                </th>
-                <th className={cn("px-4", cellClass)}>Invoice Number</th>
-                {isVisible('date') && <th className={cn("px-4", cellClass)}>Date</th>}
-                {isVisible('customer') && <th className={cn("px-4", cellClass)}>Customer</th>}
-                {isVisible('subtotal') && <th className={cn("px-4", cellClass)}>Subtotal</th>}
-                {isVisible('margin') && <th className={cn("px-4", cellClass)}>Gross Margin</th>}
-                {isVisible('total') && <th className={cn("px-4", cellClass)}>Total Amount</th>}
-                {isVisible('status') && <th className={cn("px-4", cellClass)}>Status</th>}
-                <th className={cn("px-4 text-right", cellClass)}>Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-default">
-              {isLoading ? (
-                <tr>
-                  <td colSpan={9} className="px-4 py-12 text-center text-muted">
-                    <div className="flex flex-col items-center justify-center gap-2">
-                      <RefreshCw className="size-5 animate-spin text-primary" />
-                      <span>Loading invoices...</span>
-                    </div>
-                  </td>
-                </tr>
-              ) : filteredInvoices.length === 0 ? (
-                <tr>
-                  <td colSpan={9} className="px-4 py-12 text-center text-muted">
-                    <div className="flex flex-col items-center justify-center gap-2">
-                      <FileText className="size-8 text-muted/50" />
-                      <span className="font-medium">No sales invoices found.</span>
-                    </div>
-                  </td>
-                </tr>
-              ) : (
-                filteredInvoices.map((inv) => {
-                  const subtotalNum = parseFloat(inv.subtotal || '0');
-                  const estCogs = subtotalNum * 0.62; // 62% historical average COGS
-                  const grossProfit = Math.max(0, subtotalNum - estCogs);
-                  const marginPct = subtotalNum > 0 ? (grossProfit / subtotalNum) * 100 : 0;
-                  const isSelected = selectedIds.has(inv.id);
-                  return (
-                    <tr key={inv.id} className={`hover:bg-surface-sunken/60 transition-colors ${isSelected ? 'bg-primary/5' : ''}`}>
-                      <td className={cn("w-10 text-center", cellClass)} onClick={(e) => e.stopPropagation()}>
-                        <input
-                          type="checkbox"
-                          checked={isSelected}
-                          onChange={() => toggleSelect(inv.id)}
-                          aria-label={`Select invoice ${inv.invoice_number}`}
-                          className="size-4 rounded border-default text-primary focus:ring-primary/20 cursor-pointer"
-                        />
-                      </td>
-                      <td className={cn("px-4 font-mono font-medium text-emerald-600 dark:text-emerald-400", cellClass)}>
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <span>{inv.invoice_number}</span>
-                          {inv.has_exchanges && (
-                            <span
-                              className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider bg-violet-500/10 text-violet-600 border border-violet-500/20"
-                              title={`Contains ${inv.exchanges_count ?? 1} linked exchange adjustments`}
-                            >
-                              <ArrowLeftRight className="size-2.5" /> Exchanged
-                            </span>
-                          )}
-                        </div>
-                      </td>
-                      {isVisible('date') && <td className={cn("px-4 text-muted", cellClass)}>{inv.invoice_date}</td>}
-                      {isVisible('customer') && (
-                        <td className={cn("px-4 text-default font-medium", cellClass)}>
-                          {inv.customer_name ?? 'Counter Customer'}
-                        </td>
-                      )}
-                      {isVisible('subtotal') && (
-                        <td className={cn("px-4 font-mono text-default", cellClass)}>
-                          {formatCurrency(subtotalNum)}
-                        </td>
-                      )}
-                      {isVisible('margin') && (
-                        <td className={cn("px-4", cellClass)}>
-                          <div className="flex items-center gap-1.5">
-                            <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400 text-xs">
-                              {formatCurrency(grossProfit)}
-                            </span>
-                            <span className="text-[10px] text-muted font-mono">
-                              ({marginPct.toFixed(1)}%)
-                            </span>
-                            <span className="text-[9px] px-1.5 py-0.5 rounded-md bg-surface-sunken border border-default text-muted font-mono" title="Locked to historical COGS at transaction time">
-                              🔒 Locked
-                            </span>
-                          </div>
-                        </td>
-                      )}
-                      {isVisible('total') && (
-                        <td className={cn("px-4 font-mono font-medium text-default", cellClass)}>
-                          {formatCurrency(inv.total_amount)}
-                        </td>
-                      )}
-                      {isVisible('status') && <td className={cn("px-4", cellClass)}>{getStatusBadge(inv.status)}</td>}
-                      <td className={cn("px-4 text-right space-x-1.5", cellClass)}>
-                        <button
-                          onClick={() => handlePreviewInvoice(inv)}
-                          className="inline-flex items-center gap-1 rounded-xl bg-surface-sunken border border-default px-2.5 py-1 text-[11px] font-medium text-default hover:bg-surface transition-colors cursor-pointer"
-                        >
-                          <Printer className="h-3 w-3" /> Print
-                        </button>
-                        {inv.status === 'draft' && (
-                          <button
-                            onClick={() => approveMutation.mutate(inv.id)}
-                            disabled={approveMutation.isPending}
-                            className="rounded-xl bg-primary/10 border border-primary/20 px-2.5 py-1 text-[11px] font-semibold text-primary hover:bg-primary/20 disabled:opacity-50 transition-colors cursor-pointer"
-                          >
-                            {approveMutation.isPending ? 'Posting...' : 'Post'}
-                          </button>
-                        )}
-                        {onNavigateToTab && inv.status === 'posted' && (
-                          <button
-                            type="button"
-                            onClick={() => onNavigateToTab('payments')}
-                            className="inline-flex items-center gap-1 rounded-xl bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 transition-colors cursor-pointer"
-                            title="Collect payment from customer"
-                          >
-                            <DollarSign className="size-3" />
-                            <span>Collect</span>
-                          </button>
-                        )}
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (openActionMenuId === inv.id) {
-                              setOpenActionMenuId(null);
-                              setActionMenuAnchor(null);
-                            } else {
-                              setOpenActionMenuId(inv.id);
-                              setActionMenuAnchor(e.currentTarget);
-                            }
-                          }}
-                          className={cn(
-                            "inline-flex items-center justify-center size-7 rounded-xl transition-all cursor-pointer border shadow-2xs",
-                            openActionMenuId === inv.id
-                              ? "bg-primary text-primary-fg border-primary shadow-xs"
-                              : "text-muted hover:text-default bg-surface-sunken hover:bg-surface border-default"
-                          )}
-                          title="More Invoice Actions"
-                        >
-                          <MoreHorizontal className="size-3.5" />
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })
+      {/* Invoices Responsive Data Table with Card Reflow on Mobile */}
+      <ResponsiveDataTable<Invoice>
+        data={filteredInvoices}
+        isLoading={isLoading}
+        keyExtractor={(inv) => inv.id}
+        emptyMessage="No sales invoices found."
+        emptyIcon={FileText}
+        selectedIds={selectedIds}
+        onSelectRow={(id) => toggleSelect(Number(id))}
+        onSelectAll={toggleSelectAll}
+        mobileCardBreakpoint="sm"
+        mobileActions={(inv) => [
+          {
+            id: 'print',
+            label: 'Print Invoice',
+            icon: Printer,
+            onClick: () => handlePreviewInvoice(inv),
+          },
+          ...(inv.status === 'draft' ? [{
+            id: 'post',
+            label: 'Post Invoice',
+            icon: CheckCircle2,
+            onClick: () => approveMutation.mutate(inv.id),
+          }] : []),
+          ...(onNavigateToTab && inv.status === 'posted' ? [{
+            id: 'collect',
+            label: 'Collect Payment',
+            icon: DollarSign,
+            onClick: () => onNavigateToTab('payments'),
+          }] : []),
+          ...((inv.status === 'posted' || inv.status === 'paid') ? [{
+            id: 'gl',
+            label: 'View General Ledger',
+            icon: BookOpen,
+            onClick: () => {
+              window.location.hash = '#/finance?tab=gl';
+            },
+          }] : []),
+          ...(inv.status !== 'void' ? [{
+            id: 'void',
+            label: 'Void Invoice',
+            icon: Ban,
+            variant: 'warning' as const,
+            onClick: () => setShowVoidModal(inv.id),
+          }] : []),
+          {
+            id: 'audit',
+            label: 'View Audit History',
+            icon: History,
+            onClick: () => setAuditingInvoice(inv),
+          },
+          ...(canDelete ? [{
+            id: 'delete',
+            label: 'Move to Bin',
+            icon: Trash2,
+            variant: 'danger' as const,
+            onClick: () =>
+              setDeleteConfirm({
+                id: inv.id,
+                title: `invoice ${inv.invoice_number}`,
+                invoice: inv,
+              }),
+          }] : []),
+        ]}
+        columns={[
+          {
+            id: 'invoice_number',
+            header: 'Invoice Number',
+            isPrimary: true,
+            cell: (inv) => (
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="font-mono font-medium text-emerald-600 dark:text-emerald-400">{inv.invoice_number}</span>
+                {inv.has_exchanges && (
+                  <span
+                    className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider bg-violet-500/10 text-violet-600 border border-violet-500/20"
+                    title={`Contains ${inv.exchanges_count ?? 1} linked exchange adjustments`}
+                  >
+                    <ArrowLeftRight className="size-2.5" /> Exchanged
+                  </span>
+                )}
+              </div>
+            ),
+          },
+          ...(isVisible('date') ? [{
+            id: 'date',
+            header: 'Date',
+            priority: 'medium' as const,
+            cell: (inv: Invoice) => <span className="text-muted">{inv.invoice_date}</span>,
+          }] : []),
+          ...(isVisible('customer') ? [{
+            id: 'customer',
+            header: 'Customer',
+            cell: (inv: Invoice) => (
+              <span className="font-medium text-default">{inv.customer_name ?? 'Counter Customer'}</span>
+            ),
+          }] : []),
+          ...(isVisible('subtotal') ? [{
+            id: 'subtotal',
+            header: 'Subtotal',
+            priority: 'low' as const,
+            cell: (inv: Invoice) => (
+              <span className="font-mono text-default">{formatCurrency(parseFloat(inv.subtotal || '0'))}</span>
+            ),
+          }] : []),
+          ...(isVisible('margin') ? [{
+            id: 'margin',
+            header: 'Gross Margin',
+            priority: 'low' as const,
+            cell: (inv: Invoice) => {
+              const subtotalNum = parseFloat(inv.subtotal || '0');
+              const estCogs = subtotalNum * 0.62;
+              const grossProfit = Math.max(0, subtotalNum - estCogs);
+              const marginPct = subtotalNum > 0 ? (grossProfit / subtotalNum) * 100 : 0;
+              return (
+                <div className="flex items-center gap-1.5">
+                  <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400 text-xs">
+                    {formatCurrency(grossProfit)}
+                  </span>
+                  <span className="text-[10px] text-muted font-mono">({marginPct.toFixed(1)}%)</span>
+                </div>
+              );
+            },
+          }] : []),
+          ...(isVisible('total') ? [{
+            id: 'total',
+            header: 'Total Amount',
+            cell: (inv: Invoice) => (
+              <span className="font-mono font-medium text-default">{formatCurrency(inv.total_amount)}</span>
+            ),
+          }] : []),
+          ...(isVisible('status') ? [{
+            id: 'status',
+            header: 'Status',
+            isStatus: true,
+            cell: (inv: Invoice) => getStatusBadge(inv.status),
+          }] : []),
+          {
+            id: 'actions',
+            header: 'Actions',
+            isAction: true,
+            align: 'right' as const,
+            cell: (inv: Invoice) => (
+              <div className="flex items-center justify-end gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => handlePreviewInvoice(inv)}
+                  className="inline-flex items-center gap-1 rounded-xl bg-surface-sunken border border-default px-2.5 py-1 text-[11px] font-medium text-default hover:bg-surface transition-colors cursor-pointer"
+                >
+                  <Printer className="h-3 w-3" /> <span className="hidden sm:inline">Print</span>
+                </button>
+                {inv.status === 'draft' && (
+                  <button
+                    type="button"
+                    onClick={() => approveMutation.mutate(inv.id)}
+                    disabled={approveMutation.isPending}
+                    className="rounded-xl bg-primary/10 border border-primary/20 px-2.5 py-1 text-[11px] font-semibold text-primary hover:bg-primary/20 disabled:opacity-50 transition-colors cursor-pointer"
+                  >
+                    {approveMutation.isPending ? 'Posting...' : 'Post'}
+                  </button>
+                )}
+                {onNavigateToTab && inv.status === 'posted' && (
+                  <button
+                    type="button"
+                    onClick={() => onNavigateToTab('payments')}
+                    className="inline-flex items-center gap-1 rounded-xl bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 transition-colors cursor-pointer"
+                    title="Collect payment from customer"
+                  >
+                    <DollarSign className="size-3" />
+                    <span className="hidden sm:inline">Collect</span>
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (openActionMenuId === inv.id) {
+                      setOpenActionMenuId(null);
+                      setActionMenuAnchor(null);
+                    } else {
+                      setOpenActionMenuId(inv.id);
+                      setActionMenuAnchor(e.currentTarget);
+                    }
+                  }}
+                  className={cn(
+                    "inline-flex items-center justify-center size-7 rounded-xl transition-all cursor-pointer border shadow-2xs",
+                    openActionMenuId === inv.id
+                      ? "bg-primary text-primary-fg border-primary shadow-xs"
+                      : "text-muted hover:text-default bg-surface-sunken hover:bg-surface border-default"
+                  )}
+                  title="More Invoice Actions"
+                >
+                  <MoreHorizontal className="size-3.5" />
+                </button>
+              </div>
+            ),
+          },
+        ]}
+      />
+
+      {/* Invoice Registry Summary Ribbon */}
+      {filteredInvoices.length > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 rounded-2xl border border-default bg-surface-sunken/80 text-xs text-default shadow-2xs">
+          <div className="flex items-center gap-2 font-bold">
+            <span>Total:</span>
+            <span className="font-mono text-primary font-bold">{filteredInvoices.length} {filteredInvoices.length === 1 ? 'Invoice' : 'Invoices'}</span>
+            <span className="text-muted text-[11px] font-normal">({filteredInvoices.filter((inv) => inv.status === 'paid').length} Paid)</span>
+          </div>
+          <div className="flex items-center gap-4 font-mono text-xs flex-wrap">
+            <div>
+              <span className="text-muted mr-1 font-sans text-[11px]">Subtotal:</span>
+              <span className="font-medium text-default">
+                {formatCurrency(filteredInvoices.reduce((sum, inv) => sum + (parseFloat(inv.subtotal || '0') || 0), 0))}
+              </span>
+            </div>
+            <div>
+              <span className="text-muted mr-1 font-sans text-[11px]">Gross Margin:</span>
+              <span className="font-bold text-emerald-600 dark:text-emerald-400">
+                {formatCurrency(
+                  filteredInvoices.reduce((sum, inv) => {
+                    const s = parseFloat(inv.subtotal || '0') || 0;
+                    return sum + Math.max(0, s - s * 0.62);
+                  }, 0)
+                )}
+              </span>
+            </div>
+            <div className="border-l border-default pl-4">
+              <span className="text-muted mr-1 font-sans text-[11px]">Total Billed:</span>
+              <span className="font-bold text-primary text-sm">
+                {formatCurrency(filteredInvoices.reduce((sum, inv) => sum + (parseFloat(inv.total_amount || '0') || 0), 0))}
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {openActionMenuId && (() => {
+        const inv = filteredInvoices.find((x) => x.id === openActionMenuId);
+        if (!inv) return null;
+        return (
+          <ActionMenuPortal
+            isOpen={Boolean(openActionMenuId && actionMenuAnchor)}
+            anchorEl={actionMenuAnchor}
+            onClose={() => {
+              setOpenActionMenuId(null);
+              setActionMenuAnchor(null);
+            }}
+            width="13rem"
+          >
+            <div className="p-1 space-y-0.5 text-xs">
+              <div className="px-2.5 py-1.5 border-b border-default text-2xs text-muted font-mono truncate">
+                Invoice #{inv.invoice_number}
+              </div>
+              {(inv.status === 'posted' || inv.status === 'paid') && (
+                <Link
+                  to="/finance?tab=gl"
+                  onClick={() => {
+                    setOpenActionMenuId(null);
+                    setActionMenuAnchor(null);
+                  }}
+                  className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left text-default hover:bg-surface-sunken transition-colors cursor-pointer"
+                >
+                  <BookOpen className="size-3.5 text-primary" />
+                  <span>General Ledger</span>
+                </Link>
               )}
-            </tbody>
-            {filteredInvoices.length > 0 && (
-              <tfoot className="border-t-2 border-default bg-surface-sunken/90 font-semibold text-default text-xs">
-                <tr>
-                  <td className={cn("text-center", cellClass)} />
-                  <td className={cellClass}>
-                    <div className="font-bold">
-                      Total: {filteredInvoices.length} {filteredInvoices.length === 1 ? 'Invoice' : 'Invoices'}
-                    </div>
-                  </td>
-                  {isVisible('date') && <td className={cellClass} />}
-                  {isVisible('customer') && <td className={cellClass} />}
-                  {isVisible('subtotal') && (
-                    <td className={cn("font-mono", cellClass)}>
-                      {formatCurrency(
-                        filteredInvoices.reduce((sum, inv) => sum + (parseFloat(inv.subtotal || '0') || 0), 0)
-                      )}
-                    </td>
-                  )}
-                  {isVisible('margin') && (
-                    <td className={cn("font-mono text-emerald-600 dark:text-emerald-400", cellClass)}>
-                      {formatCurrency(
-                        filteredInvoices.reduce((sum, inv) => {
-                          const s = parseFloat(inv.subtotal || '0') || 0;
-                          return sum + Math.max(0, s - s * 0.62);
-                        }, 0)
-                      )}
-                    </td>
-                  )}
-                  {isVisible('total') && (
-                    <td className={cn("font-mono font-bold text-primary", cellClass)}>
-                      {formatCurrency(
-                        filteredInvoices.reduce((sum, inv) => sum + (parseFloat(inv.total_amount || '0') || 0), 0)
-                      )}
-                    </td>
-                  )}
-                  {isVisible('status') && (
-                    <td className={cellClass}>
-                      <span className="text-[11px] text-muted">
-                        {filteredInvoices.filter((inv) => inv.status === 'paid').length} Paid
-                      </span>
-                    </td>
-                  )}
-                  <td className={cn("px-4 text-right text-muted text-[11px]", cellClass)}>
-                    Summary
-                  </td>
-                </tr>
-              </tfoot>
-            )}
-          </table>
-          {openActionMenuId && (() => {
-            const inv = filteredInvoices.find((x) => x.id === openActionMenuId);
-            if (!inv) return null;
-            return (
-              <ActionMenuPortal
-                isOpen={Boolean(openActionMenuId && actionMenuAnchor)}
-                anchorEl={actionMenuAnchor}
-                onClose={() => {
+              {inv.status !== 'void' && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOpenActionMenuId(null);
+                    setActionMenuAnchor(null);
+                    setShowVoidModal(inv.id);
+                  }}
+                  className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left text-amber-600 dark:text-amber-400 hover:bg-amber-500/10 transition-colors cursor-pointer"
+                >
+                  <Ban className="size-3.5" />
+                  <span>Void Invoice</span>
+                </button>
+              )}
+              <div className="my-1 border-t border-default" />
+              <button
+                type="button"
+                onClick={() => {
                   setOpenActionMenuId(null);
                   setActionMenuAnchor(null);
+                  setAuditingInvoice(inv);
                 }}
-                width="13rem"
+                className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left text-default hover:bg-surface-sunken transition-colors cursor-pointer"
               >
-                <div className="p-1 space-y-0.5 text-xs">
-                  <div className="px-2.5 py-1.5 border-b border-default text-2xs text-muted font-mono truncate">
-                    Invoice #{inv.invoice_number}
-                  </div>
-                  {(inv.status === 'posted' || inv.status === 'paid') && (
-                    <Link
-                      to="/finance?tab=gl"
-                      onClick={() => {
-                        setOpenActionMenuId(null);
-                        setActionMenuAnchor(null);
-                      }}
-                      className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left text-default hover:bg-surface-sunken transition-colors cursor-pointer"
-                    >
-                      <BookOpen className="size-3.5 text-primary" />
-                      <span>General Ledger</span>
-                    </Link>
-                  )}
-                  {inv.status !== 'void' && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setOpenActionMenuId(null);
-                        setActionMenuAnchor(null);
-                        setShowVoidModal(inv.id);
-                      }}
-                      className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left text-amber-600 dark:text-amber-400 hover:bg-amber-500/10 transition-colors cursor-pointer"
-                    >
-                      <Ban className="size-3.5" />
-                      <span>Void Invoice</span>
-                    </button>
-                  )}
+                <History className="size-3.5 text-primary" />
+                <span>View Audit History...</span>
+              </button>
+              {canDelete && (
+                <>
                   <div className="my-1 border-t border-default" />
                   <button
                     type="button"
                     onClick={() => {
                       setOpenActionMenuId(null);
                       setActionMenuAnchor(null);
-                      setAuditingInvoice(inv);
+                      setDeleteConfirm({
+                        id: inv.id,
+                        title: `invoice ${inv.invoice_number}`,
+                        invoice: inv,
+                      });
                     }}
-                    className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left text-default hover:bg-surface-sunken transition-colors cursor-pointer"
+                    className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer font-medium"
                   >
-                    <History className="size-3.5 text-primary" />
-                    <span>View Audit History...</span>
+                    <Trash2 className="size-3.5 text-rose-500" />
+                    <span>Move to Bin</span>
                   </button>
-                  {canDelete && (
-                    <>
-                      <div className="my-1 border-t border-default" />
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setOpenActionMenuId(null);
-                          setActionMenuAnchor(null);
-                          setDeleteConfirm({
-                            id: inv.id,
-                            title: `invoice ${inv.invoice_number}`,
-                            invoice: inv,
-                          });
-                        }}
-                        className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer font-medium"
-                      >
-                        <Trash2 className="size-3.5 text-rose-500" />
-                        <span>Move to Bin</span>
-                      </button>
-                    </>
-                  )}
-                </div>
-              </ActionMenuPortal>
-            );
-          })()}
-        </div>
-      </div>
+                </>
+              )}
+            </div>
+          </ActionMenuPortal>
+        );
+      })()}
 
       {/* Void Confirmation Modal */}
       {showVoidModal && (

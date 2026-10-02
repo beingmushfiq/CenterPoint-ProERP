@@ -572,7 +572,7 @@ export const TenantRoleDashboard: React.FC = () => {
   }, [hasPermission, storeSlug]);
 
   return (
-    <div className="space-y-4 pb-16 max-w-[1600px] mx-auto">
+    <div className="space-y-4 pb-16 w-full max-w-[2400px] mx-auto">
       <OnboardingStartupModal />
 
       {/* ══════════════════════════════════════════════════════════

@@ -1866,8 +1866,8 @@ export const AssetsWorkspace: React.FC = () => {
             </div>
           )}
 
-          <div className="overflow-x-auto min-h-75 bg-surface rounded-2xl shadow-2xs border border-default">
-            <table className="w-full min-w-[1100px] text-left text-sm text-default">
+          <div className="overflow-x-auto min-h-75 bg-surface rounded-2xl shadow-2xs border border-default min-w-0">
+            <table className="w-full min-w-0 text-left text-sm text-default">
               <thead className="bg-surface-sunken text-muted uppercase text-2xs font-bold border-b border-default">
                 <tr>
                   <th className="w-10 px-4 py-3 text-center">
@@ -1881,9 +1881,9 @@ export const AssetsWorkspace: React.FC = () => {
                     />
                   </th>
                   <th className="px-4 py-3 whitespace-nowrap">Order #</th>
-                  <th className="px-4 py-3 min-w-[200px]">Asset</th>
+                  <th className="px-4 py-3 min-w-40 sm:min-w-48">Asset</th>
                   <th className="px-4 py-3 whitespace-nowrap">Type & Priority</th>
-                  <th className="px-4 py-3 min-w-[220px]">Issue / Task</th>
+                  <th className="px-4 py-3 min-w-44 sm:min-w-56">Issue / Task</th>
                   <th className="px-4 py-3 whitespace-nowrap">Scheduled</th>
                   <th className="px-4 py-3 text-right whitespace-nowrap">Cost</th>
                   <th className="px-4 py-3 text-center whitespace-nowrap">Status</th>
@@ -1911,7 +1911,7 @@ export const AssetsWorkspace: React.FC = () => {
                       <td className="px-4 py-3.5 font-mono font-bold text-primary whitespace-nowrap">
                         {mo.order_number}
                       </td>
-                      <td className="px-4 py-3.5 min-w-[200px]">
+                      <td className="px-4 py-3.5 min-w-40 sm:min-w-48">
                         <div className="font-semibold text-default">
                           {mo.asset?.name}
                         </div>
@@ -1931,7 +1931,7 @@ export const AssetsWorkspace: React.FC = () => {
                           {mo.priority}
                         </span>
                       </td>
-                      <td className="px-4 py-3.5 min-w-[220px]">
+                      <td className="px-4 py-3.5 min-w-44 sm:min-w-56">
                         <div className="text-xs text-muted line-clamp-2">{mo.description}</div>
                         <div className="text-2xs font-medium text-default mt-0.5 whitespace-nowrap">
                           Tech: {mo.performed_by || 'Unassigned'}
@@ -2156,8 +2156,8 @@ export const AssetsWorkspace: React.FC = () => {
           )}
 
           {/* Asset Register Table */}
-          <div className="overflow-x-auto min-h-75 bg-surface rounded-2xl shadow-2xs border border-default">
-            <table className="w-full min-w-[1280px] text-left text-sm text-default">
+          <div className="overflow-x-auto min-h-75 bg-surface rounded-2xl shadow-2xs border border-default min-w-0">
+            <table className="w-full min-w-0 text-left text-sm text-default">
               <thead className="bg-surface-sunken text-muted uppercase text-2xs font-bold border-b border-default">
                 <tr>
                   <th className="w-10 px-4 py-3 text-center">
@@ -2171,7 +2171,7 @@ export const AssetsWorkspace: React.FC = () => {
                     />
                   </th>
                   <th className="px-4 py-3 whitespace-nowrap">Asset Code</th>
-                  <th className="px-4 py-3 min-w-[240px]">Name & Details</th>
+                  <th className="px-4 py-3 min-w-48 sm:min-w-64">Name & Details</th>
                   <th className="px-4 py-3 whitespace-nowrap">Category</th>
                   <th className="px-4 py-3 text-right whitespace-nowrap">Cost (BDT)</th>
                   <th className="px-4 py-3 text-right whitespace-nowrap">Accum. Depr (BDT)</th>
@@ -2201,7 +2201,7 @@ export const AssetsWorkspace: React.FC = () => {
                       <td className="px-4 py-3.5 font-mono font-bold text-primary whitespace-nowrap">
                         {ast.asset_code}
                       </td>
-                      <td className="px-4 py-3.5 min-w-[240px]">
+                      <td className="px-4 py-3.5 min-w-48 sm:min-w-64">
                         <div className="font-semibold text-default">{ast.name}</div>
                         <div className="text-xs text-muted mt-0.5 whitespace-nowrap">
                           {ast.location ? `${ast.location} | ` : ''}S/N: {ast.serial_number || 'N/A'}
@@ -2457,12 +2457,12 @@ export const AssetsWorkspace: React.FC = () => {
             </div>
           </div>
 
-          <div className="overflow-x-auto min-h-75 bg-surface rounded-2xl shadow-2xs border border-default">
-            <table className="w-full min-w-[1000px] text-left text-sm text-default">
+          <div className="overflow-x-auto min-h-75 bg-surface rounded-2xl shadow-2xs border border-default min-w-0">
+            <table className="w-full min-w-0 text-left text-sm text-default">
               <thead className="bg-surface-sunken text-muted uppercase text-2xs font-bold border-b border-default">
                 <tr>
                   <th className="px-4 py-3 whitespace-nowrap">Period</th>
-                  <th className="px-4 py-3 min-w-[200px]">Asset</th>
+                  <th className="px-4 py-3 min-w-40 sm:min-w-48">Asset</th>
                   <th className="px-4 py-3 text-right whitespace-nowrap">Opening Book Value</th>
                   <th className="px-4 py-3 text-right whitespace-nowrap">Monthly Depreciation</th>
                   <th className="px-4 py-3 text-right whitespace-nowrap">Closing Book Value</th>
@@ -2476,7 +2476,7 @@ export const AssetsWorkspace: React.FC = () => {
                     <td className="px-4 py-3.5 font-semibold text-default whitespace-nowrap">
                       {dep.period_year}-{String(dep.period_month).padStart(2, '0')}
                     </td>
-                    <td className="px-4 py-3.5 min-w-[200px]">
+                    <td className="px-4 py-3.5 min-w-40 sm:min-w-48">
                       <div className="font-medium text-default">
                         {dep.asset?.name}
                       </div>

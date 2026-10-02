@@ -28,6 +28,7 @@ import { useCurrency } from '../../../hooks/useCurrency';
 import { SelectDropdown } from '../../../components/ui/Dropdown';
 import { useTablePrefs } from '../../../hooks/useTablePrefs';
 import { TableControls } from '../../../components/ui/TableControls';
+import { ResponsiveDataTable } from '../../../components/ui/ResponsiveDataTable';
 import { DestructiveConfirmationDialog } from '../../../components/ui/DestructiveConfirmationDialog';
 import { AuditTimelineDrawer } from '../../../components/ui/AuditTimelineDrawer';
 
@@ -737,203 +738,219 @@ export function CustomersSection() {
         </div>
       )}
 
-      {/* Parties Table */}
-      <div className="overflow-hidden rounded-2xl border border-default bg-surface shadow-2xs max-h-[70vh] overflow-y-auto">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs text-default border-collapse">
-            <thead className="sticky top-0 z-10 border-b border-default bg-surface-sunken/95 backdrop-blur-xs text-[11px] font-semibold uppercase tracking-wider text-muted">
-              <tr>
-                <th className={`w-10 ${cellClass} text-center`}>
-                  <input
-                    ref={headerCheckboxRef}
-                    type="checkbox"
-                    checked={isAllSelected}
-                    onChange={toggleSelectAll}
-                    aria-label="Select all customers"
-                    className="size-4 rounded border-default text-primary focus:ring-primary/20 cursor-pointer"
-                  />
-                </th>
-                <th className={cellClass}>{roleLabel} Name & Contact</th>
-                {isVisible('tier')     && <th className={cellClass}>Account Tier</th>}
-                {isVisible('location') && <th className={cellClass}>Location</th>}
-                {isVisible('balance')  && <th className={`${cellClass} text-right`}>Current Balance</th>}
-                {isVisible('lifetime') && <th className={`${cellClass} text-right`}>Lifetime Billed</th>}
-                {isVisible('status')   && <th className={cellClass}>Status</th>}
-                <th className={`${cellClass} text-right whitespace-nowrap`}>Ledger & Action</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-default">
-              {filteredCustomers.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={3 + (isVisible('tier') ? 1 : 0) + (isVisible('location') ? 1 : 0) + (isVisible('balance') ? 1 : 0) + (isVisible('lifetime') ? 1 : 0) + (isVisible('status') ? 1 : 0)}
-                    className="px-4 py-8 text-center text-muted"
+      {/* Responsive Parties Table */}
+      <ResponsiveDataTable<CustomerCrm>
+        data={filteredCustomers}
+        keyExtractor={(c) => c.id}
+        emptyMessage={`No ${roleLabel.toLowerCase()} accounts found.`}
+        emptyIcon={Users}
+        selectedIds={selectedIds}
+        onSelectRow={(id) => toggleSelect(Number(id))}
+        onSelectAll={toggleSelectAll}
+        mobileCardBreakpoint="sm"
+        mobileActions={(c) => [
+          {
+            id: 'history',
+            label: 'View Audit History',
+            icon: History,
+            onClick: () => setAuditingCustomer(c),
+          },
+          {
+            id: 'ledger',
+            label: 'View Financial Ledger',
+            icon: FileText,
+            onClick: () => {
+              setSelectedCustomer(c);
+              setShowLedgerModal(true);
+            },
+          },
+          ...(canCreate ? [{
+            id: 'edit',
+            label: `Edit ${roleLabel} Details`,
+            icon: Edit2,
+            onClick: () => handleOpenEdit(c),
+          }] : []),
+          ...(canDelete ? [{
+            id: 'delete',
+            label: `Move ${roleLabel} to Bin`,
+            icon: Trash2,
+            variant: 'danger' as const,
+            onClick: () =>
+              setDeleteConfirm({
+                id: c.id,
+                uuid: c.uuid,
+                title: `${roleLabel.toLowerCase()} "${c.name}"`,
+                customer: c,
+              }),
+          }] : []),
+        ]}
+        columns={[
+          {
+            id: 'name',
+            header: `${roleLabel} Name & Contact`,
+            isPrimary: true,
+            cell: (c) => (
+              <div>
+                <div className="font-bold text-default">{c.name}</div>
+                <div className="text-[11px] text-muted flex items-center gap-2 mt-0.5 flex-wrap">
+                  <span className="flex items-center gap-1">
+                    <Phone className="h-3 w-3" /> {c.phone}
+                  </span>
+                  {c.email && (
+                    <>
+                      <span>•</span>
+                      <span className="flex items-center gap-1">
+                        <Mail className="h-3 w-3" /> {c.email}
+                      </span>
+                    </>
+                  )}
+                </div>
+              </div>
+            ),
+          },
+          ...(isVisible('tier') ? [{
+            id: 'tier',
+            header: 'Account Tier',
+            priority: 'medium' as const,
+            cell: (c: CustomerCrm) => (
+              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-surface-sunken border border-default capitalize">
+                {c.type}
+              </span>
+            ),
+          }] : []),
+          ...(isVisible('location') ? [{
+            id: 'location',
+            header: 'Location',
+            priority: 'low' as const,
+            cell: (c: CustomerCrm) => (
+              <div className="flex items-center gap-1 text-muted">
+                <MapPin className="h-3 w-3 shrink-0" />
+                <span>{c.city || 'Dhaka'}</span>
+              </div>
+            ),
+          }] : []),
+          ...(isVisible('balance') ? [{
+            id: 'balance',
+            header: 'Current Balance',
+            align: 'right' as const,
+            cell: (c: CustomerCrm) => (
+              <span className={parseFloat(c.current_balance || '0') > 0 ? 'text-amber-600 dark:text-amber-400 font-mono font-semibold' : 'text-default font-mono'}>
+                {formatCurrency(c.current_balance)}
+              </span>
+            ),
+          }] : []),
+          ...(isVisible('lifetime') ? [{
+            id: 'lifetime',
+            header: 'Lifetime Billed',
+            priority: 'low' as const,
+            align: 'right' as const,
+            cell: (c: CustomerCrm) => (
+              <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                {formatCurrency(c.lifetime_value)}
+              </span>
+            ),
+          }] : []),
+          ...(isVisible('status') ? [{
+            id: 'status',
+            header: 'Status',
+            isStatus: true,
+            cell: (c: CustomerCrm) => (
+              <StatusBadgeSelector
+                status={c.status}
+                disabled={updateStatusMutation.isPending}
+                onUpdateStatus={(newStatus) =>
+                  updateStatusMutation.mutate({ id: c.id, uuid: c.uuid, status: newStatus })
+                }
+              />
+            ),
+          }] : []),
+          {
+            id: 'actions',
+            header: 'Actions',
+            isAction: true,
+            align: 'right' as const,
+            cell: (c: CustomerCrm) => (
+              <div className="flex items-center justify-end gap-1.5 whitespace-nowrap">
+                <button
+                  type="button"
+                  onClick={() => setAuditingCustomer(c)}
+                  className="inline-flex items-center gap-1 rounded-lg border border-default bg-surface-sunken px-2 py-1 text-[11px] font-medium text-default hover:bg-surface transition-colors cursor-pointer"
+                  title="View Audit History"
+                >
+                  <History className="h-3 w-3 text-muted" />
+                  <span className="hidden sm:inline">History</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedCustomer(c);
+                    setShowLedgerModal(true);
+                  }}
+                  className="inline-flex items-center gap-1 rounded-lg border border-default bg-surface-sunken px-2 py-1 text-[11px] font-medium text-default hover:bg-surface transition-colors cursor-pointer"
+                  title="View Financial Ledger Statement"
+                >
+                  <FileText className="h-3 w-3 text-primary" />
+                  <span className="hidden sm:inline">Ledger</span>
+                </button>
+                {canCreate && (
+                  <button
+                    type="button"
+                    onClick={() => handleOpenEdit(c)}
+                    className="p-1.5 text-muted hover:text-default hover:bg-surface-sunken rounded-lg transition-colors cursor-pointer"
+                    title={`Edit ${roleLabel} Details`}
                   >
-                    No {roleLabel.toLowerCase()} accounts found.
-                  </td>
-                </tr>
-              ) : (
-                filteredCustomers.map((c) => {
-                  const isSelected = selectedIds.has(c.id);
-                  return (
-                  <tr key={c.id} className={`hover:bg-surface-sunken/60 transition-colors ${isSelected ? 'bg-primary/5' : ''}`}>
-                    <td className={`w-10 ${cellClass} text-center`} onClick={(e) => e.stopPropagation()}>
-                      <input
-                        type="checkbox"
-                        checked={isSelected}
-                        onChange={() => toggleSelect(c.id)}
-                        aria-label={`Select customer ${c.name}`}
-                        className="size-4 rounded border-default text-primary focus:ring-primary/20 cursor-pointer"
-                      />
-                    </td>
-                    <td className={cellClass}>
-                      <div className="font-bold text-default">{c.name}</div>
-                      <div className="text-[11px] text-muted flex items-center gap-2 mt-0.5">
-                        <span className="flex items-center gap-1">
-                          <Phone className="h-3 w-3" /> {c.phone}
-                        </span>
-                        {c.email && (
-                          <>
-                            <span>•</span>
-                            <span className="flex items-center gap-1">
-                              <Mail className="h-3 w-3" /> {c.email}
-                            </span>
-                          </>
-                        )}
-                      </div>
-                    </td>
-                    {isVisible('tier') && (
-                      <td className={`${cellClass} capitalize`}>
-                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-surface-sunken border border-default">
-                          {c.type}
-                        </span>
-                      </td>
-                    )}
-                    {isVisible('location') && (
-                      <td className={`${cellClass} text-muted`}>
-                        <div className="flex items-center gap-1">
-                          <MapPin className="h-3 w-3 shrink-0" />
-                          <span>{c.city || 'Dhaka'}</span>
-                        </div>
-                      </td>
-                    )}
-                    {isVisible('balance') && (
-                      <td className={`${cellClass} text-right font-mono text-xs font-semibold`}>
-                        <span className={parseFloat(c.current_balance || '0') > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-default'}>
-                          {formatCurrency(c.current_balance)}
-                        </span>
-                      </td>
-                    )}
-                    {isVisible('lifetime') && (
-                      <td className={`${cellClass} text-right font-mono text-xs font-bold text-emerald-600 dark:text-emerald-400`}>
-                        {formatCurrency(c.lifetime_value)}
-                      </td>
-                    )}
-                    {isVisible('status') && (
-                      <td className={cellClass}>
-                        <StatusBadgeSelector
-                        status={c.status}
-                        disabled={updateStatusMutation.isPending}
-                        onUpdateStatus={(newStatus) =>
-                          updateStatusMutation.mutate({ id: c.id, uuid: c.uuid, status: newStatus })
-                        }
-                      />
-                      </td>
-                    )}
-                    <td className={`${cellClass} text-right whitespace-nowrap`}>
-                      <div className="flex items-center justify-end gap-1.5 whitespace-nowrap">
-                        <button
-                          type="button"
-                          onClick={() => setAuditingCustomer(c)}
-                          className="inline-flex items-center gap-1 rounded-lg border border-default bg-surface-sunken px-2.5 py-1 text-[11px] font-medium text-default hover:bg-surface transition-colors cursor-pointer"
-                          title="View Audit History"
-                        >
-                          <History className="h-3 w-3 text-muted" />
-                          <span>History</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setSelectedCustomer(c);
-                            setShowLedgerModal(true);
-                          }}
-                          className="inline-flex items-center gap-1 rounded-lg border border-default bg-surface-sunken px-2.5 py-1 text-[11px] font-medium text-default hover:bg-surface transition-colors cursor-pointer"
-                          title="View Financial Ledger Statement"
-                        >
-                          <FileText className="h-3 w-3 text-primary" />
-                          <span>Ledger</span>
-                        </button>
-                        {canCreate && (
-                          <button
-                            type="button"
-                            onClick={() => handleOpenEdit(c)}
-                            className="p-1.5 text-muted hover:text-default hover:bg-surface-sunken rounded-lg transition-colors cursor-pointer"
-                            title={`Edit ${roleLabel} Details`}
-                          >
-                            <Edit2 className="size-3.5" />
-                          </button>
-                        )}
-                        {canDelete && (
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setDeleteConfirm({
-                                id: c.id,
-                                uuid: c.uuid,
-                                title: `${roleLabel.toLowerCase()} "${c.name}"`,
-                                customer: c,
-                              })
-                            }
-                            className="p-1.5 text-muted hover:text-rose-600 hover:bg-rose-500/10 rounded-lg transition-colors cursor-pointer"
-                            title={`Move ${roleLabel.toLowerCase()} to Data Bin`}
-                          >
-                            <Trash2 className="size-3.5" />
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })
-              )}
-            </tbody>
-            {filteredCustomers.length > 0 && (
-              <tfoot className="sticky bottom-0 z-10 border-t-2 border-default bg-surface-sunken/95 backdrop-blur-xs font-semibold text-xs text-default">
-                <tr>
-                  <td
-                    colSpan={2 + (isVisible('tier') ? 1 : 0) + (isVisible('location') ? 1 : 0)}
-                    className={`px-4 font-medium text-muted ${cellClass}`}
+                    <Edit2 className="size-3.5" />
+                  </button>
+                )}
+                {canDelete && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setDeleteConfirm({
+                        id: c.id,
+                        uuid: c.uuid,
+                        title: `${roleLabel.toLowerCase()} "${c.name}"`,
+                        customer: c,
+                      })
+                    }
+                    className="p-1.5 text-muted hover:text-rose-600 hover:bg-rose-500/10 rounded-lg transition-colors cursor-pointer"
+                    title={`Move ${roleLabel.toLowerCase()} to Data Bin`}
                   >
-                    Total ({filteredCustomers.length} {roleLabel}s)
-                  </td>
-                  {isVisible('balance') && (
-                    <td className={`px-4 text-right font-mono font-bold text-amber-600 dark:text-amber-400 ${cellClass}`}>
-                      {formatCurrency(
-                        filteredCustomers.reduce((sum, c) => sum + parseFloat(c.current_balance || '0'), 0)
-                      )}
-                    </td>
-                  )}
-                  {isVisible('lifetime') && (
-                    <td className={`px-4 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400 ${cellClass}`}>
-                      {formatCurrency(
-                        filteredCustomers.reduce((sum, c) => sum + parseFloat(c.lifetime_value || '0'), 0)
-                      )}
-                    </td>
-                  )}
-                  {isVisible('status') && (
-                    <td className={`px-4 text-muted text-2xs ${cellClass}`}>
-                      {filteredCustomers.filter((c) => (localStatuses[c.id] || c.status) === 'active').length} Active
-                    </td>
-                  )}
-                  <td className={`px-4 text-right text-2xs text-muted font-normal ${cellClass}`}>
-                    Summary
-                  </td>
-                </tr>
-              </tfoot>
-            )}
-          </table>
+                    <Trash2 className="size-3.5" />
+                  </button>
+                )}
+              </div>
+            ),
+          },
+        ]}
+      />
+
+      {/* Customer Registry Summary Ribbon */}
+      {filteredCustomers.length > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 rounded-2xl border border-default bg-surface-sunken/80 text-xs text-default shadow-2xs">
+          <div className="flex items-center gap-2 font-bold">
+            <span>Total:</span>
+            <span className="font-mono text-primary font-bold">{filteredCustomers.length} {roleLabel}s</span>
+            <span className="text-muted text-[11px] font-normal">
+              ({filteredCustomers.filter((c) => (localStatuses[c.id] || c.status) === 'active').length} Active)
+            </span>
+          </div>
+          <div className="flex items-center gap-4 font-mono text-xs flex-wrap">
+            <div>
+              <span className="text-muted mr-1 font-sans text-[11px]">Outstanding A/R:</span>
+              <span className="font-bold text-amber-600 dark:text-amber-400">
+                {formatCurrency(filteredCustomers.reduce((sum, c) => sum + parseFloat(c.current_balance || '0'), 0))}
+              </span>
+            </div>
+            <div className="border-l border-default pl-4">
+              <span className="text-muted mr-1 font-sans text-[11px]">Total Lifetime Billed:</span>
+              <span className="font-bold text-emerald-600 dark:text-emerald-400 text-sm">
+                {formatCurrency(filteredCustomers.reduce((sum, c) => sum + parseFloat(c.lifetime_value || '0'), 0))}
+              </span>
+            </div>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Customer Ledger Modal */}
       {showLedgerModal && selectedCustomer && (

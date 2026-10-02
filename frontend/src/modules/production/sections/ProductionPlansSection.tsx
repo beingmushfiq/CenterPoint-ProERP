@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ClipboardList, Plus, Search, Trash2, Rocket, Copy, FileUp, ChevronDown, CheckCircle2, X, LayoutList, BarChart3, Calendar } from 'lucide-react';
 import { api } from '../../../lib/api/client';
@@ -9,6 +9,7 @@ import { Button } from '../../../components/ui/Button';
 import { SelectDropdown } from '../../../components/ui/Dropdown';
 import { StatusBadge } from '../../../components/ui/Badge';
 import { QueryBoundary } from '../../../components/patterns/QueryBoundary';
+import { ResponsiveDataTable, type ResponsiveColumn } from '../../../components/ui/ResponsiveDataTable';
 import { isApiError } from '../../../lib/api/errors';
 import { UniversalImportModal } from '../../../components/import/UniversalImportModal';
 import { ActionMenuPortal } from '../../../components/ui/ActionMenuPortal';
@@ -299,6 +300,358 @@ export function ProductionPlansSection() {
     }
   };
 
+  const planColumns: ResponsiveColumn<ProductionPlan>[] = useMemo(() => [
+    {
+      id: 'select',
+      header: (
+        <input
+          ref={headerCheckboxRef}
+          type="checkbox"
+          aria-label="Select all plans"
+          checked={plans.length > 0 && selectedIds.size === plans.length}
+          onChange={toggleSelectAll}
+          className="rounded border-default text-primary focus:ring-primary h-4 w-4 cursor-pointer"
+        />
+      ),
+      className: 'w-10 text-center',
+      accessor: (plan) => (
+        <div onClick={(e) => e.stopPropagation()}>
+          <input
+            type="checkbox"
+            aria-label={`Select plan ${plan.plan_number}`}
+            checked={selectedIds.has(plan.id)}
+            onChange={() => toggleSelect(plan.id)}
+            className="rounded border-default text-primary focus:ring-primary h-4 w-4 cursor-pointer"
+          />
+        </div>
+      ),
+    },
+    {
+      id: 'plan_number',
+      header: 'Plan No',
+      isPrimary: true,
+      accessor: (plan) => (
+        <div className="font-mono font-bold text-primary">
+          {plan.plan_number}
+        </div>
+      ),
+    },
+    {
+      id: 'title',
+      header: 'Title',
+      accessor: (plan) => (
+        <div className="font-medium text-default">
+          <div className="font-semibold text-default">{plan.title}</div>
+          {plan.notes && (
+            <div className="text-[11px] text-muted line-clamp-1 mt-0.5">
+              {plan.notes}
+            </div>
+          )}
+        </div>
+      ),
+    },
+    {
+      id: 'date_range',
+      header: 'Date Range',
+      priority: 'medium',
+      accessor: (plan) => (
+        <span className="text-muted font-mono text-xs whitespace-nowrap">
+          {plan.start_date} <span className="text-muted/60">→</span> {plan.end_date}
+        </span>
+      ),
+    },
+    {
+      id: 'items',
+      header: 'Items',
+      align: 'center',
+      priority: 'medium',
+      accessor: (plan) => (
+        <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-surface-sunken border border-default text-xs font-semibold">
+          {plan.items?.length ?? 0} items
+        </span>
+      ),
+    },
+    {
+      id: 'status',
+      header: 'Status',
+      align: 'center',
+      priority: 'medium',
+      accessor: (plan) => <StatusBadge status={plan.status} />,
+    },
+    {
+      id: 'actions',
+      header: 'Actions',
+      align: 'right',
+      priority: 'low',
+      accessor: (plan) => (
+        <div className="flex items-center justify-end gap-1.5 relative">
+          <button
+            type="button"
+            onClick={() => {
+              const firstItem = plan.items?.[0];
+              const prodId = firstItem?.product_id ?? products[0]?.id ?? '';
+              const matchingBom = firstItem?.bom_id ?? boms.find((b) => b.product_id === prodId)?.id ?? boms[0]?.id ?? '';
+              setLaunchBatchDraft({
+                plan_id: plan.id,
+                plan_number: plan.plan_number,
+                product_id: prodId,
+                bom_id: matchingBom,
+                batch_number: `BAT-${plan.plan_number.replace(/^PLN-/, '')}-${Date.now().toString().slice(-4)}`,
+                target_quantity: firstItem?.planned_quantity ?? '100.0000',
+                scheduled_start: plan.start_date,
+                scheduled_end: plan.end_date,
+              });
+              setLaunchErrorMsg(null);
+            }}
+            className="px-2.5 py-1 text-xs bg-surface border border-emerald-300 dark:border-emerald-700/60 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 rounded-lg font-medium transition cursor-pointer flex items-center gap-1 shadow-2xs touch-target"
+            title="Launch Shop Floor Batch from Plan"
+          >
+            <Rocket className="size-3 text-emerald-600 dark:text-emerald-400 shrink-0" />
+            <span>Launch</span>
+          </button>
+
+          <div className="relative inline-block text-left">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (openActionMenuId === plan.id) {
+                  setOpenActionMenuId(null);
+                  setActionMenuAnchor(null);
+                } else {
+                  setOpenActionMenuId(plan.id);
+                  setActionMenuAnchor(e.currentTarget);
+                }
+              }}
+              className={`px-2.5 py-1 text-xs rounded-lg border font-medium transition cursor-pointer flex items-center gap-1 shadow-2xs touch-target ${
+                openActionMenuId === plan.id
+                  ? 'border-primary bg-primary/10 text-primary'
+                  : 'border-default bg-surface hover:bg-surface-sunken text-default'
+              }`}
+              title={`More actions for plan ${plan.plan_number}`}
+              aria-label={`More options for plan ${plan.plan_number}`}
+            >
+              <span>Actions</span>
+              <ChevronDown className="size-3 text-muted" />
+            </button>
+
+            <ActionMenuPortal
+              isOpen={openActionMenuId === plan.id}
+              anchorEl={actionMenuAnchor}
+              onClose={() => {
+                setOpenActionMenuId(null);
+                setActionMenuAnchor(null);
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => {
+                  setOpenActionMenuId(null);
+                  setActionMenuAnchor(null);
+                  setSelectedPlan(plan);
+                  void api.get<ProductionPlan>(`/production/plans/${(plan as unknown as { uuid?: string }).uuid || plan.id}`).then((res) => {
+                    if (res.data) setSelectedPlan(res.data);
+                  }).catch(() => {});
+                }}
+                className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs text-default hover:bg-surface-sunken transition-colors cursor-pointer"
+              >
+                <ClipboardList className="size-3.5 text-primary shrink-0" />
+                <span>View Plan Details</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setOpenActionMenuId(null);
+                  setActionMenuAnchor(null);
+                  setDraft({
+                    plan_number: `PLN-${Date.now().toString().slice(-6)}`,
+                    title: `${plan.title} (Copy)`,
+                    start_date: new Date().toISOString().slice(0, 10),
+                    end_date: new Date(Date.now() + 14 * 86400000).toISOString().slice(0, 10),
+                    notes: plan.notes ? `Copy of ${plan.plan_number} - ${plan.notes}` : `Copy of ${plan.plan_number}`,
+                    items: plan.items && plan.items.length > 0
+                      ? plan.items.map((it) => ({
+                          product_id: it.product_id,
+                          bom_id: it.bom_id || '',
+                          planned_quantity: it.planned_quantity || '100.0000',
+                          notes: it.notes || '',
+                        }))
+                      : [
+                          {
+                            product_id: products[0]?.id || '',
+                            bom_id: '',
+                            planned_quantity: '100.0000',
+                          },
+                        ],
+                  });
+                  setErrorMsg(null);
+                  setIsCreateOpen(true);
+                }}
+                className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs text-default hover:bg-surface-sunken transition-colors cursor-pointer"
+              >
+                <Copy className="size-3.5 text-amber-500 shrink-0" />
+                <span>Duplicate Plan</span>
+              </button>
+
+              {plan.status === 'draft' && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOpenActionMenuId(null);
+                    setActionMenuAnchor(null);
+                    approveMutation.mutate(plan.id);
+                  }}
+                  className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 transition-colors cursor-pointer"
+                >
+                  <CheckCircle2 className="size-3.5 text-emerald-600 shrink-0" />
+                  <span>Approve Plan</span>
+                </button>
+              )}
+
+              {plan.status !== 'completed' && plan.status !== 'cancelled' && (
+                <div className="px-2.5 py-1.5">
+                  <span className="text-[10px] uppercase font-semibold text-muted block mb-1">Set Status</span>
+                  <select
+                    value={plan.status}
+                    onChange={(e) => {
+                      const newStatus = e.target.value;
+                      setOpenActionMenuId(null);
+                      setActionMenuAnchor(null);
+                      if (newStatus === 'approved' && plan.status === 'draft') {
+                        approveMutation.mutate(plan.id);
+                      } else {
+                        updatePlanStatusMutation.mutate({ planId: plan.id, status: newStatus });
+                      }
+                    }}
+                    className="w-full h-7 rounded-lg border border-default bg-surface-sunken px-2 text-[11px] font-medium text-default focus:border-primary focus:outline-none cursor-pointer"
+                  >
+                    <option value="draft">Draft</option>
+                    <option value="approved">Approved</option>
+                    <option value="in_progress">In Progress</option>
+                    <option value="completed">Completed</option>
+                    <option value="cancelled">Cancelled</option>
+                  </select>
+                </div>
+              )}
+
+              {canDelete && (plan.status === 'draft' || plan.status === 'cancelled') && (
+                <>
+                  <div className="my-1 border-t border-default/50" />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setOpenActionMenuId(null);
+                      setActionMenuAnchor(null);
+                      setDeleteConfirm({
+                        open: true,
+                        id: plan.id,
+                        name: plan.plan_number,
+                      });
+                    }}
+                    className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer"
+                  >
+                    <Trash2 className="size-3.5 text-rose-600 shrink-0" />
+                    <span>Move to Bin</span>
+                  </button>
+                </>
+              )}
+            </ActionMenuPortal>
+          </div>
+        </div>
+      ),
+    },
+  ], [plans, selectedIds, openActionMenuId, actionMenuAnchor, products, boms, canDelete]);
+
+  const getMobileActions = (plan: ProductionPlan) => {
+    const actions = [
+      {
+        label: 'Launch Batch',
+        icon: <Rocket className="size-4 text-emerald-500" />,
+        onClick: () => {
+          const firstItem = plan.items?.[0];
+          const prodId = firstItem?.product_id ?? products[0]?.id ?? '';
+          const matchingBom = firstItem?.bom_id ?? boms.find((b) => b.product_id === prodId)?.id ?? boms[0]?.id ?? '';
+          setLaunchBatchDraft({
+            plan_id: plan.id,
+            plan_number: plan.plan_number,
+            product_id: prodId,
+            bom_id: matchingBom,
+            batch_number: `BAT-${plan.plan_number.replace(/^PLN-/, '')}-${Date.now().toString().slice(-4)}`,
+            target_quantity: firstItem?.planned_quantity ?? '100.0000',
+            scheduled_start: plan.start_date,
+            scheduled_end: plan.end_date,
+          });
+          setLaunchErrorMsg(null);
+        },
+      },
+      {
+        label: 'View Details',
+        icon: <ClipboardList className="size-4 text-primary" />,
+        onClick: () => {
+          setSelectedPlan(plan);
+          void api.get<ProductionPlan>(`/production/plans/${(plan as unknown as { uuid?: string }).uuid || plan.id}`).then((res) => {
+            if (res.data) setSelectedPlan(res.data);
+          }).catch(() => {});
+        },
+      },
+      {
+        label: 'Duplicate Plan',
+        icon: <Copy className="size-4 text-amber-500" />,
+        onClick: () => {
+          setDraft({
+            plan_number: `PLN-${Date.now().toString().slice(-6)}`,
+            title: `${plan.title} (Copy)`,
+            start_date: new Date().toISOString().slice(0, 10),
+            end_date: new Date(Date.now() + 14 * 86400000).toISOString().slice(0, 10),
+            notes: plan.notes ? `Copy of ${plan.plan_number} - ${plan.notes}` : `Copy of ${plan.plan_number}`,
+            items: plan.items && plan.items.length > 0
+              ? plan.items.map((it) => ({
+                  product_id: it.product_id,
+                  bom_id: it.bom_id || '',
+                  planned_quantity: it.planned_quantity || '100.0000',
+                  notes: it.notes || '',
+                }))
+              : [
+                  {
+                    product_id: products[0]?.id || '',
+                    bom_id: '',
+                    planned_quantity: '100.0000',
+                  },
+                ],
+          });
+          setErrorMsg(null);
+          setIsCreateOpen(true);
+        },
+      },
+    ];
+
+    if (plan.status === 'draft') {
+      actions.push({
+        label: 'Approve Plan',
+        icon: <CheckCircle2 className="size-4 text-emerald-500" />,
+        onClick: () => approveMutation.mutate(plan.id),
+      });
+    }
+
+    if (canDelete && (plan.status === 'draft' || plan.status === 'cancelled')) {
+      actions.push({
+        label: 'Move to Bin',
+        icon: <Trash2 className="size-4 text-rose-500" />,
+        variant: 'destructive' as const,
+        onClick: () => {
+          setDeleteConfirm({
+            open: true,
+            id: plan.id,
+            name: plan.plan_number,
+          });
+        },
+      });
+    }
+
+    return actions;
+  };
+
   return (
     <div className="space-y-6">
       {/* Controls */}
@@ -438,273 +791,17 @@ export function ProductionPlansSection() {
         isFetching={plansQuery.isFetching}
       >
         {viewMode === 'table' ? (
-          <div className="overflow-hidden rounded-2xl border border-default bg-surface shadow-2xs">
-          <div className="overflow-x-auto min-h-75">
-            <table className="w-full text-left text-xs text-default border-collapse">
-              <thead className="border-b border-default bg-surface-sunken text-[11px] font-semibold uppercase tracking-wider text-muted">
-                <tr>
-                  <th className="w-10 px-4 py-3.5">
-                    <input
-                      ref={headerCheckboxRef}
-                      type="checkbox"
-                      aria-label="Select all plans"
-                      checked={plans.length > 0 && selectedIds.size === plans.length}
-                      onChange={toggleSelectAll}
-                      className="rounded border-default text-primary focus:ring-primary h-4 w-4 cursor-pointer"
-                    />
-                  </th>
-                  <th className="px-4 py-3.5 whitespace-nowrap">Plan No</th>
-                  <th className="px-4 py-3.5">Title</th>
-                  <th className="px-4 py-3.5 whitespace-nowrap">Date Range</th>
-                  <th className="px-4 py-3.5 text-center whitespace-nowrap">Items</th>
-                  <th className="px-4 py-3.5 text-center whitespace-nowrap">Status</th>
-                  <th className="px-4 py-3.5 text-right whitespace-nowrap">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-default">
-                {plans.length === 0 ? (
-                  <tr>
-                    <td colSpan={7} className="py-12 text-center text-muted">
-                      <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-xl bg-surface-sunken border border-default mb-2">
-                        <ClipboardList className="h-5 w-5 text-muted" />
-                      </div>
-                      <div className="text-sm font-medium text-default">
-                        No production plans found
-                      </div>
-                      <div className="text-xs text-muted mt-1">
-                        {search
-                          ? 'Try adjusting search or status filters'
-                          : 'Create your first production plan to get started.'}
-                      </div>
-                    </td>
-                  </tr>
-                ) : (
-                  plans.map((plan) => (
-                    <tr
-                      key={plan.id}
-                      className={cn(
-                        'hover:bg-surface-sunken/60 transition-colors',
-                        selectedIds.has(plan.id) && 'bg-primary/5'
-                      )}
-                    >
-                      <td className="px-4 py-3.5" onClick={(e) => e.stopPropagation()}>
-                        <input
-                          type="checkbox"
-                          aria-label={`Select plan ${plan.plan_number}`}
-                          checked={selectedIds.has(plan.id)}
-                          onChange={() => toggleSelect(plan.id)}
-                          className="rounded border-default text-primary focus:ring-primary h-4 w-4 cursor-pointer"
-                        />
-                      </td>
-                      <td className="px-4 py-3.5 font-mono font-bold text-primary whitespace-nowrap">
-                        {plan.plan_number}
-                      </td>
-                      <td className="px-4 py-3.5 font-medium text-default">
-                        <div className="font-semibold text-default">{plan.title}</div>
-                        {plan.notes && (
-                          <div className="text-[11px] text-muted line-clamp-1 mt-0.5">
-                            {plan.notes}
-                          </div>
-                        )}
-                      </td>
-                      <td className="px-4 py-3.5 text-muted font-mono text-xs whitespace-nowrap">
-                        {plan.start_date} <span className="text-muted/60">→</span> {plan.end_date}
-                      </td>
-                      <td className="px-4 py-3.5 font-mono text-default text-center whitespace-nowrap">
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-surface-sunken border border-default text-xs font-semibold">
-                          {plan.items?.length ?? 0} items
-                        </span>
-                      </td>
-                      <td className="px-4 py-3.5 text-center whitespace-nowrap">
-                        <StatusBadge status={plan.status} />
-                      </td>
-                      <td className="px-4 py-3.5 text-right whitespace-nowrap">
-                        <div className="flex items-center justify-end gap-1.5 relative">
-                          {/* 1. Direct Primary Action: Launch Batch */}
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const firstItem = plan.items?.[0];
-                              const prodId = firstItem?.product_id ?? products[0]?.id ?? '';
-                              const matchingBom = firstItem?.bom_id ?? boms.find((b) => b.product_id === prodId)?.id ?? boms[0]?.id ?? '';
-                              setLaunchBatchDraft({
-                                plan_id: plan.id,
-                                plan_number: plan.plan_number,
-                                product_id: prodId,
-                                bom_id: matchingBom,
-                                batch_number: `BAT-${plan.plan_number.replace(/^PLN-/, '')}-${Date.now().toString().slice(-4)}`,
-                                target_quantity: firstItem?.planned_quantity ?? '100.0000',
-                                scheduled_start: plan.start_date,
-                                scheduled_end: plan.end_date,
-                              });
-                              setLaunchErrorMsg(null);
-                            }}
-                            className="px-2.5 py-1 text-xs bg-surface border border-emerald-300 dark:border-emerald-700/60 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 rounded-lg font-medium transition cursor-pointer flex items-center gap-1 shadow-2xs"
-                            title="Launch Shop Floor Batch from Plan"
-                          >
-                            <Rocket className="size-3 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                            <span>Launch</span>
-                          </button>
-
-                          {/* 2. Prominent Actions Dropdown Button */}
-                          <div className="relative inline-block text-left">
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                if (openActionMenuId === plan.id) {
-                                   setOpenActionMenuId(null);
-                                   setActionMenuAnchor(null);
-                                } else {
-                                   setOpenActionMenuId(plan.id);
-                                   setActionMenuAnchor(e.currentTarget);
-                                }
-                              }}
-                              className={`px-2.5 py-1 text-xs rounded-lg border font-medium transition cursor-pointer flex items-center gap-1 shadow-2xs ${
-                                openActionMenuId === plan.id
-                                  ? 'border-primary bg-primary/10 text-primary'
-                                  : 'border-default bg-surface hover:bg-surface-sunken text-default'
-                              }`}
-                              title={`More actions for plan ${plan.plan_number}`}
-                              aria-label={`More options for plan ${plan.plan_number}`}
-                            >
-                              <span>Actions</span>
-                              <ChevronDown className="size-3 text-muted" />
-                            </button>
-
-                            {/* Dropdown Menu via Portal - immune to overflow clipping */}
-                            <ActionMenuPortal
-                              isOpen={openActionMenuId === plan.id}
-                              anchorEl={actionMenuAnchor}
-                              onClose={() => {
-                                setOpenActionMenuId(null);
-                                setActionMenuAnchor(null);
-                              }}
-                            >
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setOpenActionMenuId(null);
-                                  setActionMenuAnchor(null);
-                                  setSelectedPlan(plan);
-                                  void api.get<ProductionPlan>(`/production/plans/${(plan as unknown as { uuid?: string }).uuid || plan.id}`).then((res) => {
-                                    if (res.data) setSelectedPlan(res.data);
-                                  }).catch(() => {});
-                                }}
-                                className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs text-default hover:bg-surface-sunken transition-colors cursor-pointer"
-                              >
-                                <ClipboardList className="size-3.5 text-primary shrink-0" />
-                                <span>View Plan Details</span>
-                              </button>
-
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setOpenActionMenuId(null);
-                                  setActionMenuAnchor(null);
-                                  setDraft({
-                                    plan_number: `PLN-${Date.now().toString().slice(-6)}`,
-                                    title: `${plan.title} (Copy)`,
-                                    start_date: new Date().toISOString().slice(0, 10),
-                                    end_date: new Date(Date.now() + 14 * 86400000).toISOString().slice(0, 10),
-                                    notes: plan.notes ? `Copy of ${plan.plan_number} - ${plan.notes}` : `Copy of ${plan.plan_number}`,
-                                    items: plan.items && plan.items.length > 0
-                                      ? plan.items.map((it) => ({
-                                          product_id: it.product_id,
-                                          bom_id: it.bom_id || '',
-                                          planned_quantity: it.planned_quantity || '100.0000',
-                                          notes: it.notes || '',
-                                        }))
-                                      : [
-                                          {
-                                            product_id: products[0]?.id || '',
-                                            bom_id: '',
-                                            planned_quantity: '100.0000',
-                                          },
-                                        ],
-                                  });
-                                  setErrorMsg(null);
-                                  setIsCreateOpen(true);
-                                }}
-                                className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs text-default hover:bg-surface-sunken transition-colors cursor-pointer"
-                              >
-                                <Copy className="size-3.5 text-amber-500 shrink-0" />
-                                <span>Duplicate Plan</span>
-                              </button>
-
-                              {plan.status === 'draft' && (
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setOpenActionMenuId(null);
-                                    setActionMenuAnchor(null);
-                                    approveMutation.mutate(plan.id);
-                                  }}
-                                  className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 transition-colors cursor-pointer"
-                                >
-                                  <CheckCircle2 className="size-3.5 text-emerald-600 shrink-0" />
-                                  <span>Approve Plan</span>
-                                </button>
-                              )}
-
-                              {plan.status !== 'completed' && plan.status !== 'cancelled' && (
-                                <div className="px-2.5 py-1.5">
-                                  <span className="text-[10px] uppercase font-semibold text-muted block mb-1">Set Status</span>
-                                  <select
-                                    value={plan.status}
-                                    onChange={(e) => {
-                                      const newStatus = e.target.value;
-                                      setOpenActionMenuId(null);
-                                      setActionMenuAnchor(null);
-                                      if (newStatus === 'approved' && plan.status === 'draft') {
-                                        approveMutation.mutate(plan.id);
-                                      } else {
-                                        updatePlanStatusMutation.mutate({ planId: plan.id, status: newStatus });
-                                      }
-                                    }}
-                                    className="w-full h-7 rounded-lg border border-default bg-surface-sunken px-2 text-[11px] font-medium text-default focus:border-primary focus:outline-none cursor-pointer"
-                                  >
-                                    <option value="draft">Draft</option>
-                                    <option value="approved">Approved</option>
-                                    <option value="in_progress">In Progress</option>
-                                    <option value="completed">Completed</option>
-                                    <option value="cancelled">Cancelled</option>
-                                  </select>
-                                </div>
-                              )}
-
-                              {canDelete && (plan.status === 'draft' || plan.status === 'cancelled') && (
-                                <>
-                                  <div className="my-1 border-t border-default/50" />
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      setOpenActionMenuId(null);
-                                      setActionMenuAnchor(null);
-                                      setDeleteConfirm({
-                                        open: true,
-                                        id: plan.id,
-                                        name: plan.plan_number,
-                                      });
-                                    }}
-                                    className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer"
-                                  >
-                                    <Trash2 className="size-3.5 text-rose-600 shrink-0" />
-                                    <span>Move to Bin</span>
-                                  </button>
-                                </>
-                              )}
-                            </ActionMenuPortal>
-                          </div>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
+          <ResponsiveDataTable<ProductionPlan>
+            data={plans}
+            columns={planColumns}
+            keyExtractor={(plan) => plan.id}
+            mobileActions={getMobileActions}
+            emptyState={{
+              icon: <ClipboardList className="size-6 text-muted" />,
+              title: 'No production plans found',
+              description: search ? 'Try adjusting search or status filters' : 'Create your first production plan to get started.',
+            }}
+          />
         ) : (
           /* Gantt-lite Timeline View */
           <div className="overflow-hidden rounded-2xl border border-default bg-surface shadow-2xs">

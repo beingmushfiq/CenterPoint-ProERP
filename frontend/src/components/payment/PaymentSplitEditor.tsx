@@ -250,7 +250,7 @@ export const PaymentSplitEditor: React.FC<PaymentSplitEditorProps> = ({
                 type="button"
                 onClick={handleAutoBalance}
                 title="Adjust last split to match remaining balance"
-                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium border border-default bg-surface text-default hover:bg-surface-sunken hover:border-primary transition-all cursor-pointer"
+                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium border border-default bg-surface text-default hover:bg-surface-sunken hover:border-primary transition-all cursor-pointer touch-target"
               >
                 <Scale className="h-3 w-3 text-muted" />
                 <span>Auto-Balance</span>
@@ -260,7 +260,7 @@ export const PaymentSplitEditor: React.FC<PaymentSplitEditorProps> = ({
                   type="button"
                   onClick={handleSplitEvenly}
                   title="Distribute total equally across rows"
-                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium border border-default bg-surface text-default hover:bg-surface-sunken hover:border-primary transition-all cursor-pointer"
+                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium border border-default bg-surface text-default hover:bg-surface-sunken hover:border-primary transition-all cursor-pointer touch-target"
                 >
                   <Divide className="h-3 w-3 text-muted" />
                   <span>Equal</span>
@@ -295,7 +295,7 @@ export const PaymentSplitEditor: React.FC<PaymentSplitEditorProps> = ({
                       type="button"
                       onClick={() => toggleExpand(split.id)}
                       title="Toggle payment details"
-                      className="p-1.5 rounded-lg text-muted hover:text-default hover:bg-surface-sunken transition-colors cursor-pointer"
+                      className="p-1.5 rounded-lg text-muted hover:text-default hover:bg-surface-sunken transition-colors cursor-pointer touch-target"
                     >
                       {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                     </button>
@@ -304,7 +304,7 @@ export const PaymentSplitEditor: React.FC<PaymentSplitEditorProps> = ({
                         type="button"
                         onClick={() => removeSplitRow(split.id)}
                         title="Remove split method"
-                        className="p-1.5 rounded-lg text-muted hover:text-rose-600 hover:bg-rose-500/10 transition-colors cursor-pointer"
+                        className="p-1.5 rounded-lg text-muted hover:text-rose-600 hover:bg-rose-500/10 transition-colors cursor-pointer touch-target"
                       >
                         <Trash2 className="h-4 w-4" />
                       </button>
@@ -377,7 +377,7 @@ export const PaymentSplitEditor: React.FC<PaymentSplitEditorProps> = ({
                     type="button"
                     onClick={() => toggleExpand(split.id)}
                     title="Toggle payment details (reference, bank, mobile provider)"
-                    className="p-2 rounded-xl text-muted hover:text-default hover:bg-surface-sunken transition-colors cursor-pointer"
+                    className="p-2 rounded-xl text-muted hover:text-default hover:bg-surface-sunken transition-colors cursor-pointer touch-target"
                   >
                     {isExpanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
                   </button>
@@ -387,7 +387,7 @@ export const PaymentSplitEditor: React.FC<PaymentSplitEditorProps> = ({
                       type="button"
                       onClick={() => removeSplitRow(split.id)}
                       title="Remove split method"
-                      className="p-2 rounded-xl text-muted hover:text-rose-600 hover:bg-rose-500/10 transition-colors cursor-pointer"
+                      className="p-2 rounded-xl text-muted hover:text-rose-600 hover:bg-rose-500/10 transition-colors cursor-pointer touch-target"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </button>
@@ -561,7 +561,7 @@ export const PaymentSplitEditor: React.FC<PaymentSplitEditorProps> = ({
           <button
             type="button"
             onClick={() => addSplitRow()}
-            className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-3 py-2 sm:py-1.5 rounded-xl border border-dashed border-default bg-surface-sunken/60 text-xs font-semibold text-default hover:border-primary hover:text-primary transition-all cursor-pointer"
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-3 py-2 sm:py-1.5 rounded-xl border border-dashed border-default bg-surface-sunken/60 text-xs font-semibold text-default hover:border-primary hover:text-primary transition-all cursor-pointer touch-target"
           >
             <Plus className="h-3.5 w-3.5" />
             <span>Add Split Method</span>
@@ -574,7 +574,7 @@ export const PaymentSplitEditor: React.FC<PaymentSplitEditorProps> = ({
                 key={m}
                 type="button"
                 onClick={() => addSplitRow(m)}
-                className="px-2 py-1 sm:py-0.5 rounded-lg border border-default bg-surface hover:bg-surface-sunken hover:text-default transition-all cursor-pointer"
+                className="px-2 py-1 sm:py-0.5 rounded-lg border border-default bg-surface hover:bg-surface-sunken hover:text-default transition-all cursor-pointer touch-target"
               >
                 +{METHOD_CONFIG[m].label}
               </button>
