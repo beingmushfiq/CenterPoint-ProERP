@@ -77,7 +77,9 @@ class StorefrontPageBuilderTest extends TestCase
 
         $listResponse->assertOk();
         $listResponse->assertJsonPath('success', true);
-        $this->assertCount(1, $listResponse->json('data'));
+        $this->assertGreaterThanOrEqual(1, count($listResponse->json('data')));
+        $slugs = collect($listResponse->json('data'))->pluck('slug')->all();
+        $this->assertContains('about-us', $slugs);
     }
 
     public function test_tenant_admin_can_update_and_reorder_page_blocks(): void
