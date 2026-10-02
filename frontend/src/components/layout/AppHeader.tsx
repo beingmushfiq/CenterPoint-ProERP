@@ -100,6 +100,7 @@ export function AppHeader({
   const searchContainerRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
+  const modules = useTenantCapabilityStore((s) => s.modules);
   const isModuleEnabled = useTenantCapabilityStore((s) => s.isModuleEnabled);
   const hasPermission = useAuthStore((s) => s.hasPermission);
   const getTerm = useTenantCapabilityStore((s) => s.getTerm);
@@ -124,7 +125,7 @@ export function AppHeader({
       }
     }
     return items;
-  }, [isModuleEnabled, hasPermission, getTerm]);
+  }, [isModuleEnabled, hasPermission, getTerm, modules]);
 
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [themeMode, setThemeMode] = useState<ThemeMode>(() => {

@@ -26,11 +26,13 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
 }) => {
   const { t } = useTranslation(['navigation', 'common']);
   const location = useLocation();
+  const modules = useTenantCapabilityStore((s) => s.modules);
   const isModuleEnabled = useTenantCapabilityStore((s) => s.isModuleEnabled);
   const hasPermission = useAuthStore((s) => s.hasPermission);
 
   const isPosEnabled =
-    isModuleEnabled('pos') && hasPermission(['pos.terminal.view', 'pos.sale.create', '*']);
+    (modules['pos'] ? (modules['pos'].enabled && modules['pos'].plan_allowed) : isModuleEnabled('pos')) &&
+    hasPermission(['pos.terminal.view', 'pos.sale.create', '*']);
 
   const isDashboardActive =
     location.pathname === '/dashboard' || location.pathname === '/';

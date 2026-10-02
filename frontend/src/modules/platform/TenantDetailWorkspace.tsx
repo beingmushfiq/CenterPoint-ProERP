@@ -18,17 +18,24 @@ import {
   ExternalLink,
   Zap,
   ShieldAlert,
-  Cpu,
   Key,
   Trash2,
   Sliders,
   Save,
   Lock,
-  Package,
   ShoppingCart,
-  DollarSign,
   AlertTriangle,
   Calendar,
+  Factory,
+  Warehouse,
+  ClipboardList,
+  ShoppingBag,
+  Store,
+  Truck,
+  Coins,
+  Microscope,
+  FileSpreadsheet,
+  Boxes,
 } from 'lucide-react';
 
 interface TenantDetailPayload {
@@ -74,12 +81,19 @@ interface TenantDetailPayload {
 }
 
 const AVAILABLE_MODULES = [
-  { key: 'pos', label: 'POS Terminal Engine', icon: ShoppingCart },
-  { key: 'production', label: 'Production Batches & Routing', icon: Cpu },
-  { key: 'qc', label: 'Quality Control & Rework', icon: ShieldAlert },
-  { key: 'storefront', label: 'B2C E-Commerce Storefront', icon: Package },
-  { key: 'multi_branch', label: 'Multi-Branch Scope', icon: Building2 },
-  { key: 'accounting', label: 'Financials & Invoicing', icon: DollarSign },
+  { key: 'production', label: 'Production Lines & Routing', icon: Factory },
+  { key: 'inventory', label: 'Warehouse & Stock Control', icon: Warehouse },
+  { key: 'purchasing', label: 'Purchasing & Sourcing POs', icon: ClipboardList },
+  { key: 'sales', label: 'Commercial Sales & Invoicing', icon: ShoppingBag },
+  { key: 'pos', label: 'Point of Sale (POS) Counter', icon: ShoppingCart },
+  { key: 'ecommerce', label: 'B2C E-Commerce Storefront CMS', icon: Store },
+  { key: 'delivery', label: 'Delivery & 3PL Couriers', icon: Truck },
+  { key: 'finance', label: 'Finance & General Ledger', icon: Coins },
+  { key: 'assets', label: 'Plant CMMS & Fixed Asset Registry', icon: Building2 },
+  { key: 'hr', label: 'Team, Attendance & Piece Payroll', icon: Users },
+  { key: 'qc', label: 'Quality Control (QC) & Inspection', icon: Microscope },
+  { key: 'reports', label: 'Business Reports & BI Analytics', icon: FileSpreadsheet },
+  { key: 'crm', label: 'Customer Leads & CRM Pipeline', icon: Boxes },
 ];
 
 export const TenantDetailWorkspace: React.FC = () => {
@@ -427,6 +441,8 @@ export const TenantDetailWorkspace: React.FC = () => {
         localStorage.setItem('auth_tenant', JSON.stringify(targetTenant));
       }
       localStorage.setItem('auth_permissions', JSON.stringify(permissions));
+      // Purge cached tenant manifest so target tenant receives fresh capabilities
+      localStorage.removeItem('tenant_capability_manifest');
 
       useAuthStore.setState({
         user: (targetUser as unknown as User) ?? null,
@@ -454,6 +470,7 @@ export const TenantDetailWorkspace: React.FC = () => {
         modules: moduleOverrides,
       });
       toast.success('Module capability overrides applied to tenant.');
+      localStorage.removeItem('tenant_capability_manifest');
       queryClient.invalidateQueries({ queryKey: ['platform', 'tenant', id] });
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Failed to save module overrides.';

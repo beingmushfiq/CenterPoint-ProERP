@@ -61,6 +61,7 @@ export const MobileQuickAddDrawer: React.FC<MobileQuickAddDrawerProps> = ({
   const navigate = useNavigate();
   const searchInputRef = useRef<HTMLInputElement>(null);
 
+  const modules = useTenantCapabilityStore((s) => s.modules);
   const isModuleEnabled = useTenantCapabilityStore((s) => s.isModuleEnabled);
   const user = useAuthStore((s) => s.user);
   const permissions = useAuthStore((s) => s.permissions);
@@ -102,7 +103,7 @@ export const MobileQuickAddDrawer: React.FC<MobileQuickAddDrawerProps> = ({
       return isModuleEnabled('purchasing') || isModuleEnabled('procurement');
     }
     return isModuleEnabled(moduleKey);
-  }, [isModuleEnabled]);
+  }, [isModuleEnabled, modules]);
 
   const canAccess = useCallback((moduleKey: string, allowedPermissions?: string[]) => {
     // 1. If module is disabled in tenant subscription plan, hide it

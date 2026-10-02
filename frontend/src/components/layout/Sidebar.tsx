@@ -594,6 +594,7 @@ export function Sidebar({ isOpen, onClose, isCollapsed = false, onToggleCollapse
   const user = useAuthStore((state) => state.user);
   const hasPermission = useAuthStore((state) => state.hasPermission);
   const tenant = useAuthStore((state) => state.tenant);
+  const modules = useTenantCapabilityStore((state) => state.modules);
   const isModuleEnabled = useTenantCapabilityStore((state) => state.isModuleEnabled);
   const getTerm = useTenantCapabilityStore((state) => state.getTerm);
   const navOrder = useTenantCapabilityStore((state) => state.manifest?.nav_order);
@@ -791,7 +792,7 @@ export function Sidebar({ isOpen, onClose, isCollapsed = false, onToggleCollapse
 
   const navSections = useMemo(
     () => buildDynamicNavSections(isModuleEnabled, hasPermission, getTerm, navOrder),
-    [isModuleEnabled, hasPermission, getTerm, navOrder]
+    [isModuleEnabled, hasPermission, getTerm, navOrder, modules]
   );
 
   const { companyName } = useTenantBranding();

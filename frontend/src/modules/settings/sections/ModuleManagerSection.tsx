@@ -39,6 +39,7 @@ import {
   Search,
   GripVertical,
   ExternalLink,
+  Lock,
 } from 'lucide-react';
 
 interface ModuleItem {
@@ -88,6 +89,8 @@ const MODULE_DESCRIPTIONS: Record<string, string> = {
   finance: 'Double-entry accounts, journals, expense categorization, and banking ledgers.',
   assets:
     'Enterprise asset registry, plant machinery health, preventive maintenance work orders, and depreciation schedules.',
+  hr: 'Employee directory, department structures, daily biometric attendance, shift scheduling, and piece-rate worker payroll.',
+  qc: 'Factory inspection checklists, inline production testing, rework loops, and defect scrap disposition.',
   reports: 'Business intelligence dashboards, yield analytics, and CSV/Excel exports.',
   crm: 'Lead pipelines, customer interactions, quotation funnels, and dealer tracking.',
 };
@@ -208,9 +211,11 @@ export const ModuleManagerSection: React.FC = () => {
       };
       await api.put('/tenant/modules/batch', payload);
       await invalidateManifest();
+      queryClient.invalidateQueries({ queryKey: ['tenant', 'modules'] });
       toast.success('All tenant module configurations synchronized successfully.');
-    } catch {
-      toast.error('Failed to synchronize modules in batch.');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to synchronize modules in batch.';
+      toast.error(msg);
     } finally {
       setSavingBatch(false);
     }
@@ -460,20 +465,29 @@ export const ModuleManagerSection: React.FC = () => {
   const toggleModule = async (moduleKey: string, currentEnabled: boolean) => {
     setSavingKey(moduleKey);
     const newStatus = !currentEnabled;
+
+    // 1. Optimistically update tenant capability store so all nav surfaces reflect immediately
+    useTenantCapabilityStore.getState().updateModule(moduleKey, newStatus);
+    queryClient.setQueryData<ModuleItem[]>(['tenant', 'modules'], (prev = []) =>
+      prev.map((m) => (m.module_key === moduleKey ? { ...m, enabled: newStatus } : m))
+    );
+
     try {
       await api.put(`tenant/modules/${moduleKey}`, {
         enabled: newStatus,
       });
-      queryClient.setQueryData<ModuleItem[]>(['tenant', 'modules'], (prev = []) =>
-        prev.map((m) => (m.module_key === moduleKey ? { ...m, enabled: newStatus } : m))
-      );
       await invalidateManifest();
-      toast.success(`Module '${moduleKey}' ${newStatus ? 'enabled' : 'disabled'}.`);
-    } catch {
+      queryClient.invalidateQueries({ queryKey: ['tenant', 'modules'] });
+      toast.success(`Module '${moduleKey}' ${newStatus ? 'enabled' : 'disabled'} successfully.`);
+    } catch (err: unknown) {
+      // Revert optimistic updates
+      useTenantCapabilityStore.getState().updateModule(moduleKey, currentEnabled);
       queryClient.setQueryData<ModuleItem[]>(['tenant', 'modules'], (prev = []) =>
-        prev.map((m) => (m.module_key === moduleKey ? { ...m, enabled: newStatus } : m))
+        prev.map((m) => (m.module_key === moduleKey ? { ...m, enabled: currentEnabled } : m))
       );
-      toast.success(`Module '${moduleKey}' ${newStatus ? 'enabled' : 'disabled'}.`);
+      queryClient.invalidateQueries({ queryKey: ['tenant', 'modules'] });
+      const msg = err instanceof Error ? err.message : `Failed to update module '${moduleKey}'.`;
+      toast.error(msg);
     } finally {
       setSavingKey(null);
     }
@@ -985,25 +999,32 @@ export const ModuleManagerSection: React.FC = () => {
                         </div>
                       </div>
 
-                      <span
-                        className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold ${
-                          mod.enabled
-                            ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30'
-                            : 'bg-surface-sunken text-muted border border-default'
-                        }`}
-                      >
-                        {mod.enabled ? (
-                          <>
-                            <CheckCircle2 className="size-3 text-emerald-500" />
-                            Enabled
-                          </>
-                        ) : (
-                          <>
-                            <XCircle className="size-3 text-muted" />
-                            Disabled
-                          </>
-                        )}
-                      </span>
+                      {!mod.plan_allowed ? (
+                        <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30">
+                          <Lock className="size-3 text-amber-500" />
+                          Locked by Plan
+                        </span>
+                      ) : (
+                        <span
+                          className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                            mod.enabled
+                              ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30'
+                              : 'bg-surface-sunken text-muted border border-default'
+                          }`}
+                        >
+                          {mod.enabled ? (
+                            <>
+                              <CheckCircle2 className="size-3 text-emerald-500" />
+                              Enabled
+                            </>
+                          ) : (
+                            <>
+                              <XCircle className="size-3 text-muted" />
+                              Disabled
+                            </>
+                          )}
+                        </span>
+                      )}
                     </div>
 
                     <p className="text-xs text-muted leading-relaxed line-clamp-2">{description}</p>
@@ -1020,7 +1041,12 @@ export const ModuleManagerSection: React.FC = () => {
                   </div>
 
                   <div className="pt-4 mt-3 border-t border-default flex items-center justify-between gap-2">
-                    {mod.enabled && domain ? (
+                    {!mod.plan_allowed ? (
+                      <span className="text-[11px] text-amber-600 dark:text-amber-400 font-medium flex items-center gap-1">
+                        <Lock className="size-3" />
+                        Requires plan upgrade
+                      </span>
+                    ) : mod.enabled && domain ? (
                       <Link
                         to={domain.route}
                         className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:text-primary-focus transition-colors"
@@ -1034,13 +1060,14 @@ export const ModuleManagerSection: React.FC = () => {
                       </span>
                     )}
                     <Button
-                      variant={mod.enabled ? 'secondary' : 'primary'}
+                      variant={!mod.plan_allowed ? 'secondary' : mod.enabled ? 'secondary' : 'primary'}
                       size="sm"
                       onClick={() => toggleModule(mod.module_key, mod.enabled)}
-                      disabled={isBusy}
+                      disabled={isBusy || !mod.plan_allowed}
                       className="text-xs"
+                      title={!mod.plan_allowed ? 'Module locked by organization subscription plan' : undefined}
                     >
-                      {isBusy ? 'Saving...' : mod.enabled ? 'Disable' : 'Enable'}
+                      {isBusy ? 'Saving...' : !mod.plan_allowed ? 'Plan Locked' : mod.enabled ? 'Disable' : 'Enable'}
                     </Button>
                   </div>
                 </div>

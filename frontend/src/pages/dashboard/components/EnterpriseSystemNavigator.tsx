@@ -546,6 +546,7 @@ const SUBSYSTEM_ITEMS: SubsystemItem[] = [
 
 export const EnterpriseSystemNavigator: React.FC = () => {
   const hasPermission = useAuthStore((state) => state.hasPermission);
+  const modules = useTenantCapabilityStore((state) => state.modules);
   const isModuleEnabled = useTenantCapabilityStore((state) => state.isModuleEnabled);
   const tenantSubdomain = useAuthStore((state) => state.tenant?.subdomain || state.tenant?.slug || 'store');
 
@@ -564,7 +565,7 @@ export const EnterpriseSystemNavigator: React.FC = () => {
       }
       return true;
     });
-  }, [hasPermission, isModuleEnabled]);
+  }, [hasPermission, isModuleEnabled, modules]);
 
   // Filter items by domain and search query
   const filteredItems = useMemo(() => {

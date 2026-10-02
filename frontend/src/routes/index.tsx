@@ -2,6 +2,7 @@ import { lazy, Suspense } from 'react';
 import { Navigate, createBrowserRouter, Outlet, type RouteObject } from 'react-router-dom';
 import { usePwaManifest } from '../hooks/usePwaManifest';
 import { ProtectedRoute } from '../components/auth/ProtectedRoute';
+import { ModuleRouteGuard } from '../components/auth/ModuleRouteGuard';
 import { AppShell } from '../components/layout/AppShell';
 import { RouteErrorBoundary } from '../components/routing/RouteErrorBoundary';
 import { RouteLoadingFallback } from '../components/routing/RouteLoadingFallback';
@@ -278,7 +279,11 @@ const erpWorkspaceRouteChildren: RouteObject[] = [
   },
   {
     path: 'catalogue',
-    element: <CatalogueWorkspace />,
+    element: (
+      <ModuleRouteGuard moduleKey="inventory">
+        <CatalogueWorkspace />
+      </ModuleRouteGuard>
+    ),
   },
   {
     path: 'catalog',
@@ -286,19 +291,35 @@ const erpWorkspaceRouteChildren: RouteObject[] = [
   },
   {
     path: 'production',
-    element: <ProductionWorkspace />,
+    element: (
+      <ModuleRouteGuard moduleKey="production">
+        <ProductionWorkspace />
+      </ModuleRouteGuard>
+    ),
   },
   {
     path: 'qc',
-    element: <QcWorkspace />,
+    element: (
+      <ModuleRouteGuard moduleKey="qc">
+        <QcWorkspace />
+      </ModuleRouteGuard>
+    ),
   },
   {
     path: 'inventory',
-    element: <InventoryWorkspace />,
+    element: (
+      <ModuleRouteGuard moduleKey="inventory">
+        <InventoryWorkspace />
+      </ModuleRouteGuard>
+    ),
   },
   {
     path: 'purchasing',
-    element: <PurchasingWorkspace />,
+    element: (
+      <ModuleRouteGuard moduleKey="purchasing">
+        <PurchasingWorkspace />
+      </ModuleRouteGuard>
+    ),
   },
   {
     path: 'procurement',
@@ -306,11 +327,19 @@ const erpWorkspaceRouteChildren: RouteObject[] = [
   },
   {
     path: 'sales',
-    element: <SalesWorkspace />,
+    element: (
+      <ModuleRouteGuard moduleKey="sales">
+        <SalesWorkspace />
+      </ModuleRouteGuard>
+    ),
   },
   {
     path: 'crm',
-    element: <CrmWorkspace />,
+    element: (
+      <ModuleRouteGuard moduleKey="crm">
+        <CrmWorkspace />
+      </ModuleRouteGuard>
+    ),
   },
   {
     path: 'leads',
@@ -318,11 +347,19 @@ const erpWorkspaceRouteChildren: RouteObject[] = [
   },
   {
     path: 'pos',
-    element: <PosWorkspace />,
+    element: (
+      <ModuleRouteGuard moduleKey="pos">
+        <PosWorkspace />
+      </ModuleRouteGuard>
+    ),
   },
   {
     path: 'logistics',
-    element: <DeliveryWorkspace />,
+    element: (
+      <ModuleRouteGuard moduleKey="delivery">
+        <DeliveryWorkspace />
+      </ModuleRouteGuard>
+    ),
   },
   {
     path: 'delivery',
@@ -330,7 +367,11 @@ const erpWorkspaceRouteChildren: RouteObject[] = [
   },
   {
     path: 'finance',
-    element: <FinanceWorkspace />,
+    element: (
+      <ModuleRouteGuard moduleKey="finance">
+        <FinanceWorkspace />
+      </ModuleRouteGuard>
+    ),
   },
   {
     path: 'accounting',
@@ -338,15 +379,27 @@ const erpWorkspaceRouteChildren: RouteObject[] = [
   },
   {
     path: 'assets',
-    element: <AssetsWorkspace />,
+    element: (
+      <ModuleRouteGuard moduleKey="assets">
+        <AssetsWorkspace />
+      </ModuleRouteGuard>
+    ),
   },
   {
     path: 'hr',
-    element: <HrWorkspace />,
+    element: (
+      <ModuleRouteGuard moduleKey="hr">
+        <HrWorkspace />
+      </ModuleRouteGuard>
+    ),
   },
   {
     path: 'workforce',
-    element: <HrWorkspace />,
+    element: (
+      <ModuleRouteGuard moduleKey="hr">
+        <HrWorkspace />
+      </ModuleRouteGuard>
+    ),
   },
   {
     path: 'payroll',
@@ -362,7 +415,11 @@ const erpWorkspaceRouteChildren: RouteObject[] = [
   },
   {
     path: 'reports',
-    element: <ReportsWorkspace />,
+    element: (
+      <ModuleRouteGuard moduleKey="reports">
+        <ReportsWorkspace />
+      </ModuleRouteGuard>
+    ),
   },
   {
     path: 'rms',
@@ -370,11 +427,19 @@ const erpWorkspaceRouteChildren: RouteObject[] = [
   },
   {
     path: 'storefront',
-    element: <StorefrontSettingsWorkspace />,
+    element: (
+      <ModuleRouteGuard moduleKey="ecommerce">
+        <StorefrontSettingsWorkspace />
+      </ModuleRouteGuard>
+    ),
   },
   {
     path: 'storefront/builder',
-    element: <StorefrontPageBuilderWorkspace />,
+    element: (
+      <ModuleRouteGuard moduleKey="ecommerce">
+        <StorefrontPageBuilderWorkspace />
+      </ModuleRouteGuard>
+    ),
   },
   {
     path: 'audit-logs',

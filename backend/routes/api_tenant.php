@@ -575,7 +575,7 @@ Route::middleware(['auth.jwt', 'tenant.resolve', 'tenant.active'])
         });
 
         // ── Sales: Orders ─────────────────────────────────────────────
-        Route::prefix('sales')->name('sales.')->group(static function (): void {
+        Route::prefix('sales')->name('sales.')->middleware('module.active:sales')->group(static function (): void {
             Route::prefix('orders')->name('orders.')->group(static function (): void {
                 Route::get('/', [App\Modules\Sales\Controllers\SalesOrderController::class, 'index'])
                     ->middleware('permission:sales.order.view')->name('index');
@@ -1136,7 +1136,7 @@ Route::middleware(['auth.jwt', 'tenant.resolve', 'tenant.active'])
         });
 
         // ── Storefront CMS & Customizer ─────────────────────────────
-        Route::prefix('storefront')->name('storefront.')->middleware('tenant.feature:ecommerce')->group(static function (): void {
+        Route::prefix('storefront')->name('storefront.')->middleware('module.active:ecommerce')->group(static function (): void {
             Route::get('settings', [App\Modules\Ecommerce\Controllers\StorefrontCustomizerController::class, 'getSettings'])->name('settings.get');
             Route::put('settings', [App\Modules\Ecommerce\Controllers\StorefrontCustomizerController::class, 'updateSettings'])->name('settings.update');
             Route::get('cms-products', [App\Modules\Ecommerce\Controllers\StorefrontCustomizerController::class, 'getPublishedProducts'])->name('products.index');

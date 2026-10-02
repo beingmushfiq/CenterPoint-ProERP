@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Platform\Controllers;
 
+use App\Core\Capabilities\TenantCapabilityManifest;
 use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
 use App\Models\Tenant;
@@ -260,6 +261,8 @@ class PlatformTenantController extends Controller
             'reason' => $validated['reason'] ?? null,
         ]);
 
+        TenantCapabilityManifest::invalidate($tenant->id);
+
         return response()->json([
             'success' => true,
             'data' => $result,
@@ -293,6 +296,8 @@ class PlatformTenantController extends Controller
 
         $result = $action->execute(array_merge($validated, ['tenant_id' => $tenant->id]));
 
+        TenantCapabilityManifest::invalidate($tenant->id);
+
         return response()->json([
             'success' => true,
             'data' => $result,
@@ -317,8 +322,19 @@ class PlatformTenantController extends Controller
 
         if (isset($validated['modules'])) {
             foreach ($validated['modules'] as $moduleKey => $cfg) {
+                // Normalize canonical key mappings
+                $canonicalKey = match ($moduleKey) {
+                    'storefront' => 'ecommerce',
+                    'accounting' => 'finance',
+                    default => $moduleKey,
+                };
+
+                if (! array_key_exists($canonicalKey, TenantCapabilityManifest::ALL_MODULE_KEYS)) {
+                    continue;
+                }
+
                 TenantModule::updateOrCreate(
-                    ['tenant_id' => $tenant->id, 'module_key' => $moduleKey],
+                    ['tenant_id' => $tenant->id, 'module_key' => $canonicalKey],
                     [
                         'enabled' => (bool) ($cfg['enabled'] ?? true),
                         'plan_allowed' => (bool) ($cfg['plan_allowed'] ?? true),
@@ -334,6 +350,9 @@ class PlatformTenantController extends Controller
             $tenant->settings = $settings;
             $tenant->save();
         }
+
+        // Immediately purge cached tenant capability manifest and module states
+        TenantCapabilityManifest::invalidate($tenant->id);
 
         return response()->json([
             'success' => true,

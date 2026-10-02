@@ -150,6 +150,21 @@ final class TenantModuleController extends Controller
             ], 422);
         }
 
+        $existing = TenantModule::where('tenant_id', $tenantId)
+            ->where('module_key', $moduleKey)
+            ->first();
+
+        if ($validated['enabled'] && $existing && ! $existing->plan_allowed) {
+            return response()->json([
+                'success' => false,
+                'message' => "The '{$moduleKey}' module is not included in your organization's subscription plan. Please upgrade your subscription.",
+                'error' => [
+                    'code' => 'MODULE_NOT_IN_PLAN',
+                    'module' => $moduleKey,
+                ],
+            ], 403);
+        }
+
         $module = TenantModule::updateOrCreate(
             [
                 'tenant_id' => $tenantId,
@@ -157,7 +172,8 @@ final class TenantModuleController extends Controller
             ],
             [
                 'enabled' => $validated['enabled'],
-                'config' => $validated['config'] ?? [],
+                'plan_allowed' => $existing ? $existing->plan_allowed : true,
+                'config' => $validated['config'] ?? ($existing?->config ?? []),
             ]
         );
 

@@ -342,5 +342,6 @@ class ManageSubscriptionAction extends Action
     {
         Cache::forget("t{$tenantId}:tenant:profile");
         Cache::forget("tenant:{$tenantId}:profile");
+        \App\Core\Capabilities\TenantCapabilityManifest::invalidate($tenantId);
     }
 }

@@ -8,6 +8,7 @@ import type {
 
 export interface TenantCapabilityState {
   manifest: TenantCapabilityManifest | null;
+  modules: Record<string, { enabled: boolean; plan_allowed: boolean; config?: Record<string, unknown> }>;
   status: 'idle' | 'loading' | 'ready' | 'error';
   error: string | null;
 
@@ -22,6 +23,7 @@ export interface TenantCapabilityState {
   bootstrap: (forceRefresh?: boolean) => Promise<void>;
   invalidate: () => Promise<void>;
   setManifest: (manifest: TenantCapabilityManifest) => void;
+  updateModule: (moduleKey: string, enabled: boolean) => void;
 }
 
 const STORAGE_KEY = 'tenant_capability_manifest';
@@ -36,15 +38,17 @@ function getCachedManifest(): TenantCapabilityManifest | null {
   }
 }
 
+const cachedManifest = getCachedManifest();
+
 export const useTenantCapabilityStore = create<TenantCapabilityState>((set, get) => ({
-  manifest: getCachedManifest(),
-  status: getCachedManifest() ? 'ready' : 'idle',
+  manifest: cachedManifest,
+  modules: cachedManifest?.modules || {},
+  status: cachedManifest ? 'ready' : 'idle',
   error: null,
 
   isModuleEnabled: (moduleKey: string) => {
-    const { manifest } = get();
-    if (!manifest) return true; // optimistic default during bootstrap
-    const mod = manifest.modules[moduleKey];
+    const { modules, manifest } = get();
+    const mod = modules[moduleKey] ?? manifest?.modules?.[moduleKey];
     if (!mod) return true; // If unknown, default to accessible
     return mod.enabled && mod.plan_allowed;
   },
@@ -158,6 +162,7 @@ export const useTenantCapabilityStore = create<TenantCapabilityState>((set, get)
         }
         set({
           manifest,
+          modules: manifest.modules || {},
           status: 'ready',
           error: null,
         });
@@ -181,6 +186,46 @@ export const useTenantCapabilityStore = create<TenantCapabilityState>((set, get)
     if (typeof window !== 'undefined') {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(manifest));
     }
-    set({ manifest, status: 'ready' });
+    set({
+      manifest,
+      modules: manifest.modules || {},
+      status: 'ready',
+    });
+  },
+
+  updateModule: (moduleKey: string, enabled: boolean) => {
+    const { manifest, modules } = get();
+    const existing = modules[moduleKey] ?? manifest?.modules?.[moduleKey] ?? { enabled: true, plan_allowed: true, config: {} };
+    const updatedMod = { ...existing, enabled };
+    const updatedModules = { ...modules, [moduleKey]: updatedMod };
+    const updatedManifest: TenantCapabilityManifest = manifest
+      ? { ...manifest, modules: { ...manifest.modules, [moduleKey]: updatedMod } }
+      : {
+          tenant_id: 0,
+          tenant_uuid: '',
+          tenant_name: '',
+          business_type_keys: [],
+          industry_profile_key: '',
+          manufacturing_type: '',
+          currency_code: 'BDT',
+          timezone: 'Asia/Dhaka',
+          onboarding_completed: true,
+          onboarding_step: 10,
+          modules: updatedModules,
+          feature_flags: {},
+          terminology: {},
+          production_stages: [],
+          custom_fields: {},
+        };
+
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedManifest));
+    }
+
+    set({
+      manifest: updatedManifest,
+      modules: updatedModules,
+      status: 'ready',
+    });
   },
 }));
