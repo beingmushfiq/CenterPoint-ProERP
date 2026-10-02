@@ -9,7 +9,7 @@ export default defineConfig({
     __APP_VERSION__: JSON.stringify(
       process.env.npm_package_version && process.env.npm_package_version !== '0.0.0'
         ? process.env.npm_package_version
-        : '1.3'
+        : '2.0'
     ),
   },
   resolve: {

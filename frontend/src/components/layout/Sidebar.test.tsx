@@ -145,5 +145,16 @@ describe('Sidebar Navigation Highlighting & Tab Outlining', () => {
     expect(brandLink).toBeInTheDocument();
     expect(brandLink).toHaveAttribute('href', '/dashboard');
   });
+
+  it('renders Active Edition and v2.0 in the sidebar footer', () => {
+    render(
+      <MemoryRouter initialEntries={['/sales']}>
+        <Sidebar isOpen={true} onClose={() => {}} />
+      </MemoryRouter>
+    );
+
+    expect(screen.getByText('Active Edition')).toBeInTheDocument();
+    expect(screen.getByText('v2.0')).toBeInTheDocument();
+  });
 });
 
