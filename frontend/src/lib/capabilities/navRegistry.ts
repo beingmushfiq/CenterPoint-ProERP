@@ -52,6 +52,13 @@ import {
   Compass,
   Upload,
   Plus,
+  Activity,
+  CheckSquare,
+  Package,
+  BadgePercent,
+  Monitor,
+  Radio,
+  User,
 } from 'lucide-react';
 
 export interface DynamicNavItem {
@@ -85,12 +92,12 @@ export interface NavOrderConfig {
  * Canonical platform navigation registry ordered according to standard enterprise
  * industrial workflow:
  * 1. Overview & Monitoring (Dashboard & BI)
- * 2. CRM & Sales Force (Demand Generation — Leads, Salesmen, Targets, Incentives)
- * 3. Sales & Commercials (Omnichannel B2B/Retail Orders, POS & Web Storefront)
- * 4. Inventory & Supply (Master Catalogue, Procurement POs, Stock Ledgers & Logistics)
- * 5. Production & Quality (Factory Batch Routing & Mandatory QC Gate)
+ * 2. Inventory & Supply (Master Catalogue, Procurement POs, Stock Ledgers & Logistics)
+ * 3. Production & Quality (Factory Batch Routing & Mandatory QC Gate)
+ * 4. Sales & Commercials (Omnichannel B2B/Retail Orders, POS & Web Storefront)
+ * 5. CRM & Customer Pipeline (Demand Generation — Leads, Salesmen, Targets, Incentives)
  * 6. Finance & Accounts (General Ledger, Due & Collections, Assets & Maintenance)
- * 7. Workforce & HR (Employees, Attendance, Piece-Rate Performance & Payroll)
+ * 7. Team & Workforce (Employees, Attendance, Piece-Rate Performance & Payroll)
  * 8. Intelligence & System (RBAC, Audit Logs & Settings Center)
  */
 export const PLATFORM_NAV_DEFINITIONS: DynamicNavSection[] = [
@@ -121,304 +128,7 @@ export const PLATFORM_NAV_DEFINITIONS: DynamicNavSection[] = [
     ],
   },
 
-  // ── 2. CRM & Sales Force ─────────────────────────────────────────────────
-  {
-    id: 'crm',
-    title: 'CRM & Customer Pipeline',
-    items: [
-      {
-        id: 'crm-leads',
-        moduleKey: 'crm',
-        defaultLabel: 'Customer Leads & CRM',
-        to: '/crm',
-        icon: UserCheck,
-        permission: ['sales.lead.view', 'crm.lead.view', 'sales.order.view'],
-        children: [
-          // Cluster 1: Commercial Pipeline
-          {
-            id: 'crm-all',
-            defaultLabel: 'All Leads Registry',
-            to: '/crm?tab=all',
-            icon: UserCheck,
-            group: 'Commercial Pipeline',
-          },
-          {
-            id: 'crm-my',
-            defaultLabel: 'My Assigned Leads',
-            to: '/crm?tab=my',
-            icon: UserCheck,
-            group: 'Commercial Pipeline',
-          },
-
-          // Cluster 2: Lead Governance & SLA
-          {
-            id: 'crm-stale',
-            defaultLabel: 'Stale Leads Recovery',
-            to: '/crm?tab=stale',
-            icon: Clock,
-            group: 'Lead Governance & SLA',
-          },
-          {
-            id: 'crm-audit',
-            defaultLabel: 'Fake Lead Audit Gate',
-            to: '/crm?tab=audit',
-            icon: ShieldCheck,
-            group: 'Lead Governance & SLA',
-          },
-
-          // Cluster 3: Customer Accounts
-          {
-            id: 'crm-customers',
-            defaultLabel: 'Customer Directory',
-            to: '/sales?tab=customers',
-            icon: Users,
-            group: 'Customer Accounts',
-          },
-          {
-            id: 'crm-pricelists',
-            defaultLabel: 'Customer Price Lists',
-            to: '/sales?tab=pricelists',
-            icon: Tag,
-            group: 'Customer Accounts',
-          },
-
-          // Cluster 4: Pipeline Settings & Modals
-          {
-            id: 'crm-stages-modal',
-            defaultLabel: 'Lead Stages Modal',
-            to: '/crm?modal=stages',
-            icon: Layers,
-            group: 'Pipeline Settings & Modals',
-          },
-          {
-            id: 'crm-sources-modal',
-            defaultLabel: 'Lead Sources Modal',
-            to: '/crm?modal=sources',
-            icon: Compass,
-            group: 'Pipeline Settings & Modals',
-          },
-          {
-            id: 'crm-import-modal',
-            defaultLabel: 'Import Leads Data',
-            to: '/crm?modal=import',
-            icon: Upload,
-            group: 'Pipeline Settings & Modals',
-          },
-          {
-            id: 'crm-add-modal',
-            defaultLabel: 'Add New Lead',
-            to: '/crm?modal=add',
-            icon: Plus,
-            group: 'Pipeline Settings & Modals',
-          },
-        ],
-      },
-    ],
-  },
-
-  // ── 3. Sales & Commercials ───────────────────────────────────────────────
-  {
-    id: 'sales',
-    title: 'Sales & Commercials',
-    items: [
-      {
-        id: 'sales',
-        moduleKey: 'sales',
-        defaultLabel: 'Sales & Invoices',
-        to: '/sales',
-        icon: ShoppingBag,
-        permission: [
-          'sales.order.view',
-          'sales.invoice.view',
-          'sales.return.view',
-        ],
-        children: [
-          // Cluster 1: Order to Cash / Commercial Operations
-          {
-            id: 'sales-orders',
-            defaultLabel: 'Sales Orders',
-            to: '/sales?tab=orders',
-            icon: ShoppingCart,
-            badgeTone: 'primary',
-            group: 'Order to Cash',
-          },
-          {
-            id: 'sales-invoices',
-            defaultLabel: 'Invoices & Billing',
-            to: '/sales?tab=invoices',
-            icon: FileText,
-            group: 'Order to Cash',
-          },
-          {
-            id: 'sales-deliveries',
-            defaultLabel: 'Deliveries & Dispatch',
-            to: '/sales?tab=deliveries',
-            icon: Truck,
-            group: 'Order to Cash',
-          },
-          {
-            id: 'sales-payments',
-            defaultLabel: 'Payments & Receipts',
-            to: '/sales?tab=payments',
-            icon: Receipt,
-            badgeTone: 'success',
-            group: 'Order to Cash',
-          },
-          {
-            id: 'sales-returns',
-            defaultLabel: 'Customer Returns & Refunds',
-            to: '/sales?tab=returns',
-            icon: Undo2,
-            group: 'Order to Cash',
-          },
-          {
-            id: 'sales-exchanges',
-            defaultLabel: 'Product Exchanges',
-            to: '/sales?tab=exchanges',
-            icon: ArrowLeftRight,
-            group: 'Order to Cash',
-          },
-
-          // Cluster 2: Customer Leads & CRM
-          {
-            id: 'sales-leads',
-            defaultLabel: 'Customer Leads',
-            to: '/sales?tab=leads',
-            icon: UserCheck,
-            group: 'Customer Leads & CRM',
-          },
-          {
-            id: 'sales-customers',
-            defaultLabel: 'Customer Directory',
-            to: '/sales?tab=customers',
-            icon: Users,
-            group: 'Customer Leads & CRM',
-          },
-          {
-            id: 'sales-pricelists',
-            defaultLabel: 'Customer Price Lists',
-            to: '/sales?tab=pricelists',
-            icon: Tag,
-            group: 'Customer Leads & CRM',
-          },
-
-          // Cluster 3: Sales Team & Commissions
-          {
-            id: 'sales-salesmen',
-            defaultLabel: 'Sales Representatives',
-            to: '/sales?tab=salesmen',
-            icon: UserCheck,
-            group: 'Sales Team & Commissions',
-          },
-          {
-            id: 'sales-targets',
-            defaultLabel: 'Monthly Targets',
-            to: '/sales?tab=targets',
-            icon: Target,
-            group: 'Sales Team & Commissions',
-          },
-          {
-            id: 'sales-incentives',
-            defaultLabel: 'Commissions & Bonuses',
-            to: '/sales?tab=incentives',
-            icon: Award,
-            group: 'Sales Team & Commissions',
-          },
-          {
-            id: 'sales-dashboard',
-            defaultLabel: 'Rep Performance Dashboard',
-            to: '/sales?tab=dashboard',
-            icon: TrendingUp,
-            group: 'Sales Team & Commissions',
-          },
-        ],
-      },
-      {
-        id: 'pos',
-        moduleKey: 'pos',
-        defaultLabel: 'Point of Sale (POS)',
-        to: '/pos',
-        icon: ShoppingCart,
-        permission: ['pos.terminal.view', 'pos.session.view', 'pos.sale.create'],
-        badge: 'Fast',
-        badgeTone: 'primary',
-      },
-      {
-        id: 'ecommerce',
-        moduleKey: 'ecommerce',
-        defaultLabel: 'Online Store CMS',
-        to: '/storefront',
-        icon: Store,
-        permission: ['ecommerce.storefront.view', 'ecommerce.storefront.manage'],
-        badge: 'Live',
-        badgeTone: 'success',
-        children: [
-          {
-            id: 'store-branding',
-            defaultLabel: 'Theme & Branding',
-            to: '/storefront?tab=branding',
-            icon: Palette,
-            group: 'Store Appearance',
-          },
-          {
-            id: 'store-header',
-            defaultLabel: 'Header Navigation',
-            to: '/storefront?tab=header',
-            icon: LayoutDashboard,
-            group: 'Store Appearance',
-          },
-          {
-            id: 'store-footer',
-            defaultLabel: 'Footer Policies',
-            to: '/storefront?tab=footer',
-            icon: FileText,
-            group: 'Store Appearance',
-          },
-          {
-            id: 'store-products',
-            defaultLabel: 'Featured Products',
-            to: '/storefront?tab=products',
-            icon: ShoppingBag,
-            group: 'Commerce & Conversion',
-          },
-          {
-            id: 'store-checkout',
-            defaultLabel: 'Checkout Rules',
-            to: '/storefront?tab=checkout',
-            icon: ShoppingCart,
-            group: 'Commerce & Conversion',
-          },
-          {
-            id: 'store-coupons',
-            defaultLabel: 'Coupons & Promo Codes',
-            to: '/storefront?tab=coupons',
-            icon: Ticket,
-            group: 'Commerce & Conversion',
-          },
-          {
-            id: 'store-domains',
-            defaultLabel: 'Custom Domains & SSL',
-            to: '/storefront?tab=domains',
-            icon: Globe,
-            group: 'Commerce & Conversion',
-          },
-        ],
-      },
-      {
-        id: 'coupons',
-        moduleKey: 'ecommerce',
-        defaultLabel: 'Coupons & Promo Codes',
-        to: '/storefront?tab=coupons',
-        icon: Ticket,
-        permission: ['ecommerce.storefront.view', 'sales.order.view'],
-        badge: 'Promo',
-        badgeTone: 'primary',
-        hiddenInSidebar: true,
-      },
-    ],
-  },
-
-  // ── 4. Inventory & Supply ────────────────────────────────────────────────
+  // ── 2. Inventory & Supply ────────────────────────────────────────────────
   {
     id: 'supply',
     title: 'Inventory & Supply',
@@ -640,7 +350,7 @@ export const PLATFORM_NAV_DEFINITIONS: DynamicNavSection[] = [
     ],
   },
 
-  // ── 5. Production & Quality ──────────────────────────────────────────────
+  // ── 3. Production & Quality ──────────────────────────────────────────────
   {
     id: 'production',
     title: 'Production & Quality',
@@ -705,6 +415,303 @@ export const PLATFORM_NAV_DEFINITIONS: DynamicNavSection[] = [
             to: '/qc?tab=wastage',
             icon: AlertTriangle,
             group: 'Scrap & Loss Control',
+          },
+        ],
+      },
+    ],
+  },
+
+  // ── 4. Sales & Commercials ───────────────────────────────────────────────
+  {
+    id: 'sales',
+    title: 'Sales & Commercials',
+    items: [
+      {
+        id: 'sales',
+        moduleKey: 'sales',
+        defaultLabel: 'Sales & Invoices',
+        to: '/sales',
+        icon: ShoppingBag,
+        permission: [
+          'sales.order.view',
+          'sales.invoice.view',
+          'sales.return.view',
+        ],
+        children: [
+          // Cluster 1: Order to Cash / Commercial Operations
+          {
+            id: 'sales-orders',
+            defaultLabel: 'Sales Orders',
+            to: '/sales?tab=orders',
+            icon: ShoppingCart,
+            badgeTone: 'primary',
+            group: 'Order to Cash',
+          },
+          {
+            id: 'sales-invoices',
+            defaultLabel: 'Invoices & Billing',
+            to: '/sales?tab=invoices',
+            icon: FileText,
+            group: 'Order to Cash',
+          },
+          {
+            id: 'sales-deliveries',
+            defaultLabel: 'Deliveries & Dispatch',
+            to: '/sales?tab=deliveries',
+            icon: Truck,
+            group: 'Order to Cash',
+          },
+          {
+            id: 'sales-payments',
+            defaultLabel: 'Payments & Receipts',
+            to: '/sales?tab=payments',
+            icon: Receipt,
+            badgeTone: 'success',
+            group: 'Order to Cash',
+          },
+          {
+            id: 'sales-returns',
+            defaultLabel: 'Customer Returns & Refunds',
+            to: '/sales?tab=returns',
+            icon: Undo2,
+            group: 'Order to Cash',
+          },
+          {
+            id: 'sales-exchanges',
+            defaultLabel: 'Product Exchanges',
+            to: '/sales?tab=exchanges',
+            icon: ArrowLeftRight,
+            group: 'Order to Cash',
+          },
+
+          // Cluster 2: Customer Leads & CRM
+          {
+            id: 'sales-leads',
+            defaultLabel: 'Customer Leads',
+            to: '/sales?tab=leads',
+            icon: UserCheck,
+            group: 'Customer Leads & CRM',
+          },
+          {
+            id: 'sales-customers',
+            defaultLabel: 'Customer Directory',
+            to: '/sales?tab=customers',
+            icon: Users,
+            group: 'Customer Leads & CRM',
+          },
+          {
+            id: 'sales-pricelists',
+            defaultLabel: 'Customer Price Lists',
+            to: '/sales?tab=pricelists',
+            icon: Tag,
+            group: 'Customer Leads & CRM',
+          },
+
+          // Cluster 3: Sales Team & Commissions
+          {
+            id: 'sales-salesmen',
+            defaultLabel: 'Sales Representatives',
+            to: '/sales?tab=salesmen',
+            icon: UserCheck,
+            group: 'Sales Team & Commissions',
+          },
+          {
+            id: 'sales-targets',
+            defaultLabel: 'Monthly Targets',
+            to: '/sales?tab=targets',
+            icon: Target,
+            group: 'Sales Team & Commissions',
+          },
+          {
+            id: 'sales-incentives',
+            defaultLabel: 'Commissions & Bonuses',
+            to: '/sales?tab=incentives',
+            icon: Award,
+            group: 'Sales Team & Commissions',
+          },
+          {
+            id: 'sales-dashboard',
+            defaultLabel: 'Rep Performance Dashboard',
+            to: '/sales?tab=dashboard',
+            icon: TrendingUp,
+            group: 'Sales Team & Commissions',
+          },
+        ],
+      },
+      {
+        id: 'pos',
+        moduleKey: 'pos',
+        defaultLabel: 'Point of Sale (POS)',
+        to: '/pos',
+        icon: ShoppingCart,
+        permission: ['pos.terminal.view', 'pos.session.view', 'pos.sale.create'],
+        badge: 'Fast',
+        badgeTone: 'primary',
+      },
+      {
+        id: 'ecommerce',
+        moduleKey: 'ecommerce',
+        defaultLabel: 'Online Store CMS',
+        to: '/storefront',
+        icon: Store,
+        permission: ['ecommerce.storefront.view', 'ecommerce.storefront.manage'],
+        badge: 'Live',
+        badgeTone: 'success',
+        children: [
+          {
+            id: 'store-branding',
+            defaultLabel: 'Theme & Branding',
+            to: '/storefront?tab=branding',
+            icon: Palette,
+            group: 'Store Appearance',
+          },
+          {
+            id: 'store-header',
+            defaultLabel: 'Header Navigation',
+            to: '/storefront?tab=header',
+            icon: LayoutDashboard,
+            group: 'Store Appearance',
+          },
+          {
+            id: 'store-footer',
+            defaultLabel: 'Footer Policies',
+            to: '/storefront?tab=footer',
+            icon: FileText,
+            group: 'Store Appearance',
+          },
+          {
+            id: 'store-products',
+            defaultLabel: 'Featured Products',
+            to: '/storefront?tab=products',
+            icon: ShoppingBag,
+            group: 'Commerce & Conversion',
+          },
+          {
+            id: 'store-checkout',
+            defaultLabel: 'Checkout Rules',
+            to: '/storefront?tab=checkout',
+            icon: ShoppingCart,
+            group: 'Commerce & Conversion',
+          },
+          {
+            id: 'store-coupons',
+            defaultLabel: 'Coupons & Promo Codes',
+            to: '/storefront?tab=coupons',
+            icon: Ticket,
+            group: 'Commerce & Conversion',
+          },
+          {
+            id: 'store-domains',
+            defaultLabel: 'Custom Domains & SSL',
+            to: '/storefront?tab=domains',
+            icon: Globe,
+            group: 'Commerce & Conversion',
+          },
+        ],
+      },
+      {
+        id: 'coupons',
+        moduleKey: 'ecommerce',
+        defaultLabel: 'Coupons & Promo Codes',
+        to: '/storefront?tab=coupons',
+        icon: Ticket,
+        permission: ['ecommerce.storefront.view', 'sales.order.view'],
+        badge: 'Promo',
+        badgeTone: 'primary',
+        hiddenInSidebar: true,
+      },
+    ],
+  },
+
+  // ── 5. CRM & Customer Pipeline ───────────────────────────────────────────
+  {
+    id: 'crm',
+    title: 'CRM & Customer Pipeline',
+    items: [
+      {
+        id: 'crm-leads',
+        moduleKey: 'crm',
+        defaultLabel: 'Customer Leads & CRM',
+        to: '/crm',
+        icon: UserCheck,
+        permission: ['sales.lead.view', 'crm.lead.view', 'sales.order.view'],
+        children: [
+          // Cluster 1: Commercial Pipeline
+          {
+            id: 'crm-all',
+            defaultLabel: 'All Leads Registry',
+            to: '/crm?tab=all',
+            icon: UserCheck,
+            group: 'Commercial Pipeline',
+          },
+          {
+            id: 'crm-my',
+            defaultLabel: 'My Assigned Leads',
+            to: '/crm?tab=my',
+            icon: UserCheck,
+            group: 'Commercial Pipeline',
+          },
+
+          // Cluster 2: Lead Governance & SLA
+          {
+            id: 'crm-stale',
+            defaultLabel: 'Stale Leads Recovery',
+            to: '/crm?tab=stale',
+            icon: Clock,
+            group: 'Lead Governance & SLA',
+          },
+          {
+            id: 'crm-audit',
+            defaultLabel: 'Fake Lead Audit Gate',
+            to: '/crm?tab=audit',
+            icon: ShieldCheck,
+            group: 'Lead Governance & SLA',
+          },
+
+          // Cluster 3: Customer Accounts
+          {
+            id: 'crm-customers',
+            defaultLabel: 'Customer Directory',
+            to: '/sales?tab=customers',
+            icon: Users,
+            group: 'Customer Accounts',
+          },
+          {
+            id: 'crm-pricelists',
+            defaultLabel: 'Customer Price Lists',
+            to: '/sales?tab=pricelists',
+            icon: Tag,
+            group: 'Customer Accounts',
+          },
+
+          // Cluster 4: Pipeline Settings & Modals
+          {
+            id: 'crm-stages-modal',
+            defaultLabel: 'Lead Stages Modal',
+            to: '/crm?modal=stages',
+            icon: Layers,
+            group: 'Pipeline Settings & Modals',
+          },
+          {
+            id: 'crm-sources-modal',
+            defaultLabel: 'Lead Sources Modal',
+            to: '/crm?modal=sources',
+            icon: Compass,
+            group: 'Pipeline Settings & Modals',
+          },
+          {
+            id: 'crm-import-modal',
+            defaultLabel: 'Import Leads Data',
+            to: '/crm?modal=import',
+            icon: Upload,
+            group: 'Pipeline Settings & Modals',
+          },
+          {
+            id: 'crm-add-modal',
+            defaultLabel: 'Add New Lead',
+            to: '/crm?modal=add',
+            icon: Plus,
+            group: 'Pipeline Settings & Modals',
           },
         ],
       },
@@ -921,13 +928,6 @@ export const PLATFORM_NAV_DEFINITIONS: DynamicNavSection[] = [
     title: 'Intelligence & System',
     items: [
       {
-        id: 'users',
-        defaultLabel: 'Staff & User Accounts',
-        to: '/settings/users',
-        icon: Users,
-        permission: ['core.user.view', 'core.role.manage', 'core.role.view'],
-      },
-      {
         id: 'roles',
         defaultLabel: 'Staff Roles & Permissions',
         to: '/settings/roles',
@@ -940,6 +940,13 @@ export const PLATFORM_NAV_DEFINITIONS: DynamicNavSection[] = [
         to: '/activity-logs',
         icon: ShieldCheck,
         permission: ['core.audit_log.view'],
+      },
+      {
+        id: 'users',
+        defaultLabel: 'Staff & User Accounts',
+        to: '/settings/users',
+        icon: Users,
+        permission: ['core.user.view', 'core.role.manage', 'core.role.view'],
       },
       {
         id: 'bin',
@@ -962,80 +969,238 @@ export const PLATFORM_NAV_DEFINITIONS: DynamicNavSection[] = [
         icon: Settings,
         permission: ['core.setting.view', 'core.setting.manage', 'core.setting.configure'],
         children: [
-          // Cluster 1: Core Governance & Security
+          // Cluster 1: Core Governance & Workstation
+          {
+            id: 'set-overview',
+            defaultLabel: 'Command Overview Hub',
+            to: '/settings?tab=overview',
+            icon: Sparkles,
+            group: 'Core Governance & Workstation',
+          },
           {
             id: 'set-general',
-            defaultLabel: 'General Configuration',
+            defaultLabel: 'General Profile & Prefixes',
             to: '/settings?tab=general',
             icon: Settings,
-            group: 'Core Governance',
+            group: 'Core Governance & Workstation',
+          },
+          {
+            id: 'set-users',
+            defaultLabel: 'Staff & User Accounts',
+            to: '/settings/users',
+            icon: Users,
+            group: 'Core Governance & Workstation',
+          },
+          {
+            id: 'set-roles',
+            defaultLabel: 'Staff Roles & Permissions',
+            to: '/settings/roles',
+            icon: Shield,
+            group: 'Core Governance & Workstation',
           },
           {
             id: 'set-security',
-            defaultLabel: 'Security & Access Control',
+            defaultLabel: 'Security & Session Hardening',
             to: '/settings?tab=security',
             icon: ShieldCheck,
-            group: 'Core Governance',
+            group: 'Core Governance & Workstation',
           },
           {
-            id: 'set-documents',
-            defaultLabel: 'Document Templates',
-            to: '/settings?tab=documents',
-            icon: FileSpreadsheet,
-            group: 'Core Governance',
+            id: 'set-profile',
+            defaultLabel: 'Workstation & Profile',
+            to: '/settings?tab=profile',
+            icon: User,
+            group: 'Core Governance & Workstation',
+          },
+          {
+            id: 'set-audit',
+            defaultLabel: 'Security Audit Trail',
+            to: '/activity-logs',
+            icon: Activity,
+            group: 'Core Governance & Workstation',
           },
 
-          // Cluster 2: Customization & Automation
+          // Cluster 2: Architecture & Customization
           {
             id: 'set-modules',
-            defaultLabel: 'ERP Modules Manager',
+            defaultLabel: 'ERP Modules & Navigation Order',
             to: '/settings?tab=modules',
             icon: Boxes,
-            group: 'Customization & Automation',
+            group: 'Architecture & Customization',
           },
           {
             id: 'set-workflows',
-            defaultLabel: 'Flow Automation',
+            defaultLabel: 'Flow Automation Engine',
             to: '/settings/workflows',
             icon: Zap,
-            group: 'Customization & Automation',
+            group: 'Architecture & Customization',
           },
           {
             id: 'set-terminology',
             defaultLabel: 'Vocabulary & Terminology',
             to: '/settings?tab=terminology',
             icon: Tag,
-            group: 'Customization & Automation',
+            group: 'Architecture & Customization',
+          },
+          {
+            id: 'set-production_stages',
+            defaultLabel: 'Production Stages & Routing',
+            to: '/settings?tab=production_stages',
+            icon: Factory,
+            group: 'Architecture & Customization',
           },
           {
             id: 'set-custom_fields',
             defaultLabel: 'Custom Attributes & Fields',
             to: '/settings?tab=custom_fields',
             icon: Sparkles,
-            group: 'Customization & Automation',
+            group: 'Architecture & Customization',
+          },
+          {
+            id: 'set-documents',
+            defaultLabel: 'Document Templates',
+            to: '/settings?tab=documents',
+            icon: FileSpreadsheet,
+            group: 'Architecture & Customization',
+          },
+          {
+            id: 'set-bin',
+            defaultLabel: 'Data Bin & Recovery Vault',
+            to: '/settings/bin',
+            icon: Trash2,
+            group: 'Architecture & Customization',
           },
 
-          // Cluster 3: Operational Services
+          // Cluster 3: Operations & Manufacturing
           {
-            id: 'set-finance',
-            defaultLabel: 'Tax & Fiscal Periods',
-            to: '/settings?tab=finance',
-            icon: Landmark,
-            group: 'Operational Services',
+            id: 'set-production',
+            defaultLabel: 'Production & Manufacturing',
+            to: '/settings?tab=production',
+            icon: Factory,
+            group: 'Operations & Manufacturing',
+          },
+          {
+            id: 'set-inventory',
+            defaultLabel: 'Stock & Warehousing',
+            to: '/settings?tab=inventory',
+            icon: Package,
+            group: 'Operations & Manufacturing',
+          },
+          {
+            id: 'set-purchase',
+            defaultLabel: 'Procurement & Purchases',
+            to: '/settings?tab=purchase',
+            icon: ShoppingCart,
+            group: 'Operations & Manufacturing',
+          },
+          {
+            id: 'set-qc',
+            defaultLabel: 'Quality Control (QC)',
+            to: '/settings?tab=qc',
+            icon: CheckSquare,
+            group: 'Operations & Manufacturing',
+          },
+          {
+            id: 'set-assets',
+            defaultLabel: 'Assets & Maintenance',
+            to: '/settings?tab=assets',
+            icon: Cpu,
+            group: 'Operations & Manufacturing',
+          },
+
+          // Cluster 4: Commercial & Digital Channels
+          {
+            id: 'set-sales',
+            defaultLabel: 'Sales & Commercial Rules',
+            to: '/settings?tab=sales',
+            icon: BadgePercent,
+            group: 'Commercial & Digital Channels',
+          },
+          {
+            id: 'set-crm',
+            defaultLabel: 'CRM & Pipeline Controls',
+            to: '/settings?tab=crm',
+            icon: UserCheck,
+            group: 'Commercial & Digital Channels',
+          },
+          {
+            id: 'set-pos',
+            defaultLabel: 'Point of Sale (POS)',
+            to: '/settings?tab=pos',
+            icon: Monitor,
+            group: 'Commercial & Digital Channels',
+          },
+          {
+            id: 'set-ecommerce',
+            defaultLabel: 'E-Commerce Storefront',
+            to: '/settings?tab=ecommerce',
+            icon: ShoppingBag,
+            group: 'Commercial & Digital Channels',
+          },
+          {
+            id: 'set-custom_domains',
+            defaultLabel: 'Custom Domains & SSL',
+            to: '/settings?tab=custom_domains',
+            icon: Globe,
+            group: 'Commercial & Digital Channels',
+          },
+          {
+            id: 'set-seo',
+            defaultLabel: 'SEO & Discoverability',
+            to: '/settings?tab=seo',
+            icon: Globe,
+            group: 'Commercial & Digital Channels',
+          },
+
+          // Cluster 5: External Services & Compliance
+          {
+            id: 'set-delivery',
+            defaultLabel: 'Delivery & Couriers (3PL)',
+            to: '/settings?tab=delivery',
+            icon: Truck,
+            group: 'External Services & Compliance',
           },
           {
             id: 'set-integrations',
             defaultLabel: 'API & Payment Gateways',
             to: '/settings?tab=integrations',
             icon: Zap,
-            group: 'Operational Services',
+            group: 'External Services & Compliance',
+          },
+          {
+            id: 'set-webhooks',
+            defaultLabel: 'Webhooks & Event Streams',
+            to: '/settings?tab=webhooks',
+            icon: Radio,
+            group: 'External Services & Compliance',
+          },
+          {
+            id: 'set-finance',
+            defaultLabel: 'Tax & Fiscal Periods',
+            to: '/settings?tab=finance',
+            icon: Landmark,
+            group: 'External Services & Compliance',
+          },
+          {
+            id: 'set-hr_payroll',
+            defaultLabel: 'HR & Payroll Governance',
+            to: '/settings?tab=hr_payroll',
+            icon: Users,
+            group: 'External Services & Compliance',
           },
           {
             id: 'set-notifications',
             defaultLabel: 'Alerts & Notifications',
             to: '/settings?tab=notifications',
             icon: Bell,
-            group: 'Operational Services',
+            group: 'External Services & Compliance',
+          },
+          {
+            id: 'set-reports',
+            defaultLabel: 'Reports & Export Defaults',
+            to: '/settings?tab=reports',
+            icon: FileSpreadsheet,
+            group: 'External Services & Compliance',
           },
         ],
       },

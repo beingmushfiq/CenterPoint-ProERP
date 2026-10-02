@@ -56,6 +56,7 @@ import {
   User,
   Zap,
   Radio,
+  UserCheck,
 } from 'lucide-react';
 import { m, AnimatePresence } from 'framer-motion';
 import { api } from '../../lib/api/client';
@@ -74,6 +75,7 @@ import { CustomFieldsManagerSection } from './sections/CustomFieldsManagerSectio
 import { TerminologySection } from './sections/TerminologySection';
 import { WebhookManagementSection } from './sections/WebhookManagementSection';
 import { RolesManagementWorkspace } from '../../pages/settings/RolesManagementWorkspace';
+import { UsersManagementWorkspace } from '../../pages/settings/UsersManagementWorkspace';
 import { ActivityLogWorkspace } from '../../pages/settings/ActivityLogWorkspace';
 import { DataBinWorkspace } from '../../pages/settings/DataBinWorkspace';
 import { ProfileSettingsWorkspace } from '../../pages/settings/ProfileSettingsWorkspace';
@@ -104,6 +106,7 @@ import type { TenantDomainRecord } from '../../types/api/domains';
 const GROUP_ICONS: Record<string, React.ElementType> = {
   overview: Sparkles,
   general: Building2,
+  users: Users,
   roles: ShieldCheck,
   audit_logs: Activity,
   profile: User,
@@ -118,6 +121,7 @@ const GROUP_ICONS: Record<string, React.ElementType> = {
   inventory: Package,
   purchase: ShoppingCart,
   sales: BadgePercent,
+  crm: UserCheck,
   pos: Monitor,
   ecommerce: ShoppingBag,
   custom_domains: Globe,
@@ -137,6 +141,7 @@ const GROUP_ICONS: Record<string, React.ElementType> = {
 const GROUP_LABELS: Record<string, string> = {
   overview: 'Command Overview',
   general: 'General Profile & Prefixes',
+  users: 'Staff & User Accounts',
   roles: 'Roles & Staff Permissions',
   audit_logs: 'Security Audit Trail',
   profile: 'Workstation & Profile',
@@ -152,6 +157,7 @@ const GROUP_LABELS: Record<string, string> = {
   inventory: 'Stock & Warehousing',
   purchase: 'Procurement & Purchases',
   sales: 'Sales & Commercial',
+  crm: 'CRM & Pipeline Controls',
   pos: 'Point of Sale (POS)',
   ecommerce: 'E-Commerce Storefront',
   delivery: 'Delivery & Couriers',
@@ -186,6 +192,7 @@ export type SettingsCategory =
 export type SettingsTab =
   | 'overview'
   | 'general'
+  | 'users'
   | 'roles'
   | 'audit_logs'
   | 'profile'
@@ -201,6 +208,7 @@ export type SettingsTab =
   | 'inventory'
   | 'purchase'
   | 'sales'
+  | 'crm'
   | 'pos'
   | 'qc'
   | 'assets'
@@ -232,6 +240,7 @@ export const SettingsCenterWorkspace: React.FC = () => {
     [
       'overview',
       'general',
+      'users',
       'roles',
       'audit_logs',
       'profile',
@@ -247,6 +256,7 @@ export const SettingsCenterWorkspace: React.FC = () => {
       'inventory',
       'purchase',
       'sales',
+      'crm',
       'pos',
       'qc',
       'assets',
@@ -346,6 +356,7 @@ export const SettingsCenterWorkspace: React.FC = () => {
         'production_stages',
         'custom_fields',
         'documents',
+        'users',
         'roles',
         'audit_logs',
         'profile',
@@ -736,7 +747,7 @@ export const SettingsCenterWorkspace: React.FC = () => {
         theme: WORKSPACE_THEMES.indigo,
         shortcut: '1',
         defaultTab: 'overview',
-        tabs: ['overview', 'general', 'roles', 'audit_logs', 'profile', 'security'],
+        tabs: ['overview', 'general', 'users', 'roles', 'audit_logs', 'profile', 'security'],
       },
       {
         id: 'platform',
@@ -756,7 +767,7 @@ export const SettingsCenterWorkspace: React.FC = () => {
         theme: WORKSPACE_THEMES.emerald,
         shortcut: '3',
         defaultTab: 'production',
-        tabs: ['production', 'inventory', 'purchase', 'sales', 'pos', 'qc', 'assets'],
+        tabs: ['production', 'inventory', 'purchase', 'sales', 'crm', 'pos', 'qc', 'assets'],
       },
       {
         id: 'storefront',
@@ -788,6 +799,7 @@ export const SettingsCenterWorkspace: React.FC = () => {
         // Governance
         { id: 'overview', label: 'Command Overview', shortLabel: 'Overview', category: 'governance', icon: Sparkles },
         { id: 'general', label: 'General Profile & Prefixes', shortLabel: 'General', category: 'governance', icon: Building2 },
+        { id: 'users', label: 'Staff & User Accounts', shortLabel: 'Users', category: 'governance', icon: Users },
         { id: 'roles', label: 'Staff Roles & Permissions', shortLabel: 'Roles', category: 'governance', icon: ShieldCheck },
         { id: 'audit_logs', label: 'Security Audit Trail', shortLabel: 'Audit Trail', category: 'governance', icon: Activity },
         { id: 'profile', label: 'Workstation & Profile', shortLabel: 'Profile', category: 'governance', icon: User },
@@ -807,6 +819,7 @@ export const SettingsCenterWorkspace: React.FC = () => {
         { id: 'inventory', label: 'Stock & Warehousing', shortLabel: 'Inventory', category: 'operations', icon: Package },
         { id: 'purchase', label: 'Procurement & Purchases', shortLabel: 'Purchasing', category: 'operations', icon: ShoppingCart },
         { id: 'sales', label: 'Sales & Commercial', shortLabel: 'Sales', category: 'operations', icon: BadgePercent },
+        { id: 'crm', label: 'CRM & Pipeline Controls', shortLabel: 'CRM', category: 'operations', icon: UserCheck },
         { id: 'pos', label: 'Point of Sale (POS)', shortLabel: 'POS', category: 'operations', icon: Monitor },
         { id: 'qc', label: 'Quality Control (QC)', shortLabel: 'QC', category: 'operations', icon: CheckSquare },
         { id: 'assets', label: 'Assets & Maintenance', shortLabel: 'Assets', category: 'operations', icon: Cpu },
@@ -944,6 +957,25 @@ export const SettingsCenterWorkspace: React.FC = () => {
                   onSelectGroup={(g) => setActiveGroup(g as SettingsTab)}
                   onOpenOmniSearch={() => setOmniSearchOpen(true)}
                 />
+              ) : activeGroup === 'users' ? (
+                /* Staff & Users Workspace Embedded */
+                <div className="bg-surface rounded-(--card-radius) border border-default p-6 space-y-6 shadow-xs">
+                  <div className="flex items-center justify-between pb-4 border-b border-default">
+                    <div className="flex items-center gap-2.5">
+                      <Users className="size-5 text-primary" />
+                      <div>
+                        <h2 className="text-sm font-bold text-default">Staff & User Accounts</h2>
+                        <p className="text-2xs text-muted">
+                          Manage staff credentials, access permissions, invitations, and active sessions.
+                        </p>
+                      </div>
+                    </div>
+                    <Button variant="secondary" size="sm" onClick={() => setActiveGroup('overview')}>
+                      Back to Hub
+                    </Button>
+                  </div>
+                  <UsersManagementWorkspace />
+                </div>
               ) : activeGroup === 'roles' ? (
                 /* Roles & Permissions Workspace Embedded */
                 <div className="bg-surface rounded-(--card-radius) border border-default p-6 space-y-6 shadow-xs">

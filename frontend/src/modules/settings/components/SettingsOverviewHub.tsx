@@ -48,13 +48,16 @@ export const SettingsOverviewHub: React.FC<SettingsOverviewHubProps> = ({
 
   const quickPills = [
     { label: 'Update Invoice / PO Prefixes', group: 'general', icon: FileSpreadsheet },
+    { label: 'Staff & User Accounts', group: 'users', icon: Users },
     { label: 'Configure Payment Gateways (bKash)', group: 'integrations', icon: PlugZap },
     { label: 'Courier Logistics & Dispatch (Steadfast)', group: 'delivery', icon: Truck },
     { label: 'Custom Storefront Domains & SSL', group: 'custom_domains', icon: Globe },
     { label: 'Staff Roles & Access Permissions', group: 'roles', icon: Users },
     { label: 'System Security Audit Trail', group: 'audit_logs', icon: ShieldCheck },
     { label: 'ERP Modules & Navigation Order', group: 'modules', icon: Sparkles },
+    { label: 'CRM & Pipeline Controls', group: 'crm', icon: Sparkles },
     { label: 'Factory Production Stages', group: 'production_stages', icon: Factory },
+    { label: 'Webhooks & Event Streams', group: 'webhooks', icon: PlugZap },
     { label: 'Data Bin & Recovery Vault', group: 'bin', icon: Trash2 },
   ];
 
@@ -64,8 +67,10 @@ export const SettingsOverviewHub: React.FC<SettingsOverviewHubProps> = ({
       desc: 'Corporate identity, staff RBAC permissions, and immutable security audit logs.',
       items: [
         { key: 'general', title: 'General Profile & Prefixes', desc: 'Legal entity, currency, date formats, document serials' },
+        { key: 'users', title: 'Staff & User Accounts', desc: 'Manage user logins, invitations, credentials, and active sessions' },
         { key: 'roles', title: 'Roles & Staff Permissions', desc: 'Manage RBAC permissions matrix and access control' },
         { key: 'audit_logs', title: 'Security Audit Trail', desc: 'Immutable activity log, delta diffs, and compliance' },
+        { key: 'security', title: 'Session & Auth Hardening', desc: 'Session timeouts, admin 2FA, lockout thresholds, and maintenance mode' },
         { key: 'bin', title: 'Data Bin & Recovery Vault', desc: 'Inspect, restore, or permanently purge soft-deleted records across all ERP entities' },
         { key: 'profile', title: 'Workstation & Profile', desc: 'Personal preferences, branch context, and regional locale' },
       ],
@@ -75,6 +80,7 @@ export const SettingsOverviewHub: React.FC<SettingsOverviewHubProps> = ({
       desc: 'Dynamic ERP ecosystem, multi-stage factory routing, and custom document templates.',
       items: [
         { key: 'modules', title: 'ERP Modules & Navigation Order', desc: 'Customize sidebar sequence by workflow and toggle active modules' },
+        { key: 'workflows', title: 'Flow Automation Engine', desc: 'Automated webhook dispatch, rule triggers, and event pipelines' },
         { key: 'production_stages', title: 'Production Stages', desc: 'Work centers, operational routing, and checklists' },
         { key: 'terminology', title: 'Vocabulary & Terminology', desc: 'Custom labels for garments, food, or electronics' },
         { key: 'custom_fields', title: 'Custom Attributes & Fields', desc: 'Extend products, batches, and orders with custom metadata' },
@@ -93,10 +99,11 @@ export const SettingsOverviewHub: React.FC<SettingsOverviewHubProps> = ({
     },
     {
       name: 'Procurement & Commercial Sales',
-      desc: 'Purchase authorizations, credit risk caps, and counter cashier registers.',
+      desc: 'Purchase authorizations, credit risk caps, lead pipelines, and counter cashier registers.',
       items: [
         { key: 'purchase', title: 'Procurement & Purchases', desc: 'PO approval thresholds, reorder points, 3-way matching' },
         { key: 'sales', title: 'Sales & Commercial', desc: 'Credit limits, payment terms, discount limits' },
+        { key: 'crm', title: 'CRM & Pipeline Controls', desc: 'Lead acquisition channels, pipeline stage funnels, and lost reason codes' },
         { key: 'pos', title: 'Point of Sale (POS)', desc: 'Register hardware, receipts, manager PIN overrides' },
       ],
     },
@@ -115,8 +122,11 @@ export const SettingsOverviewHub: React.FC<SettingsOverviewHubProps> = ({
       items: [
         { key: 'delivery', title: 'Delivery & Couriers', desc: 'Steadfast, Pathao, REDX auto-booking and COD rates' },
         { key: 'integrations', title: 'Payment Gateways & SMS', desc: 'bKash, Nagad, SSLCommerz, Greenweb, Twilio SMS' },
+        { key: 'webhooks', title: 'Webhooks & Event Streams', desc: 'Outbound HTTP webhooks, retry policies, and delivery logs' },
+        { key: 'finance', title: 'Tax & Fiscal Periods', desc: 'Default VAT/tax percentages, auto-post GL journals, and period locks' },
         { key: 'hr_payroll', title: 'HR & Payroll Governance', desc: 'Standard work week, overtime rate, salary paydays' },
         { key: 'notifications', title: 'Multi-Channel Alerts', desc: 'In-app, email, and SMS triggers for inventory & orders' },
+        { key: 'reports', title: 'Reports & Export Defaults', desc: 'Default PDF/Excel formats, page size, orientation, and official letterhead' },
       ],
     },
   ];

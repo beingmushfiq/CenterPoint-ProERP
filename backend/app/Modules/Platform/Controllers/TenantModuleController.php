@@ -17,23 +17,23 @@ final class TenantModuleController extends Controller
     public const DEFAULT_NAV_ORDER = [
         'sections' => [
             'overview',   // 1. Dashboard & BI — always first
-            'crm',        // 2. CRM & Sales Force — lead generation BEFORE order capture
-            'sales',      // 3. Sales & Commercials — order capture, invoicing, POS, storefront
-            'supply',     // 4. Inventory & Supply — source materials to fulfil orders
-            'production', // 5. Production & Quality — convert materials → finished goods
-            'finance',    // 6. Finance & Accounts — record revenue, expenses, collections
-            'hr',         // 7. Workforce & HR — people operations
-            'system',     // 8. Intelligence & System — RBAC, audit, settings
+            'supply',     // 2. Inventory & Supply — source materials, warehouses, logistics
+            'production', // 3. Production & Quality — factory routing & mandatory QC gate
+            'sales',      // 4. Sales & Commercials — order capture, invoicing, POS, storefront
+            'crm',        // 5. CRM & Customer Pipeline — leads & accounts
+            'finance',    // 6. Finance & Accounts — general ledger, collections, assets
+            'hr',         // 7. Team & Workforce — staff, attendance & payroll
+            'system',     // 8. Intelligence & System — roles, audit, users, data bin, workflows, settings
         ],
         'items' => [
             'overview' => ['dashboard', 'reports'],
-            'crm' => ['crm-leads'],
-            'sales' => ['sales', 'pos', 'ecommerce'],
             'supply' => ['catalogue', 'purchasing', 'inventory', 'delivery'],
             'production' => ['production', 'qc'],
+            'sales' => ['sales', 'pos', 'ecommerce', 'coupons'],
+            'crm' => ['crm-leads'],
             'finance' => ['finance', 'assets'],
             'hr' => ['hr'],
-            'system' => ['roles', 'audit', 'settings'],
+            'system' => ['roles', 'audit', 'users', 'bin', 'workflows', 'settings'],
         ],
     ];
 

@@ -20,6 +20,7 @@ import {
   Users,
   Landmark,
   Cpu,
+  UserCheck,
 } from 'lucide-react';
 
 export type SettingPreviewType =
@@ -37,6 +38,7 @@ export type SettingPreviewType =
   | 'inventory'
   | 'procurement'
   | 'commercial'
+  | 'crm'
   | 'pos_receipt'
   | 'qc_standards'
   | 'payroll'
@@ -344,6 +346,23 @@ export const SETTINGS_SUBGROUPS: Record<string, SubgroupDefinition[]> = {
         'auto_generate_delivery_on_invoice',
         'require_qc_inspection_on_sales_return',
       ],
+    },
+  ],
+
+  crm: [
+    {
+      id: 'pipeline',
+      title: 'Lead Pipeline & Acquisition Channels',
+      description: 'Active lead sources and pipeline deal progression stages.',
+      icon: UserCheck,
+      keys: ['lead_sources', 'pipeline_stages'],
+    },
+    {
+      id: 'governance',
+      title: 'Conversion Automations & Lost Reasons',
+      description: 'Auto-convert won deals to customer accounts and track lost rationale.',
+      icon: ShieldCheck,
+      keys: ['auto_convert_won_lead_to_customer', 'lost_reason_codes'],
     },
   ],
 
