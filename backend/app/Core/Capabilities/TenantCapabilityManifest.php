@@ -220,7 +220,12 @@ final class TenantCapabilityManifest
             ->where('key', 'nav_order')
             ->first();
 
-        return $navSetting && is_array($navSetting->value) ? $navSetting->value : TenantModuleController::DEFAULT_NAV_ORDER;
+        $raw = $navSetting?->value;
+        if (is_string($raw)) {
+            $raw = json_decode($raw, true);
+        }
+
+        return is_array($raw) && !empty($raw['sections']) ? $raw : TenantModuleController::DEFAULT_NAV_ORDER;
     }
 
     public static function invalidate(int $tenantId): void

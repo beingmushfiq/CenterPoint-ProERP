@@ -92,7 +92,7 @@ export function PipelineKanbanSection({
         return (
           <div
             key={stage.id}
-            className="flex flex-col rounded-2xl border border-default bg-surface-sunken/40 min-h-[520px] p-3 shadow-2xs"
+            className="flex flex-col rounded-2xl border border-default bg-surface-sunken/40 min-h-130 p-3 shadow-2xs"
           >
             {/* Column Header */}
             <div className="flex items-center justify-between pb-2.5 mb-2 border-b border-default">
@@ -114,7 +114,7 @@ export function PipelineKanbanSection({
             </div>
 
             {/* Cards List */}
-            <div className="flex-1 space-y-2.5 overflow-y-auto max-h-[640px] pr-0.5">
+            <div className="flex-1 space-y-2.5 overflow-y-auto max-h-160 pr-0.5">
               {stageLeads.length === 0 ? (
                 <div className="h-32 flex flex-col items-center justify-center rounded-xl border border-dashed border-default/70 text-muted text-center p-3">
                   <p className="text-[11px]">No leads in {stage.label}</p>
@@ -182,12 +182,12 @@ export function PipelineKanbanSection({
 
                       {/* Meta Tags: Source & Rep */}
                       <div className="text-[10px] text-muted flex items-center justify-between border-t border-default/60 pt-1.5 gap-1">
-                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-surface-sunken border border-default/50 truncate max-w-[95px]">
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-surface-sunken border border-default/50 truncate max-w-21.25">
                           <Tag className="size-2.5 text-primary" />
                           <span className="truncate">{sourceConfig?.label || lead.source}</span>
                         </span>
                         <span
-                          className="truncate max-w-[80px]"
+                          className="truncate max-w-21.25"
                           title={lead.assigned_to ? String(lead.assigned_to) : undefined}
                         >
                           {String(lead.assigned_to || 'Unassigned')}
@@ -199,7 +199,7 @@ export function PipelineKanbanSection({
                         <select
                           value={lead.stage || lead.status}
                           onChange={(e) => onStageChange(lead, e.target.value as LeadStatus)}
-                          className="text-[10px] py-0.5 px-1 rounded-md border border-default bg-surface-sunken text-muted hover:text-default cursor-pointer max-w-[85px]"
+                          className="text-[10px] py-0.5 px-1 rounded-md border border-default bg-surface-sunken text-muted hover:text-default cursor-pointer max-w-21.25"
                           title="Change pipeline stage"
                         >
                           {STAGES.map((s) => (

@@ -39,6 +39,23 @@ final class DemoErpStorefrontSeeder extends Seeder
         TenantContext::bind($tenant->toArray());
         $tenantId = $tenant->id;
 
+        [$company, $branch, $warehouse, $unitPcs, $taxProfile] = $this->seedCoreInfrastructure($tenantId);
+        $storefront = $this->seedStorefrontTheme($tenantId, $company, $branch, $warehouse);
+        $this->cleanupObsoleteProducts($tenantId);
+        [$categoryMap, $brandMap] = $this->seedTaxonomies($tenantId);
+        $createdProducts = $this->seedProductsAndInventory($tenantId, $warehouse, $storefront, $unitPcs, $taxProfile, $categoryMap, $brandMap);
+        $this->seedCmsContent($tenantId, $storefront);
+        $this->seedCustomerAndOrders($tenantId, $company, $branch, $warehouse, $storefront, $unitPcs, $createdProducts);
+
+        // Return context back to SliceMart default
+        $slicemartTenant = Tenant::where('slug', 'slicemart')->orWhere('id', 1)->first();
+        if ($slicemartTenant) {
+            TenantContext::bind($slicemartTenant->toArray());
+        }
+    }
+
+    private function seedCoreInfrastructure(int $tenantId): array
+    {
         // Resolve Company, Branch, Warehouse
         $company = Company::withoutTenantScope()->where('tenant_id', $tenantId)->first();
         if (! $company) {
@@ -89,6 +106,11 @@ final class DemoErpStorefrontSeeder extends Seeder
             ?? Unit::withoutTenantScope()->where('tenant_id', $tenantId)->firstOrFail();
         $taxProfile = TaxProfile::withoutTenantScope()->where('tenant_id', $tenantId)->first();
 
+        return [$company, $branch, $warehouse, $unitPcs, $taxProfile];
+    }
+
+    private function seedStorefrontTheme(int $tenantId, Company $company, Branch $branch, Warehouse $warehouse): Storefront
+    {
         // ── 2. STOREFRONT SETUP & THEME ────────────────────────────────────
         $storefront = Storefront::withoutTenantScope()->withTrashed()->where('tenant_id', $tenantId)->first();
         $storefrontData = [
@@ -150,6 +172,11 @@ final class DemoErpStorefrontSeeder extends Seeder
             ]));
         }
 
+        return $storefront;
+    }
+
+    private function cleanupObsoleteProducts(int $tenantId): void
+    {
         // ── 3. CLEAN UP OBSOLETE PLACEHOLDER PRODUCTS IN TENANT 2 ONLY ─────
         $oldTestProducts = Product::where('tenant_id', $tenantId)
             ->where(function ($q) {
@@ -164,7 +191,10 @@ final class DemoErpStorefrontSeeder extends Seeder
             $oldProd->update(['is_online' => false, 'status' => 'archived']);
             $oldProd->delete();
         }
+    }
 
+    private function seedTaxonomies(int $tenantId): array
+    {
         // ── 4. CATEGORIES SEEDING ──────────────────────────────────────────
         $categoriesDef = [
             [
@@ -224,6 +254,13 @@ final class DemoErpStorefrontSeeder extends Seeder
             );
             $brandMap[$bDef['code']] = $brd->id;
         }
+
+        return [$categoryMap, $brandMap];
+    }
+
+    private function seedProductsAndInventory(int $tenantId, Warehouse $warehouse, Storefront $storefront, Unit $unitPcs, ?TaxProfile $taxProfile, array $categoryMap, array $brandMap): array
+    {
+        $createdProducts = [];
 
         // ── 6. 16 CURATED PRODUCTS SEEDING ─────────────────────────────────
         $productsCatalog = [
@@ -622,6 +659,11 @@ final class DemoErpStorefrontSeeder extends Seeder
             $createdProducts[] = $product;
         }
 
+        return $createdProducts;
+    }
+
+    private function seedCmsContent(int $tenantId, Storefront $storefront): void
+    {
         // ── 7. CMS HOMEPAGE WITH ALL 9 BLOCKS ──────────────────────────────
         $storeSlug = $storefront->subdomain;
         $homeBlocks = [
@@ -1035,7 +1077,10 @@ final class DemoErpStorefrontSeeder extends Seeder
                 ]
             );
         }
+    }
 
+    private function seedCustomerAndOrders(int $tenantId, Company $company, Branch $branch, Warehouse $warehouse, Storefront $storefront, Unit $unitPcs, array $createdProducts): void
+    {
         // ── 9. SAMPLE CUSTOMERS & DEMO TRACKABLE ORDERS ────────────────────
         $customerParty = Party::updateOrCreate(
             [
@@ -1155,12 +1200,6 @@ final class DemoErpStorefrontSeeder extends Seeder
                 'tax_amount' => '0.0000',
                 'line_total' => $sampleProd2->default_sale_price,
             ]);
-        }
-
-        // Return context back to SliceMart default
-        $slicemartTenant = Tenant::where('slug', 'slicemart')->orWhere('id', 1)->first();
-        if ($slicemartTenant) {
-            TenantContext::bind($slicemartTenant->toArray());
         }
     }
 }

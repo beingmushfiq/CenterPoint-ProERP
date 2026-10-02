@@ -240,7 +240,7 @@ export function PaymentsSection() {
           <button
             onClick={() => refetch()}
             disabled={isFetching}
-            className="flex min-h-[44px] sm:min-h-9 items-center gap-1.5 rounded-xl border border-default bg-surface-sunken px-3 text-xs font-medium text-muted hover:bg-surface hover:text-default disabled:opacity-50 transition-colors cursor-pointer"
+            className="flex min-h-11 sm:min-h-9 items-center gap-1.5 rounded-xl border border-default bg-surface-sunken px-3 text-xs font-medium text-muted hover:bg-surface hover:text-default disabled:opacity-50 transition-colors cursor-pointer"
           >
             <RefreshCw className={`h-3.5 w-3.5 ${isFetching ? 'animate-spin' : ''}`} />
             <span className="hidden sm:inline">Refresh</span>
@@ -249,7 +249,7 @@ export function PaymentsSection() {
 
         <button
           onClick={() => setShowCreateModal(true)}
-          className="flex min-h-[44px] sm:min-h-9 items-center justify-center gap-1.5 rounded-xl bg-primary px-3.5 text-xs font-medium text-primary-fg hover:opacity-90 transition-all cursor-pointer shadow-xs"
+          className="flex min-h-11 sm:min-h-9 items-center justify-center gap-1.5 rounded-xl bg-primary px-3.5 text-xs font-medium text-primary-fg hover:opacity-90 transition-all cursor-pointer shadow-xs"
         >
           <Plus className="h-3.5 w-3.5" />
           <span>Record Payment</span>

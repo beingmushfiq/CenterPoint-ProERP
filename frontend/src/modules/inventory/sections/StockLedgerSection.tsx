@@ -61,7 +61,7 @@ export function StockLedgerSection() {
   const [auditingBalance, setAuditingBalance] = useState<StockBalance | null>(null);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
-  const { density, setDensity, visibleColumns, toggleColumn, isVisible, cellClass } = useTablePrefs({
+  const { density, setDensity, visibleColumns, toggleColumn, isVisible } = useTablePrefs({
     tableId: 'inventory_balances',
     defaultColumns: {
       warehouse: true,

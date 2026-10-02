@@ -265,7 +265,7 @@ export const SuppliersSection: React.FC = () => {
             {s.email && (
               <div className="flex items-center gap-1 text-muted text-[11px]">
                 <Mail className="size-3 text-muted" />
-                <a href={`mailto:${s.email}`} className="hover:text-primary transition-colors truncate max-w-[160px]">
+                <a href={`mailto:${s.email}`} className="hover:text-primary transition-colors truncate max-w-40">
                   {s.email}
                 </a>
               </div>

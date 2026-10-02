@@ -76,7 +76,12 @@ final class TenantModuleController extends Controller
             ->where('key', 'nav_order')
             ->first();
 
-        $navOrder = $setting && is_array($setting->value) ? $setting->value : self::DEFAULT_NAV_ORDER;
+        $raw = $setting?->value;
+        if (is_string($raw)) {
+            $raw = json_decode($raw, true);
+        }
+
+        $navOrder = is_array($raw) && !empty($raw['sections']) ? $raw : self::DEFAULT_NAV_ORDER;
 
         return response()->json([
             'success' => true,

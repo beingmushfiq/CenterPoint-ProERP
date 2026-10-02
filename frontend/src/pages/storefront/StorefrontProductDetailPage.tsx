@@ -546,7 +546,7 @@ export const StorefrontProductDetailPage: React.FC = () => {
         <button
           type="button"
           onClick={handleWhatsAppOrder}
-          className="size-11 min-w-[44px] min-h-[44px] rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 flex items-center justify-center shrink-0 hover:bg-emerald-500/20 transition-colors cursor-pointer touch-target"
+          className="size-11 min-w-11 min-h-11 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 flex items-center justify-center shrink-0 hover:bg-emerald-500/20 transition-colors cursor-pointer touch-target"
           title={t('storefront.instantOrderWhatsApp', 'Order via WhatsApp')}
           aria-label="WhatsApp Order"
         >
@@ -557,7 +557,7 @@ export const StorefrontProductDetailPage: React.FC = () => {
         <button
           type="button"
           onClick={handleAddToCart}
-          className="flex-1 min-h-[44px] px-3 py-2 rounded-xl border border-slate-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-slate-800 dark:text-zinc-200 text-xs font-bold flex items-center justify-center gap-1.5 shadow-2xs hover:bg-slate-50 dark:hover:bg-zinc-800 transition-all cursor-pointer active:scale-95 touch-target"
+          className="flex-1 min-h-11 px-3 py-2 rounded-xl border border-slate-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-slate-800 dark:text-zinc-200 text-xs font-bold flex items-center justify-center gap-1.5 shadow-2xs hover:bg-slate-50 dark:hover:bg-zinc-800 transition-all cursor-pointer active:scale-95 touch-target"
         >
           <ShoppingBag className="size-4 shrink-0" />
           <span className="truncate">{t('storefront.addToCart', 'Add')}</span>
@@ -571,7 +571,7 @@ export const StorefrontProductDetailPage: React.FC = () => {
             backgroundColor: 'var(--store-primary, #10b981)',
             color: 'var(--store-primary-fg, #ffffff)',
           }}
-          className="flex-1 min-h-[44px] px-3 py-2 rounded-xl text-xs font-extrabold flex items-center justify-center gap-1.5 shadow-md hover:opacity-90 transition-all cursor-pointer active:scale-95 touch-target"
+          className="flex-1 min-h-11 px-3 py-2 rounded-xl text-xs font-extrabold flex items-center justify-center gap-1.5 shadow-md hover:opacity-90 transition-all cursor-pointer active:scale-95 touch-target"
         >
           <Zap className="size-4 shrink-0 fill-current" />
           <span className="truncate">{t('orderNow', 'Buy Now')}</span>

@@ -875,7 +875,7 @@ export function AppHeader({
         <button
           type="button"
           onClick={() => setIsKebabOpen(true)}
-          className="sm:hidden flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl p-2 text-muted hover:bg-surface-sunken hover:text-default transition-token-colors focus-visible:ring-focus cursor-pointer shrink-0"
+          className="sm:hidden flex min-h-11 min-w-11 items-center justify-center rounded-xl p-2 text-muted hover:bg-surface-sunken hover:text-default transition-token-colors focus-visible:ring-focus cursor-pointer shrink-0"
           aria-label="More quick options"
           title="More tools & preferences"
         >
@@ -1089,7 +1089,7 @@ export function AppHeader({
                       setIsKebabOpen(false);
                     }}
                     className={cn(
-                      'w-full min-h-[44px] px-3 rounded-xl flex items-center justify-between text-xs font-semibold transition-colors cursor-pointer',
+                      'w-full min-h-11 px-3 rounded-xl flex items-center justify-between text-xs font-semibold transition-colors cursor-pointer',
                       activeBranch?.id === b.id
                         ? 'bg-primary text-primary-fg'
                         : 'bg-surface hover:bg-surface-raised text-default border border-default'
@@ -1112,7 +1112,7 @@ export function AppHeader({
             <button
               type="button"
               onClick={toggleTheme}
-              className="min-h-[44px] px-3.5 rounded-xl bg-surface border border-default text-xs font-bold text-default hover:bg-surface-raised transition-colors cursor-pointer flex items-center gap-1.5"
+              className="min-h-11 px-3.5 rounded-xl bg-surface border border-default text-xs font-bold text-default hover:bg-surface-raised transition-colors cursor-pointer flex items-center gap-1.5"
             >
               <span>{themeMode === 'dark' ? 'Dark Mode' : themeMode === 'light' ? 'Light Mode' : 'System'}</span>
             </button>
@@ -1134,7 +1134,7 @@ export function AppHeader({
               setIsKebabOpen(false);
               setIsBrainOpen(true);
             }}
-            className="w-full min-h-[48px] px-3.5 rounded-2xl bg-purple-500/10 border border-purple-500/25 text-purple-600 dark:text-purple-400 hover:bg-purple-500/20 flex items-center justify-between font-semibold text-xs transition-colors cursor-pointer"
+            className="w-full min-h-11 px-3.5 rounded-2xl bg-purple-500/10 border border-purple-500/25 text-purple-600 dark:text-purple-400 hover:bg-purple-500/20 flex items-center justify-between font-semibold text-xs transition-colors cursor-pointer"
           >
             <span className="flex items-center gap-2">
               <Brain className="size-4" />
@@ -1150,7 +1150,7 @@ export function AppHeader({
               setIsKebabOpen(false);
               openTutorial();
             }}
-            className="w-full min-h-[48px] px-3.5 rounded-2xl bg-indigo-500/10 border border-indigo-500/25 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-500/20 flex items-center gap-2 font-semibold text-xs transition-colors cursor-pointer"
+            className="w-full min-h-11 px-3.5 rounded-2xl bg-indigo-500/10 border border-indigo-500/25 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-500/20 flex items-center gap-2 font-semibold text-xs transition-colors cursor-pointer"
           >
             <Compass className="size-4" />
             <span>Interactive System Tour</span>
@@ -1163,7 +1163,7 @@ export function AppHeader({
               setIsKebabOpen(false);
               navigate('/settings/bin');
             }}
-            className="w-full min-h-[48px] px-3.5 rounded-2xl bg-surface-sunken border border-default text-muted hover:text-default flex items-center gap-2 font-medium text-xs transition-colors cursor-pointer"
+            className="w-full min-h-11 px-3.5 rounded-2xl bg-surface-sunken border border-default text-muted hover:text-default flex items-center gap-2 font-medium text-xs transition-colors cursor-pointer"
           >
             <Trash2 className="size-4" />
             <span>Data Bin & Recovery Vault</span>

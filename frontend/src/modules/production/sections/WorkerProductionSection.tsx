@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef } from 'react';
+import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   AlertTriangle,
@@ -22,6 +22,7 @@ import { StatusBadge } from '../../../components/ui/Badge';
 import { QueryBoundary } from '../../../components/patterns/QueryBoundary';
 import { ActionMenuPortal } from '../../../components/ui/ActionMenuPortal';
 import { ResponsiveDataTable, type ResponsiveColumn } from '../../../components/ui/ResponsiveDataTable';
+import { type ActionSheetItem } from '../../../components/motion/MotionActionSheet';
 import { isApiError } from '../../../lib/api/errors';
 import { UniversalImportModal } from '../../../components/import/UniversalImportModal';
 import { pieceRateLogImportSchema } from '../schemas/pieceRateLogImportSchema';
@@ -168,7 +169,7 @@ export function WorkerProductionSection() {
     },
   });
 
-  const entries = entriesQuery.data?.data ?? [];
+  const entries = useMemo(() => entriesQuery.data?.data ?? [], [entriesQuery.data?.data]);
   const summary = summaryQuery.data?.data;
   const batches = useMemo(() => batchesQuery.data?.data ?? [], [batchesQuery.data?.data]);
   const products = useMemo(() => productsQuery.data?.data ?? [], [productsQuery.data?.data]);
@@ -307,13 +308,13 @@ export function WorkerProductionSection() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [selectedEntryIds.size]);
 
-  const toggleSelectAll = () => {
+  const toggleSelectAll = useCallback(() => {
     if (isAllSelected) {
       setSelectedEntryIds(new Set());
     } else {
       setSelectedEntryIds(new Set(entries.map((e) => e.id)));
     }
-  };
+  }, [isAllSelected, entries]);
 
   const toggleSelectEntry = (id: string) => {
     setSelectedEntryIds((prev) => {
@@ -467,15 +468,14 @@ export function WorkerProductionSection() {
       ),
       className: 'w-10 text-center',
       accessor: (entry) => (
-        <div onClick={(e) => e.stopPropagation()}>
-          <input
-            type="checkbox"
-            checked={selectedEntryIds.has(entry.id)}
-            onChange={() => toggleSelectEntry(entry.id)}
-            aria-label={`Select entry for ${entry.employee_name ?? entry.employee_id}`}
-            className="size-4 rounded border-default text-primary focus:ring-primary/20 cursor-pointer"
-          />
-        </div>
+        <input
+          type="checkbox"
+          checked={selectedEntryIds.has(entry.id)}
+          onClick={(e) => e.stopPropagation()}
+          onChange={() => toggleSelectEntry(entry.id)}
+          aria-label={`Select entry for ${entry.employee_name ?? entry.employee_id}`}
+          className="size-4 rounded border-default text-primary focus:ring-primary/20 cursor-pointer"
+        />
       ),
     },
     {
@@ -697,10 +697,10 @@ export function WorkerProductionSection() {
         </div>
       ),
     },
-  ], [isAllSelected, selectedEntryIds, openActionMenuId, actionMenuAnchor, verifyMutation.isPending, formatCurrency]);
+  ], [isAllSelected, selectedEntryIds, openActionMenuId, actionMenuAnchor, verifyMutation, toggleSelectAll, formatCurrency]);
 
-  const getMobileActions = (entry: WorkerProductionEntry) => {
-    const actions = [
+  const getMobileActions = (entry: WorkerProductionEntry): ActionSheetItem[] => {
+    const actions: ActionSheetItem[] = [
       {
         label: 'Edit Quantities',
         icon: <Edit3 className="size-4 text-primary" />,
@@ -1372,7 +1372,7 @@ export function WorkerProductionSection() {
                 </label>
                 <select
                   value={bulkGridShift}
-                  onChange={(e) => setBulkGridShift(e.target.value as any)}
+                  onChange={(e) => setBulkGridShift(e.target.value as 'morning' | 'evening' | 'night' | 'general')}
                   className="w-full rounded-xl border border-default bg-surface p-2 text-xs text-default focus:border-primary focus:outline-none"
                 >
                   <option value="morning">Morning Shift</option>

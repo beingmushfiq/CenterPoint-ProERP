@@ -16,8 +16,8 @@ import { useTablePrefs } from '../../../hooks/useTablePrefs';
 import { DestructiveConfirmationDialog } from '../../../components/ui/DestructiveConfirmationDialog';
 import { ActionMenuPortal } from '../../../components/ui/ActionMenuPortal';
 import { AuditTimelineDrawer } from '../../../components/ui/AuditTimelineDrawer';
-import { ResponsiveDataTable, type ResponsiveColumn } from '../../../components/ui/ResponsiveDataTable';
-import type { ActionSheetItem } from '../../../components/motion/MotionActionSheet';
+import { ResponsiveDataTable } from '../../../components/ui/ResponsiveDataTable';
+import { cn } from '../../../lib/utils';
 
 interface InvoicesSectionProps {
   onNavigateToTab?: (tab: string) => void;
@@ -59,7 +59,6 @@ export function InvoicesSection({ onNavigateToTab }: InvoicesSectionProps = {}) 
     visibleColumns,
     toggleColumn,
     isVisible,
-    cellClass,
   } = useTablePrefs({
     tableId: 'sales_invoices',
     defaultColumns: {
@@ -327,7 +326,7 @@ export function InvoicesSection({ onNavigateToTab }: InvoicesSectionProps = {}) 
           <button
             onClick={() => refetch()}
             disabled={isFetching}
-            className="flex min-h-[44px] sm:min-h-9 items-center gap-1.5 rounded-xl border border-default bg-surface-sunken px-3 text-xs font-medium text-muted hover:bg-surface hover:text-default disabled:opacity-50 transition-colors cursor-pointer"
+            className="flex min-h-11 sm:min-h-9 items-center gap-1.5 rounded-xl border border-default bg-surface-sunken px-3 text-xs font-medium text-muted hover:bg-surface hover:text-default disabled:opacity-50 transition-colors cursor-pointer"
           >
             <RefreshCw className={`h-3.5 w-3.5 ${isFetching ? 'animate-spin' : ''}`} />
             <span className="hidden sm:inline">Refresh</span>
@@ -338,7 +337,7 @@ export function InvoicesSection({ onNavigateToTab }: InvoicesSectionProps = {}) 
           <button
             type="button"
             onClick={() => setIsImportOpen(true)}
-            className="flex min-h-[44px] sm:min-h-9 items-center gap-1.5 rounded-xl border border-default bg-surface-sunken px-3 text-xs font-medium text-muted hover:bg-surface hover:text-default transition-colors cursor-pointer"
+            className="flex min-h-11 sm:min-h-9 items-center gap-1.5 rounded-xl border border-default bg-surface-sunken px-3 text-xs font-medium text-muted hover:bg-surface hover:text-default transition-colors cursor-pointer"
             title="Import historical opening invoices from Excel (.xlsx) or CSV"
           >
             <Upload className="h-3.5 w-3.5 text-primary" />
@@ -348,7 +347,7 @@ export function InvoicesSection({ onNavigateToTab }: InvoicesSectionProps = {}) 
           <button
             type="button"
             onClick={handleExportCsv}
-            className="flex min-h-[44px] sm:min-h-9 items-center gap-1.5 rounded-xl border border-default bg-surface-sunken px-3 text-xs font-medium text-muted hover:bg-surface hover:text-default transition-colors cursor-pointer"
+            className="flex min-h-11 sm:min-h-9 items-center gap-1.5 rounded-xl border border-default bg-surface-sunken px-3 text-xs font-medium text-muted hover:bg-surface hover:text-default transition-colors cursor-pointer"
             title="Export invoices to CSV"
           >
             <Download className="h-3.5 w-3.5 text-muted" />
@@ -365,7 +364,7 @@ export function InvoicesSection({ onNavigateToTab }: InvoicesSectionProps = {}) 
               });
             }}
             disabled={createInvoiceMutation.isPending}
-            className="flex min-h-[44px] sm:min-h-9 items-center gap-1.5 rounded-xl bg-primary/10 border border-primary/20 px-3 text-xs font-semibold text-primary hover:bg-primary/20 transition-colors cursor-pointer disabled:opacity-50"
+            className="flex min-h-11 sm:min-h-9 items-center gap-1.5 rounded-xl bg-primary/10 border border-primary/20 px-3 text-xs font-semibold text-primary hover:bg-primary/20 transition-colors cursor-pointer disabled:opacity-50"
             title="Create Direct Sales Invoice"
           >
             <FileText className="h-3.5 w-3.5" />
@@ -374,7 +373,7 @@ export function InvoicesSection({ onNavigateToTab }: InvoicesSectionProps = {}) 
 
           <button
             onClick={() => setShowDesigner(true)}
-            className="flex min-h-[44px] sm:min-h-9 items-center gap-1.5 rounded-xl bg-surface-sunken border border-default px-3 text-xs font-medium text-default hover:bg-surface hover:text-primary transition-colors cursor-pointer"
+            className="flex min-h-11 sm:min-h-9 items-center gap-1.5 rounded-xl bg-surface-sunken border border-default px-3 text-xs font-medium text-default hover:bg-surface hover:text-primary transition-colors cursor-pointer"
           >
             <Sliders className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
             <span className="hidden md:inline">Template Designer</span>

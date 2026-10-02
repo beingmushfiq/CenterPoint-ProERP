@@ -29,6 +29,7 @@ import { useCurrency } from '../../../hooks/useCurrency';
 import { SelectDropdown } from '../../../components/ui/Dropdown';
 import { ActionMenuPortal } from '../../../components/ui/ActionMenuPortal';
 import { ResponsiveDataTable, type ResponsiveColumn } from '../../../components/ui/ResponsiveDataTable';
+import { type ActionSheetItem } from '../../../components/motion/MotionActionSheet';
 import { cn } from '../../../lib/utils';
 
 interface GrnFormItem {
@@ -407,8 +408,8 @@ export function GoodsReceiptsSection() {
     },
   ], [formatCurrency, openActionMenuId]);
 
-  const getMobileActions = (receipt: GoodsReceipt) => {
-    const actions = [
+  const getMobileActions = (receipt: GoodsReceipt): ActionSheetItem[] => {
+    const actions: ActionSheetItem[] = [
       {
         label: 'View GRN Details',
         icon: <Eye className="size-4" />,
@@ -730,10 +731,7 @@ export function GoodsReceiptsSection() {
               </ActionMenuPortal>
             );
           })()}
-        </div>
-      </div>
-
-      {/* CREATE GRN MODAL */}
+        {/* CREATE GRN MODAL */}
       {showCreateModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs">
           <div className="w-full max-w-2xl rounded-2xl border border-default bg-surface p-6 shadow-xl max-h-[90vh] overflow-y-auto">

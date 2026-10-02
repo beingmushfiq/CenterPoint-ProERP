@@ -39,6 +39,17 @@ export interface ResponsiveDataTableProps<T> {
   keyExtractor: (row: T, index: number) => string | number;
   loading?: boolean;
   isLoading?: boolean; // alias for loading
+  loadingRows?: number;
+  isFiltered?: boolean;
+  searchEmptyState?: React.ReactNode;
+  emptyState?:
+    | React.ReactNode
+    | {
+        icon?: React.ReactNode;
+        title?: string;
+        description?: string;
+        subtitle?: string;
+      };
   emptyTitle?: string;
   emptyMessage?: string;
   emptySubtitle?: string;
@@ -71,6 +82,10 @@ export function ResponsiveDataTable<T>({
   keyExtractor,
   loading = false,
   isLoading = false,
+  loadingRows = 5,
+  isFiltered,
+  searchEmptyState,
+  emptyState,
   emptyTitle,
   emptyMessage = 'No records found',
   emptySubtitle,
@@ -136,15 +151,37 @@ export function ResponsiveDataTable<T>({
       <div className={cn('w-full rounded-2xl border border-default bg-surface overflow-hidden p-6', className)}>
         <div className="space-y-4 animate-pulse">
           <div className="h-10 bg-surface-sunken rounded-xl w-full" />
-          <div className="h-14 bg-surface-sunken/60 rounded-xl w-full" />
-          <div className="h-14 bg-surface-sunken/60 rounded-xl w-full" />
-          <div className="h-14 bg-surface-sunken/60 rounded-xl w-full" />
+          {Array.from({ length: Math.max(1, loadingRows) }).map((_, idx) => (
+            <div key={idx} className="h-14 bg-surface-sunken/60 rounded-xl w-full" />
+          ))}
         </div>
       </div>
     );
   }
 
   if (data.length === 0) {
+    if (isFiltered && searchEmptyState) {
+      return <>{searchEmptyState}</>;
+    }
+    if (React.isValidElement(emptyState)) {
+      return <>{emptyState}</>;
+    }
+    if (emptyState && typeof emptyState === 'object') {
+      const obj = emptyState as { icon?: React.ReactNode; title?: string; description?: string; subtitle?: string };
+      return (
+        <div className={cn('w-full rounded-2xl border border-default bg-surface p-8 sm:p-12 text-center', className)}>
+          {obj.icon && (
+            <div className="flex size-12 items-center justify-center rounded-2xl bg-surface-sunken mx-auto mb-3 text-muted">
+              {obj.icon}
+            </div>
+          )}
+          {obj.title && <h3 className="text-base font-bold text-default mb-1">{obj.title}</h3>}
+          {(obj.description || obj.subtitle) && (
+            <p className="text-xs text-muted mt-1">{obj.description || obj.subtitle}</p>
+          )}
+        </div>
+      );
+    }
     return (
       <div className={cn('w-full rounded-2xl border border-default bg-surface p-8 sm:p-12 text-center', className)}>
         <div className="flex size-12 items-center justify-center rounded-2xl bg-surface-sunken mx-auto mb-3 text-muted">
@@ -311,7 +348,7 @@ export function ResponsiveDataTable<T>({
                           title: typeof primaryVal === 'string' ? primaryVal : 'Record Actions',
                         });
                       }}
-                      className="min-h-[44px] min-w-[44px] -mr-2 flex items-center justify-center rounded-xl text-muted hover:text-default hover:bg-surface-sunken transition-colors cursor-pointer shrink-0"
+                      className="min-h-11 min-w-11 -mr-2 flex items-center justify-center rounded-xl text-muted hover:text-default hover:bg-surface-sunken transition-colors cursor-pointer shrink-0"
                       aria-label="More actions"
                     >
                       <MoreVertical className="size-4" />

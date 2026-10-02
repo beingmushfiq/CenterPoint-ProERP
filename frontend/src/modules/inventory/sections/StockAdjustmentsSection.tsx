@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useMemo } from 'react';
+import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import {
@@ -110,7 +110,7 @@ export function StockAdjustmentsSection() {
     }
   };
 
-  const handleStatusChange = async (adjId: number, nextStatus: StockAdjustment['status']) => {
+  const handleStatusChange = useCallback(async (adjId: number, nextStatus: StockAdjustment['status']) => {
     try {
       await api.patch(`/inventory/adjustments/${adjId}`, { status: nextStatus });
     } catch {
@@ -129,7 +129,7 @@ export function StockAdjustmentsSection() {
       )
     );
     toast.success(`Adjustment status updated to ${nextStatus}.`);
-  };
+  }, [queryClient]);
 
   const handleCreateAdjustment = (e: React.FormEvent) => {
     e.preventDefault();
@@ -421,26 +421,25 @@ export function StockAdjustmentsSection() {
       header: 'Status',
       priority: 'high',
       render: (a) => (
-        <div onClick={(e) => e.stopPropagation()}>
-          <select
-            value={a.status}
-            onChange={(e) => handleStatusChange(a.id, e.target.value as StockAdjustment['status'])}
-            className={`rounded-lg border px-2 py-1 text-[11px] font-bold focus:outline-none transition-colors cursor-pointer ${
-              a.status === 'approved'
-                ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30'
-                : a.status === 'rejected'
-                ? 'bg-rose-500/10 text-rose-700 dark:text-rose-300 border-rose-500/30'
-                : a.status === 'cancelled'
-                ? 'bg-gray-500/10 text-gray-700 dark:text-gray-300 border-gray-500/30'
-                : 'bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/30'
-            }`}
-          >
-            <option value="draft">Draft</option>
-            <option value="approved">Approved</option>
-            <option value="rejected">Rejected</option>
-            <option value="cancelled">Cancelled</option>
-          </select>
-        </div>
+        <select
+          value={a.status}
+          onClick={(e) => e.stopPropagation()}
+          onChange={(e) => handleStatusChange(a.id, e.target.value as StockAdjustment['status'])}
+          className={`rounded-lg border px-2 py-1 text-[11px] font-bold focus:outline-none transition-colors cursor-pointer ${
+            a.status === 'approved'
+              ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30'
+              : a.status === 'rejected'
+              ? 'bg-rose-500/10 text-rose-700 dark:text-rose-300 border-rose-500/30'
+              : a.status === 'cancelled'
+              ? 'bg-gray-500/10 text-gray-700 dark:text-gray-300 border-gray-500/30'
+              : 'bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/30'
+          }`}
+        >
+          <option value="draft">Draft</option>
+          <option value="approved">Approved</option>
+          <option value="rejected">Rejected</option>
+          <option value="cancelled">Cancelled</option>
+        </select>
       ),
     },
     {
@@ -449,9 +448,10 @@ export function StockAdjustmentsSection() {
       align: 'right',
       priority: 'high',
       render: (a) => (
-        <div className="flex items-center justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-end gap-1.5" data-prevent-row-click>
           <button
-            onClick={() => {
+            onClick={(e) => {
+              e.stopPropagation();
               setActiveAdjustment(a);
               setShowViewModal(true);
               void api.get<StockAdjustment>(`/inventory/adjustments/${a.id}`).then((res) => {
@@ -716,7 +716,7 @@ export function StockAdjustmentsSection() {
               window.print();
             },
           },
-          ...(canDelete ? [{
+          ...(a.status === 'draft' || a.status === 'cancelled' ? [{
             id: 'delete',
             label: 'Void / Delete',
             icon: Trash2,

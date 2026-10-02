@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useMemo } from 'react';
+import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -22,7 +22,6 @@ import {
   ChevronDown,
   RotateCcw,
   AlertTriangle,
-  Eye,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { api } from '../../../lib/api/client';
@@ -31,10 +30,9 @@ import { Button } from '../../../components/ui/Button';
 import { SelectDropdown } from '../../../components/ui/Dropdown';
 import { Badge, StatusBadge } from '../../../components/ui/Badge';
 import { QueryBoundary } from '../../../components/patterns/QueryBoundary';
-import { ActionMenuPortal } from '../../../components/ui/ActionMenuPortal';
 import { ResponsiveDataTable, type ResponsiveColumn } from '../../../components/ui/ResponsiveDataTable';
+import { type ActionSheetItem } from '../../../components/motion/MotionActionSheet';
 import { isApiError } from '../../../lib/api/errors';
-import { cn } from '../../../lib/utils';
 import type { ProductionBatch } from '../../../types/api/production';
 import type { Product, Warehouse } from '../../../types/api/catalog';
 import type { BillOfMaterial } from '../../../types/api/bom';
@@ -67,6 +65,11 @@ interface RecordOutputDraft {
   rejected_quantity: string;
   unit_cost: string;
 }
+
+const EMPTY_BATCHES: ProductionBatch[] = [];
+const EMPTY_PRODUCTS: Product[] = [];
+const EMPTY_BOMS: BillOfMaterial[] = [];
+const EMPTY_WAREHOUSES: Warehouse[] = [];
 
 export function ProductionBatchesSection() {
   const [search, setSearch] = useState('');
@@ -281,36 +284,6 @@ export function ProductionBatchesSection() {
     },
   });
 
-  const completeMutation = useMutation({
-    mutationFn: (batchId: string) =>
-      api.post<ProductionBatch>(`/production/batches/${batchId}/complete`),
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['production', 'batches'] });
-    },
-  });
-
-  const closeMutation = useMutation({
-    mutationFn: (batchId: string) =>
-      api.post<ProductionBatch>(`/production/batches/${batchId}/close`),
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['production', 'batches'] });
-    },
-    onError: (err) => {
-      if (isApiError(err)) setErrorMsg(err.message ?? 'Failed to close batch.');
-    },
-  });
-
-  const updateStatusMutation = useMutation({
-    mutationFn: ({ batchId, status }: { batchId: string; status: string }) =>
-      api.patch<ProductionBatch>(`/production/batches/${batchId}`, { status }),
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['production', 'batches'] });
-    },
-    onError: (err) => {
-      if (isApiError(err)) setErrorMsg(err.message ?? 'Failed to update batch status.');
-    },
-  });
-
   const deleteMutation = useMutation({
     mutationFn: (batchId: string) => api.delete(`/production/batches/${batchId}`),
     onSuccess: async () => {
@@ -321,15 +294,14 @@ export function ProductionBatchesSection() {
     },
   });
 
-  const batches = batchesQuery.data?.data ?? [];
-  const products = productsQuery.data?.data ?? [];
-  const boms = bomsQuery.data?.data ?? [];
-  const warehouses = warehousesQuery.data?.data ?? [];
+  const batches = useMemo(() => batchesQuery.data?.data ?? EMPTY_BATCHES, [batchesQuery.data?.data]);
+  const products = productsQuery.data?.data ?? EMPTY_PRODUCTS;
+  const boms = bomsQuery.data?.data ?? EMPTY_BOMS;
+  const warehouses = warehousesQuery.data?.data ?? EMPTY_WAREHOUSES;
 
   // Multi-Record Batch Selection & Floating Toolbar State
   const [selectedBatchIds, setSelectedBatchIds] = useState<Set<string>>(new Set());
   const [openActionMenuId, setOpenActionMenuId] = useState<string | null>(null);
-  const [actionMenuAnchor, setActionMenuAnchor] = useState<HTMLElement | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<{ open: boolean; id: string; name: string }>({
     open: false,
     id: '',
@@ -392,22 +364,22 @@ export function ProductionBatchesSection() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [selectedBatchIds.size]);
 
-  const toggleSelectAll = () => {
+  const toggleSelectAll = useCallback(() => {
     if (isAllSelected) {
       setSelectedBatchIds(new Set());
     } else {
       setSelectedBatchIds(new Set(batches.map((b) => b.id)));
     }
-  };
+  }, [isAllSelected, batches]);
 
-  const toggleSelectBatch = (id: string) => {
+  const toggleSelectBatch = useCallback((id: string) => {
     setSelectedBatchIds((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
       return next;
     });
-  };
+  }, []);
 
   const clearSelection = () => setSelectedBatchIds(new Set());
 
@@ -680,10 +652,8 @@ export function ProductionBatchesSection() {
                 e.stopPropagation();
                 if (openActionMenuId === b.id) {
                   setOpenActionMenuId(null);
-                  setActionMenuAnchor(null);
                 } else {
                   setOpenActionMenuId(b.id);
-                  setActionMenuAnchor(e.currentTarget);
                 }
               }}
               className={`px-2.5 py-1 text-xs rounded-lg border font-medium transition cursor-pointer flex items-center gap-1 shadow-2xs touch-target ${
@@ -700,10 +670,10 @@ export function ProductionBatchesSection() {
         </div>
       ),
     },
-  ], [warehouses, openActionMenuId, analyzeMutation.isPending, startMutation.isPending, selectedBatchIds, isAllSelected]);
+  ], [warehouses, openActionMenuId, analyzeMutation, startMutation, selectedBatchIds, isAllSelected, toggleSelectAll, toggleSelectBatch]);
 
-  const getMobileActions = (b: ProductionBatch) => {
-    const actions = [
+  const getMobileActions = (b: ProductionBatch): ActionSheetItem[] => {
+    const actions: ActionSheetItem[] = [
       {
         label: 'View Batch Details',
         icon: <Layers className="size-4 text-primary" />,
@@ -787,8 +757,7 @@ export function ProductionBatchesSection() {
         icon: <Trash2 className="size-4 text-rose-500" />,
         variant: 'destructive' as const,
         onClick: () => {
-          setSelectedBatchForDelete(b);
-          setShowDeleteModal(true);
+          setDeleteConfirm({ open: true, id: b.id, name: b.batch_number });
         },
       });
     }

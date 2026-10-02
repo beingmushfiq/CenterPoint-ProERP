@@ -174,7 +174,7 @@ export function CustomersSection() {
   const [search, setSearch] = useState('');
 
   // Table preferences — density + column visibility, persisted per role
-  const { density, setDensity, visibleColumns, toggleColumn, isVisible, cellClass } = useTablePrefs({
+  const { density, setDensity, visibleColumns, toggleColumn, isVisible } = useTablePrefs({
     tableId: 'crm_parties',
     defaultColumns: {
       name:     true,

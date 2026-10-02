@@ -5,11 +5,11 @@ import { bottomSheetVariants, scrimVariants } from './motionPresets';
 import { cn } from '../../lib/utils';
 
 export interface ActionSheetItem {
-  id: string;
+  id?: string;
   label: string;
-  icon?: React.ElementType;
-  onClick: () => void;
-  variant?: 'default' | 'danger' | 'primary';
+  icon?: React.ElementType | React.ReactNode;
+  onClick: () => void | Promise<void>;
+  variant?: 'default' | 'danger' | 'primary' | 'destructive' | 'warning';
   disabled?: boolean;
   description?: string;
 }
@@ -121,7 +121,7 @@ export function MotionActionSheet({
                 <button
                   type="button"
                   onClick={onClose}
-                  className="min-h-[44px] min-w-[44px] -mr-2 flex items-center justify-center rounded-xl text-muted hover:text-default hover:bg-surface-sunken transition-colors cursor-pointer"
+                  className="min-h-11 min-w-11 -mr-2 flex items-center justify-center rounded-xl text-muted hover:text-default hover:bg-surface-sunken transition-colors cursor-pointer"
                   aria-label="Close action sheet"
                 >
                   <X className="size-5" />
@@ -135,14 +135,14 @@ export function MotionActionSheet({
 
               {items && items.length > 0 && (
                 <div className="space-y-1">
-                  {items.map((item) => {
-                    const Icon = item.icon;
-                    const isDanger = item.variant === 'danger';
+                  {items.map((item, idx) => {
+                    const isDanger = item.variant === 'danger' || item.variant === 'destructive';
+                    const isWarning = item.variant === 'warning';
                     const isPrimary = item.variant === 'primary';
 
                     return (
                       <button
-                        key={item.id}
+                        key={item.id || `act-${idx}-${item.label}`}
                         type="button"
                         disabled={item.disabled}
                         onClick={() => {
@@ -150,23 +150,35 @@ export function MotionActionSheet({
                           onClose();
                         }}
                         className={cn(
-                          'w-full min-h-[48px] px-3.5 py-2.5 rounded-xl flex items-center gap-3 text-left font-medium text-sm transition-colors cursor-pointer',
+                          'w-full min-h-12 px-3.5 py-2.5 rounded-xl flex items-center gap-3 text-left font-medium text-sm transition-colors cursor-pointer',
                           item.disabled && 'opacity-40 cursor-not-allowed pointer-events-none',
                           isDanger
                             ? 'text-danger hover:bg-danger/10 active:bg-danger/15'
+                            : isWarning
+                            ? 'text-amber-600 dark:text-amber-400 hover:bg-amber-500/10 active:bg-amber-500/15'
                             : isPrimary
                             ? 'text-primary bg-primary/10 hover:bg-primary/15'
                             : 'text-default hover:bg-surface-sunken active:bg-surface-raised'
                         )}
                       >
-                        {Icon && (
+                        {item.icon && (
                           <div
                             className={cn(
                               'size-9 rounded-lg flex items-center justify-center shrink-0',
-                              isDanger ? 'bg-danger/10 text-danger' : 'bg-surface-sunken text-muted'
+                              isDanger
+                                ? 'bg-danger/10 text-danger'
+                                : isWarning
+                                ? 'bg-amber-500/10 text-amber-500'
+                                : 'bg-surface-sunken text-muted'
                             )}
                           >
-                            <Icon className="size-4.5" />
+                            {React.isValidElement(item.icon) ? (
+                              item.icon
+                            ) : (
+                              React.createElement(item.icon as React.ElementType, {
+                                className: 'size-4.5',
+                              })
+                            )}
                           </div>
                         )}
                         <div className="flex-1 min-w-0">

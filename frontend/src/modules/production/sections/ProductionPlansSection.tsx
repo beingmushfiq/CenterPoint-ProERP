@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ClipboardList, Plus, Search, Trash2, Rocket, Copy, FileUp, ChevronDown, CheckCircle2, X, LayoutList, BarChart3, Calendar } from 'lucide-react';
 import { api } from '../../../lib/api/client';
@@ -10,6 +10,7 @@ import { SelectDropdown } from '../../../components/ui/Dropdown';
 import { StatusBadge } from '../../../components/ui/Badge';
 import { QueryBoundary } from '../../../components/patterns/QueryBoundary';
 import { ResponsiveDataTable, type ResponsiveColumn } from '../../../components/ui/ResponsiveDataTable';
+import { type ActionSheetItem } from '../../../components/motion/MotionActionSheet';
 import { isApiError } from '../../../lib/api/errors';
 import { UniversalImportModal } from '../../../components/import/UniversalImportModal';
 import { ActionMenuPortal } from '../../../components/ui/ActionMenuPortal';
@@ -46,6 +47,10 @@ interface LaunchBatchDraft {
   scheduled_end: string;
 }
 
+const EMPTY_PLANS: ProductionPlan[] = [];
+const EMPTY_PRODUCTS: Product[] = [];
+const EMPTY_BOMS: BillOfMaterial[] = [];
+
 export function ProductionPlansSection() {
   const { hasPermission } = useAuthStore();
   const canDelete = hasPermission('production.plan.delete');
@@ -71,6 +76,7 @@ export function ProductionPlansSection() {
     id: '',
     name: '',
   });
+  const [currentTimestamp] = useState(Date.now);
 
   useEffect(() => {
     const handleOutsideClick = (e: MouseEvent) => {
@@ -232,27 +238,31 @@ export function ProductionPlansSection() {
     },
   });
 
-  const plans = plansQuery.data?.data ?? [];
-  const products = productsQuery.data?.data ?? [];
-  const boms = bomsQuery.data?.data ?? [];
+  const plans = plansQuery.data?.data ?? EMPTY_PLANS;
+  const products = productsQuery.data?.data ?? EMPTY_PRODUCTS;
+  const boms = bomsQuery.data?.data ?? EMPTY_BOMS;
 
-  const toggleSelectAll = () => {
-    if (selectedIds.size === plans.length) {
-      setSelectedIds(new Set());
-    } else {
-      setSelectedIds(new Set(plans.map((p) => p.id)));
-    }
-  };
+  const toggleSelectAll = useCallback(() => {
+    setSelectedIds((prev) => {
+      if (prev.size === plans.length) {
+        return new Set();
+      } else {
+        return new Set(plans.map((p) => p.id));
+      }
+    });
+  }, [plans]);
 
-  const toggleSelect = (id: string) => {
-    const next = new Set(selectedIds);
-    if (next.has(id)) {
-      next.delete(id);
-    } else {
-      next.add(id);
-    }
-    setSelectedIds(next);
-  };
+  const toggleSelect = useCallback((id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  }, []);
 
   useEffect(() => {
     if (headerCheckboxRef.current) {
@@ -315,15 +325,14 @@ export function ProductionPlansSection() {
       ),
       className: 'w-10 text-center',
       accessor: (plan) => (
-        <div onClick={(e) => e.stopPropagation()}>
-          <input
-            type="checkbox"
-            aria-label={`Select plan ${plan.plan_number}`}
-            checked={selectedIds.has(plan.id)}
-            onChange={() => toggleSelect(plan.id)}
-            className="rounded border-default text-primary focus:ring-primary h-4 w-4 cursor-pointer"
-          />
-        </div>
+        <input
+          type="checkbox"
+          aria-label={`Select plan ${plan.plan_number}`}
+          checked={selectedIds.has(plan.id)}
+          onClick={(e) => e.stopPropagation()}
+          onChange={() => toggleSelect(plan.id)}
+          className="rounded border-default text-primary focus:ring-primary h-4 w-4 cursor-pointer"
+        />
       ),
     },
     {
@@ -561,10 +570,10 @@ export function ProductionPlansSection() {
         </div>
       ),
     },
-  ], [plans, selectedIds, openActionMenuId, actionMenuAnchor, products, boms, canDelete]);
+  ], [plans, selectedIds, openActionMenuId, actionMenuAnchor, products, boms, canDelete, approveMutation, toggleSelect, toggleSelectAll, updatePlanStatusMutation]);
 
-  const getMobileActions = (plan: ProductionPlan) => {
-    const actions = [
+  const getMobileActions = (plan: ProductionPlan): ActionSheetItem[] => {
+    const actions: ActionSheetItem[] = [
       {
         label: 'Launch Batch',
         icon: <Rocket className="size-4 text-emerald-500" />,
@@ -828,7 +837,7 @@ export function ProductionPlansSection() {
                     new Date(p.end_date).getTime(),
                   ]).filter((t) => !isNaN(t));
 
-                  const now = Date.now();
+                  const now = currentTimestamp;
                   const minTime = timestamps.length > 0 ? Math.min(...timestamps, now - 3 * 86400000) : now - 7 * 86400000;
                   const maxTime = timestamps.length > 0 ? Math.max(...timestamps, now + 14 * 86400000) : now + 14 * 86400000;
                   const totalDuration = Math.max(86400000, maxTime - minTime);
@@ -871,8 +880,16 @@ export function ProductionPlansSection() {
                           return (
                             <div
                               key={plan.id}
+                              role="button"
+                              tabIndex={0}
                               className="py-3 px-2 hover:bg-surface-sunken/40 rounded-xl transition-colors cursor-pointer group"
                               onClick={() => setSelectedPlan(plan)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' || e.key === ' ') {
+                                  e.preventDefault();
+                                  setSelectedPlan(plan);
+                                }
+                              }}
                             >
                               <div className="flex items-center justify-between mb-1.5 text-xs">
                                 <div className="flex items-center gap-2">

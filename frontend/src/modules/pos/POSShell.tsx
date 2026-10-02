@@ -14,7 +14,6 @@ import {
   FileText,
   Filter,
   History,
-  Package,
   Keyboard,
   Minus,
   PauseCircle,
@@ -526,9 +525,11 @@ export function POSShell({ session, onExit }: POSShellProps) {
   // Universal Barcode Scan & Search Auto-Add Engine
   const handleBarcodeScanOrSearch = useCallback(async (barcodeRaw: string): Promise<boolean> => {
     // 1. Sanitize incoming barcode/SKU: strip quotes, control chars, newlines, tabs, and outer whitespace
-    const code = barcodeRaw.replace(/["'\r\n\t\x00-\x1F\x7F-\x9F]/g, '').trim();
+    // eslint-disable-next-line no-control-regex
+    const sanitize = (val?: string | null) => (val ? val.replace(/["'\r\n\t\x00-\x1F\x7F-\x9F]/g, '').trim().toLowerCase() : '');
+    const code = sanitize(barcodeRaw);
     if (!code) return false;
-    const lower = code.toLowerCase();
+    const lower = code;
 
     const clearInput = () => {
       setSearch('');
@@ -539,9 +540,9 @@ export function POSShell({ session, onExit }: POSShellProps) {
 
     // 2. Check in-memory products (instant zero-latency exact match)
     const inMemoryMatch = products.find((p) => {
-      const b = p.barcode ? p.barcode.replace(/["'\r\n\t\x00-\x1F\x7F-\x9F]/g, '').trim().toLowerCase() : '';
-      const s = p.sku ? p.sku.replace(/["'\r\n\t\x00-\x1F\x7F-\x9F]/g, '').trim().toLowerCase() : '';
-      const n = p.name ? p.name.trim().toLowerCase() : '';
+      const b = sanitize(p.barcode);
+      const s = sanitize(p.sku);
+      const n = (p.name || '').trim().toLowerCase();
       return (b && b === lower) || (s && s === lower) || (n && n === lower);
     });
 
@@ -565,8 +566,8 @@ export function POSShell({ session, onExit }: POSShellProps) {
       const list: Product[] = Array.isArray(raw) ? raw : (raw?.data ?? []);
       const exactOrFirst =
         list.find((p) => {
-          const b = p.barcode ? p.barcode.replace(/["'\r\n\t\x00-\x1F\x7F-\x9F]/g, '').trim().toLowerCase() : '';
-          const s = p.sku ? p.sku.replace(/["'\r\n\t\x00-\x1F\x7F-\x9F]/g, '').trim().toLowerCase() : '';
+          const b = sanitize(p.barcode);
+          const s = sanitize(p.sku);
           return (b && b === lower) || (s && s === lower);
         }) || list[0];
 
@@ -987,6 +988,28 @@ export function POSShell({ session, onExit }: POSShellProps) {
       {
         pageClass: 'print-page-thermal-80',
         documentTitle: `Receipt-${lastReceipt.invoice.invoice_number}`,
+      }
+    );
+  };
+
+  const handlePrintSpecificInvoice = (inv: Invoice) => {
+    const effectiveBusinessConfig = {
+      ...businessConfig,
+      currencySymbol: currencySymbol || businessConfig.currencySymbol || '৳',
+      currencyCode: currencyCode || businessConfig.currencyCode || 'BDT',
+    };
+    printDocument(
+      <ThermalReceipt
+        invoice={inv}
+        businessConfig={effectiveBusinessConfig}
+        paperWidth="80mm"
+        cashierName={session.operator_name || 'Cashier'}
+        terminalName={session.terminal_name || 'Counter'}
+        {...(inv.total_amount ? { tenderedCash: String(inv.total_amount) } : {})}
+      />,
+      {
+        pageClass: 'print-page-thermal-80',
+        documentTitle: `Receipt-${inv.invoice_number}`,
       }
     );
   };
@@ -1836,8 +1859,8 @@ export function POSShell({ session, onExit }: POSShellProps) {
                     <div className="flex items-center gap-2 pt-1 border-t border-default/40">
                       <button
                         type="button"
-                        onClick={() => printDocument('pos-thermal', { invoice: inv, session })}
-                        className="flex-1 min-h-[38px] px-2.5 rounded-lg bg-surface border border-default text-default hover:bg-surface-raised text-xs font-semibold flex items-center justify-center gap-1.5 cursor-pointer"
+                        onClick={() => handlePrintSpecificInvoice(inv)}
+                        className="flex-1 min-h-9.5 px-2.5 rounded-lg bg-surface border border-default text-default hover:bg-surface-raised text-xs font-semibold flex items-center justify-center gap-1.5 cursor-pointer"
                       >
                         <Printer className="size-3.5 text-muted" />
                         <span>Print Receipt</span>
@@ -1845,7 +1868,7 @@ export function POSShell({ session, onExit }: POSShellProps) {
                       <button
                         type="button"
                         onClick={() => handleOpenReturnModal(inv.id, inv.invoice_number)}
-                        className="flex-1 min-h-[38px] px-2.5 rounded-lg bg-surface border border-default text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 text-xs font-semibold flex items-center justify-center gap-1.5 cursor-pointer"
+                        className="flex-1 min-h-9.5 px-2.5 rounded-lg bg-surface border border-default text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 text-xs font-semibold flex items-center justify-center gap-1.5 cursor-pointer"
                       >
                         <RotateCcw className="size-3.5" />
                         <span>Return</span>
@@ -1859,7 +1882,7 @@ export function POSShell({ session, onExit }: POSShellProps) {
         )}
 
         {/* ── RIGHT: Cart & Payment Panel ─────────────────────────── */}
-        <div className={`w-full lg:w-96 xl:w-112 2xl:w-128 shrink-0 flex-col border-l border-default bg-(--color-surface-sunken)/40 overflow-hidden ${
+        <div className={`w-full lg:w-96 xl:w-md 2xl:w-lg shrink-0 flex-col border-l border-default bg-(--color-surface-sunken)/40 overflow-hidden ${
           mobileTab === 'cart' ? 'flex' : 'hidden lg:flex'
         }`}>
           {/* Scrollable cart content */}

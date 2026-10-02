@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   CheckCircle2,
@@ -98,7 +98,7 @@ export function SalesOrdersSection({ onNavigateToTab }: SalesOrdersSectionProps 
   const canChangeStatus = canApproveOrder || canCreateOrder;
 
   // Table preferences — density + column visibility, persisted to localStorage
-  const { density, setDensity, visibleColumns, toggleColumn, isVisible, cellClass } = useTablePrefs({
+  const { density, setDensity, visibleColumns, toggleColumn, isVisible } = useTablePrefs({
     tableId: 'sales_orders',
     defaultColumns: {
       date:     true,
@@ -115,7 +115,11 @@ export function SalesOrdersSection({ onNavigateToTab }: SalesOrdersSectionProps 
   const [search, setSearch] = useState('');
   const [channelFilter, setChannelFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'confirmed'>('all');
-  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    const params = new URLSearchParams(window.location.search);
+    return Boolean(params.get('lead_id') || params.get('createOrder') === 'true');
+  });
   const [selectedOrder, setSelectedOrder] = useState<SalesOrder | null>(null);
   const [orderToDelete, setOrderToDelete] = useState<SalesOrder | null>(null);
   const [activeStatusMenuId, setActiveStatusMenuId] = useState<number | null>(null);
@@ -151,7 +155,14 @@ export function SalesOrdersSection({ onNavigateToTab }: SalesOrdersSectionProps 
     'dealer'
   );
   const [selectedPartyId, setSelectedPartyId] = useState<number | string | null>(null);
-  const [selectedLeadId, setSelectedLeadId] = useState<number | null>(null);
+  const [selectedLeadId, setSelectedLeadId] = useState<number | null>(() => {
+    if (typeof window === 'undefined') return null;
+    const params = new URLSearchParams(window.location.search);
+    const leadIdParam = params.get('lead_id');
+    if (!leadIdParam) return null;
+    const lid = parseInt(leadIdParam, 10);
+    return isNaN(lid) ? null : lid;
+  });
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
   const [orderDate, setOrderDate] = useState(new Date().toISOString().slice(0, 10));
@@ -236,37 +247,26 @@ export function SalesOrdersSection({ onNavigateToTab }: SalesOrdersSectionProps 
   });
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const leadIdParam = params.get('lead_id');
-    const createOrderParam = params.get('createOrder');
-    if (leadIdParam || createOrderParam === 'true') {
-      if (leadIdParam) {
-        const lid = parseInt(leadIdParam, 10);
-        if (!isNaN(lid)) {
-          setSelectedLeadId(lid);
-          api
-            .get<{ data?: Lead } | Lead>(`/sales/leads/${lid}`)
-            .then((res) => {
-              const l = (res.data && 'data' in res.data ? res.data.data : res.data) as Lead;
-              if (l) {
-                if (l.name) setCustomerName(l.name);
-                if (l.phone) setCustomerPhone(l.phone);
-              }
-            })
-            .catch(() => {});
+    if (!selectedLeadId) return;
+    api
+      .get<{ data?: Lead } | Lead>(`/sales/leads/${selectedLeadId}`)
+      .then((res) => {
+        const l = (res.data && 'data' in res.data ? res.data.data : res.data) as Lead;
+        if (l) {
+          if (l.name) setCustomerName(l.name);
+          if (l.phone) setCustomerPhone(l.phone);
         }
-      }
-      setShowCreateModal(true);
-    }
-  }, []);
+      })
+      .catch(() => {});
+  }, [selectedLeadId]);
 
-  const findProduct = (idOrUuid: number | string | undefined | null): Product | undefined => {
+  const findProduct = useCallback((idOrUuid: number | string | undefined | null): Product | undefined => {
     if (idOrUuid === undefined || idOrUuid === null || idOrUuid === '') return undefined;
     const str = String(idOrUuid);
     return catalogProducts.find(
       (p) => String(p.id) === str || (p.product_id != null && String(p.product_id) === str)
     );
-  };
+  }, [catalogProducts]);
 
   const handleOpenCreateModal = () => {
     const first = catalogProducts[0];
@@ -376,7 +376,7 @@ export function SalesOrdersSection({ onNavigateToTab }: SalesOrdersSectionProps 
     setItems((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const handleDuplicateOrder = (order: SalesOrder) => {
+  const handleDuplicateOrder = useCallback((order: SalesOrder) => {
     setChannel(order.channel || 'dealer');
     setSelectedPartyId(order.party_id ?? null);
     setCustomerName(order.customer_name || '');
@@ -414,7 +414,7 @@ export function SalesOrdersSection({ onNavigateToTab }: SalesOrdersSectionProps 
     setItems(clonedItems);
     setShowCreateModal(true);
     notify.info(`Duplicating order #${order.order_number}. Review line items and submit.`);
-  };
+  }, [findProduct, catalogProducts]);
 
   const { data: orders = [], isLoading, isFetching, refetch } = useQuery<SalesOrder[]>({
     queryKey: ['sales', 'orders'],
@@ -798,8 +798,7 @@ export function SalesOrdersSection({ onNavigateToTab }: SalesOrdersSectionProps 
     URL.revokeObjectURL(url);
     notify.success(`Exported ${ordersToExport.length} orders to CSV.`);
   };
-
-  const handlePrintOrderInvoice = (order: SalesOrder) => {
+  const handlePrintOrderInvoice = useCallback((order: SalesOrder) => {
     const inv: Invoice = {
       id: order.id,
       uuid: order.uuid,
@@ -835,9 +834,9 @@ export function SalesOrdersSection({ onNavigateToTab }: SalesOrdersSectionProps 
       })),
     };
     setPrintInvoice(inv);
-  };
+  }, []);
 
-  const getStatusBadge = (status: SalesOrder['status']) => {
+  const getStatusBadge = useCallback((status: SalesOrder['status']) => {
     switch (status) {
       case 'draft':
         return (
@@ -885,9 +884,9 @@ export function SalesOrdersSection({ onNavigateToTab }: SalesOrdersSectionProps 
           </span>
         );
     }
-  };
+  }, []);
 
-  const getChannelBadge = (ch: SalesOrder['channel']) => {
+  const getChannelBadge = useCallback((ch: SalesOrder['channel']) => {
     switch (ch) {
       case 'counter':
         return <span className="text-muted font-medium">Counter POS</span>;
@@ -902,7 +901,7 @@ export function SalesOrdersSection({ onNavigateToTab }: SalesOrdersSectionProps 
       default:
         return <span className="text-muted">{ch}</span>;
     }
-  };
+  }, []);
 
   const orderColumns = useMemo<ResponsiveColumn<SalesOrder>[]>(() => [
     {
@@ -911,12 +910,13 @@ export function SalesOrdersSection({ onNavigateToTab }: SalesOrdersSectionProps 
       priority: 'high',
       isPrimary: true,
       render: (order) => (
-        <span
+        <button
+          type="button"
           onClick={() => setSelectedOrder(order)}
-          className="font-mono font-medium text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer"
+          className="font-mono font-medium text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer bg-transparent border-0 p-0 text-left"
         >
           {order.order_number}
-        </span>
+        </button>
       ),
     },
     ...(isVisible('date') ? [{
@@ -981,7 +981,7 @@ export function SalesOrdersSection({ onNavigateToTab }: SalesOrdersSectionProps 
       header: 'Status',
       priority: 'high' as const,
       render: (order: SalesOrder) => (
-        <div onClick={(e) => e.stopPropagation()}>
+        <div>
           {canChangeStatus ? (
             <div className="order-status-dropdown-container relative inline-block">
               <button
@@ -1058,7 +1058,7 @@ export function SalesOrdersSection({ onNavigateToTab }: SalesOrdersSectionProps 
       header: 'Payment',
       priority: 'medium' as const,
       render: (order: SalesOrder) => (
-        <div onClick={(e) => e.stopPropagation()}>
+        <div>
           {canChangeStatus ? (
             <div className="order-payment-dropdown-container relative inline-block">
               <button
@@ -1156,7 +1156,7 @@ export function SalesOrdersSection({ onNavigateToTab }: SalesOrdersSectionProps 
       align: 'right',
       priority: 'high',
       render: (order) => (
-        <div className="flex items-center justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-end gap-1.5">
           {canApproveOrder && (order.status === 'draft' || order.status === 'pending') && (
             <button
               type="button"

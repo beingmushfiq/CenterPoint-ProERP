@@ -165,8 +165,17 @@ export const ModuleManagerSection: React.FC = () => {
     },
   });
 
-  // Combined navigation order
-  const localNavOrder: NavOrderConfig = customNavOrder || serverNavOrder || manifestNavOrder || defaultOrder;
+  // Combined navigation order: merge custom, server, manifest, and default
+  const localNavOrder: NavOrderConfig = useMemo(() => {
+    const source = customNavOrder || serverNavOrder || manifestNavOrder || defaultOrder;
+    return {
+      sections: source.sections && source.sections.length > 0 ? source.sections : (defaultOrder.sections || []),
+      items: {
+        ...(defaultOrder.items || {}),
+        ...(source.items || {}),
+      },
+    };
+  }, [customNavOrder, serverNavOrder, manifestNavOrder, defaultOrder]);
 
   // Fetch module activations
   const { data: modules = DEFAULT_MODULES, isLoading, isFetching, refetch } = useQuery<ModuleItem[]>({
@@ -250,6 +259,17 @@ export const ModuleManagerSection: React.FC = () => {
     if (currentSections.length !== defaultSections.length) return true;
     for (let i = 0; i < currentSections.length; i++) {
       if (currentSections[i] !== defaultSections[i]) return true;
+    }
+    if (localNavOrder.items && defaultOrder.items) {
+      for (const [secKey, defItems] of Object.entries(defaultOrder.items)) {
+        const curItems = localNavOrder.items[secKey];
+        if (curItems) {
+          if (curItems.length !== defItems.length) return true;
+          for (let j = 0; j < curItems.length; j++) {
+            if (curItems[j] !== defItems[j]) return true;
+          }
+        }
+      }
     }
     return false;
   }, [localNavOrder, defaultOrder]);
@@ -393,11 +413,13 @@ export const ModuleManagerSection: React.FC = () => {
   const handleResetOrder = async () => {
     setCustomNavOrder(defaultOrder);
     setStoreNavOrder(defaultOrder);
+    queryClient.setQueryData(['tenant', 'modules', 'nav-order'], defaultOrder);
     try {
       await api.put('tenant/modules/nav-order', {
         sections: defaultOrder.sections,
         items: defaultOrder.items,
       });
+      await queryClient.invalidateQueries({ queryKey: ['tenant', 'modules', 'nav-order'] });
       await invalidateManifest();
       toast.success('Restored default manufacturing workflow order.');
     } catch {
@@ -410,14 +432,15 @@ export const ModuleManagerSection: React.FC = () => {
     setSavingOrder(true);
     try {
       const itemsMap = localNavOrder.items || defaultOrder.items;
-      const payload: { sections?: string[]; items?: Record<string, string[]> } = {
+      const payload: NavOrderConfig = {
         sections: orderedSections.map((s) => s.id),
+        items: itemsMap || {},
       };
-      if (itemsMap) {
-        payload.items = itemsMap;
-      }
       await api.put('tenant/modules/nav-order', payload);
+      setCustomNavOrder(payload);
       setStoreNavOrder(payload);
+      queryClient.setQueryData(['tenant', 'modules', 'nav-order'], payload);
+      await queryClient.invalidateQueries({ queryKey: ['tenant', 'modules', 'nav-order'] });
       await invalidateManifest();
       toast.success('Navigation sequence updated & saved successfully.');
     } catch {

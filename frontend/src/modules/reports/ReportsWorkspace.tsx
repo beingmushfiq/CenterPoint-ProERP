@@ -965,7 +965,7 @@ export const ReportsWorkspace: React.FC = () => {
                       e.stopPropagation();
                       togglePinReport(pCode);
                     }}
-                    className="opacity-0 group-hover:opacity-60 hover:!opacity-100 hover:text-rose-500 cursor-pointer"
+                    className="opacity-0 group-hover:opacity-60 hover:opacity-100! hover:text-rose-500 cursor-pointer"
                     title="Unpin"
                   >
                     <X className="size-2.5" />
@@ -1088,7 +1088,7 @@ export const ReportsWorkspace: React.FC = () => {
                   key={p.id}
                   onClick={() => handlePresetChange(p.id)}
                   className={cn(
-                    'px-3 py-1.5 min-h-[36px] md:min-h-0 md:py-1 rounded-lg font-medium transition-colors cursor-pointer whitespace-nowrap text-xs flex items-center justify-center',
+                    'px-3 py-1.5 min-h-9 md:min-h-0 md:py-1 rounded-lg font-medium transition-colors cursor-pointer whitespace-nowrap text-xs flex items-center justify-center',
                     datePreset === p.id
                       ? 'bg-surface text-primary font-bold shadow-xs border border-default'
                       : 'text-muted hover:text-default'
@@ -1110,7 +1110,7 @@ export const ReportsWorkspace: React.FC = () => {
                   setDatePreset('custom');
                 }}
                 aria-label="Start date"
-                className="text-xs border border-default bg-surface rounded-xl px-2.5 py-1.5 min-h-[38px] md:min-h-0 text-default focus:outline-none focus:border-primary shadow-2xs flex-1 sm:flex-initial"
+                className="text-xs border border-default bg-surface rounded-xl px-2.5 py-1.5 min-h-9.5 md:min-h-0 text-default focus:outline-none focus:border-primary shadow-2xs flex-1 sm:flex-initial"
               />
               <span className="text-xs text-muted shrink-0">—</span>
               <input
@@ -1121,7 +1121,7 @@ export const ReportsWorkspace: React.FC = () => {
                   setDatePreset('custom');
                 }}
                 aria-label="End date"
-                className="text-xs border border-default bg-surface rounded-xl px-2.5 py-1.5 min-h-[38px] md:min-h-0 text-default focus:outline-none focus:border-primary shadow-2xs flex-1 sm:flex-initial"
+                className="text-xs border border-default bg-surface rounded-xl px-2.5 py-1.5 min-h-9.5 md:min-h-0 text-default focus:outline-none focus:border-primary shadow-2xs flex-1 sm:flex-initial"
               />
             </div>
 
@@ -1146,7 +1146,7 @@ export const ReportsWorkspace: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setSaveViewModalOpen(true)}
-                className="inline-flex items-center justify-center gap-1 px-3 py-1.5 min-h-[38px] md:min-h-0 border border-default hover:bg-surface-sunken text-xs font-semibold rounded-xl transition-colors cursor-pointer text-default shadow-2xs shrink-0"
+                className="inline-flex items-center justify-center gap-1 px-3 py-1.5 min-h-9.5 md:min-h-0 border border-default hover:bg-surface-sunken text-xs font-semibold rounded-xl transition-colors cursor-pointer text-default shadow-2xs shrink-0"
               >
                 <Bookmark className="size-3.5 text-primary" />
                 <span>{isBn ? 'সংরক্ষণ' : 'Save View'}</span>
@@ -1157,7 +1157,7 @@ export const ReportsWorkspace: React.FC = () => {
             <button
               onClick={() => fetchReportData(selectedReportCode)}
               disabled={loading}
-              className="inline-flex items-center justify-center gap-1.5 px-4 py-2 min-h-[38px] md:min-h-0 bg-primary hover:bg-primary/90 text-white text-xs font-semibold rounded-xl transition-colors shadow-2xs disabled:opacity-50 cursor-pointer w-full md:w-auto md:ml-auto"
+              className="inline-flex items-center justify-center gap-1.5 px-4 py-2 min-h-9.5 md:min-h-0 bg-primary hover:bg-primary/90 text-white text-xs font-semibold rounded-xl transition-colors shadow-2xs disabled:opacity-50 cursor-pointer w-full md:w-auto md:ml-auto"
             >
               <Filter className="size-3.5" />
               <span>{loading ? (isBn ? 'প্রসেস হচ্ছে…' : 'Executing...') : (isBn ? 'ফিল্টার প্রয়োগ' : 'Apply')}</span>

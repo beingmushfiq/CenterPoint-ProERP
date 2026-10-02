@@ -38,7 +38,8 @@ import { isApiError } from '../../../lib/api/errors';
 import { extractList } from '../../../lib/api/apiData';
 import { PrintPreviewModal } from '../../../components/print/PrintPreviewModal';
 import { PurchaseOrderDocument } from '../../../components/print/documents/PurchaseOrderDocument';
-import { EmptyState, SkeletonLine } from '../../../components/ui/Feedback';
+import { EmptyState } from '../../../components/ui/Feedback';
+import type { ActionSheetItem } from '../../../components/motion/MotionActionSheet';
 import { useBusinessConfig } from '../../../lib/document/useBusinessConfig';
 import { SelectDropdown } from '../../../components/ui/Dropdown';
 import { useCurrency } from '../../../hooks/useCurrency';
@@ -89,7 +90,7 @@ export function PurchaseOrdersSection({ onReceivePo, onCreateBill }: PurchaseOrd
   const [, setActionLoading] = useState<number | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const { density, setDensity, visibleColumns, toggleColumn, isVisible, cellClass } = useTablePrefs({
+  const { density, setDensity, visibleColumns, toggleColumn, isVisible } = useTablePrefs({
     tableId: 'purchase_orders',
     defaultColumns: {
       warehouse: true,
@@ -799,10 +800,6 @@ export function PurchaseOrdersSection({ onReceivePo, onCreateBill }: PurchaseOrd
     }
   };
 
-  const { hasPermission } = useAuthStore();
-  const canDelete = hasPermission ? hasPermission('purchasing.order.delete') : true;
-  const canCreate = hasPermission ? hasPermission('purchasing.order.create') : true;
-
   const poColumns: ResponsiveColumn<PurchaseOrder>[] = useMemo(() => {
     const cols: ResponsiveColumn<PurchaseOrder>[] = [];
 
@@ -917,8 +914,8 @@ export function PurchaseOrdersSection({ onReceivePo, onCreateBill }: PurchaseOrd
     return cols;
   }, [isVisible, formatCurrency, openActionMenuId]);
 
-  const getMobileActions = (order: PurchaseOrder) => {
-    const actions = [
+  const getMobileActions = (order: PurchaseOrder): ActionSheetItem[] => {
+    const actions: ActionSheetItem[] = [
       {
         label: 'View PO Details',
         icon: <Eye className="size-4" />,
@@ -1519,10 +1516,7 @@ export function PurchaseOrdersSection({ onReceivePo, onCreateBill }: PurchaseOrd
               </ActionMenuPortal>
             );
           })()}
-        </div>
-      </div>
-
-      {/* Floating Bottom Docked Action Toolbar */}
+        {/* Floating Bottom Docked Action Toolbar */}
       {selectedPoIds.size > 0 && (
         <div className="fixed bottom-6 inset-x-0 z-40 flex justify-center pointer-events-none animate-in slide-in-from-bottom-6 duration-200">
           <div className="pointer-events-auto flex items-center gap-3 rounded-2xl border border-default/80 bg-surface/95 px-5 py-3 shadow-2xl backdrop-blur-xl ring-1 ring-black/5 dark:ring-white/10">

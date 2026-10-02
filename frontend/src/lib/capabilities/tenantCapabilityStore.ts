@@ -133,11 +133,26 @@ export const useTenantCapabilityStore = create<TenantCapabilityState>((set, get)
     }
 
     try {
-      const res = await api.get<{ success: boolean; data: TenantCapabilityManifest }>(
+      const res = await api.get<TenantCapabilityManifest | { data: TenantCapabilityManifest }>(
         `/tenant/manifest${forceRefresh ? '?refresh=1' : ''}`
       );
-      if (res.data?.data) {
-        const manifest = res.data.data;
+      // Support both unwrapped manifest (ApiResult<T>.data is payload) and nested { data: manifest }
+      const rawData = res.data as unknown;
+      let manifest: TenantCapabilityManifest | null = null;
+      if (rawData && typeof rawData === 'object') {
+        if ('modules' in rawData) {
+          manifest = rawData as TenantCapabilityManifest;
+        } else if (
+          'data' in rawData &&
+          (rawData as { data: unknown }).data &&
+          typeof (rawData as { data: unknown }).data === 'object' &&
+          'modules' in ((rawData as { data: unknown }).data as Record<string, unknown>)
+        ) {
+          manifest = (rawData as { data: TenantCapabilityManifest }).data;
+        }
+      }
+
+      if (manifest) {
         if (typeof window !== 'undefined') {
           localStorage.setItem(STORAGE_KEY, JSON.stringify(manifest));
         }
@@ -159,9 +174,6 @@ export const useTenantCapabilityStore = create<TenantCapabilityState>((set, get)
   },
 
   invalidate: async () => {
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem(STORAGE_KEY);
-    }
     await get().bootstrap(true);
   },
 

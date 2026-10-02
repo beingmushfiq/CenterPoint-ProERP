@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useMemo } from 'react';
+import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import {
@@ -16,6 +16,7 @@ import {
   TrendingUp,
   Printer,
   ChevronDown,
+  Eye,
 } from 'lucide-react';
 import type { StockCount } from '../../../types/api/inventory';
 import { api } from '../../../lib/api/client';
@@ -94,7 +95,7 @@ export function StockCountsSection() {
     }
   };
 
-  const handleStatusChange = async (countId: number, nextStatus: StockCount['status']) => {
+  const handleStatusChange = useCallback(async (countId: number, nextStatus: StockCount['status']) => {
     try {
       await api.patch(`/inventory/counts/${countId}`, { status: nextStatus });
     } catch {
@@ -113,7 +114,7 @@ export function StockCountsSection() {
       )
     );
     toast.success(`Audit status updated to ${nextStatus}.`);
-  };
+  }, [queryClient]);
 
   const handleCreateCount = (e: React.FormEvent) => {
     e.preventDefault();
@@ -348,7 +349,7 @@ export function StockCountsSection() {
     URL.revokeObjectURL(url);
   };
 
-  const getStatusBadge = (status: StockCount['status'], items?: StockCount['items']) => {
+  const getStatusBadge = useCallback((status: StockCount['status'], items?: StockCount['items']) => {
     const hasDiscrepancy = (items ?? []).some(
       (it) => Math.abs(parseFloat(it.variance_quantity || '0')) > 0.0001
     );
@@ -390,7 +391,7 @@ export function StockCountsSection() {
           </span>
         );
     }
-  };
+  }, []);
 
   const countColumns = useMemo<ResponsiveColumn<StockCount>[]>(() => [
     {
@@ -440,11 +441,12 @@ export function StockCountsSection() {
       header: 'Status',
       priority: 'high',
       render: (c) => (
-        <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center gap-2">
           {getStatusBadge(c.status, c.items)}
           <select
             value={c.status}
             onChange={(e) => handleStatusChange(c.id, e.target.value as StockCount['status'])}
+            onClick={(e) => e.stopPropagation()}
             className="text-[10px] bg-transparent text-muted hover:text-default border-0 focus:ring-0 cursor-pointer"
             title="Change audit state"
           >
@@ -462,10 +464,11 @@ export function StockCountsSection() {
       align: 'right',
       priority: 'high',
       render: (c) => (
-        <div className="flex items-center justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-end gap-1.5">
           <button
             type="button"
-            onClick={() => {
+            onClick={(e) => {
+              e.stopPropagation();
               setActiveCount(c);
               setShowViewModal(true);
               void api.get<StockCount>(`/inventory/counts/${c.id}`).then((res) => {

@@ -666,7 +666,7 @@ final class CrmLeadController extends Controller
         $errors = [];
 
         // Preload existing users/sales reps for this tenant for fast lookup
-        $users = \App\Models\User::query()
+        $users = User::query()
             ->where(function ($q) use ($tenantId) {
                 $q->where('tenant_id', $tenantId)->orWhereNull('tenant_id');
             })
@@ -679,7 +679,7 @@ final class CrmLeadController extends Controller
         }
 
         // Preload employees for code matching
-        $employees = \App\Modules\HR\Models\Employee::query()
+        $employees = Employee::query()
             ->where('tenant_id', $tenantId)
             ->get();
         $employeeCodeToUserId = [];
