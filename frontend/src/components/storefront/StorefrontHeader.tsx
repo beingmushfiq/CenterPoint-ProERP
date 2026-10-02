@@ -109,8 +109,7 @@ export const StorefrontHeader: React.FC<StorefrontHeaderProps> = ({ config, subd
           className={`text-[11px] py-2 px-3 sm:px-4 border-b border-black/10 dark:border-white/10 font-medium select-none shadow-xs transition-colors overflow-hidden w-full max-w-full ${
             !announcementBg ? 'bg-zinc-900 dark:bg-zinc-950 text-zinc-100' : ''
           }`}
-        >
-          <div className="mx-auto max-w-7xl 2xl:max-w-360 flex items-center justify-between gap-2 overflow-hidden w-full">
+        >          <div className="mx-auto max-w-384 flex items-center justify-between gap-2 overflow-hidden w-full">
             <div className="flex items-center gap-2 min-w-0 truncate">
               <span className="flex size-1.5 shrink-0 rounded-full bg-white animate-pulse" />
               <span className="text-[10px] sm:text-[11px] opacity-95 font-medium truncate">
@@ -119,6 +118,21 @@ export const StorefrontHeader: React.FC<StorefrontHeaderProps> = ({ config, subd
             </div>
 
             <div className="hidden sm:flex items-center gap-3 text-[10px] sm:text-[11px] opacity-90 shrink-0">
+              {config?.whatsapp_ordering_enabled !== false && whatsappNumber && (
+                <>
+                  <a
+                    href={`https://wa.me/${whatsappNumber}?text=${whatsappMsg}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1 text-emerald-400 hover:text-emerald-300 font-medium transition-colors"
+                    title="Order directly via WhatsApp"
+                  >
+                    <MessageCircle className="size-3 fill-emerald-400/20" />
+                    <span>WhatsApp Order</span>
+                  </a>
+                  <span className="opacity-40">•</span>
+                </>
+              )}
               <div className="flex items-center gap-1.5">
                 <Truck className="size-3.5 opacity-90" />
                 <span className="hidden sm:inline">Tracked Dispatch</span>
@@ -143,7 +157,7 @@ export const StorefrontHeader: React.FC<StorefrontHeaderProps> = ({ config, subd
           isDarkNavbar ? 'border-white/10' : 'border-slate-200/90 dark:border-zinc-800/80'
         } ${!navbarBg ? 'bg-white/95 dark:bg-zinc-950/85 backdrop-blur-xl' : 'backdrop-blur-xl'}`}
       >
-        <div className="mx-auto flex h-16 sm:h-17 max-w-7xl 2xl:max-w-360 items-center justify-between px-3 sm:px-6 lg:px-8 gap-2 sm:gap-4 w-full">
+        <div className="mx-auto flex h-16 sm:h-17 max-w-384 items-center justify-between px-3 sm:px-6 lg:px-8 gap-2 sm:gap-4 w-full">
           {/* Brand Logo & Name */}
           <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0 min-w-0">
             {/* Mobile Menu Toggle Button */}
@@ -151,7 +165,7 @@ export const StorefrontHeader: React.FC<StorefrontHeaderProps> = ({ config, subd
               type="button"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               style={{ color: navbarTextColor || undefined }}
-              className={`md:hidden p-2 min-w-10 min-h-10 flex items-center justify-center rounded-xl transition-colors shrink-0 touch-target ${
+              className={`xl:hidden p-2 min-w-10 min-h-10 flex items-center justify-center rounded-xl transition-colors shrink-0 touch-target ${
                 isDarkNavbar ? 'hover:bg-white/10 text-white' : 'hover:bg-black/5 text-slate-900 dark:text-white'
               }`}
               aria-label="Toggle Navigation Menu"
@@ -161,7 +175,7 @@ export const StorefrontHeader: React.FC<StorefrontHeaderProps> = ({ config, subd
 
             <Link
               to={getStorefrontUrl(subdomain)}
-              className="group flex items-center gap-2 sm:gap-2.5 transition-transform active:scale-98 cursor-pointer"
+              className="group flex items-center gap-2 sm:gap-2.5 transition-transform active:scale-98 cursor-pointer shrink-0"
             >
               {(theme?.logo_url || localStorage.getItem('brand_logo_url')) ? (
                 <div className="flex size-9 sm:size-10 items-center justify-center rounded-xl overflow-hidden bg-white/10 dark:bg-black/20 p-1 ring-1 ring-black/5 dark:ring-white/20 transition-all shrink-0 group-hover:scale-105">
@@ -219,8 +233,8 @@ export const StorefrontHeader: React.FC<StorefrontHeaderProps> = ({ config, subd
             </Link>
           </div>
 
-          {/* Center Navigation Links (Desktop) */}
-          <nav className="hidden md:flex items-center justify-center gap-0.5 lg:gap-1.5 flex-1 min-w-0 px-2 lg:px-4">
+          {/* Center Navigation Links (Desktop: xl and up for full breathing room) */}
+          <nav className="hidden xl:flex items-center justify-center gap-1 2xl:gap-2 flex-1 min-w-0 px-2 lg:px-4">
             {menuItems.map((item, idx) => {
               const isExternal = Boolean(item.is_external || item.url.startsWith('http'));
               const finalUrl = isExternal ? item.url : formatMenuUrl(item.url);
@@ -275,18 +289,17 @@ export const StorefrontHeader: React.FC<StorefrontHeaderProps> = ({ config, subd
 
           {/* Right Action Controls */}
           <div className="flex items-center gap-1 sm:gap-1.5 lg:gap-2 shrink-0">
-            {/* Direct WhatsApp Ordering Pill */}
-            {config?.whatsapp_ordering_enabled !== false && (
+            {/* Direct WhatsApp Ordering */}
+            {config?.whatsapp_ordering_enabled !== false && whatsappNumber && (
               <a
                 href={`https://wa.me/${whatsappNumber}?text=${whatsappMsg}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="hidden xl:inline-flex items-center gap-1.5 px-2.5 2xl:px-3 py-1.5 rounded-full text-xs font-semibold bg-[#25D366]/10 text-[#25D366] hover:bg-[#25D366]/20 border border-[#25D366]/30 hover:border-[#25D366]/50 transition-all shadow-2xs shrink-0 cursor-pointer"
+                className="hidden xl:inline-flex items-center gap-1.5 px-2.5 2xl:px-3 py-1.5 rounded-xl text-xs font-semibold bg-[#25D366]/10 text-[#25D366] hover:bg-[#25D366]/20 border border-[#25D366]/30 hover:border-[#25D366]/50 transition-all shadow-2xs shrink-0 cursor-pointer"
                 title="Order directly via WhatsApp"
               >
                 <MessageCircle className="size-3.5 fill-current/20" />
-                <span className="hidden 2xl:inline">WhatsApp Order</span>
-                <span className="inline 2xl:hidden">WhatsApp</span>
+                <span className="hidden 2xl:inline">WhatsApp</span>
               </a>
             )}
 
@@ -374,7 +387,7 @@ export const StorefrontHeader: React.FC<StorefrontHeaderProps> = ({ config, subd
                 {itemCount}
               </span>
               {itemCount > 0 && (
-                <span className="hidden md:inline text-[11px] font-mono font-bold ml-0.5 opacity-90">
+                <span className="hidden xl:inline text-[11px] font-mono font-bold ml-0.5 opacity-90">
                   {currency} {cartTotal.toLocaleString()}
                 </span>
               )}
@@ -389,7 +402,7 @@ export const StorefrontHeader: React.FC<StorefrontHeaderProps> = ({ config, subd
               backgroundColor: navbarBg || undefined,
               color: navbarTextColor || undefined,
             }}
-            className={`md:hidden border-t px-4 py-4 space-y-3 shadow-xl transition-all animate-in slide-in-from-top-2 ${
+            className={`xl:hidden border-t px-4 py-4 space-y-3 shadow-xl transition-all animate-in slide-in-from-top-2 ${
               isDarkNavbar
                 ? 'border-white/10'
                 : 'border-slate-200 dark:border-zinc-800 bg-white/95 dark:bg-zinc-950/95 backdrop-blur-xl'
