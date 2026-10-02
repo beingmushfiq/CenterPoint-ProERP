@@ -110,6 +110,8 @@ elif [ -d "${USER_HOME}/projects/proerp/backend" ]; then
     TARGET_BACKEND="${USER_HOME}/projects/proerp/backend"
 elif [ -d "/home/devcente/projects/proerp/backend" ]; then
     TARGET_BACKEND="/home/devcente/projects/proerp/backend"
+elif [ -d "${USER_HOME}/public_html" ] || [ "${USER_HOME#/home/}" != "${USER_HOME}" ]; then
+    TARGET_BACKEND="${USER_HOME}/projects/proerp/backend"
 else
     TARGET_BACKEND="${REPO_DIR}/backend"
 fi
@@ -122,8 +124,10 @@ elif [ -d "${USER_HOME}/projects/proerp/public" ]; then
     TARGET_FRONTEND="${USER_HOME}/projects/proerp/public"
 elif [ -d "/home/devcente/projects/proerp/public" ]; then
     TARGET_FRONTEND="/home/devcente/projects/proerp/public"
-elif [ -d "${USER_HOME}/public_html" ] && [ "${USER_HOME}/public_html" != "${REPO_DIR}/public_html" ]; then
-    TARGET_FRONTEND="${USER_HOME}/public_html"
+elif [ -d "${USER_HOME}/public_html" ] || [ "${USER_HOME#/home/}" != "${USER_HOME}" ]; then
+    # In cPanel, public_html is reserved for the primary domain portfolio (devcenterpoint.com).
+    # ProERP is placed in projects/proerp/public to prevent overwriting the agency website.
+    TARGET_FRONTEND="${USER_HOME}/projects/proerp/public"
 else
     TARGET_FRONTEND="${REPO_DIR}/public_html"
 fi
@@ -146,6 +150,7 @@ echo "=================================================================="
 # ------------------------------------------------------------------------------
 PHP_BIN=""
 PHP_CANDIDATES=(
+    "${PHP_BIN:-}"
     "${PHP_BIN_CUSTOM:-}"
     "/opt/cpanel/ea-php85/root/usr/bin/php"
     "/opt/cpanel/ea-php84/root/usr/bin/php"
@@ -182,6 +187,13 @@ if [ -z "${PHP_BIN}" ]; then
         PHP_BIN="php"
     fi
 fi
+
+# Prepend the PHP binary directory to PATH so composer, artisan, and child shells use PHP 8.4+
+PHP_DIR="$(dirname "${PHP_BIN}")"
+if [ -d "${PHP_DIR}" ]; then
+    export PATH="${PHP_DIR}:${PATH}"
+fi
+
 echo "✓ PHP CLI: $(${PHP_BIN} -v 2>/dev/null | head -n 1 || echo 'php')"
 
 # ------------------------------------------------------------------------------
@@ -300,14 +312,25 @@ mkdir -p "${TARGET_BACKEND}/storage/framework/views"
 mkdir -p "${TARGET_BACKEND}/storage/framework/testing"
 mkdir -p "${TARGET_BACKEND}/storage/logs"
 mkdir -p "${TARGET_BACKEND}/bootstrap/cache"
+touch "${TARGET_BACKEND}/storage/logs/laravel.log" 2>/dev/null || true
 
 chmod -R 775 "${TARGET_BACKEND}/storage" "${TARGET_BACKEND}/bootstrap/cache" 2>/dev/null || true
+chmod 664 "${TARGET_BACKEND}/storage/logs/laravel.log" 2>/dev/null || true
 echo "✓ Storage directories created and 775 permissions set."
 
 # Create public storage symlink
 if [ ! -L "${TARGET_FRONTEND}/storage" ] && [ ! -e "${TARGET_FRONTEND}/storage" ]; then
     ln -sfn "${TARGET_BACKEND}/storage/app/public" "${TARGET_FRONTEND}/storage" 2>/dev/null || true
     echo "✓ Public storage symlink: ${TARGET_FRONTEND}/storage -> ${TARGET_BACKEND}/storage/app/public"
+fi
+
+# Portfolio safety symlink: if ProERP document root is separate from ~/public_html,
+# provide ~/public_html/proerp-app symlink for subdomain or fallback access
+PORTFOLIO_DIR="${USER_HOME}/public_html"
+if [ -d "${PORTFOLIO_DIR}" ] && [ "${TARGET_FRONTEND}" != "${PORTFOLIO_DIR}" ]; then
+    if [ ! -e "${PORTFOLIO_DIR}/proerp-app" ]; then
+        ln -sfn "${TARGET_FRONTEND}" "${PORTFOLIO_DIR}/proerp-app" 2>/dev/null || true
+    fi
 fi
 
 # ------------------------------------------------------------------------------
@@ -352,7 +375,8 @@ fi
 
 if [ -n "${COMPOSER_BIN}" ] && [ -f "${TARGET_BACKEND}/composer.json" ]; then
     echo "Running Composer install..."
-    ${COMPOSER_BIN} install --no-dev --prefer-dist --optimize-autoloader --no-interaction || {
+    ${COMPOSER_BIN} install --no-dev --prefer-dist --optimize-autoloader --no-interaction || \
+    ${COMPOSER_BIN} install --no-dev --prefer-dist --optimize-autoloader --no-interaction --ignore-platform-reqs || {
         echo "Notice: Composer install completed with warnings or vendor is cached."
     }
 fi
@@ -378,8 +402,11 @@ if [ "${SKIP_MIGRATE}" = false ] && [ -f "${TARGET_BACKEND}/vendor/autoload.php"
         ${PHP_BIN} artisan db:seed --force --no-interaction || true
     else
         ${PHP_BIN} artisan db:seed --class=SystemPermissionsSeeder --force --no-interaction 2>/dev/null || true
+        ${PHP_BIN} artisan db:seed --class=BusinessTypeSeeder --force --no-interaction 2>/dev/null || true
+        ${PHP_BIN} artisan db:seed --class=IndustryProfileSeeder --force --no-interaction 2>/dev/null || true
         ${PHP_BIN} artisan db:seed --class=PlansAndTenantsSeeder --force --no-interaction 2>/dev/null || true
         ${PHP_BIN} artisan db:seed --class=RolesAndPermissionsSeeder --force --no-interaction 2>/dev/null || true
+        ${PHP_BIN} artisan db:seed --class=DocumentTemplatesSeeder --force --no-interaction 2>/dev/null || true
         ${PHP_BIN} artisan db:seed --class=ReportDefinitionsTableSeeder --force --no-interaction 2>/dev/null || true
     fi
 fi
