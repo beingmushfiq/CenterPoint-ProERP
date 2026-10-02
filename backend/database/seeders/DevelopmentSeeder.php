@@ -35,6 +35,7 @@ final class DevelopmentSeeder extends Seeder
             PartiesTableSeeder::class,
             PricingTableSeeder::class,
             StorefrontTableSeeder::class,
+            DemoErpStorefrontSeeder::class,
             EmployeesTableSeeder::class,
             PosTableSeeder::class,
             StockTableSeeder::class,
