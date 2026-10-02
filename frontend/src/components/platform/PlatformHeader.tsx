@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { usePlatformAuthStore } from '../../lib/auth/platformAuthStore';
 import { ShieldCheck, LogOut, Terminal, Sun, Moon, Menu } from 'lucide-react';
 import { LanguageSwitcher } from '../ui/LanguageSwitcher';
+import { applyThemeMode } from '../../lib/theme/themeTransition';
+import { cn } from '../../lib/utils';
 
 interface PlatformHeaderProps {
   onToggleSidebar?: () => void;
@@ -45,28 +47,11 @@ export const PlatformHeader: React.FC<PlatformHeaderProps> = ({ onToggleSidebar 
     return () => observer.disconnect();
   }, []);
 
-  const toggleTheme = () => {
+  const toggleTheme = (e: React.MouseEvent) => {
     const next = theme === 'dark' ? 'light' : 'dark';
-    setTheme(next);
-    if (next === 'dark') {
-      document.documentElement.classList.add('dark');
-      document.documentElement.setAttribute('data-theme', 'dark');
-      try {
-        localStorage.setItem('theme', 'dark');
-        localStorage.setItem('ui.theme', 'dark');
-      } catch {
-        // safe ignore
-      }
-    } else {
-      document.documentElement.classList.remove('dark');
-      document.documentElement.setAttribute('data-theme', 'light');
-      try {
-        localStorage.setItem('theme', 'light');
-        localStorage.setItem('ui.theme', 'light');
-      } catch {
-        // safe ignore
-      }
-    }
+    applyThemeMode(next, e, (applied) => {
+      setTheme(applied === 'dark' ? 'dark' : 'light');
+    });
   };
 
   return (
@@ -94,15 +79,22 @@ export const PlatformHeader: React.FC<PlatformHeaderProps> = ({ onToggleSidebar 
       </div>
 
       <div className="flex items-center gap-2 sm:gap-4">
-        {/* Theme Toggle */}
+        {/* Theme Toggle with Smooth Ripple and Rotating Morph */}
         <button
           type="button"
           onClick={toggleTheme}
-          className="p-2 rounded-xl border border-default bg-surface-sunken hover:bg-surface text-muted hover:text-default transition-all shadow-2xs cursor-pointer"
+          className="relative size-9 flex items-center justify-center rounded-xl border border-default bg-surface-sunken hover:bg-surface text-muted hover:text-default transition-all duration-300 shadow-2xs cursor-pointer group overflow-hidden"
           title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
-          aria-label="Toggle Theme"
+          aria-label={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
         >
-          {theme === 'dark' ? <Sun className="size-4 text-amber-400" /> : <Moon className="size-4 text-default" />}
+          <Sun className={cn(
+            "size-4 text-amber-500 transition-all duration-500 transform absolute",
+            theme === 'dark' ? "rotate-90 scale-0 opacity-0" : "rotate-0 scale-100 opacity-100 group-hover:rotate-45"
+          )} />
+          <Moon className={cn(
+            "size-4 text-indigo-400 transition-all duration-500 transform absolute",
+            theme === 'dark' ? "rotate-0 scale-100 opacity-100 group-hover:-rotate-12" : "-rotate-90 scale-0 opacity-0"
+          )} />
         </button>
 
         {/* Global Language Switcher */}

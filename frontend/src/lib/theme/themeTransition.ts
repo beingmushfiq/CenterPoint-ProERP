@@ -64,15 +64,21 @@ export function applyThemeMode(
     };
   }) : null;
 
-  // If View Transitions API is not supported or reduced motion is preferred, apply immediately
+  // If View Transitions API is not supported or reduced motion is preferred, apply with smooth CSS transition
   if (!doc?.startViewTransition || isReducedMotion) {
+    if (typeof document !== 'undefined' && !isReducedMotion) {
+      document.documentElement.classList.add('theme-transitioning');
+      setTimeout(() => {
+        document.documentElement.classList.remove('theme-transitioning');
+      }, 400);
+    }
     applyTheme();
     return next;
   }
 
-  // Calculate coordinates from the click or element center
-  let x = window.innerWidth;
-  let y = 0;
+  // Calculate coordinates from the click or element center (fallback to header top-right)
+  let x = typeof window !== 'undefined' ? window.innerWidth - 60 : 0;
+  let y = 30;
 
   if (event) {
     if (typeof event.clientX === 'number' && typeof event.clientY === 'number' && (event.clientX !== 0 || event.clientY !== 0)) {
@@ -85,10 +91,12 @@ export function applyThemeMode(
     }
   }
 
-  const endRadius = Math.hypot(
-    Math.max(x, window.innerWidth - x),
-    Math.max(y, window.innerHeight - y)
-  );
+  const endRadius = typeof window !== 'undefined'
+    ? Math.hypot(
+        Math.max(x, window.innerWidth - x),
+        Math.max(y, window.innerHeight - y)
+      )
+    : 1000;
 
   try {
     const transition = doc.startViewTransition(() => {
@@ -106,8 +114,8 @@ export function applyThemeMode(
           clipPath,
         },
         {
-          duration: 500,
-          easing: 'cubic-bezier(0.4, 0, 0.2, 1)',
+          duration: 480,
+          easing: 'cubic-bezier(0.16, 1, 0.3, 1)',
           pseudoElement: '::view-transition-new(root)',
         }
       );
@@ -124,15 +132,21 @@ export function applyThemeMode(
 export function toggleThemeWithTransition(
   currentTheme: ThemeMode,
   event?: React.MouseEvent | MouseEvent,
-  onApplied?: (next: ThemeMode) => void
+  onApplied?: (next: ThemeMode) => void,
+  cycleSystem = false
 ): ThemeMode {
-  // 3-state cycle: light -> dark -> system -> light
-  const next: ThemeMode =
-    currentTheme === 'light'
+  // If cycleSystem is true: light -> dark -> system -> light
+  // Otherwise direct elegant toggle: light <-> dark
+  const next: ThemeMode = cycleSystem
+    ? currentTheme === 'light'
       ? 'dark'
       : currentTheme === 'dark'
         ? 'system'
-        : 'light';
+        : 'light'
+    : currentTheme === 'dark'
+      ? 'light'
+      : 'dark';
 
   return applyThemeMode(next, event, onApplied);
 }
+

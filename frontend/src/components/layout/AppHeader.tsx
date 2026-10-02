@@ -863,32 +863,34 @@ export function AppHeader({
           <LanguageSwitcher />
         </div>
 
-        {/* Theme Toggle (3-state: Light / Dark / System) */}
+        {/* Theme Toggle with Smooth Ripple and Rotating Morph */}
         <button
           type="button"
           onClick={toggleTheme}
-          className="hidden sm:flex rounded-lg p-1.5 sm:p-2 text-muted hover:bg-surface-sunken hover:text-default transition-token-colors focus-visible:ring-focus cursor-pointer shrink-0"
+          className="hidden sm:relative sm:flex size-9 items-center justify-center rounded-xl p-1.5 sm:p-2 text-muted hover:bg-surface-sunken hover:text-default transition-all duration-300 focus-visible:ring-focus cursor-pointer shrink-0 group overflow-hidden border border-transparent hover:border-default shadow-2xs"
           aria-label={
             themeMode === 'light'
               ? 'Switch to Dark Mode'
-              : themeMode === 'dark'
-                ? 'Switch to System Theme'
-                : 'Switch to Light Mode'
+              : 'Switch to Light Mode'
           }
           title={
             themeMode === 'light'
               ? 'Theme: Light (Click for Dark)'
               : themeMode === 'dark'
-                ? 'Theme: Dark (Click for System)'
+                ? 'Theme: Dark (Click for Light)'
                 : 'Theme: System (Click for Light)'
           }
         >
-          {themeMode === 'dark' ? (
-            <Moon className="size-4 text-indigo-400" />
-          ) : themeMode === 'light' ? (
-            <Sun className="size-4 text-amber-500" />
-          ) : (
-            <Monitor className="size-4 text-primary" />
+          <Sun className={cn(
+            "size-4 text-amber-500 transition-all duration-500 transform absolute",
+            themeMode === 'light' ? "rotate-0 scale-100 opacity-100 group-hover:rotate-45" : "rotate-90 scale-0 opacity-0"
+          )} />
+          <Moon className={cn(
+            "size-4 text-indigo-400 transition-all duration-500 transform absolute",
+            themeMode === 'dark' ? "rotate-0 scale-100 opacity-100 group-hover:-rotate-12" : "-rotate-90 scale-0 opacity-0"
+          )} />
+          {themeMode === 'system' && (
+            <Monitor className="size-4 text-primary transition-all duration-300 transform scale-100 opacity-100" />
           )}
         </button>
 

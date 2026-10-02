@@ -1,12 +1,31 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { usePlatformAuthStore } from '../../lib/auth/platformAuthStore';
-import { ShieldCheck, Lock, Mail, AlertCircle, Layers, ArrowRight } from 'lucide-react';
+import { ShieldCheck, Lock, Mail, AlertCircle, Layers, ArrowRight, Sun, Moon } from 'lucide-react';
 import { LanguageSwitcher } from '../../components/ui/LanguageSwitcher';
+import { applyThemeMode } from '../../lib/theme/themeTransition';
+import { cn } from '../../lib/utils';
 
 export const PlatformLoginPage: React.FC = () => {
   const navigate = useNavigate();
   const { login, status, error } = usePlatformAuthStore();
+
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    try {
+      const stored = localStorage.getItem('ui.theme') || localStorage.getItem('theme');
+      if (stored === 'dark') return 'dark';
+      return 'light';
+    } catch {
+      return 'light';
+    }
+  });
+
+  const handleToggleTheme = (e: React.MouseEvent) => {
+    const next = theme === 'dark' ? 'light' : 'dark';
+    applyThemeMode(next, e, (applied) => {
+      setTheme(applied === 'dark' ? 'dark' : 'light');
+    });
+  };
 
   const [email, setEmail] = useState('admin@devcenterpoint.com');
   const [password, setPassword] = useState('PlatformAdmin123!');
@@ -23,9 +42,25 @@ export const PlatformLoginPage: React.FC = () => {
 
   return (
     <div className="relative min-h-screen bg-base text-default flex flex-col justify-center items-center px-3 sm:px-4 py-8 overflow-x-hidden selection:bg-amber-500 selection:text-slate-950">
-      {/* Top-Right Language Switcher */}
-      <div className="absolute top-4 right-4 sm:top-6 sm:right-6">
+      {/* Top-Right Theme & Language Controls */}
+      <div className="absolute top-4 right-4 sm:top-6 sm:right-6 flex items-center gap-2">
         <LanguageSwitcher />
+        <button
+          type="button"
+          onClick={handleToggleTheme}
+          className="relative size-9 flex items-center justify-center rounded-xl border border-default bg-surface/90 text-muted hover:text-default shadow-xs backdrop-blur-md transition-all duration-300 hover:bg-surface-sunken cursor-pointer group overflow-hidden"
+          aria-label={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+          title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+        >
+          <Sun className={cn(
+            "size-4 text-amber-500 transition-all duration-500 transform absolute",
+            theme === 'dark' ? "rotate-90 scale-0 opacity-0" : "rotate-0 scale-100 opacity-100 group-hover:rotate-45"
+          )} />
+          <Moon className={cn(
+            "size-4 text-indigo-400 transition-all duration-500 transform absolute",
+            theme === 'dark' ? "rotate-0 scale-100 opacity-100 group-hover:-rotate-12" : "-rotate-90 scale-0 opacity-0"
+          )} />
+        </button>
       </div>
 
       <div className="w-full max-w-md">

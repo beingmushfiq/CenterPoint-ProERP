@@ -11,6 +11,7 @@ import { applyThemeMode } from '../../lib/theme/themeTransition';
 import { useTenantBranding } from '../../lib/theme/useTenantBranding';
 import { LanguageSwitcher } from '../../components/ui/LanguageSwitcher';
 import { usePwaInstall } from '../../hooks/usePwaInstall';
+import { cn } from '../../lib/utils';
 
 const loginSchema = z.object({
   email: z.string().min(1, 'Please enter your email, name, or designation'),
@@ -229,20 +230,18 @@ export default function LoginPage() {
         <button
           type="button"
           onClick={handleToggleTheme}
-          className="flex items-center gap-2 rounded-xl border border-default bg-surface/90 px-3 py-2 text-xs font-medium text-muted shadow-xs backdrop-blur-md transition-all hover:bg-surface-sunken hover:text-default cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          className="relative size-9 flex items-center justify-center rounded-xl border border-default bg-surface/90 text-muted hover:text-default shadow-xs backdrop-blur-md transition-all duration-300 hover:bg-surface-sunken cursor-pointer group overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           aria-label={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+          title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
         >
-          {theme === 'dark' ? (
-            <>
-              <Sun className="h-4 w-4 text-amber-400 animate-spin-once" />
-              <span className="hidden sm:inline">Light</span>
-            </>
-          ) : (
-            <>
-              <Moon className="h-4 w-4 text-slate-700 dark:text-slate-300" />
-              <span className="hidden sm:inline">Dark</span>
-            </>
-          )}
+          <Sun className={cn(
+            "size-4 text-amber-500 transition-all duration-500 transform absolute",
+            theme === 'dark' ? "rotate-90 scale-0 opacity-0" : "rotate-0 scale-100 opacity-100 group-hover:rotate-45"
+          )} />
+          <Moon className={cn(
+            "size-4 text-indigo-400 transition-all duration-500 transform absolute",
+            theme === 'dark' ? "rotate-0 scale-100 opacity-100 group-hover:-rotate-12" : "-rotate-90 scale-0 opacity-0"
+          )} />
         </button>
       </div>
 
