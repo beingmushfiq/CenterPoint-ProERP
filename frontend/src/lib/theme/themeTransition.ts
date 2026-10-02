@@ -104,21 +104,83 @@ export function applyThemeMode(
     });
 
     transition.ready.then(() => {
+      const isDark = effective === 'dark';
       const clipPath = [
         `circle(0px at ${x}px ${y}px)`,
         `circle(${endRadius}px at ${x}px ${y}px)`,
       ];
 
+      // 1. Expand the incoming new theme with a silky-smooth organic deceleration curve
       document.documentElement.animate(
         {
           clipPath,
         },
         {
-          duration: 480,
-          easing: 'cubic-bezier(0.16, 1, 0.3, 1)',
+          duration: 540,
+          easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
           pseudoElement: '::view-transition-new(root)',
         }
       );
+
+      // 2. Animate the outgoing old theme with a subtle parallax depth & luminance shift
+      document.documentElement.animate(
+        {
+          filter: isDark
+            ? ['none', 'brightness(0.92) saturate(0.95)']
+            : ['none', 'brightness(1.08) saturate(1.05)'],
+          transform: isDark
+            ? ['scale(1)', 'scale(0.995)']
+            : ['scale(1)', 'scale(1.005)'],
+        },
+        {
+          duration: 540,
+          easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
+          pseudoElement: '::view-transition-old(root)',
+        }
+      );
+
+      // 3. Spawn a luminous celestial shockwave halo that rides precisely on the expanding wave crest
+      try {
+        if (typeof document !== 'undefined' && document.body) {
+          const halo = document.createElement('div');
+          halo.className = 'theme-transition-halo';
+          halo.style.cssText = `
+            position: fixed;
+            left: ${x}px;
+            top: ${y}px;
+            width: 0px;
+            height: 0px;
+            border-radius: 9999px;
+            pointer-events: none;
+            z-index: 2147483647;
+            transform: translate(-50%, -50%);
+            border: 2px solid ${isDark ? 'rgba(129, 140, 248, 0.75)' : 'rgba(251, 191, 36, 0.8)'};
+            box-shadow: ${
+              isDark
+                ? '0 0 50px 14px rgba(99, 102, 241, 0.45), inset 0 0 35px 8px rgba(129, 140, 248, 0.3)'
+                : '0 0 50px 14px rgba(245, 158, 11, 0.42), inset 0 0 35px 8px rgba(251, 191, 36, 0.25)'
+            };
+          `;
+          document.body.appendChild(halo);
+
+          const haloAnim = halo.animate(
+            [
+              { width: '0px', height: '0px', opacity: 0.95 },
+              { width: `${endRadius * 1.4}px`, height: `${endRadius * 1.4}px`, opacity: 0.8, offset: 0.7 },
+              { width: `${endRadius * 2.1}px`, height: `${endRadius * 2.1}px`, opacity: 0 },
+            ],
+            {
+              duration: 560,
+              easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
+            }
+          );
+
+          haloAnim.onfinish = () => halo.remove();
+          haloAnim.oncancel = () => halo.remove();
+        }
+      } catch {
+        // Fallback safely if DOM manipulation is constrained
+      }
     }).catch(() => {
       applyTheme();
     });

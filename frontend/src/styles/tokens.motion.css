@@ -253,6 +253,7 @@
 ::view-transition-new(root) {
   animation: none;
   mix-blend-mode: normal;
+  transform-origin: center;
 }
 
 ::view-transition-old(root) {
@@ -263,16 +264,23 @@
   z-index: 9999;
 }
 
+/* Luminous Celestial Theme Transition Halo (Hardware-Accelerated Wave) */
+.theme-transition-halo {
+  will-change: width, height, opacity;
+  filter: blur(1.5px);
+  backface-visibility: hidden;
+}
+
 /* Smooth global fallback for browsers without View Transitions */
 html.theme-transitioning,
 html.theme-transitioning *,
 html.theme-transitioning *::before,
 html.theme-transitioning *::after {
-  transition: background-color 350ms cubic-bezier(0.16, 1, 0.3, 1),
-              border-color 350ms cubic-bezier(0.16, 1, 0.3, 1),
-              color 250ms cubic-bezier(0.16, 1, 0.3, 1),
-              fill 250ms cubic-bezier(0.16, 1, 0.3, 1),
-              box-shadow 350ms cubic-bezier(0.16, 1, 0.3, 1) !important;
+  transition: background-color 420ms cubic-bezier(0.22, 1, 0.36, 1),
+              border-color 420ms cubic-bezier(0.22, 1, 0.36, 1),
+              color 300ms cubic-bezier(0.22, 1, 0.36, 1),
+              fill 300ms cubic-bezier(0.22, 1, 0.36, 1),
+              box-shadow 420ms cubic-bezier(0.22, 1, 0.36, 1) !important;
   transition-delay: 0s !important;
 }
 
