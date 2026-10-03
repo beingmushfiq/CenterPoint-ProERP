@@ -15,6 +15,8 @@ import { InteractiveTutorialModal } from '../../modules/tutorial/InteractiveTuto
 import { AnimatePresence } from 'framer-motion';
 import { MotionPage } from '../motion/MotionPage';
 import { TenantSuspendedScreen } from './TenantSuspendedScreen';
+import { TopNavigationProgress } from '../navigation/TopNavigationProgress';
+import { preloadCoreRoutesOnIdle } from '../../routes/preload';
 
 function getRouteTitle(pathname: string): string {
   if (pathname === '/dashboard' || pathname === '/') return 'Executive Operations';
@@ -55,6 +57,7 @@ export function AppShell() {
       document.documentElement.classList.remove('dark');
       document.documentElement.setAttribute('data-theme', 'light');
     }
+    preloadCoreRoutesOnIdle();
   }, []);
   const { companyName } = useTenantBranding();
   const tenantName = useAuthStore((s) => s.tenant?.name);
@@ -108,6 +111,7 @@ export function AppShell() {
 
   return (
     <div className="flex min-h-dvh bg-base text-default font-sans antialiased flex-col w-full max-w-full overflow-x-hidden">
+      <TopNavigationProgress />
       <SeoHead
         title={pageTitle}
         description="Private Tenant Enterprise Management Portal"
@@ -141,7 +145,7 @@ export function AppShell() {
 
           <main className="flex-1 p-(--page-padding-mobile) pb-24 sm:p-(--page-padding) sm:pb-24 lg:pb-(--page-padding) pb-safe overflow-x-hidden min-w-0 w-full max-w-full">
             <Suspense fallback={<RouteLoadingFallback />}>
-              <AnimatePresence mode="wait">
+              <AnimatePresence mode="popLayout" initial={false}>
                 <MotionPage key={location.pathname}>
                   <Outlet />
                 </MotionPage>

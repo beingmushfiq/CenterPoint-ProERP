@@ -11,6 +11,7 @@ import {
 import { cn } from '../../lib/utils';
 import { useTenantCapabilityStore } from '../../lib/capabilities/tenantCapabilityStore';
 import { useAuthStore } from '../../lib/auth/authStore';
+import { preloadRoute } from '../../routes/preload';
 
 interface MobileBottomNavProps {
   onToggleSidebar: () => void;
@@ -53,6 +54,9 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
         {/* 1. Dashboard */}
         <NavLink
           to="/dashboard"
+          onMouseEnter={() => preloadRoute('/dashboard')}
+          onTouchStart={() => preloadRoute('/dashboard')}
+          onFocus={() => preloadRoute('/dashboard')}
           onClick={handleNavClick}
           className={({ isActive }) =>
             cn(
@@ -80,6 +84,9 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
         {isPosEnabled ? (
           <NavLink
             to="/pos"
+            onMouseEnter={() => preloadRoute('/pos')}
+            onTouchStart={() => preloadRoute('/pos')}
+            onFocus={() => preloadRoute('/pos')}
             onClick={handleNavClick}
             className={({ isActive }) =>
               cn(
@@ -105,6 +112,9 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
         ) : (
           <NavLink
             to="/production"
+            onMouseEnter={() => preloadRoute('/production')}
+            onTouchStart={() => preloadRoute('/production')}
+            onFocus={() => preloadRoute('/production')}
             onClick={handleNavClick}
             className={({ isActive }) =>
               cn(
@@ -138,6 +148,9 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
         {/* 4. Inventory / Stock Hub */}
         <NavLink
           to="/inventory"
+          onMouseEnter={() => preloadRoute('/inventory')}
+          onTouchStart={() => preloadRoute('/inventory')}
+          onFocus={() => preloadRoute('/inventory')}
           onClick={handleNavClick}
           className={({ isActive }) =>
             cn(

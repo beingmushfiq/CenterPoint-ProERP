@@ -24,8 +24,13 @@ import {
 // ── Standard Transitions ───────────────────────────────────────────────────
 
 export const pageTransition: Transition = {
-  duration: duration.base,
-  ease: ease.entrance,
+  duration: 0.12,
+  ease: [0.16, 1, 0.3, 1],
+};
+
+export const pageExitTransition: Transition = {
+  duration: 0.08,
+  ease: [0.4, 0, 1, 1],
 };
 
 export const tabTransition: Transition = {
@@ -52,11 +57,11 @@ export const popoverTransition: Transition = {
 
 // ── Motion Variants ────────────────────────────────────────────────────────
 
-/** Page transition: subtle rise and fade in, clean fade out */
+/** Page transition: crisp, subtle micro-rise (3px) and swift crossfade */
 export const pageVariants: Variants = {
   initial: {
     opacity: 0,
-    y: distance.sm,
+    y: 3,
   },
   animate: {
     opacity: 1,
@@ -65,8 +70,8 @@ export const pageVariants: Variants = {
   },
   exit: {
     opacity: 0,
-    y: -distance.xs,
-    transition: exitFast,
+    y: -2,
+    transition: pageExitTransition,
   },
 };
 

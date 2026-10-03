@@ -16,6 +16,7 @@ import { getAppVersion } from '../../lib/config/appVersion';
 import { usePwaInstall } from '../../hooks/usePwaInstall';
 import { useTranslation } from 'react-i18next';
 import { cn } from '../../lib/utils';
+import { preloadRoute } from '../../routes/preload';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -1034,6 +1035,9 @@ export function Sidebar({ isOpen, onClose, isCollapsed = false, onToggleCollapse
                           <div className="relative flex items-center">
                             <NavLink
                               to={item.to}
+                              onMouseEnter={() => preloadRoute(item.to)}
+                              onFocus={() => preloadRoute(item.to)}
+                              onTouchStart={() => preloadRoute(item.to)}
                               onClick={(e) => {
                                 if (hasChildren) {
                                   const isCurrentlyExpanded = Boolean(expandedParents[item.id]);
@@ -1166,6 +1170,9 @@ export function Sidebar({ isOpen, onClose, isCollapsed = false, onToggleCollapse
                                     )}
                                     <NavLink
                                       to={child.to}
+                                      onMouseEnter={() => preloadRoute(child.to)}
+                                      onFocus={() => preloadRoute(child.to)}
+                                      onTouchStart={() => preloadRoute(child.to)}
                                       onClick={onClose}
                                       className={cn(
                                         'group flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all duration-150',

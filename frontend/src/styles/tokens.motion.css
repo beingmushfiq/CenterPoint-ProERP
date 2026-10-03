@@ -243,6 +243,26 @@
   }
 }
 
+/* Linear-style route switch sweep indicator */
+@keyframes sm-nav-sweep {
+  0% {
+    width: 0%;
+    opacity: 1;
+  }
+  60% {
+    width: 75%;
+    opacity: 1;
+  }
+  100% {
+    width: 100%;
+    opacity: 0;
+  }
+}
+
+.animate-nav-sweep {
+  animation: sm-nav-sweep 220ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
 /* ═══════════════════════════════════════════════════════════════════════════
    VIEW TRANSITION (CIRCULAR THEME WAVE)
    ───────────────────────────────────────────────────────────────────────────

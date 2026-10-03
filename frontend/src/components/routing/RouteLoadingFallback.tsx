@@ -1,13 +1,9 @@
-import { ProgressBar } from '../ui/Feedback';
-
 export function RouteLoadingFallback() {
   return (
-    <div className="w-full py-6 space-y-4 animate-in fade-in duration-200">
-      <ProgressBar label="Loading workspace..." indeterminate />
-      <div className="space-y-4 pt-4">
-        <div className="h-24 w-full rounded-(--card-radius) border border-(--card-border) bg-(--card-bg) p-4 skeleton-shimmer" />
-        <div className="h-64 w-full rounded-(--card-radius) border border-(--card-border) bg-(--card-bg) p-4 skeleton-shimmer" />
-      </div>
+    <div className="w-full py-4 space-y-4 animate-in fade-in duration-100 opacity-40 pointer-events-none select-none">
+      <div className="h-8 w-44 rounded-xl bg-surface-sunken" />
+      <div className="h-28 w-full rounded-2xl border border-default bg-surface/40" />
+      <div className="h-64 w-full rounded-2xl border border-default bg-surface/40" />
     </div>
   );
 }

@@ -95,7 +95,6 @@ export function StockLedgerSection() {
   const {
     data: balances = [],
     isLoading: balancesLoading,
-    isFetching: balancesFetching,
     refetch: refetchBalances,
   } = useQuery({
     queryKey: ['inventory', 'balances'],
@@ -109,7 +108,6 @@ export function StockLedgerSection() {
   const {
     data: movements = [],
     isLoading: movementsLoading,
-    isFetching: movementsFetching,
     refetch: refetchMovements,
   } = useQuery({
     queryKey: ['inventory', 'movements'],
@@ -233,8 +231,8 @@ export function StockLedgerSection() {
 
   const loading =
     viewMode === 'balances'
-      ? balancesLoading || balancesFetching
-      : movementsLoading || movementsFetching;
+      ? balancesLoading
+      : movementsLoading;
 
   const handleRefresh = () => {
     if (viewMode === 'balances') {
