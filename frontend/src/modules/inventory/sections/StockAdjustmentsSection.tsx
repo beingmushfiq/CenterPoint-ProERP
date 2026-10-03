@@ -493,7 +493,7 @@ export function StockAdjustmentsSection() {
   ], [openActionMenuId, handleStatusChange]);
 
   return (
-    <div className="space-y-6">
+    <div className="w-full min-w-0 max-w-full space-y-6">
       {/* Metric Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="rounded-2xl border border-default bg-surface p-4 shadow-2xs">
@@ -1038,8 +1038,8 @@ export function StockAdjustmentsSection() {
               )}
 
               {/* Items Table */}
-              <div className="rounded-xl border border-default overflow-hidden">
-                <table className="w-full text-left text-xs">
+              <div className="w-full min-w-0 max-w-full overflow-x-auto scrollbar-thin rounded-xl border border-default">
+                <table className="w-full min-w-140 text-left text-xs">
                   <thead className="bg-surface-sunken font-semibold text-muted text-[10px] uppercase border-b border-default">
                     <tr>
                       <th className="px-3 py-2">Item Description</th>

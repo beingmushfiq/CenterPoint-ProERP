@@ -18,6 +18,7 @@ import {
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../../lib/api/client';
 import type { QcInspection } from '../../types/api/qc';
+import type { ReworkOrder } from './sections/ReworkSection';
 import { QcInspectionsSection } from './sections/QcInspectionsSection';
 import { QcParametersSection } from './sections/QcParametersSection';
 import { WastageRecordsSection } from './sections/WastageRecordsSection';
@@ -55,19 +56,18 @@ export default function QcWorkspace() {
 
   const reworkOrdersQuery = useQuery({
     queryKey: ['qc', 'rework-orders'],
-    queryFn: ({ signal }) => api.get<any[]>('/qc/rework-orders', { signal }),
+    queryFn: ({ signal }) => api.get<ReworkOrder[]>('/qc/rework-orders', { signal }),
   });
 
-  const inspections = inspectionsQuery.data?.data ?? [];
-  const reworkOrders = reworkOrdersQuery.data?.data ?? [];
-
   const qcStats = useMemo(() => {
+    const inspections = inspectionsQuery.data?.data ?? [];
+    const reworkOrders = reworkOrdersQuery.data?.data ?? [];
     const total = inspections.length;
     const passed = inspections.filter((i) => i.result === 'pass').length;
     const failed = inspections.filter((i) => i.result === 'fail' || i.result === 'hold').length;
     const passRate = total > 0 ? Math.round((passed / total) * 100) : 96;
     const pendingReworks = reworkOrders.filter(
-      (r: any) => r.status === 'pending' || r.status === 'in_progress'
+      (r: ReworkOrder) => r.status === 'pending' || r.status === 'in_rework'
     ).length;
 
     // 7-day trend values
@@ -76,7 +76,7 @@ export default function QcWorkspace() {
       : [92, 94, 91, 96, 95, 98, passRate];
 
     return { total, passed, failed, passRate, pendingReworks, sparklineData };
-  }, [inspections, reworkOrders]);
+  }, [inspectionsQuery.data, reworkOrdersQuery.data]);
 
   const categories: WorkspaceCategoryConfig<QcCategory, QcTab>[] = useMemo(
     () => [
@@ -155,9 +155,9 @@ export default function QcWorkspace() {
   const currentTab = tabs.find((t) => t.id === activeTab) ?? tabs[0]!;
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto py-2">
+    <div className="space-y-4 sm:space-y-6 w-full min-w-0 max-w-7xl mx-auto py-1 sm:py-2">
       {/* Workspace Header */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-default pb-5">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-default pb-4 sm:pb-5 w-full min-w-0">
         <div>
           <div className="flex items-center gap-2 mb-1.5 flex-wrap">
             <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-primary bg-primary-subtle px-2.5 py-0.5 rounded-full border border-primary/20">
@@ -182,7 +182,7 @@ export default function QcWorkspace() {
         </div>
 
         {/* Quality Intelligence Command Strip with Sparkline */}
-        <div className="flex items-center gap-4 bg-surface-sunken p-2.5 rounded-2xl border border-default shadow-2xs">
+        <div className="flex flex-wrap items-center gap-3 sm:gap-4 bg-surface-sunken p-2.5 rounded-2xl border border-default shadow-2xs">
           <div className="flex items-center gap-3 pr-3 border-r border-default/60">
             <div>
               <div className="text-[10px] font-semibold uppercase tracking-wider text-muted flex items-center gap-1">

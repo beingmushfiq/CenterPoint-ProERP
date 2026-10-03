@@ -1259,7 +1259,7 @@ export function SalesOrdersSection({ onNavigateToTab }: SalesOrdersSectionProps 
   ], [isVisible, canChangeStatus, activeStatusMenuId, activePaymentMenuId, updateStatusMutation, updatePaymentMutation, canApproveOrder, approveMutation, onNavigateToTab, canDeleteOrder, deleteMutation, formatCurrency, getChannelBadge, getStatusBadge, handleDuplicateOrder, handlePrintOrderInvoice]);
 
   return (
-    <div className="space-y-4">
+    <div className="w-full min-w-0 max-w-full space-y-4">
       {/* 4-Card Operational Intelligence Interactive KPI Strip */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         {/* Card 1: All / Total Pipeline */}

@@ -59,7 +59,7 @@ export const PlatformDashboardWorkspace: React.FC = () => {
   const kpis = data?.kpis;
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-4 sm:space-y-8 w-full min-w-0 max-w-7xl mx-auto py-1 sm:py-2">
       {/* Header with Quick Actions */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-default pb-5">
         <div>

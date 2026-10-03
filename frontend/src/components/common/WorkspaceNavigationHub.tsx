@@ -238,130 +238,135 @@ export function WorkspaceNavigationHub<TCategory extends string, TTab extends st
   return (
     <div
       className={cn(
-        'bg-surface rounded-2xl border border-default p-3 shadow-2xs space-y-3',
+        'bg-surface rounded-2xl border border-default p-2.5 sm:p-3 shadow-2xs space-y-2.5 sm:space-y-3 w-full min-w-0 max-w-full overflow-hidden',
         className
       )}
     >
-      {/* Tier 1: Domain Segmented Selector (Centered with Rich Category Theming) */}
-      <div className="flex flex-col items-center justify-center gap-2 pb-3 border-b border-default/50">
-        <div className="inline-flex items-center justify-center p-1.5 bg-surface-sunken/90 dark:bg-surface-sunken/60 rounded-2xl border border-default/60 shadow-inner gap-1.5 flex-wrap">
-          {categories.map((cat) => {
-            const CatIcon = cat.icon;
-            const isSelected = activeCategory === cat.id;
-            const catTabs = tabs.filter((tb) => tb.category === cat.id);
-            const theme = cat.theme;
+      {/* Tier 1: Domain Segmented Selector (Touch-friendly responsive track) */}
+      <div className="flex flex-col items-center justify-center gap-2 pb-2.5 sm:pb-3 border-b border-default/50 w-full min-w-0">
+        <div className="w-full min-w-0 overflow-x-auto no-scrollbar scroll-smooth touch-pan-x flex items-center sm:justify-center">
+          <div className="inline-flex items-center p-1 sm:p-1.5 bg-surface-sunken/90 dark:bg-surface-sunken/60 rounded-xl sm:rounded-2xl border border-default/60 shadow-inner gap-1 sm:gap-1.5 w-max min-w-full sm:min-w-0 sm:w-auto">
+            {categories.map((cat) => {
+              const CatIcon = cat.icon;
+              const isSelected = activeCategory === cat.id;
+              const catTabs = tabs.filter((tb) => tb.category === cat.id);
+              const theme = cat.theme;
 
-            return (
-              <button
-                key={cat.id}
-                type="button"
-                onClick={() => handleSelectCategory(cat.id)}
-                className={cn(
-                  'group relative flex items-center gap-2.5 px-4 py-2 rounded-xl text-xs font-semibold transition-all duration-200 cursor-pointer select-none border',
-                  isSelected
-                    ? cn(theme.activePill, 'scale-[1.02]')
-                    : cn('border-transparent bg-transparent', theme.inactiveText, theme.inactiveHover)
-                )}
-                title={`${cat.label} — ${cat.tagline}`}
-              >
-                <CatIcon
+              return (
+                <button
+                  key={cat.id}
+                  type="button"
+                  onClick={() => handleSelectCategory(cat.id)}
                   className={cn(
-                    'size-4 shrink-0 transition-transform duration-200 group-hover:scale-110',
-                    isSelected ? theme.activeIcon : theme.inactiveIcon
+                    'group relative flex items-center gap-1.5 sm:gap-2.5 px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl text-[11px] sm:text-xs font-semibold transition-all duration-200 cursor-pointer select-none border shrink-0 whitespace-nowrap',
+                    isSelected
+                      ? cn(theme.activePill, 'scale-[1.02]')
+                      : cn('border-transparent bg-transparent', theme.inactiveText, theme.inactiveHover)
                   )}
-                />
-                <span className="tracking-tight">{cat.label}</span>
-                <span
-                  className={cn(
-                    'text-[10px] font-mono px-2 py-0.5 rounded-full transition-colors font-bold',
-                    isSelected ? theme.activeBadge : theme.inactiveBadge
-                  )}
+                  title={`${cat.label} — ${cat.tagline}`}
                 >
-                  {cat.badge ?? catTabs.length}
-                </span>
-              </button>
-            );
-          })}
+                  <CatIcon
+                    className={cn(
+                      'size-3.5 sm:size-4 shrink-0 transition-transform duration-200 group-hover:scale-110',
+                      isSelected ? theme.activeIcon : theme.inactiveIcon
+                    )}
+                  />
+                  <span className="tracking-tight">{cat.label}</span>
+                  <span
+                    className={cn(
+                      'text-[9px] sm:text-[10px] font-mono px-1.5 sm:px-2 py-0.2 sm:py-0.5 rounded-full transition-colors font-bold shrink-0',
+                      isSelected ? theme.activeBadge : theme.inactiveBadge
+                    )}
+                  >
+                    <span className="sm:hidden">{cat.badge?.split(' ')[0] ?? catTabs.length}</span>
+                    <span className="hidden sm:inline">{cat.badge ?? catTabs.length}</span>
+                  </span>
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         {/* Centered Domain Context & Tagline */}
-        <div className="flex items-center justify-center gap-2 text-xs text-muted font-medium pt-0.5 animate-in fade-in duration-200">
-          <span className={cn('size-2 rounded-full animate-pulse', currentCategoryTheme.accentDot)} />
-          <span className="text-[11.5px] font-medium text-muted">
+        <div className="flex items-center justify-center gap-1.5 sm:gap-2 text-xs text-muted font-medium pt-0.5 animate-in fade-in duration-200 px-2 text-center w-full min-w-0">
+          <span className={cn('size-1.5 sm:size-2 rounded-full animate-pulse shrink-0', currentCategoryTheme.accentDot)} />
+          <span className="text-[10.5px] sm:text-[11.5px] font-medium text-muted truncate max-w-full">
             {activeCategoryConfig.tagline}
           </span>
           {taglineRightContent}
         </div>
       </div>
 
-      {/* Tier 2: Focused Contextual Sub-Module Tabs (Centered, single row responsive) */}
-      <div className="flex items-center justify-center pt-0.5">
-        <div
-          role="tablist"
-          aria-label={`${activeCategoryConfig.label} Sub-Modules`}
-          className="inline-flex items-center justify-center p-1 bg-surface-sunken/60 dark:bg-surface-sunken/40 rounded-2xl border border-default/60 shadow-2xs gap-1.5 flex-wrap"
-        >
-          {tabs
-            .filter((tb) => tb.category === activeCategory)
-            .map((tab) => {
-              const Icon = tab.icon;
-              const isActive = activeTab === tab.id;
+      {/* Tier 2: Focused Contextual Sub-Module Tabs (Touch-friendly responsive track) */}
+      <div className="flex items-center justify-center pt-0.5 w-full min-w-0">
+        <div className="w-full min-w-0 overflow-x-auto no-scrollbar scroll-smooth touch-pan-x flex items-center sm:justify-center">
+          <div
+            role="tablist"
+            aria-label={`${activeCategoryConfig.label} Sub-Modules`}
+            className="inline-flex items-center p-1 bg-surface-sunken/60 dark:bg-surface-sunken/40 rounded-xl sm:rounded-2xl border border-default/60 shadow-2xs gap-1 sm:gap-1.5 w-max min-w-full sm:min-w-0 sm:w-auto"
+          >
+            {tabs
+              .filter((tb) => tb.category === activeCategory)
+              .map((tab) => {
+                const Icon = tab.icon;
+                const isActive = activeTab === tab.id;
 
-              return (
-                <button
-                  key={tab.id}
-                  role="tab"
-                  aria-selected={isActive}
-                  type="button"
-                  onClick={() => onSelectTab(tab.id)}
-                  className={cn(
-                    'group flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-medium transition-all duration-150 cursor-pointer shrink-0 select-none border',
-                    isActive
-                      ? cn(currentCategoryTheme.subTabActive)
-                      : cn(
-                          'border-default/50 bg-surface/90 text-muted shadow-2xs hover:shadow-xs',
-                          currentCategoryTheme.inactiveHover
-                        )
-                  )}
-                  title={tab.description}
-                >
-                  <Icon
+                return (
+                  <button
+                    key={tab.id}
+                    role="tab"
+                    aria-selected={isActive}
+                    type="button"
+                    onClick={() => onSelectTab(tab.id)}
                     className={cn(
-                      'size-3.5 shrink-0 transition-transform group-hover:scale-110',
+                      'group flex items-center gap-1.5 sm:gap-2 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-xl text-[11px] sm:text-xs font-medium transition-all duration-150 cursor-pointer shrink-0 select-none border whitespace-nowrap',
                       isActive
-                        ? currentCategoryTheme.subTabActiveIcon
-                        : cn('text-muted transition-colors', currentCategoryTheme.inactiveIcon)
+                        ? cn(currentCategoryTheme.subTabActive)
+                        : cn(
+                            'border-default/50 bg-surface/90 text-muted shadow-2xs hover:shadow-xs',
+                            currentCategoryTheme.inactiveHover
+                          )
                     )}
-                  />
-                  <span className="hidden 2xl:inline">{tab.label}</span>
-                  <span className="2xl:hidden">{tab.shortLabel}</span>
-                  {tab.badge && (
-                    <span
+                    title={tab.description}
+                  >
+                    <Icon
                       className={cn(
-                        'text-[9px] font-bold px-1.5 py-0.2 rounded-full uppercase tracking-wider transition-colors',
+                        'size-3.5 shrink-0 transition-transform group-hover:scale-110',
                         isActive
-                          ? currentCategoryTheme.subTabActiveBadge
-                          : currentCategoryTheme.inactiveBadge
+                          ? currentCategoryTheme.subTabActiveIcon
+                          : cn('text-muted transition-colors', currentCategoryTheme.inactiveIcon)
                       )}
-                    >
-                      {tab.badge}
-                    </span>
-                  )}
-                  {typeof tab.count === 'number' && (
-                    <span
-                      className={cn(
-                        'text-[10px] font-mono px-1.5 py-0.2 rounded-full font-bold transition-colors',
-                        isActive
-                          ? currentCategoryTheme.subTabActiveBadge
-                          : currentCategoryTheme.inactiveBadge
-                      )}
-                    >
-                      {tab.count}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
+                    />
+                    <span className="hidden lg:inline">{tab.label}</span>
+                    <span className="lg:hidden">{tab.shortLabel || tab.label}</span>
+                    {tab.badge && (
+                      <span
+                        className={cn(
+                          'text-[9px] font-bold px-1.5 py-0.2 rounded-full uppercase tracking-wider transition-colors hidden sm:inline-block',
+                          isActive
+                            ? currentCategoryTheme.subTabActiveBadge
+                            : currentCategoryTheme.inactiveBadge
+                        )}
+                      >
+                        {tab.badge}
+                      </span>
+                    )}
+                    {typeof tab.count === 'number' && (
+                      <span
+                        className={cn(
+                          'text-[9px] sm:text-[10px] font-mono px-1.5 py-0.2 rounded-full font-bold transition-colors shrink-0',
+                          isActive
+                            ? currentCategoryTheme.subTabActiveBadge
+                            : currentCategoryTheme.inactiveBadge
+                        )}
+                      >
+                        {tab.count}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+          </div>
         </div>
       </div>
     </div>

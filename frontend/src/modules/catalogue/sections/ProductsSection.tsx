@@ -810,9 +810,9 @@ export function ProductsSection() {
 
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6 w-full min-w-0 max-w-full">
       {/* Catalog Intelligence KPI Summary Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3 w-full min-w-0">
         <DashboardKpiCard
           label="Total Catalog SKUs"
           value={catalogStats.total}
@@ -854,9 +854,9 @@ export function ProductsSection() {
       </div>
 
       {/* Top Search & Filter Bar */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-1 items-center gap-3">
-          <div className="relative flex-1 max-w-sm">
+      <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between w-full min-w-0">
+        <div className="flex flex-col sm:flex-row flex-1 items-stretch sm:items-center gap-2 sm:gap-3 w-full min-w-0">
+          <div className="relative flex-1 w-full sm:max-w-sm">
             <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
             <input
               type="text"
@@ -1038,8 +1038,8 @@ export function ProductsSection() {
         data={productsQuery.data}
         isFetching={productsQuery.isFetching}
       >
-        <div className="overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs max-h-[70vh] overflow-y-auto">
-          <table className="w-full text-left text-xs text-slate-800 dark:text-slate-200 border-collapse">
+        <div className="w-full min-w-0 max-w-full overflow-x-auto scrollbar-thin rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs max-h-[70vh] overflow-y-auto">
+          <table className="w-full min-w-190 text-left text-xs text-slate-800 dark:text-slate-200 border-collapse">
             <thead className="sticky top-0 z-10 border-b border-slate-200 dark:border-slate-800 bg-slate-50/95 dark:bg-slate-800/95 backdrop-blur-xs text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
               <tr>
                 <th className={cn("pl-4 pr-2 w-10 text-center", cellClass)}>

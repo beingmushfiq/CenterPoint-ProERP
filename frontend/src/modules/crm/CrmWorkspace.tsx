@@ -367,16 +367,19 @@ export function CrmWorkspace() {
   );
 
   // Check if a lead is stale (> 7 days without update/interaction)
-  const isLeadStale = (l: Lead): boolean => {
-    const stage = l.stage || l.status;
-    if (stage === 'won' || stage === 'lost' || stage === 'fake') {
-      return false;
-    }
-    const lastDate = l.updated_at || l.created_at;
-    if (!lastDate) return false;
-    const diff = (referenceTime - new Date(lastDate).getTime()) / (1000 * 60 * 60 * 24);
-    return diff >= 7;
-  };
+  const isLeadStale = useCallback(
+    (l: Lead): boolean => {
+      const stage = l.stage || l.status;
+      if (stage === 'won' || stage === 'lost' || stage === 'fake') {
+        return false;
+      }
+      const lastDate = l.updated_at || l.created_at;
+      if (!lastDate) return false;
+      const diff = (referenceTime - new Date(lastDate).getTime()) / (1000 * 60 * 60 * 24);
+      return diff >= 7;
+    },
+    [referenceTime]
+  );
 
   // Filtered Leads with Scope Control
   const filteredLeads = useMemo(() => {
@@ -409,7 +412,7 @@ export function CrmWorkspace() {
 
       return matchesSearch && matchesStage && matchesSource && matchesRep;
     });
-  }, [leads, search, stageFilter, sourceFilter, salesmanFilter, activeTab, isLeadAssignedToMe]);
+  }, [leads, search, stageFilter, sourceFilter, salesmanFilter, activeTab, isLeadAssignedToMe, isLeadStale]);
 
   const myLeadsCount = useMemo(() => {
     return leads.filter(isLeadAssignedToMe).length;
@@ -417,7 +420,7 @@ export function CrmWorkspace() {
 
   const staleLeadsCount = useMemo(() => {
     return leads.filter(isLeadStale).length;
-  }, [leads]);
+  }, [leads, isLeadStale]);
 
   // Bulk Selection Mechanics
   const isAllSelected = filteredLeads.length > 0 && selectedIds.size === filteredLeads.length;
@@ -607,7 +610,7 @@ export function CrmWorkspace() {
   );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6 w-full min-w-0 max-w-7xl mx-auto py-1 sm:py-2">
       {/* Workspace Header */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
         <div>
@@ -672,13 +675,13 @@ export function CrmWorkspace() {
       {/* 4 Colorful Themed Luxury KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
         {/* 1. Total Pipeline Value — Indigo/Blue */}
-        <div className="relative overflow-hidden rounded-2xl border border-indigo-500/25 bg-gradient-to-br from-indigo-500/10 via-indigo-500/[0.04] to-blue-500/10 dark:from-indigo-950/40 dark:via-surface dark:to-blue-950/30 p-4 shadow-xs hover:border-indigo-500/40 transition-all group">
-          <span className="absolute inset-x-0 top-0 h-[2.5px] bg-gradient-to-r from-blue-600 via-indigo-600 to-indigo-700" />
+        <div className="relative overflow-hidden rounded-2xl border border-indigo-500/25 bg-linear-to-br from-indigo-500/10 via-indigo-500/4 to-blue-500/10 dark:from-indigo-950/40 dark:via-surface dark:to-blue-950/30 p-4 shadow-xs hover:border-indigo-500/40 transition-all group">
+          <span className="absolute inset-x-0 top-0 h-[2.5px] bg-linear-to-r from-blue-600 via-indigo-600 to-indigo-700" />
           <div className="flex items-center justify-between mb-2">
             <span className="text-[11px] font-bold uppercase tracking-wider text-indigo-700 dark:text-indigo-300 truncate">
               Total Pipeline Value
             </span>
-            <span className="size-7 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 text-white flex items-center justify-center shadow-xs shrink-0 group-hover:scale-105 transition-transform">
+            <span className="size-7 rounded-xl bg-linear-to-br from-blue-600 to-indigo-600 text-white flex items-center justify-center shadow-xs shrink-0 group-hover:scale-105 transition-transform">
               <DollarSign className="size-3.5" />
             </span>
           </div>
@@ -692,13 +695,13 @@ export function CrmWorkspace() {
         </div>
 
         {/* 2. Closed Won Revenue — Emerald/Teal */}
-        <div className="relative overflow-hidden rounded-2xl border border-emerald-500/25 bg-gradient-to-br from-emerald-500/10 via-emerald-500/[0.04] to-teal-500/10 dark:from-emerald-950/40 dark:via-surface dark:to-teal-950/30 p-4 shadow-xs hover:border-emerald-500/40 transition-all group">
-          <span className="absolute inset-x-0 top-0 h-[2.5px] bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-600" />
+        <div className="relative overflow-hidden rounded-2xl border border-emerald-500/25 bg-linear-to-br from-emerald-500/10 via-emerald-500/4 to-teal-500/10 dark:from-emerald-950/40 dark:via-surface dark:to-teal-950/30 p-4 shadow-xs hover:border-emerald-500/40 transition-all group">
+          <span className="absolute inset-x-0 top-0 h-[2.5px] bg-linear-to-r from-emerald-500 via-teal-500 to-cyan-600" />
           <div className="flex items-center justify-between mb-2">
             <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-300 truncate">
               Closed Won Revenue
             </span>
-            <span className="size-7 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white flex items-center justify-center shadow-xs shrink-0 group-hover:scale-105 transition-transform">
+            <span className="size-7 rounded-xl bg-linear-to-br from-emerald-500 to-teal-600 text-white flex items-center justify-center shadow-xs shrink-0 group-hover:scale-105 transition-transform">
               <TrendingUp className="size-3.5" />
             </span>
           </div>
@@ -712,13 +715,13 @@ export function CrmWorkspace() {
         </div>
 
         {/* 3. Conversion Ratio — Purple/Fuchsia */}
-        <div className="relative overflow-hidden rounded-2xl border border-purple-500/25 bg-gradient-to-br from-purple-500/10 via-fuchsia-500/[0.04] to-pink-500/10 dark:from-purple-950/40 dark:via-surface dark:to-pink-950/30 p-4 shadow-xs hover:border-purple-500/40 transition-all group">
-          <span className="absolute inset-x-0 top-0 h-[2.5px] bg-gradient-to-r from-purple-500 via-fuchsia-500 to-pink-600" />
+        <div className="relative overflow-hidden rounded-2xl border border-purple-500/25 bg-linear-to-br from-purple-500/10 via-fuchsia-500/4 to-pink-500/10 dark:from-purple-950/40 dark:via-surface dark:to-pink-950/30 p-4 shadow-xs hover:border-purple-500/40 transition-all group">
+          <span className="absolute inset-x-0 top-0 h-[2.5px] bg-linear-to-r from-purple-500 via-fuchsia-500 to-pink-600" />
           <div className="flex items-center justify-between mb-2">
             <span className="text-[11px] font-bold uppercase tracking-wider text-purple-700 dark:text-purple-300 truncate">
               Conversion Ratio
             </span>
-            <span className="size-7 rounded-xl bg-gradient-to-br from-purple-500 to-fuchsia-600 text-white flex items-center justify-center shadow-xs shrink-0 group-hover:scale-105 transition-transform">
+            <span className="size-7 rounded-xl bg-linear-to-br from-purple-500 to-fuchsia-600 text-white flex items-center justify-center shadow-xs shrink-0 group-hover:scale-105 transition-transform">
               <CheckCircle2 className="size-3.5" />
             </span>
           </div>
@@ -731,13 +734,13 @@ export function CrmWorkspace() {
         </div>
 
         {/* 4. Fake / Invalid Leads — Rose/Amber */}
-        <div className="relative overflow-hidden rounded-2xl border border-rose-500/25 bg-gradient-to-br from-rose-500/10 via-amber-500/[0.04] to-orange-500/10 dark:from-rose-950/40 dark:via-surface dark:to-amber-950/30 p-4 shadow-xs hover:border-rose-500/40 transition-all group">
-          <span className="absolute inset-x-0 top-0 h-[2.5px] bg-gradient-to-r from-rose-500 via-amber-500 to-orange-600" />
+        <div className="relative overflow-hidden rounded-2xl border border-rose-500/25 bg-linear-to-br from-rose-500/10 via-amber-500/4 to-orange-500/10 dark:from-rose-950/40 dark:via-surface dark:to-amber-950/30 p-4 shadow-xs hover:border-rose-500/40 transition-all group">
+          <span className="absolute inset-x-0 top-0 h-[2.5px] bg-linear-to-r from-rose-500 via-amber-500 to-orange-600" />
           <div className="flex items-center justify-between mb-2">
             <span className="text-[11px] font-bold uppercase tracking-wider text-rose-700 dark:text-rose-300 truncate">
               Fake / Invalid Leads
             </span>
-            <span className="size-7 rounded-xl bg-gradient-to-br from-rose-500 to-amber-600 text-white flex items-center justify-center shadow-xs shrink-0 group-hover:scale-105 transition-transform">
+            <span className="size-7 rounded-xl bg-linear-to-br from-rose-500 to-amber-600 text-white flex items-center justify-center shadow-xs shrink-0 group-hover:scale-105 transition-transform">
               <AlertTriangle className="size-3.5" />
             </span>
           </div>
@@ -763,7 +766,7 @@ export function CrmWorkspace() {
       <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
         <div className="flex items-center gap-2.5 flex-1 flex-wrap">
           {/* Search Box */}
-          <div className="relative min-w-[220px] flex-1 max-w-sm">
+          <div className="relative min-w-55 flex-1 max-w-sm">
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted" />
             <input
               type="text"

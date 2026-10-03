@@ -294,7 +294,7 @@ export function InvoicesSection({ onNavigateToTab }: InvoicesSectionProps = {}) 
   };
 
   return (
-    <div className="space-y-4">
+    <div className="w-full min-w-0 max-w-full space-y-4">
       {/* Controls */}
       <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
         <div className="flex flex-wrap items-center gap-2">

@@ -257,11 +257,11 @@ export function PartiesSection() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6 w-full min-w-0 max-w-full">
       {/* Controls */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-1 items-center gap-3">
-          <div className="relative flex-1 max-w-sm">
+      <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between w-full min-w-0">
+        <div className="flex flex-col sm:flex-row flex-1 items-stretch sm:items-center gap-2 sm:gap-3 w-full min-w-0">
+          <div className="relative flex-1 w-full sm:max-w-sm">
             <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted" />
             <input
               type="text"
@@ -272,12 +272,12 @@ export function PartiesSection() {
             />
           </div>
 
-          <div className="flex overflow-x-auto rounded-xl border border-default bg-surface p-1 shadow-2xs">
+          <div className="flex overflow-x-auto no-scrollbar rounded-xl border border-default bg-surface p-1 shadow-2xs w-full sm:w-auto">
             {(['all', 'customer', 'supplier', 'dealer', 'agent'] as const).map((r) => (
               <button
                 key={r}
                 onClick={() => setRoleFilter(r)}
-                className={`rounded-lg px-2.5 py-1 text-xs font-semibold capitalize transition-colors cursor-pointer ${
+                className={`rounded-lg px-2.5 py-1 text-xs font-semibold capitalize transition-colors cursor-pointer shrink-0 whitespace-nowrap ${
                   roleFilter === r
                     ? 'bg-primary text-primary-fg shadow-2xs'
                     : 'text-muted hover:text-default'
@@ -289,7 +289,7 @@ export function PartiesSection() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap justify-end">
           <TableControls
             density={density}
             onDensityChange={setDensity}
@@ -358,8 +358,8 @@ export function PartiesSection() {
         data={partiesQuery.data}
         isFetching={partiesQuery.isFetching}
       >
-        <div className="overflow-hidden rounded-2xl border border-default bg-surface shadow-2xs max-h-[70vh] overflow-y-auto">
-          <table className="w-full text-left text-xs text-default border-collapse">
+        <div className="w-full min-w-0 max-w-full overflow-x-auto scrollbar-thin rounded-2xl border border-default bg-surface shadow-2xs max-h-[70vh] overflow-y-auto">
+          <table className="w-full min-w-180 text-left text-xs text-default border-collapse">
             <thead className="sticky top-0 z-10 border-b border-default bg-surface-sunken/95 backdrop-blur-xs text-[11px] font-semibold uppercase tracking-wider text-muted">
               <tr>
                 {isVisible('name') && <th className={cn("py-3.5 pl-4 pr-3", cellClass)}>Party Name & Code</th>}

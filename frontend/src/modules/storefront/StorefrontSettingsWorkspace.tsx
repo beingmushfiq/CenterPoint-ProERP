@@ -765,10 +765,9 @@ export const StorefrontSettingsWorkspace: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
-
+    <div className="space-y-4 sm:space-y-6 w-full min-w-0 max-w-7xl mx-auto py-1 sm:py-2">
       {/* Header & Quick Links */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-default pb-5">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-default pb-4 sm:pb-5 w-full min-w-0">
         <div>
           <h1 className="text-xl font-bold text-default">Storefront CMS & Customizer</h1>
           <p className="text-xs text-muted mt-1">

@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+﻿import { useState, useRef, useEffect, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import {
@@ -538,9 +538,9 @@ export function CustomersSection() {
   );
 
   return (
-    <div className="space-y-6">
+    <div className="w-full min-w-0 max-w-full space-y-6">
       {/* CRM Party-Role Switcher */}
-      <div className="flex items-center gap-1 p-1 rounded-xl bg-surface-sunken border border-default w-fit">
+      <div className="flex items-center gap-1 p-1 rounded-xl bg-surface-sunken border border-default w-fit max-w-full overflow-x-auto no-scrollbar">
         {(['customer', 'dealer', 'agent'] as const).map((role) => {
           const labels = { customer: 'Customers', dealer: 'Dealers', agent: 'Agents' };
           const dots = { customer: 'bg-blue-500', dealer: 'bg-purple-500', agent: 'bg-amber-500' };
@@ -986,8 +986,8 @@ export function CustomersSection() {
               </div>
             </div>
 
-            <div className="overflow-hidden rounded-xl border border-default">
-              <table className="w-full text-left text-xs">
+            <div className="w-full min-w-0 max-w-full overflow-x-auto scrollbar-thin rounded-xl border border-default">
+              <table className="w-full min-w-140 text-left text-xs">
                 <thead className="bg-surface-sunken text-muted uppercase text-[10px] border-b border-default">
                   <tr>
                     <th className="px-3.5 py-2.5">Date</th>

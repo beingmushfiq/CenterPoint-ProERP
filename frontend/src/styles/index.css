@@ -457,3 +457,11 @@ html.dark .storefront-rich-content td,
   min-width: 52px;
 }
 
+@utility no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+

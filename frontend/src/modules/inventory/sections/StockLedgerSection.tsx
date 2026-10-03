@@ -447,7 +447,7 @@ export function StockLedgerSection() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="w-full min-w-0 max-w-full space-y-6">
       {/* Metric Cards Banner */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="rounded-2xl border border-default bg-surface p-4.5 shadow-2xs">
@@ -598,7 +598,7 @@ export function StockLedgerSection() {
           </button>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
           {viewMode === 'balances' && (
             <>
               <TableControls
@@ -629,7 +629,7 @@ export function StockLedgerSection() {
             </>
           )}
 
-          <div className="relative flex-1 sm:w-64">
+          <div className="relative flex-1 min-w-50 sm:w-64">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted" />
             <input
               type="text"

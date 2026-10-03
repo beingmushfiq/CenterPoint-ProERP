@@ -177,20 +177,20 @@ export default function CatalogueWorkspace() {
   const currentTabConfig = tabs.find((t) => t.id === activeTab) ?? tabs[0]!;
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto py-2">
+    <div className="space-y-4 sm:space-y-6 w-full min-w-0 max-w-7xl mx-auto py-1 sm:py-2">
       {/* Workspace Header */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-default pb-5">
-        <div>
-          <div className="flex items-center gap-2 mb-1.5">
-            <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-primary bg-primary-subtle px-2.5 py-0.5 rounded-full border border-primary/20 flex items-center gap-1">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-default pb-4 sm:pb-5 w-full min-w-0">
+        <div className="min-w-0">
+          <div className="flex items-center gap-1.5 sm:gap-2 mb-1.5 flex-wrap">
+            <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-primary bg-primary-subtle px-2.5 py-0.5 rounded-full border border-primary/20 flex items-center gap-1 shrink-0">
               <Layers className="size-3 text-primary" />
               {t('catalogue.masterDataBadge')}
             </span>
-            <span className="text-[10px] text-muted font-medium bg-surface-sunken px-2 py-0.5 rounded-full border border-default">
+            <span className="text-[10px] text-muted font-medium bg-surface-sunken px-2 py-0.5 rounded-full border border-default shrink-0">
               {t('catalogue.submodulesAvailable')}
             </span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-default flex items-center gap-2.5">
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-extrabold tracking-tight text-default flex items-center gap-2.5 truncate">
             {currentTabConfig.label}
           </h1>
           <p className="mt-1 text-xs text-muted max-w-2xl leading-relaxed">
@@ -199,12 +199,12 @@ export default function CatalogueWorkspace() {
         </div>
 
         {/* Header Action Tools */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
           {/* Capabilities Guide Button */}
           <button
             type="button"
             onClick={() => setIsGuideOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-xl border border-primary/30 bg-primary-subtle hover:bg-primary/10 text-primary transition-all shadow-2xs cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            className="flex items-center gap-1.5 px-3 py-1.5 sm:py-2 text-xs font-semibold rounded-xl border border-primary/30 bg-primary-subtle hover:bg-primary/10 text-primary transition-all shadow-2xs cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary shrink-0"
             title="Open Catalog Capabilities and System Guide"
           >
             <Compass className="size-3.5 text-primary" />
@@ -215,68 +215,70 @@ export default function CatalogueWorkspace() {
       </div>
 
       {/* Non-Technical Workflow Guide: What to configure first */}
-      <div className="bg-surface rounded-2xl border border-default p-3 shadow-2xs flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
-        <div className="flex items-center gap-2.5">
+      <div className="bg-surface rounded-2xl border border-default p-2.5 sm:p-3 shadow-2xs flex flex-col md:flex-row items-start md:items-center justify-between gap-3 w-full min-w-0">
+        <div className="flex items-center gap-2.5 min-w-0">
           <div className="size-8 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
             <Sparkles className="size-4 text-primary" />
           </div>
-          <div>
-            <div className="text-xs font-bold text-default flex items-center gap-1.5">
+          <div className="min-w-0">
+            <div className="text-xs font-bold text-default flex items-center gap-1.5 flex-wrap">
               <span>{t('catalogue.recommendedSetup')}</span>
               <span className="text-[10px] text-muted font-normal">{t('catalogue.setupStepHint')}</span>
             </div>
-            <p className="text-[11px] text-muted">{t('catalogue.clickStepHint')}</p>
+            <p className="text-[11px] text-muted truncate sm:whitespace-normal">{t('catalogue.clickStepHint')}</p>
           </div>
         </div>
 
-        <div className="flex items-center gap-1.5 flex-wrap w-full md:w-auto">
-          <button
-            type="button"
-            onClick={() => setActiveTab('units')}
-            className={cn(
-              'px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all cursor-pointer flex items-center gap-1',
-              activeTab === 'units' ? 'bg-primary text-primary-fg' : 'bg-surface-sunken hover:bg-surface text-muted hover:text-default border border-default'
-            )}
-          >
-            <span className="size-4 rounded-full bg-black/20 flex items-center justify-center text-[10px]">1</span>
-            <span>{t('catalogue.tabUnitsLabel')}</span>
-          </button>
-          <ArrowRight className="size-3 text-muted/50 hidden sm:inline" />
-          <button
-            type="button"
-            onClick={() => setActiveTab('categories')}
-            className={cn(
-              'px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all cursor-pointer flex items-center gap-1',
-              activeTab === 'categories' ? 'bg-primary text-primary-fg' : 'bg-surface-sunken hover:bg-surface text-muted hover:text-default border border-default'
-            )}
-          >
-            <span className="size-4 rounded-full bg-black/20 flex items-center justify-center text-[10px]">2</span>
-            <span>{t('catalogue.tabCategoriesLabel')}</span>
-          </button>
-          <ArrowRight className="size-3 text-muted/50 hidden sm:inline" />
-          <button
-            type="button"
-            onClick={() => setActiveTab('products')}
-            className={cn(
-              'px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all cursor-pointer flex items-center gap-1',
-              activeTab === 'products' ? 'bg-primary text-primary-fg' : 'bg-surface-sunken hover:bg-surface text-muted hover:text-default border border-default'
-            )}
-          >
-            <span className="size-4 rounded-full bg-black/20 flex items-center justify-center text-[10px]">3</span>
-            <span>{t('catalogue.tabProductsLabel')}</span>
-          </button>
-          <ArrowRight className="size-3 text-muted/50 hidden sm:inline" />
-          <button
-            type="button"
-            onClick={() => setActiveTab('bom')}
-            className={cn(
-              'px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all cursor-pointer flex items-center gap-1',
-              activeTab === 'bom' ? 'bg-primary text-primary-fg' : 'bg-surface-sunken hover:bg-surface text-muted hover:text-default border border-default'
-            )}
-          >
-            <span className="size-4 rounded-full bg-black/20 flex items-center justify-center text-[10px]">4</span>
-            <span>{t('catalogue.tabBomLabel')}</span>
-          </button>
+        <div className="w-full md:w-auto overflow-x-auto no-scrollbar scroll-smooth touch-pan-x">
+          <div className="flex items-center gap-1.5 flex-nowrap md:flex-wrap w-max md:w-auto">
+            <button
+              type="button"
+              onClick={() => setActiveTab('units')}
+              className={cn(
+                'px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all cursor-pointer flex items-center gap-1 shrink-0 whitespace-nowrap',
+                activeTab === 'units' ? 'bg-primary text-primary-fg' : 'bg-surface-sunken hover:bg-surface text-muted hover:text-default border border-default'
+              )}
+            >
+              <span className="size-4 rounded-full bg-black/20 flex items-center justify-center text-[10px]">1</span>
+              <span>{t('catalogue.tabUnitsLabel')}</span>
+            </button>
+            <ArrowRight className="size-3 text-muted/50 hidden md:inline" />
+            <button
+              type="button"
+              onClick={() => setActiveTab('categories')}
+              className={cn(
+                'px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all cursor-pointer flex items-center gap-1 shrink-0 whitespace-nowrap',
+                activeTab === 'categories' ? 'bg-primary text-primary-fg' : 'bg-surface-sunken hover:bg-surface text-muted hover:text-default border border-default'
+              )}
+            >
+              <span className="size-4 rounded-full bg-black/20 flex items-center justify-center text-[10px]">2</span>
+              <span>{t('catalogue.tabCategoriesLabel')}</span>
+            </button>
+            <ArrowRight className="size-3 text-muted/50 hidden md:inline" />
+            <button
+              type="button"
+              onClick={() => setActiveTab('products')}
+              className={cn(
+                'px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all cursor-pointer flex items-center gap-1 shrink-0 whitespace-nowrap',
+                activeTab === 'products' ? 'bg-primary text-primary-fg' : 'bg-surface-sunken hover:bg-surface text-muted hover:text-default border border-default'
+              )}
+            >
+              <span className="size-4 rounded-full bg-black/20 flex items-center justify-center text-[10px]">3</span>
+              <span>{t('catalogue.tabProductsLabel')}</span>
+            </button>
+            <ArrowRight className="size-3 text-muted/50 hidden md:inline" />
+            <button
+              type="button"
+              onClick={() => setActiveTab('bom')}
+              className={cn(
+                'px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all cursor-pointer flex items-center gap-1 shrink-0 whitespace-nowrap',
+                activeTab === 'bom' ? 'bg-primary text-primary-fg' : 'bg-surface-sunken hover:bg-surface text-muted hover:text-default border border-default'
+              )}
+            >
+              <span className="size-4 rounded-full bg-black/20 flex items-center justify-center text-[10px]">4</span>
+              <span>{t('catalogue.tabBomLabel')}</span>
+            </button>
+          </div>
         </div>
       </div>
 

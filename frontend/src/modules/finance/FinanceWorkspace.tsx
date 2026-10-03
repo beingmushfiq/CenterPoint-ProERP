@@ -607,10 +607,36 @@ export const FinanceWorkspace: React.FC = () => {
 
   // Hydrate finance live data from API on component mount
   useEffect(() => {
-    void fetchAccountsFromApi();
-    void fetchBanksFromApi();
-    void fetchJournalsFromApi();
-  }, [fetchAccountsFromApi, fetchBanksFromApi, fetchJournalsFromApi]);
+    let ignore = false;
+    const hydrateFinance = async () => {
+      try {
+        const [accRes, bankRes, journalRes] = await Promise.allSettled([
+          api.get('/finance/accounts'),
+          api.get('/finance/bank-accounts'),
+          api.get('/finance/journal-entries'),
+        ]);
+        if (ignore) return;
+        if (accRes.status === 'fulfilled') {
+          const list = extractList<ChartOfAccount>(accRes.value.data);
+          if (list.length > 0) setAccounts(list);
+        }
+        if (bankRes.status === 'fulfilled') {
+          const list = extractList<BankAccount>(bankRes.value.data);
+          if (list.length > 0) setBankAccounts(list);
+        }
+        if (journalRes.status === 'fulfilled') {
+          const list = extractList<JournalEntry>(journalRes.value.data);
+          if (list.length > 0) setJournalEntries(list);
+        }
+      } catch {
+        // Retain state on error
+      }
+    };
+    void hydrateFinance();
+    return () => {
+      ignore = true;
+    };
+  }, []);
 
   // Expenses State
   const [expenses, setExpenses] = useState<Expense[]>([
@@ -1390,9 +1416,9 @@ export const FinanceWorkspace: React.FC = () => {
   }, [t, bankAccounts.length, expenses.length, journalEntries.length, accounts.length, productCosts.length]);
 
   return (
-    <div className="space-y-8 max-w-7xl mx-auto py-2">
+    <div className="space-y-6 sm:space-y-8 w-full min-w-0 max-w-7xl mx-auto py-1 sm:py-2">
       {/* Module Header */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-default pb-5">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-default pb-4 sm:pb-5 w-full min-w-0">
         <div>
           <div className="flex items-center gap-2 mb-1.5 flex-wrap">
             <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-primary bg-primary-subtle px-2.5 py-0.5 rounded-full border border-primary/20">

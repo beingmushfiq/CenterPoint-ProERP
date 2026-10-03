@@ -456,7 +456,7 @@ interface RoleMemberUser {
   }, [modulesList, permMatrixSearch]);
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto py-2">
+    <div className="w-full min-w-0 max-w-7xl mx-auto py-1 sm:py-2 space-y-4 sm:space-y-6">
       {/* Top Banner */}
       <div className="relative overflow-hidden rounded-2xl border border-default bg-surface p-6 sm:p-7 shadow-xs">
         <div

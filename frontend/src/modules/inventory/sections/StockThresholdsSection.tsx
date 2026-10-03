@@ -127,7 +127,7 @@ export const StockThresholdsSection: React.FC = () => {
   });
 
   return (
-    <div className="space-y-6">
+    <div className="w-full min-w-0 max-w-full space-y-6">
       {/* KPI Cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <KPICard
@@ -157,9 +157,9 @@ export const StockThresholdsSection: React.FC = () => {
 
       {/* Low Stock Warning Banner */}
       {lowCount > 0 && (
-        <div className="rounded-2xl border border-rose-500/30 bg-rose-500/10 p-4 flex items-center justify-between gap-4">
+        <div className="rounded-2xl border border-rose-500/30 bg-rose-500/10 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-rose-500/20 text-rose-600">
+            <div className="p-2 rounded-xl bg-rose-500/20 text-rose-600 shrink-0">
               <AlertTriangle className="h-5 w-5" />
             </div>
             <div>
@@ -171,7 +171,7 @@ export const StockThresholdsSection: React.FC = () => {
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex flex-wrap items-center gap-2 shrink-0">
             <Link
               to="/purchasing?tab=orders"
               className="px-3.5 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition shadow-xs flex items-center gap-1.5 shrink-0"
@@ -192,7 +192,7 @@ export const StockThresholdsSection: React.FC = () => {
       )}
 
       {/* Filters Bar */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-surface rounded-2xl p-4 border border-default shadow-xs">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-surface rounded-2xl p-4 border border-default shadow-xs w-full min-w-0">
         <div className="flex items-center gap-2 w-full sm:w-auto flex-1 max-w-md">
           <div className="relative w-full">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted" />
@@ -249,9 +249,9 @@ export const StockThresholdsSection: React.FC = () => {
       </div>
 
       {/* Thresholds Table */}
-      <div className="rounded-2xl border border-default bg-surface shadow-xs overflow-hidden">
-        <div className="overflow-x-auto min-h-75">
-          <table className="w-full text-left text-xs text-default">
+      <div className="w-full min-w-0 max-w-full rounded-2xl border border-default bg-surface shadow-xs overflow-hidden">
+        <div className="w-full min-w-0 max-w-full overflow-x-auto scrollbar-thin min-h-75">
+          <table className="w-full min-w-190 text-left text-xs text-default">
             <thead className="border-b border-default bg-surface-sunken/70 uppercase text-[11px] font-semibold tracking-wider text-muted">
               <tr>
                 <th className="px-5 py-3.5">Product & SKU</th>

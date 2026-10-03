@@ -3,6 +3,7 @@ export interface QcParameter {
   code: string;
   name: string;
   category: string;
+  product_id?: string | null;
   data_type: 'numeric' | 'boolean' | 'options' | 'text';
   type?: string;
   min_value?: string | null;
@@ -38,6 +39,7 @@ export interface QcInspection {
   id: string;
   inspection_number: string;
   batch_id?: string | null;
+  production_batch_id?: string | null;
   batch_number?: string | null;
   product_id: string;
   product_name?: string;

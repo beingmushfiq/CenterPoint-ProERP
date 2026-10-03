@@ -612,7 +612,7 @@ export const TenantDetailWorkspace: React.FC = () => {
   ];
 
   return (
-    <div className="space-y-6 font-sans">
+    <div className="space-y-4 sm:space-y-6 w-full min-w-0 max-w-7xl mx-auto py-1 sm:py-2 font-sans">
       {/* Back button */}
       <Link
         to="/platform/tenants"
@@ -1087,30 +1087,32 @@ export const TenantDetailWorkspace: React.FC = () => {
               Subscription Transition History
             </h2>
             {subscriptions && subscriptions.length > 0 ? (
-              <table className="w-full text-left text-xs font-mono">
-                <thead className="border-b border-default text-muted uppercase text-[10px]">
-                  <tr>
-                    <th className="pb-3">Sub ID</th>
-                    <th className="pb-3">Plan</th>
-                    <th className="pb-3">Starts At</th>
-                    <th className="pb-3">Expires At</th>
-                    <th className="pb-3">Status</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-default">
-                  {subscriptions.map((sub) => (
-                    <tr key={sub.id} className="hover:bg-surface-sunken">
-                      <td className="py-3 text-muted">#{sub.id}</td>
-                      <td className="py-3 text-default font-bold">{sub.plan?.name ?? 'Tier'}</td>
-                      <td className="py-3 text-muted">{new Date(sub.starts_at).toLocaleDateString()}</td>
-                      <td className="py-3 text-muted">
-                        {sub.ends_at ? new Date(sub.ends_at).toLocaleDateString() : 'Permanent'}
-                      </td>
-                      <td className="py-3 text-emerald-600 dark:text-emerald-400 uppercase font-bold">{sub.status}</td>
+              <div className="w-full min-w-0 max-w-full overflow-x-auto scrollbar-thin">
+                <table className="w-full min-w-140 text-left text-xs font-mono">
+                  <thead className="border-b border-default text-muted uppercase text-[10px]">
+                    <tr>
+                      <th className="pb-3">Sub ID</th>
+                      <th className="pb-3">Plan</th>
+                      <th className="pb-3">Starts At</th>
+                      <th className="pb-3">Expires At</th>
+                      <th className="pb-3">Status</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-default">
+                    {subscriptions.map((sub) => (
+                      <tr key={sub.id} className="hover:bg-surface-sunken">
+                        <td className="py-3 text-muted">#{sub.id}</td>
+                        <td className="py-3 text-default font-bold">{sub.plan?.name ?? 'Tier'}</td>
+                        <td className="py-3 text-muted">{new Date(sub.starts_at).toLocaleDateString()}</td>
+                        <td className="py-3 text-muted">
+                          {sub.ends_at ? new Date(sub.ends_at).toLocaleDateString() : 'Permanent'}
+                        </td>
+                        <td className="py-3 text-emerald-600 dark:text-emerald-400 uppercase font-bold">{sub.status}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             ) : (
               <div className="py-6 text-center text-muted text-xs font-mono">
                 No past subscription transitions recorded.
@@ -1145,8 +1147,8 @@ export const TenantDetailWorkspace: React.FC = () => {
             </div>
 
             {payments && payments.length > 0 ? (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs font-mono">
+              <div className="w-full min-w-0 max-w-full overflow-x-auto scrollbar-thin">
+                <table className="w-full min-w-155 text-left text-xs font-mono">
                   <thead className="border-b border-default text-muted uppercase text-[10px]">
                     <tr>
                       <th className="pb-3">Invoice Ref</th>
@@ -1214,8 +1216,8 @@ export const TenantDetailWorkspace: React.FC = () => {
           </div>
 
           {users.length > 0 ? (
-            <div className="overflow-x-auto rounded-xl border border-default">
-              <table className="w-full text-left text-xs font-sans">
+            <div className="w-full min-w-0 max-w-full overflow-x-auto scrollbar-thin rounded-xl border border-default">
+              <table className="w-full min-w-155 text-left text-xs font-sans">
                 <thead className="bg-surface-sunken border-b border-default text-muted uppercase text-[10px] tracking-wider">
                   <tr>
                     <th className="py-3 px-4 font-semibold">User ID</th>

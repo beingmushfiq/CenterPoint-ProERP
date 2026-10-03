@@ -143,10 +143,10 @@ export function CategoriesSection() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6 w-full min-w-0 max-w-full">
       {/* Search and Add Top Bar */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="relative flex-1 max-w-sm">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5 w-full min-w-0">
+        <div className="relative flex-1 w-full sm:max-w-sm">
           <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted" />
           <input
             type="text"
@@ -157,7 +157,7 @@ export function CategoriesSection() {
           />
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <button
             type="button"
             onClick={() => setIsImportOpen(true)}
@@ -197,8 +197,8 @@ export function CategoriesSection() {
         data={categoriesQuery.data}
         isFetching={categoriesQuery.isFetching}
       >
-        <div className="overflow-hidden rounded-2xl border border-default bg-surface shadow-2xs">
-          <table className="w-full text-left text-xs text-default border-collapse">
+        <div className="w-full min-w-0 max-w-full overflow-x-auto scrollbar-thin rounded-2xl border border-default bg-surface shadow-2xs">
+          <table className="w-full min-w-160 text-left text-xs text-default border-collapse">
             <thead className="border-b border-default bg-surface-sunken/70 text-[11px] font-semibold uppercase tracking-wider text-muted">
               <tr>
                 <th className="py-3.5 pl-4 pr-3">Code</th>

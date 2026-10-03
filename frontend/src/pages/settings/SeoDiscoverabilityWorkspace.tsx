@@ -422,7 +422,7 @@ export const SeoDiscoverabilityWorkspace: React.FC<SeoDiscoverabilityWorkspacePr
   }
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-8">
+    <div className="w-full min-w-0 max-w-7xl mx-auto py-1 sm:py-2 space-y-4 sm:space-y-6 pb-8">
       {/* Header Banner */}
       <div className="relative overflow-hidden rounded-2xl border border-default bg-surface p-5 sm:p-6 shadow-xs">
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -547,7 +547,7 @@ export const SeoDiscoverabilityWorkspace: React.FC<SeoDiscoverabilityWorkspacePr
       </div>
 
       {/* Workspace Tabs Navigation */}
-      <div className="flex flex-wrap items-center gap-2 border-b border-default pb-3">
+      <div className="w-full min-w-0 max-w-full flex items-center gap-2 border-b border-default pb-3 overflow-x-auto no-scrollbar scroll-smooth touch-pan-x sm:flex-wrap">
         {([
           { id: 'metadata', label: 'Meta & Canonical', icon: Sliders },
           { id: 'nap', label: 'Local Business & Entity (NAP)', icon: Globe },
@@ -1033,8 +1033,8 @@ export const SeoDiscoverabilityWorkspace: React.FC<SeoDiscoverabilityWorkspacePr
                 No custom URL redirects created yet.
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
+              <div className="w-full min-w-0 max-w-full overflow-x-auto scrollbar-thin">
+                <table className="w-full min-w-162.5 text-left text-xs">
                   <thead className="border-b border-default bg-surface-sunken text-muted">
                     <tr>
                       <th className="py-3 px-4 font-semibold">Source Path</th>
@@ -1108,8 +1108,8 @@ export const SeoDiscoverabilityWorkspace: React.FC<SeoDiscoverabilityWorkspacePr
               No recent 404 not found errors logged. Storefront links are healthy!
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
+            <div className="w-full min-w-0 max-w-full overflow-x-auto scrollbar-thin">
+              <table className="w-full min-w-150 text-left text-xs">
                 <thead className="border-b border-default bg-surface-sunken text-muted">
                   <tr>
                     <th className="py-3 px-4 font-semibold">Missing Path</th>

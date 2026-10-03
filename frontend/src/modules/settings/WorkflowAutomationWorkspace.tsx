@@ -786,11 +786,11 @@ export const WorkflowAutomationWorkspace: React.FC = () => {
   }, [logs, logSearchQuery]);
 
   return (
-    <div className="space-y-6 pb-16">
+    <div className="space-y-4 sm:space-y-6 w-full min-w-0 max-w-7xl mx-auto py-1 sm:py-2 pb-16">
       {/* ─────────────────────────────────────────────────────────────────────────────
           1. Workspace Header with Standard ERP Breadcrumb & Color Tag
          ───────────────────────────────────────────────────────────────────────────── */}
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between border-b border-default pb-4">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between border-b border-default pb-4 w-full min-w-0">
         <div>
           <div className="flex items-center gap-2 mb-1.5 flex-wrap">
             <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 bg-indigo-500/10 px-2.5 py-0.5 rounded-full border border-indigo-500/20">

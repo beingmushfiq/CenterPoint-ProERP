@@ -81,7 +81,9 @@ export const DeliveryWorkspace: React.FC = () => {
     },
   ]);
 
-  const [shipments, setShipments] = useState<CourierShipment[]>([
+  const [referenceTime] = useState(() => Date.now());
+
+  const [shipments, setShipments] = useState<CourierShipment[]>(() => [
     {
       id: 1,
       uuid: 'shp-01',
@@ -611,7 +613,7 @@ export const DeliveryWorkspace: React.FC = () => {
         activeInTransit++;
         const dateStr = s.confirmed_at || s.requested_at || s.created_at;
         const elapsed = dateStr
-          ? Math.max(0, Math.floor((Date.now() - new Date(dateStr).getTime()) / (1000 * 3600)))
+          ? Math.max(0, Math.floor((referenceTime - new Date(dateStr).getTime()) / (1000 * 3600)))
           : 0;
         if (elapsed >= 72) {
           breachedCount++;
@@ -639,7 +641,7 @@ export const DeliveryWorkspace: React.FC = () => {
       slaCompliance,
       trendData,
     };
-  }, [shipments]);
+  }, [shipments, referenceTime]);
 
   const categories: WorkspaceCategoryConfig<DeliveryCategory, DeliveryTab>[] = useMemo(
     () => [
@@ -716,9 +718,9 @@ export const DeliveryWorkspace: React.FC = () => {
   const currentStage = (stages.find((s) => s.id === activeTab) || stages[0])!;
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto py-2">
+    <div className="space-y-4 sm:space-y-6 w-full min-w-0 max-w-7xl mx-auto py-1 sm:py-2">
       {/* Page Header with Standardized Breadcrumb */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-default pb-5">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-default pb-4 sm:pb-5 w-full min-w-0">
         <div>
           <div className="flex items-center gap-2 mb-1.5 flex-wrap">
             <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-primary bg-primary-subtle px-2.5 py-0.5 rounded-full border border-primary/20 flex items-center gap-1">

@@ -532,8 +532,8 @@ const DomainsTabContent: React.FC = () => {
       ) : domains.length === 0 ? (
         <div className="p-8 text-center text-muted">No custom domains configured on platform.</div>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full text-left">
+        <div className="w-full min-w-0 max-w-full overflow-x-auto scrollbar-thin">
+          <table className="w-full min-w-137.5 text-left">
             <thead>
               <tr className="border-b border-default text-[11px] text-muted uppercase">
                 <th className="py-2.5 px-3">Domain</th>
@@ -725,8 +725,8 @@ const JobsTabContent: React.FC = () => {
           <span>All background queue workers are operational. No failed jobs recorded.</span>
         </div>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full text-left">
+        <div className="w-full min-w-0 max-w-full overflow-x-auto scrollbar-thin">
+          <table className="w-full min-w-137.5 text-left">
             <thead>
               <tr className="border-b border-default text-[11px] text-muted uppercase">
                 <th className="py-2.5 px-3">Job ID</th>
@@ -829,7 +829,7 @@ export const PlatformSettingsWorkspace: React.FC = () => {
   const formKey = data ? JSON.stringify(data) : 'loading';
 
   return (
-    <div className="space-y-6 font-sans">
+    <div className="space-y-4 sm:space-y-6 w-full min-w-0 max-w-7xl mx-auto py-1 sm:py-2 font-sans">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
@@ -852,7 +852,7 @@ export const PlatformSettingsWorkspace: React.FC = () => {
       </div>
 
       {/* Settings Navigation Tabs */}
-      <div className="flex bg-surface-sunken p-1 rounded-xl border border-default max-w-lg">
+      <div className="flex overflow-x-auto no-scrollbar scroll-smooth touch-pan-x w-full min-w-0 bg-surface-sunken p-1 rounded-xl border border-default max-w-lg">
         <button
           type="button"
           onClick={() => setActiveTab('general')}

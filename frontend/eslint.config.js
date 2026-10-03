@@ -45,6 +45,7 @@ export default tseslint.config(
             'STATUS_REGISTRY',
             'resolveStatus',
             'router',
+            'WORKSPACE_THEMES',
           ],
         },
       ],

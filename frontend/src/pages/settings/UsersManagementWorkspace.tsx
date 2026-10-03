@@ -927,7 +927,7 @@ export const UsersManagementWorkspace: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6 pb-12 max-w-7xl mx-auto py-2">
+    <div className="space-y-4 sm:space-y-6 w-full min-w-0 max-w-7xl mx-auto py-1 sm:py-2 pb-12">
       {/* ── Workspace Header Surface ───────────────────────────────────── */}
       <div className="bg-surface border border-default rounded-2xl p-5 sm:p-6 shadow-2xs">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">

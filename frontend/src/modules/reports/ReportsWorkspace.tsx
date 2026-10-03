@@ -792,7 +792,7 @@ export const ReportsWorkspace: React.FC = () => {
   }, [definitions, quickJumpSearch]);
 
   return (
-    <div className="space-y-6 pb-12">
+    <div className="space-y-4 sm:space-y-6 w-full min-w-0 max-w-7xl mx-auto py-1 sm:py-2 pb-12">
       {/* ── 1. Page Header with Title & ERP Quick Actions Toolbar ───────── */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
@@ -1232,8 +1232,8 @@ export const ReportsWorkspace: React.FC = () => {
             </span>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs text-left">
+          <div className="w-full min-w-0 max-w-full overflow-x-auto scrollbar-thin">
+            <table className="w-full min-w-160 text-xs text-left">
               <thead className="bg-surface-sunken text-muted font-bold uppercase tracking-wider border-b border-default">
                 <tr>
                   {Object.entries(reportResult?.columns || {}).map(([key, col]) => (

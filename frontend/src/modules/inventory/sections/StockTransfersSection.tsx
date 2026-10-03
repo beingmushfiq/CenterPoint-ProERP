@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import {
@@ -133,27 +133,30 @@ export function StockTransfersSection() {
     }
   };
 
-  const handleStatusChange = async (transferId: number, nextStatus: StockTransfer['status']) => {
-    try {
-      await api.patch(`/inventory/transfers/${transferId}`, { status: nextStatus });
-    } catch {
-      // Optimistic fallback
-    }
+  const handleStatusChange = useCallback(
+    async (transferId: number, nextStatus: StockTransfer['status']) => {
+      try {
+        await api.patch(`/inventory/transfers/${transferId}`, { status: nextStatus });
+      } catch {
+        // Optimistic fallback
+      }
 
-    queryClient.setQueryData<StockTransfer[]>(['inventory', 'transfers'], (prev = []) =>
-      prev.map((t) =>
-        t.id === transferId
-          ? {
-              ...t,
-              status: nextStatus,
-              dispatched_at: (nextStatus === 'in_transit' && !t.dispatched_at ? new Date().toISOString() : t.dispatched_at) ?? null,
-              received_at: (nextStatus === 'received' && !t.received_at ? new Date().toISOString() : t.received_at) ?? null,
-            }
-          : t
-      )
-    );
-    toast.success(`Transfer status updated to ${nextStatus.replace('_', ' ')}.`);
-  };
+      queryClient.setQueryData<StockTransfer[]>(['inventory', 'transfers'], (prev = []) =>
+        prev.map((t) =>
+          t.id === transferId
+            ? {
+                ...t,
+                status: nextStatus,
+                dispatched_at: (nextStatus === 'in_transit' && !t.dispatched_at ? new Date().toISOString() : t.dispatched_at) ?? null,
+                received_at: (nextStatus === 'received' && !t.received_at ? new Date().toISOString() : t.received_at) ?? null,
+              }
+            : t
+        )
+      );
+      toast.success(`Transfer status updated to ${nextStatus.replace('_', ' ')}.`);
+    },
+    [queryClient]
+  );
 
   const handleCreateTransfer = (e: React.FormEvent) => {
     e.preventDefault();
@@ -326,44 +329,48 @@ export function StockTransfersSection() {
     }
   };
 
-  const getStatusBadge = (
-    status: StockTransfer['status'],
-    transferDate?: string,
-    dispatchedAt?: string | null
-  ) => {
-    switch (status) {
-      case 'draft':
-        return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-semibold uppercase bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20">
-            <Clock className="size-3 text-amber-500" /> Pending Dispatch
-          </span>
-        );
-      case 'in_transit': {
-        const baseDate = new Date(dispatchedAt || transferDate || Date.now());
-        const etaDate = new Date(baseDate.getTime() + 24 * 60 * 60 * 1000);
-        const etaString = etaDate.toLocaleDateString([], { month: 'short', day: 'numeric' });
-        const isArrivingToday = new Date().toDateString() === etaDate.toDateString();
-        return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase bg-sky-500/10 text-sky-700 dark:text-sky-300 border border-sky-500/30">
-            <Truck className="size-3 text-sky-500 animate-pulse" />
-            <span>In Transit &bull; ETA {isArrivingToday ? 'Today' : etaString}</span>
-          </span>
-        );
+  const getStatusBadge = useCallback(
+    (
+      status: StockTransfer['status'],
+      transferDate?: string,
+      dispatchedAt?: string | null
+    ) => {
+      switch (status) {
+        case 'draft':
+          return (
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-semibold uppercase bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20">
+              <Clock className="size-3 text-amber-500" /> Pending Dispatch
+            </span>
+          );
+        case 'in_transit': {
+          const rawDate = dispatchedAt || transferDate;
+          const baseDate = rawDate ? new Date(rawDate) : null;
+          const etaDate = baseDate ? new Date(baseDate.getTime() + 24 * 60 * 60 * 1000) : null;
+          const etaString = etaDate ? etaDate.toLocaleDateString([], { month: 'short', day: 'numeric' }) : 'Soon';
+          const isArrivingToday = etaDate ? new Date().toDateString() === etaDate.toDateString() : false;
+          return (
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase bg-sky-500/10 text-sky-700 dark:text-sky-300 border border-sky-500/30">
+              <Truck className="size-3 text-sky-500 animate-pulse" />
+              <span>In Transit &bull; ETA {isArrivingToday ? 'Today' : etaString}</span>
+            </span>
+          );
+        }
+        case 'received':
+          return (
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20">
+              <CheckCircle2 className="size-3 text-emerald-500" /> Delivered &amp; Ingested
+            </span>
+          );
+        case 'cancelled':
+          return (
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-semibold uppercase bg-rose-500/10 text-rose-700 dark:text-rose-300 border border-rose-500/20">
+              <XCircle className="size-3 text-rose-500" /> Transfer Cancelled
+            </span>
+          );
       }
-      case 'received':
-        return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20">
-            <CheckCircle2 className="size-3 text-emerald-500" /> Delivered &amp; Ingested
-          </span>
-        );
-      case 'cancelled':
-        return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-semibold uppercase bg-rose-500/10 text-rose-700 dark:text-rose-300 border border-rose-500/20">
-            <XCircle className="size-3 text-rose-500" /> Transfer Cancelled
-          </span>
-        );
-    }
-  };
+    },
+    []
+  );
 
   const transferColumns = useMemo<ResponsiveColumn<StockTransfer>[]>(() => [
     {
@@ -414,10 +421,11 @@ export function StockTransfersSection() {
       header: 'Status',
       priority: 'high',
       render: (t) => (
-        <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center gap-2">
           {getStatusBadge(t.status, t.transfer_date, t.dispatched_at)}
           <select
             value={t.status}
+            onClick={(e) => e.stopPropagation()}
             onChange={(e) => handleStatusChange(t.id, e.target.value as StockTransfer['status'])}
             className="text-[10px] bg-transparent text-muted hover:text-default border-0 focus:ring-0 cursor-pointer"
             title="Change transfer state"
@@ -436,9 +444,11 @@ export function StockTransfersSection() {
       align: 'right',
       priority: 'high',
       render: (t) => (
-        <div className="flex items-center justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-end gap-1.5">
           <button
-            onClick={() => {
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
               setActiveTransfer(t);
               setShowViewModal(true);
               void api.get<StockTransfer>(`/inventory/transfers/${t.id}`).then((res) => {
@@ -480,7 +490,7 @@ export function StockTransfersSection() {
   ], [openActionMenuId, getStatusBadge, handleStatusChange]);
 
   return (
-    <div className="space-y-6">
+    <div className="w-full min-w-0 max-w-full space-y-6">
       {/* Metric Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="rounded-2xl border border-default bg-surface p-4 shadow-2xs">
@@ -1015,8 +1025,8 @@ export function StockTransfersSection() {
               )}
 
               {/* Items Table */}
-              <div className="rounded-xl border border-default overflow-hidden">
-                <table className="w-full text-left text-xs">
+              <div className="w-full min-w-0 max-w-full overflow-x-auto scrollbar-thin rounded-xl border border-default">
+                <table className="w-full min-w-125 text-left text-xs">
                   <thead className="bg-surface-sunken font-semibold text-muted text-[10px] uppercase border-b border-default">
                     <tr>
                       <th className="px-3 py-2">Item Description</th>

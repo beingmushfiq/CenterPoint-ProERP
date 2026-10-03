@@ -68,6 +68,18 @@ interface EditInspectionDraft {
   notes?: string;
 }
 
+function generateInspectionNumber(): string {
+  return `QC-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
+}
+
+function generateReworkNumber(): string {
+  return `RWK-${Date.now().toString().slice(-6)}`;
+}
+
+function generateWastageNumber(): string {
+  return `WST-${Date.now().toString().slice(-6)}`;
+}
+
 export function QcInspectionsSection() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -116,7 +128,7 @@ export function QcInspectionsSection() {
     level: 'I' | 'II' | 'III' = 'II',
     aql: 1.0 | 1.5 | 2.5 | 4.0 = 2.5
   ) => {
-    let rangeIdx = 0;
+    let rangeIdx: number;
     if (lotSize <= 8) rangeIdx = 0;
     else if (lotSize <= 15) rangeIdx = 1;
     else if (lotSize <= 25) rangeIdx = 2;
@@ -203,7 +215,7 @@ export function QcInspectionsSection() {
   const createMutation = useMutation({
     mutationFn: async (payloadDraft: CreateInspectionDraft) => {
       const payload = {
-        inspection_number: `QC-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-${Math.random().toString(36).substring(2, 7).toUpperCase()}`,
+        inspection_number: generateInspectionNumber(),
         production_batch_id: payloadDraft.batch_id || undefined,
         batch_id: payloadDraft.batch_id || undefined,
         product_id: payloadDraft.product_id,
@@ -234,7 +246,7 @@ export function QcInspectionsSection() {
           const selectedBatch = batches.find((b) => b.id === payloadDraft.batch_id);
           const selectedProduct = products.find((p) => p.id === payloadDraft.product_id);
           await api.post('/qc/rework-orders', {
-            rework_number: `RWK-${Date.now().toString().slice(-6)}`,
+            rework_number: generateReworkNumber(),
             batch_id: payloadDraft.batch_id || selectedBatch?.id,
             batch_number: selectedBatch?.batch_number,
             product_id: payloadDraft.product_id,
@@ -261,7 +273,7 @@ export function QcInspectionsSection() {
       if (autoCreateWastage && parseFloat(payloadDraft.rejected_quantity) > 0) {
         try {
           await api.post('/qc/wastage-records', {
-            wastage_number: `WST-${Date.now().toString().slice(-6)}`,
+            wastage_number: generateWastageNumber(),
             product_id: payloadDraft.product_id,
             production_batch_id: payloadDraft.batch_id,
             stage: 'qc',
@@ -469,7 +481,7 @@ export function QcInspectionsSection() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="w-full min-w-0 max-w-full space-y-6">
       {/* Controls */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex flex-1 items-center gap-3">
@@ -1178,7 +1190,7 @@ export function QcInspectionsSection() {
                   <button
                     type="button"
                     onClick={() => {
-                      const relevant = parameters.filter((p) => !(p as any).product_id || (p as any).product_id === draft.product_id);
+                      const relevant = parameters.filter((p) => !p.product_id || p.product_id === draft.product_id);
                       const listToUse = relevant.length > 0 ? relevant : parameters;
                       setDraft((d) => ({
                         ...d,
@@ -1690,8 +1702,8 @@ export function QcInspectionsSection() {
                 <div className="text-xs font-semibold text-muted uppercase tracking-wider">
                   Measured Parameter Tests
                 </div>
-                <div className="rounded-xl border border-default overflow-hidden">
-                  <table className="w-full text-left text-xs">
+                <div className="w-full min-w-0 max-w-full overflow-x-auto scrollbar-thin rounded-xl border border-default">
+                  <table className="w-full min-w-112.5 text-left text-xs">
                     <thead className="bg-surface-sunken text-muted border-b border-default">
                       <tr>
                         <th className="p-2.5">Parameter</th>
@@ -1759,8 +1771,8 @@ export function QcInspectionsSection() {
                       try {
                         const rejQty = selectedInspection.rejected_quantity ?? selectedInspection.failed_quantity ?? '1.0000';
                         await api.post('/qc/rework-orders', {
-                          rework_number: `RWK-${Date.now().toString().slice(-6)}`,
-                          batch_id: (selectedInspection as any).production_batch_id || selectedInspection.batch_id,
+                          rework_number: generateReworkNumber(),
+                          batch_id: selectedInspection.production_batch_id || selectedInspection.batch_id,
                           product_id: selectedInspection.product_id,
                           product_name: selectedInspection.product_name,
                           defect_category: selectedInspection.defects?.[0]?.defect_type || 'QC Inspection Rejection',
@@ -1777,7 +1789,7 @@ export function QcInspectionsSection() {
                         });
                         await queryClient.invalidateQueries({ queryKey: ['qc', 'rework-orders'] });
                         toast.success(`Rework Order created for ${rejQty} units.`);
-                      } catch (err) {
+                      } catch {
                         toast.error('Failed to create rework order.');
                       } finally {
                         setIsDispatchingRework(false);
@@ -1800,9 +1812,9 @@ export function QcInspectionsSection() {
                       try {
                         const rejQty = selectedInspection.rejected_quantity ?? selectedInspection.failed_quantity ?? '1.0000';
                         await api.post('/qc/wastage-records', {
-                          wastage_number: `WST-${Date.now().toString().slice(-6)}`,
+                          wastage_number: generateWastageNumber(),
                           product_id: selectedInspection.product_id,
-                          production_batch_id: (selectedInspection as any).production_batch_id || selectedInspection.batch_id,
+                          production_batch_id: selectedInspection.production_batch_id || selectedInspection.batch_id,
                           stage: 'qc',
                           quantity: rejQty,
                           unit_id: 'default',
@@ -1813,7 +1825,7 @@ export function QcInspectionsSection() {
                         });
                         await queryClient.invalidateQueries({ queryKey: ['qc', 'wastage-records'] });
                         toast.success(`Scrap recorded as material wastage.`);
-                      } catch (err) {
+                      } catch {
                         toast.error('Failed to record wastage.');
                       }
                     }}
@@ -1894,7 +1906,7 @@ export function QcInspectionsSection() {
                 </label>
                 <select
                   value={aqlTarget}
-                  onChange={(e) => setAqlTarget(parseFloat(e.target.value) as any)}
+                  onChange={(e) => setAqlTarget(parseFloat(e.target.value) as 1.0 | 1.5 | 2.5 | 4.0)}
                   className="w-full rounded-xl border border-default bg-surface-sunken p-2 text-xs text-default focus:border-primary focus:outline-none"
                 >
                   <option value={1.0}>1.0% (Critical Specs)</option>

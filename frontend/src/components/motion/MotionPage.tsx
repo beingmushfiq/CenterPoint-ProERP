@@ -19,7 +19,7 @@ export function MotionPage({ children, className }: MotionPageProps) {
       initial="initial"
       animate="animate"
       exit="exit"
-      className={cn('w-full min-w-0 flex-1 flex flex-col will-change-[opacity,transform]', className)}
+      className={cn('w-full min-w-0 max-w-full flex-1 flex flex-col will-change-[opacity,transform]', className)}
     >
       {children}
     </m.div>

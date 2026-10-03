@@ -159,23 +159,23 @@ export default function InventoryWorkspace() {
     : tabs;
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto py-2">
+    <div className="space-y-4 sm:space-y-6 w-full min-w-0 max-w-7xl mx-auto py-1 sm:py-2">
       {/* Workspace Header */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-default pb-5">
-        <div>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-default pb-4 sm:pb-5 w-full min-w-0">
+        <div className="min-w-0">
           <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-            <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-primary bg-primary-subtle px-2.5 py-0.5 rounded-full border border-primary/20">
+            <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-primary bg-primary-subtle px-2.5 py-0.5 rounded-full border border-primary/20 shrink-0">
               {t('inventory.headerBadge')}
             </span>
-            <span className="text-muted/50 text-xs">/</span>
-            <span className="text-[11px] font-semibold text-default">
+            <span className="text-muted/50 text-xs shrink-0">/</span>
+            <span className="text-[11px] font-semibold text-default truncate">
               {t('inventory.stageOfFive', { step: currentTab.step, label: currentTab.label })}
             </span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-default flex items-center gap-3">
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-extrabold tracking-tight text-default flex items-center gap-2 sm:gap-3 truncate">
             <span>{currentTab.label}</span>
             {currentTab.badge && (
-              <span className="text-[11px] font-medium px-2 py-0.5 rounded-md bg-surface-sunken text-muted border border-default">
+              <span className="text-[10px] sm:text-[11px] font-medium px-2 py-0.5 rounded-md bg-surface-sunken text-muted border border-default shrink-0">
                 {currentTab.badge}
               </span>
             )}
@@ -306,43 +306,45 @@ export default function InventoryWorkspace() {
       </div>
 
       {/* Universal Quick-Action Ribbon */}
-      <div className="flex items-center justify-center gap-2.5 p-2 rounded-2xl bg-surface border border-default shadow-xs flex-wrap">
-        <button
-          type="button"
-          onClick={() => {
-            setActiveTab('ledger');
-            const searchInput = document.querySelector('input[placeholder*="Search"]') as HTMLInputElement;
-            searchInput?.focus();
-          }}
-          className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold bg-primary hover:bg-primary/90 text-primary-fg shadow-xs transition cursor-pointer"
-        >
-          <Search className="size-4" />
-          <span>{t('inventory.quickStockCheck')}</span>
-        </button>
-        <button
-          type="button"
-          onClick={() => setShowTransferModal(true)}
-          className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-xs transition cursor-pointer"
-        >
-          <ArrowRightLeft className="size-4" />
-          <span>{t('inventory.moveStock')}</span>
-        </button>
-        <button
-          type="button"
-          onClick={() => setShowAdjustmentModal(true)}
-          className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white shadow-xs transition cursor-pointer"
-        >
-          <AlertTriangle className="size-4" />
-          <span>{t('inventory.reportDamaged')}</span>
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveTab('counts')}
-          className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold bg-surface-sunken hover:bg-surface border border-default text-default transition cursor-pointer"
-        >
-          <ClipboardCheck className="size-4 text-emerald-500" />
-          <span>{t('inventory.startPhysicalCount')}</span>
-        </button>
+      <div className="w-full min-w-0 overflow-x-auto no-scrollbar scroll-smooth touch-pan-x">
+        <div className="flex items-center sm:justify-center gap-2 p-1.5 sm:p-2 rounded-xl sm:rounded-2xl bg-surface border border-default shadow-xs w-max min-w-full sm:min-w-0 sm:w-auto">
+          <button
+            type="button"
+            onClick={() => {
+              setActiveTab('ledger');
+              const searchInput = document.querySelector('input[placeholder*="Search"]') as HTMLInputElement;
+              searchInput?.focus();
+            }}
+            className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-xl text-xs font-bold bg-primary hover:bg-primary/90 text-primary-fg shadow-xs transition cursor-pointer shrink-0 whitespace-nowrap"
+          >
+            <Search className="size-3.5 sm:size-4" />
+            <span>{t('inventory.quickStockCheck')}</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowTransferModal(true)}
+            className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-xs transition cursor-pointer shrink-0 whitespace-nowrap"
+          >
+            <ArrowRightLeft className="size-3.5 sm:size-4" />
+            <span>{t('inventory.moveStock')}</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowAdjustmentModal(true)}
+            className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white shadow-xs transition cursor-pointer shrink-0 whitespace-nowrap"
+          >
+            <AlertTriangle className="size-3.5 sm:size-4" />
+            <span>{t('inventory.reportDamaged')}</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('counts')}
+            className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-xl text-xs font-semibold bg-surface-sunken hover:bg-surface border border-default text-default transition cursor-pointer shrink-0 whitespace-nowrap"
+          >
+            <ClipboardCheck className="size-3.5 sm:size-4 text-emerald-500" />
+            <span>{t('inventory.startPhysicalCount')}</span>
+          </button>
+        </div>
       </div>
 
       {/* 2-Tier Universal Navigation Hub */}

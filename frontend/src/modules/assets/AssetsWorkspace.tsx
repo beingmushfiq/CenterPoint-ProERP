@@ -1264,11 +1264,11 @@ export const AssetsWorkspace: React.FC = () => {
   const currentStage = (stages.find((s) => s.id === activeTab) || stages[0])!;
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto py-2">
+    <div className="space-y-4 sm:space-y-6 w-full min-w-0 max-w-7xl mx-auto py-1 sm:py-2">
       {/* ─────────────────────────────────────────────────────────────────────────────
           Module Header & Contextual Actions
           ───────────────────────────────────────────────────────────────────────────── */}
-      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 border-b border-default pb-5">
+      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 border-b border-default pb-4 sm:pb-5 w-full min-w-0">
         <div>
           <div className="flex items-center gap-2 mb-1.5 flex-wrap">
             <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-primary bg-primary-subtle px-2.5 py-0.5 rounded-full border border-primary/20 flex items-center gap-1">

@@ -119,7 +119,7 @@ export default function PosWorkspace() {
   const currentTab = tabs.find((t) => t.id === activeTab) ?? tabs[0];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6 w-full min-w-0 max-w-7xl mx-auto py-1 sm:py-2">
       {/* Workspace Header with Direct POS Return Button */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
@@ -187,7 +187,7 @@ export default function PosWorkspace() {
       </div>
 
       {/* Tabs Navigation */}
-      <div className="flex overflow-x-auto p-1.5 bg-surface-sunken rounded-2xl border border-default shadow-2xs">
+      <div className="flex overflow-x-auto no-scrollbar scroll-smooth touch-pan-x w-full min-w-0 p-1.5 bg-surface-sunken rounded-2xl border border-default shadow-2xs">
         <div className="flex gap-1.5 min-w-full sm:min-w-0">
           {tabs.map((tab) => {
             const Icon = tab.icon;
