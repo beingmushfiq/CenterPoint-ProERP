@@ -1,1 +1,0 @@
-import{t as e}from"./createLucideIcon-CyrWxPaY.js";var t=e(`kanban`,[[`path`,{d:`M5 3v14`,key:`9nsxs2`}],[`path`,{d:`M12 3v8`,key:`1h2ygw`}],[`path`,{d:`M19 3v18`,key:`1sk56x`}]]),n=e(`navigation`,[[`polygon`,{points:`3 11 22 2 13 21 11 13 3 11`,key:`1ltx0t`}]]);export{t as n,n as t};
