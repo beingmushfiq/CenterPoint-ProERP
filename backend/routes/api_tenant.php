@@ -1491,5 +1491,11 @@ Route::middleware(['auth.jwt', 'tenant.resolve', 'tenant.active'])
                     ->middleware('permission:ai.copilot.use')
                     ->name('history');
             });
+
+            Route::prefix('webank')->name('webank.')->group(static function (): void {
+                Route::post('pre-qualify', [App\Modules\AI\Controllers\CopilotController::class, 'preQualifyWeBank'])
+                    ->middleware('permission:ai.copilot.use')
+                    ->name('pre-qualify');
+            });
         });
     });

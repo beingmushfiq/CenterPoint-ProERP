@@ -431,4 +431,39 @@ final class CopilotTest extends TestCase
             'acknowledged_by' => $this->user->id,
         ]);
     }
+
+    public function test_webank_pre_qualify_returns_standardized_payload(): void
+    {
+        $response = $this->withHeader('Authorization', "Bearer {$this->jwt}")
+            ->json('POST', '/api/v1/ai/webank/pre-qualify', [
+                'product_id' => 'wb-if-01',
+                'requested_amount' => 300000.0,
+            ]);
+
+        $response->assertOk()
+            ->assertJsonPath('status', 'success')
+            ->assertJsonPath('data.status', 'PRE_QUALIFIED')
+            ->assertJsonPath('data.institution', 'WeBank Digital SME Micro-Finance')
+            ->assertJsonStructure([
+                'status',
+                'message',
+                'data' => [
+                    'application_reference',
+                    'institution',
+                    'partner_platform',
+                    'tenant_id',
+                    'status',
+                    'product_selected',
+                    'credit_assessment' => [
+                        'solvency_score',
+                        'monthly_revenue_verified',
+                        'operating_margin_verified',
+                        'verified_ar_pool',
+                        'runway_cushion_days',
+                    ],
+                    'disbursement_route',
+                    'underwriting_timestamp',
+                ],
+            ]);
+    }
 }

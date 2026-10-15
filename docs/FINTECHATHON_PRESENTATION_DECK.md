@@ -34,13 +34,14 @@
 **CenterPoint ProERP: Embedded AI Financial Copilot for SME Liquidity Preservation & Digital Credit Pre-Screening**
 
 ### Subtitle
-*Bridging Real-Time Enterprise Accounting with WeBank Digital Financial Inclusion*
+*Bridging Real-Time Enterprise Accounting with WeBank Digital Financial Inclusion*  
+**中文副标题：** *贯通企业级真实复式记账总账与微众银行小微数字普惠金融*
 
 ### Metadata
-- **Track:** FinTechathon 2026 (International Track)
-- **Topic:** Topic E — Financial Big Data & AI: SME Financial Copilot
+- **Track:** FinTechathon 2026 (International Track / 国际赛道)
+- **Topic:** Topic E — Financial Big Data & AI: SME Financial Copilot (金融大数据与人工智能：中小微企业智能金融助手)
 - **Applicant:** CenterPoint Engineering Team
-- **Target SMEs:** Manufacturing, Bakery, Retail & Supply-Chain SMEs
+- **Target SMEs:** Manufacturing, Bakery, Retail & Supply-Chain SMEs (离散制造、烘焙连锁、零售商贸及供应链小微企业)
 
 ### Visual Layout
 - **Left Hero:** High-contrast CenterPoint ERP workspace badge featuring Live Double-Entry GL Ledger synchronization indicator.
