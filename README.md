@@ -270,7 +270,17 @@ CenterPoint ProERP features **17 integrated operational workspaces**, accessible
 
 ---
 
-### 11. 📈 RMS Analytical Matrix (84 Reports across 12 Modules)
+### 11. 🤖 AI Financial Copilot & SME Lending Engine (FinTechathon 2026 Topic E)
+- **3-Tier Supervised Execution Model:** Mathematical separation between Tier 0 Read queries, Tier 1 Advisory proposals, and Tier 2 Supervised state changes requiring mandatory human authorization.
+- **Predictive Cash Flow Risk & Stress Testing:** 30-day forward cash runway forecasting synthesizing liquid bank cash, daily burn rate, overdue AR collections, and vendor AP liabilities.
+- **WeBank SME Financing Match Engine:** Algorithmic scoring matching SME ledger health against 4 distinct digital credit facilities: Working Capital Term Loans, Digital Invoice Factoring, Inventory Collateralization, and Equipment Leasing.
+- **Tamper-Evident Security & Audit Trail:** Full microsecond audit logging capturing tool calls, permission tiers, JSON payloads, IP addresses, and latencies.
+- **Canonical Specification:** [`docs/FINTECHATHON_TECHNICAL_DOC.md`](docs/FINTECHATHON_TECHNICAL_DOC.md) • [`docs/AI_SECURITY_ASSESSMENT.md`](docs/AI_SECURITY_ASSESSMENT.md)
+- **Entry File:** [`frontend/src/modules/ai/CopilotSection.tsx`](frontend/src/modules/ai/CopilotSection.tsx) (Wired inside `FinanceWorkspace.tsx`)
+
+---
+
+### 12. 📈 RMS Analytical Matrix (84 Reports across 12 Modules)
 - **84 Canonical Reports:** Dedicated analytical reports across all 12 operational modules (Production: 12, Inventory: 11, Purchasing: 7, Sales: 10, Profit: 5, CRM: 7, Salesmen: 5, Delivery: 7, HR: 5, Finance: 7, Assets: 5, QC: 3).
 - **Export Formats:** High-precision CSV, Excel, and pixel-perfect printable PDF reports.
 - **Entry File:** [`frontend/src/modules/reports/ReportsWorkspace.tsx`](frontend/src/modules/reports/ReportsWorkspace.tsx)
@@ -292,6 +302,7 @@ CenterPoint ProERP features **17 integrated operational workspaces**, accessible
 | **🛡️ Anti-Fraud & Risk Score** | Delivery success rate scoring, phone number authenticity checks, return risk profiling. | [`/fraud-verification`](frontend/src/modules/fraud/OrderFraudVerificationWorkspace.tsx) |
 | **👥 HR & Payroll Engine** | Employee directory, shift scheduling, piece-rate incentive rollups, biometric attendance, slips. | [`/hr`](frontend/src/modules/hr/HrWorkspace.tsx) |
 | **📊 Accounting & Finance** | Double-entry general ledger, automated event-based journal entries, multi-bank reconciliations. | [`/finance`](frontend/src/modules/finance/FinanceWorkspace.tsx) |
+| **🤖 AI Financial Copilot** | 3-Tier supervised financial agent, 30-day cash flow risk forecasting, WeBank SME credit line matching, audit trail. | [`/finance`](frontend/src/modules/finance/FinanceWorkspace.tsx) (Tab 8) |
 | **🏗️ Fixed Assets & Maintenance** | Asset capitalization, straight-line and reducing balance depreciation, maintenance schedules. | [`/assets`](frontend/src/modules/assets/AssetsWorkspace.tsx) |
 | **🛍️ Storefront CMS Builder** | Visual block page builder, hero sliders, collection highlights, announcement tickers, SEO & feed controls. | [`/storefront`](frontend/src/modules/storefront/StorefrontPageBuilderWorkspace.tsx) |
 | **📈 RMS Analytical Matrix** | 84 canonical analytical reports covering financial P&L, balance sheets, inventory aging. | [`/reports`](frontend/src/modules/reports/ReportsWorkspace.tsx) |

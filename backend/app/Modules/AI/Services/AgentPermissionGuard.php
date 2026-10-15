@@ -17,6 +17,8 @@ class AgentPermissionGuard
 
     public const TIER_3_DISABLED = 3;
 
+    public const MAX_FINANCING_ADVISORY_LIMIT = 50000000.0; // BDT 50,000,000 cap
+
     public const TIER_0_TOOLS = [
         'get_cash_position',
         'list_overdue_invoices',
@@ -95,5 +97,13 @@ class AgentPermissionGuard
                 "Cross-tenant access violation: Current tenant {$activeTenantId} cannot access data for tenant {$requestedTenantId}."
             );
         }
+    }
+
+    /**
+     * Guardrail 4: Cap financial advisory amounts to prevent runaway proposals.
+     */
+    public function capFinancialAmount(float $requestedAmount): float
+    {
+        return min(max(0.0, $requestedAmount), self::MAX_FINANCING_ADVISORY_LIMIT);
     }
 }

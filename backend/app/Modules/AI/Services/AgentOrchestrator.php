@@ -41,15 +41,18 @@ class AgentOrchestrator
         int $maxApprovedTier = 2,
         ?string $ipAddress = null
     ): array {
+        // Guardrail 2: Input Sanitization & Prompt Injection Neutralization
+        $sanitizedMessage = $this->sanitizeAndInspectMessage($tenantId, $userId, $userMessage, $ipAddress);
+
         // 1. Resolve or create conversation
-        $conversation = $this->resolveConversation($tenantId, $userId, $conversationUuid, $userMessage);
+        $conversation = $this->resolveConversation($tenantId, $userId, $conversationUuid, $sanitizedMessage);
 
         // 2. Persist user message
         AgentMessage::create([
             'conversation_id' => $conversation->id,
             'tenant_id' => $tenantId,
             'role' => 'user',
-            'content' => $userMessage,
+            'content' => $sanitizedMessage,
         ]);
 
         // 3. Build context & message payload
@@ -259,6 +262,52 @@ class AgentOrchestrator
             'tool_name' => $toolName,
             'result' => $result,
         ];
+    }
+
+    /**
+     * Guardrail 2: Input Sanitization & Anti-Prompt-Injection defense.
+     */
+    public function sanitizeAndInspectMessage(
+        int $tenantId,
+        int $userId,
+        string $rawMessage,
+        ?string $ipAddress = null
+    ): string {
+        // Clamp to 2000 chars
+        $sanitized = mb_substr(trim($rawMessage), 0, 2000);
+
+        $injectionPatterns = [
+            '/\bignore\s+(all\s+)?previous\s+instructions\b/i',
+            '/\bdisregard\s+(all\s+)?(system|prior)\s+(prompt|instructions)\b/i',
+            '/\byou\s+are\s+now\s+in\s+(developer|unrestricted|god)\s+mode\b/i',
+            '/\bsystem\s+override\b/i',
+            '/\breveal\s+(all\s+)?passwords\b/i',
+            '/\bprint\s+env\s+variables\b/i',
+        ];
+
+        $flagged = false;
+        foreach ($injectionPatterns as $pattern) {
+            if (preg_match($pattern, $sanitized)) {
+                $flagged = true;
+                $sanitized = (string) preg_replace($pattern, '[SECURITY_BLOCKED_INJECTION]', $sanitized);
+            }
+        }
+
+        if ($flagged) {
+            $this->auditLogger->log(
+                tenantId: $tenantId,
+                userId: $userId,
+                conversationId: null,
+                action: 'security_guardrail_prompt_injection_blocked',
+                permissionTier: AgentPermissionGuard::TIER_0_READ,
+                inputParams: ['original_snippet' => mb_substr($rawMessage, 0, 100)],
+                resultSummary: 'Prompt injection pattern intercepted and neutralized by security guardrail',
+                executed: true,
+                ipAddress: $ipAddress
+            );
+        }
+
+        return $sanitized;
     }
 
     protected function resolveConversation(int $tenantId, int $userId, ?string $uuid, string $initialMessage): AgentConversation

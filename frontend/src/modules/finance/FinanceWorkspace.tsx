@@ -19,6 +19,7 @@ import {
   ArrowDownRight,
   ArrowUpRight,
   ArrowLeftRight,
+  Sparkles,
 } from 'lucide-react';
 import { useWorkspaceTab } from '../../hooks/useWorkspaceTab';
 import { useCurrency } from '../../hooks/useCurrency';
@@ -62,6 +63,9 @@ const StatementsSection = lazy(() =>
 const DueCollectionSection = lazy(() =>
   import('./sections/DueCollectionSection').then((m) => ({ default: m.DueCollectionSection }))
 );
+const CopilotSection = lazy(() =>
+  import('../ai/CopilotSection').then((m) => ({ default: m.CopilotSection }))
+);
 import { notify } from '../../components/ui/Toast';
 import { MoneyOutModal } from './modals/MoneyOutModal';
 import type { MoneyOutSuccessPayload } from './modals/MoneyOutModal';
@@ -82,8 +86,15 @@ import {
 } from './schemas';
 
 export type FinanceTab =
-  'coa' | 'journal' | 'banking' | 'expenses' | 'costing' | 'statements' | 'due-collection';
-export type FinanceCategory = 'operations' | 'reports' | 'costing';
+  | 'coa'
+  | 'journal'
+  | 'banking'
+  | 'expenses'
+  | 'costing'
+  | 'statements'
+  | 'due-collection'
+  | 'copilot';
+export type FinanceCategory = 'operations' | 'reports' | 'costing' | 'intelligence';
 
 export interface FinanceTabConfig extends WorkspaceTabConfig<FinanceCategory, FinanceTab> {
   step: number;
@@ -145,6 +156,7 @@ export const FinanceWorkspace: React.FC = () => {
     'journal',
     'coa',
     'costing',
+    'copilot',
   ] as const);
 
   const categories: WorkspaceCategoryConfig<FinanceCategory, FinanceTab>[] = useMemo(
@@ -178,6 +190,16 @@ export const FinanceWorkspace: React.FC = () => {
         tabs: ['costing'],
         defaultTab: 'costing',
         theme: WORKSPACE_THEMES.purple,
+      },
+      {
+        id: 'intelligence',
+        label: 'AI Copilot',
+        tagline: 'WeBank SME Cash Flow Advisory & Financing Engine',
+        shortcut: '4',
+        icon: Sparkles,
+        tabs: ['copilot'],
+        defaultTab: 'copilot',
+        theme: WORKSPACE_THEMES.amber,
       },
     ],
     [t]
@@ -220,7 +242,7 @@ export const FinanceWorkspace: React.FC = () => {
       }
 
       const num = parseInt(e.key, 10);
-      if (num >= 1 && num <= 7) {
+      if (num >= 1 && num <= 8) {
         const stageMap: Record<number, FinanceTab> = {
           1: 'banking',
           2: 'expenses',
@@ -229,6 +251,7 @@ export const FinanceWorkspace: React.FC = () => {
           5: 'journal',
           6: 'coa',
           7: 'costing',
+          8: 'copilot',
         };
         const target = stageMap[num];
         if (target) {
@@ -1412,6 +1435,17 @@ export const FinanceWorkspace: React.FC = () => {
         description: t('finance.tabs.costing.description'),
         highlights: getHighlights('finance.tabs.costing.highlights'),
       },
+      {
+        id: 'copilot',
+        step: 8,
+        label: 'AI Finance Copilot',
+        shortLabel: 'AI Copilot',
+        category: 'intelligence',
+        icon: Sparkles,
+        count: 'Live',
+        description: 'Proactive cash flow analysis, liquidity stress forecasting & WeBank loan matching',
+        highlights: ['WeBank Intelligence Engine', '3-Tier Action Guard', 'Audit Trail'],
+      },
     ];
   }, [t, bankAccounts.length, expenses.length, journalEntries.length, accounts.length, productCosts.length]);
 
@@ -1428,7 +1462,7 @@ export const FinanceWorkspace: React.FC = () => {
             <span className="text-xs font-semibold text-primary">
               {t('finance.stageCounter', {
                 step: financeTabConfigs.find((tConfig) => tConfig.id === activeTab)?.step || 1,
-                total: 7,
+                total: 8,
                 label: financeTabConfigs.find((tConfig) => tConfig.id === activeTab)?.label,
               })}
             </span>
@@ -1681,6 +1715,10 @@ export const FinanceWorkspace: React.FC = () => {
               setShowMoneyInModal(true);
             }}
           />
+        )}
+
+        {activeTab === 'copilot' && (
+          <CopilotSection />
         )}
       </Suspense>
 

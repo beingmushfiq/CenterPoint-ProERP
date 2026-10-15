@@ -44,4 +44,17 @@ final class AgentPermissionGuardTest extends TestCase
         $this->assertSame(3, $this->guard->getToolTier('execute_raw_wire_transfer'));
         $this->assertFalse($this->guard->canExecuteDirectly('execute_raw_wire_transfer', 2));
     }
+
+    public function test_financial_amount_is_capped_at_50_million_bdt(): void
+    {
+        $this->assertSame(10000000.0, $this->guard->capFinancialAmount(10000000.0));
+        $this->assertSame(50000000.0, $this->guard->capFinancialAmount(85000000.0));
+        $this->assertSame(0.0, $this->guard->capFinancialAmount(-500.0));
+    }
+
+    public function test_cross_tenant_violation_throws_authorization_exception(): void
+    {
+        $this->expectException(\Illuminate\Auth\Access\AuthorizationException::class);
+        $this->guard->validateTenantBoundary(1, 2);
+    }
 }
