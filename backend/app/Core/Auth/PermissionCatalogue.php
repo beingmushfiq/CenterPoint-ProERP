@@ -41,6 +41,7 @@ class PermissionCatalogue
         'close',
         'adjust',
         'dispatch',
+        'use',
     ];
 
     /**
@@ -472,6 +473,13 @@ class PermissionCatalogue
         'documents.numbering.manage',
         'documents.document.print',
         'documents.history.view',
+
+        // AI & Financial Copilot (FinTechathon 2026)
+        'ai.copilot.use',
+        'ai.copilot.view',
+        'ai.copilot.manage',
+        'ai.alert.create',
+        'ai.audit.view',
     ];
 
     /**

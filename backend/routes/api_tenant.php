@@ -1456,4 +1456,40 @@ Route::middleware(['auth.jwt', 'tenant.resolve', 'tenant.active'])
             Route::get('capabilities', [App\Modules\Platform\Controllers\AIBrainController::class, 'capabilities'])->name('capabilities');
             Route::post('execute', [App\Modules\Platform\Controllers\AIBrainController::class, 'execute'])->name('execute');
         });
+
+        // ── FinTechathon 2026: AI SME Finance Copilot (Topic E) ────────
+        Route::prefix('ai')->name('ai.')->group(static function (): void {
+            Route::prefix('copilot')->name('copilot.')->group(static function (): void {
+                Route::post('chat', [App\Modules\AI\Controllers\CopilotController::class, 'chat'])
+                    ->middleware('permission:ai.copilot.use')
+                    ->name('chat');
+                Route::get('conversations', [App\Modules\AI\Controllers\CopilotController::class, 'listConversations'])
+                    ->middleware('permission:ai.copilot.use')
+                    ->name('conversations');
+                Route::get('conversations/{uuid}/history', [App\Modules\AI\Controllers\CopilotController::class, 'getHistory'])
+                    ->middleware('permission:ai.copilot.use')
+                    ->name('history');
+                Route::post('conversations/{uuid}/confirm', [App\Modules\AI\Controllers\CopilotController::class, 'confirmAction'])
+                    ->middleware('permission:ai.copilot.use')
+                    ->name('confirm');
+                Route::get('audit-log', [App\Modules\AI\Controllers\CopilotController::class, 'getAuditLog'])
+                    ->middleware('permission:ai.copilot.use')
+                    ->name('audit-log');
+                Route::get('alerts', [App\Modules\AI\Controllers\CopilotController::class, 'getAlerts'])
+                    ->middleware('permission:ai.copilot.use')
+                    ->name('alerts');
+                Route::patch('alerts/{uuid}/acknowledge', [App\Modules\AI\Controllers\CopilotController::class, 'acknowledgeAlert'])
+                    ->middleware('permission:ai.copilot.use')
+                    ->name('alerts.acknowledge');
+            });
+
+            Route::prefix('financing')->name('financing.')->group(static function (): void {
+                Route::post('match', [App\Modules\AI\Controllers\CopilotController::class, 'matchFinancing'])
+                    ->middleware('permission:ai.copilot.use')
+                    ->name('match');
+                Route::get('history', [App\Modules\AI\Controllers\CopilotController::class, 'getFinancingHistory'])
+                    ->middleware('permission:ai.copilot.use')
+                    ->name('history');
+            });
+        });
     });
