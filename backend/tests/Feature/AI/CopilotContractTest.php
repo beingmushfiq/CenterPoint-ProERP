@@ -4,10 +4,53 @@ declare(strict_types=1);
 
 namespace Tests\Feature\AI;
 
+use App\Core\Tenancy\TenantContext;
+use App\Models\Tenant;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 final class CopilotContractTest extends TestCase
 {
+    use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        TenantContext::flush();
+
+        if (DB::table('plans')->where('id', 1)->doesntExist()) {
+            DB::table('plans')->insert([
+                'id' => 1,
+                'uuid' => (string) Str::uuid(),
+                'code' => 'ENTERPRISE',
+                'name' => 'Enterprise Plan',
+                'price' => '10000.0000',
+                'billing_period' => 'monthly',
+                'is_active' => true,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
+    }
+
+    private function createTenant(array $attributes = []): Tenant
+    {
+        return Tenant::create(array_merge([
+            'uuid' => (string) Str::uuid(),
+            'plan_id' => 1,
+            'name' => 'Contract Tenant',
+            'slug' => 'contract-tenant-'.Str::random(6),
+            'status' => 'active',
+            'currency_code' => 'BDT',
+            'timezone' => 'Asia/Dhaka',
+            'locale' => 'en',
+            'date_format' => 'Y-m-d',
+            'number_format' => 'standard',
+        ], $attributes));
+    }
+
     public function test_anthropic_service_config_is_registered(): void
     {
         $this->assertIsArray(config('services.anthropic'));
@@ -110,5 +153,58 @@ final class CopilotContractTest extends TestCase
             $alert['input_schema']['required']
         );
     }
+
+    public function test_ar_and_ap_outstanding_use_status_column_not_payment_status(): void
+    {
+        $tenant = $this->createTenant();
+
+        $partyId = \Illuminate\Support\Facades\DB::table('parties')->insertGetId([
+            'tenant_id' => $tenant->id,
+            'uuid' => (string) \Illuminate\Support\Str::uuid(),
+            'code' => 'PARTY-001',
+            'name' => 'Trade Partner',
+            'is_customer' => 1,
+            'is_supplier' => 1,
+            'status' => 'active',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        \Illuminate\Support\Facades\DB::table('invoices')->insert([
+            'tenant_id' => $tenant->id,
+            'uuid' => (string) \Illuminate\Support\Str::uuid(),
+            'invoice_number' => 'INV-AR-1',
+            'party_id' => $partyId,
+            'invoice_date' => now()->subDays(10)->toDateString(),
+            'due_date' => now()->subDays(5)->toDateString(),
+            'total_amount' => '100000.0000',
+            'paid_amount' => '25000.0000',
+            'status' => 'posted',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        \Illuminate\Support\Facades\DB::table('purchase_bills')->insert([
+            'tenant_id' => $tenant->id,
+            'uuid' => (string) \Illuminate\Support\Str::uuid(),
+            'bill_number' => 'BILL-AP-1',
+            'party_id' => $partyId,
+            'bill_date' => now()->subDays(10)->toDateString(),
+            'due_date' => now()->addDays(5)->toDateString(),
+            'subtotal' => '60000.0000',
+            'total_amount' => '60000.0000',
+            'paid_amount' => '0.0000',
+            'status' => 'approved',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $metrics = app(\App\Modules\AI\Services\FinancingMatchEngine::class)
+            ->gatherFinancialMetrics($tenant->id);
+
+        $this->assertSame(75000.0, (float) $metrics['ar_outstanding']);
+        $this->assertSame(60000.0, (float) $metrics['ap_outstanding']);
+    }
 }
+
 

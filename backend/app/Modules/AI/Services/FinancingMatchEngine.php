@@ -271,7 +271,7 @@ class FinancingMatchEngine
 
         try {
             return (float) Invoice::where('tenant_id', $tenantId)
-                ->whereIn('payment_status', ['unpaid', 'partially_paid'])
+                ->whereIn('status', ['posted', 'partially_paid'])
                 ->selectRaw('COALESCE(SUM(total_amount - paid_amount), 0) as due')
                 ->value('due');
         } catch (Throwable) {
@@ -287,7 +287,7 @@ class FinancingMatchEngine
 
         try {
             return (float) PurchaseBill::where('tenant_id', $tenantId)
-                ->whereIn('payment_status', ['unpaid', 'partially_paid'])
+                ->whereIn('status', ['posted', 'approved', 'partially_paid'])
                 ->selectRaw('COALESCE(SUM(total_amount - paid_amount), 0) as due')
                 ->value('due');
         } catch (Throwable) {
