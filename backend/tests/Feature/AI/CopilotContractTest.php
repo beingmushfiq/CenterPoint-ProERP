@@ -287,7 +287,58 @@ final class CopilotContractTest extends TestCase
         $this->assertArrayNotHasKey('total_liquidity', $result);
         $this->assertArrayNotHasKey('accounts', $result);
     }
+
+    public function test_overdue_invoices_tool_matches_contract_and_aging_buckets(): void
+    {
+        $tenant = $this->createTenant();
+        $tenantId = $tenant->id;
+
+        $partyId = \Illuminate\Support\Facades\DB::table('parties')->insertGetId([
+            'tenant_id' => $tenantId,
+            'uuid' => (string) \Illuminate\Support\Str::uuid(),
+            'code' => 'CUST-001',
+            'name' => 'Apex Superstore',
+            'is_customer' => 1,
+            'is_supplier' => 0,
+            'status' => 'active',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        \Illuminate\Support\Facades\DB::table('invoices')->insert([
+            'tenant_id' => $tenantId,
+            'uuid' => (string) \Illuminate\Support\Str::uuid(),
+            'invoice_number' => 'INV-2026-001',
+            'party_id' => $partyId,
+            'invoice_date' => now()->subDays(60)->toDateString(),
+            'due_date' => now()->subDays(45)->toDateString(),
+            'total_amount' => '200000.0000',
+            'paid_amount' => '50000.0000',
+            'status' => 'posted',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $result = app(\App\Modules\AI\Services\AgentToolRegistry::class)
+            ->executeTool('list_overdue_invoices', ['days_overdue' => 0, 'limit' => 10], $tenantId);
+
+        $this->assertSame(150000.0, (float) $result['total_overdue']);
+        $this->assertSame(1, $result['total_invoices_count']);
+        $this->assertSame(150000.0, (float) $result['aging_summary']['31-60']);
+        $this->assertSame(0.0, (float) $result['aging_summary']['1-30']);
+
+        $invoice = $result['invoices'][0];
+        $this->assertSame('INV-2026-001', $invoice['invoice_number']);
+        $this->assertSame('Apex Superstore', $invoice['customer_name']);
+        $this->assertSame(150000.0, (float) $invoice['amount_due']);
+        $this->assertSame(50000.0, (float) $invoice['amount_paid']);
+        $this->assertSame(200000.0, (float) $invoice['total_amount']);
+        $this->assertSame(45, $invoice['days_overdue']);
+        $this->assertSame('31-60', $invoice['aging_bucket']);
+        $this->assertIsInt($invoice['id']);
+    }
 }
+
 
 
 

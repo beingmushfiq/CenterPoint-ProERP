@@ -347,54 +347,84 @@ class AgentToolRegistry
         $limit = min(50, max(1, is_numeric($arguments['limit'] ?? null) ? (int) $arguments['limit'] : 10));
         $now = Carbon::now();
 
+        $empty = [
+            'total_overdue' => 0.0,
+            'total_invoices_count' => 0,
+            'aging_summary' => ['1-30' => 0.0, '31-60' => 0.0, '61-90' => 0.0, '90+' => 0.0],
+            'invoices' => [],
+        ];
+
         if (! Schema::hasTable('invoices')) {
-            return ['overdue_invoices' => [], 'total_overdue' => 0];
+            return $empty;
         }
 
-        $query = Invoice::where('invoices.tenant_id', $tenantId)
-            ->whereIn('invoices.payment_status', ['unpaid', 'partially_paid'])
+        $rows = Invoice::where('invoices.tenant_id', $tenantId)
+            ->whereIn('invoices.status', ['posted', 'partially_paid'])
             ->where('invoices.due_date', '<', $now->copy()->subDays($daysOverdue))
-            ->leftJoin('parties', 'invoices.customer_id', '=', 'parties.id')
+            ->leftJoin('parties', 'invoices.party_id', '=', 'parties.id')
             ->select([
-                'invoices.uuid',
+                'invoices.id',
                 'invoices.invoice_number',
                 'parties.name as customer_name',
-                'invoices.invoice_date',
                 'invoices.due_date',
                 'invoices.total_amount',
                 'invoices.paid_amount',
-                DB::raw('(invoices.total_amount - invoices.paid_amount) as outstanding_amount'),
             ])
             ->orderBy('invoices.due_date', 'asc')
-            ->limit($limit);
+            ->limit($limit)
+            ->get();
 
-        $results = $query->get()->map(function ($inv) use ($now): array {
-            $dueDate = Carbon::parse($inv->due_date);
+        $buckets = ['1-30' => 0.0, '31-60' => 0.0, '61-90' => 0.0, '90+' => 0.0];
+        $invoices = [];
+
+        foreach ($rows as $row) {
+            $dueDate = Carbon::parse((string) $row->due_date);
             $daysPast = max(0, (int) $dueDate->diffInDays($now, false));
-            $rawOutstanding = is_numeric($inv->outstanding_amount ?? null) ? (float) $inv->outstanding_amount : 0.0;
+            $total = is_numeric($row->total_amount) ? (float) $row->total_amount : 0.0;
+            $paid = is_numeric($row->paid_amount) ? (float) $row->paid_amount : 0.0;
+            $due = max(0.0, $total - $paid);
 
-            return [
-                'uuid' => (string) $inv->uuid,
-                'invoice_number' => (string) $inv->invoice_number,
-                'customer_name' => is_string($inv->customer_name ?? null) ? (string) $inv->customer_name : 'Walk-in Customer',
-                'due_date' => (string) $inv->due_date,
+            if ($daysPast <= 30) {
+                $bucket = '1-30';
+            } elseif ($daysPast <= 60) {
+                $bucket = '31-60';
+            } elseif ($daysPast <= 90) {
+                $bucket = '61-90';
+            } else {
+                $bucket = '90+';
+            }
+
+            $buckets[$bucket] += $due;
+
+            $invoices[] = [
+                'id' => (int) $row->id,
+                'invoice_number' => (string) $row->invoice_number,
+                'customer_name' => is_string($row->customer_name ?? null) ? (string) $row->customer_name : 'Walk-in Customer',
+                'total_amount' => round($total, 2),
+                'amount_paid' => round($paid, 2),
+                'amount_due' => round($due, 2),
+                'due_date' => $dueDate->toDateString(),
                 'days_overdue' => $daysPast,
-                'outstanding_amount' => round($rawOutstanding, 2),
-                'currency' => 'BDT',
+                'aging_bucket' => $bucket,
             ];
-        });
+        }
 
-        $totalOverdueSum = (float) (Invoice::where('tenant_id', $tenantId)
-            ->whereIn('payment_status', ['unpaid', 'partially_paid'])
+        $totalOverdue = (float) (Invoice::where('tenant_id', $tenantId)
+            ->whereIn('status', ['posted', 'partially_paid'])
             ->where('due_date', '<', $now)
             ->selectRaw('COALESCE(SUM(total_amount - paid_amount), 0) as total')
-            ->first()?->getAttribute('total') ?? 0.0);
+            ->value('total') ?? 0.0);
 
         return [
-            'total_overdue_amount' => round($totalOverdueSum, 2),
-            'currency' => 'BDT',
-            'returned_count' => $results->count(),
-            'invoices' => $results->all(),
+            'total_overdue' => round(max(0.0, $totalOverdue), 2),
+            'total_invoices_count' => $rows->count(),
+            'aging_summary' => [
+                '1-30' => round($buckets['1-30'], 2),
+                '31-60' => round($buckets['31-60'], 2),
+                '61-90' => round($buckets['61-90'], 2),
+                '90+' => round($buckets['90+'], 2),
+            ],
+            'invoices' => $invoices,
         ];
     }
 
