@@ -15,8 +15,8 @@ import {
 
 interface AuditResponsePayload {
   data: PlatformAuditLog[];
-  meta: {
-    pagination: {
+  meta?: {
+    pagination?: {
       total: number;
       page: number;
       per_page: number;
@@ -42,8 +42,13 @@ export const PlatformAuditWorkspace: React.FC = () => {
       if (entityType !== 'all') params['entity_type'] = entityType;
       if (actionFilter !== 'all') params['action'] = actionFilter;
 
-      const response = await api.get<AuditResponsePayload>('/platform/audit-logs', { params });
-      return response.data;
+      const response = await api.get<PlatformAuditLog[]>('/platform/audit-logs', { params });
+      return {
+        data: Array.isArray(response.data) ? response.data : ((response.data as unknown as { data?: PlatformAuditLog[] })?.data ?? []),
+        meta: {
+          pagination: response.meta?.pagination,
+        },
+      };
     },
   });
 

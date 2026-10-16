@@ -22,8 +22,8 @@ import {
 
 interface AdminsResponse {
   data: PlatformAdminUser[];
-  meta: {
-    pagination: {
+  meta?: {
+    pagination?: {
       total: number;
       page: number;
       per_page: number;
@@ -93,12 +93,18 @@ export const PlatformAdminWorkspace: React.FC = () => {
     queryFn: async () => {
       const params: Record<string, string | number> = { page, per_page: 25 };
       if (search) params['search'] = search;
-      const res = await api.get<AdminsResponse>('/platform/admins', { params });
-      return res.data;
+      const res = await api.get<PlatformAdminUser[]>('/platform/admins', { params });
+      return {
+        data: Array.isArray(res.data) ? res.data : ((res.data as unknown as { data?: PlatformAdminUser[] })?.data ?? []),
+        meta: {
+          pagination: res.meta?.pagination,
+        },
+      };
     },
   });
 
   const admins = data?.data ?? [];
+  const pagination = data?.meta?.pagination;
 
   // Create Admin Mutation
   const createMutation = useMutation({
@@ -516,13 +522,13 @@ export const PlatformAdminWorkspace: React.FC = () => {
       />
 
       {/* Pagination */}
-      {data && data.meta.pagination.total_pages > 1 && (
+      {pagination && pagination.total_pages > 1 && (
         <div className="p-4 rounded-2xl bg-surface border border-default flex flex-col sm:flex-row items-center justify-between gap-3 text-xs font-mono text-muted">
           <div>
             {t('platform.adminUsers.showingPage', {
-              page: data.meta.pagination.page,
-              totalPages: data.meta.pagination.total_pages,
-              total: data.meta.pagination.total,
+              page: pagination.page,
+              totalPages: pagination.total_pages,
+              total: pagination.total,
             })}
           </div>
           <div className="flex items-center gap-1.5">
@@ -537,8 +543,8 @@ export const PlatformAdminWorkspace: React.FC = () => {
               {page}
             </span>
             <button
-              onClick={() => setPage((p) => Math.min(data.meta.pagination.total_pages, p + 1))}
-              disabled={page === data.meta.pagination.total_pages}
+              onClick={() => setPage((p) => Math.min(pagination.total_pages, p + 1))}
+              disabled={page === pagination.total_pages}
               className="p-2 rounded-xl border border-default bg-surface hover:bg-surface-sunken text-default disabled:opacity-30 cursor-pointer min-w-9 min-h-9 flex items-center justify-center"
             >
               <ChevronRight className="size-4" />

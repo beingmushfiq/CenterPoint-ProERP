@@ -21,14 +21,14 @@ import {
 
 interface TicketsResponse {
   data: PlatformSupportTicket[];
-  meta: {
-    pagination: {
+  meta?: {
+    pagination?: {
       total: number;
       page: number;
       per_page: number;
       total_pages: number;
     };
-    stats: {
+    stats?: {
       total: number;
       open: number;
       in_progress: number;
@@ -86,12 +86,19 @@ export const PlatformSupportWorkspace: React.FC = () => {
       if (priorityFilter !== 'all') params['priority'] = priorityFilter;
       if (search) params['search'] = search;
 
-      const res = await api.get<TicketsResponse>('/platform/support/tickets', { params });
-      return res.data;
+      const res = await api.get<PlatformSupportTicket[]>('/platform/support/tickets', { params });
+      return {
+        data: Array.isArray(res.data) ? res.data : ((res.data as unknown as { data?: PlatformSupportTicket[] })?.data ?? []),
+        meta: {
+          pagination: res.meta?.pagination,
+          stats: (res.meta as unknown as { stats?: TicketsResponse['meta']['stats'] })?.stats,
+        },
+      };
     },
   });
 
   const tickets = data?.data ?? [];
+  const pagination = data?.meta?.pagination;
   const stats = data?.meta?.stats;
 
   // Fetch Single Ticket Details (for active notes thread)
@@ -448,11 +455,11 @@ export const PlatformSupportWorkspace: React.FC = () => {
       />
 
       {/* Pagination */}
-      {data && data.meta.pagination.total_pages > 1 && (
+      {pagination && pagination.total_pages > 1 && (
         <div className="p-4 rounded-2xl bg-surface border border-default flex flex-col sm:flex-row items-center justify-between gap-3 text-xs font-mono text-muted">
           <div>
-            Showing page <strong className="text-default">{data.meta.pagination.page}</strong> of{' '}
-            <strong className="text-default">{data.meta.pagination.total_pages}</strong> ({data.meta.pagination.total} tickets)
+            Showing page <strong className="text-default">{pagination.page}</strong> of{' '}
+            <strong className="text-default">{pagination.total_pages}</strong> ({pagination.total} tickets)
           </div>
           <div className="flex items-center gap-1.5">
             <button
@@ -466,8 +473,8 @@ export const PlatformSupportWorkspace: React.FC = () => {
               {page}
             </span>
             <button
-              onClick={() => setPage((p) => Math.min(data.meta.pagination.total_pages, p + 1))}
-              disabled={page === data.meta.pagination.total_pages}
+              onClick={() => setPage((p) => Math.min(pagination.total_pages, p + 1))}
+              disabled={page === pagination.total_pages}
               className="p-2 rounded-xl border border-default bg-surface hover:bg-surface-sunken text-default disabled:opacity-30 cursor-pointer min-w-9 min-h-9 flex items-center justify-center"
             >
               <ChevronRight className="size-4" />

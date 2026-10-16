@@ -25,14 +25,14 @@ import {
 
 interface ErrorListResponse {
   data: PlatformErrorLogItem[];
-  meta: {
-    pagination: {
+  meta?: {
+    pagination?: {
       total: number;
       page: number;
       per_page: number;
       total_pages: number;
     };
-    stats: {
+    stats?: {
       total: number;
       open: number;
       investigating: number;
@@ -65,8 +65,14 @@ export const PlatformErrorMonitoringWorkspace: React.FC = () => {
       if (statusFilter !== 'all') params['status'] = statusFilter;
       if (severityFilter !== 'all') params['severity'] = severityFilter;
 
-      const res = await api.get<ErrorListResponse>('/platform/errors', { params });
-      return res.data;
+      const res = await api.get<PlatformErrorLogItem[]>('/platform/errors', { params });
+      return {
+        data: Array.isArray(res.data) ? res.data : ((res.data as unknown as { data?: PlatformErrorLogItem[] })?.data ?? []),
+        meta: {
+          pagination: res.meta?.pagination,
+          stats: (res.meta as unknown as { stats?: ErrorListResponse['meta']['stats'] })?.stats,
+        },
+      };
     },
   });
 

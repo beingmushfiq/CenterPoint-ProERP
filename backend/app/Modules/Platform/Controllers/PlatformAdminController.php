@@ -22,31 +22,48 @@ class PlatformAdminController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $admins = User::withoutTenantScope()
+        $query = User::withoutTenantScope()
             ->where('is_platform_user', true)
             ->with('platformRoles')
-            ->orderByDesc('id')
-            ->get()
-            ->map(fn (User $u) => [
-                'id' => $u->id,
-                'uuid' => $u->uuid,
-                'name' => $u->name,
-                'email' => $u->email,
-                'status' => $u->status ?? ($u->is_active ? 'active' : 'inactive'),
-                'is_active' => (bool) $u->is_active,
-                'last_login_at' => $u->last_login_at?->toIso8601String(),
-                'created_at' => $u->created_at?->toIso8601String(),
-                'roles' => $u->platformRoles->map(fn (PlatformRole $r) => [
-                    'id' => $r->id,
-                    'name' => $r->name,
-                    'slug' => $r->slug,
-                ]),
-            ]);
+            ->orderByDesc('id');
+
+        if ($request->filled('search')) {
+            $search = '%'.trim((string) $request->input('search')).'%';
+            $query->where(function ($q) use ($search): void {
+                $q->where('name', 'like', $search)
+                    ->orWhere('email', 'like', $search);
+            });
+        }
+
+        $perPage = min(max((int) $request->input('per_page', 25), 1), 100);
+        $paginator = $query->paginate($perPage);
+
+        $admins = $paginator->getCollection()->map(fn (User $u) => [
+            'id' => $u->id,
+            'uuid' => $u->uuid,
+            'name' => $u->name,
+            'email' => $u->email,
+            'status' => $u->status ?? ($u->is_active ? 'active' : 'inactive'),
+            'is_active' => (bool) $u->is_active,
+            'last_login_at' => $u->last_login_at?->toIso8601String(),
+            'created_at' => $u->created_at?->toIso8601String(),
+            'roles' => $u->platformRoles->map(fn (PlatformRole $r) => [
+                'id' => $r->id,
+                'name' => $r->name,
+                'slug' => $r->slug,
+            ]),
+        ]);
 
         return response()->json([
             'success' => true,
             'data' => $admins,
             'meta' => [
+                'pagination' => [
+                    'total' => $paginator->total(),
+                    'page' => $paginator->currentPage(),
+                    'per_page' => $paginator->perPage(),
+                    'total_pages' => $paginator->lastPage(),
+                ],
                 'correlation_id' => (string) $request->header('X-Correlation-Id', ''),
                 'timestamp' => Carbon::now()->toIso8601String(),
             ],

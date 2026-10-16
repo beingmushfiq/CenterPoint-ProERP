@@ -22,8 +22,8 @@ import {
 
 interface PaymentsResponse {
   data: PlatformPayment[];
-  meta: {
-    pagination: {
+  meta?: {
+    pagination?: {
       total: number;
       page: number;
       per_page: number;
@@ -78,8 +78,13 @@ export const PlatformPaymentsWorkspace: React.FC = () => {
       if (statusFilter !== 'all') params['status'] = statusFilter;
       if (search) params['search'] = search;
 
-      const res = await api.get<PaymentsResponse>('/platform/payments', { params });
-      return res.data;
+      const res = await api.get<PlatformPayment[]>('/platform/payments', { params });
+      return {
+        data: Array.isArray(res.data) ? res.data : ((res.data as unknown as { data?: PlatformPayment[] })?.data ?? []),
+        meta: {
+          pagination: res.meta?.pagination,
+        },
+      };
     },
   });
 

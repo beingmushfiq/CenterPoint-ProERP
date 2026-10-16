@@ -66,6 +66,15 @@ class PlatformSupportController extends Controller
             'urgent' => PlatformSupportTicket::where('priority', 'urgent')->whereIn('status', ['open', 'in_progress'])->count(),
         ];
 
+        $stats = [
+            'total' => PlatformSupportTicket::count(),
+            'open' => PlatformSupportTicket::where('status', 'open')->count(),
+            'in_progress' => PlatformSupportTicket::where('status', 'in_progress')->count(),
+            'waiting' => PlatformSupportTicket::where('status', 'waiting')->count(),
+            'resolved' => PlatformSupportTicket::where('status', 'resolved')->count(),
+            'closed' => PlatformSupportTicket::where('status', 'closed')->count(),
+        ];
+
         return response()->json([
             'success' => true,
             'data' => $paginator->items(),
@@ -77,6 +86,7 @@ class PlatformSupportController extends Controller
                     'per_page' => $paginator->perPage(),
                     'total_pages' => $paginator->lastPage(),
                 ],
+                'stats' => $stats,
                 'correlation_id' => (string) $request->header('X-Correlation-Id', ''),
                 'timestamp' => Carbon::now()->toIso8601String(),
             ],
