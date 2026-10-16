@@ -315,7 +315,9 @@ class AgentToolRegistry
         }
 
         $totalLiquidCash = $bankBalance + $cashOnHand;
-        $monthlyExpenses = (float) $this->financingMatchEngine->gatherFinancialMetrics($tenantId)['monthly_expenses'];
+        $metrics = $this->financingMatchEngine->gatherFinancialMetrics($tenantId);
+        $rawMonthlyExpenses = $metrics['monthly_expenses'] ?? null;
+        $monthlyExpenses = is_numeric($rawMonthlyExpenses) ? (float) $rawMonthlyExpenses : 0.0;
         $dailyBurnRate = round($monthlyExpenses / 30.0, 2);
         $runwayDays = $dailyBurnRate > 0 ? (int) floor($totalLiquidCash / $dailyBurnRate) : 999;
 
@@ -411,11 +413,13 @@ class AgentToolRegistry
             ];
         }
 
-        $totalOverdue = (float) (Invoice::where('tenant_id', $tenantId)
+        $rawOverdueVal = DB::table('invoices')
+            ->where('tenant_id', $tenantId)
             ->whereIn('status', ['posted', 'partially_paid'])
             ->where('due_date', '<', $now)
             ->selectRaw('COALESCE(SUM(total_amount - paid_amount), 0) as total')
-            ->value('total') ?? 0.0);
+            ->value('total');
+        $totalOverdue = is_numeric($rawOverdueVal) ? (float) $rawOverdueVal : 0.0;
 
         return [
             'total_overdue' => round(max(0.0, $totalOverdue), 2),
@@ -459,7 +463,8 @@ class AgentToolRegistry
                 ->whereBetween('expenses.expense_date', [$startDate, $endDate])
                 ->sum('expenses.amount');
 
-            $expenseBreakdown = Expense::where('expenses.tenant_id', $tenantId)
+            $expenseBreakdown = DB::table('expenses')
+                ->where('expenses.tenant_id', $tenantId)
                 ->whereBetween('expenses.expense_date', [$startDate, $endDate])
                 ->leftJoin('expense_categories', 'expenses.expense_category_id', '=', 'expense_categories.id')
                 ->selectRaw('COALESCE(expense_categories.name, "General") as category, SUM(expenses.amount) as total')
@@ -467,13 +472,17 @@ class AgentToolRegistry
                 ->orderByDesc('total')
                 ->limit(5)
                 ->get()
-                ->map(fn ($row): array => [
-                    'category' => (string) $row->category,
-                    'amount' => round((float) $row->total, 2),
-                    'pct_of_total' => $totalExpenses > 0
-                        ? round(((float) $row->total / $totalExpenses) * 100, 2)
-                        : 0.0,
-                ])
+                ->map(function ($row) use ($totalExpenses): array {
+                    $rowTotal = is_numeric($row->total ?? null) ? (float) $row->total : 0.0;
+
+                    return [
+                        'category' => is_string($row->category ?? null) ? (string) $row->category : 'General',
+                        'amount' => round($rowTotal, 2),
+                        'pct_of_total' => $totalExpenses > 0
+                            ? round(($rowTotal / $totalExpenses) * 100, 2)
+                            : 0.0,
+                    ];
+                })
                 ->all();
         }
 
@@ -488,7 +497,7 @@ class AgentToolRegistry
                 ->selectRaw('COALESCE(SUM(jl.debit_amount - jl.credit_amount), 0) as cogs')
                 ->value('cogs');
 
-            $cogs = max(0.0, (float) $cogsRow);
+            $cogs = is_numeric($cogsRow) ? max(0.0, (float) $cogsRow) : 0.0;
         }
 
         $grossProfit = $totalRevenue - $cogs;

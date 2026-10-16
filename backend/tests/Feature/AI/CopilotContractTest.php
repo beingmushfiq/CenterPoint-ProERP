@@ -35,168 +35,6 @@ final class CopilotContractTest extends TestCase
         }
     }
 
-    private function createTenant(array $attributes = []): Tenant
-    {
-        $tenant = Tenant::create(array_merge([
-            'uuid' => (string) Str::uuid(),
-            'plan_id' => 1,
-            'name' => 'Contract Tenant',
-            'slug' => 'contract-tenant-'.Str::random(6),
-            'status' => 'active',
-            'currency_code' => 'BDT',
-            'timezone' => 'Asia/Dhaka',
-            'locale' => 'en',
-            'date_format' => 'Y-m-d',
-            'number_format' => 'standard',
-        ], $attributes));
-
-        $companyId = DB::table('companies')->insertGetId([
-            'uuid' => (string) Str::uuid(),
-            'tenant_id' => $tenant->id,
-            'name' => 'Default Company',
-            'is_default' => true,
-            'is_active' => true,
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
-
-        $coaId = DB::table('chart_of_accounts')->insertGetId([
-            'tenant_id' => $tenant->id,
-            'company_id' => $companyId,
-            'uuid' => (string) Str::uuid(),
-            'account_code' => 'COA-'.Str::upper(Str::random(4)),
-            'name' => 'Bank Clearing Account',
-            'account_type' => 'asset',
-            'account_subtype' => 'bank',
-            'is_group' => false,
-            'normal_balance' => 'debit',
-            'is_system' => false,
-            'is_active' => true,
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
-
-        $branchId = DB::table('branches')->insertGetId([
-            'uuid' => (string) Str::uuid(),
-            'tenant_id' => $tenant->id,
-            'company_id' => $companyId,
-            'code' => 'BR-'.Str::upper(Str::random(4)),
-            'name' => 'Main Branch',
-            'type' => 'sales',
-            'is_default' => true,
-            'is_active' => true,
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
-
-        $catId = DB::table('expense_categories')->insertGetId([
-            'tenant_id' => $tenant->id,
-            'uuid' => (string) Str::uuid(),
-            'code' => 'GEN-EXP',
-            'name' => 'General Operations',
-            'is_active' => true,
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
-
-        $unitId = DB::table('units')->insertGetId([
-            'tenant_id' => $tenant->id,
-            'uuid' => (string) Str::uuid(),
-            'code' => 'PCS',
-            'name' => 'Pieces',
-            'type' => 'piece',
-            'is_base' => true,
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
-
-        $warehouseId = DB::table('warehouses')->insertGetId([
-            'tenant_id' => $tenant->id,
-            'uuid' => (string) Str::uuid(),
-            'code' => 'WH-'.Str::upper(Str::random(4)),
-            'name' => 'Central Warehouse',
-            'type' => 'general',
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
-
-        $tenant->setAttribute('default_company_id', $companyId);
-        $tenant->setAttribute('default_coa_id', $coaId);
-        $tenant->setAttribute('default_branch_id', $branchId);
-        $tenant->setAttribute('default_expense_category_id', $catId);
-        $tenant->setAttribute('default_unit_id', $unitId);
-        $tenant->setAttribute('default_warehouse_id', $warehouseId);
-
-        return $tenant;
-    }
-
-    private function createProduct(Tenant $tenant, array $attributes): int
-    {
-        return (int) DB::table('products')->insertGetId(array_merge([
-            'tenant_id' => $tenant->id,
-            'uuid' => (string) Str::uuid(),
-            'sku' => 'SKU-'.Str::upper(Str::random(6)),
-            'name' => 'Test Product',
-            'type' => 'finished',
-            'base_unit_id' => $tenant->getAttribute('default_unit_id'),
-            'standard_cost' => '1000.0000',
-            'status' => 'active',
-            'created_at' => now(),
-            'updated_at' => now(),
-        ], $attributes));
-    }
-
-    private function createStockBalance(Tenant $tenant, int $productId, array $attributes): int
-    {
-        return (int) DB::table('stock_balances')->insertGetId(array_merge([
-            'tenant_id' => $tenant->id,
-            'uuid' => (string) Str::uuid(),
-            'product_id' => $productId,
-            'warehouse_id' => $tenant->getAttribute('default_warehouse_id'),
-            'quantity' => '100.0000',
-            'average_cost' => '1000.0000',
-            'total_value' => '100000.0000',
-            'stock_state' => 'available',
-            'created_at' => now(),
-            'updated_at' => now(),
-        ], $attributes));
-    }
-
-    private function createExpense(Tenant $tenant, array $attributes): int
-    {
-        return (int) DB::table('expenses')->insertGetId(array_merge([
-            'tenant_id' => $tenant->id,
-            'company_id' => $tenant->getAttribute('default_company_id'),
-            'branch_id' => $tenant->getAttribute('default_branch_id'),
-            'expense_category_id' => $attributes['expense_category_id'] ?? $tenant->getAttribute('default_expense_category_id'),
-            'uuid' => (string) Str::uuid(),
-            'expense_number' => 'EXP-'.Str::upper(Str::random(6)),
-            'expense_date' => now()->toDateString(),
-            'payee_type' => 'other',
-            'payee_name' => 'Service Provider',
-            'payment_method' => 'cash',
-            'amount' => '1000.0000',
-            'tax_amount' => '0.0000',
-            'total_amount' => '1000.0000',
-            'status' => 'approved',
-            'created_at' => now(),
-            'updated_at' => now(),
-        ], $attributes));
-    }
-
-    private function createBankAccount(Tenant $tenant, array $attributes): \App\Modules\Finance\Models\BankAccount
-    {
-        return \App\Modules\Finance\Models\BankAccount::create(array_merge([
-            'tenant_id' => $tenant->id,
-            'company_id' => $tenant->getAttribute('default_company_id'),
-            'chart_of_account_id' => $tenant->getAttribute('default_coa_id'),
-            'uuid' => (string) Str::uuid(),
-            'code' => 'BA-'.Str::upper(Str::random(6)),
-            'currency' => 'BDT',
-            'is_active' => true,
-        ], $attributes));
-    }
-
     public function test_anthropic_service_config_is_registered(): void
     {
         $this->assertIsArray(config('services.anthropic'));
@@ -208,7 +46,7 @@ final class CopilotContractTest extends TestCase
 
     public function test_anthropic_client_builds_messages_request_body(): void
     {
-        $client = new \App\Modules\AI\Services\AnthropicClient();
+        $client = new \App\Modules\AI\Services\AnthropicClient;
 
         $body = $client->buildRequestBody(
             systemPrompt: 'You are the copilot.',
@@ -227,14 +65,19 @@ final class CopilotContractTest extends TestCase
         $this->assertSame('deepseek-v4-flash', $body['model']);
         $this->assertSame(2000, $body['max_tokens']);
         $this->assertSame('You are the copilot.', $body['system']);
-        $this->assertSame('get_cash_position', $body['tools'][0]['name']);
-        $this->assertArrayHasKey('input_schema', $body['tools'][0]);
-        $this->assertArrayNotHasKey('type', $body['tools'][0]);
+        $tools = $body['tools'] ?? null;
+        $this->assertIsArray($tools);
+        $this->assertNotEmpty($tools);
+        $firstTool = $tools[0];
+        $this->assertIsArray($firstTool);
+        $this->assertSame('get_cash_position', $firstTool['name']);
+        $this->assertArrayHasKey('input_schema', $firstTool);
+        $this->assertArrayNotHasKey('type', $firstTool);
     }
 
     public function test_anthropic_client_parses_text_and_tool_use_blocks(): void
     {
-        $client = new \App\Modules\AI\Services\AnthropicClient();
+        $client = new \App\Modules\AI\Services\AnthropicClient;
 
         $parsed = $client->parseResponse([
             'stop_reason' => 'tool_use',
@@ -259,7 +102,7 @@ final class CopilotContractTest extends TestCase
 
     public function test_anthropic_client_formats_tool_results_as_user_blocks(): void
     {
-        $client = new \App\Modules\AI\Services\AnthropicClient();
+        $client = new \App\Modules\AI\Services\AnthropicClient;
 
         $message = $client->toolResultMessage([
             ['tool_use_id' => 'toolu_01', 'output' => ['total_liquidity' => 900000]],
@@ -304,9 +147,9 @@ final class CopilotContractTest extends TestCase
     {
         $tenant = $this->createTenant();
 
-        $partyId = \Illuminate\Support\Facades\DB::table('parties')->insertGetId([
+        $partyId = DB::table('parties')->insertGetId([
             'tenant_id' => $tenant->id,
-            'uuid' => (string) \Illuminate\Support\Str::uuid(),
+            'uuid' => (string) Str::uuid(),
             'code' => 'PARTY-001',
             'name' => 'Trade Partner',
             'is_customer' => 1,
@@ -316,9 +159,9 @@ final class CopilotContractTest extends TestCase
             'updated_at' => now(),
         ]);
 
-        \Illuminate\Support\Facades\DB::table('invoices')->insert([
+        DB::table('invoices')->insert([
             'tenant_id' => $tenant->id,
-            'uuid' => (string) \Illuminate\Support\Str::uuid(),
+            'uuid' => (string) Str::uuid(),
             'invoice_number' => 'INV-AR-1',
             'party_id' => $partyId,
             'invoice_date' => now()->subDays(10)->toDateString(),
@@ -330,9 +173,9 @@ final class CopilotContractTest extends TestCase
             'updated_at' => now(),
         ]);
 
-        \Illuminate\Support\Facades\DB::table('purchase_bills')->insert([
+        DB::table('purchase_bills')->insert([
             'tenant_id' => $tenant->id,
-            'uuid' => (string) \Illuminate\Support\Str::uuid(),
+            'uuid' => (string) Str::uuid(),
             'bill_number' => 'BILL-AP-1',
             'party_id' => $partyId,
             'bill_date' => now()->subDays(10)->toDateString(),
@@ -395,9 +238,9 @@ final class CopilotContractTest extends TestCase
         $tenant = $this->createTenant();
         $tenantId = $tenant->id;
 
-        $partyId = \Illuminate\Support\Facades\DB::table('parties')->insertGetId([
+        $partyId = DB::table('parties')->insertGetId([
             'tenant_id' => $tenantId,
-            'uuid' => (string) \Illuminate\Support\Str::uuid(),
+            'uuid' => (string) Str::uuid(),
             'code' => 'CUST-001',
             'name' => 'Apex Superstore',
             'is_customer' => 1,
@@ -407,9 +250,9 @@ final class CopilotContractTest extends TestCase
             'updated_at' => now(),
         ]);
 
-        \Illuminate\Support\Facades\DB::table('invoices')->insert([
+        DB::table('invoices')->insert([
             'tenant_id' => $tenantId,
-            'uuid' => (string) \Illuminate\Support\Str::uuid(),
+            'uuid' => (string) Str::uuid(),
             'invoice_number' => 'INV-2026-001',
             'party_id' => $partyId,
             'invoice_date' => now()->subDays(60)->toDateString(),
@@ -445,9 +288,9 @@ final class CopilotContractTest extends TestCase
         $tenant = $this->createTenant();
         $tenantId = $tenant->id;
 
-        $categoryId = \Illuminate\Support\Facades\DB::table('expense_categories')->insertGetId([
+        $categoryId = DB::table('expense_categories')->insertGetId([
             'tenant_id' => $tenantId,
-            'uuid' => (string) \Illuminate\Support\Str::uuid(),
+            'uuid' => (string) Str::uuid(),
             'code' => 'UTIL',
             'name' => 'Utilities',
             'is_active' => true,
@@ -464,9 +307,9 @@ final class CopilotContractTest extends TestCase
             'status' => 'approved',
         ]);
 
-        $partyId = \Illuminate\Support\Facades\DB::table('parties')->insertGetId([
+        $partyId = DB::table('parties')->insertGetId([
             'tenant_id' => $tenantId,
-            'uuid' => (string) \Illuminate\Support\Str::uuid(),
+            'uuid' => (string) Str::uuid(),
             'code' => 'CUST-PL-1',
             'name' => 'PL Customer',
             'is_customer' => 1,
@@ -476,9 +319,9 @@ final class CopilotContractTest extends TestCase
             'updated_at' => now(),
         ]);
 
-        \Illuminate\Support\Facades\DB::table('invoices')->insert([
+        DB::table('invoices')->insert([
             'tenant_id' => $tenantId,
-            'uuid' => (string) \Illuminate\Support\Str::uuid(),
+            'uuid' => (string) Str::uuid(),
             'invoice_number' => 'INV-PL-1',
             'party_id' => $partyId,
             'invoice_date' => now()->subDays(5)->toDateString(),
@@ -622,10 +465,10 @@ final class CopilotContractTest extends TestCase
         $tenantId = $tenant->id;
 
         $user = \App\Models\User::create([
-            'uuid' => (string) \Illuminate\Support\Str::uuid(),
+            'uuid' => (string) Str::uuid(),
             'tenant_id' => $tenantId,
             'name' => 'Dispatch Officer',
-            'email' => 'dispatch_'.\Illuminate\Support\Str::random(5).'@example.com',
+            'email' => 'dispatch_'.Str::random(5).'@example.com',
             'password' => \Illuminate\Support\Facades\Hash::make('Password123!'),
             'status' => 'active',
             'locale' => 'en',
@@ -677,10 +520,10 @@ final class CopilotContractTest extends TestCase
         $tenantId = $tenant->id;
 
         $user = \App\Models\User::create([
-            'uuid' => (string) \Illuminate\Support\Str::uuid(),
+            'uuid' => (string) Str::uuid(),
             'tenant_id' => $tenantId,
             'name' => 'Confirm Officer',
-            'email' => 'confirm_'.\Illuminate\Support\Str::random(5).'@example.com',
+            'email' => 'confirm_'.Str::random(5).'@example.com',
             'password' => \Illuminate\Support\Facades\Hash::make('Password123!'),
             'status' => 'active',
             'locale' => 'en',
@@ -886,5 +729,166 @@ final class CopilotContractTest extends TestCase
         $this->assertSame('unsecured', $inputs['collateral_available']);
         $this->assertSame('working_capital', $inputs['purpose']);
     }
-}
 
+    private function createTenant(array $attributes = []): Tenant
+    {
+        $tenant = Tenant::create(array_merge([
+            'uuid' => (string) Str::uuid(),
+            'plan_id' => 1,
+            'name' => 'Contract Tenant',
+            'slug' => 'contract-tenant-'.Str::random(6),
+            'status' => 'active',
+            'currency_code' => 'BDT',
+            'timezone' => 'Asia/Dhaka',
+            'locale' => 'en',
+            'date_format' => 'Y-m-d',
+            'number_format' => 'standard',
+        ], $attributes));
+
+        $companyId = DB::table('companies')->insertGetId([
+            'uuid' => (string) Str::uuid(),
+            'tenant_id' => $tenant->id,
+            'name' => 'Default Company',
+            'is_default' => true,
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $coaId = DB::table('chart_of_accounts')->insertGetId([
+            'tenant_id' => $tenant->id,
+            'company_id' => $companyId,
+            'uuid' => (string) Str::uuid(),
+            'account_code' => 'COA-'.Str::upper(Str::random(4)),
+            'name' => 'Bank Clearing Account',
+            'account_type' => 'asset',
+            'account_subtype' => 'bank',
+            'is_group' => false,
+            'normal_balance' => 'debit',
+            'is_system' => false,
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $branchId = DB::table('branches')->insertGetId([
+            'uuid' => (string) Str::uuid(),
+            'tenant_id' => $tenant->id,
+            'company_id' => $companyId,
+            'code' => 'BR-'.Str::upper(Str::random(4)),
+            'name' => 'Main Branch',
+            'type' => 'sales',
+            'is_default' => true,
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $catId = DB::table('expense_categories')->insertGetId([
+            'tenant_id' => $tenant->id,
+            'uuid' => (string) Str::uuid(),
+            'code' => 'GEN-EXP',
+            'name' => 'General Operations',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $unitId = DB::table('units')->insertGetId([
+            'tenant_id' => $tenant->id,
+            'uuid' => (string) Str::uuid(),
+            'code' => 'PCS',
+            'name' => 'Pieces',
+            'type' => 'piece',
+            'is_base' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $warehouseId = DB::table('warehouses')->insertGetId([
+            'tenant_id' => $tenant->id,
+            'uuid' => (string) Str::uuid(),
+            'code' => 'WH-'.Str::upper(Str::random(4)),
+            'name' => 'Central Warehouse',
+            'type' => 'general',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $tenant->setAttribute('default_company_id', $companyId);
+        $tenant->setAttribute('default_coa_id', $coaId);
+        $tenant->setAttribute('default_branch_id', $branchId);
+        $tenant->setAttribute('default_expense_category_id', $catId);
+        $tenant->setAttribute('default_unit_id', $unitId);
+        $tenant->setAttribute('default_warehouse_id', $warehouseId);
+
+        return $tenant;
+    }
+
+    private function createProduct(Tenant $tenant, array $attributes): int
+    {
+        return (int) DB::table('products')->insertGetId(array_merge([
+            'tenant_id' => $tenant->id,
+            'uuid' => (string) Str::uuid(),
+            'sku' => 'SKU-'.Str::upper(Str::random(6)),
+            'name' => 'Test Product',
+            'type' => 'finished',
+            'base_unit_id' => $tenant->getAttribute('default_unit_id'),
+            'standard_cost' => '1000.0000',
+            'status' => 'active',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ], $attributes));
+    }
+
+    private function createStockBalance(Tenant $tenant, int $productId, array $attributes): int
+    {
+        return (int) DB::table('stock_balances')->insertGetId(array_merge([
+            'tenant_id' => $tenant->id,
+            'uuid' => (string) Str::uuid(),
+            'product_id' => $productId,
+            'warehouse_id' => $tenant->getAttribute('default_warehouse_id'),
+            'quantity' => '100.0000',
+            'average_cost' => '1000.0000',
+            'total_value' => '100000.0000',
+            'stock_state' => 'available',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ], $attributes));
+    }
+
+    private function createExpense(Tenant $tenant, array $attributes): int
+    {
+        return (int) DB::table('expenses')->insertGetId(array_merge([
+            'tenant_id' => $tenant->id,
+            'company_id' => $tenant->getAttribute('default_company_id'),
+            'branch_id' => $tenant->getAttribute('default_branch_id'),
+            'expense_category_id' => $attributes['expense_category_id'] ?? $tenant->getAttribute('default_expense_category_id'),
+            'uuid' => (string) Str::uuid(),
+            'expense_number' => 'EXP-'.Str::upper(Str::random(6)),
+            'expense_date' => now()->toDateString(),
+            'payee_type' => 'other',
+            'payee_name' => 'Service Provider',
+            'payment_method' => 'cash',
+            'amount' => '1000.0000',
+            'tax_amount' => '0.0000',
+            'total_amount' => '1000.0000',
+            'status' => 'approved',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ], $attributes));
+    }
+
+    private function createBankAccount(Tenant $tenant, array $attributes): \App\Modules\Finance\Models\BankAccount
+    {
+        return \App\Modules\Finance\Models\BankAccount::create(array_merge([
+            'tenant_id' => $tenant->id,
+            'company_id' => $tenant->getAttribute('default_company_id'),
+            'chart_of_account_id' => $tenant->getAttribute('default_coa_id'),
+            'uuid' => (string) Str::uuid(),
+            'code' => 'BA-'.Str::upper(Str::random(6)),
+            'currency' => 'BDT',
+            'is_active' => true,
+        ], $attributes));
+    }
+}

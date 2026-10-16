@@ -12,6 +12,7 @@ use App\Modules\Inventory\Models\StockBalance;
 use App\Modules\Purchasing\Models\PurchaseBill;
 use App\Modules\Sales\Models\Invoice;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Throwable;
 
@@ -57,17 +58,24 @@ class FinancingMatchEngine
 
         $summary = $this->generateSummaryNarrative($metrics, $products);
 
+        $revVal = is_numeric($metrics['monthly_revenue'] ?? null) ? (float) $metrics['monthly_revenue'] : 0.0;
+        $expVal = is_numeric($metrics['monthly_expenses'] ?? null) ? (float) $metrics['monthly_expenses'] : 0.0;
+        $arVal = is_numeric($metrics['ar_outstanding'] ?? null) ? (float) $metrics['ar_outstanding'] : 0.0;
+        $apVal = is_numeric($metrics['ap_outstanding'] ?? null) ? (float) $metrics['ap_outstanding'] : 0.0;
+        $invVal = is_numeric($metrics['inventory_value'] ?? null) ? (float) $metrics['inventory_value'] : 0.0;
+        $bankVal = is_numeric($metrics['bank_balance'] ?? null) ? (float) $metrics['bank_balance'] : 0.0;
+
         // Store assessment record
         $assessment = FinancingAssessment::create([
             'tenant_id' => $tenantId,
             'user_id' => $userId,
             'assessment_date' => Carbon::now()->toDateString(),
-            'monthly_revenue' => (string) round($metrics['monthly_revenue'], 2),
-            'monthly_expenses' => (string) round($metrics['monthly_expenses'], 2),
-            'ar_outstanding' => (string) round($metrics['ar_outstanding'], 2),
-            'ap_outstanding' => (string) round($metrics['ap_outstanding'], 2),
-            'inventory_value' => (string) round($metrics['inventory_value'], 2),
-            'bank_balance' => (string) round($metrics['bank_balance'], 2),
+            'monthly_revenue' => (string) round($revVal, 2),
+            'monthly_expenses' => (string) round($expVal, 2),
+            'ar_outstanding' => (string) round($arVal, 2),
+            'ap_outstanding' => (string) round($apVal, 2),
+            'inventory_value' => (string) round($invVal, 2),
+            'bank_balance' => (string) round($bankVal, 2),
             'recommendations' => [
                 'products' => $products,
                 'top_recommendation' => $topRecommendation,
@@ -93,10 +101,15 @@ class FinancingMatchEngine
     public function computeSolvencyScore(array $metrics): int
     {
         $score = 50;
-        $revenue = (float) ($metrics['monthly_revenue'] ?? 0);
-        $expenses = (float) ($metrics['monthly_expenses'] ?? 0);
-        $ar = (float) ($metrics['ar_outstanding'] ?? 0);
-        $bank = (float) ($metrics['bank_balance'] ?? 0);
+        $rawRev = $metrics['monthly_revenue'] ?? null;
+        $rawExp = $metrics['monthly_expenses'] ?? null;
+        $rawAr = $metrics['ar_outstanding'] ?? null;
+        $rawBank = $metrics['bank_balance'] ?? null;
+
+        $revenue = is_numeric($rawRev) ? (float) $rawRev : 0.0;
+        $expenses = is_numeric($rawExp) ? (float) $rawExp : 0.0;
+        $ar = is_numeric($rawAr) ? (float) $rawAr : 0.0;
+        $bank = is_numeric($rawBank) ? (float) $rawBank : 0.0;
 
         if ($revenue > 0) {
             $score += 15;
@@ -125,9 +138,13 @@ class FinancingMatchEngine
      */
     public function computeRiskProfile(array $metrics): array
     {
-        $bank = (float) ($metrics['bank_balance'] ?? 0);
-        $revenue = (float) ($metrics['monthly_revenue'] ?? 0);
-        $expenses = (float) ($metrics['monthly_expenses'] ?? 0);
+        $rawBank = $metrics['bank_balance'] ?? null;
+        $rawRev = $metrics['monthly_revenue'] ?? null;
+        $rawExp = $metrics['monthly_expenses'] ?? null;
+
+        $bank = is_numeric($rawBank) ? (float) $rawBank : 0.0;
+        $revenue = is_numeric($rawRev) ? (float) $rawRev : 0.0;
+        $expenses = is_numeric($rawExp) ? (float) $rawExp : 0.0;
 
         $dailyBurn = $expenses / 30.0;
         $runway = $dailyBurn > 0 ? (int) floor($bank / $dailyBurn) : 999;
@@ -155,12 +172,14 @@ class FinancingMatchEngine
         /** @var array<string, mixed> $metrics */
         $metrics = is_array($assessment['metrics'] ?? null) ? $assessment['metrics'] : [];
         $profile = $this->computeRiskProfile($metrics);
+        $rev = is_numeric($metrics['monthly_revenue'] ?? null) ? (float) $metrics['monthly_revenue'] : 0.0;
+        $ar = is_numeric($metrics['ar_outstanding'] ?? null) ? (float) $metrics['ar_outstanding'] : 0.0;
 
         return [
             'solvency_score' => $this->computeSolvencyScore($metrics),
-            'monthly_revenue_verified' => round((float) ($metrics['monthly_revenue'] ?? 0), 2),
+            'monthly_revenue_verified' => round($rev, 2),
             'operating_margin_verified' => $profile['operating_margin_pct'],
-            'verified_ar_pool' => round((float) ($metrics['ar_outstanding'] ?? 0), 2),
+            'verified_ar_pool' => round($ar, 2),
             'runway_cushion_days' => $profile['runway_cushion_days'],
         ];
     }
@@ -279,10 +298,15 @@ class FinancingMatchEngine
             $recommendedFinancing = (float) $top['max_amount'];
         }
 
-        $bank = (float) ($metrics['bank_balance'] ?? 0);
-        $ar = (float) ($metrics['ar_outstanding'] ?? 0);
-        $ap = (float) ($metrics['ap_outstanding'] ?? 0);
-        $expenses = (float) ($metrics['monthly_expenses'] ?? 0);
+        $rawBank = $metrics['bank_balance'] ?? null;
+        $rawAr = $metrics['ar_outstanding'] ?? null;
+        $rawAp = $metrics['ap_outstanding'] ?? null;
+        $rawExp = $metrics['monthly_expenses'] ?? null;
+
+        $bank = is_numeric($rawBank) ? (float) $rawBank : 0.0;
+        $ar = is_numeric($rawAr) ? (float) $rawAr : 0.0;
+        $ap = is_numeric($rawAp) ? (float) $rawAp : 0.0;
+        $expenses = is_numeric($rawExp) ? (float) $rawExp : 0.0;
 
         $cashDeficit = max(0.0, ($ap + $expenses) - ($bank + ($ar * 0.70)));
 
@@ -305,32 +329,32 @@ class FinancingMatchEngine
     public function gatherFinancialMetrics(int $tenantId, array $customInputs = []): array
     {
         // 1. Bank balance
-        $bankBalance = isset($customInputs['bank_balance'])
+        $bankBalance = is_numeric($customInputs['bank_balance'] ?? null)
             ? (float) $customInputs['bank_balance']
             : (float) BankAccount::where('tenant_id', $tenantId)->where('is_active', true)->sum('current_balance');
 
         // 2. AR outstanding
-        $arOutstanding = isset($customInputs['ar_outstanding'])
+        $arOutstanding = is_numeric($customInputs['ar_outstanding'] ?? null)
             ? (float) $customInputs['ar_outstanding']
             : (float) $this->calculateArOutstanding($tenantId);
 
         // 3. AP outstanding
-        $apOutstanding = isset($customInputs['ap_outstanding'])
+        $apOutstanding = is_numeric($customInputs['ap_outstanding'] ?? null)
             ? (float) $customInputs['ap_outstanding']
             : (float) $this->calculateApOutstanding($tenantId);
 
         // 4. Inventory value
-        $inventoryValue = isset($customInputs['inventory_value'])
+        $inventoryValue = is_numeric($customInputs['inventory_value'] ?? null)
             ? (float) $customInputs['inventory_value']
             : (float) $this->calculateInventoryValue($tenantId);
 
         // 5. Monthly revenue (from invoices over past 90 days / 3)
-        $monthlyRevenue = isset($customInputs['monthly_revenue'])
+        $monthlyRevenue = is_numeric($customInputs['monthly_revenue'] ?? null)
             ? (float) $customInputs['monthly_revenue']
             : (float) $this->calculateAverageMonthlyRevenue($tenantId);
 
         // 6. Monthly expenses (from expenses over past 90 days / 3)
-        $monthlyExpenses = isset($customInputs['monthly_expenses'])
+        $monthlyExpenses = is_numeric($customInputs['monthly_expenses'] ?? null)
             ? (float) $customInputs['monthly_expenses']
             : (float) $this->calculateAverageMonthlyExpenses($tenantId);
 
@@ -371,11 +395,11 @@ class FinancingMatchEngine
     private function evaluateProducts(array $metrics): array
     {
         $products = [];
-        $rev = (float) $metrics['monthly_revenue'];
-        $profit = (float) $metrics['net_monthly_profit'];
-        $ar = (float) $metrics['ar_outstanding'];
-        $inv = (float) $metrics['inventory_value'];
-        $age = (int) $metrics['business_age_months'];
+        $rev = is_numeric($metrics['monthly_revenue'] ?? null) ? (float) $metrics['monthly_revenue'] : 0.0;
+        $profit = is_numeric($metrics['net_monthly_profit'] ?? null) ? (float) $metrics['net_monthly_profit'] : 0.0;
+        $ar = is_numeric($metrics['ar_outstanding'] ?? null) ? (float) $metrics['ar_outstanding'] : 0.0;
+        $inv = is_numeric($metrics['inventory_value'] ?? null) ? (float) $metrics['inventory_value'] : 0.0;
+        $age = is_numeric($metrics['business_age_months'] ?? null) ? (int) $metrics['business_age_months'] : 0;
 
         // 1. Working Capital Loan
         $wcEligible = $rev > 0 && $age >= 3;
@@ -458,17 +482,27 @@ class FinancingMatchEngine
         return $products;
     }
 
+    /**
+     * @param  array<string, mixed>  $metrics
+     * @param  list<array<string, mixed>>  $products
+     */
     private function generateSummaryNarrative(array $metrics, array $products): string
     {
-        $eligibleCount = count(array_filter($products, fn ($p) => $p['is_eligible']));
+        $eligibleCount = count(array_filter($products, fn ($p) => ! empty($p['is_eligible'])));
         $top = $products[0] ?? null;
+        $currency = is_string($metrics['currency'] ?? null) ? (string) $metrics['currency'] : 'BDT';
 
-        $msg = "Financial Assessment completed for {$metrics['currency']}. ";
+        $msg = "Financial Assessment completed for {$currency}. ";
         $msg .= "Identified {$eligibleCount} eligible financing facilities. ";
 
         if ($top) {
-            $msg .= "Prime recommendation: **{$top['product_name']}** providing up to {$metrics['currency']} "
-                .number_format($top['max_amount'], 2)." at {$top['estimated_interest_rate']} ({$top['confidence']} confidence).";
+            $topName = is_string($top['product_name'] ?? null) ? (string) $top['product_name'] : '';
+            $topMax = is_numeric($top['max_amount'] ?? null) ? (float) $top['max_amount'] : 0.0;
+            $topRate = is_string($top['estimated_interest_rate'] ?? null) ? (string) $top['estimated_interest_rate'] : '';
+            $topConf = is_string($top['confidence'] ?? null) ? (string) $top['confidence'] : '';
+
+            $msg .= "Prime recommendation: **{$topName}** providing up to {$currency} "
+                .number_format($topMax, 2)." at {$topRate} ({$topConf} confidence).";
         }
 
         return $msg;
@@ -481,10 +515,13 @@ class FinancingMatchEngine
         }
 
         try {
-            return (float) Invoice::where('tenant_id', $tenantId)
+            $due = DB::table('invoices')
+                ->where('tenant_id', $tenantId)
                 ->whereIn('status', ['posted', 'partially_paid'])
                 ->selectRaw('COALESCE(SUM(total_amount - paid_amount), 0) as due')
                 ->value('due');
+
+            return is_numeric($due) ? (float) $due : 0.0;
         } catch (Throwable) {
             return 0.0;
         }
@@ -497,10 +534,13 @@ class FinancingMatchEngine
         }
 
         try {
-            return (float) PurchaseBill::where('tenant_id', $tenantId)
+            $due = DB::table('purchase_bills')
+                ->where('tenant_id', $tenantId)
                 ->whereIn('status', ['posted', 'approved', 'partially_paid'])
                 ->selectRaw('COALESCE(SUM(total_amount - paid_amount), 0) as due')
                 ->value('due');
+
+            return is_numeric($due) ? (float) $due : 0.0;
         } catch (Throwable) {
             return 0.0;
         }
@@ -513,9 +553,12 @@ class FinancingMatchEngine
         }
 
         try {
-            return (float) StockBalance::where('tenant_id', $tenantId)
+            $val = DB::table('stock_balances')
+                ->where('tenant_id', $tenantId)
                 ->selectRaw('COALESCE(SUM(quantity * average_cost), 0) as val')
                 ->value('val');
+
+            return is_numeric($val) ? (float) $val : 0.0;
         } catch (Throwable) {
             return 0.0;
         }

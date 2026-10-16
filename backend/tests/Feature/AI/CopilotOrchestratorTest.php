@@ -175,4 +175,3 @@ final class CopilotOrchestratorTest extends TestCase
         $this->assertNotSame('list_overdue_invoices', $result['tool_calls'][0]['tool'] ?? null);
     }
 }
-

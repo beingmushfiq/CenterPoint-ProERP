@@ -28,9 +28,12 @@ class AnthropicClient
      */
     public function buildRequestBody(string $systemPrompt, array $messages, array $tools = []): array
     {
+        $rawModel = config('services.anthropic.model');
+        $rawMaxTokens = config('services.anthropic.max_tokens');
+
         $body = [
-            'model' => (string) config('services.anthropic.model'),
-            'max_tokens' => (int) config('services.anthropic.max_tokens'),
+            'model' => is_string($rawModel) && $rawModel !== '' ? $rawModel : 'claude-3-7-sonnet-latest',
+            'max_tokens' => is_numeric($rawMaxTokens) ? (int) $rawMaxTokens : 4096,
             'system' => $systemPrompt,
             'messages' => $messages,
         ];
@@ -55,12 +58,19 @@ class AnthropicClient
             return null;
         }
 
-        $baseUrl = rtrim((string) config('services.anthropic.base_url'), '/');
+        $rawBaseUrl = config('services.anthropic.base_url');
+        $baseUrl = rtrim(is_string($rawBaseUrl) && $rawBaseUrl !== '' ? $rawBaseUrl : 'https://api.anthropic.com', '/');
+
+        $rawKey = config('services.anthropic.key');
+        $apiKey = is_string($rawKey) ? $rawKey : '';
+
+        $rawVersion = config('services.anthropic.version');
+        $apiVersion = is_string($rawVersion) && $rawVersion !== '' ? $rawVersion : '2023-06-01';
 
         try {
             $response = Http::withHeaders([
-                'x-api-key' => (string) config('services.anthropic.key'),
-                'anthropic-version' => (string) config('services.anthropic.version'),
+                'x-api-key' => $apiKey,
+                'anthropic-version' => $apiVersion,
                 'content-type' => 'application/json',
             ])
                 ->timeout(45)

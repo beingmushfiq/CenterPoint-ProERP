@@ -267,10 +267,13 @@ class CopilotController extends Controller
             'acknowledged_at' => Carbon::now(),
         ]);
 
+        $alert->refresh();
+        $alert->load('acknowledgedByUser');
+
         return response()->json([
             'status' => 'success',
             'message' => 'Alert successfully acknowledged.',
-            'data' => $this->formatAlert($alert->fresh('acknowledgedByUser')),
+            'data' => $this->formatAlert($alert),
         ]);
     }
 
@@ -376,7 +379,8 @@ class CopilotController extends Controller
     public function preQualifyWeBank(Request $request): JsonResponse
     {
         $tenantId = TenantContext::current()->tenantId();
-        $userId = (int) $request->user()->id;
+        $user = $request->user();
+        $userId = $user !== null ? (int) $user->id : 0;
 
         $validated = $request->validate([
             'product_id' => 'required|string',
@@ -390,7 +394,7 @@ class CopilotController extends Controller
             customInputs: ['requested_amount' => $validated['requested_amount']]
         );
 
-        $matchedProduct = collect($assessment['products'] ?? [])
+        $matchedProduct = collect($assessment['products'])
             ->firstWhere('product_id', $validated['product_id'])
             ?? ($assessment['top_recommendation'] ?? null);
 

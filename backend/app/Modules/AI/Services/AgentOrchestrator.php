@@ -301,11 +301,13 @@ class AgentOrchestrator
                 ]),
             ]);
 
+            $toolName = is_string($pending['tool'] ?? null) ? (string) $pending['tool'] : 'unknown';
+
             $this->auditLogger->log(
                 tenantId: $tenantId,
                 userId: $userId,
                 conversationId: $conversation->id,
-                action: (string) ($pending['tool'] ?? 'unknown'),
+                action: $toolName,
                 permissionTier: AgentPermissionGuard::TIER_2_SUPERVISED,
                 inputParams: is_array($pending['arguments'] ?? null) ? $pending['arguments'] : [],
                 resultSummary: 'Operator rejected the pending action: '.($rejectionReason ?? 'no reason supplied'),
@@ -320,11 +322,13 @@ class AgentOrchestrator
             ];
         }
 
+        $confirmedTool = is_string($pending['tool'] ?? null) ? (string) $pending['tool'] : '';
+
         $result = $this->executeConfirmedAction(
             tenantId: $tenantId,
             userId: $userId,
             conversationUuid: $conversationUuid,
-            toolName: (string) ($pending['tool'] ?? ''),
+            toolName: $confirmedTool,
             actionData: is_array($pending['arguments'] ?? null) ? $pending['arguments'] : [],
             ipAddress: $ipAddress
         );
@@ -483,7 +487,15 @@ PROMPT;
                 ->post('https://api.openai.com/v1/chat/completions', $body);
 
             if ($response->successful()) {
-                return $response->json();
+                $json = $response->json();
+                if (is_array($json)) {
+                    $result = [];
+                    foreach ($json as $k => $v) {
+                        $result[(string) $k] = $v;
+                    }
+
+                    return $result;
+                }
             }
 
             Log::warning('OpenAI API call returned error: '.$response->body());
