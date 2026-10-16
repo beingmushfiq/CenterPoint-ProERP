@@ -375,11 +375,11 @@ final class CopilotTest extends TestCase
                 'status',
                 'data' => [
                     'assessment_uuid',
-                    'tenant_id',
-                    'metrics',
-                    'products',
-                    'top_recommendation',
-                    'summary',
+                    'cash_deficit_amount',
+                    'recommended_financing',
+                    'credit_score_indicator',
+                    'matched_products',
+                    'evaluation_summary',
                 ],
             ]);
 

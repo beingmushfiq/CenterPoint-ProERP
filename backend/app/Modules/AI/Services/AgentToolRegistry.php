@@ -264,7 +264,9 @@ class AgentToolRegistry
             'list_overdue_invoices' => $this->executeListOverdueInvoices($tenantId, $arguments),
             'get_pl_summary' => $this->executePlSummary($tenantId, $arguments),
             'analyze_cash_flow_risk' => $this->executeAnalyzeCashFlowRisk($tenantId, $arguments),
-            'match_financing_options' => $this->financingMatchEngine->assessAndMatch($tenantId, $userId, $arguments),
+            'match_financing_options' => $this->financingMatchEngine->formatMatchData(
+                $this->financingMatchEngine->assessAndMatch($tenantId, $userId, $arguments)
+            ),
             'get_inventory_value' => $this->executeInventoryValue($tenantId, $arguments),
             'create_cash_flow_alert' => $this->executeCreateCashFlowAlert($tenantId, $arguments, $confirmedBy),
             'get_report_data' => $this->executeReportData($tenantId, $arguments),

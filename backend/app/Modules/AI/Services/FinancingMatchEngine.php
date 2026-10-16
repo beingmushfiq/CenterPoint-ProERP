@@ -86,6 +86,134 @@ class FinancingMatchEngine
     }
 
     /**
+     * Deterministic solvency indicator (0-100) derived only from verified ledger metrics.
+     *
+     * @param  array<string, mixed>  $metrics
+     */
+    public function computeSolvencyScore(array $metrics): int
+    {
+        $score = 50;
+        $revenue = (float) ($metrics['monthly_revenue'] ?? 0);
+        $expenses = (float) ($metrics['monthly_expenses'] ?? 0);
+        $ar = (float) ($metrics['ar_outstanding'] ?? 0);
+        $bank = (float) ($metrics['bank_balance'] ?? 0);
+
+        if ($revenue > 0) {
+            $score += 15;
+        }
+
+        if ($revenue > $expenses && $expenses > 0) {
+            $score += 15;
+        }
+
+        if ($bank > 0) {
+            $score += 10;
+        }
+
+        if ($revenue > 0 && $ar <= $revenue) {
+            $score += 10;
+        }
+
+        return max(0, min(100, $score));
+    }
+
+    /**
+     * Convert an internal product row into the FinancingProduct contract.
+     *
+     * @param  array<string, mixed>  $product
+     * @return array<string, mixed>
+     */
+    public function formatProduct(array $product): array
+    {
+        $confidence = is_string($product['confidence'] ?? null) ? (string) $product['confidence'] : 'LOW';
+        $isEligible = (bool) ($product['is_eligible'] ?? false);
+
+        $scoreByConfidence = ['HIGH' => 85, 'MEDIUM' => 65, 'LOW' => 40];
+        $eligibilityScore = ($scoreByConfidence[$confidence] ?? 40) + ($isEligible ? 10 : 0);
+        $eligibilityScore = max(0, min(100, $eligibilityScore));
+
+        if (! $isEligible) {
+            $qualificationStatus = 'not_eligible';
+        } elseif ($confidence === 'HIGH') {
+            $qualificationStatus = 'pre_approved';
+        } elseif ($confidence === 'MEDIUM') {
+            $qualificationStatus = 'eligible';
+        } else {
+            $qualificationStatus = 'conditionally_eligible';
+        }
+
+        $rateString = is_string($product['estimated_interest_rate'] ?? null) ? (string) $product['estimated_interest_rate'] : '';
+        $interestRate = is_numeric(strtok($rateString, '%- ')) ? (float) strtok($rateString, '%- ') : 0.0;
+
+        $turnaroundByProduct = [
+            'working_capital_loan' => '5-7 business days',
+            'invoice_discounting' => '24-48 hours',
+            'inventory_financing' => '3-5 business days',
+            'equipment_leasing' => '7-10 business days',
+        ];
+        $productId = is_string($product['product_id'] ?? null) ? (string) $product['product_id'] : '';
+
+        $maxAmount = is_numeric($product['max_amount'] ?? null) ? (float) $product['max_amount'] : 0.0;
+        $rationale = is_string($product['rationale'] ?? null) ? (string) $product['rationale'] : '';
+        $collateral = is_string($product['collateral_requirement'] ?? null) ? (string) $product['collateral_requirement'] : '';
+
+        return [
+            'product_id' => $productId,
+            'product_name' => is_string($product['product_name'] ?? null) ? (string) $product['product_name'] : '',
+            'institution' => 'WeBank Digital SME Micro-Finance',
+            'interest_rate_pct' => round($interestRate, 2),
+            'repayment_terms' => is_string($product['tenor_months'] ?? null) ? (string) $product['tenor_months'] : '',
+            'eligible_amount' => round($maxAmount, 2),
+            'eligibility_score' => $eligibilityScore,
+            'qualification_status' => $qualificationStatus,
+            'required_collateral' => $collateral,
+            'application_turnaround' => $turnaroundByProduct[$productId] ?? '5-7 business days',
+            'benefits' => array_values(array_filter([
+                $rationale !== '' ? $rationale : null,
+                'Facility up to BDT '.number_format($maxAmount, 2).' against verified ERP data',
+            ])),
+        ];
+    }
+
+    /**
+     * Convert a full assessment into the FinancingMatchData UI contract.
+     *
+     * @param  array<string, mixed>  $assessment
+     * @return array<string, mixed>
+     */
+    public function formatMatchData(array $assessment): array
+    {
+        /** @var array<string, mixed> $metrics */
+        $metrics = is_array($assessment['metrics'] ?? null) ? $assessment['metrics'] : [];
+        /** @var list<array<string, mixed>> $products */
+        $products = is_array($assessment['products'] ?? null) ? $assessment['products'] : [];
+
+        $matchedProducts = array_map(fn (array $p): array => $this->formatProduct($p), $products);
+
+        $recommendedFinancing = 0.0;
+        $top = $assessment['top_recommendation'] ?? null;
+        if (is_array($top) && is_numeric($top['max_amount'] ?? null)) {
+            $recommendedFinancing = (float) $top['max_amount'];
+        }
+
+        $bank = (float) ($metrics['bank_balance'] ?? 0);
+        $ar = (float) ($metrics['ar_outstanding'] ?? 0);
+        $ap = (float) ($metrics['ap_outstanding'] ?? 0);
+        $expenses = (float) ($metrics['monthly_expenses'] ?? 0);
+
+        $cashDeficit = max(0.0, ($ap + $expenses) - ($bank + ($ar * 0.70)));
+
+        return [
+            'assessment_uuid' => is_string($assessment['assessment_uuid'] ?? null) ? (string) $assessment['assessment_uuid'] : null,
+            'cash_deficit_amount' => round($cashDeficit, 2),
+            'recommended_financing' => round($recommendedFinancing, 2),
+            'credit_score_indicator' => $this->computeSolvencyScore($metrics),
+            'matched_products' => $matchedProducts,
+            'evaluation_summary' => is_string($assessment['summary'] ?? null) ? (string) $assessment['summary'] : '',
+        ];
+    }
+
+    /**
      * Gather baseline financial metrics from live database tables.
      *
      * @param  array<string, mixed>  $customInputs

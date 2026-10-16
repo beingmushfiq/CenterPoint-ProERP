@@ -232,9 +232,11 @@ class CopilotController extends Controller
             customInputs: $validated
         );
 
+        $data = $this->financingMatchEngine->formatMatchData($assessment);
+
         return response()->json([
             'status' => 'success',
-            'data' => $assessment,
+            'data' => $data,
         ]);
     }
 

@@ -575,11 +575,44 @@ final class CopilotContractTest extends TestCase
         $this->assertSame(0.0, (float) $result['slow_moving_valuation']);
         $this->assertSame(3600.0, (float) $result['estimated_holding_cost_monthly']);
     }
+
+    public function test_financing_match_data_formatter_matches_contract(): void
+    {
+        $tenant = $this->createTenant();
+        $tenantId = $tenant->id;
+
+        $engine = app(\App\Modules\AI\Services\FinancingMatchEngine::class);
+        $assessment = $engine->assessAndMatch($tenantId, null, [
+            'monthly_revenue' => 500000.0,
+            'monthly_expenses' => 350000.0,
+            'ar_outstanding' => 250000.0,
+            'inventory_value' => 600000.0,
+            'bank_balance' => 150000.0,
+            'ap_outstanding' => 400000.0,
+        ]);
+
+        $data = $engine->formatMatchData($assessment);
+
+        $this->assertSame($assessment['assessment_uuid'], $data['assessment_uuid']);
+        $this->assertIsFloat($data['cash_deficit_amount']);
+        $this->assertSame(425000.0, (float) $data['cash_deficit_amount']);
+        $this->assertSame(3600000.0, (float) $data['recommended_financing']);
+        $this->assertSame(100, $data['credit_score_indicator']);
+        $this->assertCount(4, $data['matched_products']);
+        $this->assertIsString($data['evaluation_summary']);
+
+        $product = $data['matched_products'][0];
+        $this->assertArrayHasKey('product_id', $product);
+        $this->assertArrayHasKey('institution', $product);
+        $this->assertSame('WeBank Digital SME Micro-Finance', $product['institution']);
+        $this->assertIsFloat($product['interest_rate_pct']);
+        $this->assertIsInt($product['eligibility_score']);
+        $this->assertContains($product['qualification_status'], ['pre_approved', 'eligible', 'conditionally_eligible', 'not_eligible']);
+        $this->assertIsString($product['repayment_terms']);
+        $this->assertIsString($product['required_collateral']);
+        $this->assertIsString($product['application_turnaround']);
+        $this->assertIsArray($product['benefits']);
+        $this->assertArrayNotHasKey('confidence', $product);
+        $this->assertArrayNotHasKey('products', $data);
+    }
 }
-
-
-
-
-
-
-
