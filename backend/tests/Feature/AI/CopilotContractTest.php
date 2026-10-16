@@ -83,4 +83,32 @@ final class CopilotContractTest extends TestCase
         $this->assertSame('{"total_liquidity":900000}', $message['content'][0]['content']);
         $this->assertSame('toolu_02', $message['content'][1]['tool_use_id']);
     }
+
+    public function test_anthropic_tool_schemas_use_input_schema_shape(): void
+    {
+        $registry = app(\App\Modules\AI\Services\AgentToolRegistry::class);
+
+        $schemas = $registry->getAnthropicToolSchemas();
+
+        $this->assertCount(8, $schemas);
+
+        $byName = collect($schemas)->keyBy('name');
+        $this->assertTrue($byName->has('get_cash_position'));
+        $this->assertTrue($byName->has('create_cash_flow_alert'));
+
+        foreach ($schemas as $schema) {
+            $this->assertArrayHasKey('name', $schema);
+            $this->assertArrayHasKey('description', $schema);
+            $this->assertArrayHasKey('input_schema', $schema);
+            $this->assertArrayNotHasKey('type', $schema);
+            $this->assertSame('object', $schema['input_schema']['type']);
+        }
+
+        $alert = $byName->get('create_cash_flow_alert');
+        $this->assertSame(
+            ['alert_type', 'severity', 'title', 'description'],
+            $alert['input_schema']['required']
+        );
+    }
 }
+

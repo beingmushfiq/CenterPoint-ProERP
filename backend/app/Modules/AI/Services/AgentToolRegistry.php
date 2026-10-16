@@ -221,6 +221,32 @@ class AgentToolRegistry
     }
 
     /**
+     * Convert the OpenAI function schemas to Anthropic Messages tool shape.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function getAnthropicToolSchemas(): array
+    {
+        $tools = [];
+
+        foreach ($this->getOpenAiToolSchemas() as $schema) {
+            $function = is_array($schema['function'] ?? null) ? $schema['function'] : [];
+
+            $tools[] = [
+                'name' => $function['name'] ?? '',
+                'description' => $function['description'] ?? '',
+                'input_schema' => $function['parameters'] ?? [
+                    'type' => 'object',
+                    'properties' => [],
+                    'required' => [],
+                ],
+            ];
+        }
+
+        return $tools;
+    }
+
+    /**
      * Dispatch and execute a recognized tool call.
      *
      * @param  array<string, mixed>  $arguments
