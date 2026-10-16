@@ -23,7 +23,15 @@ export const CopilotSection: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    fetchAlertCount();
+    let active = true;
+    void Promise.resolve().then(() => {
+      if (active) {
+        fetchAlertCount();
+      }
+    });
+    return () => {
+      active = false;
+    };
   }, [fetchAlertCount]);
 
   const handleOpenChatWithQuery = (query: string) => {

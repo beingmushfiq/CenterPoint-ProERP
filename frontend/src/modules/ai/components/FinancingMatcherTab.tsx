@@ -66,20 +66,34 @@ export const FinancingMatcherTab: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    runMatch();
-    loadHistory();
+    let active = true;
+    void Promise.resolve().then(() => {
+      if (active) {
+        runMatch();
+        loadHistory();
+      }
+    });
+    return () => {
+      active = false;
+    };
   }, [runMatch, loadHistory]);
 
   const handleApply = async () => {
+    if (!selectedProduct) return;
     setIsApplying(true);
     try {
-      // Simulation of one-click pre-qualification submission to WeBank API
-      await new Promise((resolve) => setTimeout(resolve, 800));
-      notify.success(`Pre-qualification submitted for ${selectedProduct?.product_name || 'facility'}!`);
+      const response = await copilotApi.preQualifyWebank({
+        product_id: selectedProduct.product_id,
+        requested_amount: selectedProduct.eligible_amount || requestedAmount,
+        collateral_type: collateral,
+      });
+      notify.success(
+        `Pre-qualification approved for ${selectedProduct.product_name}! Ref: ${response.application_reference}`
+      );
       setShowApplyModal(false);
       loadHistory();
     } catch {
-      notify.error('Application submission failed.');
+      notify.error('Application submission failed. Please verify eligibility.');
     } finally {
       setIsApplying(false);
     }

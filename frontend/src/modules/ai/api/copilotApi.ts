@@ -13,6 +13,7 @@ import type {
   FinancingAssessmentRecord,
   ToolCallExecution,
   PendingAction,
+  WeBankPreQualifyResponse,
 } from '../types/copilot';
 
 export interface ChatResponsePayload {
@@ -175,6 +176,21 @@ export const copilotApi = {
   async getFinancingHistory(): Promise<FinancingAssessmentRecord[]> {
     const res = await api.get<{ status: string; data: FinancingAssessmentRecord[] }>(
       '/ai/financing/history'
+    );
+    return res.data.data;
+  },
+
+  /**
+   * Submit pre-qualification application to WeBank digital SME credit facility.
+   */
+  async preQualifyWebank(payload: {
+    product_id: string;
+    requested_amount: number;
+    collateral_type?: string;
+  }): Promise<WeBankPreQualifyResponse> {
+    const res = await api.post<{ status: string; data: WeBankPreQualifyResponse }>(
+      '/ai/webank/pre-qualify',
+      payload
     );
     return res.data.data;
   },

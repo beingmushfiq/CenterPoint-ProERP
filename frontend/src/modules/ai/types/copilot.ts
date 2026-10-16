@@ -143,6 +143,25 @@ export interface FinancingMatchData {
   evaluation_summary: string;
 }
 
+export interface WeBankPreQualifyResponse {
+  application_reference: string;
+  institution: string;
+  partner_platform: string;
+  tenant_id: number;
+  status: string;
+  product_selected?: Record<string, unknown> | null;
+  credit_assessment: {
+    solvency_score: number;
+    annual_turnover: number;
+    operating_margin_pct: number;
+    debt_service_coverage: number;
+    risk_classification: string;
+    verified_at: string;
+  };
+  disbursement_route: string;
+  underwriting_timestamp: string;
+}
+
 export interface InventoryValuationData {
   total_valuation: number;
   item_count: number;

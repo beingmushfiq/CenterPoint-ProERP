@@ -45,7 +45,15 @@ export const CopilotAlertsTab: React.FC<CopilotAlertsTabProps> = ({ onOpenChatWi
   }, [severityFilter, statusFilter]);
 
   useEffect(() => {
-    loadAlerts();
+    let active = true;
+    void Promise.resolve().then(() => {
+      if (active) {
+        loadAlerts();
+      }
+    });
+    return () => {
+      active = false;
+    };
   }, [loadAlerts]);
 
   const handleAcknowledge = async (uuid: string) => {

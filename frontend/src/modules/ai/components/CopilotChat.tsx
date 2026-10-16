@@ -126,7 +126,15 @@ export const CopilotChat: React.FC<CopilotChatProps> = ({
 
   // Load conversation threads on mount
   useEffect(() => {
-    loadConversations();
+    let active = true;
+    void Promise.resolve().then(() => {
+      if (active) {
+        loadConversations();
+      }
+    });
+    return () => {
+      active = false;
+    };
   }, [loadConversations]);
 
   const handleStartNewChat = () => {
@@ -202,7 +210,15 @@ export const CopilotChat: React.FC<CopilotChatProps> = ({
   // Trigger initial query if passed from parent
   useEffect(() => {
     if (initialQuery && initialQuery.trim()) {
-      handleSendMessage(initialQuery.trim());
+      let active = true;
+      void Promise.resolve().then(() => {
+        if (active) {
+          handleSendMessage(initialQuery.trim());
+        }
+      });
+      return () => {
+        active = false;
+      };
     }
   }, [initialQuery, handleSendMessage]);
 

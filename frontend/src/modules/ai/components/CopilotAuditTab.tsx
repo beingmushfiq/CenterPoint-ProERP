@@ -72,7 +72,15 @@ export const CopilotAuditTab: React.FC = () => {
   }, [pagination.per_page, tierFilter, toolFilter]);
 
   useEffect(() => {
-    loadLogs(1);
+    let active = true;
+    void Promise.resolve().then(() => {
+      if (active) {
+        loadLogs(1);
+      }
+    });
+    return () => {
+      active = false;
+    };
   }, [loadLogs]);
 
   const getTierBadge = (tier: PermissionTier) => {
