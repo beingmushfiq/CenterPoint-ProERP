@@ -20,7 +20,8 @@ class AgentOrchestrator
     public function __construct(
         protected AgentToolRegistry $toolRegistry,
         protected AgentPermissionGuard $permissionGuard,
-        protected AgentAuditLogger $auditLogger
+        protected AgentAuditLogger $auditLogger,
+        protected AnthropicClient $anthropicClient
     ) {}
 
     /**
@@ -60,113 +61,98 @@ class AgentOrchestrator
         $systemPrompt = $this->buildSystemPrompt($tenantId, $userId);
         $recentMessages = $this->getConversationHistoryPayload($conversation->id);
 
-        $payloadMessages = array_merge([['role' => 'system', 'content' => $systemPrompt]], $recentMessages);
-
-        // 4. Check for OpenAI API Key
-        $apiKey = is_string(config('services.openai.api_key')) ? (string) config('services.openai.api_key') : '';
-        $model = is_string(config('services.openai.model')) ? (string) config('services.openai.model') : 'gpt-4o';
-
+        // 4. Live LLM call via the Anthropic Messages API when a key is configured
         $executedTools = [];
         $pendingAction = null;
         $maxTierUsed = AgentPermissionGuard::TIER_0_READ;
         $assistantContent = '';
 
-        if (! empty($apiKey) && ! str_starts_with($apiKey, 'sk-placeholder')) {
-            // Live LLM Call via OpenAI API
-            $response = $this->callOpenAiChat($apiKey, $model, $payloadMessages, $this->toolRegistry->getOpenAiToolSchemas());
+        /** @var list<array{role: string, content: string}> $recentMessages */
+        $history = $this->anthropicClient->historyToMessages($recentMessages);
 
-            if (is_array($response) && isset($response['choices']) && is_array($response['choices']) && isset($response['choices'][0]['message']) && is_array($response['choices'][0]['message'])) {
-                /** @var array<string, mixed> $choiceMessage */
-                $choiceMessage = $response['choices'][0]['message'];
-                $assistantContent = is_string($choiceMessage['content'] ?? null) ? (string) $choiceMessage['content'] : '';
-                /** @var list<array<string, mixed>> $toolCalls */
-                $toolCalls = is_array($choiceMessage['tool_calls'] ?? null) ? $choiceMessage['tool_calls'] : [];
+        if ($this->anthropicClient->isConfigured()) {
+            $turn = $this->anthropicClient->messages(
+                $systemPrompt,
+                $history,
+                $this->toolRegistry->getAnthropicToolSchemas()
+            );
 
-                if (! empty($toolCalls)) {
-                    // Process tool calls
-                    $toolResultsForLlm = [];
+            if ($turn !== null) {
+                $assistantContent = $turn['content'];
+                $toolResultBlocks = [];
 
-                    foreach ($toolCalls as $toolCall) {
-                        if (! is_array($toolCall)) {
-                            continue;
-                        }
+                foreach ($turn['tool_calls'] as $toolCall) {
+                    $toolName = $toolCall['name'];
+                    $toolArgs = $toolCall['arguments'];
+                    $toolUseId = $toolCall['id'] !== '' ? $toolCall['id'] : (string) Str::uuid();
+                    $tier = $this->permissionGuard->getToolTier($toolName);
+                    $maxTierUsed = max($maxTierUsed, $tier);
 
-                        /** @var array<string, mixed> $func */
-                        $func = is_array($toolCall['function'] ?? null) ? $toolCall['function'] : [];
-                        $toolName = is_string($func['name'] ?? null) ? (string) $func['name'] : '';
-                        $rawArgs = is_string($func['arguments'] ?? null) ? (string) $func['arguments'] : '{}';
-                        /** @var array<string, mixed> $toolArgs */
-                        $toolArgs = is_array(json_decode($rawArgs, true)) ? json_decode($rawArgs, true) : [];
-                        $toolCallId = is_string($toolCall['id'] ?? null) ? (string) $toolCall['id'] : (string) Str::uuid();
-                        $tier = $this->permissionGuard->getToolTier($toolName);
-                        $maxTierUsed = max($maxTierUsed, $tier);
+                    if ($this->permissionGuard->requiresConfirmation($toolName)) {
+                        // Tier 2 — supervised action. Stop and await explicit operator confirmation.
+                        $pendingAction = [
+                            'action_id' => $toolUseId,
+                            'tool' => $toolName,
+                            'description' => "Confirm action: {$toolName} with parameters: ".json_encode($toolArgs),
+                            'arguments' => $toolArgs,
+                            'permission_tier' => AgentPermissionGuard::TIER_2_SUPERVISED,
+                            'risk_level' => $this->permissionGuard->riskLevelFor($toolName),
+                            'expires_at' => now()->addMinutes(30)->toIso8601String(),
+                        ];
 
-                        if ($this->permissionGuard->requiresConfirmation($toolName)) {
-                            // Tier 2 - Supervised Action
-                            $pendingAction = [
-                                'action_id' => $toolCallId,
-                                'tool' => $toolName,
-                                'description' => "Authorize the Copilot to run '{$toolName}' with the supplied parameters against live tenant data.",
-                                'arguments' => $toolArgs,
-                                'permission_tier' => AgentPermissionGuard::TIER_2_SUPERVISED,
-                                'risk_level' => $this->permissionGuard->riskLevelFor($toolName),
-                                'expires_at' => Carbon::now()->addMinutes(30)->toIso8601String(),
-                            ];
-
-                            // Record audit row for unexecuted pending action
-                            $this->auditLogger->log(
-                                tenantId: $tenantId,
-                                userId: $userId,
-                                conversationId: $conversation->id,
-                                action: $toolName,
-                                permissionTier: $tier,
-                                inputParams: $toolArgs,
-                                resultSummary: 'Action placed in pending_confirmation state awaiting user authorization',
-                                executed: false,
-                                ipAddress: $ipAddress
-                            );
-
-                            break; // Stop and await user confirmation
-                        }
-
-                        // Execute Tier 0 / Tier 1 tool directly
-                        $toolOutput = $this->auditLogger->measureAndLog(
+                        $this->auditLogger->log(
                             tenantId: $tenantId,
                             userId: $userId,
                             conversationId: $conversation->id,
-                            toolName: $toolName,
+                            action: $toolName,
                             permissionTier: $tier,
                             inputParams: $toolArgs,
-                            callback: fn () => $this->toolRegistry->executeTool($toolName, $toolArgs, $tenantId, $userId),
+                            resultSummary: 'Action placed in pending_confirmation state awaiting user authorization',
+                            executed: false,
                             ipAddress: $ipAddress
                         );
 
-                        $executedTools[] = [
-                            'tool_call_id' => $toolCallId,
-                            'tool' => $toolName,
-                            'arguments' => $toolArgs,
-                            'permission_tier' => $tier,
-                            'result' => $toolOutput,
-                        ];
-
-                        $toolResultsForLlm[] = [
-                            'role' => 'tool',
-                            'tool_call_id' => $toolCallId,
-                            'name' => $toolName,
-                            'content' => json_encode($toolOutput, JSON_UNESCAPED_UNICODE),
-                        ];
+                        break;
                     }
 
-                    // If we have executed tools and no pending confirmation, request follow-up synthesis
-                    if (! empty($toolResultsForLlm) && $pendingAction === null) {
-                        $followUpMessages = array_merge($payloadMessages, [
-                            $choiceMessage,
-                        ], $toolResultsForLlm);
+                    // Execute Tier 0 / Tier 1 tool directly
+                    $toolOutput = $this->auditLogger->measureAndLog(
+                        tenantId: $tenantId,
+                        userId: $userId,
+                        conversationId: $conversation->id,
+                        toolName: $toolName,
+                        permissionTier: $tier,
+                        inputParams: $toolArgs,
+                        callback: fn () => $this->toolRegistry->executeTool($toolName, $toolArgs, $tenantId, $userId),
+                        ipAddress: $ipAddress
+                    );
 
-                        $followUpResponse = $this->callOpenAiChat($apiKey, $model, $followUpMessages, []);
-                        if (is_array($followUpResponse) && isset($followUpResponse['choices'][0]['message']['content']) && is_string($followUpResponse['choices'][0]['message']['content'])) {
-                            $assistantContent = (string) $followUpResponse['choices'][0]['message']['content'];
-                        }
+                    $executedTools[] = [
+                        'tool_call_id' => $toolUseId,
+                        'tool' => $toolName,
+                        'arguments' => $toolArgs,
+                        'result' => $toolOutput,
+                        'permission_tier' => $tier,
+                    ];
+
+                    $toolResultBlocks[] = [
+                        'tool_use_id' => $toolUseId,
+                        'output' => $toolOutput,
+                    ];
+                }
+
+                // Ask the model to synthesise a natural-language answer from the tool results.
+                if (! empty($toolResultBlocks) && $pendingAction === null) {
+                    $followUpMessages = array_merge(
+                        $history,
+                        [$this->anthropicClient->assistantTurn($turn)],
+                        [$this->anthropicClient->toolResultMessage($toolResultBlocks)]
+                    );
+
+                    $followUp = $this->anthropicClient->messages($systemPrompt, $followUpMessages, []);
+
+                    if ($followUp !== null && $followUp['content'] !== '') {
+                        $assistantContent = $followUp['content'];
                     }
                 }
             }
