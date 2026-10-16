@@ -587,23 +587,48 @@ class AgentToolRegistry
     {
         $warehouseId = is_numeric($arguments['warehouse_id'] ?? null) ? (int) $arguments['warehouse_id'] : null;
 
-        $query = StockBalance::where('stock_balances.tenant_id', $tenantId);
-        if ($warehouseId !== null) {
-            $query->where('stock_balances.warehouse_id', $warehouseId);
+        $rows = StockBalance::where('stock_balances.tenant_id', $tenantId)
+            ->when($warehouseId !== null, fn ($q) => $q->where('stock_balances.warehouse_id', $warehouseId))
+            ->with('product:id,sku,name,standard_cost')
+            ->get();
+
+        $totalValuation = 0.0;
+        $slowMovingValuation = 0.0;
+        $items = [];
+
+        foreach ($rows as $row) {
+            $quantity = is_numeric($row->quantity) ? (float) $row->quantity : 0.0;
+            $unitCost = is_numeric($row->average_cost) ? (float) $row->average_cost : 0.0;
+            $lineValue = round($quantity * $unitCost, 2);
+            $totalValuation += $lineValue;
+
+            // No movement in 90+ days is treated as slow-moving capital.
+            $isSlowMoving = $row->last_movement_at !== null
+                && Carbon::parse((string) $row->last_movement_at)->lt(Carbon::now()->subDays(90));
+
+            if ($isSlowMoving) {
+                $slowMovingValuation += $lineValue;
+            }
+
+            $items[] = [
+                'id' => (int) $row->id,
+                'sku' => (string) ($row->product->sku ?? ''),
+                'name' => (string) ($row->product->name ?? 'Unknown Item'),
+                'quantity' => round($quantity, 2),
+                'unit_cost' => round($unitCost, 2),
+                'total_value' => $lineValue,
+            ];
         }
 
-        $totalUnits = (float) $query->sum('quantity');
-        $totalValuation = (float) (StockBalance::where('stock_balances.tenant_id', $tenantId)
-            ->when($warehouseId !== null, fn ($q) => $q->where('warehouse_id', $warehouseId))
-            ->selectRaw('COALESCE(SUM(quantity * average_cost), 0) as val')
-            ->first()?->getAttribute('val') ?? 0.0);
+        usort($items, fn (array $a, array $b): int => $b['total_value'] <=> $a['total_value']);
 
         return [
-            'total_units' => round($totalUnits, 2),
             'total_valuation' => round($totalValuation, 2),
-            'currency' => 'BDT',
-            'warehouse_filter' => $warehouseId,
-            'as_of' => Carbon::now()->toIso8601String(),
+            'item_count' => count($items),
+            'high_value_items' => array_slice($items, 0, 5),
+            'slow_moving_valuation' => round($slowMovingValuation, 2),
+            // 2% monthly cost of carry on average inventory value.
+            'estimated_holding_cost_monthly' => round($totalValuation * 0.02, 2),
         ];
     }
 

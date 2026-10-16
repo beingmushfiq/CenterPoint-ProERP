@@ -99,12 +99,67 @@ final class CopilotContractTest extends TestCase
             'updated_at' => now(),
         ]);
 
+        $unitId = DB::table('units')->insertGetId([
+            'tenant_id' => $tenant->id,
+            'uuid' => (string) Str::uuid(),
+            'code' => 'PCS',
+            'name' => 'Pieces',
+            'type' => 'piece',
+            'is_base' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $warehouseId = DB::table('warehouses')->insertGetId([
+            'tenant_id' => $tenant->id,
+            'uuid' => (string) Str::uuid(),
+            'code' => 'WH-'.Str::upper(Str::random(4)),
+            'name' => 'Central Warehouse',
+            'type' => 'general',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
         $tenant->setAttribute('default_company_id', $companyId);
         $tenant->setAttribute('default_coa_id', $coaId);
         $tenant->setAttribute('default_branch_id', $branchId);
         $tenant->setAttribute('default_expense_category_id', $catId);
+        $tenant->setAttribute('default_unit_id', $unitId);
+        $tenant->setAttribute('default_warehouse_id', $warehouseId);
 
         return $tenant;
+    }
+
+    private function createProduct(Tenant $tenant, array $attributes): int
+    {
+        return (int) DB::table('products')->insertGetId(array_merge([
+            'tenant_id' => $tenant->id,
+            'uuid' => (string) Str::uuid(),
+            'sku' => 'SKU-'.Str::upper(Str::random(6)),
+            'name' => 'Test Product',
+            'type' => 'finished',
+            'base_unit_id' => $tenant->getAttribute('default_unit_id'),
+            'standard_cost' => '1000.0000',
+            'status' => 'active',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ], $attributes));
+    }
+
+    private function createStockBalance(Tenant $tenant, int $productId, array $attributes): int
+    {
+        return (int) DB::table('stock_balances')->insertGetId(array_merge([
+            'tenant_id' => $tenant->id,
+            'uuid' => (string) Str::uuid(),
+            'product_id' => $productId,
+            'warehouse_id' => $tenant->getAttribute('default_warehouse_id'),
+            'quantity' => '100.0000',
+            'average_cost' => '1000.0000',
+            'total_value' => '100000.0000',
+            'stock_state' => 'available',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ], $attributes));
     }
 
     private function createExpense(Tenant $tenant, array $attributes): int
@@ -489,7 +544,39 @@ final class CopilotContractTest extends TestCase
         $this->assertNotEmpty($result['recommended_actions']);
         $this->assertArrayNotHasKey('estimated_runway_days', $result);
     }
+
+    public function test_inventory_value_tool_matches_contract(): void
+    {
+        $tenant = $this->createTenant();
+        $tenantId = $tenant->id;
+
+        $productId = $this->createProduct($tenant, [
+            'sku' => 'FLOUR-50',
+            'name' => 'Premium Flour 50kg',
+            'standard_cost' => '1200.0000',
+        ]);
+
+        $this->createStockBalance($tenant, $productId, [
+            'quantity' => '150.0000',
+            'average_cost' => '1200.0000',
+            'total_value' => '180000.0000',
+        ]);
+
+        $result = app(\App\Modules\AI\Services\AgentToolRegistry::class)
+            ->executeTool('get_inventory_value', [], $tenantId);
+
+        $this->assertSame(180000.0, (float) $result['total_valuation']);
+        $this->assertSame(1, $result['item_count']);
+        $this->assertSame('FLOUR-50', $result['high_value_items'][0]['sku']);
+        $this->assertSame('Premium Flour 50kg', $result['high_value_items'][0]['name']);
+        $this->assertSame(150.0, (float) $result['high_value_items'][0]['quantity']);
+        $this->assertSame(1200.0, (float) $result['high_value_items'][0]['unit_cost']);
+        $this->assertSame(180000.0, (float) $result['high_value_items'][0]['total_value']);
+        $this->assertSame(0.0, (float) $result['slow_moving_valuation']);
+        $this->assertSame(3600.0, (float) $result['estimated_holding_cost_monthly']);
+    }
 }
+
 
 
 
