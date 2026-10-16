@@ -88,6 +88,16 @@ class AgentPermissionGuard
     }
 
     /**
+     * Risk classification surfaced to the Tier 2 confirmation dialog.
+     */
+    public function riskLevelFor(string $toolName): string
+    {
+        $highRisk = ['create_cash_flow_alert'];
+
+        return in_array($toolName, $highRisk, true) ? 'high' : 'low';
+    }
+
+    /**
      * Validate tenant boundary to guarantee no cross-tenant data leakage.
      */
     public function validateTenantBoundary(int $activeTenantId, ?int $requestedTenantId): void

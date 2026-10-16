@@ -103,12 +103,13 @@ class AgentOrchestrator
                         if ($this->permissionGuard->requiresConfirmation($toolName)) {
                             // Tier 2 - Supervised Action
                             $pendingAction = [
-                                'tool_call_id' => $toolCallId,
-                                'tool_name' => $toolName,
+                                'action_id' => $toolCallId,
+                                'tool' => $toolName,
+                                'description' => "Authorize the Copilot to run '{$toolName}' with the supplied parameters against live tenant data.",
                                 'arguments' => $toolArgs,
-                                'tier' => $tier,
-                                'status' => 'PENDING_CONFIRMATION',
-                                'prompt' => "Confirm action: {$toolName} with parameters: ".json_encode($toolArgs),
+                                'permission_tier' => AgentPermissionGuard::TIER_2_SUPERVISED,
+                                'risk_level' => $this->permissionGuard->riskLevelFor($toolName),
+                                'expires_at' => Carbon::now()->addMinutes(30)->toIso8601String(),
                             ];
 
                             // Record audit row for unexecuted pending action
@@ -141,10 +142,10 @@ class AgentOrchestrator
 
                         $executedTools[] = [
                             'tool_call_id' => $toolCallId,
-                            'name' => $toolName,
+                            'tool' => $toolName,
                             'arguments' => $toolArgs,
+                            'permission_tier' => $tier,
                             'result' => $toolOutput,
-                            'tier' => $tier,
                         ];
 
                         $toolResultsForLlm[] = [
@@ -244,10 +245,10 @@ class AgentOrchestrator
             'content' => "Operator confirmed and executed action: **{$toolName}**.",
             'tool_calls' => [
                 [
-                    'name' => $toolName,
+                    'tool' => $toolName,
                     'arguments' => $actionData,
+                    'permission_tier' => $tier,
                     'result' => $result,
-                    'tier' => $tier,
                     'confirmed' => true,
                 ],
             ],
@@ -454,12 +455,13 @@ PROMPT;
             ];
 
             $pendingAction = [
-                'tool_call_id' => 'call_'.Str::random(8),
-                'tool_name' => 'create_cash_flow_alert',
+                'action_id' => 'call_'.Str::random(8),
+                'tool' => 'create_cash_flow_alert',
+                'description' => 'Authorize the Copilot to create an operational Cash Flow Alert with a BDT 50,000 threshold on the tenant dashboard.',
                 'arguments' => $args,
-                'tier' => 2,
-                'status' => 'PENDING_CONFIRMATION',
-                'prompt' => 'Please confirm creating an operational Cash Flow Alert for BDT 50,000 threshold.',
+                'permission_tier' => AgentPermissionGuard::TIER_2_SUPERVISED,
+                'risk_level' => $this->permissionGuard->riskLevelFor('create_cash_flow_alert'),
+                'expires_at' => Carbon::now()->addMinutes(30)->toIso8601String(),
             ];
 
             $this->auditLogger->log(
@@ -491,10 +493,10 @@ PROMPT;
 
             $executedTools[] = [
                 'tool_call_id' => 'call_'.Str::random(8),
-                'name' => 'get_cash_position',
+                'tool' => 'get_cash_position',
                 'arguments' => [],
+                'permission_tier' => 0,
                 'result' => $toolOutput,
-                'tier' => 0,
             ];
 
             $rawTotal = is_numeric($toolOutput['total_liquidity'] ?? null) ? (float) $toolOutput['total_liquidity'] : 0.0;
@@ -530,10 +532,10 @@ PROMPT;
 
             $executedTools[] = [
                 'tool_call_id' => 'call_'.Str::random(8),
-                'name' => 'list_overdue_invoices',
+                'tool' => 'list_overdue_invoices',
                 'arguments' => ['days_overdue' => 0, 'limit' => 5],
+                'permission_tier' => 0,
                 'result' => $toolOutput,
-                'tier' => 0,
             ];
 
             $rawTotalOverdue = is_numeric($toolOutput['total_overdue_amount'] ?? null) ? (float) $toolOutput['total_overdue_amount'] : 0.0;
@@ -574,10 +576,10 @@ PROMPT;
 
             $executedTools[] = [
                 'tool_call_id' => 'call_'.Str::random(8),
-                'name' => 'match_financing_options',
+                'tool' => 'match_financing_options',
                 'arguments' => [],
+                'permission_tier' => 1,
                 'result' => $toolOutput,
-                'tier' => 1,
             ];
 
             $summaryText = is_string($toolOutput['summary'] ?? null) ? (string) $toolOutput['summary'] : '';
@@ -617,10 +619,10 @@ PROMPT;
 
             $executedTools[] = [
                 'tool_call_id' => 'call_'.Str::random(8),
-                'name' => 'analyze_cash_flow_risk',
+                'tool' => 'analyze_cash_flow_risk',
                 'arguments' => ['forecast_days' => 30],
+                'permission_tier' => 0,
                 'result' => $toolOutput,
-                'tier' => 0,
             ];
 
             $riskLevel = is_string($toolOutput['risk_level'] ?? null) ? (string) $toolOutput['risk_level'] : 'UNKNOWN';

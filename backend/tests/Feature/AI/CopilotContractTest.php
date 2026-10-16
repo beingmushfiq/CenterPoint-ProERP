@@ -615,4 +615,60 @@ final class CopilotContractTest extends TestCase
         $this->assertArrayNotHasKey('confidence', $product);
         $this->assertArrayNotHasKey('products', $data);
     }
+
+    public function test_tool_calls_and_pending_action_use_ui_contract_keys(): void
+    {
+        $tenant = $this->createTenant();
+        $tenantId = $tenant->id;
+
+        $user = \App\Models\User::create([
+            'uuid' => (string) \Illuminate\Support\Str::uuid(),
+            'tenant_id' => $tenantId,
+            'name' => 'Dispatch Officer',
+            'email' => 'dispatch_'.\Illuminate\Support\Str::random(5).'@example.com',
+            'password' => \Illuminate\Support\Facades\Hash::make('Password123!'),
+            'status' => 'active',
+            'locale' => 'en',
+            'token_version' => 1,
+            'perm_version' => 1,
+        ]);
+
+        $orchestrator = app(\App\Modules\AI\Services\AgentOrchestrator::class);
+
+        $result = $orchestrator->chat(
+            tenantId: $tenantId,
+            userId: $user->id,
+            conversationUuid: null,
+            userMessage: 'What is our current cash position?'
+        );
+
+        $this->assertNotEmpty($result['tool_calls']);
+        $call = $result['tool_calls'][0];
+        $this->assertArrayHasKey('tool', $call);
+        $this->assertArrayHasKey('permission_tier', $call);
+        $this->assertSame('get_cash_position', $call['tool']);
+        $this->assertSame(0, $call['permission_tier']);
+        $this->assertArrayNotHasKey('name', $call);
+        $this->assertArrayNotHasKey('tier', $call);
+
+        $pending = $orchestrator->chat(
+            tenantId: $tenantId,
+            userId: $user->id,
+            conversationUuid: null,
+            userMessage: 'Create a cash flow alert for low liquidity'
+        );
+
+        $action = $pending['pending_action'];
+        $this->assertIsArray($action);
+        $this->assertSame('create_cash_flow_alert', $action['tool']);
+        $this->assertSame(2, $action['permission_tier']);
+        $this->assertSame('high', $action['risk_level']);
+        $this->assertIsString($action['action_id']);
+        $this->assertIsString($action['description']);
+        $this->assertIsArray($action['arguments']);
+        $this->assertIsString($action['expires_at']);
+        $this->assertArrayNotHasKey('tool_name', $action);
+        $this->assertArrayNotHasKey('tier', $action);
+    }
 }
+

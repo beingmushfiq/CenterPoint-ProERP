@@ -299,8 +299,8 @@ final class CopilotTest extends TestCase
 
         $response->assertOk()
             ->assertJsonPath('status', 'success')
-            ->assertJsonPath('data.pending_action.status', 'PENDING_CONFIRMATION')
-            ->assertJsonPath('data.pending_action.tier', 2);
+            ->assertJsonPath('data.pending_action.tool', 'create_cash_flow_alert')
+            ->assertJsonPath('data.pending_action.permission_tier', 2);
 
         // Verify alert was NOT created yet
         $this->assertDatabaseCount('cash_flow_alerts', 0);
