@@ -288,26 +288,52 @@ class AgentToolRegistry
             $query->where('account_type', $arguments['account_type']);
         }
 
-        $accounts = $query->get()->map(function (BankAccount $account): array {
-            return [
-                'uuid' => $account->uuid,
-                'name' => $account->name,
-                'account_number' => $account->account_number ? '••••'.substr($account->account_number, -4) : null,
-                'bank_name' => $account->bank_name,
-                'account_type' => $account->account_type,
-                'current_balance' => (float) $account->current_balance,
-                'currency' => $account->currency ?? 'BDT',
-            ];
-        });
+        $accounts = $query->orderBy('id', 'asc')->get();
 
-        $totalBalance = is_numeric($accounts->sum('current_balance')) ? (float) $accounts->sum('current_balance') : 0.0;
+        $bankBalance = 0.0;
+        $cashOnHand = 0.0;
+        $breakdown = [];
+
+        foreach ($accounts as $account) {
+            $balance = is_numeric($account->current_balance) ? (float) $account->current_balance : 0.0;
+
+            if ($account->account_type === 'cash') {
+                $cashOnHand += $balance;
+            } else {
+                $bankBalance += $balance;
+            }
+
+            $breakdown[] = [
+                'id' => (int) $account->id,
+                'code' => (string) ($account->code ?? $account->account_number ?? $account->uuid),
+                'name' => (string) $account->name,
+                'type' => (string) ($account->account_type ?? 'bank'),
+                'balance' => round($balance, 2),
+            ];
+        }
+
+        $totalLiquidCash = $bankBalance + $cashOnHand;
+        $monthlyExpenses = (float) $this->financingMatchEngine->gatherFinancialMetrics($tenantId)['monthly_expenses'];
+        $dailyBurnRate = round($monthlyExpenses / 30.0, 2);
+        $runwayDays = $dailyBurnRate > 0 ? (int) floor($totalLiquidCash / $dailyBurnRate) : 999;
+
+        if ($runwayDays >= 60) {
+            $healthStatus = 'healthy';
+        } elseif ($runwayDays >= 30) {
+            $healthStatus = 'moderate';
+        } else {
+            $healthStatus = 'critical';
+        }
 
         return [
-            'total_liquidity' => round($totalBalance, 2),
-            'currency' => 'BDT',
-            'account_count' => $accounts->count(),
-            'accounts' => $accounts->all(),
-            'as_of' => Carbon::now()->toIso8601String(),
+            'total_liquid_cash' => round($totalLiquidCash, 2),
+            'bank_balance' => round($bankBalance, 2),
+            'cash_on_hand' => round($cashOnHand, 2),
+            'accounts_breakdown' => $breakdown,
+            'daily_burn_rate' => $dailyBurnRate,
+            'runway_days' => $runwayDays,
+            'health_status' => $healthStatus,
+            'as_of_date' => Carbon::now()->toDateString(),
         ];
     }
 

@@ -37,7 +37,7 @@ final class CopilotContractTest extends TestCase
 
     private function createTenant(array $attributes = []): Tenant
     {
-        return Tenant::create(array_merge([
+        $tenant = Tenant::create(array_merge([
             'uuid' => (string) Str::uuid(),
             'plan_id' => 1,
             'name' => 'Contract Tenant',
@@ -48,6 +48,50 @@ final class CopilotContractTest extends TestCase
             'locale' => 'en',
             'date_format' => 'Y-m-d',
             'number_format' => 'standard',
+        ], $attributes));
+
+        $companyId = DB::table('companies')->insertGetId([
+            'uuid' => (string) Str::uuid(),
+            'tenant_id' => $tenant->id,
+            'name' => 'Default Company',
+            'is_default' => true,
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $coaId = DB::table('chart_of_accounts')->insertGetId([
+            'tenant_id' => $tenant->id,
+            'company_id' => $companyId,
+            'uuid' => (string) Str::uuid(),
+            'account_code' => 'COA-'.Str::upper(Str::random(4)),
+            'name' => 'Bank Clearing Account',
+            'account_type' => 'asset',
+            'account_subtype' => 'bank',
+            'is_group' => false,
+            'normal_balance' => 'debit',
+            'is_system' => false,
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $tenant->setAttribute('default_company_id', $companyId);
+        $tenant->setAttribute('default_coa_id', $coaId);
+
+        return $tenant;
+    }
+
+    private function createBankAccount(Tenant $tenant, array $attributes): \App\Modules\Finance\Models\BankAccount
+    {
+        return \App\Modules\Finance\Models\BankAccount::create(array_merge([
+            'tenant_id' => $tenant->id,
+            'company_id' => $tenant->getAttribute('default_company_id'),
+            'chart_of_account_id' => $tenant->getAttribute('default_coa_id'),
+            'uuid' => (string) Str::uuid(),
+            'code' => 'BA-'.Str::upper(Str::random(6)),
+            'currency' => 'BDT',
+            'is_active' => true,
         ], $attributes));
     }
 
@@ -205,6 +249,45 @@ final class CopilotContractTest extends TestCase
         $this->assertSame(75000.0, (float) $metrics['ar_outstanding']);
         $this->assertSame(60000.0, (float) $metrics['ap_outstanding']);
     }
+
+    public function test_cash_position_tool_matches_cash_position_data_contract(): void
+    {
+        $tenant = $this->createTenant();
+        $tenantId = $tenant->id;
+
+        $this->createBankAccount($tenant, [
+            'name' => 'BRAC Principal',
+            'account_number' => 'BRAC-1501-0092',
+            'bank_name' => 'BRAC Bank',
+            'account_type' => 'bank',
+            'current_balance' => '845000.0000',
+        ]);
+
+        $this->createBankAccount($tenant, [
+            'name' => 'Petty Cash',
+            'account_number' => 'CASH-0001',
+            'bank_name' => 'Internal',
+            'account_type' => 'cash',
+            'current_balance' => '125000.0000',
+        ]);
+
+        $result = app(\App\Modules\AI\Services\AgentToolRegistry::class)
+            ->executeTool('get_cash_position', [], $tenantId);
+
+        $this->assertSame(970000.0, (float) $result['total_liquid_cash']);
+        $this->assertSame(845000.0, (float) $result['bank_balance']);
+        $this->assertSame(125000.0, (float) $result['cash_on_hand']);
+        $this->assertContains($result['health_status'], ['healthy', 'moderate', 'critical']);
+        $this->assertIsInt($result['runway_days']);
+        $this->assertMatchesRegularExpression('/^\d{4}-\d{2}-\d{2}$/', $result['as_of_date']);
+        $this->assertCount(2, $result['accounts_breakdown']);
+        $this->assertSame('BRAC Principal', $result['accounts_breakdown'][0]['name']);
+        $this->assertSame('bank', $result['accounts_breakdown'][0]['type']);
+        $this->assertArrayHasKey('code', $result['accounts_breakdown'][0]);
+        $this->assertArrayNotHasKey('total_liquidity', $result);
+        $this->assertArrayNotHasKey('accounts', $result);
+    }
 }
+
 
 
