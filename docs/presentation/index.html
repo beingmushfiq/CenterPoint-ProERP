@@ -328,6 +328,41 @@
       border: 1px solid rgba(255, 255, 255, 0.15);
       font-size: 10px;
     }
+
+    @media print {
+      @page {
+        size: A4 landscape;
+        margin: 0;
+      }
+      body {
+        overflow: visible !important;
+        background: #090d16 !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+      .ambient-bg, .progress-bar-container, .nav-controls, .keyboard-hint {
+        display: none !important;
+      }
+      .deck-container {
+        padding: 0 !important;
+        display: block !important;
+        position: static !important;
+      }
+      .slide {
+        position: relative !important;
+        inset: auto !important;
+        display: flex !important;
+        opacity: 1 !important;
+        transform: none !important;
+        page-break-after: always !important;
+        break-after: page !important;
+        min-height: 100vh !important;
+        box-sizing: border-box !important;
+        border-radius: 0 !important;
+        border: none !important;
+        padding: 40px 50px !important;
+      }
+    }
   </style>
 </head>
 <body>

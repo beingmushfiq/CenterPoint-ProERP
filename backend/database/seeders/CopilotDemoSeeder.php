@@ -23,17 +23,62 @@ final class CopilotDemoSeeder extends Seeder
      */
     public function run(): void
     {
+        if (class_exists(PlansSeeder::class)) {
+            $this->call(PlansSeeder::class);
+        }
+        $planId = DB::table('plans')->where('code', 'ENTERPRISE')->value('id')
+            ?? DB::table('plans')->value('id');
+
         $tenant = Tenant::first() ?? Tenant::create([
             'uuid' => (string) Str::uuid(),
+            'plan_id' => $planId,
             'name' => 'SliceMart Bakery & Confectionery',
             'slug' => 'slicemart',
-            'domain' => 'slicemart.local',
-            'is_active' => true,
+            'status' => 'active',
+            'currency_code' => 'BDT',
+            'timezone' => 'Asia/Dhaka',
+            'locale' => 'en',
+            'date_format' => 'Y-m-d',
+            'number_format' => 'standard',
         ]);
 
         $tenantId = $tenant->id;
-        $user = User::where('tenant_id', $tenantId)->first() ?? User::first();
-        $userId = $user ? $user->id : 1;
+
+        // Ensure canonical roles and permissions exist for tenant
+        if (class_exists(\App\Core\Auth\TenantPersonaService::class)) {
+            \App\Core\Auth\TenantPersonaService::provisionPersonasForTenant($tenant, 'Password123!');
+        }
+
+        // Ensure demo user exists with known demo credentials
+        $demoUser = User::withoutTenantScope()->where('email', 'demo@slicemart.com')->first();
+        if (! $demoUser) {
+            $demoUser = new User;
+            $demoUser->uuid = (string) Str::uuid();
+            $demoUser->tenant_id = $tenantId;
+            $demoUser->name = 'Demo Administrator';
+            $demoUser->email = 'demo@slicemart.com';
+            $demoUser->password = \Illuminate\Support\Facades\Hash::make('Password123!');
+            $demoUser->status = 'active';
+            $demoUser->locale = 'en';
+            $demoUser->token_version = 1;
+            $demoUser->perm_version = 1;
+            $demoUser->save();
+        } else {
+            $demoUser->password = \Illuminate\Support\Facades\Hash::make('Password123!');
+            $demoUser->status = 'active';
+            $demoUser->tenant_id = $tenantId;
+            $demoUser->save();
+        }
+
+        $adminRole = \App\Models\Role::withoutTenantScope()
+            ->where('tenant_id', $tenantId)
+            ->whereIn('slug', ['super_admin', 'admin'])
+            ->first();
+        if ($adminRole) {
+            $demoUser->roles()->syncWithoutDetaching([$adminRole->id]);
+        }
+
+        $userId = $demoUser->id;
 
         // Ensure default company exists
         $company = DB::table('companies')->where('tenant_id', $tenantId)->first();

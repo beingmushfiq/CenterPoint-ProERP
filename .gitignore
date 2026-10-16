@@ -31,4 +31,7 @@ playwright-report/
 public_html/storage
 public_html/.backend_path
 *.zip
-
+!docs/submission/execution_evidence.zip
+docs/submission/*.mp4
+docs/submission/*.html
+docs/submission/evidence/

@@ -45,16 +45,20 @@ export interface BankReconciliationModalProps {
 export const BankReconciliationModal: React.FC<BankReconciliationModalProps> = ({
   open,
   onClose,
-  bankAccounts,
-  accounts,
-  journalEntries,
+  bankAccounts = [],
+  accounts = [],
+  journalEntries = [],
   preselectedBankId,
   onReconciliationComplete,
 }) => {
   const { formatCurrency } = useCurrency();
 
+  const safeBankAccounts = Array.isArray(bankAccounts) ? bankAccounts : [];
+  const safeAccounts = Array.isArray(accounts) ? accounts : [];
+  const safeJournalEntries = Array.isArray(journalEntries) ? journalEntries : [];
+
   const [selectedBankId, setSelectedBankId] = useState<number>(
-    preselectedBankId || bankAccounts[0]?.id || 1
+    preselectedBankId || safeBankAccounts[0]?.id || 1
   );
   const [statementDate, setStatementDate] = useState<string>('2026-09-30');
   const [statementEndingBalance, setStatementEndingBalance] = useState<string>('545000');
@@ -64,19 +68,19 @@ export const BankReconciliationModal: React.FC<BankReconciliationModalProps> = (
 
   // Selected bank account
   const activeBank = useMemo(() => {
-    return bankAccounts.find((b) => b.id === selectedBankId) || bankAccounts[0];
-  }, [bankAccounts, selectedBankId]);
+    return safeBankAccounts.find((b) => b.id === selectedBankId) || safeBankAccounts[0];
+  }, [safeBankAccounts, selectedBankId]);
 
   // Find linked GL account
   const linkedGlAccount = useMemo(() => {
     if (!activeBank) return undefined;
     const keyword = (activeBank.bank_name || '').trim().toLowerCase().split(/\s+/)[0] || '';
-    return accounts.find(
+    return safeAccounts.find(
       (a) =>
         a.account_subtype === 'bank' &&
         (a.name.toLowerCase().includes(keyword) || a.name.toLowerCase().includes(activeBank.account_name.toLowerCase()))
     );
-  }, [activeBank, accounts]);
+  }, [activeBank, safeAccounts]);
 
   // Initial statement lines (can be populated from sample or feed)
   const [statementLines, setStatementLines] = useState<BankStatementLine[]>([]);
@@ -158,7 +162,7 @@ export const BankReconciliationModal: React.FC<BankReconciliationModalProps> = (
     setStatementLines((prevLines) =>
       prevLines.map((line) => {
         // Look for matching journal entry by amount
-        const matchingJournal = journalEntries.find((je) => {
+        const matchingJournal = safeJournalEntries.find((je) => {
           const debits = parseFloat(je.total_debit);
           const credits = parseFloat(je.total_credit);
           if (line.deposit > 0 && Math.abs(debits - line.deposit) < 0.01) return true;
@@ -299,7 +303,7 @@ export const BankReconciliationModal: React.FC<BankReconciliationModalProps> = (
               onChange={(e) => setSelectedBankId(Number(e.target.value))}
               className="w-full text-xs font-semibold px-3 py-2 rounded-xl bg-surface border border-default text-default focus:border-primary focus:outline-none"
             >
-              {bankAccounts.map((ba) => (
+              {safeBankAccounts.map((ba) => (
                 <option key={ba.id} value={ba.id}>
                   {ba.bank_name} - {ba.account_number} ({ba.currency_code})
                 </option>
