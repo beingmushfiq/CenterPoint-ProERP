@@ -118,11 +118,15 @@ final class CreateWorkerProductionEntryAction extends Action
             }
             if ($uuid === 'emp-1') {
                 $emp1 = (clone $query)->where('employee_code', 'EMP-001')->first();
-                if ($emp1) return (int) $emp1->id;
+                if ($emp1) {
+                    return (int) $emp1->id;
+                }
             }
             if ($uuid === 'emp-2') {
                 $emp2 = (clone $query)->where('employee_code', 'EMP-002')->first();
-                if ($emp2) return (int) $emp2->id;
+                if ($emp2) {
+                    return (int) $emp2->id;
+                }
             }
         }
 

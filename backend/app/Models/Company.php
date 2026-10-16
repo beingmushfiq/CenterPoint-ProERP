@@ -39,6 +39,14 @@ class Company extends Model
         'is_active' => 'boolean',
     ];
 
+    /**
+     * @return HasMany<Branch, $this>
+     */
+    public function branches(): HasMany
+    {
+        return $this->hasMany(Branch::class, 'company_id');
+    }
+
     protected static function boot(): void
     {
         parent::boot();
@@ -48,13 +56,5 @@ class Company extends Model
                 $model->uuid = (string) Str::uuid();
             }
         });
-    }
-
-    /**
-     * @return HasMany<Branch, $this>
-     */
-    public function branches(): HasMany
-    {
-        return $this->hasMany(Branch::class, 'company_id');
     }
 }

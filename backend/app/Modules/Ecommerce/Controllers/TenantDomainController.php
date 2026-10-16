@@ -11,6 +11,7 @@ use App\Models\TenantDomain;
 use App\Modules\Ecommerce\Services\TenantDomainService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use InvalidArgumentException;
 
 class TenantDomainController extends Controller
 {
@@ -67,7 +68,7 @@ class TenantDomainController extends Controller
                 'message' => "Domain '{$domain->domain}' added successfully. Please configure the required DNS records to complete verification.",
                 'data' => $domain,
             ], 201);
-        } catch (\InvalidArgumentException $e) {
+        } catch (InvalidArgumentException $e) {
             return response()->json([
                 'success' => false,
                 'error' => [
@@ -121,7 +122,7 @@ class TenantDomainController extends Controller
                 'message' => "Domain '{$domain->domain}' is now the primary storefront domain.",
                 'data' => $domain->fresh(),
             ]);
-        } catch (\InvalidArgumentException $e) {
+        } catch (InvalidArgumentException $e) {
             return response()->json([
                 'success' => false,
                 'error' => [
@@ -149,9 +150,9 @@ class TenantDomainController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => "Custom domain removed successfully.",
+                'message' => 'Custom domain removed successfully.',
             ]);
-        } catch (\InvalidArgumentException $e) {
+        } catch (InvalidArgumentException $e) {
             return response()->json([
                 'success' => false,
                 'error' => [

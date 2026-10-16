@@ -13,7 +13,7 @@ class SalesmanLeadsReportQuery implements ReportQueryInterface
 
     public function __construct(?CRMDataProvider $provider = null)
     {
-        $this->provider = $provider ?? new CRMDataProvider();
+        $this->provider = $provider ?? new CRMDataProvider;
     }
 
     public function columns(): array

@@ -14,7 +14,7 @@ use Illuminate\Support\Carbon;
 class SitemapGeneratorService
 {
     public function __construct(
-        protected SeoMetadataService $seoMetadataService = new SeoMetadataService()
+        protected SeoMetadataService $seoMetadataService = new SeoMetadataService
     ) {}
 
     /**
@@ -25,14 +25,14 @@ class SitemapGeneratorService
         $baseUrl = $this->seoMetadataService->resolveBaseUrl($tenant, $storefront);
         $lastmod = Carbon::now()->toAtomString();
 
-        $xml = '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
-        $xml .= '<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' . "\n";
+        $xml = '<?xml version="1.0" encoding="UTF-8"?>'."\n";
+        $xml .= '<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'."\n";
 
         // Sub-sitemaps
         $subSitemaps = [
-            $baseUrl . '/sitemap-pages.xml',
-            $baseUrl . '/sitemap-products.xml',
-            $baseUrl . '/sitemap-categories.xml',
+            $baseUrl.'/sitemap-pages.xml',
+            $baseUrl.'/sitemap-products.xml',
+            $baseUrl.'/sitemap-categories.xml',
         ];
 
         foreach ($subSitemaps as $mapUrl) {
@@ -65,12 +65,12 @@ class SitemapGeneratorService
 
         $changefreq = $settings->sitemap_changefreq_products ?: 'daily';
 
-        $xml = '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
-        $xml .= '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">' . "\n";
+        $xml = '<?xml version="1.0" encoding="UTF-8"?>'."\n";
+        $xml .= '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">'."\n";
 
         foreach ($products as $product) {
             $slug = $product->online_slug ?: $product->sku;
-            $loc = htmlspecialchars($this->seoMetadataService->buildCanonicalUrl($baseUrl, '/products/' . $slug), ENT_XML1);
+            $loc = htmlspecialchars($this->seoMetadataService->buildCanonicalUrl($baseUrl, '/products/'.$slug), ENT_XML1);
             $lastmod = ($product->updated_at ?: Carbon::now())->toAtomString();
 
             $xml .= "  <url>\n";
@@ -113,21 +113,21 @@ class SitemapGeneratorService
             ->whereNull('deleted_at')
             ->get();
 
-        $xml = '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
-        $xml .= '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' . "\n";
+        $xml = '<?xml version="1.0" encoding="UTF-8"?>'."\n";
+        $xml .= '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'."\n";
 
         // Main All Products Catalog root
         $catalogLoc = htmlspecialchars($this->seoMetadataService->buildCanonicalUrl($baseUrl, '/products'), ENT_XML1);
         $xml .= "  <url>\n";
         $xml .= "    <loc>{$catalogLoc}</loc>\n";
-        $xml .= "    <lastmod>" . Carbon::now()->toAtomString() . "</lastmod>\n";
+        $xml .= '    <lastmod>'.Carbon::now()->toAtomString()."</lastmod>\n";
         $xml .= "    <changefreq>daily</changefreq>\n";
         $xml .= "    <priority>0.9</priority>\n";
         $xml .= "  </url>\n";
 
         foreach ($categories as $cat) {
             $slug = $cat->slug ?: strtolower((string) preg_replace('/[^a-zA-Z0-9]+/', '-', $cat->name));
-            $loc = htmlspecialchars($this->seoMetadataService->buildCanonicalUrl($baseUrl, '/collections/' . $slug), ENT_XML1);
+            $loc = htmlspecialchars($this->seoMetadataService->buildCanonicalUrl($baseUrl, '/collections/'.$slug), ENT_XML1);
             $lastmod = ($cat->updated_at ?: Carbon::now())->toAtomString();
 
             $xml .= "  <url>\n";
@@ -159,14 +159,14 @@ class SitemapGeneratorService
 
         $changefreq = $settings->sitemap_changefreq_pages ?: 'weekly';
 
-        $xml = '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
-        $xml .= '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' . "\n";
+        $xml = '<?xml version="1.0" encoding="UTF-8"?>'."\n";
+        $xml .= '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'."\n";
 
         // Homepage
         $homeLoc = htmlspecialchars($this->seoMetadataService->buildCanonicalUrl($baseUrl, '/'), ENT_XML1);
         $xml .= "  <url>\n";
         $xml .= "    <loc>{$homeLoc}</loc>\n";
-        $xml .= "    <lastmod>" . Carbon::now()->toAtomString() . "</lastmod>\n";
+        $xml .= '    <lastmod>'.Carbon::now()->toAtomString()."</lastmod>\n";
         $xml .= "    <changefreq>daily</changefreq>\n";
         $xml .= "    <priority>1.0</priority>\n";
         $xml .= "  </url>\n";
@@ -183,7 +183,7 @@ class SitemapGeneratorService
         $seenSlugs = [];
         foreach ($pages as $page) {
             $seenSlugs[$page->slug] = true;
-            $loc = htmlspecialchars($this->seoMetadataService->buildCanonicalUrl($baseUrl, '/pages/' . $page->slug), ENT_XML1);
+            $loc = htmlspecialchars($this->seoMetadataService->buildCanonicalUrl($baseUrl, '/pages/'.$page->slug), ENT_XML1);
             $lastmod = ($page->updated_at ?: Carbon::now())->toAtomString();
 
             $xml .= "  <url>\n";
@@ -196,10 +196,10 @@ class SitemapGeneratorService
 
         foreach ($standardPages as $slug => $prio) {
             if (! isset($seenSlugs[$slug])) {
-                $loc = htmlspecialchars($this->seoMetadataService->buildCanonicalUrl($baseUrl, '/pages/' . $slug), ENT_XML1);
+                $loc = htmlspecialchars($this->seoMetadataService->buildCanonicalUrl($baseUrl, '/pages/'.$slug), ENT_XML1);
                 $xml .= "  <url>\n";
                 $xml .= "    <loc>{$loc}</loc>\n";
-                $xml .= "    <lastmod>" . Carbon::now()->toAtomString() . "</lastmod>\n";
+                $xml .= '    <lastmod>'.Carbon::now()->toAtomString()."</lastmod>\n";
                 $xml .= "    <changefreq>monthly</changefreq>\n";
                 $xml .= "    <priority>{$prio}</priority>\n";
                 $xml .= "  </url>\n";

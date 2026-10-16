@@ -40,17 +40,6 @@ class PayrollAdvance extends Model
         'issued_on' => 'date',
     ];
 
-    protected static function boot(): void
-    {
-        parent::boot();
-
-        static::creating(static function (PayrollAdvance $model): void {
-            if (empty($model->uuid)) {
-                $model->uuid = (string) Str::uuid();
-            }
-        });
-    }
-
     /**
      * @return BelongsTo<Employee, $this>
      */
@@ -65,5 +54,16 @@ class PayrollAdvance extends Model
     public function recoveryStartPeriod(): BelongsTo
     {
         return $this->belongsTo(PayrollPeriod::class, 'recovery_start_period_id');
+    }
+
+    protected static function boot(): void
+    {
+        parent::boot();
+
+        static::creating(static function (PayrollAdvance $model): void {
+            if (empty($model->uuid)) {
+                $model->uuid = (string) Str::uuid();
+            }
+        });
     }
 }

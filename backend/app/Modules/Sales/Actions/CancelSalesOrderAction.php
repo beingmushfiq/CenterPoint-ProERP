@@ -10,6 +10,7 @@ use App\Modules\Sales\Models\CrmLead;
 use App\Modules\Sales\Models\DeliveryOrder;
 use App\Modules\Sales\Models\Invoice;
 use App\Modules\Sales\Models\SalesOrder;
+use DomainException;
 use Illuminate\Support\Facades\DB;
 
 final class CancelSalesOrderAction
@@ -26,14 +27,14 @@ final class CancelSalesOrderAction
             }
 
             if ($order->status === 'delivered') {
-                throw new \DomainException("Sales order [{$order->order_number}] has already been delivered and cannot be cancelled.");
+                throw new DomainException("Sales order [{$order->order_number}] has already been delivered and cannot be cancelled.");
             }
 
             $order->status = 'cancelled';
             $order->cancelled_at = now();
             $order->cancelled_by = $userId;
             if ($reason !== null && $reason !== '') {
-                $order->internal_notes = trim(($order->internal_notes ?? '') . "\nCancellation Reason: " . $reason);
+                $order->internal_notes = trim(($order->internal_notes ?? '')."\nCancellation Reason: ".$reason);
             }
             $order->save();
 
@@ -75,16 +76,16 @@ final class CancelSalesOrderAction
             if ($order->lead_id) {
                 $lead = CrmLead::where('tenant_id', $order->tenant_id)->find($order->lead_id);
                 if ($lead) {
-                    $activity = new CrmActivity();
+                    $activity = new CrmActivity;
                     $activity->tenant_id = $order->tenant_id;
                     $activity->subject_type = 'lead';
                     $activity->subject_id = $lead->id;
                     $activity->type = 'note';
                     $activity->title = "Order Cancelled ({$order->order_number})";
                     $activity->description = sprintf(
-                        "Sales order %s was cancelled.%s",
+                        'Sales order %s was cancelled.%s',
                         $order->order_number,
-                        $reason ? " Reason: {$reason}" : ""
+                        $reason ? " Reason: {$reason}" : ''
                     );
                     $activity->assigned_to = $lead->assigned_to;
                     $activity->created_by = $userId;

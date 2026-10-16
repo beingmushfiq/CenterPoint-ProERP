@@ -6,7 +6,6 @@ namespace App\Modules\HR\Models;
 
 use App\Core\Tenancy\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
@@ -34,17 +33,6 @@ class SalaryStructure extends Model
         'is_active' => 'boolean',
     ];
 
-    protected static function boot(): void
-    {
-        parent::boot();
-
-        static::creating(static function (SalaryStructure $model): void {
-            if (empty($model->uuid)) {
-                $model->uuid = (string) Str::uuid();
-            }
-        });
-    }
-
     /**
      * @return HasMany<SalaryStructureComponent, $this>
      */
@@ -59,5 +47,16 @@ class SalaryStructure extends Model
     public function employees(): HasMany
     {
         return $this->hasMany(Employee::class, 'salary_structure_id');
+    }
+
+    protected static function boot(): void
+    {
+        parent::boot();
+
+        static::creating(static function (SalaryStructure $model): void {
+            if (empty($model->uuid)) {
+                $model->uuid = (string) Str::uuid();
+            }
+        });
     }
 }

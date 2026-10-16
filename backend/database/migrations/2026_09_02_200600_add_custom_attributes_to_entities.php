@@ -22,7 +22,7 @@ return new class extends Migration
         ];
 
         foreach ($tables as $tableName) {
-            if (Schema::hasTable($tableName) && !Schema::hasColumn($tableName, 'custom_attributes')) {
+            if (Schema::hasTable($tableName) && ! Schema::hasColumn($tableName, 'custom_attributes')) {
                 Schema::table($tableName, function (Blueprint $table): void {
                     $table->json('custom_attributes')->nullable()->after('updated_at');
                 });

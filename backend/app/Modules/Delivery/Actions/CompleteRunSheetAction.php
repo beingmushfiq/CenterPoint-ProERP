@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\DB;
 class CompleteRunSheetAction
 {
     /**
-     * @param array<int, array{delivery_order_id: int, status: string, cod_collected: string}> $deliveries
+     * @param  array<int, array{delivery_order_id: int, status: string, cod_collected: string}>  $deliveries
      */
     public function execute(RunSheet $runSheet, array $deliveries = []): RunSheet
     {

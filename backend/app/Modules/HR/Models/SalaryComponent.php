@@ -36,6 +36,14 @@ class SalaryComponent extends Model
         'is_active' => 'boolean',
     ];
 
+    /**
+     * @return HasMany<SalaryStructureComponent, $this>
+     */
+    public function structureComponents(): HasMany
+    {
+        return $this->hasMany(SalaryStructureComponent::class, 'component_id');
+    }
+
     protected static function boot(): void
     {
         parent::boot();
@@ -45,13 +53,5 @@ class SalaryComponent extends Model
                 $model->uuid = (string) Str::uuid();
             }
         });
-    }
-
-    /**
-     * @return HasMany<SalaryStructureComponent, $this>
-     */
-    public function structureComponents(): HasMany
-    {
-        return $this->hasMany(SalaryStructureComponent::class, 'component_id');
     }
 }

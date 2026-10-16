@@ -27,7 +27,7 @@ class RecordAuditLogAction
         $changedFields = [];
         if ($before !== null && $after !== null) {
             foreach ($after as $key => $val) {
-                if (!array_key_exists($key, $before) || $before[$key] !== $val) {
+                if (! array_key_exists($key, $before) || $before[$key] !== $val) {
                     $changedFields[] = $key;
                 }
             }

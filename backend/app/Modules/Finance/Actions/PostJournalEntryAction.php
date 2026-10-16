@@ -4,10 +4,8 @@ declare(strict_types=1);
 
 namespace App\Modules\Finance\Actions;
 
-use App\Modules\Finance\Models\ChartOfAccount;
 use App\Modules\Finance\Models\JournalEntry;
 use App\Modules\Finance\Models\JournalLine;
-use App\Modules\HR\Models\PayrollPeriod;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -78,7 +76,7 @@ class PostJournalEntryAction
                 throw ValidationException::withMessages(['lines' => 'Journal entry total must be greater than zero.']);
             }
 
-            $entryNumber = $data['entry_number'] ?? ('JE-' . date('Ym') . '-' . str_pad((string) random_int(1000, 99999), 5, '0', STR_PAD_LEFT));
+            $entryNumber = $data['entry_number'] ?? ('JE-'.date('Ym').'-'.str_pad((string) random_int(1000, 99999), 5, '0', STR_PAD_LEFT));
 
             $journalEntry = JournalEntry::create([
                 'company_id' => $data['company_id'],

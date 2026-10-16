@@ -5,13 +5,9 @@ declare(strict_types=1);
 namespace Tests\Feature\Ecommerce;
 
 use App\Core\Tenancy\TenantContext;
-use App\Models\Branch;
-use App\Models\Company;
 use App\Models\Product;
 use App\Models\Storefront;
 use App\Models\Tenant;
-use App\Models\Unit;
-use App\Models\Warehouse;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
@@ -22,6 +18,7 @@ class StorefrontTest extends TestCase
     use RefreshDatabase;
 
     private Storefront $storefront;
+
     private Product $product;
 
     protected function setUp(): void

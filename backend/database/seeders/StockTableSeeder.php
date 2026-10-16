@@ -38,17 +38,17 @@ final class StockTableSeeder extends Seeder
                     : '150.0000';
 
                 $recordStockMovement->execute([
-                    'tenant_id'     => 1,
-                    'product_id'    => $product->id,
-                    'warehouse_id'  => $warehouse->id,
+                    'tenant_id' => 1,
+                    'product_id' => $product->id,
+                    'warehouse_id' => $warehouse->id,
                     'movement_type' => 'opening_balance',
-                    'direction'     => 'in',
-                    'quantity'      => '500.0000',
-                    'unit_id'       => $product->base_unit_id,
-                    'unit_cost'     => $cost,
-                    'stock_state'   => 'available',
-                    'moved_at'      => now()->toIso8601String(),
-                    'created_by'    => 1,
+                    'direction' => 'in',
+                    'quantity' => '500.0000',
+                    'unit_id' => $product->base_unit_id,
+                    'unit_cost' => $cost,
+                    'stock_state' => 'available',
+                    'moved_at' => now()->toIso8601String(),
+                    'created_by' => 1,
                 ]);
             }
         }

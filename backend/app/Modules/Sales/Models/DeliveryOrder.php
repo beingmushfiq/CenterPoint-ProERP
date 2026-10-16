@@ -109,27 +109,16 @@ final class DeliveryOrder extends Model
      * @var array<string, string>
      */
     protected $casts = [
-        'scheduled_date'        => 'date',
-        'delivered_at'          => 'datetime',
-        'cod_amount'            => 'decimal:4',
-        'cod_collected_amount'  => 'decimal:4',
-        'delivery_charge'       => 'decimal:4',
-        'weight'                => 'decimal:4',
-        'created_at'            => 'datetime',
-        'updated_at'            => 'datetime',
-        'deleted_at'            => 'datetime',
+        'scheduled_date' => 'date',
+        'delivered_at' => 'datetime',
+        'cod_amount' => 'decimal:4',
+        'cod_collected_amount' => 'decimal:4',
+        'delivery_charge' => 'decimal:4',
+        'weight' => 'decimal:4',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
+        'deleted_at' => 'datetime',
     ];
-
-    protected static function boot(): void
-    {
-        parent::boot();
-
-        static::creating(static function (DeliveryOrder $model): void {
-            if (empty($model->uuid)) {
-                $model->uuid = (string) Str::uuid();
-            }
-        });
-    }
 
     /**
      * @return BelongsTo<SalesOrder, $this>
@@ -169,5 +158,16 @@ final class DeliveryOrder extends Model
     public function items(): HasMany
     {
         return $this->hasMany(DeliveryOrderItem::class, 'delivery_order_id');
+    }
+
+    protected static function boot(): void
+    {
+        parent::boot();
+
+        self::creating(static function (DeliveryOrder $model): void {
+            if (empty($model->uuid)) {
+                $model->uuid = (string) Str::uuid();
+            }
+        });
     }
 }

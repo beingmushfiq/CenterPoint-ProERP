@@ -13,7 +13,7 @@ class DeliveryMasterReportQuery implements ReportQueryInterface
 
     public function __construct(?DeliveryDataProvider $provider = null)
     {
-        $this->provider = $provider ?? new DeliveryDataProvider();
+        $this->provider = $provider ?? new DeliveryDataProvider;
     }
 
     public function columns(): array

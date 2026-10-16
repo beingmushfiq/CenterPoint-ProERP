@@ -35,17 +35,6 @@ class SalaryStructureComponent extends Model
         'sort_order' => 'integer',
     ];
 
-    protected static function boot(): void
-    {
-        parent::boot();
-
-        static::creating(static function (SalaryStructureComponent $model): void {
-            if (empty($model->uuid)) {
-                $model->uuid = (string) Str::uuid();
-            }
-        });
-    }
-
     /**
      * @return BelongsTo<SalaryStructure, $this>
      */
@@ -68,5 +57,16 @@ class SalaryStructureComponent extends Model
     public function baseComponent(): BelongsTo
     {
         return $this->belongsTo(SalaryComponent::class, 'base_component_id');
+    }
+
+    protected static function boot(): void
+    {
+        parent::boot();
+
+        static::creating(static function (SalaryStructureComponent $model): void {
+            if (empty($model->uuid)) {
+                $model->uuid = (string) Str::uuid();
+            }
+        });
     }
 }

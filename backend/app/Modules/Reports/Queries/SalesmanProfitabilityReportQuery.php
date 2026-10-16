@@ -13,46 +13,40 @@ class SalesmanProfitabilityReportQuery implements ReportQueryInterface
 
     public function __construct(?SalesDataProvider $provider = null)
     {
-        $this->provider = $provider ?? new SalesDataProvider();
+        $this->provider = $provider ?? new SalesDataProvider;
     }
 
     public function columns(): array
     {
-        return array (
-  'salesperson_name' => 
-  array (
-    'label' => 'Sales Representative',
-    'type' => 'string',
-    'sortable' => true,
-  ),
-  'orders_count' => 
-  array (
-    'label' => 'Deals Closed',
-    'type' => 'number',
-  ),
-  'total_revenue' => 
-  array (
-    'label' => 'Sales Volume (BDT)',
-    'type' => 'currency',
-    'sortable' => true,
-  ),
-  'total_cogs' => 
-  array (
-    'label' => 'Delivered COGS (BDT)',
-    'type' => 'currency',
-  ),
-  'gross_profit' => 
-  array (
-    'label' => 'Profit Generated (BDT)',
-    'type' => 'currency',
-    'sortable' => true,
-  ),
-  'margin_percent' => 
-  array (
-    'label' => 'Gross Margin (%)',
-    'type' => 'string',
-  ),
-);
+        return [
+            'salesperson_name' => [
+                'label' => 'Sales Representative',
+                'type' => 'string',
+                'sortable' => true,
+            ],
+            'orders_count' => [
+                'label' => 'Deals Closed',
+                'type' => 'number',
+            ],
+            'total_revenue' => [
+                'label' => 'Sales Volume (BDT)',
+                'type' => 'currency',
+                'sortable' => true,
+            ],
+            'total_cogs' => [
+                'label' => 'Delivered COGS (BDT)',
+                'type' => 'currency',
+            ],
+            'gross_profit' => [
+                'label' => 'Profit Generated (BDT)',
+                'type' => 'currency',
+                'sortable' => true,
+            ],
+            'margin_percent' => [
+                'label' => 'Gross Margin (%)',
+                'type' => 'string',
+            ],
+        ];
     }
 
     public function query(array $filters, int $page = 1, int $perPage = 25): array

@@ -17,7 +17,9 @@ class TenantModuleNavOrderTest extends TestCase
     use RefreshDatabase;
 
     private Tenant $tenant;
+
     private User $admin;
+
     private string $token;
 
     protected function setUp(): void
@@ -39,7 +41,7 @@ class TenantModuleNavOrderTest extends TestCase
 
     public function test_can_get_default_nav_order(): void
     {
-        $response = $this->withHeader('Authorization', 'Bearer ' . $this->token)
+        $response = $this->withHeader('Authorization', 'Bearer '.$this->token)
             ->getJson('/api/v1/tenant/modules/nav-order');
 
         $response->assertOk();
@@ -63,7 +65,7 @@ class TenantModuleNavOrderTest extends TestCase
     {
         $customSections = ['overview', 'supply', 'production', 'crm', 'sales', 'finance', 'hr', 'system'];
 
-        $response = $this->withHeader('Authorization', 'Bearer ' . $this->token)
+        $response = $this->withHeader('Authorization', 'Bearer '.$this->token)
             ->putJson('/api/v1/tenant/modules/nav-order', [
                 'sections' => $customSections,
             ]);
@@ -73,14 +75,14 @@ class TenantModuleNavOrderTest extends TestCase
         $response->assertJsonPath('data.sections', $customSections);
 
         // Verify that fetching nav-order again returns the updated order
-        $fetchRes = $this->withHeader('Authorization', 'Bearer ' . $this->token)
+        $fetchRes = $this->withHeader('Authorization', 'Bearer '.$this->token)
             ->getJson('/api/v1/tenant/modules/nav-order');
 
         $fetchRes->assertOk();
         $fetchRes->assertJsonPath('data.sections', $customSections);
 
         // Verify that manifest contains updated nav_order
-        $manifestRes = $this->withHeader('Authorization', 'Bearer ' . $this->token)
+        $manifestRes = $this->withHeader('Authorization', 'Bearer '.$this->token)
             ->getJson('/api/v1/tenant/manifest?refresh=1');
 
         $manifestRes->assertOk();
@@ -89,7 +91,7 @@ class TenantModuleNavOrderTest extends TestCase
 
     public function test_can_batch_update_modules(): void
     {
-        $response = $this->withHeader('Authorization', 'Bearer ' . $this->token)
+        $response = $this->withHeader('Authorization', 'Bearer '.$this->token)
             ->putJson('/api/v1/tenant/modules/batch', [
                 'modules' => [
                     ['module_key' => 'production', 'enabled' => false, 'config' => []],
@@ -98,7 +100,7 @@ class TenantModuleNavOrderTest extends TestCase
             ]);
 
         if ($response->status() !== 200) {
-            $this->fail('Batch update failed with: ' . json_encode($response->json()));
+            $this->fail('Batch update failed with: '.json_encode($response->json()));
         }
 
         $response->assertOk();
@@ -114,7 +116,7 @@ class TenantModuleNavOrderTest extends TestCase
 
     public function test_can_batch_update_modules_with_empty_array(): void
     {
-        $response = $this->withHeader('Authorization', 'Bearer ' . $this->token)
+        $response = $this->withHeader('Authorization', 'Bearer '.$this->token)
             ->putJson('/api/v1/tenant/modules/batch', [
                 'modules' => [],
             ]);
@@ -125,7 +127,7 @@ class TenantModuleNavOrderTest extends TestCase
 
     public function test_can_update_single_module(): void
     {
-        $response = $this->withHeader('Authorization', 'Bearer ' . $this->token)
+        $response = $this->withHeader('Authorization', 'Bearer '.$this->token)
             ->putJson('/api/v1/tenant/modules/delivery', [
                 'enabled' => false,
                 'config' => ['courier' => 'pathao'],
@@ -143,4 +145,3 @@ class TenantModuleNavOrderTest extends TestCase
         ]);
     }
 }
-

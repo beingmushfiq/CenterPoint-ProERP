@@ -13,56 +13,48 @@ class ProductProfitReportQuery implements ReportQueryInterface
 
     public function __construct(?SalesDataProvider $provider = null)
     {
-        $this->provider = $provider ?? new SalesDataProvider();
+        $this->provider = $provider ?? new SalesDataProvider;
     }
 
     public function columns(): array
     {
-        return array (
-  'sku' => 
-  array (
-    'label' => 'SKU',
-    'type' => 'string',
-    'sortable' => true,
-  ),
-  'product_name' => 
-  array (
-    'label' => 'Product Name',
-    'type' => 'string',
-  ),
-  'category' => 
-  array (
-    'label' => 'Category',
-    'type' => 'string',
-  ),
-  'units_sold' => 
-  array (
-    'label' => 'Units Sold',
-    'type' => 'number',
-  ),
-  'revenue' => 
-  array (
-    'label' => 'Gross Revenue (BDT)',
-    'type' => 'currency',
-    'sortable' => true,
-  ),
-  'total_cost' => 
-  array (
-    'label' => 'COGS (BDT)',
-    'type' => 'currency',
-  ),
-  'gross_profit' => 
-  array (
-    'label' => 'Gross Profit (BDT)',
-    'type' => 'currency',
-    'sortable' => true,
-  ),
-  'margin_percent' => 
-  array (
-    'label' => 'Margin (%)',
-    'type' => 'string',
-  ),
-);
+        return [
+            'sku' => [
+                'label' => 'SKU',
+                'type' => 'string',
+                'sortable' => true,
+            ],
+            'product_name' => [
+                'label' => 'Product Name',
+                'type' => 'string',
+            ],
+            'category' => [
+                'label' => 'Category',
+                'type' => 'string',
+            ],
+            'units_sold' => [
+                'label' => 'Units Sold',
+                'type' => 'number',
+            ],
+            'revenue' => [
+                'label' => 'Gross Revenue (BDT)',
+                'type' => 'currency',
+                'sortable' => true,
+            ],
+            'total_cost' => [
+                'label' => 'COGS (BDT)',
+                'type' => 'currency',
+            ],
+            'gross_profit' => [
+                'label' => 'Gross Profit (BDT)',
+                'type' => 'currency',
+                'sortable' => true,
+            ],
+            'margin_percent' => [
+                'label' => 'Margin (%)',
+                'type' => 'string',
+            ],
+        ];
     }
 
     public function query(array $filters, int $page = 1, int $perPage = 25): array

@@ -9,7 +9,7 @@ use App\Core\Audit\AuditLogger;
 use App\Core\Tenancy\TenantContext;
 use App\Models\Setting;
 use App\Models\User;
-use Illuminate\Support\Facades\Http;
+use InvalidArgumentException;
 
 class SettingService
 {
@@ -115,7 +115,7 @@ class SettingService
                         'type' => 'json',
                         'default' => [
                             'storefront', 'walk_in', 'phone', 'field_visit', 'referral',
-                            'cold_outreach', 'event', 'social_media', 'website', 'other'
+                            'cold_outreach', 'event', 'social_media', 'website', 'other',
                         ],
                         'sensitive' => false,
                     ],
@@ -123,7 +123,7 @@ class SettingService
                         'label' => 'Active Pipeline Stages',
                         'type' => 'json',
                         'default' => [
-                            'new', 'contacted', 'qualified', 'proposal', 'negotiation', 'won', 'lost'
+                            'new', 'contacted', 'qualified', 'proposal', 'negotiation', 'won', 'lost',
                         ],
                         'sensitive' => false,
                     ],
@@ -132,7 +132,7 @@ class SettingService
                         'type' => 'json',
                         'default' => [
                             'price_too_high', 'competitor_chosen', 'budget_cancelled',
-                            'product_unfit', 'no_response', 'fraud_invalid', 'other'
+                            'product_unfit', 'no_response', 'fraud_invalid', 'other',
                         ],
                         'sensitive' => false,
                     ],
@@ -440,7 +440,7 @@ class SettingService
         $schema = $this->getSchemaDictionary();
 
         if (! isset($schema[$group])) {
-            throw new \InvalidArgumentException("Invalid settings group: {$group}");
+            throw new InvalidArgumentException("Invalid settings group: {$group}");
         }
 
         $groupDef = $schema[$group]['settings'];
@@ -623,7 +623,7 @@ class SettingService
                     $targetBrand = $syncedBrand ?: ($syncedLegal ?: $resolvedName);
                     if ($targetBrand) {
                         if (empty($sf->name) || preg_match('/\b(Online Store|Direct Storefront|Store)\b/i', $sf->name) || $sf->name === $tenant->getOriginal('name')) {
-                            $sf->name = $targetBrand . ' Online Store';
+                            $sf->name = $targetBrand.' Online Store';
                             $modified = true;
                         }
                     }
@@ -687,6 +687,7 @@ class SettingService
             if (empty($apiKey) || empty($secretKey)) {
                 return ['success' => false, 'message' => 'Steadfast API Key and Secret Key are required.'];
             }
+
             return [
                 'success' => true,
                 'provider' => 'Steadfast Courier API',
@@ -702,6 +703,7 @@ class SettingService
             if (empty($clientId)) {
                 return ['success' => false, 'message' => 'Pathao Client ID is required.'];
             }
+
             return [
                 'success' => true,
                 'provider' => 'Pathao Logistics API',
@@ -717,6 +719,7 @@ class SettingService
             if (empty($apiToken)) {
                 return ['success' => false, 'message' => 'REDX API Token is required.'];
             }
+
             return [
                 'success' => true,
                 'provider' => 'REDX Parcel API',
@@ -732,6 +735,7 @@ class SettingService
             if (empty($appKey)) {
                 return ['success' => false, 'message' => 'bKash Merchant App Key is required.'];
             }
+
             return [
                 'success' => true,
                 'provider' => 'bKash PGW API',
@@ -747,6 +751,7 @@ class SettingService
             if (empty($merchantId)) {
                 return ['success' => false, 'message' => 'Nagad Merchant ID is required.'];
             }
+
             return [
                 'success' => true,
                 'provider' => 'Nagad Payment API',
@@ -762,6 +767,7 @@ class SettingService
             if (empty($storeId)) {
                 return ['success' => false, 'message' => 'SSLCommerz Store ID is required.'];
             }
+
             return [
                 'success' => true,
                 'provider' => 'SSLCommerz PGW',
@@ -777,6 +783,7 @@ class SettingService
             if (empty($token)) {
                 return ['success' => false, 'message' => 'SMS API Key is required.'];
             }
+
             return [
                 'success' => true,
                 'provider' => 'SMS Gateway API',
@@ -792,6 +799,7 @@ class SettingService
             if (empty($token)) {
                 return ['success' => false, 'message' => 'WhatsApp Cloud API Access Token is required.'];
             }
+
             return [
                 'success' => true,
                 'provider' => 'Meta WhatsApp Cloud API',
@@ -875,7 +883,7 @@ class SettingService
                         $sfTheme['legal_name'] = $resolvedName;
                         $sf->theme = $sfTheme;
                         if (empty($sf->name) || preg_match('/\b(Online Store|Direct Storefront|Store)\b/i', $sf->name)) {
-                            $sf->name = $resolvedName . ' Online Store';
+                            $sf->name = $resolvedName.' Online Store';
                         }
                         $sf->save();
                     }

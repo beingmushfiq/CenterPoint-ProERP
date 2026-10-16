@@ -13,64 +13,54 @@ class WarehouseTransferReportQuery implements ReportQueryInterface
 
     public function __construct(?InventoryDataProvider $provider = null)
     {
-        $this->provider = $provider ?? new InventoryDataProvider();
+        $this->provider = $provider ?? new InventoryDataProvider;
     }
 
     public function columns(): array
     {
-        return array (
-  'transfer_number' => 
-  array (
-    'label' => 'Transfer No',
-    'type' => 'string',
-    'sortable' => true,
-  ),
-  'transfer_date' => 
-  array (
-    'label' => 'Date',
-    'type' => 'date',
-  ),
-  'from_warehouse' => 
-  array (
-    'label' => 'Origin Warehouse',
-    'type' => 'string',
-  ),
-  'to_warehouse' => 
-  array (
-    'label' => 'Destination Warehouse',
-    'type' => 'string',
-  ),
-  'status' => 
-  array (
-    'label' => 'Transfer Status',
-    'type' => 'badge',
-  ),
-  'dispatched_by' => 
-  array (
-    'label' => 'Dispatched By',
-    'type' => 'string',
-  ),
-  'dispatched_at' => 
-  array (
-    'label' => 'Dispatched Timestamp',
-    'type' => 'string',
-  ),
-  'received_by' => 
-  array (
-    'label' => 'Received By',
-    'type' => 'string',
-  ),
-  'received_at' => 
-  array (
-    'label' => 'Received Timestamp',
-    'type' => 'string',
-  ),
-  'notes' => 
-  array (
-    'label' => 'Notes',
-    'type' => 'string',
-  ),
-);
+        return [
+            'transfer_number' => [
+                'label' => 'Transfer No',
+                'type' => 'string',
+                'sortable' => true,
+            ],
+            'transfer_date' => [
+                'label' => 'Date',
+                'type' => 'date',
+            ],
+            'from_warehouse' => [
+                'label' => 'Origin Warehouse',
+                'type' => 'string',
+            ],
+            'to_warehouse' => [
+                'label' => 'Destination Warehouse',
+                'type' => 'string',
+            ],
+            'status' => [
+                'label' => 'Transfer Status',
+                'type' => 'badge',
+            ],
+            'dispatched_by' => [
+                'label' => 'Dispatched By',
+                'type' => 'string',
+            ],
+            'dispatched_at' => [
+                'label' => 'Dispatched Timestamp',
+                'type' => 'string',
+            ],
+            'received_by' => [
+                'label' => 'Received By',
+                'type' => 'string',
+            ],
+            'received_at' => [
+                'label' => 'Received Timestamp',
+                'type' => 'string',
+            ],
+            'notes' => [
+                'label' => 'Notes',
+                'type' => 'string',
+            ],
+        ];
     }
 
     public function query(array $filters, int $page = 1, int $perPage = 25): array

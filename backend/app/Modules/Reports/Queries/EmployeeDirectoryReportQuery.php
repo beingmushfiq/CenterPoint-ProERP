@@ -13,7 +13,7 @@ class EmployeeDirectoryReportQuery implements ReportQueryInterface
 
     public function __construct(?HRDataProvider $provider = null)
     {
-        $this->provider = $provider ?? new HRDataProvider();
+        $this->provider = $provider ?? new HRDataProvider;
     }
 
     public function columns(): array

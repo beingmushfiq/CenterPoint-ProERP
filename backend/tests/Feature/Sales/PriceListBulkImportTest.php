@@ -7,8 +7,6 @@ namespace Tests\Feature\Sales;
 use App\Core\Auth\JwtService;
 use App\Core\Tenancy\TenantContext;
 use App\Models\Category;
-use App\Models\PriceList;
-use App\Models\PriceListItem;
 use App\Models\Product;
 use App\Models\Role;
 use App\Models\Tenant;
@@ -25,8 +23,11 @@ class PriceListBulkImportTest extends TestCase
     use RefreshDatabase;
 
     private Tenant $tenant;
+
     private User $user;
+
     private string $token;
+
     private Product $product;
 
     protected function setUp(): void

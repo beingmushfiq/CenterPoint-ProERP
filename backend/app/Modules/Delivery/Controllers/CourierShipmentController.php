@@ -86,7 +86,7 @@ class CourierShipmentController extends Controller
     public function label(CourierShipment $shipment): JsonResponse
     {
         $provider = $shipment->provider;
-        if (!$provider || !$shipment->consignment_id) {
+        if (! $provider || ! $shipment->consignment_id) {
             return response()->json(['success' => false, 'error' => ['code' => 'LABEL_NOT_FOUND']], 404);
         }
 

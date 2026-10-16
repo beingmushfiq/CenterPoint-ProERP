@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class TenantQcTemplate extends Model
 {
     use BelongsToTenant;
+
     protected $fillable = [
         'tenant_id',
         'name',
@@ -22,15 +23,6 @@ class TenantQcTemplate extends Model
         'is_active',
     ];
 
-    protected function casts(): array
-    {
-        return [
-            'tenant_id' => 'integer',
-            'is_default' => 'boolean',
-            'is_active' => 'boolean',
-        ];
-    }
-
     public function tenant(): BelongsTo
     {
         return $this->belongsTo(Tenant::class);
@@ -39,5 +31,14 @@ class TenantQcTemplate extends Model
     public function checks(): HasMany
     {
         return $this->hasMany(TenantQcCheck::class, 'template_id')->orderBy('sort_order');
+    }
+
+    protected function casts(): array
+    {
+        return [
+            'tenant_id' => 'integer',
+            'is_default' => 'boolean',
+            'is_active' => 'boolean',
+        ];
     }
 }

@@ -21,21 +21,6 @@ class PlatformAdministrationTest extends TestCase
         $this->seed();
     }
 
-    private function getPlatformToken(): string
-    {
-        $platformAdmin = User::withoutTenantScope()->where('email', 'admin@devcenterpoint.com')->firstOrFail();
-        $jwtService = app(JwtService::class);
-
-        return $jwtService->issueToken(
-            userId: $platformAdmin->id,
-            tenantId: null,
-            tokenVersion: $platformAdmin->token_version,
-            permVersion: '1',
-            scopes: [],
-            customClaims: ['email' => $platformAdmin->email, 'is_platform_user' => true]
-        );
-    }
-
     public function test_platform_login_authenticates_super_admin_and_returns_platform_token(): void
     {
         $response = $this->postJson('/api/v1/platform/auth/login', [
@@ -278,5 +263,19 @@ class PlatformAdministrationTest extends TestCase
         // Verify soft-deleted
         $this->assertSoftDeleted('users', ['id' => $targetUser->id]);
     }
-}
 
+    private function getPlatformToken(): string
+    {
+        $platformAdmin = User::withoutTenantScope()->where('email', 'admin@devcenterpoint.com')->firstOrFail();
+        $jwtService = app(JwtService::class);
+
+        return $jwtService->issueToken(
+            userId: $platformAdmin->id,
+            tenantId: null,
+            tokenVersion: $platformAdmin->token_version,
+            permVersion: '1',
+            scopes: [],
+            customClaims: ['email' => $platformAdmin->email, 'is_platform_user' => true]
+        );
+    }
+}

@@ -22,6 +22,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
+use Throwable;
 
 class EmployeeController extends Controller
 {
@@ -915,13 +916,13 @@ class EmployeeController extends Controller
                 &$updated,
                 &$skipped,
                 &$errors
-            ) {
+            ): void {
                 foreach ($chunk as $relIdx => $row) {
                     $rowNum = ($chunkIdx * 100) + $relIdx + 2;
-                    $code = !empty($row['employee_code']) ? trim((string) $row['employee_code']) : null;
+                    $code = ! empty($row['employee_code']) ? trim((string) $row['employee_code']) : null;
                     $phone = trim((string) $row['phone']);
                     $cleanPhone = preg_replace('/[^0-9]/', '', $phone);
-                    $email = !empty($row['email']) ? strtolower(trim((string) $row['email'])) : null;
+                    $email = ! empty($row['email']) ? strtolower(trim((string) $row['email'])) : null;
 
                     // Check if employee already exists
                     $existing = null;
@@ -936,6 +937,7 @@ class EmployeeController extends Controller
                     if ($existing) {
                         if ($mode === 'skip') {
                             $skipped++;
+
                             continue;
                         }
 
@@ -944,45 +946,47 @@ class EmployeeController extends Controller
                             $updateData = [
                                 'first_name' => $row['first_name'],
                                 'last_name' => $row['last_name'] ?? $existing->last_name,
-                                'display_name' => trim($row['first_name'] . ' ' . ($row['last_name'] ?? '')),
+                                'display_name' => trim($row['first_name'].' '.($row['last_name'] ?? '')),
                                 'updated_by' => $userId,
                             ];
-                            if (!empty($row['employment_type'])) {
+                            if (! empty($row['employment_type'])) {
                                 $updateData['employment_type'] = $row['employment_type'];
                             }
-                            if (!empty($row['employment_status'])) {
+                            if (! empty($row['employment_status'])) {
                                 $updateData['employment_status'] = $row['employment_status'];
                             }
-                            if (!empty($row['national_id'])) {
+                            if (! empty($row['national_id'])) {
                                 $updateData['national_id'] = $row['national_id'];
                             }
-                            if (!empty($row['bank_name'])) {
+                            if (! empty($row['bank_name'])) {
                                 $updateData['bank_name'] = $row['bank_name'];
                             }
-                            if (!empty($row['bank_account_number'])) {
+                            if (! empty($row['bank_account_number'])) {
                                 $updateData['bank_account_number'] = $row['bank_account_number'];
                             }
-                            if (!empty($row['mobile_wallet_number'])) {
+                            if (! empty($row['mobile_wallet_number'])) {
                                 $updateData['mobile_wallet_number'] = $row['mobile_wallet_number'];
                             }
 
                             $existing->update($updateData);
                             $updated++;
+
                             continue;
-                        } catch (\Throwable $e) {
+                        } catch (Throwable $e) {
                             $errors[] = [
                                 'row' => $rowNum,
                                 'field' => 'employee_code',
                                 'value' => $code,
-                                'message' => 'Update failed: ' . $e->getMessage(),
+                                'message' => 'Update failed: '.$e->getMessage(),
                             ];
+
                             continue;
                         }
                     }
 
                     // Resolve Department
                     $deptId = null;
-                    if (!empty($row['department'])) {
+                    if (! empty($row['department'])) {
                         $deptKey = strtolower(trim((string) $row['department']));
                         if (isset($deptMap[$deptKey])) {
                             $deptId = $deptMap[$deptKey];
@@ -1005,7 +1009,7 @@ class EmployeeController extends Controller
 
                     // Resolve Designation
                     $desigId = null;
-                    if (!empty($row['designation'])) {
+                    if (! empty($row['designation'])) {
                         $desigKey = strtolower(trim((string) $row['designation']));
                         if (isset($desigMap[$desigKey])) {
                             $desigId = $desigMap[$desigKey];
@@ -1028,7 +1032,7 @@ class EmployeeController extends Controller
 
                     // Resolve Shift
                     $shiftId = null;
-                    if (!empty($row['shift'])) {
+                    if (! empty($row['shift'])) {
                         $shiftKey = strtolower(trim((string) $row['shift']));
                         if (isset($shiftMap[$shiftKey])) {
                             $shiftId = $shiftMap[$shiftKey];
@@ -1036,8 +1040,8 @@ class EmployeeController extends Controller
                     }
 
                     // Generate employee code if missing
-                    if (!$code) {
-                        $code = 'EMP-' . str_pad((string) random_int(1000, 99999), 5, '0', STR_PAD_LEFT);
+                    if (! $code) {
+                        $code = 'EMP-'.str_pad((string) random_int(1000, 99999), 5, '0', STR_PAD_LEFT);
                     }
 
                     try {
@@ -1050,7 +1054,7 @@ class EmployeeController extends Controller
                             'default_shift_id' => $shiftId,
                             'first_name' => $row['first_name'],
                             'last_name' => $row['last_name'] ?? null,
-                            'display_name' => trim($row['first_name'] . ' ' . ($row['last_name'] ?? '')),
+                            'display_name' => trim($row['first_name'].' '.($row['last_name'] ?? '')),
                             'phone' => $phone,
                             'email' => $email,
                             'employment_type' => $row['employment_type'] ?? 'permanent',
@@ -1074,12 +1078,12 @@ class EmployeeController extends Controller
                         }
 
                         $imported++;
-                    } catch (\Throwable $e) {
+                    } catch (Throwable $e) {
                         $errors[] = [
                             'row' => $rowNum,
                             'field' => 'employee_code',
                             'value' => $code,
-                            'message' => 'Creation failed: ' . $e->getMessage(),
+                            'message' => 'Creation failed: '.$e->getMessage(),
                         ];
                     }
                 }
@@ -1094,7 +1098,7 @@ class EmployeeController extends Controller
             'skipped' => $skipped,
             'failed' => count($errors),
             'errors' => $errors,
-            'message' => "Import completed: {$imported} added, {$updated} updated, {$skipped} skipped, " . count($errors) . " failed.",
+            'message' => "Import completed: {$imported} added, {$updated} updated, {$skipped} skipped, ".count($errors).' failed.',
         ]);
     }
 
@@ -1127,7 +1131,7 @@ class EmployeeController extends Controller
 
         $chunks = array_chunk($rows, 100);
         foreach ($chunks as $chunkIndex => $chunk) {
-            DB::transaction(function () use ($chunk, $chunkIndex, $tenantId, $userId, $mode, &$codeMap, &$nameMap, &$imported, &$updated, &$skipped, &$errors) {
+            DB::transaction(function () use ($chunk, $chunkIndex, $tenantId, $userId, $mode, &$codeMap, &$nameMap, &$imported, &$updated, &$skipped, &$errors): void {
                 foreach ($chunk as $index => $row) {
                     $rowNum = ($chunkIndex * 100) + $index + 1;
                     $name = trim((string) ($row['name'] ?? $row['department_name'] ?? ''));
@@ -1142,6 +1146,7 @@ class EmployeeController extends Controller
                             'value' => '',
                             'message' => 'Department name is required.',
                         ];
+
                         continue;
                     }
 
@@ -1154,6 +1159,7 @@ class EmployeeController extends Controller
                     if ($existing) {
                         if ($mode === 'skip') {
                             $skipped++;
+
                             continue;
                         }
 
@@ -1165,12 +1171,12 @@ class EmployeeController extends Controller
                                 'updated_by' => $userId,
                             ]);
                             $updated++;
-                        } catch (\Throwable $e) {
+                        } catch (Throwable $e) {
                             $errors[] = [
                                 'row' => $rowNum,
                                 'field' => 'name',
                                 'value' => $name,
-                                'message' => 'Update failed: ' . $e->getMessage(),
+                                'message' => 'Update failed: '.$e->getMessage(),
                             ];
                         }
                     } else {
@@ -1189,12 +1195,12 @@ class EmployeeController extends Controller
                             $codeMap[strtolower($dept->code)] = $dept;
                             $nameMap[strtolower($dept->name)] = $dept;
                             $imported++;
-                        } catch (\Throwable $e) {
+                        } catch (Throwable $e) {
                             $errors[] = [
                                 'row' => $rowNum,
                                 'field' => 'name',
                                 'value' => $name,
-                                'message' => 'Creation failed: ' . $e->getMessage(),
+                                'message' => 'Creation failed: '.$e->getMessage(),
                             ];
                         }
                     }
@@ -1243,7 +1249,7 @@ class EmployeeController extends Controller
 
         $chunks = array_chunk($rows, 100);
         foreach ($chunks as $chunkIndex => $chunk) {
-            DB::transaction(function () use ($chunk, $chunkIndex, $tenantId, $userId, $mode, &$codeMap, &$nameMap, &$imported, &$updated, &$skipped, &$errors) {
+            DB::transaction(function () use ($chunk, $chunkIndex, $tenantId, $userId, $mode, &$codeMap, &$nameMap, &$imported, &$updated, &$skipped, &$errors): void {
                 foreach ($chunk as $index => $row) {
                     $rowNum = ($chunkIndex * 100) + $index + 1;
                     $name = trim((string) ($row['name'] ?? $row['designation_name'] ?? ''));
@@ -1258,6 +1264,7 @@ class EmployeeController extends Controller
                             'value' => '',
                             'message' => 'Designation name is required.',
                         ];
+
                         continue;
                     }
 
@@ -1270,6 +1277,7 @@ class EmployeeController extends Controller
                     if ($desig) {
                         if ($mode === 'skip') {
                             $skipped++;
+
                             continue;
                         }
 
@@ -1281,12 +1289,12 @@ class EmployeeController extends Controller
                                 'updated_by' => $userId,
                             ]);
                             $updated++;
-                        } catch (\Throwable $e) {
+                        } catch (Throwable $e) {
                             $errors[] = [
                                 'row' => $rowNum,
                                 'field' => 'name',
                                 'value' => $name,
-                                'message' => 'Update failed: ' . $e->getMessage(),
+                                'message' => 'Update failed: '.$e->getMessage(),
                             ];
                         }
                     } else {
@@ -1304,12 +1312,12 @@ class EmployeeController extends Controller
                             $codeMap[strtolower($newDes->code)] = $newDes;
                             $nameMap[strtolower($newDes->name)] = $newDes;
                             $imported++;
-                        } catch (\Throwable $e) {
+                        } catch (Throwable $e) {
                             $errors[] = [
                                 'row' => $rowNum,
                                 'field' => 'name',
                                 'value' => $name,
-                                'message' => 'Creation failed: ' . $e->getMessage(),
+                                'message' => 'Creation failed: '.$e->getMessage(),
                             ];
                         }
                     }
@@ -1358,7 +1366,7 @@ class EmployeeController extends Controller
 
         $chunks = array_chunk($rows, 100);
         foreach ($chunks as $chunkIndex => $chunk) {
-            DB::transaction(function () use ($chunk, $chunkIndex, $tenantId, $userId, $mode, &$codeMap, &$nameMap, &$imported, &$updated, &$skipped, &$errors) {
+            DB::transaction(function () use ($chunk, $chunkIndex, $tenantId, $userId, $mode, &$codeMap, &$nameMap, &$imported, &$updated, &$skipped, &$errors): void {
                 foreach ($chunk as $index => $row) {
                     $rowNum = ($chunkIndex * 100) + $index + 1;
                     $code = trim((string) ($row['code'] ?? $row['shift_code'] ?? ''));
@@ -1377,6 +1385,7 @@ class EmployeeController extends Controller
                             'value' => '',
                             'message' => 'Shift name is required.',
                         ];
+
                         continue;
                     }
 
@@ -1387,6 +1396,7 @@ class EmployeeController extends Controller
                             'value' => "{$startTime} - {$endTime}",
                             'message' => 'Shift start and end times are required.',
                         ];
+
                         continue;
                     }
 
@@ -1399,6 +1409,7 @@ class EmployeeController extends Controller
                     if ($shift) {
                         if ($mode === 'skip') {
                             $skipped++;
+
                             continue;
                         }
 
@@ -1414,12 +1425,12 @@ class EmployeeController extends Controller
                                 'updated_by' => $userId,
                             ]);
                             $updated++;
-                        } catch (\Throwable $e) {
+                        } catch (Throwable $e) {
                             $errors[] = [
                                 'row' => $rowNum,
                                 'field' => 'code',
                                 'value' => $code,
-                                'message' => 'Update failed: ' . $e->getMessage(),
+                                'message' => 'Update failed: '.$e->getMessage(),
                             ];
                         }
                     } else {
@@ -1441,12 +1452,12 @@ class EmployeeController extends Controller
                             $codeMap[strtolower($newShift->code)] = $newShift;
                             $nameMap[strtolower($newShift->name)] = $newShift;
                             $imported++;
-                        } catch (\Throwable $e) {
+                        } catch (Throwable $e) {
                             $errors[] = [
                                 'row' => $rowNum,
                                 'field' => 'code',
                                 'value' => $code,
-                                'message' => 'Creation failed: ' . $e->getMessage(),
+                                'message' => 'Creation failed: '.$e->getMessage(),
                             ];
                         }
                     }
@@ -1509,7 +1520,7 @@ class EmployeeController extends Controller
 
         $chunks = array_chunk($rows, 100);
         foreach ($chunks as $chunkIndex => $chunk) {
-            DB::transaction(function () use ($chunk, $chunkIndex, $tenantId, $userId, $mode, $empMap, $shiftMap, &$imported, &$updated, &$skipped, &$errors) {
+            DB::transaction(function () use ($chunk, $chunkIndex, $tenantId, $userId, $mode, $empMap, $shiftMap, &$imported, &$updated, &$skipped, &$errors): void {
                 foreach ($chunk as $index => $row) {
                     $rowNum = ($chunkIndex * 100) + $index + 1;
                     $empCode = trim((string) ($row['employee_code'] ?? $row['code'] ?? ''));
@@ -1524,6 +1535,7 @@ class EmployeeController extends Controller
                             'value' => '',
                             'message' => 'Employee code is required.',
                         ];
+
                         continue;
                     }
 
@@ -1534,6 +1546,7 @@ class EmployeeController extends Controller
                             'value' => '',
                             'message' => 'Shift code is required.',
                         ];
+
                         continue;
                     }
 
@@ -1542,24 +1555,26 @@ class EmployeeController extends Controller
                     }
 
                     $employee = $empMap[strtolower($empCode)] ?? null;
-                    if (!$employee) {
+                    if (! $employee) {
                         $errors[] = [
                             'row' => $rowNum,
                             'field' => 'employee_code',
                             'value' => $empCode,
                             'message' => "Employee '{$empCode}' not found.",
                         ];
+
                         continue;
                     }
 
                     $shift = $shiftMap[strtolower($shiftCode)] ?? null;
-                    if (!$shift) {
+                    if (! $shift) {
                         $errors[] = [
                             'row' => $rowNum,
                             'field' => 'shift_code',
                             'value' => $shiftCode,
                             'message' => "Shift '{$shiftCode}' not found.",
                         ];
+
                         continue;
                     }
 
@@ -1572,6 +1587,7 @@ class EmployeeController extends Controller
                     if ($existing) {
                         if ($mode === 'skip') {
                             $skipped++;
+
                             continue;
                         }
 
@@ -1583,12 +1599,12 @@ class EmployeeController extends Controller
                             ]);
                             $employee->update(['default_shift_id' => $shift->id]);
                             $updated++;
-                        } catch (\Throwable $e) {
+                        } catch (Throwable $e) {
                             $errors[] = [
                                 'row' => $rowNum,
                                 'field' => 'employee_code',
                                 'value' => $empCode,
-                                'message' => 'Update failed: ' . $e->getMessage(),
+                                'message' => 'Update failed: '.$e->getMessage(),
                             ];
                         }
                     } else {
@@ -1606,12 +1622,12 @@ class EmployeeController extends Controller
                             ]);
                             $employee->update(['default_shift_id' => $shift->id]);
                             $imported++;
-                        } catch (\Throwable $e) {
+                        } catch (Throwable $e) {
                             $errors[] = [
                                 'row' => $rowNum,
                                 'field' => 'employee_code',
                                 'value' => $empCode,
-                                'message' => 'Creation failed: ' . $e->getMessage(),
+                                'message' => 'Creation failed: '.$e->getMessage(),
                             ];
                         }
                     }
@@ -1631,4 +1647,3 @@ class EmployeeController extends Controller
         ]);
     }
 }
-

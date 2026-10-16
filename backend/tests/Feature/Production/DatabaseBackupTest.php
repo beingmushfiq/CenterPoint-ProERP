@@ -12,7 +12,7 @@ class DatabaseBackupTest extends TestCase
     public function test_database_backup_command_creates_valid_manifest(): void
     {
         $backupDir = storage_path('app/backups');
-        if (!File::exists($backupDir)) {
+        if (! File::exists($backupDir)) {
             File::makeDirectory($backupDir, 0755, true);
         }
 

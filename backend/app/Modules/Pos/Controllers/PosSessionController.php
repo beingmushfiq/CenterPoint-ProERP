@@ -56,8 +56,8 @@ final class PosSessionController extends Controller
 
         $session = $this->openSession->execute([
             ...$validated,
-            'tenant_id'  => $tenantId,
-            'user_id'    => (int) $request->user()?->id,
+            'tenant_id' => $tenantId,
+            'user_id' => (int) $request->user()?->id,
             'created_by' => (int) $request->user()?->id,
         ]);
 

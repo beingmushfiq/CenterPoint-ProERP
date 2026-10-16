@@ -104,15 +104,6 @@ class Storefront extends Model
         'published_at' => 'datetime',
     ];
 
-    protected static function booted(): void
-    {
-        static::creating(function (Storefront $model): void {
-            if (empty($model->uuid)) {
-                $model->uuid = (string) Str::uuid();
-            }
-        });
-    }
-
     public function company(): BelongsTo
     {
         return $this->belongsTo(Company::class);
@@ -136,5 +127,14 @@ class Storefront extends Model
     public function carts(): HasMany
     {
         return $this->hasMany(Cart::class);
+    }
+
+    protected static function booted(): void
+    {
+        static::creating(function (Storefront $model): void {
+            if (empty($model->uuid)) {
+                $model->uuid = (string) Str::uuid();
+            }
+        });
     }
 }

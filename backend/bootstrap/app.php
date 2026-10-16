@@ -78,7 +78,7 @@ return Application::configure(basePath: dirname(__DIR__))
             ResolveTenant::class,
             EnsureTenantActive::class,
             App\Core\Http\Middleware\ResolveLocale::class,
-            \Illuminate\Routing\Middleware\SubstituteBindings::class,
+            Illuminate\Routing\Middleware\SubstituteBindings::class,
             App\Core\Http\Middleware\AuthorizePermission::class,
         ]);
 
@@ -195,7 +195,7 @@ return Application::configure(basePath: dirname(__DIR__))
             );
         });
 
-        $exceptions->render(function (\Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException $e, Request $request) {
+        $exceptions->render(function (Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException $e, Request $request) {
             return ErrorResponse::make(
                 request: $request,
                 code: 'FORBIDDEN',
@@ -205,7 +205,7 @@ return Application::configure(basePath: dirname(__DIR__))
             );
         });
 
-        $exceptions->render(function (\Symfony\Component\HttpKernel\Exception\HttpException $e, Request $request) {
+        $exceptions->render(function (Symfony\Component\HttpKernel\Exception\HttpException $e, Request $request) {
             $status = $e->getStatusCode();
             $code = match ($status) {
                 401 => 'UNAUTHENTICATED',
@@ -215,6 +215,7 @@ return Application::configure(basePath: dirname(__DIR__))
                 422 => 'VALIDATION_FAILED',
                 default => 'HTTP_ERROR',
             };
+
             return ErrorResponse::make(
                 request: $request,
                 code: $code,

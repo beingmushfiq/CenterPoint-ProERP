@@ -81,7 +81,7 @@ final class TenantModuleController extends Controller
             $raw = json_decode($raw, true);
         }
 
-        $navOrder = is_array($raw) && !empty($raw['sections']) ? $raw : self::DEFAULT_NAV_ORDER;
+        $navOrder = is_array($raw) && ! empty($raw['sections']) ? $raw : self::DEFAULT_NAV_ORDER;
 
         return response()->json([
             'success' => true,

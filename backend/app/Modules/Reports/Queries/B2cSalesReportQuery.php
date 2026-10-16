@@ -13,60 +13,51 @@ class B2cSalesReportQuery implements ReportQueryInterface
 
     public function __construct(?SalesDataProvider $provider = null)
     {
-        $this->provider = $provider ?? new SalesDataProvider();
+        $this->provider = $provider ?? new SalesDataProvider;
     }
 
     public function columns(): array
     {
-        return array (
-  'order_number' => 
-  array (
-    'label' => 'Order No',
-    'type' => 'string',
-    'sortable' => true,
-  ),
-  'order_date' => 
-  array (
-    'label' => 'Order Date',
-    'type' => 'date',
-  ),
-  'channel' => 
-  array (
-    'label' => 'Sales Channel',
-    'type' => 'badge',
-  ),
-  'customer_name' => 
-  array (
-    'label' => 'Customer Name',
-    'type' => 'string',
-  ),
-  'phone' => 
-  array (
-    'label' => 'Phone',
-    'type' => 'string',
-  ),
-  'grand_total' => 
-  array (
-    'label' => 'Total (BDT)',
-    'type' => 'currency',
-    'sortable' => true,
-  ),
-  'paid_amount' => 
-  array (
-    'label' => 'Paid (BDT)',
-    'type' => 'currency',
-  ),
-  'payment_status' => 
-  array (
-    'label' => 'Payment Status',
-    'type' => 'badge',
-  ),
-  'status' => 
-  array (
-    'label' => 'Order Status',
-    'type' => 'badge',
-  ),
-);
+        return [
+            'order_number' => [
+                'label' => 'Order No',
+                'type' => 'string',
+                'sortable' => true,
+            ],
+            'order_date' => [
+                'label' => 'Order Date',
+                'type' => 'date',
+            ],
+            'channel' => [
+                'label' => 'Sales Channel',
+                'type' => 'badge',
+            ],
+            'customer_name' => [
+                'label' => 'Customer Name',
+                'type' => 'string',
+            ],
+            'phone' => [
+                'label' => 'Phone',
+                'type' => 'string',
+            ],
+            'grand_total' => [
+                'label' => 'Total (BDT)',
+                'type' => 'currency',
+                'sortable' => true,
+            ],
+            'paid_amount' => [
+                'label' => 'Paid (BDT)',
+                'type' => 'currency',
+            ],
+            'payment_status' => [
+                'label' => 'Payment Status',
+                'type' => 'badge',
+            ],
+            'status' => [
+                'label' => 'Order Status',
+                'type' => 'badge',
+            ],
+        ];
     }
 
     public function query(array $filters, int $page = 1, int $perPage = 25): array

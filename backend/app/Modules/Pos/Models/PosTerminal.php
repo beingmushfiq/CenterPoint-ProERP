@@ -59,22 +59,11 @@ final class PosTerminal extends Model
      */
     protected $casts = [
         'printer_config' => 'array',
-        'is_active'      => 'boolean',
-        'created_at'     => 'datetime',
-        'updated_at'     => 'datetime',
-        'deleted_at'     => 'datetime',
+        'is_active' => 'boolean',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
+        'deleted_at' => 'datetime',
     ];
-
-    protected static function boot(): void
-    {
-        parent::boot();
-
-        static::creating(static function (PosTerminal $model): void {
-            if (empty($model->uuid)) {
-                $model->uuid = (string) Str::uuid();
-            }
-        });
-    }
 
     /**
      * @return BelongsTo<Warehouse, $this>
@@ -90,5 +79,16 @@ final class PosTerminal extends Model
     public function sessions(): HasMany
     {
         return $this->hasMany(PosSession::class, 'terminal_id');
+    }
+
+    protected static function boot(): void
+    {
+        parent::boot();
+
+        self::creating(static function (PosTerminal $model): void {
+            if (empty($model->uuid)) {
+                $model->uuid = (string) Str::uuid();
+            }
+        });
     }
 }

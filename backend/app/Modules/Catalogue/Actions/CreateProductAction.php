@@ -38,19 +38,19 @@ final class CreateProductAction extends Action
             $warehouseUuid = $input['warehouse_id'] ?? null;
 
             $type = (string) ($input['type'] ?? 'finished');
-            if (!array_key_exists('is_purchased', $input)) {
+            if (! array_key_exists('is_purchased', $input)) {
                 $input['is_purchased'] = match ($type) {
                     'raw_material', 'packaging', 'consumable', 'finished', 'asset_part' => true,
                     default => false,
                 };
             }
-            if (!array_key_exists('is_produced', $input)) {
+            if (! array_key_exists('is_produced', $input)) {
                 $input['is_produced'] = match ($type) {
                     'finished', 'semi_finished' => true,
                     default => false,
                 };
             }
-            if (!array_key_exists('is_sold', $input)) {
+            if (! array_key_exists('is_sold', $input)) {
                 $input['is_sold'] = match ($type) {
                     'finished', 'service' => true,
                     default => false,
@@ -67,14 +67,14 @@ final class CreateProductAction extends Action
             // If opening stock quantity is provided, record initial inventory balance & movement
             if ($openingStock > 0 && ($product->is_stock_tracked ?? true)) {
                 $warehouseId = null;
-                if (!empty($warehouseUuid)) {
+                if (! empty($warehouseUuid)) {
                     $wh = Warehouse::withoutGlobalScope('tenant')
                         ->where('tenant_id', $actor->tenant_id)
                         ->where('uuid', $warehouseUuid)
                         ->first();
                     $warehouseId = $wh ? (int) $wh->getKey() : null;
                 }
-                if (!$warehouseId) {
+                if (! $warehouseId) {
                     $firstWh = Warehouse::withoutGlobalScope('tenant')
                         ->where('tenant_id', $actor->tenant_id)
                         ->where('is_active', true)
@@ -85,7 +85,7 @@ final class CreateProductAction extends Action
                 if ($warehouseId && $product->base_unit_id) {
                     $unitCost = (float) ($product->standard_cost ?? 0);
                     $totalCost = $openingStock * $unitCost;
-                    $movementNumber = 'MOV-OPN-' . strtoupper(Str::random(8));
+                    $movementNumber = 'MOV-OPN-'.strtoupper(Str::random(8));
 
                     $movementId = DB::table('stock_movements')->insertGetId([
                         'tenant_id' => $actor->tenant_id,

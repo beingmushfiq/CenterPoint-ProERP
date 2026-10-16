@@ -42,17 +42,6 @@ class ChartOfAccount extends Model
         'is_active' => 'boolean',
     ];
 
-    protected static function boot(): void
-    {
-        parent::boot();
-
-        static::creating(static function (ChartOfAccount $model): void {
-            if (empty($model->uuid)) {
-                $model->uuid = (string) Str::uuid();
-            }
-        });
-    }
-
     /**
      * @return BelongsTo<ChartOfAccount, $this>
      */
@@ -83,5 +72,16 @@ class ChartOfAccount extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    protected static function boot(): void
+    {
+        parent::boot();
+
+        static::creating(static function (ChartOfAccount $model): void {
+            if (empty($model->uuid)) {
+                $model->uuid = (string) Str::uuid();
+            }
+        });
     }
 }

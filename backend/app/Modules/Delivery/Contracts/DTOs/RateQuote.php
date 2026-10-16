@@ -7,7 +7,7 @@ namespace App\Modules\Delivery\Contracts\DTOs;
 final readonly class RateQuote
 {
     /**
-     * @param array<string, mixed> $rawResponse
+     * @param  array<string, mixed>  $rawResponse
      */
     public function __construct(
         public bool $success,

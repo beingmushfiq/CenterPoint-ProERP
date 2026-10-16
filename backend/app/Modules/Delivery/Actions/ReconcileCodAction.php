@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Modules\Delivery\Actions;
 
-use App\Exceptions\ValidationException;
 use App\Modules\Delivery\Models\CodReconciliation;
 use App\Modules\Delivery\Models\RunSheet;
 use Illuminate\Support\Facades\DB;
@@ -13,7 +12,7 @@ use Illuminate\Support\Str;
 class ReconcileCodAction
 {
     /**
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      */
     public function execute(array $data): CodReconciliation
     {
@@ -26,7 +25,7 @@ class ReconcileCodAction
             $rec = CodReconciliation::create([
                 'tenant_id' => $data['tenant_id'],
                 'uuid' => (string) Str::uuid(),
-                'reconciliation_number' => $data['reconciliation_number'] ?? ('REC-COD-' . date('Ymd') . '-' . strtoupper(Str::random(5))),
+                'reconciliation_number' => $data['reconciliation_number'] ?? ('REC-COD-'.date('Ymd').'-'.strtoupper(Str::random(5))),
                 'source_type' => $data['source_type'] ?? 'run_sheet',
                 'source_id' => $data['source_id'],
                 'period_start' => $data['period_start'] ?? date('Y-m-d'),

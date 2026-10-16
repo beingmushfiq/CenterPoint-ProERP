@@ -85,26 +85,15 @@ final class Exchange extends Model
 
     /** @var array<string, string> */
     protected $casts = [
-        'exchange_date'        => 'date',
-        'return_subtotal'      => 'decimal:4',
+        'exchange_date' => 'date',
+        'return_subtotal' => 'decimal:4',
         'replacement_subtotal' => 'decimal:4',
-        'difference_amount'    => 'decimal:4',
-        'approved_at'          => 'datetime',
-        'created_at'           => 'datetime',
-        'updated_at'           => 'datetime',
-        'deleted_at'           => 'datetime',
+        'difference_amount' => 'decimal:4',
+        'approved_at' => 'datetime',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
+        'deleted_at' => 'datetime',
     ];
-
-    protected static function boot(): void
-    {
-        parent::boot();
-
-        static::creating(static function (Exchange $model): void {
-            if (empty($model->uuid)) {
-                $model->uuid = (string) Str::uuid();
-            }
-        });
-    }
 
     /** @return BelongsTo<Party, $this> */
     public function customer(): BelongsTo
@@ -158,5 +147,16 @@ final class Exchange extends Model
     public function replacementItems(): HasMany
     {
         return $this->hasMany(ExchangeReplacementItem::class, 'exchange_id');
+    }
+
+    protected static function boot(): void
+    {
+        parent::boot();
+
+        self::creating(static function (Exchange $model): void {
+            if (empty($model->uuid)) {
+                $model->uuid = (string) Str::uuid();
+            }
+        });
     }
 }

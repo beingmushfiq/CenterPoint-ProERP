@@ -30,8 +30,11 @@ class DataAccuracyTest extends TestCase
     use RefreshDatabase;
 
     protected Tenant $tenant;
+
     protected Company $company;
+
     protected User $user;
+
     protected string $token;
 
     protected function setUp(): void
@@ -255,7 +258,7 @@ class DataAccuracyTest extends TestCase
 
         // 1. Verify Stock Movement Ledger Report
         $ledgerRes = $this->getJson('/api/v1/reports/stock_ledger/data', [
-            'Authorization' => 'Bearer ' . $this->token,
+            'Authorization' => 'Bearer '.$this->token,
         ]);
 
         $ledgerRes->assertOk();
@@ -265,7 +268,7 @@ class DataAccuracyTest extends TestCase
 
         // 2. Verify Inventory Valuation FIFO Report
         $valRes = $this->getJson('/api/v1/reports/stock_valuation/data', [
-            'Authorization' => 'Bearer ' . $this->token,
+            'Authorization' => 'Bearer '.$this->token,
         ]);
 
         $valRes->assertOk();
@@ -360,7 +363,7 @@ class DataAccuracyTest extends TestCase
         ]);
 
         $response = $this->getJson('/api/v1/reports/invoice_profit/data', [
-            'Authorization' => 'Bearer ' . $this->token,
+            'Authorization' => 'Bearer '.$this->token,
         ]);
 
         $response->assertOk();
@@ -500,7 +503,7 @@ class DataAccuracyTest extends TestCase
 
         // 1. Verify Production Efficiency Report
         $effRes = $this->getJson('/api/v1/reports/production_efficiency/data', [
-            'Authorization' => 'Bearer ' . $this->token,
+            'Authorization' => 'Bearer '.$this->token,
         ]);
 
         $effRes->assertOk();
@@ -513,7 +516,7 @@ class DataAccuracyTest extends TestCase
 
         // 2. Verify Production Wastage Report
         $scrapRes = $this->getJson('/api/v1/reports/production_wastage_scrap/data', [
-            'Authorization' => 'Bearer ' . $this->token,
+            'Authorization' => 'Bearer '.$this->token,
         ]);
 
         $scrapRes->assertOk();
@@ -597,7 +600,7 @@ class DataAccuracyTest extends TestCase
 
         // 1. Quota Achievement Report
         $quotaRes = $this->getJson('/api/v1/reports/salesman_quota_achievement/data', [
-            'Authorization' => 'Bearer ' . $this->token,
+            'Authorization' => 'Bearer '.$this->token,
         ]);
 
         $quotaRes->assertOk();
@@ -610,7 +613,7 @@ class DataAccuracyTest extends TestCase
 
         // 2. Remaining Target Gap Report
         $gapRes = $this->getJson('/api/v1/reports/salesman_remaining_target/data', [
-            'Authorization' => 'Bearer ' . $this->token,
+            'Authorization' => 'Bearer '.$this->token,
         ]);
 
         $gapRes->assertOk();
@@ -666,7 +669,7 @@ class DataAccuracyTest extends TestCase
         ]);
 
         $response = $this->getJson('/api/v1/reports/salesman_incentive_accrual/data', [
-            'Authorization' => 'Bearer ' . $this->token,
+            'Authorization' => 'Bearer '.$this->token,
         ]);
 
         $response->assertOk();

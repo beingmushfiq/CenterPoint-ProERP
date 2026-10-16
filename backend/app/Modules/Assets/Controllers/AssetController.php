@@ -185,12 +185,13 @@ class AssetController extends Controller
                             'field' => 'name',
                             'message' => 'Asset name is required.',
                         ];
+
                         continue;
                     }
 
                     $code = trim((string) ($row['asset_code'] ?? $row['code'] ?? ''));
                     if ($code === '') {
-                        $code = 'AST-' . date('Ym') . '-' . str_pad((string) random_int(1000, 99999), 5, '0', STR_PAD_LEFT);
+                        $code = 'AST-'.date('Ym').'-'.str_pad((string) random_int(1000, 99999), 5, '0', STR_PAD_LEFT);
                     }
 
                     // Resolve or auto-create category
@@ -198,7 +199,7 @@ class AssetController extends Controller
                     $lowerCatKey = strtolower($catKey);
                     $category = $categoryMap[$lowerCatKey] ?? null;
 
-                    if (!$category) {
+                    if (! $category) {
                         $category = AssetCategory::create([
                             'uuid' => (string) \Illuminate\Support\Str::uuid(),
                             'tenant_id' => $tenantId,
@@ -225,22 +226,22 @@ class AssetController extends Controller
 
                     // Useful life in months
                     $months = 60;
-                    if (!empty($row['useful_life_months']) && is_numeric($row['useful_life_months'])) {
+                    if (! empty($row['useful_life_months']) && is_numeric($row['useful_life_months'])) {
                         $months = (int) $row['useful_life_months'];
-                    } elseif (!empty($row['useful_life_years']) && is_numeric($row['useful_life_years'])) {
+                    } elseif (! empty($row['useful_life_years']) && is_numeric($row['useful_life_years'])) {
                         $months = (int) ($row['useful_life_years'] * 12);
                     }
 
                     $depMethod = strtolower(trim((string) ($row['depreciation_method'] ?? 'straight_line')));
-                    if (!in_array($depMethod, ['none', 'straight_line', 'declining_balance'], true)) {
+                    if (! in_array($depMethod, ['none', 'straight_line', 'declining_balance'], true)) {
                         $depMethod = 'straight_line';
                     }
 
-                    $purchaseDate = !empty($row['purchase_date']) ? (string) $row['purchase_date'] : now()->format('Y-m-d');
-                    $status = !empty($row['status']) ? strtolower(trim((string) $row['status'])) : 'in_use';
-                    $serial = !empty($row['serial_number']) ? (string) $row['serial_number'] : null;
-                    $model = !empty($row['model']) ? (string) $row['model'] : null;
-                    $manufacturer = !empty($row['manufacturer']) ? (string) $row['manufacturer'] : null;
+                    $purchaseDate = ! empty($row['purchase_date']) ? (string) $row['purchase_date'] : now()->format('Y-m-d');
+                    $status = ! empty($row['status']) ? strtolower(trim((string) $row['status'])) : 'in_use';
+                    $serial = ! empty($row['serial_number']) ? (string) $row['serial_number'] : null;
+                    $model = ! empty($row['model']) ? (string) $row['model'] : null;
+                    $manufacturer = ! empty($row['manufacturer']) ? (string) $row['manufacturer'] : null;
 
                     $lowerCode = strtolower($code);
                     $existing = $assetMap[$lowerCode] ?? null;
@@ -248,6 +249,7 @@ class AssetController extends Controller
                     if ($existing) {
                         if ($mode === 'skip') {
                             $skipped++;
+
                             continue;
                         }
 
@@ -268,11 +270,12 @@ class AssetController extends Controller
                         ]);
 
                         $updated++;
+
                         continue;
                     }
 
                     // Insert
-                    $asset = new Asset();
+                    $asset = new Asset;
                     $asset->uuid = (string) \Illuminate\Support\Str::uuid();
                     $asset->tenant_id = $tenantId;
                     $asset->company_id = (int) ($row['company_id'] ?? $defaultCompanyId);
@@ -313,4 +316,3 @@ class AssetController extends Controller
         ]);
     }
 }
-

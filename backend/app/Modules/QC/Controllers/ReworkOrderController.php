@@ -6,8 +6,8 @@ namespace App\Modules\QC\Controllers;
 
 use App\Core\Tenancy\TenantContext;
 use App\Http\Controllers\Controller;
-use App\Models\ProductionBatch;
 use App\Models\Product;
+use App\Models\ProductionBatch;
 use App\Models\ReworkOrder;
 use App\Models\Unit;
 use Illuminate\Http\JsonResponse;
@@ -30,7 +30,7 @@ final class ReworkOrderController extends Controller
 
         if ($request->filled('q')) {
             $q = (string) $request->query('q');
-            $query->where(function ($sub) use ($q) {
+            $query->where(function ($sub) use ($q): void {
                 $sub->where('rework_number', 'like', "%{$q}%")
                     ->orWhereHas('product', fn ($pq) => $pq->where('name', 'like', "%{$q}%"))
                     ->orWhereHas('sourceBatch', fn ($bq) => $bq->where('batch_number', 'like', "%{$q}%"));
@@ -41,6 +41,7 @@ final class ReworkOrderController extends Controller
 
         $mapped = $orders->map(function (ReworkOrder $o) {
             $status = $o->status === 'in_progress' ? 'in_rework' : $o->status;
+
             return [
                 'id' => $o->id,
                 'uuid' => $o->uuid,
@@ -98,9 +99,9 @@ final class ReworkOrderController extends Controller
         $unit = Unit::where('tenant_id', $tenantId)->first();
 
         $count = ReworkOrder::where('tenant_id', $tenantId)->count();
-        $reworkNumber = $request->input('rework_number') ?: 'RWK-' . date('Y') . '-' . str_pad((string) ($count + 1), 3, '0', STR_PAD_LEFT);
+        $reworkNumber = $request->input('rework_number') ?: 'RWK-'.date('Y').'-'.str_pad((string) ($count + 1), 3, '0', STR_PAD_LEFT);
 
-        $notes = trim(($request->input('defect_category') ?? 'General Defect') . ' | ' . ($request->input('defect_notes') ?? ''));
+        $notes = trim(($request->input('defect_category') ?? 'General Defect').' | '.($request->input('defect_notes') ?? ''));
 
         $order = ReworkOrder::create([
             'tenant_id' => $tenantId,
@@ -161,7 +162,7 @@ final class ReworkOrderController extends Controller
         if ($request->has('defect_notes') || $request->has('notes')) {
             $category = $request->input('defect_category') ?? 'General Defect';
             $notes = $request->input('defect_notes') ?? $request->input('notes');
-            $data['notes'] = trim($category . ' | ' . $notes);
+            $data['notes'] = trim($category.' | '.$notes);
         }
 
         $order->update($data);

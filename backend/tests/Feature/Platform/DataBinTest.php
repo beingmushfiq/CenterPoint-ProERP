@@ -14,6 +14,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
+use ReflectionClass;
 use Tests\TestCase;
 
 final class DataBinTest extends TestCase
@@ -21,7 +22,9 @@ final class DataBinTest extends TestCase
     use RefreshDatabase;
 
     private Tenant $tenant;
+
     private User $user;
+
     private string $jwt;
 
     protected function setUp(): void
@@ -30,53 +33,53 @@ final class DataBinTest extends TestCase
         TenantContext::flush();
 
         DB::table('plans')->insert([
-            'id'             => 1,
-            'uuid'           => (string) Str::uuid(),
-            'code'           => 'ENTERPRISE',
-            'name'           => 'Enterprise',
-            'price'          => '10000.0000',
+            'id' => 1,
+            'uuid' => (string) Str::uuid(),
+            'code' => 'ENTERPRISE',
+            'name' => 'Enterprise',
+            'price' => '10000.0000',
             'billing_period' => 'monthly',
-            'limits'         => json_encode(['max_users' => 100]),
-            'is_active'      => true,
-            'created_at'     => now(),
-            'updated_at'     => now(),
+            'limits' => json_encode(['max_users' => 100]),
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
         ]);
 
         $this->tenant = Tenant::create([
-            'id'            => 1,
-            'uuid'          => (string) Str::uuid(),
-            'plan_id'       => 1,
-            'name'          => 'SliceMart BD',
-            'slug'          => 'slicemart-bd',
-            'status'        => 'active',
+            'id' => 1,
+            'uuid' => (string) Str::uuid(),
+            'plan_id' => 1,
+            'name' => 'SliceMart BD',
+            'slug' => 'slicemart-bd',
+            'status' => 'active',
             'currency_code' => 'BDT',
-            'timezone'      => 'Asia/Dhaka',
-            'locale'        => 'en',
-            'date_format'   => 'Y-m-d',
+            'timezone' => 'Asia/Dhaka',
+            'locale' => 'en',
+            'date_format' => 'Y-m-d',
             'number_format' => 'standard',
         ]);
 
         TenantContext::bind($this->tenant->toArray());
 
         \App\Models\Company::create([
-            'id'         => 1,
-            'tenant_id'  => 1,
-            'uuid'       => (string) Str::uuid(),
-            'name'       => 'SliceMart Factory Co.',
+            'id' => 1,
+            'tenant_id' => 1,
+            'uuid' => (string) Str::uuid(),
+            'name' => 'SliceMart Factory Co.',
             'is_default' => true,
-            'is_active'  => true,
+            'is_active' => true,
         ]);
 
         $this->user = User::create([
-            'uuid'          => (string) Str::uuid(),
-            'tenant_id'     => 1,
-            'name'          => 'Admin User',
-            'email'         => 'admin@slicemart.test',
-            'password'      => Hash::make('Password123!'),
-            'status'        => 'active',
-            'locale'        => 'en',
+            'uuid' => (string) Str::uuid(),
+            'tenant_id' => 1,
+            'name' => 'Admin User',
+            'email' => 'admin@slicemart.test',
+            'password' => Hash::make('Password123!'),
+            'status' => 'active',
+            'locale' => 'en',
             'token_version' => 1,
-            'perm_version'  => 1,
+            'perm_version' => 1,
         ]);
 
         $this->jwt = app(JwtService::class)->issueToken(
@@ -84,15 +87,6 @@ final class DataBinTest extends TestCase
             tenantId: 1,
             tokenVersion: 1
         );
-    }
-
-    private function headers(): array
-    {
-        return [
-            'Authorization' => 'Bearer ' . $this->jwt,
-            'X-Tenant'      => $this->tenant->slug,
-            'Accept'        => 'application/json',
-        ];
     }
 
     public function test_bin_stats_returns_all_52_registered_types_and_domains(): void
@@ -126,19 +120,19 @@ final class DataBinTest extends TestCase
     public function test_soft_deleted_items_appear_in_bin_and_can_be_filtered_by_domain(): void
     {
         $unit = Unit::create([
-            'uuid'      => (string) Str::uuid(),
+            'uuid' => (string) Str::uuid(),
             'tenant_id' => 1,
-            'code'      => 'PCS',
-            'name'      => 'Pieces',
-            'type'      => 'unit',
+            'code' => 'PCS',
+            'name' => 'Pieces',
+            'type' => 'unit',
         ]);
 
         $product = Product::create([
-            'uuid'         => (string) Str::uuid(),
-            'tenant_id'    => 1,
-            'sku'          => 'TEST-BIN-01',
-            'name'         => 'Trashed Test Cake',
-            'type'         => 'finished',
+            'uuid' => (string) Str::uuid(),
+            'tenant_id' => 1,
+            'sku' => 'TEST-BIN-01',
+            'name' => 'Trashed Test Cake',
+            'type' => 'finished',
             'base_unit_id' => $unit->id,
         ]);
 
@@ -179,19 +173,19 @@ final class DataBinTest extends TestCase
     public function test_empty_bin_can_purge_domain_or_all(): void
     {
         $unit = Unit::create([
-            'uuid'      => (string) Str::uuid(),
+            'uuid' => (string) Str::uuid(),
             'tenant_id' => 1,
-            'code'      => 'PCS-2',
-            'name'      => 'Pieces 2',
-            'type'      => 'unit',
+            'code' => 'PCS-2',
+            'name' => 'Pieces 2',
+            'type' => 'unit',
         ]);
 
         $product = Product::create([
-            'uuid'         => (string) Str::uuid(),
-            'tenant_id'    => 1,
-            'sku'          => 'TEST-BIN-PURGE',
-            'name'         => 'Cake to Purge',
-            'type'         => 'finished',
+            'uuid' => (string) Str::uuid(),
+            'tenant_id' => 1,
+            'sku' => 'TEST-BIN-PURGE',
+            'name' => 'Cake to Purge',
+            'type' => 'finished',
             'base_unit_id' => $unit->id,
         ]);
 
@@ -208,49 +202,49 @@ final class DataBinTest extends TestCase
     public function test_force_delete_qc_parameter_cascades_results_cleanly(): void
     {
         $param = \App\Models\QcParameter::create([
-            'uuid'         => (string) Str::uuid(),
-            'tenant_id'    => 1,
-            'name'         => 'Test Thickness',
-            'type'         => 'numeric',
+            'uuid' => (string) Str::uuid(),
+            'tenant_id' => 1,
+            'name' => 'Test Thickness',
+            'type' => 'numeric',
             'is_mandatory' => 1,
-            'sort_order'   => 1,
+            'sort_order' => 1,
         ]);
 
         $employee = \App\Models\Employee::create([
-            'uuid'            => (string) Str::uuid(),
-            'tenant_id'       => 1,
-            'company_id'      => 1,
-            'employee_code'   => 'EMP-QC-01',
-            'first_name'      => 'Test',
-            'last_name'       => 'Inspector',
-            'display_name'    => 'Test Inspector',
-            'phone'           => '01700000000',
+            'uuid' => (string) Str::uuid(),
+            'tenant_id' => 1,
+            'company_id' => 1,
+            'employee_code' => 'EMP-QC-01',
+            'first_name' => 'Test',
+            'last_name' => 'Inspector',
+            'display_name' => 'Test Inspector',
+            'phone' => '01700000000',
             'date_of_joining' => now()->toDateString(),
         ]);
 
         $inspection = \App\Models\QcInspection::create([
-            'uuid'                => (string) Str::uuid(),
-            'tenant_id'           => 1,
-            'inspection_number'   => 'QC-INSP-TEST',
-            'inspector_id'        => $employee->id,
-            'inspection_date'     => now()->toDateString(),
-            'sample_size'         => '5',
-            'inspected_quantity'  => '5',
-            'passed_quantity'     => '5',
-            'failed_quantity'     => '0',
-            'rework_quantity'     => '0',
-            'scrap_quantity'      => '0',
-            'result'              => 'pass',
-            'status'              => 'draft',
+            'uuid' => (string) Str::uuid(),
+            'tenant_id' => 1,
+            'inspection_number' => 'QC-INSP-TEST',
+            'inspector_id' => $employee->id,
+            'inspection_date' => now()->toDateString(),
+            'sample_size' => '5',
+            'inspected_quantity' => '5',
+            'passed_quantity' => '5',
+            'failed_quantity' => '0',
+            'rework_quantity' => '0',
+            'scrap_quantity' => '0',
+            'result' => 'pass',
+            'status' => 'draft',
         ]);
 
         $result = \App\Models\QcInspectionResult::create([
-            'uuid'             => (string) Str::uuid(),
-            'tenant_id'        => 1,
+            'uuid' => (string) Str::uuid(),
+            'tenant_id' => 1,
             'qc_inspection_id' => $inspection->id,
-            'qc_parameter_id'  => $param->id,
-            'value_numeric'    => '10.5',
-            'is_within_spec'   => 1,
+            'qc_parameter_id' => $param->id,
+            'value_numeric' => '10.5',
+            'is_within_spec' => 1,
         ]);
 
         // Soft delete both
@@ -269,7 +263,7 @@ final class DataBinTest extends TestCase
 
     public function test_all_configured_models_exist_and_use_soft_deletes(): void
     {
-        $reflection = new \ReflectionClass(\App\Modules\Platform\Controllers\DataBinController::class);
+        $reflection = new ReflectionClass(\App\Modules\Platform\Controllers\DataBinController::class);
         $config = $reflection->getConstant('TYPE_CONFIG');
         $this->assertIsArray($config);
 
@@ -278,77 +272,78 @@ final class DataBinTest extends TestCase
 
         foreach ($config as $key => $cfg) {
             $modelClass = $cfg['model'];
-            if (!class_exists($modelClass)) {
+            if (! class_exists($modelClass)) {
                 $missingClasses[] = "{$key} => {$modelClass}";
+
                 continue;
             }
 
             $traits = class_uses_recursive($modelClass);
-            if (!in_array(\Illuminate\Database\Eloquent\SoftDeletes::class, $traits, true)) {
+            if (! in_array(\Illuminate\Database\Eloquent\SoftDeletes::class, $traits, true)) {
                 $nonSoftDeleteClasses[] = "{$key} => {$modelClass}";
             }
         }
 
-        $this->assertEmpty($missingClasses, 'Configured models that do not exist: ' . implode(', ', $missingClasses));
-        $this->assertEmpty($nonSoftDeleteClasses, 'Configured models that do not use SoftDeletes: ' . implode(', ', $nonSoftDeleteClasses));
+        $this->assertEmpty($missingClasses, 'Configured models that do not exist: '.implode(', ', $missingClasses));
+        $this->assertEmpty($nonSoftDeleteClasses, 'Configured models that do not use SoftDeletes: '.implode(', ', $nonSoftDeleteClasses));
 
         $missingDeletedAtColumns = [];
         foreach ($config as $key => $cfg) {
             $modelClass = $cfg['model'];
             $table = (new $modelClass)->getTable();
-            if (!\Illuminate\Support\Facades\Schema::hasColumn($table, 'deleted_at')) {
+            if (! \Illuminate\Support\Facades\Schema::hasColumn($table, 'deleted_at')) {
                 $missingDeletedAtColumns[] = "{$key} => {$table}";
             }
         }
-        $this->assertEmpty($missingDeletedAtColumns, 'Tables missing deleted_at column: ' . implode(', ', $missingDeletedAtColumns));
+        $this->assertEmpty($missingDeletedAtColumns, 'Tables missing deleted_at column: '.implode(', ', $missingDeletedAtColumns));
     }
 
     public function test_purchase_order_lifecycle_in_bin_and_uuid_restore(): void
     {
         $supplier = \App\Models\Party::create([
-            'uuid'      => (string) Str::uuid(),
+            'uuid' => (string) Str::uuid(),
             'tenant_id' => 1,
-            'code'      => 'SUP-999',
-            'type'      => 'supplier',
-            'name'      => 'Test Flour Mill',
+            'code' => 'SUP-999',
+            'type' => 'supplier',
+            'name' => 'Test Flour Mill',
         ]);
 
         $po = \App\Modules\Purchasing\Models\PurchaseOrder::create([
-            'uuid'         => (string) Str::uuid(),
-            'tenant_id'    => 1,
-            'party_id'     => $supplier->id,
-            'po_number'    => 'PO-TEST-9999',
-            'order_date'   => now()->toDateString(),
+            'uuid' => (string) Str::uuid(),
+            'tenant_id' => 1,
+            'party_id' => $supplier->id,
+            'po_number' => 'PO-TEST-9999',
+            'order_date' => now()->toDateString(),
             'total_amount' => '15000.0000',
-            'status'       => 'draft',
+            'status' => 'draft',
         ]);
 
         $unit = Unit::create([
-            'uuid'      => (string) Str::uuid(),
+            'uuid' => (string) Str::uuid(),
             'tenant_id' => 1,
-            'code'      => 'BAG',
-            'name'      => 'Bags',
-            'type'      => 'unit',
+            'code' => 'BAG',
+            'name' => 'Bags',
+            'type' => 'unit',
         ]);
 
         $product = Product::create([
-            'uuid'         => (string) Str::uuid(),
-            'tenant_id'    => 1,
-            'sku'          => 'RAW-FLOUR-BAG',
-            'name'         => 'Premium Flour Bag 50kg',
-            'type'         => 'raw',
+            'uuid' => (string) Str::uuid(),
+            'tenant_id' => 1,
+            'sku' => 'RAW-FLOUR-BAG',
+            'name' => 'Premium Flour Bag 50kg',
+            'type' => 'raw',
             'base_unit_id' => $unit->id,
         ]);
 
         $item = \App\Modules\Purchasing\Models\PurchaseOrderItem::create([
-            'uuid'              => (string) Str::uuid(),
-            'tenant_id'         => 1,
+            'uuid' => (string) Str::uuid(),
+            'tenant_id' => 1,
             'purchase_order_id' => $po->id,
-            'product_id'        => $product->id,
-            'unit_id'           => $unit->id,
-            'quantity'          => '50',
-            'unit_price'        => '300.0000',
-            'line_total'        => '15000.0000',
+            'product_id' => $product->id,
+            'unit_id' => $unit->id,
+            'quantity' => '50',
+            'unit_price' => '300.0000',
+            'line_total' => '15000.0000',
         ]);
 
         // Soft delete PO and item
@@ -391,21 +386,21 @@ final class DataBinTest extends TestCase
     public function test_bin_search_and_pagination(): void
     {
         $unit = Unit::create([
-            'uuid'      => (string) Str::uuid(),
+            'uuid' => (string) Str::uuid(),
             'tenant_id' => 1,
-            'code'      => 'KG-SRCH',
-            'name'      => 'Kilograms',
-            'type'      => 'unit',
+            'code' => 'KG-SRCH',
+            'name' => 'Kilograms',
+            'type' => 'unit',
         ]);
 
         // Create and soft delete 5 products with distinct names
         for ($i = 1; $i <= 5; $i++) {
             $p = Product::create([
-                'uuid'         => (string) Str::uuid(),
-                'tenant_id'    => 1,
-                'sku'          => "SKU-SEARCH-{$i}",
-                'name'         => "UniqueVanillaProduct {$i}",
-                'type'         => 'finished',
+                'uuid' => (string) Str::uuid(),
+                'tenant_id' => 1,
+                'sku' => "SKU-SEARCH-{$i}",
+                'name' => "UniqueVanillaProduct {$i}",
+                'type' => 'finished',
                 'base_unit_id' => $unit->id,
             ]);
             $p->delete();
@@ -430,6 +425,13 @@ final class DataBinTest extends TestCase
         $noRes->assertStatus(200);
         $this->assertEmpty($noRes->json('data'));
     }
+
+    private function headers(): array
+    {
+        return [
+            'Authorization' => 'Bearer '.$this->jwt,
+            'X-Tenant' => $this->tenant->slug,
+            'Accept' => 'application/json',
+        ];
+    }
 }
-
-

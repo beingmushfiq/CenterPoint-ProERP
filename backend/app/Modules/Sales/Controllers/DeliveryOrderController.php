@@ -52,7 +52,7 @@ final class DeliveryOrderController extends Controller
         /** @var array{sales_order_id: int, warehouse_id: int, recipient_name: string, recipient_phone: string, items: list<array{product_id: int, quantity: string, unit_id: int}>} $validated */
         $delivery = $this->createDelivery->execute([
             ...$validated,
-            'tenant_id'  => $tenantId,
+            'tenant_id' => $tenantId,
             'created_by' => (int) $request->user()?->id,
         ]);
 

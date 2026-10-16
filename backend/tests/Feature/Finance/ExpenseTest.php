@@ -20,10 +20,15 @@ class ExpenseTest extends TestCase
     use RefreshDatabase;
 
     private Tenant $tenant;
+
     private User $user;
+
     private string $token;
+
     private ExpenseCategory $category;
+
     private \App\Models\Company $company;
+
     private \App\Models\Branch $branch;
 
     protected function setUp(): void
@@ -152,7 +157,7 @@ class ExpenseTest extends TestCase
             ],
             'notes' => 'Electricity and internet bills',
         ], [
-            'Authorization' => 'Bearer ' . $this->token,
+            'Authorization' => 'Bearer '.$this->token,
             'X-Tenant' => $this->tenant->slug,
             'Accept' => 'application/json',
         ]);

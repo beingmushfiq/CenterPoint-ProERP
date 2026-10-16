@@ -11,7 +11,6 @@ use App\Models\Tenant;
 use App\Models\User;
 use App\Modules\HR\Models\Employee;
 use App\Modules\HR\Models\Shift;
-use App\Modules\HR\Models\ShiftAssignment;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -23,8 +22,11 @@ class ShiftAndRosterBulkImportTest extends TestCase
     use RefreshDatabase;
 
     private Tenant $tenant;
+
     private User $user;
+
     private string $token;
+
     private Employee $employee;
 
     protected function setUp(): void
@@ -144,7 +146,7 @@ class ShiftAndRosterBulkImportTest extends TestCase
             ],
         ];
 
-        $res = $this->withHeader('Authorization', 'Bearer ' . $this->token)
+        $res = $this->withHeader('Authorization', 'Bearer '.$this->token)
             ->postJson('/api/v1/hr/shifts/bulk-import', $payload);
 
         $res->assertOk()
@@ -173,7 +175,7 @@ class ShiftAndRosterBulkImportTest extends TestCase
             ],
         ];
 
-        $resUpsert = $this->withHeader('Authorization', 'Bearer ' . $this->token)
+        $resUpsert = $this->withHeader('Authorization', 'Bearer '.$this->token)
             ->postJson('/api/v1/hr/shifts/bulk-import', $upsertPayload);
 
         $resUpsert->assertOk()
@@ -212,7 +214,7 @@ class ShiftAndRosterBulkImportTest extends TestCase
             ],
         ];
 
-        $res = $this->withHeader('Authorization', 'Bearer ' . $this->token)
+        $res = $this->withHeader('Authorization', 'Bearer '.$this->token)
             ->postJson('/api/v1/hr/shifts/roster/bulk-import', $payload);
 
         $res->assertOk()

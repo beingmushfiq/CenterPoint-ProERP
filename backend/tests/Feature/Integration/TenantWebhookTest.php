@@ -23,7 +23,9 @@ class TenantWebhookTest extends TestCase
     use RefreshDatabase;
 
     private Tenant $tenant;
+
     private User $user;
+
     private string $jwt;
 
     protected function setUp(): void
@@ -60,19 +62,19 @@ class TenantWebhookTest extends TestCase
 
         $this->user = User::create([
             'tenant_id' => $this->tenant->id,
-            'uuid'      => (string) Str::uuid(),
-            'name'      => 'Integration Manager',
-            'email'     => 'integrations@demo.test',
-            'password'  => 'secret123',
-            'status'    => 'active',
+            'uuid' => (string) Str::uuid(),
+            'name' => 'Integration Manager',
+            'email' => 'integrations@demo.test',
+            'password' => 'secret123',
+            'status' => 'active',
         ]);
 
         $role = Role::create([
-            'tenant_id'  => $this->tenant->id,
-            'uuid'       => (string) Str::uuid(),
-            'name'       => 'Super Administrator',
-            'slug'       => 'super-admin',
-            'is_system'  => true,
+            'tenant_id' => $this->tenant->id,
+            'uuid' => (string) Str::uuid(),
+            'name' => 'Super Administrator',
+            'slug' => 'super-admin',
+            'is_system' => true,
         ]);
         $this->user->roles()->attach($role->id, ['tenant_id' => $this->tenant->id]);
 
@@ -90,9 +92,9 @@ class TenantWebhookTest extends TestCase
     {
         $response = $this->withHeaders([
             'Authorization' => "Bearer {$this->jwt}",
-            'X-Tenant-Id'   => $this->tenant->slug,
+            'X-Tenant-Id' => $this->tenant->slug,
         ])->postJson('/api/v1/integrations/webhooks', [
-            'url'    => 'https://example.com/api/webhooks/incoming',
+            'url' => 'https://example.com/api/webhooks/incoming',
             'events' => ['order.created', 'order.cancelled', 'stock.low'],
         ]);
 
@@ -107,7 +109,7 @@ class TenantWebhookTest extends TestCase
 
         $this->assertDatabaseHas('webhook_endpoints', [
             'tenant_id' => $this->tenant->id,
-            'url'       => 'https://example.com/api/webhooks/incoming',
+            'url' => 'https://example.com/api/webhooks/incoming',
             'is_active' => 1,
         ]);
     }
@@ -116,27 +118,27 @@ class TenantWebhookTest extends TestCase
     {
         $endpoint = WebhookEndpoint::create([
             'tenant_id' => $this->tenant->id,
-            'uuid'      => (string) Str::uuid(),
-            'url'       => 'https://partner.com/hooks',
-            'secret'    => 'whsec_test123456789',
-            'events'    => ['order.created'],
+            'uuid' => (string) Str::uuid(),
+            'url' => 'https://partner.com/hooks',
+            'secret' => 'whsec_test123456789',
+            'events' => ['order.created'],
             'is_active' => true,
         ]);
 
         WebhookDelivery::create([
-            'tenant_id'           => $this->tenant->id,
-            'uuid'                => (string) Str::uuid(),
+            'tenant_id' => $this->tenant->id,
+            'uuid' => (string) Str::uuid(),
             'webhook_endpoint_id' => $endpoint->id,
-            'event_type'          => 'order.created',
-            'payload'             => ['order_id' => 123],
-            'attempt_count'       => 1,
-            'status'              => 'delivered',
+            'event_type' => 'order.created',
+            'payload' => ['order_id' => 123],
+            'attempt_count' => 1,
+            'status' => 'delivered',
         ]);
 
         // List
         $listResponse = $this->withHeaders([
             'Authorization' => "Bearer {$this->jwt}",
-            'X-Tenant-Id'   => $this->tenant->slug,
+            'X-Tenant-Id' => $this->tenant->slug,
         ])->getJson('/api/v1/integrations/webhooks');
 
         $listResponse->assertStatus(200)
@@ -147,7 +149,7 @@ class TenantWebhookTest extends TestCase
         // Show
         $showResponse = $this->withHeaders([
             'Authorization' => "Bearer {$this->jwt}",
-            'X-Tenant-Id'   => $this->tenant->slug,
+            'X-Tenant-Id' => $this->tenant->slug,
         ])->getJson("/api/v1/integrations/webhooks/{$endpoint->uuid}");
 
         $showResponse->assertStatus(200)
@@ -160,18 +162,18 @@ class TenantWebhookTest extends TestCase
     {
         $endpoint = WebhookEndpoint::create([
             'tenant_id' => $this->tenant->id,
-            'uuid'      => (string) Str::uuid(),
-            'url'       => 'https://partner.com/v1/hooks',
-            'secret'    => 'whsec_update123',
-            'events'    => ['order.created'],
+            'uuid' => (string) Str::uuid(),
+            'url' => 'https://partner.com/v1/hooks',
+            'secret' => 'whsec_update123',
+            'events' => ['order.created'],
             'is_active' => true,
         ]);
 
         $updateResponse = $this->withHeaders([
             'Authorization' => "Bearer {$this->jwt}",
-            'X-Tenant-Id'   => $this->tenant->slug,
+            'X-Tenant-Id' => $this->tenant->slug,
         ])->patchJson("/api/v1/integrations/webhooks/{$endpoint->uuid}", [
-            'url'       => 'https://partner.com/v2/hooks',
+            'url' => 'https://partner.com/v2/hooks',
             'is_active' => false,
         ]);
 
@@ -182,7 +184,7 @@ class TenantWebhookTest extends TestCase
 
         $deleteResponse = $this->withHeaders([
             'Authorization' => "Bearer {$this->jwt}",
-            'X-Tenant-Id'   => $this->tenant->slug,
+            'X-Tenant-Id' => $this->tenant->slug,
         ])->deleteJson("/api/v1/integrations/webhooks/{$endpoint->uuid}");
 
         $deleteResponse->assertStatus(200);
@@ -195,10 +197,10 @@ class TenantWebhookTest extends TestCase
 
         $endpoint = WebhookEndpoint::create([
             'tenant_id' => $this->tenant->id,
-            'uuid'      => (string) Str::uuid(),
-            'url'       => 'https://external-receiver.test/webhook',
-            'secret'    => $secret,
-            'events'    => ['*'],
+            'uuid' => (string) Str::uuid(),
+            'url' => 'https://external-receiver.test/webhook',
+            'secret' => $secret,
+            'events' => ['*'],
             'is_active' => true,
         ]);
 
@@ -208,7 +210,7 @@ class TenantWebhookTest extends TestCase
 
         $response = $this->withHeaders([
             'Authorization' => "Bearer {$this->jwt}",
-            'X-Tenant-Id'   => $this->tenant->slug,
+            'X-Tenant-Id' => $this->tenant->slug,
         ])->postJson("/api/v1/integrations/webhooks/{$endpoint->uuid}/ping");
 
         $response->assertStatus(200)
@@ -220,7 +222,7 @@ class TenantWebhookTest extends TestCase
         Http::assertSent(function ($request) use ($secret) {
             $hasHeader = $request->hasHeader('X-SliceMart-Signature');
             $signatureHeader = $request->header('X-SliceMart-Signature')[0] ?? '';
-            $expectedSignature = 'sha256=' . hash_hmac('sha256', $request->body(), $secret);
+            $expectedSignature = 'sha256='.hash_hmac('sha256', $request->body(), $secret);
 
             return $hasHeader
                 && $signatureHeader === $expectedSignature
@@ -235,20 +237,20 @@ class TenantWebhookTest extends TestCase
         // Endpoint 1: Subscribed to order.created
         $endpoint1 = WebhookEndpoint::create([
             'tenant_id' => $this->tenant->id,
-            'uuid'      => (string) Str::uuid(),
-            'url'       => 'https://service1.test/orders',
-            'secret'    => 'whsec_111',
-            'events'    => ['order.created'],
+            'uuid' => (string) Str::uuid(),
+            'url' => 'https://service1.test/orders',
+            'secret' => 'whsec_111',
+            'events' => ['order.created'],
             'is_active' => true,
         ]);
 
         // Endpoint 2: Subscribed to stock.low only
         $endpoint2 = WebhookEndpoint::create([
             'tenant_id' => $this->tenant->id,
-            'uuid'      => (string) Str::uuid(),
-            'url'       => 'https://service2.test/stock',
-            'secret'    => 'whsec_222',
-            'events'    => ['stock.low'],
+            'uuid' => (string) Str::uuid(),
+            'url' => 'https://service2.test/stock',
+            'secret' => 'whsec_222',
+            'events' => ['stock.low'],
             'is_active' => true,
         ]);
 
@@ -262,9 +264,9 @@ class TenantWebhookTest extends TestCase
         $this->assertEquals(1, $queued);
 
         $this->assertDatabaseHas('webhook_deliveries', [
-            'tenant_id'           => $this->tenant->id,
+            'tenant_id' => $this->tenant->id,
             'webhook_endpoint_id' => $endpoint1->id,
-            'event_type'          => 'order.created',
+            'event_type' => 'order.created',
         ]);
 
         $this->assertDatabaseMissing('webhook_deliveries', [
@@ -290,17 +292,17 @@ class TenantWebhookTest extends TestCase
 
         $foreignEndpoint = WebhookEndpoint::create([
             'tenant_id' => $foreignTenant->id,
-            'uuid'      => (string) Str::uuid(),
-            'url'       => 'https://foreign.test/hooks',
-            'secret'    => 'whsec_foreign',
-            'events'    => ['order.created'],
+            'uuid' => (string) Str::uuid(),
+            'url' => 'https://foreign.test/hooks',
+            'secret' => 'whsec_foreign',
+            'events' => ['order.created'],
             'is_active' => true,
         ]);
 
         // Attempt to show foreign endpoint
         $response = $this->withHeaders([
             'Authorization' => "Bearer {$this->jwt}",
-            'X-Tenant-Id'   => $this->tenant->slug,
+            'X-Tenant-Id' => $this->tenant->slug,
         ])->getJson("/api/v1/integrations/webhooks/{$foreignEndpoint->uuid}");
 
         $response->assertStatus(404);

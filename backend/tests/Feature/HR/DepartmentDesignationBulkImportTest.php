@@ -9,8 +9,6 @@ use App\Core\Tenancy\TenantContext;
 use App\Models\Role;
 use App\Models\Tenant;
 use App\Models\User;
-use App\Modules\HR\Models\Department;
-use App\Modules\HR\Models\Designation;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -22,7 +20,9 @@ class DepartmentDesignationBulkImportTest extends TestCase
     use RefreshDatabase;
 
     private Tenant $tenant;
+
     private User $user;
+
     private string $token;
 
     protected function setUp(): void
@@ -118,7 +118,7 @@ class DepartmentDesignationBulkImportTest extends TestCase
             ],
         ];
 
-        $res = $this->withHeader('Authorization', 'Bearer ' . $this->token)
+        $res = $this->withHeader('Authorization', 'Bearer '.$this->token)
             ->postJson('/api/v1/hr/departments/bulk-import', $payload);
 
         $res->assertOk()
@@ -151,7 +151,7 @@ class DepartmentDesignationBulkImportTest extends TestCase
             ],
         ];
 
-        $resUpsert = $this->withHeader('Authorization', 'Bearer ' . $this->token)
+        $resUpsert = $this->withHeader('Authorization', 'Bearer '.$this->token)
             ->postJson('/api/v1/hr/departments/bulk-import', $upsertPayload);
 
         $resUpsert->assertOk()
@@ -186,7 +186,7 @@ class DepartmentDesignationBulkImportTest extends TestCase
             ],
         ];
 
-        $res = $this->withHeader('Authorization', 'Bearer ' . $this->token)
+        $res = $this->withHeader('Authorization', 'Bearer '.$this->token)
             ->postJson('/api/v1/hr/designations/bulk-import', $payload);
 
         $res->assertOk()
@@ -213,7 +213,7 @@ class DepartmentDesignationBulkImportTest extends TestCase
             ],
         ];
 
-        $resUpsert = $this->withHeader('Authorization', 'Bearer ' . $this->token)
+        $resUpsert = $this->withHeader('Authorization', 'Bearer '.$this->token)
             ->postJson('/api/v1/hr/designations/bulk-import', $upsertPayload);
 
         $resUpsert->assertOk()

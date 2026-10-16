@@ -20,8 +20,11 @@ class ReportExportTest extends TestCase
     use RefreshDatabase;
 
     protected Tenant $tenant;
+
     protected Company $company;
+
     protected User $user;
+
     protected string $token;
 
     protected function setUp(): void
@@ -103,7 +106,7 @@ class ReportExportTest extends TestCase
             'format' => 'xlsx',
             'filters' => ['warehouse_id' => 1],
         ], [
-            'Authorization' => 'Bearer ' . $this->token,
+            'Authorization' => 'Bearer '.$this->token,
         ]);
 
         $response->assertStatus(202)
@@ -143,7 +146,7 @@ class ReportExportTest extends TestCase
             'columns' => ['batch_number', 'actual_quantity', 'yield_percentage'],
             'is_default' => true,
         ], [
-            'Authorization' => 'Bearer ' . $this->token,
+            'Authorization' => 'Bearer '.$this->token,
         ]);
 
         $saveResponse->assertCreated()
@@ -151,7 +154,7 @@ class ReportExportTest extends TestCase
             ->assertJsonPath('data.is_default', true);
 
         $listResponse = $this->getJson('/api/v1/reports/production_yield/views', [
-            'Authorization' => 'Bearer ' . $this->token,
+            'Authorization' => 'Bearer '.$this->token,
         ]);
 
         $listResponse->assertOk()

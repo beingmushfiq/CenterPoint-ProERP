@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
+use RuntimeException;
 
 class CourierProvider extends Model
 {
@@ -44,26 +45,15 @@ class CourierProvider extends Model
         'default_charge' => 'string',
     ];
 
-    protected static function boot(): void
-    {
-        parent::boot();
-
-        static::creating(static function (CourierProvider $model): void {
-            if (empty($model->uuid)) {
-                $model->uuid = (string) Str::uuid();
-            }
-        });
-    }
-
     public function getAdapterInstance(): CourierProviderInterface
     {
         /** @var class-string<CourierProviderInterface> $class */
         $class = $this->adapter_class;
-        if (!class_exists($class)) {
-            throw new \RuntimeException("Courier adapter class {$class} not found.");
+        if (! class_exists($class)) {
+            throw new RuntimeException("Courier adapter class {$class} not found.");
         }
 
-        $adapter = new $class();
+        $adapter = new $class;
         $adapter->setConfig(
             credentials: (array) ($this->credentials ?? []),
             settings: (array) ($this->settings ?? [])
@@ -94,5 +84,16 @@ class CourierProvider extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    protected static function boot(): void
+    {
+        parent::boot();
+
+        static::creating(static function (CourierProvider $model): void {
+            if (empty($model->uuid)) {
+                $model->uuid = (string) Str::uuid();
+            }
+        });
     }
 }

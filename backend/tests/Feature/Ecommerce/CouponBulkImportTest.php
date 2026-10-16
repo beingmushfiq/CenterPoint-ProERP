@@ -6,7 +6,6 @@ namespace Tests\Feature\Ecommerce;
 
 use App\Core\Auth\JwtService;
 use App\Core\Tenancy\TenantContext;
-use App\Models\Coupon;
 use App\Models\Plan;
 use App\Models\Tenant;
 use App\Models\User;
@@ -19,7 +18,9 @@ class CouponBulkImportTest extends TestCase
     use RefreshDatabase;
 
     private Tenant $tenant;
+
     private User $admin;
+
     private string $token;
 
     protected function setUp(): void
@@ -70,16 +71,6 @@ class CouponBulkImportTest extends TestCase
             scopes: []
         );
         $this->actingAs($this->admin);
-    }
-
-    private function headers(): array
-    {
-        return [
-            'Authorization' => "Bearer {$this->token}",
-            'X-Tenant-Id' => $this->tenant->uuid,
-            'X-Tenant' => $this->tenant->slug,
-            'Accept' => 'application/json',
-        ];
     }
 
     public function test_can_bulk_import_coupons_in_skip_mode(): void
@@ -184,5 +175,15 @@ class CouponBulkImportTest extends TestCase
             'discount_value' => '30.0000',
             'min_order_amount' => '2000.0000',
         ]);
+    }
+
+    private function headers(): array
+    {
+        return [
+            'Authorization' => "Bearer {$this->token}",
+            'X-Tenant-Id' => $this->tenant->uuid,
+            'X-Tenant' => $this->tenant->slug,
+            'Accept' => 'application/json',
+        ];
     }
 }

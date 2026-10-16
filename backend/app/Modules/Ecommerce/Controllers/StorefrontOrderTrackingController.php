@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Modules\Ecommerce\Controllers;
 
-use App\Core\Tenancy\TenantContext;
 use App\Http\Controllers\Controller;
 use App\Models\Storefront;
 use App\Modules\Sales\Models\SalesOrder;
@@ -39,7 +38,7 @@ final class StorefrontOrderTrackingController extends Controller
 
         if (! empty($validated['phone'])) {
             $cleanPhone = preg_replace('/[^0-9]/', '', $validated['phone']);
-            $query->whereHas('customer', function ($q) use ($cleanPhone) {
+            $query->whereHas('customer', function ($q) use ($cleanPhone): void {
                 $q->whereRaw("REPLACE(REPLACE(phone, '+', ''), ' ', '') LIKE ?", ["%{$cleanPhone}%"]);
             });
         }
@@ -67,16 +66,16 @@ final class StorefrontOrderTrackingController extends Controller
                 'stage' => 'confirmed',
                 'title' => 'Confirmed & In Production',
                 'description' => 'Direct factory batching and inspection in progress.',
-                'timestamp' => in_array($order->status, ['confirmed', 'processing', 'dispatched', 'delivered']) ? $order->updated_at?->toIso8601String() : null,
-                'completed' => in_array($order->status, ['confirmed', 'processing', 'dispatched', 'delivered']),
-                'current' => in_array($order->status, ['confirmed', 'processing']),
+                'timestamp' => in_array($order->status, ['confirmed', 'processing', 'dispatched', 'delivered'], true) ? $order->updated_at?->toIso8601String() : null,
+                'completed' => in_array($order->status, ['confirmed', 'processing', 'dispatched', 'delivered'], true),
+                'current' => in_array($order->status, ['confirmed', 'processing'], true),
             ],
             [
                 'stage' => 'dispatched',
                 'title' => 'Dispatched with Courier',
                 'description' => 'Parcel is on the way to your delivery address.',
-                'timestamp' => in_array($order->status, ['dispatched', 'delivered']) ? $order->updated_at?->toIso8601String() : null,
-                'completed' => in_array($order->status, ['dispatched', 'delivered']),
+                'timestamp' => in_array($order->status, ['dispatched', 'delivered'], true) ? $order->updated_at?->toIso8601String() : null,
+                'completed' => in_array($order->status, ['dispatched', 'delivered'], true),
                 'current' => $order->status === 'dispatched',
             ],
             [

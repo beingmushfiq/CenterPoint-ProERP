@@ -33,7 +33,7 @@ final class PosTerminalController extends Controller
             $search = (string) $request->query('q');
             $query->where(function ($q) use ($search): void {
                 $q->where('code', 'like', "%{$search}%")
-                  ->orWhere('name', 'like', "%{$search}%");
+                    ->orWhere('name', 'like', "%{$search}%");
             });
         }
 
@@ -50,7 +50,7 @@ final class PosTerminalController extends Controller
 
         $terminal = PosTerminal::create([
             ...$validated,
-            'tenant_id'  => $tenantId,
+            'tenant_id' => $tenantId,
             'created_by' => (int) $request->user()?->id,
         ]);
 

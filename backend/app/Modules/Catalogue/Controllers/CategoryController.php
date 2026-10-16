@@ -19,6 +19,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Throwable;
 
 final class CategoryController extends Controller
 {
@@ -207,7 +208,6 @@ final class CategoryController extends Controller
                 $chunk,
                 $chunkIdx,
                 $mode,
-                $tenantId,
                 $userId,
                 &$codeMap,
                 &$nameMap,
@@ -215,10 +215,10 @@ final class CategoryController extends Controller
                 &$updated,
                 &$skipped,
                 &$errors
-            ) {
+            ): void {
                 foreach ($chunk as $relIdx => $row) {
                     $rowNum = ($chunkIdx * 100) + $relIdx + 2;
-                    $code = !empty($row['code']) ? trim((string) $row['code']) : null;
+                    $code = ! empty($row['code']) ? trim((string) $row['code']) : null;
                     $name = trim((string) $row['name']);
                     $isActive = isset($row['is_active']) ? (bool) $row['is_active'] : true;
 
@@ -232,7 +232,7 @@ final class CategoryController extends Controller
 
                     // Resolve parent category
                     $parentId = null;
-                    $parentKey = !empty($row['parent_code']) ? trim((string) $row['parent_code']) : (!empty($row['parent']) ? trim((string) $row['parent']) : null);
+                    $parentKey = ! empty($row['parent_code']) ? trim((string) $row['parent_code']) : (! empty($row['parent']) ? trim((string) $row['parent']) : null);
                     if ($parentKey) {
                         $parentObj = $codeMap[strtolower($parentKey)] ?? $nameMap[strtolower($parentKey)] ?? null;
                         if ($parentObj) {
@@ -243,6 +243,7 @@ final class CategoryController extends Controller
                     if ($existing) {
                         if ($mode === 'skip') {
                             $skipped++;
+
                             continue;
                         }
 
@@ -258,21 +259,23 @@ final class CategoryController extends Controller
                             }
                             $existing->update($updateData);
                             $updated++;
+
                             continue;
-                        } catch (\Throwable $e) {
+                        } catch (Throwable $e) {
                             $errors[] = [
                                 'row' => $rowNum,
                                 'field' => 'code',
                                 'value' => $code,
-                                'message' => 'Update failed: ' . $e->getMessage(),
+                                'message' => 'Update failed: '.$e->getMessage(),
                             ];
+
                             continue;
                         }
                     }
 
                     // Auto-generate code if null
-                    if (!$code) {
-                        $code = 'CAT-' . str_pad((string) random_int(100, 99999), 5, '0', STR_PAD_LEFT);
+                    if (! $code) {
+                        $code = 'CAT-'.str_pad((string) random_int(100, 99999), 5, '0', STR_PAD_LEFT);
                     }
 
                     try {
@@ -289,12 +292,12 @@ final class CategoryController extends Controller
                         $codeMap[strtolower($code)] = $newCat;
                         $nameMap[strtolower($name)] = $newCat;
                         $imported++;
-                    } catch (\Throwable $e) {
+                    } catch (Throwable $e) {
                         $errors[] = [
                             'row' => $rowNum,
                             'field' => 'code',
                             'value' => $code,
-                            'message' => 'Creation failed: ' . $e->getMessage(),
+                            'message' => 'Creation failed: '.$e->getMessage(),
                         ];
                     }
                 }

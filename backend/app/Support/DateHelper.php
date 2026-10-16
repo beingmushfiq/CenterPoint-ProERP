@@ -6,6 +6,7 @@ namespace App\Support;
 
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
+use Throwable;
 
 /**
  * Enterprise Fiscal Calendar and Date Helper.
@@ -60,7 +61,7 @@ final class DateHelper
 
         try {
             return Carbon::parse($date)->setTimezone('UTC')->toIso8601ZuluString();
-        } catch (\Throwable) {
+        } catch (Throwable) {
             return null;
         }
     }
@@ -80,7 +81,7 @@ final class DateHelper
 
         try {
             return Carbon::parse($date)->toDateString();
-        } catch (\Throwable) {
+        } catch (Throwable) {
             return null;
         }
     }

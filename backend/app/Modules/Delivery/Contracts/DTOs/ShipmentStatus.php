@@ -7,7 +7,7 @@ namespace App\Modules\Delivery\Contracts\DTOs;
 final readonly class ShipmentStatus
 {
     /**
-     * @param array<string, mixed> $rawResponse
+     * @param  array<string, mixed>  $rawResponse
      */
     public function __construct(
         public string $status, // pending, in_transit, delivered, failed, cancelled, returned

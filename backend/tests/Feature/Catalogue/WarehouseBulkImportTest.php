@@ -10,7 +10,6 @@ use App\Models\Role;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Models\Warehouse;
-use App\Models\WarehouseLocation;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -22,7 +21,9 @@ class WarehouseBulkImportTest extends TestCase
     use RefreshDatabase;
 
     private Tenant $tenant;
+
     private User $user;
+
     private string $token;
 
     protected function setUp(): void
@@ -85,15 +86,6 @@ class WarehouseBulkImportTest extends TestCase
             tenantId: 1,
             tokenVersion: 1
         );
-    }
-
-    private function authHeaders(): array
-    {
-        return [
-            'Authorization' => "Bearer {$this->token}",
-            'X-Tenant-ID' => (string) $this->tenant->id,
-            'Accept' => 'application/json',
-        ];
     }
 
     public function test_can_bulk_import_warehouses_and_auto_seed_locations(): void
@@ -206,5 +198,14 @@ class WarehouseBulkImportTest extends TestCase
             'is_default' => 1,
             'is_active' => 1,
         ]);
+    }
+
+    private function authHeaders(): array
+    {
+        return [
+            'Authorization' => "Bearer {$this->token}",
+            'X-Tenant-ID' => (string) $this->tenant->id,
+            'Accept' => 'application/json',
+        ];
     }
 }

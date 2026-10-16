@@ -20,7 +20,7 @@ final class ClosePosSessionRequest extends FormRequest
     {
         return [
             'counted_cash' => ['nullable', 'numeric', 'gte:0'],
-            'notes'        => ['nullable', 'string', 'max:1000'],
+            'notes' => ['nullable', 'string', 'max:1000'],
         ];
     }
 }

@@ -55,23 +55,12 @@ final class SalesOrderPayment extends Model
      * @var array<string, string>
      */
     protected $casts = [
-        'amount'       => 'decimal:4',
+        'amount' => 'decimal:4',
         'change_given' => 'decimal:4',
-        'created_at'   => 'datetime',
-        'updated_at'   => 'datetime',
-        'deleted_at'   => 'datetime',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
+        'deleted_at' => 'datetime',
     ];
-
-    protected static function boot(): void
-    {
-        parent::boot();
-
-        static::creating(static function (SalesOrderPayment $model): void {
-            if (empty($model->uuid)) {
-                $model->uuid = (string) Str::uuid();
-            }
-        });
-    }
 
     /**
      * @return BelongsTo<SalesOrder, $this>
@@ -87,5 +76,16 @@ final class SalesOrderPayment extends Model
     public function payment(): BelongsTo
     {
         return $this->belongsTo(Payment::class, 'payment_id');
+    }
+
+    protected static function boot(): void
+    {
+        parent::boot();
+
+        self::creating(static function (SalesOrderPayment $model): void {
+            if (empty($model->uuid)) {
+                $model->uuid = (string) Str::uuid();
+            }
+        });
     }
 }

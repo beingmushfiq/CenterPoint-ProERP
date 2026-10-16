@@ -16,6 +16,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Throwable;
 
 class PayrollController extends Controller
 {
@@ -447,7 +448,7 @@ class PayrollController extends Controller
 
         // Preload employees and open/recent payroll periods by code
         $empCodes = array_filter(array_unique(array_map(static function ($r) {
-            return !empty($r['employee_code']) ? strtoupper(trim((string) $r['employee_code'])) : null;
+            return ! empty($r['employee_code']) ? strtoupper(trim((string) $r['employee_code'])) : null;
         }, $rows)));
 
         $employeeMap = Employee::query()
@@ -457,11 +458,11 @@ class PayrollController extends Controller
             ->keyBy(fn ($e) => strtoupper($e->employee_code));
 
         $periodCodes = array_filter(array_unique(array_map(static function ($r) {
-            return !empty($r['recovery_start_period_code']) ? trim((string) $r['recovery_start_period_code']) : null;
+            return ! empty($r['recovery_start_period_code']) ? trim((string) $r['recovery_start_period_code']) : null;
         }, $rows)));
 
         $periodMap = [];
-        if (!empty($periodCodes)) {
+        if (! empty($periodCodes)) {
             $periodMap = PayrollPeriod::query()
                 ->where('tenant_id', $tenantId)
                 ->whereIn('period_code', $periodCodes)
@@ -493,25 +494,27 @@ class PayrollController extends Controller
                 foreach ($chunk as $index => $row) {
                     $rowNum = ($chunkIndex * 100) + $index + 1;
 
-                    $empCode = !empty($row['employee_code']) ? strtoupper(trim((string) $row['employee_code'])) : null;
-                    if (!$empCode) {
+                    $empCode = ! empty($row['employee_code']) ? strtoupper(trim((string) $row['employee_code'])) : null;
+                    if (! $empCode) {
                         $errors[] = [
                             'row' => $rowNum,
                             'field' => 'employee_code',
                             'value' => '',
                             'message' => 'Employee code is required.',
                         ];
+
                         continue;
                     }
 
                     $employee = $employeeMap->get($empCode);
-                    if (!$employee) {
+                    if (! $employee) {
                         $errors[] = [
                             'row' => $rowNum,
                             'field' => 'employee_code',
                             'value' => $empCode,
                             'message' => "Employee '{$empCode}' not found.",
                         ];
+
                         continue;
                     }
 
@@ -523,24 +526,25 @@ class PayrollController extends Controller
                             'value' => (string) ($row['amount'] ?? ''),
                             'message' => 'Advance amount must be greater than zero.',
                         ];
+
                         continue;
                     }
 
-                    $issuedOn = !empty($row['issued_on']) ? date('Y-m-d', strtotime((string) $row['issued_on'])) : date('Y-m-d');
+                    $issuedOn = ! empty($row['issued_on']) ? date('Y-m-d', strtotime((string) $row['issued_on'])) : date('Y-m-d');
                     $installmentAmount = isset($row['installment_amount']) ? (float) $row['installment_amount'] : $amount;
                     if ($installmentAmount <= 0) {
                         $installmentAmount = $amount;
                     }
 
-                    $advanceNumber = !empty($row['advance_number']) ? trim((string) $row['advance_number']) : null;
-                    if (!$advanceNumber) {
+                    $advanceNumber = ! empty($row['advance_number']) ? trim((string) $row['advance_number']) : null;
+                    if (! $advanceNumber) {
                         // Auto-generate if missing
-                        $advanceNumber = 'ADV-' . $empCode . '-' . date('Ymd', strtotime($issuedOn)) . '-' . sprintf('%02d', ($rowNum % 100));
+                        $advanceNumber = 'ADV-'.$empCode.'-'.date('Ymd', strtotime($issuedOn)).'-'.sprintf('%02d', ($rowNum % 100));
                     }
 
                     // Recovery start period resolution (optional)
                     $periodId = null;
-                    if (!empty($row['recovery_start_period_code'])) {
+                    if (! empty($row['recovery_start_period_code'])) {
                         $period = $periodMap[$row['recovery_start_period_code']] ?? null;
                         if ($period) {
                             $periodId = $period->id;
@@ -555,6 +559,7 @@ class PayrollController extends Controller
                     if ($existing) {
                         if ($mode === 'skip') {
                             $skipped++;
+
                             continue;
                         }
 
@@ -565,17 +570,17 @@ class PayrollController extends Controller
                                 'issued_on' => $issuedOn,
                                 'installment_amount' => $installmentAmount,
                                 'recovery_start_period_id' => $periodId ?? $existing->recovery_start_period_id,
-                                'status' => !empty($row['status']) ? (string) $row['status'] : $existing->status,
+                                'status' => ! empty($row['status']) ? (string) $row['status'] : $existing->status,
                                 'notes' => $row['notes'] ?? $existing->notes,
                                 'updated_by' => $userId,
                             ]);
                             $updated++;
-                        } catch (\Throwable $e) {
+                        } catch (Throwable $e) {
                             $errors[] = [
                                 'row' => $rowNum,
                                 'field' => 'advance_number',
                                 'value' => $advanceNumber,
-                                'message' => 'Update failed: ' . $e->getMessage(),
+                                'message' => 'Update failed: '.$e->getMessage(),
                             ];
                         }
                     } else {
@@ -589,19 +594,19 @@ class PayrollController extends Controller
                                 'issued_on' => $issuedOn,
                                 'recovery_start_period_id' => $periodId,
                                 'installment_amount' => $installmentAmount,
-                                'recovered_amount' => !empty($row['recovered_amount']) ? (float) $row['recovered_amount'] : 0.0,
-                                'status' => !empty($row['status']) ? (string) $row['status'] : 'active',
+                                'recovered_amount' => ! empty($row['recovered_amount']) ? (float) $row['recovered_amount'] : 0.0,
+                                'status' => ! empty($row['status']) ? (string) $row['status'] : 'active',
                                 'notes' => $row['notes'] ?? null,
                                 'created_by' => $userId,
                                 'updated_by' => $userId,
                             ]);
                             $imported++;
-                        } catch (\Throwable $e) {
+                        } catch (Throwable $e) {
                             $errors[] = [
                                 'row' => $rowNum,
                                 'field' => 'advance_number',
                                 'value' => $advanceNumber,
-                                'message' => 'Creation failed: ' . $e->getMessage(),
+                                'message' => 'Creation failed: '.$e->getMessage(),
                             ];
                         }
                     }

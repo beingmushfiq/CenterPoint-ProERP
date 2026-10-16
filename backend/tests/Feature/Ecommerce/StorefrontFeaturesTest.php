@@ -21,8 +21,11 @@ final class StorefrontFeaturesTest extends TestCase
     use RefreshDatabase;
 
     private Tenant $tenant;
+
     private User $tenantAdmin;
+
     private string $tenantToken;
+
     private Storefront $storefront;
 
     protected function setUp(): void
@@ -178,7 +181,7 @@ final class StorefrontFeaturesTest extends TestCase
             'is_active' => true,
         ]);
 
-        $sessionToken = 'cart_test_coupon_' . Str::random(8);
+        $sessionToken = 'cart_test_coupon_'.Str::random(8);
         $product = Product::where('tenant_id', $this->tenant->id)->where('type', 'finished')->firstOrFail();
 
         // 2. Add product to cart

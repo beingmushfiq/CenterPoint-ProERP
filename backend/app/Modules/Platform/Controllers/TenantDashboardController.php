@@ -95,7 +95,7 @@ final class TenantDashboardController extends Controller
         $ops = $this->computeOperationalEntities($tenantId, $inventoryData['product_stock'], $inventoryData['low_stock_product_ids']);
 
         $alerts = [];
-        if (!empty($inventoryData['low_stock_product_ids'])) {
+        if (! empty($inventoryData['low_stock_product_ids'])) {
             $count = count($inventoryData['low_stock_product_ids']);
             $alerts[] = [
                 'type' => 'low_stock',
@@ -161,8 +161,8 @@ final class TenantDashboardController extends Controller
     }
 
     /**
-     * @param array<string> $validInvoiceStatuses
-     * @param \Illuminate\Support\Collection<string, mixed> $revByDate
+     * @param  array<string>  $validInvoiceStatuses
+     * @param  \Illuminate\Support\Collection<string, mixed>  $revByDate
      * @return array{today_revenue: float, yesterday_revenue: float, revenue_delta_percent: float, month_revenue: float, active_orders: int, today_orders_count: int, yesterday_orders_count: int, orders_delta_percent: float, total_receivable_due: float, overdue_invoices_count: int, overdue_invoices_amount: float, aging_breakdown: array<string, float>}
      */
     private function computeCommercialMetrics(int $tenantId, Carbon $today, Carbon $startOfMonth, array $validInvoiceStatuses, $revByDate): array
@@ -254,7 +254,7 @@ final class TenantDashboardController extends Controller
     }
 
     /**
-     * @param \Illuminate\Support\Collection<string, mixed> $prodByDate
+     * @param  \Illuminate\Support\Collection<string, mixed>  $prodByDate
      * @return array{today_output: float, yesterday_output: float, output_delta_percent: float, target_output: float, achievement_rate: float, active_batches: int, total_batches: int}
      */
     private function computeProductionMetrics(int $tenantId, Carbon $today, $prodByDate): array
@@ -410,9 +410,9 @@ final class TenantDashboardController extends Controller
     }
 
     /**
-     * @param \Illuminate\Support\Collection<string, mixed> $revByDate
-     * @param \Illuminate\Support\Collection<string, mixed> $prodByDate
-     * @param \Illuminate\Support\Collection<string, mixed> $qcByDate
+     * @param  \Illuminate\Support\Collection<string, mixed>  $revByDate
+     * @param  \Illuminate\Support\Collection<string, mixed>  $prodByDate
+     * @param  \Illuminate\Support\Collection<string, mixed>  $qcByDate
      * @return array{weekly: array<int, array<string, mixed>>, today: array<int, array<string, mixed>>, monthly: array<int, array<string, mixed>>}
      */
     private function computeTrendMetrics(

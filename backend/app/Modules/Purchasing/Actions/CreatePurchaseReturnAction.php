@@ -42,7 +42,7 @@ final class CreatePurchaseReturnAction
     public function execute(array $data): PurchaseReturn
     {
         return DB::transaction(function () use ($data): PurchaseReturn {
-            $returnNumber = $data['return_number'] ?? ('PRT-' . date('Ymd') . '-' . strtoupper(Str::random(6)));
+            $returnNumber = $data['return_number'] ?? ('PRT-'.date('Ymd').'-'.strtoupper(Str::random(6)));
 
             /** @var numeric-string $totalAmount */
             $totalAmount = '0.0000';

@@ -19,22 +19,22 @@ final class IncentivePolicyResource extends JsonResource
     public function toArray(Request $request): array
     {
         return [
-            'id'                  => $this->id,
-            'uuid'                => $this->uuid,
-            'name'                => $this->name,
-            'code'                => $this->code,
-            'description'         => $this->description,
-            'basis'               => $this->basis,
+            'id' => $this->id,
+            'uuid' => $this->uuid,
+            'name' => $this->name,
+            'code' => $this->code,
+            'description' => $this->description,
+            'basis' => $this->basis,
             'min_achievement_pct' => $this->min_achievement_pct,
-            'is_active'           => (bool) $this->is_active,
-            'rules'               => $this->rules->map(fn ($r) => [
-                'id'              => $r->id,
-                'min_pct'         => $r->min_pct,
-                'max_pct'         => $r->max_pct,
-                'incentive_type'  => $r->incentive_type,
+            'is_active' => (bool) $this->is_active,
+            'rules' => $this->rules->map(fn ($r) => [
+                'id' => $r->id,
+                'min_pct' => $r->min_pct,
+                'max_pct' => $r->max_pct,
+                'incentive_type' => $r->incentive_type,
                 'incentive_value' => $r->incentive_value,
             ]),
-            'created_at'          => $this->created_at?->toIso8601String(),
+            'created_at' => $this->created_at?->toIso8601String(),
         ];
     }
 }

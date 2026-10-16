@@ -7,7 +7,6 @@ namespace Tests\Feature\Delivery;
 use App\Core\Tenancy\TenantContext;
 use App\Models\Party;
 use App\Models\Tenant;
-use App\Models\User;
 use App\Models\Warehouse;
 use App\Modules\Delivery\Adapters\PathaoCourierAdapter;
 use App\Modules\Delivery\Models\CourierProvider;
@@ -17,7 +16,6 @@ use App\Modules\Sales\Models\DeliveryOrder;
 use App\Modules\Sales\Models\SalesOrder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -26,8 +24,11 @@ final class CourierWebhookTest extends TestCase
     use RefreshDatabase;
 
     private Tenant $tenant;
+
     private CourierProvider $provider;
+
     private CourierShipment $shipment;
+
     private DeliveryOrder $deliveryOrder;
 
     protected function setUp(): void
@@ -36,29 +37,29 @@ final class CourierWebhookTest extends TestCase
         TenantContext::flush();
 
         DB::table('plans')->insert([
-            'id'             => 1,
-            'uuid'           => (string) Str::uuid(),
-            'code'           => 'ENTERPRISE',
-            'name'           => 'Enterprise',
-            'price'          => '10000.0000',
+            'id' => 1,
+            'uuid' => (string) Str::uuid(),
+            'code' => 'ENTERPRISE',
+            'name' => 'Enterprise',
+            'price' => '10000.0000',
             'billing_period' => 'monthly',
-            'limits'         => json_encode(['max_users' => 100]),
-            'is_active'      => true,
-            'created_at'     => now(),
-            'updated_at'     => now(),
+            'limits' => json_encode(['max_users' => 100]),
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
         ]);
 
         $this->tenant = Tenant::create([
-            'id'            => 1,
-            'uuid'          => (string) Str::uuid(),
-            'plan_id'       => 1,
-            'name'          => 'SliceMart BD',
-            'slug'          => 'slicemart-bd',
-            'status'        => 'active',
+            'id' => 1,
+            'uuid' => (string) Str::uuid(),
+            'plan_id' => 1,
+            'name' => 'SliceMart BD',
+            'slug' => 'slicemart-bd',
+            'status' => 'active',
             'currency_code' => 'BDT',
-            'timezone'      => 'Asia/Dhaka',
-            'locale'        => 'en',
-            'date_format'   => 'Y-m-d',
+            'timezone' => 'Asia/Dhaka',
+            'locale' => 'en',
+            'date_format' => 'Y-m-d',
             'number_format' => 'standard',
         ]);
 

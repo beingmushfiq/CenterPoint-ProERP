@@ -59,18 +59,6 @@ class Cart extends Model
         'last_activity_at' => 'datetime',
     ];
 
-    protected static function booted(): void
-    {
-        static::creating(function (Cart $model): void {
-            if (empty($model->uuid)) {
-                $model->uuid = (string) Str::uuid();
-            }
-            if (empty($model->last_activity_at)) {
-                $model->last_activity_at = now();
-            }
-        });
-    }
-
     public function storefront(): BelongsTo
     {
         return $this->belongsTo(Storefront::class);
@@ -110,5 +98,17 @@ class Cart extends Model
         $this->total_amount = bccomp($total, '0.0000', 4) < 0 ? '0.0000' : $total;
         $this->last_activity_at = now();
         $this->save();
+    }
+
+    protected static function booted(): void
+    {
+        static::creating(function (Cart $model): void {
+            if (empty($model->uuid)) {
+                $model->uuid = (string) Str::uuid();
+            }
+            if (empty($model->last_activity_at)) {
+                $model->last_activity_at = now();
+            }
+        });
     }
 }

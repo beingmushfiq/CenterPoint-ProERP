@@ -130,7 +130,7 @@ final class WorkerProductionEntryController extends Controller
 
         $employeeParam = $request->input('employee_id');
         if ($employeeParam !== null) {
-            $query->whereHas('employee', function ($emp) use ($employeeParam) {
+            $query->whereHas('employee', function ($emp) use ($employeeParam): void {
                 $emp->where('employees.uuid', (string) $employeeParam);
                 if (is_numeric($employeeParam)) {
                     $emp->orWhere('employees.id', (int) $employeeParam);
@@ -303,7 +303,7 @@ final class WorkerProductionEntryController extends Controller
         $employeeMap = [];
         foreach ($employees as $emp) {
             $employeeMap[strtolower(trim((string) $emp->employee_code))] = $emp;
-            $employeeMap[strtolower(trim((string) $emp->first_name . ' ' . $emp->last_name))] = $emp;
+            $employeeMap[strtolower(trim((string) $emp->first_name.' '.$emp->last_name))] = $emp;
             $employeeMap[(string) $emp->id] = $emp;
         }
 
@@ -332,8 +332,8 @@ final class WorkerProductionEntryController extends Controller
         foreach ($batches as $b) {
             $batchMap[strtolower(trim((string) $b->batch_number))] = $b;
             $batchMap[(string) $b->id] = $b;
-            if (! isset($batchMap['product_' . $b->product_id])) {
-                $batchMap['product_' . $b->product_id] = $b;
+            if (! isset($batchMap['product_'.$b->product_id])) {
+                $batchMap['product_'.$b->product_id] = $b;
             }
         }
 
@@ -383,6 +383,7 @@ final class WorkerProductionEntryController extends Controller
                             'field' => 'employee_code',
                             'message' => "Employee / Worker '{$empKey}' not found.",
                         ];
+
                         continue;
                     }
 
@@ -395,6 +396,7 @@ final class WorkerProductionEntryController extends Controller
                             'field' => 'product_sku',
                             'message' => "Product '{$prodKey}' not found.",
                         ];
+
                         continue;
                     }
 
@@ -405,7 +407,7 @@ final class WorkerProductionEntryController extends Controller
                         $batch = $batchMap[$batchKey] ?? null;
                     }
                     if (! $batch) {
-                        $batch = $batchMap['product_' . $product->id] ?? null;
+                        $batch = $batchMap['product_'.$product->id] ?? null;
                     }
                     if (! $batch) {
                         // Resolve factory and BOM to create a batch
@@ -416,8 +418,8 @@ final class WorkerProductionEntryController extends Controller
                                 'uuid' => (string) Str::uuid(),
                                 'tenant_id' => $tenantId,
                                 'product_id' => $product->id,
-                                'code' => 'BOM-' . ($product->sku ?: str_pad((string) $product->id, 4, '0', STR_PAD_LEFT)),
-                                'name' => 'Auto BOM - ' . $product->name,
+                                'code' => 'BOM-'.($product->sku ?: str_pad((string) $product->id, 4, '0', STR_PAD_LEFT)),
+                                'name' => 'Auto BOM - '.$product->name,
                                 'version' => '1.0',
                                 'output_quantity' => '1.0000',
                                 'output_unit_id' => $product->base_unit_id ?? ($defaultUnit ? $defaultUnit->id : 1),
@@ -431,7 +433,7 @@ final class WorkerProductionEntryController extends Controller
                         $batch = \App\Models\ProductionBatch::create([
                             'uuid' => (string) Str::uuid(),
                             'tenant_id' => $tenantId,
-                            'batch_number' => 'BATCH-AUTO-' . date('Ymd') . '-' . str_pad((string) random_int(100, 9999), 4, '0', STR_PAD_LEFT),
+                            'batch_number' => 'BATCH-AUTO-'.date('Ymd').'-'.str_pad((string) random_int(100, 9999), 4, '0', STR_PAD_LEFT),
                             'factory_id' => $factoryId,
                             'product_id' => $product->id,
                             'bill_of_material_id' => $bomId,
@@ -443,7 +445,7 @@ final class WorkerProductionEntryController extends Controller
                             'created_by' => $userId,
                         ]);
                         $batchMap[strtolower($batch->batch_number)] = $batch;
-                        $batchMap['product_' . $product->id] = $batch;
+                        $batchMap['product_'.$product->id] = $batch;
                     }
 
                     // Resolve Shift
@@ -456,7 +458,7 @@ final class WorkerProductionEntryController extends Controller
                     $unit = ($unitKey !== '' ? ($unitMap[$unitKey] ?? null) : null) ?? ($product->unit_id ? ($unitMap[(string) $product->unit_id] ?? null) : $defaultUnit);
                     $unitId = $unit ? $unit->id : 1;
 
-                    $workDate = !empty($row['work_date']) ? (string) $row['work_date'] : (!empty($row['date']) ? (string) $row['date'] : now()->format('Y-m-d'));
+                    $workDate = ! empty($row['work_date']) ? (string) $row['work_date'] : (! empty($row['date']) ? (string) $row['date'] : now()->format('Y-m-d'));
                     $qty = isset($row['quantity']) ? (float) $row['quantity'] : (isset($row['units_completed']) ? (float) $row['units_completed'] : 0.0);
                     $reworkQty = isset($row['rework_quantity']) ? (float) $row['rework_quantity'] : (isset($row['rework']) ? (float) $row['rework'] : 0.0);
                     $rejectedQty = isset($row['rejected_quantity']) ? (float) $row['rejected_quantity'] : (isset($row['rejected']) ? (float) $row['rejected'] : 0.0);
@@ -467,13 +469,14 @@ final class WorkerProductionEntryController extends Controller
                             'field' => 'quantity',
                             'message' => 'Completed or logged quantity must be greater than zero.',
                         ];
+
                         continue;
                     }
 
                     $rate = isset($row['rate']) && is_numeric($row['rate']) ? number_format((float) $row['rate'], 4, '.', '') : null;
                     $incentive = isset($row['incentive_amount']) && is_numeric($row['incentive_amount']) ? number_format((float) $row['incentive_amount'], 4, '.', '') : null;
                     $hoursWorked = isset($row['hours_worked']) && is_numeric($row['hours_worked']) ? number_format((float) $row['hours_worked'], 4, '.', '') : null;
-                    $status = !empty($row['status']) ? (string) $row['status'] : 'submitted';
+                    $status = ! empty($row['status']) ? (string) $row['status'] : 'submitted';
 
                     // Check existing entry
                     $query = WorkerProductionEntry::withoutGlobalScope('tenant')
@@ -494,6 +497,7 @@ final class WorkerProductionEntryController extends Controller
                     if ($existing) {
                         if ($mode === 'skip') {
                             $skipped++;
+
                             continue;
                         }
 
@@ -510,6 +514,7 @@ final class WorkerProductionEntryController extends Controller
                         ]);
 
                         $updated++;
+
                         continue;
                     }
 
@@ -615,7 +620,7 @@ final class WorkerProductionEntryController extends Controller
 
         $entries = $query->get();
         foreach ($entries as $entry) {
-            if (!in_array($entry->status, ['verified', 'locked'], true)) {
+            if (! in_array($entry->status, ['verified', 'locked'], true)) {
                 $action->execute([
                     'user' => $actor,
                     'workerProductionEntry' => $entry,
@@ -631,4 +636,3 @@ final class WorkerProductionEntryController extends Controller
         ]);
     }
 }
-

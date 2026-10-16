@@ -46,15 +46,6 @@ class StorefrontProduct extends Model
         'sort_order' => 'integer',
     ];
 
-    protected static function booted(): void
-    {
-        static::creating(function (StorefrontProduct $model): void {
-            if (empty($model->uuid)) {
-                $model->uuid = (string) Str::uuid();
-            }
-        });
-    }
-
     public function storefront(): BelongsTo
     {
         return $this->belongsTo(Storefront::class);
@@ -68,5 +59,14 @@ class StorefrontProduct extends Model
     public function variant(): BelongsTo
     {
         return $this->belongsTo(ProductVariant::class, 'variant_id');
+    }
+
+    protected static function booted(): void
+    {
+        static::creating(function (StorefrontProduct $model): void {
+            if (empty($model->uuid)) {
+                $model->uuid = (string) Str::uuid();
+            }
+        });
     }
 }

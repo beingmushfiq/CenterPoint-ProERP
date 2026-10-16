@@ -44,20 +44,6 @@ class DeliveryStatusEvent extends Model
         'longitude' => 'float',
     ];
 
-    protected static function boot(): void
-    {
-        parent::boot();
-
-        static::creating(static function (DeliveryStatusEvent $model): void {
-            if (empty($model->uuid)) {
-                $model->uuid = (string) Str::uuid();
-            }
-            if (empty($model->created_at)) {
-                $model->created_at = now();
-            }
-        });
-    }
-
     /**
      * @return BelongsTo<DeliveryOrder, $this>
      */
@@ -72,5 +58,19 @@ class DeliveryStatusEvent extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    protected static function boot(): void
+    {
+        parent::boot();
+
+        static::creating(static function (DeliveryStatusEvent $model): void {
+            if (empty($model->uuid)) {
+                $model->uuid = (string) Str::uuid();
+            }
+            if (empty($model->created_at)) {
+                $model->created_at = now();
+            }
+        });
     }
 }

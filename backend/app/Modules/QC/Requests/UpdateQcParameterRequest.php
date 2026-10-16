@@ -13,20 +13,6 @@ final class UpdateQcParameterRequest extends FormRequest
         return true;
     }
 
-    protected function prepareForValidation(): void
-    {
-        if (! $this->has('type') && $this->has('data_type')) {
-            $this->merge(['type' => $this->input('data_type')]);
-        }
-
-        if ($this->has('type') && $this->input('type') !== 'numeric') {
-            $this->merge([
-                'min_value' => null,
-                'max_value' => null,
-            ]);
-        }
-    }
-
     /**
      * @return array<string, array<int, string>>
      */
@@ -45,5 +31,19 @@ final class UpdateQcParameterRequest extends FormRequest
             'code' => ['nullable', 'string'],
             'category' => ['nullable', 'string'],
         ];
+    }
+
+    protected function prepareForValidation(): void
+    {
+        if (! $this->has('type') && $this->has('data_type')) {
+            $this->merge(['type' => $this->input('data_type')]);
+        }
+
+        if ($this->has('type') && $this->input('type') !== 'numeric') {
+            $this->merge([
+                'min_value' => null,
+                'max_value' => null,
+            ]);
+        }
     }
 }

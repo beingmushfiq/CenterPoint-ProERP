@@ -78,7 +78,7 @@ class SeoMetadataService
             $isMockPlatformDomain = str_ends_with($domain, '.devcenterpoint.com') || $domain === 'devcenterpoint.com';
 
             if (! $isMockPlatformDomain || (! $isDevEnvironment && ! $isLocalRequest)) {
-                return 'https://' . $domain;
+                return 'https://'.$domain;
             }
         }
 
@@ -100,7 +100,7 @@ class SeoMetadataService
         $parsed = parse_url($appUrl);
         $scheme = $parsed['scheme'] ?? 'https';
         $host = $parsed['host'] ?? 'devcenterpoint.com';
-        $port = isset($parsed['port']) && ! in_array($parsed['port'], [80, 443]) ? ':' . $parsed['port'] : '';
+        $port = isset($parsed['port']) && ! in_array($parsed['port'], [80, 443], true) ? ':'.$parsed['port'] : '';
 
         return "{$scheme}://{$subdomain}.{$host}{$port}";
     }
@@ -110,12 +110,12 @@ class SeoMetadataService
      */
     public function buildCanonicalUrl(string $baseUrl, string $path): string
     {
-        $cleanPath = '/' . ltrim(trim($path), '/');
+        $cleanPath = '/'.ltrim(trim($path), '/');
         if ($cleanPath === '/') {
             $cleanPath = '';
         }
 
-        return rtrim($baseUrl, '/') . $cleanPath;
+        return rtrim($baseUrl, '/').$cleanPath;
     }
 
     /**
@@ -125,6 +125,7 @@ class SeoMetadataService
     {
         $replacements['{brand}'] = $brand;
         $title = strtr($template, $replacements);
+
         return trim($title);
     }
 
@@ -142,7 +143,7 @@ class SeoMetadataService
             return $clean;
         }
 
-        return mb_substr($clean, 0, $maxLength - 3) . '...';
+        return mb_substr($clean, 0, $maxLength - 3).'...';
     }
 
     /**
@@ -161,7 +162,7 @@ class SeoMetadataService
 
         $title = $customTitle ?: $this->formatTitle($settings->product_title_template, ['{product_name}' => $product->name], $brand);
         $description = $this->formatDescription($customDesc, $product->description, 160);
-        $canonical = $this->buildCanonicalUrl($baseUrl, '/products/' . ($product->online_slug ?: $product->sku));
+        $canonical = $this->buildCanonicalUrl($baseUrl, '/products/'.($product->online_slug ?: $product->sku));
 
         $imageUrl = $customOgImage;
         if (! $imageUrl && $product->relationLoaded('images') && $product->images->isNotEmpty()) {
@@ -206,7 +207,7 @@ class SeoMetadataService
 
         $title = $page->meta_title ?: $this->formatTitle($settings->meta_title_template, ['{title}' => $page->title], $brand);
         $description = $this->formatDescription($page->meta_description, $settings->default_meta_description, 160);
-        $canonical = $this->buildCanonicalUrl($baseUrl, '/pages/' . $page->slug);
+        $canonical = $this->buildCanonicalUrl($baseUrl, '/pages/'.$page->slug);
 
         return [
             'title' => $title,

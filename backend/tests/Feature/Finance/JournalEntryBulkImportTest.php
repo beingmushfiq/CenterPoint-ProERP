@@ -11,7 +11,6 @@ use App\Models\Role;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Modules\Finance\Models\ChartOfAccount;
-use App\Modules\Finance\Models\JournalEntry;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -23,10 +22,15 @@ class JournalEntryBulkImportTest extends TestCase
     use RefreshDatabase;
 
     private Tenant $tenant;
+
     private User $user;
+
     private string $token;
+
     private Company $company;
+
     private ChartOfAccount $cashAcc;
+
     private ChartOfAccount $equityAcc;
 
     protected function setUp(): void

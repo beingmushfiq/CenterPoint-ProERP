@@ -25,6 +25,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class TenantUsageCounter extends Model
 {
     use BelongsToTenant;
+
     /**
      * @var list<string>
      */

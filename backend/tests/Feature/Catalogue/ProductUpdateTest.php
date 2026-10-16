@@ -6,8 +6,6 @@ namespace Tests\Feature\Catalogue;
 
 use App\Core\Auth\JwtService;
 use App\Core\Tenancy\TenantContext;
-use App\Models\Brand;
-use App\Models\Category;
 use App\Models\Permission;
 use App\Models\Product;
 use App\Models\Role;
@@ -26,9 +24,13 @@ final class ProductUpdateTest extends TestCase
     use RefreshDatabase;
 
     private Tenant $tenant;
+
     private User $user;
+
     private string $jwt;
+
     private Unit $baseUnit;
+
     private Warehouse $warehouse;
 
     protected function setUp(): void

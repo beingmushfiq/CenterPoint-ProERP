@@ -4,22 +4,23 @@ declare(strict_types=1);
 
 namespace App\Modules\Inventory\Controllers;
 
-use App\Http\Controllers\Controller;
-use App\Modules\Inventory\Models\StockBalance;
-use App\Modules\Inventory\Models\StockMovement;
-use App\Modules\Inventory\Resources\StockBalanceResource;
-use App\Modules\Inventory\Resources\StockMovementResource;
 use App\Core\Tenancy\TenantContext;
+use App\Http\Controllers\Controller;
 use App\Models\Product;
 use App\Models\Unit;
 use App\Models\Warehouse;
 use App\Models\WarehouseLocation;
+use App\Modules\Inventory\Models\StockBalance;
+use App\Modules\Inventory\Models\StockMovement;
+use App\Modules\Inventory\Resources\StockBalanceResource;
+use App\Modules\Inventory\Resources\StockMovementResource;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Throwable;
 
 final class StockMovementController extends Controller
 {
@@ -68,7 +69,7 @@ final class StockMovementController extends Controller
 
         $locationMap = [];
         foreach ($locations as $loc) {
-            $key = $loc->warehouse_id . ':' . strtolower((string) $loc->code);
+            $key = $loc->warehouse_id.':'.strtolower((string) $loc->code);
             $locationMap[$key] = $loc;
         }
 
@@ -93,7 +94,7 @@ final class StockMovementController extends Controller
                 &$updated,
                 &$skipped,
                 &$errors
-            ) {
+            ): void {
                 foreach ($chunk as $index => $row) {
                     $rowNum = ($chunkIndex * 100) + $index + 1;
                     $sku = trim((string) ($row['sku'] ?? $row['product_sku'] ?? ''));
@@ -114,6 +115,7 @@ final class StockMovementController extends Controller
                             'value' => '',
                             'message' => 'Product SKU is required.',
                         ];
+
                         continue;
                     }
 
@@ -124,6 +126,7 @@ final class StockMovementController extends Controller
                             'value' => '',
                             'message' => 'Warehouse code or name is required.',
                         ];
+
                         continue;
                     }
 
@@ -134,38 +137,41 @@ final class StockMovementController extends Controller
                             'value' => (string) $quantity,
                             'message' => 'Quantity must be greater than zero.',
                         ];
+
                         continue;
                     }
 
                     $product = $productSkuMap[strtolower($sku)] ?? null;
-                    if (!$product) {
+                    if (! $product) {
                         $errors[] = [
                             'row' => $rowNum,
                             'field' => 'sku',
                             'value' => $sku,
                             'message' => "Product with SKU '{$sku}' does not exist.",
                         ];
+
                         continue;
                     }
 
                     $warehouse = $warehouseMap[strtolower($whCode)] ?? null;
-                    if (!$warehouse) {
+                    if (! $warehouse) {
                         $errors[] = [
                             'row' => $rowNum,
                             'field' => 'warehouse_code',
                             'value' => $whCode,
                             'message' => "Warehouse '{$whCode}' does not exist.",
                         ];
+
                         continue;
                     }
 
                     $locationId = null;
                     if ($locCode !== null) {
-                        $locKey = $warehouse->id . ':' . strtolower($locCode);
+                        $locKey = $warehouse->id.':'.strtolower($locCode);
                         if (isset($locationMap[$locKey])) {
                             $locationId = $locationMap[$locKey]->id;
                         } else {
-                            $newLoc = new WarehouseLocation();
+                            $newLoc = new WarehouseLocation;
                             $newLoc->tenant_id = $tenantId;
                             $newLoc->uuid = (string) Str::uuid();
                             $newLoc->warehouse_id = $warehouse->id;
@@ -207,13 +213,14 @@ final class StockMovementController extends Controller
                     if ($existingBalance) {
                         if ($mode === 'skip') {
                             $skipped++;
+
                             continue;
                         }
 
                         // Upsert mode: calculate diff and adjust
                         try {
                             $diff = $quantity - (float) $existingBalance->quantity;
-                            $movNumber = 'MOV-' . date('YmdHis') . '-' . strtoupper(Str::random(6));
+                            $movNumber = 'MOV-'.date('YmdHis').'-'.strtoupper(Str::random(6));
 
                             $movId = null;
                             if (abs($diff) > 0.0001) {
@@ -258,18 +265,18 @@ final class StockMovementController extends Controller
                                 ->update($updateData);
 
                             $updated++;
-                        } catch (\Throwable $e) {
+                        } catch (Throwable $e) {
                             $errors[] = [
                                 'row' => $rowNum,
                                 'field' => 'sku',
                                 'value' => $sku,
-                                'message' => 'Balance update failed: ' . $e->getMessage(),
+                                'message' => 'Balance update failed: '.$e->getMessage(),
                             ];
                         }
                     } else {
                         // Insert new StockMovement and StockBalance
                         try {
-                            $movNumber = 'MOV-OPN-' . date('YmdHis') . '-' . strtoupper(Str::random(6));
+                            $movNumber = 'MOV-OPN-'.date('YmdHis').'-'.strtoupper(Str::random(6));
 
                             $movId = DB::table('stock_movements')->insertGetId([
                                 'tenant_id' => $tenantId,
@@ -312,12 +319,12 @@ final class StockMovementController extends Controller
                             ]);
 
                             $imported++;
-                        } catch (\Throwable $e) {
+                        } catch (Throwable $e) {
                             $errors[] = [
                                 'row' => $rowNum,
                                 'field' => 'sku',
                                 'value' => $sku,
-                                'message' => 'Balance creation failed: ' . $e->getMessage(),
+                                'message' => 'Balance creation failed: '.$e->getMessage(),
                             ];
                         }
                     }
@@ -336,6 +343,7 @@ final class StockMovementController extends Controller
             ],
         ]);
     }
+
     public function index(Request $request): AnonymousResourceCollection
     {
         $tenantId = TenantContext::current()->tenantId();
@@ -423,11 +431,11 @@ final class StockMovementController extends Controller
             ->where('id', $id)
             ->firstOrFail();
 
-        DB::transaction(function () use ($balance, $tenantId, $userId) {
+        DB::transaction(function () use ($balance, $tenantId, $userId): void {
             $qty = (float) $balance->quantity;
             if ($qty > 0) {
                 $unitId = Unit::query()->where('tenant_id', $tenantId)->value('id') ?? 1;
-                $movNumber = 'MOV-DEL-' . date('YmdHis') . '-' . strtoupper(Str::random(6));
+                $movNumber = 'MOV-DEL-'.date('YmdHis').'-'.strtoupper(Str::random(6));
 
                 DB::table('stock_movements')->insert([
                     'tenant_id' => $tenantId,
@@ -481,14 +489,14 @@ final class StockMovementController extends Controller
 
         $deletedCount = 0;
 
-        DB::transaction(function () use ($balances, $tenantId, $userId, &$deletedCount) {
+        DB::transaction(function () use ($balances, $tenantId, $userId, &$deletedCount): void {
             $unitId = Unit::query()->where('tenant_id', $tenantId)->value('id') ?? 1;
 
             /** @var StockBalance $balance */
             foreach ($balances as $balance) {
                 $qty = (float) $balance->quantity;
                 if ($qty > 0) {
-                    $movNumber = 'MOV-DEL-' . date('YmdHis') . '-' . strtoupper(Str::random(6));
+                    $movNumber = 'MOV-DEL-'.date('YmdHis').'-'.strtoupper(Str::random(6));
 
                     DB::table('stock_movements')->insert([
                         'tenant_id' => $tenantId,

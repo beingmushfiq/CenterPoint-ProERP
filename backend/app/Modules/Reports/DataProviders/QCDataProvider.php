@@ -110,16 +110,16 @@ class QCDataProvider extends BaseDataProvider
                 'qd.notes',
             ]);
 
-        if (!empty($filters['severity'])) {
+        if (! empty($filters['severity'])) {
             $query->where('qd.severity', $filters['severity']);
         }
-        if (!empty($filters['start_date'])) {
+        if (! empty($filters['start_date'])) {
             $query->where('qi.inspection_date', '>=', $filters['start_date']);
         }
-        if (!empty($filters['end_date'])) {
+        if (! empty($filters['end_date'])) {
             $query->where('qi.inspection_date', '<=', $filters['end_date']);
         }
-        if (!empty($filters['batch_id'])) {
+        if (! empty($filters['batch_id'])) {
             $query->where('qi.production_batch_id', $filters['batch_id']);
         }
 
@@ -249,16 +249,16 @@ class QCDataProvider extends BaseDataProvider
 
     protected function applyQCFilters($query, array $filters): void
     {
-        if (!empty($filters['start_date'])) {
+        if (! empty($filters['start_date'])) {
             $query->where('qi.inspection_date', '>=', $filters['start_date']);
         }
-        if (!empty($filters['end_date'])) {
+        if (! empty($filters['end_date'])) {
             $query->where('qi.inspection_date', '<=', $filters['end_date']);
         }
-        if (!empty($filters['result'])) {
+        if (! empty($filters['result'])) {
             $query->where('qi.result', $filters['result']);
         }
-        if (!empty($filters['status'])) {
+        if (! empty($filters['status'])) {
             $query->where('qi.status', $filters['status']);
         }
     }

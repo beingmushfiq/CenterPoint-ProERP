@@ -7,7 +7,6 @@ namespace App\Modules\Sales\Models;
 use App\Core\Tenancy\Concerns\BelongsToTenant;
 use App\Models\Party;
 use App\Models\User;
-use App\Modules\HR\Models\Employee;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -57,22 +56,6 @@ class CrmLead extends Model
         'deleted_at' => 'datetime',
     ];
 
-    protected static function boot(): void
-    {
-        parent::boot();
-
-        static::creating(static function (CrmLead $model): void {
-            if (empty($model->uuid)) {
-                $model->uuid = (string) Str::uuid();
-            }
-            if (empty($model->lead_number)) {
-                $today = now()->format('ymd');
-                $random = strtoupper(Str::random(4));
-                $model->lead_number = "LD-{$today}-{$random}";
-            }
-        });
-    }
-
     public function assignedUser(): BelongsTo
     {
         return $this->belongsTo(User::class, 'assigned_to');
@@ -103,5 +86,21 @@ class CrmLead extends Model
     public function lostReason(): BelongsTo
     {
         return $this->belongsTo(\App\Models\ReasonCode::class, 'lost_reason_id');
+    }
+
+    protected static function boot(): void
+    {
+        parent::boot();
+
+        static::creating(static function (CrmLead $model): void {
+            if (empty($model->uuid)) {
+                $model->uuid = (string) Str::uuid();
+            }
+            if (empty($model->lead_number)) {
+                $today = now()->format('ymd');
+                $random = strtoupper(Str::random(4));
+                $model->lead_number = "LD-{$today}-{$random}";
+            }
+        });
     }
 }

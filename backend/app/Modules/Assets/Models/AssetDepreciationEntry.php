@@ -39,17 +39,6 @@ class AssetDepreciationEntry extends Model
         'posted_at' => 'datetime',
     ];
 
-    protected static function boot(): void
-    {
-        parent::boot();
-
-        static::creating(static function (AssetDepreciationEntry $model): void {
-            if (empty($model->uuid)) {
-                $model->uuid = (string) Str::uuid();
-            }
-        });
-    }
-
     /**
      * @return BelongsTo<Asset, $this>
      */
@@ -64,5 +53,16 @@ class AssetDepreciationEntry extends Model
     public function journalEntry(): BelongsTo
     {
         return $this->belongsTo(JournalEntry::class, 'journal_entry_id');
+    }
+
+    protected static function boot(): void
+    {
+        parent::boot();
+
+        static::creating(static function (AssetDepreciationEntry $model): void {
+            if (empty($model->uuid)) {
+                $model->uuid = (string) Str::uuid();
+            }
+        });
     }
 }

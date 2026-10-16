@@ -15,6 +15,30 @@ final class StoreWorkerProductionEntryRequest extends FormRequest
         return true;
     }
 
+    /**
+     * @return array<string, mixed>
+     */
+    public function rules(): array
+    {
+        return [
+            'production_batch_id' => ['required', 'string'],
+            'employee_id' => ['required', 'string'],
+            'product_id' => ['required', 'string'],
+            'production_line_id' => ['nullable', 'string'],
+            'shift_id' => ['nullable', 'string'],
+            'work_date' => ['required', 'date'],
+            'measure_type' => ['required', 'string', 'in:piece,weight,volume,unit'],
+            'quantity' => ['required', 'numeric', 'gt:0'],
+            'unit_id' => ['required', 'string'],
+            'rework_quantity' => ['nullable', 'numeric', 'gte:0'],
+            'rejected_quantity' => ['nullable', 'numeric', 'gte:0'],
+            'hours_worked' => ['nullable', 'numeric', 'gt:0'],
+            'rate_type' => ['nullable', 'string', 'in:piece_rate,hourly,fixed,none'],
+            'rate' => ['nullable', 'numeric', 'gte:0'],
+            'incentive_amount' => ['nullable', 'numeric', 'gte:0'],
+        ];
+    }
+
     protected function prepareForValidation(): void
     {
         $user = $this->user();
@@ -30,7 +54,7 @@ final class StoreWorkerProductionEntryRequest extends FormRequest
         if ($batchId) {
             $batch = DB::table('production_batches')
                 ->where('tenant_id', $tenantId)
-                ->where(function ($q) use ($batchId) {
+                ->where(function ($q) use ($batchId): void {
                     $q->where('uuid', $batchId);
                     if (is_numeric($batchId)) {
                         $q->orWhere('id', (int) $batchId);
@@ -57,7 +81,7 @@ final class StoreWorkerProductionEntryRequest extends FormRequest
             } elseif ($this->filled('product_id')) {
                 $productId = $this->input('product_id');
                 $product = DB::table('products')
-                    ->where(function ($q) use ($productId) {
+                    ->where(function ($q) use ($productId): void {
                         $q->where('uuid', $productId);
                         if (is_numeric($productId)) {
                             $q->orWhere('id', (int) $productId);
@@ -108,9 +132,9 @@ final class StoreWorkerProductionEntryRequest extends FormRequest
             $shiftStr = strtolower(trim((string) $this->input('shift')));
             $shiftRow = DB::table('shifts')
                 ->where('tenant_id', $tenantId)
-                ->where(function ($q) use ($shiftStr) {
+                ->where(function ($q) use ($shiftStr): void {
                     $q->whereRaw('LOWER(name) LIKE ?', ["%{$shiftStr}%"])
-                      ->orWhereRaw('LOWER(code) LIKE ?', ["%{$shiftStr}%"]);
+                        ->orWhereRaw('LOWER(code) LIKE ?', ["%{$shiftStr}%"]);
                 })
                 ->first();
             if ($shiftRow) {
@@ -128,9 +152,9 @@ final class StoreWorkerProductionEntryRequest extends FormRequest
             $empVal = (string) $this->input('employee_id');
             $employee = DB::table('employees')
                 ->where('tenant_id', $tenantId)
-                ->where(function ($q) use ($empVal) {
+                ->where(function ($q) use ($empVal): void {
                     $q->where('uuid', $empVal)
-                      ->orWhere('employee_code', $empVal);
+                        ->orWhere('employee_code', $empVal);
                     if ($empVal === 'emp-1') {
                         $q->orWhere('employee_code', 'EMP-001');
                     } elseif ($empVal === 'emp-2') {
@@ -146,29 +170,5 @@ final class StoreWorkerProductionEntryRequest extends FormRequest
                 $this->merge(['employee_id' => $employee->uuid]);
             }
         }
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    public function rules(): array
-    {
-        return [
-            'production_batch_id' => ['required', 'string'],
-            'employee_id' => ['required', 'string'],
-            'product_id' => ['required', 'string'],
-            'production_line_id' => ['nullable', 'string'],
-            'shift_id' => ['nullable', 'string'],
-            'work_date' => ['required', 'date'],
-            'measure_type' => ['required', 'string', 'in:piece,weight,volume,unit'],
-            'quantity' => ['required', 'numeric', 'gt:0'],
-            'unit_id' => ['required', 'string'],
-            'rework_quantity' => ['nullable', 'numeric', 'gte:0'],
-            'rejected_quantity' => ['nullable', 'numeric', 'gte:0'],
-            'hours_worked' => ['nullable', 'numeric', 'gt:0'],
-            'rate_type' => ['nullable', 'string', 'in:piece_rate,hourly,fixed,none'],
-            'rate' => ['nullable', 'numeric', 'gte:0'],
-            'incentive_amount' => ['nullable', 'numeric', 'gte:0'],
-        ];
     }
 }

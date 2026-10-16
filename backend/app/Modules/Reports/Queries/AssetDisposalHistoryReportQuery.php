@@ -13,59 +13,50 @@ class AssetDisposalHistoryReportQuery implements ReportQueryInterface
 
     public function __construct(?AssetDataProvider $provider = null)
     {
-        $this->provider = $provider ?? new AssetDataProvider();
+        $this->provider = $provider ?? new AssetDataProvider;
     }
 
     public function columns(): array
     {
-        return array (
-  'asset_tag' => 
-  array (
-    'label' => 'Asset Tag',
-    'type' => 'string',
-    'sortable' => true,
-  ),
-  'name' => 
-  array (
-    'label' => 'Asset Name',
-    'type' => 'string',
-  ),
-  'disposal_date' => 
-  array (
-    'label' => 'Disposal Date',
-    'type' => 'date',
-  ),
-  'disposal_type' => 
-  array (
-    'label' => 'Disposal Method',
-    'type' => 'badge',
-  ),
-  'original_cost' => 
-  array (
-    'label' => 'Historical Cost (BDT)',
-    'type' => 'currency',
-  ),
-  'nbv_at_disposal' => 
-  array (
-    'label' => 'NBV at Disposal (BDT)',
-    'type' => 'currency',
-  ),
-  'proceeds' => 
-  array (
-    'label' => 'Proceeds (BDT)',
-    'type' => 'currency',
-  ),
-  'net_gain_loss' => 
-  array (
-    'label' => 'Gain / Loss (BDT)',
-    'type' => 'currency',
-  ),
-  'status' => 
-  array (
-    'label' => 'Status',
-    'type' => 'badge',
-  ),
-);
+        return [
+            'asset_tag' => [
+                'label' => 'Asset Tag',
+                'type' => 'string',
+                'sortable' => true,
+            ],
+            'name' => [
+                'label' => 'Asset Name',
+                'type' => 'string',
+            ],
+            'disposal_date' => [
+                'label' => 'Disposal Date',
+                'type' => 'date',
+            ],
+            'disposal_type' => [
+                'label' => 'Disposal Method',
+                'type' => 'badge',
+            ],
+            'original_cost' => [
+                'label' => 'Historical Cost (BDT)',
+                'type' => 'currency',
+            ],
+            'nbv_at_disposal' => [
+                'label' => 'NBV at Disposal (BDT)',
+                'type' => 'currency',
+            ],
+            'proceeds' => [
+                'label' => 'Proceeds (BDT)',
+                'type' => 'currency',
+            ],
+            'net_gain_loss' => [
+                'label' => 'Gain / Loss (BDT)',
+                'type' => 'currency',
+            ],
+            'status' => [
+                'label' => 'Status',
+                'type' => 'badge',
+            ],
+        ];
     }
 
     public function query(array $filters, int $page = 1, int $perPage = 25): array

@@ -8,6 +8,7 @@ use App\Core\Tenancy\TenantContext;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Throwable;
 
 /**
  * Resolves the application locale for the current request.
@@ -45,7 +46,7 @@ final class ResolveLocale
 
         // 2. Authenticated user preference
         $user = $request->user();
-        if ($user && !empty($user->locale) && in_array($user->locale, self::SUPPORTED, true)) {
+        if ($user && ! empty($user->locale) && in_array($user->locale, self::SUPPORTED, true)) {
             return (string) $user->locale;
         }
 
@@ -57,7 +58,7 @@ final class ResolveLocale
                 if ($tenantLocale && in_array($tenantLocale, self::SUPPORTED, true)) {
                     return (string) $tenantLocale;
                 }
-            } catch (\Throwable) {
+            } catch (Throwable) {
                 // Ignore if context read fails
             }
         }

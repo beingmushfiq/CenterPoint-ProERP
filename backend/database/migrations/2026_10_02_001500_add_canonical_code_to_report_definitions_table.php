@@ -14,7 +14,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('report_definitions', function (Blueprint $table): void {
-            if (!Schema::hasColumn('report_definitions', 'canonical_code')) {
+            if (! Schema::hasColumn('report_definitions', 'canonical_code')) {
                 $table->string('canonical_code', 64)->nullable()->after('code')->index();
             }
         });

@@ -62,8 +62,8 @@ class StorefrontWhatsAppOrderController extends Controller
 
                 $lines[] = "📦 *Item:* {$product->name}";
                 $lines[] = "🔢 *Quantity:* {$qty}";
-                $lines[] = "💰 *Price:* {$currency} " . number_format((float) $unitPrice, 2);
-                $lines[] = "💵 *Total Est:* {$currency} " . number_format((float) $lineTotal, 2);
+                $lines[] = "💰 *Price:* {$currency} ".number_format((float) $unitPrice, 2);
+                $lines[] = "💵 *Total Est:* {$currency} ".number_format((float) $lineTotal, 2);
             }
         } elseif (! empty($validated['cart_token'])) {
             // 2. If ordering from active cart
@@ -77,10 +77,10 @@ class StorefrontWhatsAppOrderController extends Controller
                 $lines[] = '*Cart Items:*';
                 foreach ($cart->items as $item) {
                     $pName = $item->product?->name ?? 'Product';
-                    $lines[] = "• {$item->quantity}x {$pName} — {$currency} " . number_format((float) $item->line_total, 2);
+                    $lines[] = "• {$item->quantity}x {$pName} — {$currency} ".number_format((float) $item->line_total, 2);
                 }
                 $lines[] = '--------------------------------';
-                $lines[] = "💵 *Cart Total:* {$currency} " . number_format((float) $cart->total_amount, 2);
+                $lines[] = "💵 *Cart Total:* {$currency} ".number_format((float) $cart->total_amount, 2);
                 $totalEstimated = (string) $cart->total_amount;
             }
         }
@@ -98,7 +98,7 @@ class StorefrontWhatsAppOrderController extends Controller
         }
 
         $lines[] = '';
-        $lines[] = "Please confirm availability and dispatch schedule. Thank you!";
+        $lines[] = 'Please confirm availability and dispatch schedule. Thank you!';
 
         $fullMessage = implode("\n", $lines);
         $encodedText = rawurlencode($fullMessage);

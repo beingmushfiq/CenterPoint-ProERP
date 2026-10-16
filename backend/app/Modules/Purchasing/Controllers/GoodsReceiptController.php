@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace App\Modules\Purchasing\Controllers;
 
+use App\Core\Tenancy\TenantContext;
 use App\Http\Controllers\Controller;
 use App\Modules\Purchasing\Actions\CreateGoodsReceiptAction;
 use App\Modules\Purchasing\Models\GoodsReceipt;
 use App\Modules\Purchasing\Requests\StoreGoodsReceiptRequest;
 use App\Modules\Purchasing\Resources\GoodsReceiptResource;
-use App\Core\Tenancy\TenantContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;

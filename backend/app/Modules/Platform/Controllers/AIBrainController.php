@@ -56,8 +56,8 @@ class AIBrainController extends Controller
     {
         $query = (string) ($request->input('query') ?? $request->query('query', ''));
         if (trim($query) === '') {
-            return response()->stream(function () {
-                echo "event: error\ndata: " . json_encode(['error' => 'Query is required']) . "\n\n";
+            return response()->stream(function (): void {
+                echo "event: error\ndata: ".json_encode(['error' => 'Query is required'])."\n\n";
                 if (ob_get_level() > 0) {
                     ob_flush();
                 }
@@ -69,7 +69,7 @@ class AIBrainController extends Controller
             ]);
         }
 
-        return response()->stream(function () use ($query) {
+        return response()->stream(function () use ($query): void {
             $sendEvent = function (string $event, mixed $data): void {
                 $payload = is_string($data) ? $data : json_encode($data);
                 echo "event: {$event}\ndata: {$payload}\n\n";
@@ -102,7 +102,7 @@ class AIBrainController extends Controller
                 $result = $this->brainService->processQuery($query);
 
                 // Stream Thought
-                if (!empty($result['thought'])) {
+                if (! empty($result['thought'])) {
                     $sendEvent('thought', ['thought' => $result['thought']]);
                     usleep(25000);
                 }
@@ -133,7 +133,7 @@ class AIBrainController extends Controller
                 $sendEvent('done', '[DONE]');
 
             } catch (Throwable $e) {
-                \Illuminate\Support\Facades\Log::error('AIBrain streaming error: ' . $e->getMessage());
+                \Illuminate\Support\Facades\Log::error('AIBrain streaming error: '.$e->getMessage());
                 $sendEvent('error', ['message' => $e->getMessage()]);
                 $sendEvent('done', '[DONE]');
             }

@@ -85,31 +85,20 @@ final class PosSession extends Model
      * @var array<string, string>
      */
     protected $casts = [
-        'opened_at'     => 'datetime',
-        'closed_at'     => 'datetime',
-        'opening_cash'  => 'decimal:4',
+        'opened_at' => 'datetime',
+        'closed_at' => 'datetime',
+        'opening_cash' => 'decimal:4',
         'expected_cash' => 'decimal:4',
-        'counted_cash'  => 'decimal:4',
+        'counted_cash' => 'decimal:4',
         'cash_variance' => 'decimal:4',
-        'card_total'    => 'decimal:4',
-        'mobile_total'  => 'decimal:4',
-        'credit_total'  => 'decimal:4',
-        'refund_total'  => 'decimal:4',
-        'created_at'    => 'datetime',
-        'updated_at'    => 'datetime',
-        'deleted_at'    => 'datetime',
+        'card_total' => 'decimal:4',
+        'mobile_total' => 'decimal:4',
+        'credit_total' => 'decimal:4',
+        'refund_total' => 'decimal:4',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
+        'deleted_at' => 'datetime',
     ];
-
-    protected static function boot(): void
-    {
-        parent::boot();
-
-        static::creating(static function (PosSession $model): void {
-            if (empty($model->uuid)) {
-                $model->uuid = (string) Str::uuid();
-            }
-        });
-    }
 
     /**
      * @return BelongsTo<PosTerminal, $this>
@@ -141,5 +130,16 @@ final class PosSession extends Model
     public function closer(): BelongsTo
     {
         return $this->belongsTo(User::class, 'closed_by');
+    }
+
+    protected static function boot(): void
+    {
+        parent::boot();
+
+        self::creating(static function (PosSession $model): void {
+            if (empty($model->uuid)) {
+                $model->uuid = (string) Str::uuid();
+            }
+        });
     }
 }

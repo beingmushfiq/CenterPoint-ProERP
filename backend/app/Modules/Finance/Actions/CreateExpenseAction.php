@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Modules\Finance\Actions;
 
-use App\Core\Exceptions\AppException;
 use App\Modules\Finance\Models\BankAccount;
 use App\Modules\Finance\Models\Expense;
 use App\Modules\Finance\Models\ExpenseCategory;
@@ -53,7 +52,7 @@ class CreateExpenseAction
             $taxAmount = (string) ($data['tax_amount'] ?? '0.0000');
             $totalAmount = bcadd($amount, $taxAmount, 4);
 
-            $expenseNumber = 'EXP-' . date('Ym') . '-' . str_pad((string) random_int(1000, 99999), 5, '0', STR_PAD_LEFT);
+            $expenseNumber = 'EXP-'.date('Ym').'-'.str_pad((string) random_int(1000, 99999), 5, '0', STR_PAD_LEFT);
 
             $category = ExpenseCategory::findOrFail($data['expense_category_id']);
             $expenseAccountId = $category->chart_of_account_id;
@@ -66,9 +65,9 @@ class CreateExpenseAction
             }
 
             $primaryMethod = $data['payment_method'];
-            if (!empty($data['splits']) && is_array($data['splits']) && count($data['splits']) > 1) {
+            if (! empty($data['splits']) && is_array($data['splits']) && count($data['splits']) > 1) {
                 $primaryMethod = 'split';
-            } elseif (!empty($data['splits']) && is_array($data['splits']) && count($data['splits']) === 1) {
+            } elseif (! empty($data['splits']) && is_array($data['splits']) && count($data['splits']) === 1) {
                 $primaryMethod = (string) $data['splits'][0]['method'];
             }
 
@@ -99,31 +98,31 @@ class CreateExpenseAction
             ]);
 
             // Save splits
-            if (!empty($data['splits']) && is_array($data['splits'])) {
+            if (! empty($data['splits']) && is_array($data['splits'])) {
                 foreach ($data['splits'] as $split) {
                     ExpensePaymentSplit::create([
-                        'tenant_id'       => $tenantId,
-                        'expense_id'      => $expense->id,
-                        'method'          => (string) $split['method'],
-                        'amount'          => (string) $split['amount'],
-                        'bank_account_id' => !empty($split['bank_account_id']) ? (int) $split['bank_account_id'] : null,
+                        'tenant_id' => $tenantId,
+                        'expense_id' => $expense->id,
+                        'method' => (string) $split['method'],
+                        'amount' => (string) $split['amount'],
+                        'bank_account_id' => ! empty($split['bank_account_id']) ? (int) $split['bank_account_id'] : null,
                         'mobile_provider' => $split['mobile_provider'] ?? null,
-                        'mobile_number'   => $split['mobile_number'] ?? null,
+                        'mobile_number' => $split['mobile_number'] ?? null,
                         'transaction_ref' => $split['transaction_ref'] ?? null,
-                        'cheque_number'   => $split['cheque_number'] ?? null,
-                        'cheque_date'     => $split['cheque_date'] ?? null,
-                        'notes'           => $split['notes'] ?? null,
+                        'cheque_number' => $split['cheque_number'] ?? null,
+                        'cheque_date' => $split['cheque_date'] ?? null,
+                        'notes' => $split['notes'] ?? null,
                     ]);
                 }
             } else {
                 ExpensePaymentSplit::create([
-                    'tenant_id'       => $tenantId,
-                    'expense_id'      => $expense->id,
-                    'method'          => $data['payment_method'],
-                    'amount'          => $totalAmount,
+                    'tenant_id' => $tenantId,
+                    'expense_id' => $expense->id,
+                    'method' => $data['payment_method'],
+                    'amount' => $totalAmount,
                     'bank_account_id' => $bankAccountId,
                     'transaction_ref' => $data['reference_number'] ?? null,
-                    'notes'           => $data['description'] ?? null,
+                    'notes' => $data['description'] ?? null,
                 ]);
             }
 

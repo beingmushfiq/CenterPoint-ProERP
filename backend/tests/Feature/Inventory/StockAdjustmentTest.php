@@ -27,11 +27,17 @@ final class StockAdjustmentTest extends TestCase
     use RefreshDatabase;
 
     private Tenant $tenant;
+
     private User $user;
+
     private string $jwt;
+
     private Warehouse $warehouse;
+
     private Product $product;
+
     private Unit $unit;
+
     private ReasonCode $reasonCode;
 
     protected function setUp(): void

@@ -13,7 +13,7 @@ class PurchaseDetailsReportQuery implements ReportQueryInterface
 
     public function __construct(?PurchaseDataProvider $provider = null)
     {
-        $this->provider = $provider ?? new PurchaseDataProvider();
+        $this->provider = $provider ?? new PurchaseDataProvider;
     }
 
     public function columns(): array

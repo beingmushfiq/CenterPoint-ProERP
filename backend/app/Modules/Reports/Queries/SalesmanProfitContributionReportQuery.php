@@ -13,46 +13,40 @@ class SalesmanProfitContributionReportQuery implements ReportQueryInterface
 
     public function __construct(?SalesDataProvider $provider = null)
     {
-        $this->provider = $provider ?? new SalesDataProvider();
+        $this->provider = $provider ?? new SalesDataProvider;
     }
 
     public function columns(): array
     {
-        return array (
-  'salesperson_name' => 
-  array (
-    'label' => 'Salesperson',
-    'type' => 'string',
-    'sortable' => true,
-  ),
-  'orders_count' => 
-  array (
-    'label' => 'Orders Count',
-    'type' => 'number',
-  ),
-  'total_revenue' => 
-  array (
-    'label' => 'Revenue Generated (BDT)',
-    'type' => 'currency',
-    'sortable' => true,
-  ),
-  'total_cogs' => 
-  array (
-    'label' => 'COGS (BDT)',
-    'type' => 'currency',
-  ),
-  'gross_profit' => 
-  array (
-    'label' => 'Profit Margin (BDT)',
-    'type' => 'currency',
-    'sortable' => true,
-  ),
-  'margin_percent' => 
-  array (
-    'label' => 'Net Margin (%)',
-    'type' => 'string',
-  ),
-);
+        return [
+            'salesperson_name' => [
+                'label' => 'Salesperson',
+                'type' => 'string',
+                'sortable' => true,
+            ],
+            'orders_count' => [
+                'label' => 'Orders Count',
+                'type' => 'number',
+            ],
+            'total_revenue' => [
+                'label' => 'Revenue Generated (BDT)',
+                'type' => 'currency',
+                'sortable' => true,
+            ],
+            'total_cogs' => [
+                'label' => 'COGS (BDT)',
+                'type' => 'currency',
+            ],
+            'gross_profit' => [
+                'label' => 'Profit Margin (BDT)',
+                'type' => 'currency',
+                'sortable' => true,
+            ],
+            'margin_percent' => [
+                'label' => 'Net Margin (%)',
+                'type' => 'string',
+            ],
+        ];
     }
 
     public function query(array $filters, int $page = 1, int $perPage = 25): array

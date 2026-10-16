@@ -13,59 +13,50 @@ class AssignedAssetsReportQuery implements ReportQueryInterface
 
     public function __construct(?AssetDataProvider $provider = null)
     {
-        $this->provider = $provider ?? new AssetDataProvider();
+        $this->provider = $provider ?? new AssetDataProvider;
     }
 
     public function columns(): array
     {
-        return array (
-  'asset_tag' => 
-  array (
-    'label' => 'Asset Tag',
-    'type' => 'string',
-    'sortable' => true,
-  ),
-  'name' => 
-  array (
-    'label' => 'Asset Name',
-    'type' => 'string',
-  ),
-  'category' => 
-  array (
-    'label' => 'Category',
-    'type' => 'string',
-  ),
-  'assigned_to' => 
-  array (
-    'label' => 'Assigned Custodian',
-    'type' => 'string',
-  ),
-  'department' => 
-  array (
-    'label' => 'Department',
-    'type' => 'string',
-  ),
-  'branch' => 
-  array (
-    'label' => 'Branch / Location',
-    'type' => 'string',
-  ),
-  'line' => 
-  array (
-    'label' => 'Production Line',
-    'type' => 'string',
-  ),
-  'assigned_date' => 
-  array (
-    'label' => 'Assignment Date',
-    'type' => 'date',
-  ),
-  'condition' => 
-  array (
-    'label' => 'Current Condition',
-    'type' => 'badge',
-  ),
-);
+        return [
+            'asset_tag' => [
+                'label' => 'Asset Tag',
+                'type' => 'string',
+                'sortable' => true,
+            ],
+            'name' => [
+                'label' => 'Asset Name',
+                'type' => 'string',
+            ],
+            'category' => [
+                'label' => 'Category',
+                'type' => 'string',
+            ],
+            'assigned_to' => [
+                'label' => 'Assigned Custodian',
+                'type' => 'string',
+            ],
+            'department' => [
+                'label' => 'Department',
+                'type' => 'string',
+            ],
+            'branch' => [
+                'label' => 'Branch / Location',
+                'type' => 'string',
+            ],
+            'line' => [
+                'label' => 'Production Line',
+                'type' => 'string',
+            ],
+            'assigned_date' => [
+                'label' => 'Assignment Date',
+                'type' => 'date',
+            ],
+            'condition' => [
+                'label' => 'Current Condition',
+                'type' => 'badge',
+            ],
+        ];
     }
 
     public function query(array $filters, int $page = 1, int $perPage = 25): array

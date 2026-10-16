@@ -13,55 +13,47 @@ class AssetValuationNbvReportQuery implements ReportQueryInterface
 
     public function __construct(?AssetDataProvider $provider = null)
     {
-        $this->provider = $provider ?? new AssetDataProvider();
+        $this->provider = $provider ?? new AssetDataProvider;
     }
 
     public function columns(): array
     {
-        return array (
-  'asset_tag' => 
-  array (
-    'label' => 'Asset Tag',
-    'type' => 'string',
-    'sortable' => true,
-  ),
-  'name' => 
-  array (
-    'label' => 'Asset Name',
-    'type' => 'string',
-  ),
-  'category' => 
-  array (
-    'label' => 'Category',
-    'type' => 'string',
-  ),
-  'purchase_cost' => 
-  array (
-    'label' => 'Purchase Cost (BDT)',
-    'type' => 'currency',
-  ),
-  'total_depreciation' => 
-  array (
-    'label' => 'Accumulated Dep. (BDT)',
-    'type' => 'currency',
-  ),
-  'current_nbv' => 
-  array (
-    'label' => 'Current NBV (BDT)',
-    'type' => 'currency',
-    'sortable' => true,
-  ),
-  'depreciation_method' => 
-  array (
-    'label' => 'Method',
-    'type' => 'string',
-  ),
-  'useful_life_months' => 
-  array (
-    'label' => 'Useful Life (Months)',
-    'type' => 'number',
-  ),
-);
+        return [
+            'asset_tag' => [
+                'label' => 'Asset Tag',
+                'type' => 'string',
+                'sortable' => true,
+            ],
+            'name' => [
+                'label' => 'Asset Name',
+                'type' => 'string',
+            ],
+            'category' => [
+                'label' => 'Category',
+                'type' => 'string',
+            ],
+            'purchase_cost' => [
+                'label' => 'Purchase Cost (BDT)',
+                'type' => 'currency',
+            ],
+            'total_depreciation' => [
+                'label' => 'Accumulated Dep. (BDT)',
+                'type' => 'currency',
+            ],
+            'current_nbv' => [
+                'label' => 'Current NBV (BDT)',
+                'type' => 'currency',
+                'sortable' => true,
+            ],
+            'depreciation_method' => [
+                'label' => 'Method',
+                'type' => 'string',
+            ],
+            'useful_life_months' => [
+                'label' => 'Useful Life (Months)',
+                'type' => 'number',
+            ],
+        ];
     }
 
     public function query(array $filters, int $page = 1, int $perPage = 25): array

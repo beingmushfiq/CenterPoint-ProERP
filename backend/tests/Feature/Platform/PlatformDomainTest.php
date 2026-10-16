@@ -16,6 +16,7 @@ class PlatformDomainTest extends TestCase
     use RefreshDatabase;
 
     private string $platformToken;
+
     private Tenant $tenant;
 
     protected function setUp(): void
@@ -51,7 +52,7 @@ class PlatformDomainTest extends TestCase
             'ssl_status' => 'pending',
         ]);
 
-        $response = $this->withHeader('Authorization', 'Bearer ' . $this->platformToken)
+        $response = $this->withHeader('Authorization', 'Bearer '.$this->platformToken)
             ->getJson('/api/v1/platform/domains');
 
         $response->assertOk();
@@ -72,7 +73,7 @@ class PlatformDomainTest extends TestCase
         ]);
 
         // 1. Trigger verification
-        $verifyRes = $this->withHeader('Authorization', 'Bearer ' . $this->platformToken)
+        $verifyRes = $this->withHeader('Authorization', 'Bearer '.$this->platformToken)
             ->postJson("/api/v1/platform/domains/{$domain->id}/verify");
 
         $verifyRes->assertOk();
@@ -80,7 +81,7 @@ class PlatformDomainTest extends TestCase
         $verifyRes->assertJsonPath('data.ssl_status', 'active');
 
         // 2. Suspend domain
-        $statusRes = $this->withHeader('Authorization', 'Bearer ' . $this->platformToken)
+        $statusRes = $this->withHeader('Authorization', 'Bearer '.$this->platformToken)
             ->patchJson("/api/v1/platform/domains/{$domain->id}/status", [
                 'verification_status' => 'suspended',
             ]);

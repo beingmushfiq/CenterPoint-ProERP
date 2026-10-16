@@ -82,17 +82,6 @@ final class StockCountItem extends Model
         'deleted_at' => 'datetime',
     ];
 
-    protected static function boot(): void
-    {
-        parent::boot();
-
-        static::creating(static function (StockCountItem $model): void {
-            if (empty($model->uuid)) {
-                $model->uuid = (string) Str::uuid();
-            }
-        });
-    }
-
     /**
      * @return BelongsTo<StockCount, $this>
      */
@@ -123,5 +112,16 @@ final class StockCountItem extends Model
     public function warehouseLocation(): BelongsTo
     {
         return $this->belongsTo(WarehouseLocation::class, 'warehouse_location_id');
+    }
+
+    protected static function boot(): void
+    {
+        parent::boot();
+
+        self::creating(static function (StockCountItem $model): void {
+            if (empty($model->uuid)) {
+                $model->uuid = (string) Str::uuid();
+            }
+        });
     }
 }

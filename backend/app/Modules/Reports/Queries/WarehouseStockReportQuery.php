@@ -13,56 +13,48 @@ class WarehouseStockReportQuery implements ReportQueryInterface
 
     public function __construct(?InventoryDataProvider $provider = null)
     {
-        $this->provider = $provider ?? new InventoryDataProvider();
+        $this->provider = $provider ?? new InventoryDataProvider;
     }
 
     public function columns(): array
     {
-        return array (
-  'warehouse' => 
-  array (
-    'label' => 'Warehouse',
-    'type' => 'string',
-    'sortable' => true,
-  ),
-  'sku' => 
-  array (
-    'label' => 'SKU',
-    'type' => 'string',
-  ),
-  'product_name' => 
-  array (
-    'label' => 'Product Name',
-    'type' => 'string',
-  ),
-  'available_qty' => 
-  array (
-    'label' => 'Available',
-    'type' => 'number',
-  ),
-  'reserved_qty' => 
-  array (
-    'label' => 'Reserved',
-    'type' => 'number',
-  ),
-  'damaged_qty' => 
-  array (
-    'label' => 'Damaged',
-    'type' => 'number',
-  ),
-  'total_qty' => 
-  array (
-    'label' => 'Total On-Hand',
-    'type' => 'number',
-    'sortable' => true,
-  ),
-  'total_valuation' => 
-  array (
-    'label' => 'Valuation (BDT)',
-    'type' => 'currency',
-    'sortable' => true,
-  ),
-);
+        return [
+            'warehouse' => [
+                'label' => 'Warehouse',
+                'type' => 'string',
+                'sortable' => true,
+            ],
+            'sku' => [
+                'label' => 'SKU',
+                'type' => 'string',
+            ],
+            'product_name' => [
+                'label' => 'Product Name',
+                'type' => 'string',
+            ],
+            'available_qty' => [
+                'label' => 'Available',
+                'type' => 'number',
+            ],
+            'reserved_qty' => [
+                'label' => 'Reserved',
+                'type' => 'number',
+            ],
+            'damaged_qty' => [
+                'label' => 'Damaged',
+                'type' => 'number',
+            ],
+            'total_qty' => [
+                'label' => 'Total On-Hand',
+                'type' => 'number',
+                'sortable' => true,
+            ],
+            'total_valuation' => [
+                'label' => 'Valuation (BDT)',
+                'type' => 'currency',
+                'sortable' => true,
+            ],
+        ];
     }
 
     public function query(array $filters, int $page = 1, int $perPage = 25): array

@@ -84,27 +84,16 @@ final class SalesReturn extends Model
      * @var array<string, string>
      */
     protected $casts = [
-        'return_date'  => 'date',
-        'restock'      => 'boolean',
-        'subtotal'     => 'decimal:4',
-        'tax_amount'   => 'decimal:4',
+        'return_date' => 'date',
+        'restock' => 'boolean',
+        'subtotal' => 'decimal:4',
+        'tax_amount' => 'decimal:4',
         'total_amount' => 'decimal:4',
-        'approved_at'  => 'datetime',
-        'created_at'   => 'datetime',
-        'updated_at'   => 'datetime',
-        'deleted_at'   => 'datetime',
+        'approved_at' => 'datetime',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
+        'deleted_at' => 'datetime',
     ];
-
-    protected static function boot(): void
-    {
-        parent::boot();
-
-        static::creating(static function (SalesReturn $model): void {
-            if (empty($model->uuid)) {
-                $model->uuid = (string) Str::uuid();
-            }
-        });
-    }
 
     /**
      * @return BelongsTo<Invoice, $this>
@@ -168,5 +157,16 @@ final class SalesReturn extends Model
     public function items(): HasMany
     {
         return $this->hasMany(SalesReturnItem::class, 'sales_return_id');
+    }
+
+    protected static function boot(): void
+    {
+        parent::boot();
+
+        self::creating(static function (SalesReturn $model): void {
+            if (empty($model->uuid)) {
+                $model->uuid = (string) Str::uuid();
+            }
+        });
     }
 }

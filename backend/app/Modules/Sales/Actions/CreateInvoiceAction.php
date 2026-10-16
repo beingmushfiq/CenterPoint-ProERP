@@ -41,7 +41,7 @@ final class CreateInvoiceAction
     public function execute(array $data): Invoice
     {
         return DB::transaction(function () use ($data): Invoice {
-            $invoiceNumber = $data['invoice_number'] ?? ('INV-' . date('Ymd') . '-' . strtoupper(Str::random(6)));
+            $invoiceNumber = $data['invoice_number'] ?? ('INV-'.date('Ymd').'-'.strtoupper(Str::random(6)));
 
             /** @var numeric-string $subtotal */
             $subtotal = '0.0000';
@@ -71,25 +71,25 @@ final class CreateInvoiceAction
             $grandTotal = bcadd(bcsub(bcadd($subtotal, $totalTax, 4), $totalDiscount, 4), '0.0000', 4);
 
             $invoice = Invoice::create([
-                'tenant_id'          => $data['tenant_id'],
-                'invoice_number'     => $invoiceNumber,
-                'sales_order_id'     => $data['sales_order_id'] ?? null,
-                'company_id'         => $data['company_id'] ?? null,
-                'branch_id'          => $data['branch_id'] ?? null,
-                'party_id'           => $data['party_id'] ?? null,
-                'invoice_date'       => $data['invoice_date'],
-                'due_date'           => $data['due_date'] ?? null,
-                'subtotal'           => $subtotal,
-                'discount_amount'    => $totalDiscount,
-                'tax_amount'         => $totalTax,
-                'shipping_amount'    => '0.0000',
-                'round_off'          => '0.0000',
-                'total_amount'       => $grandTotal,
-                'paid_amount'        => '0.0000',
-                'status'             => 'draft',
+                'tenant_id' => $data['tenant_id'],
+                'invoice_number' => $invoiceNumber,
+                'sales_order_id' => $data['sales_order_id'] ?? null,
+                'company_id' => $data['company_id'] ?? null,
+                'branch_id' => $data['branch_id'] ?? null,
+                'party_id' => $data['party_id'] ?? null,
+                'invoice_date' => $data['invoice_date'],
+                'due_date' => $data['due_date'] ?? null,
+                'subtotal' => $subtotal,
+                'discount_amount' => $totalDiscount,
+                'tax_amount' => $totalTax,
+                'shipping_amount' => '0.0000',
+                'round_off' => '0.0000',
+                'total_amount' => $grandTotal,
+                'paid_amount' => '0.0000',
+                'status' => 'draft',
                 'invoice_template_id' => $data['invoice_template_id'] ?? null,
-                'printed_count'      => 0,
-                'created_by'         => $data['created_by'] ?? null,
+                'printed_count' => 0,
+                'created_by' => $data['created_by'] ?? null,
             ]);
 
             // Also update the linked SalesOrder's due_amount if provided
@@ -119,20 +119,20 @@ final class CreateInvoiceAction
                 $lineTotal = bcadd($lineNet, $taxAmt, 4);
 
                 InvoiceItem::create([
-                    'tenant_id'           => $data['tenant_id'],
-                    'invoice_id'          => $invoice->id,
+                    'tenant_id' => $data['tenant_id'],
+                    'invoice_id' => $invoice->id,
                     'sales_order_item_id' => $item['sales_order_item_id'] ?? null,
-                    'product_id'          => $item['product_id'] ?? null,
-                    'description'         => $item['description'] ?? null,
-                    'quantity'            => $qty,
-                    'unit_id'             => $item['unit_id'] ?? null,
-                    'unit_price'          => $price,
-                    'discount_amount'     => $disc,
-                    'tax_profile_id'      => $item['tax_profile_id'] ?? null,
-                    'tax_amount'          => $taxAmt,
-                    'line_total'          => $lineTotal,
-                    'sort_order'          => $item['sort_order'] ?? $idx,
-                    'created_by'          => $data['created_by'] ?? null,
+                    'product_id' => $item['product_id'] ?? null,
+                    'description' => $item['description'] ?? null,
+                    'quantity' => $qty,
+                    'unit_id' => $item['unit_id'] ?? null,
+                    'unit_price' => $price,
+                    'discount_amount' => $disc,
+                    'tax_profile_id' => $item['tax_profile_id'] ?? null,
+                    'tax_amount' => $taxAmt,
+                    'line_total' => $lineTotal,
+                    'sort_order' => $item['sort_order'] ?? $idx,
+                    'created_by' => $data['created_by'] ?? null,
                 ]);
             }
 

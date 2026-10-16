@@ -94,32 +94,21 @@ final class Invoice extends Model
      * @var array<string, string>
      */
     protected $casts = [
-        'invoice_date'    => 'date',
-        'due_date'        => 'date',
-        'subtotal'        => 'decimal:4',
+        'invoice_date' => 'date',
+        'due_date' => 'date',
+        'subtotal' => 'decimal:4',
         'discount_amount' => 'decimal:4',
-        'tax_amount'      => 'decimal:4',
+        'tax_amount' => 'decimal:4',
         'shipping_amount' => 'decimal:4',
-        'round_off'       => 'decimal:4',
-        'total_amount'    => 'decimal:4',
-        'paid_amount'     => 'decimal:4',
-        'posted_at'       => 'datetime',
-        'voided_at'       => 'datetime',
-        'created_at'      => 'datetime',
-        'updated_at'      => 'datetime',
-        'deleted_at'      => 'datetime',
+        'round_off' => 'decimal:4',
+        'total_amount' => 'decimal:4',
+        'paid_amount' => 'decimal:4',
+        'posted_at' => 'datetime',
+        'voided_at' => 'datetime',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
+        'deleted_at' => 'datetime',
     ];
-
-    protected static function boot(): void
-    {
-        parent::boot();
-
-        static::creating(static function (Invoice $model): void {
-            if (empty($model->uuid)) {
-                $model->uuid = (string) Str::uuid();
-            }
-        });
-    }
 
     /**
      * @return BelongsTo<SalesOrder, $this>
@@ -167,5 +156,16 @@ final class Invoice extends Model
     public function exchanges(): HasMany
     {
         return $this->hasMany(Exchange::class, 'original_invoice_id');
+    }
+
+    protected static function boot(): void
+    {
+        parent::boot();
+
+        self::creating(static function (Invoice $model): void {
+            if (empty($model->uuid)) {
+                $model->uuid = (string) Str::uuid();
+            }
+        });
     }
 }

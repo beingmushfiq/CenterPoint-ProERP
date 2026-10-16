@@ -63,23 +63,9 @@ final class DocumentPrintHistory extends Model
      */
     protected $casts = [
         'template_version' => 'integer',
-        'copies'           => 'integer',
-        'created_at'       => 'datetime',
+        'copies' => 'integer',
+        'created_at' => 'datetime',
     ];
-
-    protected static function boot(): void
-    {
-        parent::boot();
-
-        static::creating(static function (DocumentPrintHistory $model): void {
-            if (empty($model->uuid)) {
-                $model->uuid = (string) Str::uuid();
-            }
-            if (empty($model->created_at)) {
-                $model->created_at = now();
-            }
-        });
-    }
 
     /**
      * @return BelongsTo<DocumentTemplate, $this>
@@ -103,5 +89,19 @@ final class DocumentPrintHistory extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class, 'user_id');
+    }
+
+    protected static function boot(): void
+    {
+        parent::boot();
+
+        self::creating(static function (DocumentPrintHistory $model): void {
+            if (empty($model->uuid)) {
+                $model->uuid = (string) Str::uuid();
+            }
+            if (empty($model->created_at)) {
+                $model->created_at = now();
+            }
+        });
     }
 }

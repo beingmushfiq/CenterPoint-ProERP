@@ -40,17 +40,6 @@ class IncentivePolicy extends Model
         'deleted_at' => 'datetime',
     ];
 
-    protected static function boot(): void
-    {
-        parent::boot();
-
-        static::creating(static function (IncentivePolicy $model): void {
-            if (empty($model->uuid)) {
-                $model->uuid = (string) Str::uuid();
-            }
-        });
-    }
-
     public function rules(): HasMany
     {
         return $this->hasMany(IncentivePolicyRule::class, 'incentive_policy_id');
@@ -64,5 +53,16 @@ class IncentivePolicy extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    protected static function boot(): void
+    {
+        parent::boot();
+
+        static::creating(static function (IncentivePolicy $model): void {
+            if (empty($model->uuid)) {
+                $model->uuid = (string) Str::uuid();
+            }
+        });
     }
 }

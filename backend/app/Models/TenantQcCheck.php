@@ -23,6 +23,11 @@ class TenantQcCheck extends Model
         'sort_order',
     ];
 
+    public function template(): BelongsTo
+    {
+        return $this->belongsTo(TenantQcTemplate::class, 'template_id');
+    }
+
     protected function casts(): array
     {
         return [
@@ -31,10 +36,5 @@ class TenantQcCheck extends Model
             'is_required' => 'boolean',
             'sort_order' => 'integer',
         ];
-    }
-
-    public function template(): BelongsTo
-    {
-        return $this->belongsTo(TenantQcTemplate::class, 'template_id');
     }
 }

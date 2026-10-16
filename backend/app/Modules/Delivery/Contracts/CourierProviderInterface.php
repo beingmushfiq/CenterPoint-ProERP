@@ -20,22 +20,22 @@ interface CourierProviderInterface
     /**
      * Set provider configuration/credentials before executing actions.
      *
-     * @param array<string, mixed> $credentials
-     * @param array<string, mixed> $settings
+     * @param  array<string, mixed>  $credentials
+     * @param  array<string, mixed>  $settings
      */
     public function setConfig(array $credentials, array $settings = []): self;
 
     /**
      * Book a new shipment consignment with the courier.
      *
-     * @param array<string, mixed> $options
+     * @param  array<string, mixed>  $options
      */
     public function createShipment(DeliveryOrder $deliveryOrder, array $options = []): ShipmentResult;
 
     /**
      * Cancel an existing shipment upstream with the courier.
      *
-     * @param array<string, mixed> $options
+     * @param  array<string, mixed>  $options
      */
     public function cancelShipment(string $consignmentId, array $options = []): CancelResult;
 
@@ -62,7 +62,7 @@ interface CourierProviderInterface
     /**
      * Verify and parse an inbound webhook event from the courier provider.
      *
-     * @param array<string, mixed> $payload
+     * @param  array<string, mixed>  $payload
      */
     public function handleWebhook(array $payload, ?string $signature): NormalisedEvent;
 

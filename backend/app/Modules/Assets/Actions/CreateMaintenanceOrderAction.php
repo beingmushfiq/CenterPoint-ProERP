@@ -34,7 +34,7 @@ class CreateMaintenanceOrderAction
             $external = (string) ($data['external_cost'] ?? '0.0000');
             $total = bcadd(bcadd($labour, $parts, 4), $external, 4);
 
-            $orderNumber = 'MNT-' . date('Ym') . '-' . str_pad((string) random_int(1000, 99999), 5, '0', STR_PAD_LEFT);
+            $orderNumber = 'MNT-'.date('Ym').'-'.str_pad((string) random_int(1000, 99999), 5, '0', STR_PAD_LEFT);
 
             $order = MaintenanceOrder::create([
                 'order_number' => $orderNumber,

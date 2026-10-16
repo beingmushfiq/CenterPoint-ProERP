@@ -30,7 +30,7 @@ class FinanceDataProvider extends BaseDataProvider
                 DB::raw('COALESCE(SUM(jl.credit_amount), 0) as total_credits'),
             ]);
 
-        if (!empty($filters['account_type'])) {
+        if (! empty($filters['account_type'])) {
             $query->where('coa.account_type', $filters['account_type']);
         }
 
@@ -102,7 +102,7 @@ class FinanceDataProvider extends BaseDataProvider
             ->map(function ($row): array {
                 $deb = (float) $row->total_debits;
                 $cred = (float) $row->total_credits;
-                $isExpense = in_array($row->account_type, ['expense', 'cost_of_goods_sold']);
+                $isExpense = in_array($row->account_type, ['expense', 'cost_of_goods_sold'], true);
                 $amount = $isExpense ? ($deb - $cred) : ($cred - $deb);
 
                 return [
@@ -177,8 +177,8 @@ class FinanceDataProvider extends BaseDataProvider
         $driver = DB::getDriverName();
         $diffDaysSql = match ($driver) {
             'sqlite' => "(julianday('now') - julianday(so.order_date))",
-            'pgsql' => "(CURRENT_DATE - so.order_date::date)",
-            default => "DATEDIFF(NOW(), so.order_date)",
+            'pgsql' => '(CURRENT_DATE - so.order_date::date)',
+            default => 'DATEDIFF(NOW(), so.order_date)',
         };
 
         $query = DB::table('sales_orders as so')
@@ -234,7 +234,7 @@ class FinanceDataProvider extends BaseDataProvider
         $isSqlite = DB::connection()->getDriverName() === 'sqlite';
         $diffDaysSql = $isSqlite
             ? "CAST(julianday('now') - julianday(po.order_date) AS INTEGER)"
-            : "DATEDIFF(NOW(), po.order_date)";
+            : 'DATEDIFF(NOW(), po.order_date)';
 
         $query = DB::table('purchase_orders as po')
             ->join('parties as p', 'po.party_id', '=', 'p.id')
@@ -306,16 +306,16 @@ class FinanceDataProvider extends BaseDataProvider
                 'pay.notes',
             ]);
 
-        if (!empty($filters['start_date'])) {
+        if (! empty($filters['start_date'])) {
             $query->where('pay.payment_date', '>=', $filters['start_date']);
         }
-        if (!empty($filters['end_date'])) {
+        if (! empty($filters['end_date'])) {
             $query->where('pay.payment_date', '<=', $filters['end_date']);
         }
-        if (!empty($filters['method'])) {
+        if (! empty($filters['method'])) {
             $query->where('pay.method', $filters['method']);
         }
-        if (!empty($filters['direction'])) {
+        if (! empty($filters['direction'])) {
             $query->where('pay.direction', $filters['direction']);
         }
 
@@ -328,7 +328,7 @@ class FinanceDataProvider extends BaseDataProvider
             ->get()
             ->map(function ($row): array {
                 $dir = strtolower((string) $row->direction);
-                $isIn = in_array($dir, ['inbound', 'in', 'receipt', 'receive']);
+                $isIn = in_array($dir, ['inbound', 'in', 'receipt', 'receive'], true);
 
                 return [
                     'payment_number' => $row->payment_number,
@@ -338,7 +338,7 @@ class FinanceDataProvider extends BaseDataProvider
                     'payment_method' => ucfirst($row->method ?? 'cash'),
                     'reference' => $row->reference_number ?? '—',
                     'inflow_amount' => $isIn ? (float) $row->amount : 0.0,
-                    'outflow_amount' => !$isIn ? (float) $row->amount : 0.0,
+                    'outflow_amount' => ! $isIn ? (float) $row->amount : 0.0,
                     'net_amount' => $isIn ? (float) $row->amount : -((float) $row->amount),
                     'status' => ucfirst($row->status ?? 'posted'),
                 ];
@@ -371,10 +371,10 @@ class FinanceDataProvider extends BaseDataProvider
                 DB::raw("SUM(CASE WHEN pay.direction IN ('outbound', 'out', 'payment') THEN pay.amount ELSE 0 END) as total_outflow"),
             ]);
 
-        if (!empty($filters['start_date'])) {
+        if (! empty($filters['start_date'])) {
             $query->where('pay.payment_date', '>=', $filters['start_date']);
         }
-        if (!empty($filters['end_date'])) {
+        if (! empty($filters['end_date'])) {
             $query->where('pay.payment_date', '<=', $filters['end_date']);
         }
 

@@ -23,9 +23,13 @@ class BankStatementBulkImportTest extends TestCase
     use RefreshDatabase;
 
     private Tenant $tenant;
+
     private User $user;
+
     private string $token;
+
     private Company $company;
+
     private BankAccount $bankAccount;
 
     protected function setUp(): void

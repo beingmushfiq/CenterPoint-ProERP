@@ -7,14 +7,12 @@ namespace App\Modules\Ecommerce\Services\Seo;
 use App\Models\Category;
 use App\Models\Product;
 use App\Models\Storefront;
-use App\Models\StorefrontPage;
 use App\Models\Tenant;
-use App\Models\TenantSeoSetting;
 
 class StructuredDataBuilder
 {
     public function __construct(
-        protected SeoMetadataService $seoMetadataService = new SeoMetadataService()
+        protected SeoMetadataService $seoMetadataService = new SeoMetadataService
     ) {}
 
     /**
@@ -27,19 +25,19 @@ class StructuredDataBuilder
         $brand = $settings->brand_name ?: ($storefront?->name ?: $tenant->name);
         $legalName = $settings->legal_name ?: $brand;
 
-        $type = in_array($settings->business_type, ['LocalBusiness', 'Store', 'Organization']) ? $settings->business_type : 'Organization';
+        $type = in_array($settings->business_type, ['LocalBusiness', 'Store', 'Organization'], true) ? $settings->business_type : 'Organization';
 
         $socialProfiles = is_array($settings->social_profiles) ? array_values(array_filter($settings->social_profiles)) : [];
 
         $schema = [
             '@context' => 'https://schema.org',
             '@type' => $type,
-            '@id' => $baseUrl . '#organization',
+            '@id' => $baseUrl.'#organization',
             'name' => $brand,
             'legalName' => $legalName,
             'url' => $baseUrl,
-            'logo' => $settings->logo_url ?: ($storefront?->logo_attachment_id ? $baseUrl . '/api/v1/attachments/' . $storefront->logo_attachment_id : null),
-            'telephone' => $settings->telephone ?: ($storefront?->whatsapp_number ? '+' . $storefront->whatsapp_number : null),
+            'logo' => $settings->logo_url ?: ($storefront?->logo_attachment_id ? $baseUrl.'/api/v1/attachments/'.$storefront->logo_attachment_id : null),
+            'telephone' => $settings->telephone ?: ($storefront?->whatsapp_number ? '+'.$storefront->whatsapp_number : null),
             'email' => $settings->email,
         ];
 
@@ -89,18 +87,18 @@ class StructuredDataBuilder
         return [
             '@context' => 'https://schema.org',
             '@type' => 'WebSite',
-            '@id' => $baseUrl . '#website',
+            '@id' => $baseUrl.'#website',
             'url' => $baseUrl,
             'name' => $brand,
             'description' => $settings->default_meta_description,
             'publisher' => [
-                '@id' => $baseUrl . '#organization',
+                '@id' => $baseUrl.'#organization',
             ],
             'potentialAction' => [
                 '@type' => 'SearchAction',
                 'target' => [
                     '@type' => 'EntryPoint',
-                    'urlTemplate' => $baseUrl . '/products?q={search_term_string}',
+                    'urlTemplate' => $baseUrl.'/products?q={search_term_string}',
                 ],
                 'query-input' => 'required name=search_term_string',
             ],
@@ -118,7 +116,7 @@ class StructuredDataBuilder
         $list = [];
         $position = 1;
         foreach ($items as $item) {
-            $url = str_starts_with($item['url'], 'http') ? $item['url'] : rtrim($baseUrl, '/') . '/' . ltrim($item['url'], '/');
+            $url = str_starts_with($item['url'], 'http') ? $item['url'] : rtrim($baseUrl, '/').'/'.ltrim($item['url'], '/');
             $list[] = [
                 '@type' => 'ListItem',
                 'position' => $position++,
@@ -142,7 +140,7 @@ class StructuredDataBuilder
         $baseUrl = $this->seoMetadataService->resolveBaseUrl($tenant, $storefront);
         $settings = $this->seoMetadataService->getTenantSeoSettings($tenant->id);
         $brandName = $settings->brand_name ?: ($storefront?->name ?: $tenant->name);
-        $productUrl = $this->seoMetadataService->buildCanonicalUrl($baseUrl, '/products/' . ($product->online_slug ?: $product->sku));
+        $productUrl = $this->seoMetadataService->buildCanonicalUrl($baseUrl, '/products/'.($product->online_slug ?: $product->sku));
 
         $images = [];
         if ($product->relationLoaded('images') && $product->images->isNotEmpty()) {
@@ -164,7 +162,7 @@ class StructuredDataBuilder
         $schema = [
             '@context' => 'https://schema.org',
             '@type' => 'Product',
-            '@id' => $productUrl . '#product',
+            '@id' => $productUrl.'#product',
             'name' => $product->name,
             'description' => $this->seoMetadataService->formatDescription($product->description, null, 250),
             'sku' => $product->sku,
@@ -214,7 +212,7 @@ class StructuredDataBuilder
         $position = 1;
 
         foreach ($products as $p) {
-            $productUrl = $this->seoMetadataService->buildCanonicalUrl($baseUrl, '/products/' . ($p->online_slug ?: $p->sku));
+            $productUrl = $this->seoMetadataService->buildCanonicalUrl($baseUrl, '/products/'.($p->online_slug ?: $p->sku));
             $elements[] = [
                 '@type' => 'ListItem',
                 'position' => $position++,

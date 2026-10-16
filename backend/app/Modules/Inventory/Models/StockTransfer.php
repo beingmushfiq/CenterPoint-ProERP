@@ -77,17 +77,6 @@ final class StockTransfer extends Model
         'deleted_at' => 'datetime',
     ];
 
-    protected static function boot(): void
-    {
-        parent::boot();
-
-        static::creating(static function (StockTransfer $model): void {
-            if (empty($model->uuid)) {
-                $model->uuid = (string) Str::uuid();
-            }
-        });
-    }
-
     /**
      * @return BelongsTo<Warehouse, $this>
      */
@@ -134,5 +123,16 @@ final class StockTransfer extends Model
     public function items(): HasMany
     {
         return $this->hasMany(StockTransferItem::class, 'stock_transfer_id');
+    }
+
+    protected static function boot(): void
+    {
+        parent::boot();
+
+        self::creating(static function (StockTransfer $model): void {
+            if (empty($model->uuid)) {
+                $model->uuid = (string) Str::uuid();
+            }
+        });
     }
 }

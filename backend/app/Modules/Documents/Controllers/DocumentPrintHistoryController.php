@@ -21,8 +21,8 @@ final class DocumentPrintHistoryController extends Controller
     {
         $filters = [
             'document_type' => $request->query('document_type'),
-            'action'        => $request->query('action'),
-            'q'             => $request->query('q'),
+            'action' => $request->query('action'),
+            'q' => $request->query('q'),
         ];
 
         $perPage = (int) $request->query('per_page', 25);
@@ -34,14 +34,14 @@ final class DocumentPrintHistoryController extends Controller
     public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'document_type'    => ['required', 'string', 'max:64'],
-            'document_id'      => ['required', 'integer'],
-            'document_number'  => ['required', 'string', 'max:128'],
-            'template_id'      => ['nullable', 'integer'],
+            'document_type' => ['required', 'string', 'max:64'],
+            'document_id' => ['required', 'integer'],
+            'document_number' => ['required', 'string', 'max:128'],
+            'template_id' => ['nullable', 'integer'],
             'template_version' => ['nullable', 'integer'],
             'print_profile_id' => ['nullable', 'integer'],
-            'action'           => ['required', 'string', 'in:print,pdf,reprint'],
-            'copies'           => ['nullable', 'integer', 'min:1', 'max:100'],
+            'action' => ['required', 'string', 'in:print,pdf,reprint'],
+            'copies' => ['nullable', 'integer', 'min:1', 'max:100'],
         ]);
 
         $userId = (int) ($request->user()?->id ?? 0);

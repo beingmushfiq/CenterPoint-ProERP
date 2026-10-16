@@ -7,7 +7,6 @@ namespace App\Modules\Assets\Actions;
 use App\Modules\Assets\Models\Asset;
 use App\Modules\Assets\Models\AssetDepreciationEntry;
 use App\Modules\Finance\Actions\PostJournalEntryAction;
-use App\Modules\Finance\Models\ChartOfAccount;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 

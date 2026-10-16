@@ -63,7 +63,7 @@ class StorefrontCheckoutController extends Controller
                 ->first();
 
             if (! $customer) {
-                $customerCode = 'CUST-' . strtoupper(Str::random(6));
+                $customerCode = 'CUST-'.strtoupper(Str::random(6));
                 $customer = Party::create([
                     'tenant_id' => $storefront->tenant_id,
                     'uuid' => (string) Str::uuid(),
@@ -86,7 +86,7 @@ class StorefrontCheckoutController extends Controller
             }
 
             // 2. Generate Order Number
-            $orderNumber = 'SO-ONL-' . date('Ymd') . '-' . strtoupper(Str::random(4));
+            $orderNumber = 'SO-ONL-'.date('Ymd').'-'.strtoupper(Str::random(4));
 
             // 3. Create Sales Order
             $salesOrder = SalesOrder::create([
@@ -112,8 +112,8 @@ class StorefrontCheckoutController extends Controller
                 'payment_status' => (! empty($validated['transaction_id']) && in_array($validated['payment_method'], ['online', 'bkash', 'nagad', 'rocket', 'card'], true))
                     ? 'paid'
                     : 'pending',
-                'shipping_address' => $validated['delivery_address'] . ($validated['city'] ? ', ' . $validated['city'] : ''),
-                'notes' => trim(($validated['notes'] ?? '') . (! empty($validated['transaction_id']) ? " [TxnID: {$validated['transaction_id']}]" : '')) ?: null,
+                'shipping_address' => $validated['delivery_address'].($validated['city'] ? ', '.$validated['city'] : ''),
+                'notes' => trim(($validated['notes'] ?? '').(! empty($validated['transaction_id']) ? " [TxnID: {$validated['transaction_id']}]" : '')) ?: null,
             ]);
 
             // 4. Create Sales Order Items

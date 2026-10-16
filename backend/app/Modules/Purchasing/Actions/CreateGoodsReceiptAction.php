@@ -49,7 +49,7 @@ final class CreateGoodsReceiptAction
     public function execute(array $data): GoodsReceipt
     {
         return DB::transaction(function () use ($data): GoodsReceipt {
-            $grnNumber = $data['grn_number'] ?? ('GRN-' . date('Ymd') . '-' . strtoupper(Str::random(6)));
+            $grnNumber = $data['grn_number'] ?? ('GRN-'.date('Ymd').'-'.strtoupper(Str::random(6)));
 
             $receipt = GoodsReceipt::create([
                 'tenant_id' => $data['tenant_id'],

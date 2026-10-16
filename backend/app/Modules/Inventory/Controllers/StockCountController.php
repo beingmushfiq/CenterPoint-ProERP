@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Inventory\Controllers;
 
+use App\Core\Tenancy\TenantContext;
 use App\Http\Controllers\Controller;
 use App\Modules\Inventory\Actions\CreateStockCountAction;
 use App\Modules\Inventory\Actions\ReconcileStockCountAction;
@@ -11,7 +12,6 @@ use App\Modules\Inventory\Models\StockCount;
 use App\Modules\Inventory\Requests\ReconcileStockCountRequest;
 use App\Modules\Inventory\Requests\StoreStockCountRequest;
 use App\Modules\Inventory\Resources\StockCountResource;
-use App\Core\Tenancy\TenantContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;

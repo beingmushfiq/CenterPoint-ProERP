@@ -19,16 +19,16 @@ final class DocumentTemplateVersionResource extends JsonResource
     public function toArray(Request $request): array
     {
         return [
-            'id'             => $this->id,
-            'uuid'           => $this->uuid,
-            'template_id'    => $this->template_id,
-            'version'        => (int) $this->version,
-            'status'         => $this->status,
+            'id' => $this->id,
+            'uuid' => $this->uuid,
+            'template_id' => $this->template_id,
+            'version' => (int) $this->version,
+            'status' => $this->status,
             'change_summary' => $this->change_summary,
-            'layout_config'  => $this->layout_config ?? [],
-            'created_by'     => $this->created_by,
-            'created_at'     => $this->created_at?->toISOString(),
-            'updated_at'     => $this->updated_at?->toISOString(),
+            'layout_config' => $this->layout_config ?? [],
+            'created_by' => $this->created_by,
+            'created_at' => $this->created_at?->toISOString(),
+            'updated_at' => $this->updated_at?->toISOString(),
         ];
     }
 }

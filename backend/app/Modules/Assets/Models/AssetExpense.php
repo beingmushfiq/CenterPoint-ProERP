@@ -36,6 +36,16 @@ class AssetExpense extends Model
         'updated_at' => 'datetime',
     ];
 
+    public function asset(): BelongsTo
+    {
+        return $this->belongsTo(Asset::class, 'asset_id');
+    }
+
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
     protected static function boot(): void
     {
         parent::boot();
@@ -45,15 +55,5 @@ class AssetExpense extends Model
                 $model->uuid = (string) Str::uuid();
             }
         });
-    }
-
-    public function asset(): BelongsTo
-    {
-        return $this->belongsTo(Asset::class, 'asset_id');
-    }
-
-    public function creator(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'created_by');
     }
 }

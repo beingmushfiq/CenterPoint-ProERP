@@ -18,8 +18,11 @@ class StorefrontPageBuilderTest extends TestCase
     use RefreshDatabase;
 
     private Tenant $tenant;
+
     private User $tenantUser;
+
     private string $tenantToken;
+
     private Storefront $storefront;
 
     protected function setUp(): void

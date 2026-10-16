@@ -24,8 +24,11 @@ class DocumentPrintingTest extends TestCase
     use RefreshDatabase;
 
     protected Tenant $tenant;
+
     protected Company $company;
+
     protected User $user;
+
     protected string $token;
 
     protected function setUp(): void
@@ -102,44 +105,6 @@ class DocumentPrintingTest extends TestCase
         parent::tearDown();
     }
 
-    private function assignOnly(string ...$permissions): void
-    {
-        $role = Role::create([
-            'uuid'      => (string) Str::uuid(),
-            'tenant_id' => $this->tenant->id,
-            'name'      => 'Print Admin Role',
-            'slug'      => 'print-admin-' . Str::random(6),
-            'is_system' => false,
-        ]);
-
-        foreach ($permissions as $name) {
-            $parts = explode('.', $name);
-            $module = $parts[0] ?? 'documents';
-            $resource = $parts[1] ?? 'general';
-            $action = $parts[2] ?? 'manage';
-
-            $permission = Permission::firstOrCreate(
-                ['name' => $name],
-                [
-                    'uuid'     => (string) Str::uuid(),
-                    'module'   => $module,
-                    'resource' => $resource,
-                    'action'   => $action,
-                ]
-            );
-            $role->permissions()->attach($permission);
-        }
-
-        $this->user->roles()->detach();
-        $this->user->roles()->attach($role);
-
-        $this->token = app(JwtService::class)->issueToken(
-            userId: $this->user->id,
-            tenantId: $this->tenant->id,
-            tokenVersion: 1
-        );
-    }
-
     public function test_can_list_paper_sizes(): void
     {
         PaperSize::create([
@@ -154,7 +119,7 @@ class DocumentPrintingTest extends TestCase
             'is_active' => true,
         ]);
 
-        $response = $this->withHeader('Authorization', 'Bearer ' . $this->token)
+        $response = $this->withHeader('Authorization', 'Bearer '.$this->token)
             ->getJson('/api/v1/documents/paper-sizes');
 
         $response->assertStatus(200)
@@ -172,7 +137,7 @@ class DocumentPrintingTest extends TestCase
             'is_active' => true,
         ]);
 
-        $response = $this->withHeader('Authorization', 'Bearer ' . $this->token)
+        $response = $this->withHeader('Authorization', 'Bearer '.$this->token)
             ->getJson('/api/v1/documents/print-profiles');
 
         $response->assertStatus(200)
@@ -191,7 +156,7 @@ class DocumentPrintingTest extends TestCase
             'is_default' => true,
         ]);
 
-        $response = $this->withHeader('Authorization', 'Bearer ' . $this->token)
+        $response = $this->withHeader('Authorization', 'Bearer '.$this->token)
             ->getJson('/api/v1/documents/templates');
 
         $response->assertStatus(200)
@@ -200,7 +165,7 @@ class DocumentPrintingTest extends TestCase
 
     public function test_can_list_numbering_sequences(): void
     {
-        $response = $this->withHeader('Authorization', 'Bearer ' . $this->token)
+        $response = $this->withHeader('Authorization', 'Bearer '.$this->token)
             ->getJson('/api/v1/documents/numbering');
 
         $response->assertStatus(200)
@@ -209,10 +174,48 @@ class DocumentPrintingTest extends TestCase
 
     public function test_can_list_print_history(): void
     {
-        $response = $this->withHeader('Authorization', 'Bearer ' . $this->token)
+        $response = $this->withHeader('Authorization', 'Bearer '.$this->token)
             ->getJson('/api/v1/documents/print-history');
 
         $response->assertStatus(200)
             ->assertJsonStructure(['data']);
+    }
+
+    private function assignOnly(string ...$permissions): void
+    {
+        $role = Role::create([
+            'uuid' => (string) Str::uuid(),
+            'tenant_id' => $this->tenant->id,
+            'name' => 'Print Admin Role',
+            'slug' => 'print-admin-'.Str::random(6),
+            'is_system' => false,
+        ]);
+
+        foreach ($permissions as $name) {
+            $parts = explode('.', $name);
+            $module = $parts[0] ?? 'documents';
+            $resource = $parts[1] ?? 'general';
+            $action = $parts[2] ?? 'manage';
+
+            $permission = Permission::firstOrCreate(
+                ['name' => $name],
+                [
+                    'uuid' => (string) Str::uuid(),
+                    'module' => $module,
+                    'resource' => $resource,
+                    'action' => $action,
+                ]
+            );
+            $role->permissions()->attach($permission);
+        }
+
+        $this->user->roles()->detach();
+        $this->user->roles()->attach($role);
+
+        $this->token = app(JwtService::class)->issueToken(
+            userId: $this->user->id,
+            tenantId: $this->tenant->id,
+            tokenVersion: 1
+        );
     }
 }

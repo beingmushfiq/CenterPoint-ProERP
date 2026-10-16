@@ -34,7 +34,7 @@ class CreateAssetAction
 
             $cost = (string) $data['purchase_cost'];
             $salvage = (string) ($data['salvage_value'] ?? '0.0000');
-            $code = $data['asset_code'] ?? ('AST-' . date('Ym') . '-' . str_pad((string) random_int(1000, 99999), 5, '0', STR_PAD_LEFT));
+            $code = $data['asset_code'] ?? ('AST-'.date('Ym').'-'.str_pad((string) random_int(1000, 99999), 5, '0', STR_PAD_LEFT));
 
             return Asset::create([
                 'asset_code' => $code,

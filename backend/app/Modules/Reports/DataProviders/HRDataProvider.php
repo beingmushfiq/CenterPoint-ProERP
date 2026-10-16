@@ -34,10 +34,10 @@ class HRDataProvider extends BaseDataProvider
                 'ps.payment_status',
             ]);
 
-        if (!empty($filters['period_id'])) {
+        if (! empty($filters['period_id'])) {
             $query->where('ps.payroll_period_id', $filters['period_id']);
         }
-        if (!empty($filters['employment_type'])) {
+        if (! empty($filters['employment_type'])) {
             $query->where('e.employment_type', $filters['employment_type']);
         }
 
@@ -97,10 +97,10 @@ class HRDataProvider extends BaseDataProvider
                 'e.phone',
             ]);
 
-        if (!empty($filters['department_id'])) {
+        if (! empty($filters['department_id'])) {
             $query->where('e.department_id', $filters['department_id']);
         }
-        if (!empty($filters['employment_type'])) {
+        if (! empty($filters['employment_type'])) {
             $query->where('e.employment_type', $filters['employment_type']);
         }
 
@@ -157,10 +157,10 @@ class HRDataProvider extends BaseDataProvider
                 'a.status',
             ]);
 
-        if (!empty($filters['date'])) {
+        if (! empty($filters['date'])) {
             $query->where('a.attendance_date', $filters['date']);
         }
-        if (!empty($filters['status'])) {
+        if (! empty($filters['status'])) {
             $query->where('a.status', $filters['status']);
         }
 
@@ -270,10 +270,10 @@ class HRDataProvider extends BaseDataProvider
                 DB::raw('SUM(so.paid_amount * 0.03) as commission_earned'),
             ]);
 
-        if (!empty($filters['start_date'])) {
+        if (! empty($filters['start_date'])) {
             $query->where('so.order_date', '>=', $filters['start_date']);
         }
-        if (!empty($filters['end_date'])) {
+        if (! empty($filters['end_date'])) {
             $query->where('so.order_date', '<=', $filters['end_date']);
         }
 
@@ -322,7 +322,7 @@ class HRDataProvider extends BaseDataProvider
             ->where('ps.tenant_id', $tenantId)
             ->whereNull('ps.deleted_at');
 
-        if (!empty($filters['period_id'])) {
+        if (! empty($filters['period_id'])) {
             $query->where('ps.payroll_period_id', $filters['period_id']);
         }
 

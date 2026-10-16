@@ -14,8 +14,8 @@ use Illuminate\Support\Str;
 class CreateRunSheetAction
 {
     /**
-     * @param array<string, mixed> $data
-     * @param list<int> $deliveryOrderIds
+     * @param  array<string, mixed>  $data
+     * @param  list<int>  $deliveryOrderIds
      */
     public function execute(array $data, array $deliveryOrderIds): RunSheet
     {
@@ -35,7 +35,7 @@ class CreateRunSheetAction
             $runSheet = RunSheet::create([
                 'tenant_id' => $data['tenant_id'],
                 'uuid' => (string) Str::uuid(),
-                'run_sheet_number' => $data['run_sheet_number'] ?? ('RS-' . date('Ymd') . '-' . strtoupper(Str::random(5))),
+                'run_sheet_number' => $data['run_sheet_number'] ?? ('RS-'.date('Ymd').'-'.strtoupper(Str::random(5))),
                 'branch_id' => $data['branch_id'] ?? 1,
                 'rider_id' => $data['rider_id'] ?? null,
                 'run_date' => $data['run_date'] ?? date('Y-m-d'),

@@ -10,7 +10,6 @@ use App\Models\Company;
 use App\Models\Role;
 use App\Models\Tenant;
 use App\Models\User;
-use App\Modules\Finance\Models\ChartOfAccount;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -22,8 +21,11 @@ class ChartOfAccountBulkImportTest extends TestCase
     use RefreshDatabase;
 
     private Tenant $tenant;
+
     private User $user;
+
     private string $token;
+
     private Company $company;
 
     protected function setUp(): void

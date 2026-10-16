@@ -13,6 +13,48 @@ final class StoreQcInspectionRequest extends FormRequest
         return true;
     }
 
+    /**
+     * @return array<string, array<int, string>>
+     */
+    public function rules(): array
+    {
+        return [
+            'inspection_number' => ['required', 'string', 'max:64'],
+            'production_batch_id' => ['nullable', 'string', 'uuid'],
+            'batch_id' => ['nullable', 'string'],
+            'product_id' => ['nullable', 'string'],
+            'inspection_type' => ['nullable', 'string'],
+            'production_output_id' => ['nullable', 'string', 'uuid'],
+            'inspection_date' => ['required', 'date_format:Y-m-d'],
+            'inspector_id' => ['required', 'string', 'uuid'],
+            'sample_size' => ['required', 'numeric', 'gte:0', 'regex:/^\d+(\.\d{1,4})?$/'],
+            'inspected_quantity' => ['required', 'numeric', 'gt:0', 'regex:/^\d+(\.\d{1,4})?$/'],
+            'passed_quantity' => ['required', 'numeric', 'gte:0', 'regex:/^\d+(\.\d{1,4})?$/'],
+            'failed_quantity' => ['nullable', 'numeric', 'gte:0', 'regex:/^\d+(\.\d{1,4})?$/'],
+            'rejected_quantity' => ['nullable', 'numeric', 'gte:0', 'regex:/^\d+(\.\d{1,4})?$/'],
+            'rework_quantity' => ['nullable', 'numeric', 'gte:0', 'regex:/^\d+(\.\d{1,4})?$/'],
+            'scrap_quantity' => ['nullable', 'numeric', 'gte:0', 'regex:/^\d+(\.\d{1,4})?$/'],
+            'result' => ['required', 'string', 'in:pass,fail,partial,hold'],
+            'notes' => ['nullable', 'string'],
+
+            // Nested inspection results
+            'results' => ['nullable', 'array'],
+            'results.*.qc_parameter_id' => ['required', 'string', 'uuid'],
+            'results.*.value_numeric' => ['nullable', 'numeric', 'regex:/^-?\d+(\.\d{1,4})?$/'],
+            'results.*.value_boolean' => ['nullable', 'boolean'],
+            'results.*.value_text' => ['nullable', 'string'],
+            'results.*.is_within_spec' => ['required', 'boolean'],
+            'results.*.notes' => ['nullable', 'string'],
+
+            // Nested defects
+            'defects' => ['nullable', 'array'],
+            'defects.*.defect_reason_id' => ['required', 'string', 'uuid'],
+            'defects.*.quantity' => ['required', 'numeric', 'gt:0', 'regex:/^\d+(\.\d{1,4})?$/'],
+            'defects.*.severity' => ['nullable', 'string', 'in:minor,major,critical'],
+            'defects.*.notes' => ['nullable', 'string'],
+        ];
+    }
+
     protected function prepareForValidation(): void
     {
         $tenantId = \App\Core\Tenancy\TenantContext::current()?->tenantId();
@@ -75,7 +117,9 @@ final class StoreQcInspectionRequest extends FormRequest
         if ($this->has('results') && is_array($this->input('results'))) {
             $mappedResults = [];
             foreach ($this->input('results') as $r) {
-                if (! is_array($r) || empty($r['qc_parameter_id'])) continue;
+                if (! is_array($r) || empty($r['qc_parameter_id'])) {
+                    continue;
+                }
                 $val = $r['measured_value'] ?? $r['value_numeric'] ?? null;
                 $mappedResults[] = [
                     'qc_parameter_id' => $r['qc_parameter_id'],
@@ -92,47 +136,5 @@ final class StoreQcInspectionRequest extends FormRequest
         if ($merges !== []) {
             $this->merge($merges);
         }
-    }
-
-    /**
-     * @return array<string, array<int, string>>
-     */
-    public function rules(): array
-    {
-        return [
-            'inspection_number' => ['required', 'string', 'max:64'],
-            'production_batch_id' => ['nullable', 'string', 'uuid'],
-            'batch_id' => ['nullable', 'string'],
-            'product_id' => ['nullable', 'string'],
-            'inspection_type' => ['nullable', 'string'],
-            'production_output_id' => ['nullable', 'string', 'uuid'],
-            'inspection_date' => ['required', 'date_format:Y-m-d'],
-            'inspector_id' => ['required', 'string', 'uuid'],
-            'sample_size' => ['required', 'numeric', 'gte:0', 'regex:/^\d+(\.\d{1,4})?$/'],
-            'inspected_quantity' => ['required', 'numeric', 'gt:0', 'regex:/^\d+(\.\d{1,4})?$/'],
-            'passed_quantity' => ['required', 'numeric', 'gte:0', 'regex:/^\d+(\.\d{1,4})?$/'],
-            'failed_quantity' => ['nullable', 'numeric', 'gte:0', 'regex:/^\d+(\.\d{1,4})?$/'],
-            'rejected_quantity' => ['nullable', 'numeric', 'gte:0', 'regex:/^\d+(\.\d{1,4})?$/'],
-            'rework_quantity' => ['nullable', 'numeric', 'gte:0', 'regex:/^\d+(\.\d{1,4})?$/'],
-            'scrap_quantity' => ['nullable', 'numeric', 'gte:0', 'regex:/^\d+(\.\d{1,4})?$/'],
-            'result' => ['required', 'string', 'in:pass,fail,partial,hold'],
-            'notes' => ['nullable', 'string'],
-
-            // Nested inspection results
-            'results' => ['nullable', 'array'],
-            'results.*.qc_parameter_id' => ['required', 'string', 'uuid'],
-            'results.*.value_numeric' => ['nullable', 'numeric', 'regex:/^-?\d+(\.\d{1,4})?$/'],
-            'results.*.value_boolean' => ['nullable', 'boolean'],
-            'results.*.value_text' => ['nullable', 'string'],
-            'results.*.is_within_spec' => ['required', 'boolean'],
-            'results.*.notes' => ['nullable', 'string'],
-
-            // Nested defects
-            'defects' => ['nullable', 'array'],
-            'defects.*.defect_reason_id' => ['required', 'string', 'uuid'],
-            'defects.*.quantity' => ['required', 'numeric', 'gt:0', 'regex:/^\d+(\.\d{1,4})?$/'],
-            'defects.*.severity' => ['nullable', 'string', 'in:minor,major,critical'],
-            'defects.*.notes' => ['nullable', 'string'],
-        ];
     }
 }

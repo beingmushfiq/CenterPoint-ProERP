@@ -36,7 +36,7 @@ final class CreateStockAdjustmentAction
     public function execute(array $data): StockAdjustment
     {
         return DB::transaction(function () use ($data): StockAdjustment {
-            $adjustmentNumber = $data['adjustment_number'] ?? ('ADJ-' . date('Ymd') . '-' . strtoupper(Str::random(6)));
+            $adjustmentNumber = $data['adjustment_number'] ?? ('ADJ-'.date('Ymd').'-'.strtoupper(Str::random(6)));
             $firstDirection = $data['items'][0]['direction'] ?? 'out';
             $type = $data['type'] ?? ($firstDirection === 'in' ? 'increase' : 'decrease');
 

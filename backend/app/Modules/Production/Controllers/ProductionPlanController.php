@@ -292,7 +292,7 @@ final class ProductionPlanController extends Controller
             $rowNum = $index + 1;
             $planNumber = trim((string) ($row['plan_number'] ?? $row['plan_code'] ?? $row['code'] ?? ''));
             if ($planNumber === '') {
-                $planNumber = 'PLAN-' . date('Ymd') . '-' . str_pad((string) $rowNum, 4, '0', STR_PAD_LEFT);
+                $planNumber = 'PLAN-'.date('Ymd').'-'.str_pad((string) $rowNum, 4, '0', STR_PAD_LEFT);
             }
             $groupedPlans[$planNumber][] = [
                 'row_num' => $rowNum,
@@ -321,9 +321,9 @@ final class ProductionPlanController extends Controller
             ): void {
                 foreach ($chunk as $planNumber => $planRows) {
                     $firstRow = $planRows[0]['data'];
-                    $planDate = !empty($firstRow['plan_date']) ? (string) $firstRow['plan_date'] : now()->format('Y-m-d');
-                    $periodStart = !empty($firstRow['period_start']) ? (string) $firstRow['period_start'] : $planDate;
-                    $periodEnd = !empty($firstRow['period_end']) ? (string) $firstRow['period_end'] : date('Y-m-d', strtotime('+30 days', strtotime($periodStart)));
+                    $planDate = ! empty($firstRow['plan_date']) ? (string) $firstRow['plan_date'] : now()->format('Y-m-d');
+                    $periodStart = ! empty($firstRow['period_start']) ? (string) $firstRow['period_start'] : $planDate;
+                    $periodEnd = ! empty($firstRow['period_end']) ? (string) $firstRow['period_end'] : date('Y-m-d', strtotime('+30 days', strtotime($periodStart)));
                     $notes = $firstRow['notes'] ?? $firstRow['description'] ?? null;
                     $status = $firstRow['status'] ?? 'draft';
 
@@ -335,6 +335,7 @@ final class ProductionPlanController extends Controller
                     if ($existing) {
                         if ($mode === 'skip') {
                             $skipped += count($planRows);
+
                             continue;
                         }
 
@@ -383,6 +384,7 @@ final class ProductionPlanController extends Controller
                                 'field' => 'product_sku',
                                 'message' => "Product '{$productKey}' not found.",
                             ];
+
                             continue;
                         }
 
@@ -399,8 +401,8 @@ final class ProductionPlanController extends Controller
                                 ['tenant_id' => $tenantId, 'product_id' => $product->id],
                                 [
                                     'uuid' => (string) Str::uuid(),
-                                    'code' => 'BOM-' . ($product->sku ?: str_pad((string) $product->id, 4, '0', STR_PAD_LEFT)),
-                                    'name' => 'Standard BOM - ' . $product->name,
+                                    'code' => 'BOM-'.($product->sku ?: str_pad((string) $product->id, 4, '0', STR_PAD_LEFT)),
+                                    'name' => 'Standard BOM - '.$product->name,
                                     'version' => '1.0',
                                     'output_quantity' => '1.0000',
                                     'output_unit_id' => $product->base_unit_id ?? ($defaultUnit ? $defaultUnit->id : 1),
@@ -452,4 +454,3 @@ final class ProductionPlanController extends Controller
         ]);
     }
 }
-

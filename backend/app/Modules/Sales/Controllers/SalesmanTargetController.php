@@ -8,7 +8,6 @@ use App\Core\Tenancy\TenantContext;
 use App\Http\Controllers\Controller;
 use App\Modules\HR\Models\Employee;
 use App\Modules\Sales\Models\CrmLead;
-use App\Modules\Sales\Models\IncentiveCalculation;
 use App\Modules\Sales\Models\IncentivePolicy;
 use App\Modules\Sales\Models\Invoice;
 use App\Modules\Sales\Models\SalesmanTarget;
@@ -53,9 +52,9 @@ final class SalesmanTargetController extends Controller
         $tenantId = TenantContext::current()->tenantId();
 
         $rawEmployeeId = $request->input('employee_id');
-        if ($rawEmployeeId && !is_numeric($rawEmployeeId)) {
+        if ($rawEmployeeId && ! is_numeric($rawEmployeeId)) {
             $emp = Employee::where('tenant_id', $tenantId)
-                ->where(function ($q) use ($rawEmployeeId) {
+                ->where(function ($q) use ($rawEmployeeId): void {
                     $q->where('uuid', $rawEmployeeId)
                         ->orWhere('employee_code', $rawEmployeeId);
                 })
@@ -66,16 +65,16 @@ final class SalesmanTargetController extends Controller
         }
 
         $validated = $request->validate([
-            'employee_id'   => ['required', 'integer', 'exists:employees,id'],
-            'period_month'  => ['required', 'string', 'regex:/^\d{4}-\d{2}$/'],
-            'target_name'   => ['nullable', 'string', 'max:128'],
+            'employee_id' => ['required', 'integer', 'exists:employees,id'],
+            'period_month' => ['required', 'string', 'regex:/^\d{4}-\d{2}$/'],
+            'target_name' => ['nullable', 'string', 'max:128'],
             'target_amount' => ['required', 'numeric', 'min:0'],
-            'notes'         => ['nullable', 'string'],
+            'notes' => ['nullable', 'string'],
         ]);
 
         $target = SalesmanTarget::firstOrNew([
-            'tenant_id'    => $tenantId,
-            'employee_id'  => $validated['employee_id'],
+            'tenant_id' => $tenantId,
+            'employee_id' => $validated['employee_id'],
             'period_month' => $validated['period_month'],
         ]);
 
@@ -109,10 +108,10 @@ final class SalesmanTargetController extends Controller
         $target = SalesmanTarget::where('tenant_id', $tenantId)->findOrFail($id);
 
         $validated = $request->validate([
-            'target_name'   => ['nullable', 'string', 'max:128'],
+            'target_name' => ['nullable', 'string', 'max:128'],
             'target_amount' => ['sometimes', 'required', 'numeric', 'min:0'],
-            'status'        => ['nullable', 'string', 'in:active,completed,cancelled'],
-            'notes'         => ['nullable', 'string'],
+            'status' => ['nullable', 'string', 'in:active,completed,cancelled'],
+            'notes' => ['nullable', 'string'],
         ]);
 
         $target->fill($validated);
@@ -190,36 +189,36 @@ final class SalesmanTargetController extends Controller
             }
 
             return [
-                'id'                  => $emp->id,
-                'employee_id'         => $emp->id,
-                'uuid'                => $emp->uuid,
-                'user_id'             => $emp->user_id,
-                'employee_code'       => $emp->employee_code,
-                'code'                => $emp->employee_code,
-                'name'                => $emp->display_name ?? "{$emp->first_name} {$emp->last_name}",
-                'email'               => $emp->email,
-                'phone'               => $emp->phone,
-                'department_id'       => $emp->department_id,
-                'designation_id'      => $emp->designation_id,
-                'target_id'           => $target?->id,
-                'period_month'        => $currentMonth,
-                'target_amount'       => $targetAmount,
-                'achieved_amount'     => $achievedAmount,
-                'achievement_pct'     => $achievementPct,
-                'pending_target'      => $pendingTarget,
-                'total_leads'         => $target?->total_leads ?? 0,
-                'valid_leads'         => $target?->valid_leads ?? 0,
-                'fake_leads'          => $target?->fake_leads ?? 0,
-                'converted_leads'     => $target?->converted_leads ?? 0,
-                'conversion_rate'     => $target && $target->total_leads > 0 ? round(($target->converted_leads / $target->total_leads) * 100, 2) : 0,
-                'profit_generated'    => $target ? (float) $target->profit_generated : 0.0,
+                'id' => $emp->id,
+                'employee_id' => $emp->id,
+                'uuid' => $emp->uuid,
+                'user_id' => $emp->user_id,
+                'employee_code' => $emp->employee_code,
+                'code' => $emp->employee_code,
+                'name' => $emp->display_name ?? "{$emp->first_name} {$emp->last_name}",
+                'email' => $emp->email,
+                'phone' => $emp->phone,
+                'department_id' => $emp->department_id,
+                'designation_id' => $emp->designation_id,
+                'target_id' => $target?->id,
+                'period_month' => $currentMonth,
+                'target_amount' => $targetAmount,
+                'achieved_amount' => $achievedAmount,
+                'achievement_pct' => $achievementPct,
+                'pending_target' => $pendingTarget,
+                'total_leads' => $target?->total_leads ?? 0,
+                'valid_leads' => $target?->valid_leads ?? 0,
+                'fake_leads' => $target?->fake_leads ?? 0,
+                'converted_leads' => $target?->converted_leads ?? 0,
+                'conversion_rate' => $target && $target->total_leads > 0 ? round(($target->converted_leads / $target->total_leads) * 100, 2) : 0,
+                'profit_generated' => $target ? (float) $target->profit_generated : 0.0,
                 'estimated_incentive' => round($estimatedIncentive, 2),
             ];
         });
 
         return response()->json([
             'period_month' => $currentMonth,
-            'data'         => $salesmenData,
+            'data' => $salesmenData,
         ]);
     }
 
@@ -268,7 +267,7 @@ final class SalesmanTargetController extends Controller
 
         // Recent orders
         $recentOrders = SalesOrder::where('tenant_id', $tenantId)
-            ->where(function ($q) use ($employeeId, $employee) {
+            ->where(function ($q) use ($employeeId, $employee): void {
                 $q->where('salesman_id', $employeeId);
                 if ($employee->user_id) {
                     $q->orWhere('salesperson_id', $employee->user_id);
@@ -280,7 +279,7 @@ final class SalesmanTargetController extends Controller
 
         // Recent leads
         $recentLeads = CrmLead::where('tenant_id', $tenantId)
-            ->where(function ($q) use ($employee) {
+            ->where(function ($q) use ($employee): void {
                 if ($employee->user_id) {
                     $q->where('assigned_to', $employee->user_id);
                 }
@@ -291,87 +290,29 @@ final class SalesmanTargetController extends Controller
 
         return response()->json([
             'salesman' => [
-                'id'            => $employee->id,
-                'name'          => $employee->display_name ?? "{$employee->first_name} {$employee->last_name}",
+                'id' => $employee->id,
+                'name' => $employee->display_name ?? "{$employee->first_name} {$employee->last_name}",
                 'employee_code' => $employee->employee_code,
-                'email'         => $employee->email,
-                'phone'         => $employee->phone,
+                'email' => $employee->email,
+                'phone' => $employee->phone,
             ],
             'period_month' => $month,
             'kpis' => [
-                'target_amount'       => $targetAmount,
-                'achieved_amount'     => $achievedAmount,
-                'achievement_pct'     => $achievementPct,
-                'remaining_target'    => $remaining,
-                'total_leads'         => $target?->total_leads ?? 0,
-                'valid_leads'         => $target?->valid_leads ?? 0,
-                'fake_leads'          => $target?->fake_leads ?? 0,
-                'converted_leads'     => $target?->converted_leads ?? 0,
-                'conversion_rate'     => $target && $target->total_leads > 0 ? round(($target->converted_leads / $target->total_leads) * 100, 2) : 0,
-                'profit_generated'    => $target ? (float) $target->profit_generated : 0.0,
+                'target_amount' => $targetAmount,
+                'achieved_amount' => $achievedAmount,
+                'achievement_pct' => $achievementPct,
+                'remaining_target' => $remaining,
+                'total_leads' => $target?->total_leads ?? 0,
+                'valid_leads' => $target?->valid_leads ?? 0,
+                'fake_leads' => $target?->fake_leads ?? 0,
+                'converted_leads' => $target?->converted_leads ?? 0,
+                'conversion_rate' => $target && $target->total_leads > 0 ? round(($target->converted_leads / $target->total_leads) * 100, 2) : 0,
+                'profit_generated' => $target ? (float) $target->profit_generated : 0.0,
                 'estimated_incentive' => round($estimatedIncentive, 2),
             ],
             'recent_orders' => $recentOrders,
-            'recent_leads'  => $recentLeads,
+            'recent_leads' => $recentLeads,
         ]);
-    }
-
-    private function syncTargetMetrics(SalesmanTarget $target): void
-    {
-        $employee = Employee::find($target->employee_id);
-        if (!$employee) {
-            return;
-        }
-
-        $startOfMonth = "{$target->period_month}-01";
-        $endOfMonth = date('Y-m-t', strtotime($startOfMonth));
-
-        // Total sales achieved in month
-        $salesQuery = Invoice::where('tenant_id', $target->tenant_id)
-            ->where('status', '!=', 'void')
-            ->whereBetween('invoice_date', [$startOfMonth, $endOfMonth]);
-
-        if ($employee->user_id) {
-            $salesQuery->where(function ($q) use ($target, $employee) {
-                $q->where('salesman_id', $target->employee_id)
-                  ->orWhere('created_by', $employee->user_id);
-            });
-        } else {
-            $salesQuery->where('salesman_id', $target->employee_id);
-        }
-
-        $achieved = (float) $salesQuery->sum('total_amount');
-        $target->achieved_amount = (string) $achieved;
-
-        $targetAmt = (float) $target->target_amount;
-        if ($targetAmt > 0) {
-            $target->achievement_percentage = (string) round(($achieved / $targetAmt) * 100, 2);
-        } else {
-            $target->achievement_percentage = '0.00';
-        }
-
-        // Leads metrics
-        $leadsQuery = CrmLead::where('tenant_id', $target->tenant_id)
-            ->whereBetween('created_at', ["{$startOfMonth} 00:00:00", "{$endOfMonth} 23:59:59"]);
-
-        if ($employee->user_id) {
-            $leadsQuery->where('assigned_to', $employee->user_id);
-        }
-
-        $totalLeads = $leadsQuery->count();
-        $fakeLeads = (clone $leadsQuery)->where('is_fake', true)->count();
-        $validLeads = $totalLeads - $fakeLeads;
-        $convertedLeads = (clone $leadsQuery)->whereNotNull('converted_at')->count();
-
-        $target->total_leads = $totalLeads;
-        $target->fake_leads = $fakeLeads;
-        $target->valid_leads = $validLeads;
-        $target->converted_leads = $convertedLeads;
-
-        // Estimated profit generated (~20% margin standard or actual)
-        $target->profit_generated = (string) round($achieved * 0.20, 4);
-
-        $target->save();
     }
 
     public function bulkImport(Request $request): JsonResponse
@@ -433,16 +374,18 @@ final class SalesmanTargetController extends Controller
                             'field' => 'employee_code',
                             'message' => 'Employee / Salesman code is required.',
                         ];
+
                         continue;
                     }
 
                     $lowerEmpKey = strtolower($empKey);
-                    if (!isset($employeeMap[$lowerEmpKey])) {
+                    if (! isset($employeeMap[$lowerEmpKey])) {
                         $errors[] = [
                             'row' => $rowNum,
                             'field' => 'employee_code',
                             'message' => "Employee with code or ID '{$empKey}' not found.",
                         ];
+
                         continue;
                     }
                     $employee = $employeeMap[$lowerEmpKey];
@@ -458,12 +401,13 @@ final class SalesmanTargetController extends Controller
                     }
 
                     $targetAmtRaw = $row['target_amount'] ?? null;
-                    if ($targetAmtRaw === null || !is_numeric($targetAmtRaw) || (float) $targetAmtRaw <= 0) {
+                    if ($targetAmtRaw === null || ! is_numeric($targetAmtRaw) || (float) $targetAmtRaw <= 0) {
                         $errors[] = [
                             'row' => $rowNum,
                             'field' => 'target_amount',
                             'message' => 'Target amount must be a positive number.',
                         ];
+
                         continue;
                     }
                     $targetAmount = (float) $targetAmtRaw;
@@ -473,13 +417,13 @@ final class SalesmanTargetController extends Controller
 
                     $pct = ($targetAmount > 0) ? round(($achievedAmount / $targetAmount) * 100, 2) : 0.00;
 
-                    $targetName = !empty($row['target_name'])
+                    $targetName = ! empty($row['target_name'])
                         ? trim((string) $row['target_name'])
                         : "Target for {$periodMonth}";
 
-                    $rawStatus = !empty($row['status']) ? strtolower(trim((string) $row['status'])) : 'active';
+                    $rawStatus = ! empty($row['status']) ? strtolower(trim((string) $row['status'])) : 'active';
                     $status = in_array($rawStatus, ['active', 'completed', 'cancelled'], true) ? $rawStatus : 'active';
-                    $notes = !empty($row['notes']) ? (string) $row['notes'] : null;
+                    $notes = ! empty($row['notes']) ? (string) $row['notes'] : null;
 
                     // Check existing target
                     $existingTarget = SalesmanTarget::query()
@@ -491,6 +435,7 @@ final class SalesmanTargetController extends Controller
                     if ($existingTarget) {
                         if ($mode === 'skip') {
                             $skipped++;
+
                             continue;
                         }
 
@@ -505,11 +450,12 @@ final class SalesmanTargetController extends Controller
                             'updated_by' => $userId,
                         ]);
                         $updated++;
+
                         continue;
                     }
 
                     // Insert
-                    $newTarget = new SalesmanTarget();
+                    $newTarget = new SalesmanTarget;
                     $newTarget->uuid = (string) \Illuminate\Support\Str::uuid();
                     $newTarget->tenant_id = $tenantId;
                     $newTarget->employee_id = $employee->id;
@@ -546,5 +492,62 @@ final class SalesmanTargetController extends Controller
             ),
         ]);
     }
-}
 
+    private function syncTargetMetrics(SalesmanTarget $target): void
+    {
+        $employee = Employee::find($target->employee_id);
+        if (! $employee) {
+            return;
+        }
+
+        $startOfMonth = "{$target->period_month}-01";
+        $endOfMonth = date('Y-m-t', strtotime($startOfMonth));
+
+        // Total sales achieved in month
+        $salesQuery = Invoice::where('tenant_id', $target->tenant_id)
+            ->where('status', '!=', 'void')
+            ->whereBetween('invoice_date', [$startOfMonth, $endOfMonth]);
+
+        if ($employee->user_id) {
+            $salesQuery->where(function ($q) use ($target, $employee): void {
+                $q->where('salesman_id', $target->employee_id)
+                    ->orWhere('created_by', $employee->user_id);
+            });
+        } else {
+            $salesQuery->where('salesman_id', $target->employee_id);
+        }
+
+        $achieved = (float) $salesQuery->sum('total_amount');
+        $target->achieved_amount = (string) $achieved;
+
+        $targetAmt = (float) $target->target_amount;
+        if ($targetAmt > 0) {
+            $target->achievement_percentage = (string) round(($achieved / $targetAmt) * 100, 2);
+        } else {
+            $target->achievement_percentage = '0.00';
+        }
+
+        // Leads metrics
+        $leadsQuery = CrmLead::where('tenant_id', $target->tenant_id)
+            ->whereBetween('created_at', ["{$startOfMonth} 00:00:00", "{$endOfMonth} 23:59:59"]);
+
+        if ($employee->user_id) {
+            $leadsQuery->where('assigned_to', $employee->user_id);
+        }
+
+        $totalLeads = $leadsQuery->count();
+        $fakeLeads = (clone $leadsQuery)->where('is_fake', true)->count();
+        $validLeads = $totalLeads - $fakeLeads;
+        $convertedLeads = (clone $leadsQuery)->whereNotNull('converted_at')->count();
+
+        $target->total_leads = $totalLeads;
+        $target->fake_leads = $fakeLeads;
+        $target->valid_leads = $validLeads;
+        $target->converted_leads = $convertedLeads;
+
+        // Estimated profit generated (~20% margin standard or actual)
+        $target->profit_generated = (string) round($achieved * 0.20, 4);
+
+        $target->save();
+    }
+}

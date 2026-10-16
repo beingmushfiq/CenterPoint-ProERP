@@ -14,9 +14,9 @@ class Notification extends Model
 {
     use BelongsToTenant;
 
-    protected $table = 'notifications';
-
     public $timestamps = true;
+
+    protected $table = 'notifications';
 
     protected $fillable = [
         'tenant_id',
@@ -41,6 +41,11 @@ class Notification extends Model
         'failed_at' => 'datetime',
     ];
 
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'user_id');
+    }
+
     protected static function boot(): void
     {
         parent::boot();
@@ -50,10 +55,5 @@ class Notification extends Model
                 $model->uuid = (string) Str::uuid();
             }
         });
-    }
-
-    public function user(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'user_id');
     }
 }

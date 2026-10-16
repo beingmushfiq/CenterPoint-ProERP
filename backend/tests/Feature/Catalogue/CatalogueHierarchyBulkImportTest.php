@@ -10,7 +10,6 @@ use App\Models\Brand;
 use App\Models\Category;
 use App\Models\Role;
 use App\Models\Tenant;
-use App\Models\Unit;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -23,7 +22,9 @@ class CatalogueHierarchyBulkImportTest extends TestCase
     use RefreshDatabase;
 
     private Tenant $tenant;
+
     private User $user;
+
     private string $token;
 
     protected function setUp(): void
@@ -86,15 +87,6 @@ class CatalogueHierarchyBulkImportTest extends TestCase
             tenantId: 1,
             tokenVersion: 1
         );
-    }
-
-    private function authHeaders(): array
-    {
-        return [
-            'Authorization' => "Bearer {$this->token}",
-            'X-Tenant-ID' => (string) $this->tenant->id,
-            'Accept' => 'application/json',
-        ];
     }
 
     public function test_can_bulk_import_categories_with_parent_resolution(): void
@@ -286,5 +278,14 @@ class CatalogueHierarchyBulkImportTest extends TestCase
             'type' => 'piece',
             'is_base' => 0,
         ]);
+    }
+
+    private function authHeaders(): array
+    {
+        return [
+            'Authorization' => "Bearer {$this->token}",
+            'X-Tenant-ID' => (string) $this->tenant->id,
+            'Accept' => 'application/json',
+        ];
     }
 }

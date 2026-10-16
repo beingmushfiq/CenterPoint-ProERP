@@ -29,16 +29,16 @@ final class PaperSizeController extends Controller
     public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'code'                => ['nullable', 'string', 'max:64'],
-            'name'                => ['required', 'string', 'max:128'],
-            'width_mm'            => ['required', 'numeric', 'min:10', 'max:2000'],
-            'height_mm'           => ['nullable', 'numeric', 'min:10', 'max:2000'],
-            'unit'                => ['nullable', 'string', 'in:mm,inch'],
+            'code' => ['nullable', 'string', 'max:64'],
+            'name' => ['required', 'string', 'max:128'],
+            'width_mm' => ['required', 'numeric', 'min:10', 'max:2000'],
+            'height_mm' => ['nullable', 'numeric', 'min:10', 'max:2000'],
+            'unit' => ['nullable', 'string', 'in:mm,inch'],
             'orientation_default' => ['nullable', 'string', 'in:portrait,landscape'],
-            'margin_top_mm'       => ['nullable', 'numeric', 'min:0', 'max:100'],
-            'margin_bottom_mm'    => ['nullable', 'numeric', 'min:0', 'max:100'],
-            'margin_left_mm'      => ['nullable', 'numeric', 'min:0', 'max:100'],
-            'margin_right_mm'     => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'margin_top_mm' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'margin_bottom_mm' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'margin_left_mm' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'margin_right_mm' => ['nullable', 'numeric', 'min:0', 'max:100'],
         ]);
 
         $userId = (int) ($request->user()?->id ?? 0);
@@ -59,16 +59,16 @@ final class PaperSizeController extends Controller
             ->firstOrFail();
 
         $validated = $request->validate([
-            'name'                => ['sometimes', 'string', 'max:128'],
-            'width_mm'            => ['sometimes', 'numeric', 'min:10', 'max:2000'],
-            'height_mm'           => ['nullable', 'numeric', 'min:10', 'max:2000'],
-            'unit'                => ['sometimes', 'string', 'in:mm,inch'],
+            'name' => ['sometimes', 'string', 'max:128'],
+            'width_mm' => ['sometimes', 'numeric', 'min:10', 'max:2000'],
+            'height_mm' => ['nullable', 'numeric', 'min:10', 'max:2000'],
+            'unit' => ['sometimes', 'string', 'in:mm,inch'],
             'orientation_default' => ['sometimes', 'string', 'in:portrait,landscape'],
-            'margin_top_mm'       => ['sometimes', 'numeric', 'min:0', 'max:100'],
-            'margin_bottom_mm'    => ['sometimes', 'numeric', 'min:0', 'max:100'],
-            'margin_left_mm'      => ['sometimes', 'numeric', 'min:0', 'max:100'],
-            'margin_right_mm'     => ['sometimes', 'numeric', 'min:0', 'max:100'],
-            'is_active'           => ['sometimes', 'boolean'],
+            'margin_top_mm' => ['sometimes', 'numeric', 'min:0', 'max:100'],
+            'margin_bottom_mm' => ['sometimes', 'numeric', 'min:0', 'max:100'],
+            'margin_left_mm' => ['sometimes', 'numeric', 'min:0', 'max:100'],
+            'margin_right_mm' => ['sometimes', 'numeric', 'min:0', 'max:100'],
+            'is_active' => ['sometimes', 'boolean'],
         ]);
 
         $validated['updated_by'] = (int) ($request->user()?->id ?? 0);

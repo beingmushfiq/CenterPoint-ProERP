@@ -8,9 +8,7 @@ use App\Core\Auth\JwtExpiredException;
 use App\Core\Auth\JwtInvalidException;
 use App\Core\Auth\JwtService;
 use App\Core\Http\Responses\ErrorResponse;
-use App\Core\Tenancy\Exceptions\TenantSuspended;
 use App\Core\Tenancy\TenantContext;
-use App\Models\Tenant;
 use App\Models\User;
 use Closure;
 use Illuminate\Http\Request;
@@ -140,6 +138,7 @@ class AuthenticateJwt
             $tenantCacheKey = "t{$tenantId}:tenant:profile";
             $tenantArray = Cache::remember($tenantCacheKey, 300, static function () use ($tenantId): ?array {
                 $row = DB::table('tenants')->where('id', $tenantId)->first();
+
                 return $row !== null ? (array) $row : null;
             });
 

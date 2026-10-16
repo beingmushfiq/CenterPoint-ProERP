@@ -13,7 +13,7 @@ class ProductionOutputReportQuery implements ReportQueryInterface
 
     public function __construct(?ProductionDataProvider $provider = null)
     {
-        $this->provider = $provider ?? new ProductionDataProvider();
+        $this->provider = $provider ?? new ProductionDataProvider;
     }
 
     public function columns(): array

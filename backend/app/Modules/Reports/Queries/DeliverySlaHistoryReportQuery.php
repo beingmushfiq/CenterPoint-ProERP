@@ -13,54 +13,46 @@ class DeliverySlaHistoryReportQuery implements ReportQueryInterface
 
     public function __construct(?DeliveryDataProvider $provider = null)
     {
-        $this->provider = $provider ?? new DeliveryDataProvider();
+        $this->provider = $provider ?? new DeliveryDataProvider;
     }
 
     public function columns(): array
     {
-        return array (
-  'delivery_number' => 
-  array (
-    'label' => 'Shipment Tracking No',
-    'type' => 'string',
-    'sortable' => true,
-  ),
-  'recipient_name' => 
-  array (
-    'label' => 'Customer',
-    'type' => 'string',
-  ),
-  'delivery_type' => 
-  array (
-    'label' => 'Service Tier',
-    'type' => 'badge',
-  ),
-  'courier_name' => 
-  array (
-    'label' => 'Logistics Provider',
-    'type' => 'string',
-  ),
-  'scheduled_date' => 
-  array (
-    'label' => 'Committed Date',
-    'type' => 'date',
-  ),
-  'delivered_at' => 
-  array (
-    'label' => 'Actual Delivery',
-    'type' => 'string',
-  ),
-  'attempts' => 
-  array (
-    'label' => 'Attempt Count',
-    'type' => 'number',
-  ),
-  'sla_adherence' => 
-  array (
-    'label' => 'SLA Fulfillment',
-    'type' => 'badge',
-  ),
-);
+        return [
+            'delivery_number' => [
+                'label' => 'Shipment Tracking No',
+                'type' => 'string',
+                'sortable' => true,
+            ],
+            'recipient_name' => [
+                'label' => 'Customer',
+                'type' => 'string',
+            ],
+            'delivery_type' => [
+                'label' => 'Service Tier',
+                'type' => 'badge',
+            ],
+            'courier_name' => [
+                'label' => 'Logistics Provider',
+                'type' => 'string',
+            ],
+            'scheduled_date' => [
+                'label' => 'Committed Date',
+                'type' => 'date',
+            ],
+            'delivered_at' => [
+                'label' => 'Actual Delivery',
+                'type' => 'string',
+            ],
+            'attempts' => [
+                'label' => 'Attempt Count',
+                'type' => 'number',
+            ],
+            'sla_adherence' => [
+                'label' => 'SLA Fulfillment',
+                'type' => 'badge',
+            ],
+        ];
     }
 
     public function query(array $filters, int $page = 1, int $perPage = 25): array

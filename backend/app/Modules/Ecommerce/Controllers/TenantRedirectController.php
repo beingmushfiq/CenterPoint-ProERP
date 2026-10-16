@@ -14,14 +14,6 @@ use Illuminate\Support\Facades\Auth;
 
 class TenantRedirectController extends Controller
 {
-    protected function getTenantId(Request $request): int
-    {
-        if (TenantContext::isBound()) {
-            return TenantContext::current()->tenantId();
-        }
-        return (int) ($request->attributes->get('tenant_id') ?? $request->user()?->tenant_id ?? Auth::user()?->tenant_id ?? 1);
-    }
-
     /**
      * List all redirects for current tenant.
      */
@@ -70,7 +62,7 @@ class TenantRedirectController extends Controller
             'notes' => 'nullable|string|max:500',
         ]);
 
-        $sourcePath = '/' . ltrim(trim($validated['source_path']), '/');
+        $sourcePath = '/'.ltrim(trim($validated['source_path']), '/');
 
         $exists = TenantRedirect::withoutTenantScope()
             ->where('tenant_id', $tenantId)
@@ -120,7 +112,7 @@ class TenantRedirectController extends Controller
         ]);
 
         if (isset($validated['source_path'])) {
-            $validated['source_path'] = '/' . ltrim(trim($validated['source_path']), '/');
+            $validated['source_path'] = '/'.ltrim(trim($validated['source_path']), '/');
         }
 
         $redirect->update(array_merge($validated, ['updated_by' => $request->user()?->id ?? Auth::id()]));
@@ -195,7 +187,7 @@ class TenantRedirectController extends Controller
             'status_code' => 'nullable|integer|in:301,302',
         ]);
 
-        $sourcePath = '/' . ltrim(trim($log->path), '/');
+        $sourcePath = '/'.ltrim(trim($log->path), '/');
 
         $redirect = TenantRedirect::updateOrCreate(
             ['tenant_id' => $tenantId, 'source_path' => $sourcePath],
@@ -221,5 +213,14 @@ class TenantRedirectController extends Controller
                 'redirect' => $redirect,
             ],
         ]);
+    }
+
+    protected function getTenantId(Request $request): int
+    {
+        if (TenantContext::isBound()) {
+            return TenantContext::current()->tenantId();
+        }
+
+        return (int) ($request->attributes->get('tenant_id') ?? $request->user()?->tenant_id ?? Auth::user()?->tenant_id ?? 1);
     }
 }

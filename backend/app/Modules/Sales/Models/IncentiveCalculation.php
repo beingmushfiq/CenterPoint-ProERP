@@ -46,17 +46,6 @@ class IncentiveCalculation extends Model
         'updated_at' => 'datetime',
     ];
 
-    protected static function boot(): void
-    {
-        parent::boot();
-
-        static::creating(static function (IncentiveCalculation $model): void {
-            if (empty($model->uuid)) {
-                $model->uuid = (string) Str::uuid();
-            }
-        });
-    }
-
     public function employee(): BelongsTo
     {
         return $this->belongsTo(Employee::class, 'employee_id');
@@ -75,5 +64,16 @@ class IncentiveCalculation extends Model
     public function approver(): BelongsTo
     {
         return $this->belongsTo(User::class, 'approved_by');
+    }
+
+    protected static function boot(): void
+    {
+        parent::boot();
+
+        static::creating(static function (IncentiveCalculation $model): void {
+            if (empty($model->uuid)) {
+                $model->uuid = (string) Str::uuid();
+            }
+        });
     }
 }

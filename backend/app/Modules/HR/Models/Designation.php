@@ -33,6 +33,14 @@ class Designation extends Model
         'is_active' => 'boolean',
     ];
 
+    /**
+     * @return HasMany<Employee, $this>
+     */
+    public function employees(): HasMany
+    {
+        return $this->hasMany(Employee::class, 'designation_id');
+    }
+
     protected static function boot(): void
     {
         parent::boot();
@@ -42,13 +50,5 @@ class Designation extends Model
                 $model->uuid = (string) Str::uuid();
             }
         });
-    }
-
-    /**
-     * @return HasMany<Employee, $this>
-     */
-    public function employees(): HasMany
-    {
-        return $this->hasMany(Employee::class, 'designation_id');
     }
 }

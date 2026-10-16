@@ -37,7 +37,7 @@ class RecordAttendanceAction
             $earlyLeaveMinutes = 0;
             $overtimeMinutes = 0;
 
-            if (!empty($data['check_in_at']) && !empty($data['check_out_at'])) {
+            if (! empty($data['check_in_at']) && ! empty($data['check_out_at'])) {
                 $checkIn = Carbon::parse($data['check_in_at']);
                 $checkOut = Carbon::parse($data['check_out_at']);
 
@@ -45,7 +45,7 @@ class RecordAttendanceAction
                 $workedMinutes = (int) max(0, floor($diffSeconds / 60));
 
                 if ($shift && $shift->start_time) {
-                    $shiftStart = Carbon::parse($date . ' ' . $shift->start_time);
+                    $shiftStart = Carbon::parse($date.' '.$shift->start_time);
                     $gracePeriod = (int) ($shift->grace_in_minutes ?? 0);
                     $allowedStart = $shiftStart->copy()->addMinutes($gracePeriod);
 

@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace App\Modules\Inventory\Controllers;
 
+use App\Core\Tenancy\TenantContext;
 use App\Http\Controllers\Controller;
 use App\Modules\Inventory\Actions\ApproveStockAdjustmentAction;
 use App\Modules\Inventory\Actions\CreateStockAdjustmentAction;
 use App\Modules\Inventory\Models\StockAdjustment;
 use App\Modules\Inventory\Requests\StoreStockAdjustmentRequest;
 use App\Modules\Inventory\Resources\StockAdjustmentResource;
-use App\Core\Tenancy\TenantContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;

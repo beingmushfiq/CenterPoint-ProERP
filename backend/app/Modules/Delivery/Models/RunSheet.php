@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Modules\Delivery\Models;
 
-use App\Models\Branch;
 use App\Core\Tenancy\Concerns\BelongsToTenant;
+use App\Models\Branch;
 use App\Models\User;
 use App\Modules\Sales\Models\DeliveryOrder;
 use Illuminate\Database\Eloquent\Model;
@@ -53,17 +53,6 @@ class RunSheet extends Model
         'reconciled_at' => 'datetime',
     ];
 
-    protected static function boot(): void
-    {
-        parent::boot();
-
-        static::creating(static function (RunSheet $model): void {
-            if (empty($model->uuid)) {
-                $model->uuid = (string) Str::uuid();
-            }
-        });
-    }
-
     /**
      * @return BelongsTo<Branch, $this>
      */
@@ -94,5 +83,16 @@ class RunSheet extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    protected static function boot(): void
+    {
+        parent::boot();
+
+        static::creating(static function (RunSheet $model): void {
+            if (empty($model->uuid)) {
+                $model->uuid = (string) Str::uuid();
+            }
+        });
     }
 }

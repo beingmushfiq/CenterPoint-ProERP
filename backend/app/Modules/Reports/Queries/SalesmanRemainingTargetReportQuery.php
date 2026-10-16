@@ -13,40 +13,35 @@ class SalesmanRemainingTargetReportQuery implements ReportQueryInterface
 
     public function __construct(?SalesDataProvider $provider = null)
     {
-        $this->provider = $provider ?? new SalesDataProvider();
+        $this->provider = $provider ?? new SalesDataProvider;
     }
 
     public function columns(): array
     {
-        return array (
-  'salesman_name' => 
-  array (
-    'label' => 'Salesperson',
-    'type' => 'string',
-    'sortable' => true,
-  ),
-  'monthly_target' => 
-  array (
-    'label' => 'Sales Target (BDT)',
-    'type' => 'currency',
-  ),
-  'achieved_amount' => 
-  array (
-    'label' => 'Closed Sales (BDT)',
-    'type' => 'currency',
-  ),
-  'remaining_gap' => 
-  array (
-    'label' => 'Target Deficit (BDT)',
-    'type' => 'currency',
-    'sortable' => true,
-  ),
-  'status' => 
-  array (
-    'label' => 'Target Gap Status',
-    'type' => 'badge',
-  ),
-);
+        return [
+            'salesman_name' => [
+                'label' => 'Salesperson',
+                'type' => 'string',
+                'sortable' => true,
+            ],
+            'monthly_target' => [
+                'label' => 'Sales Target (BDT)',
+                'type' => 'currency',
+            ],
+            'achieved_amount' => [
+                'label' => 'Closed Sales (BDT)',
+                'type' => 'currency',
+            ],
+            'remaining_gap' => [
+                'label' => 'Target Deficit (BDT)',
+                'type' => 'currency',
+                'sortable' => true,
+            ],
+            'status' => [
+                'label' => 'Target Gap Status',
+                'type' => 'badge',
+            ],
+        ];
     }
 
     public function query(array $filters, int $page = 1, int $perPage = 25): array

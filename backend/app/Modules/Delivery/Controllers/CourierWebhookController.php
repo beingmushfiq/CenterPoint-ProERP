@@ -17,7 +17,7 @@ class CourierWebhookController extends Controller
         /** @var CourierProvider|null $provider */
         $provider = CourierProvider::where('code', $providerCode)->first();
 
-        if (!$provider) {
+        if (! $provider) {
             return response()->json([
                 'success' => false,
                 'error' => [

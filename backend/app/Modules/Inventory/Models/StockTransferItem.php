@@ -74,17 +74,6 @@ final class StockTransferItem extends Model
         'deleted_at' => 'datetime',
     ];
 
-    protected static function boot(): void
-    {
-        parent::boot();
-
-        static::creating(static function (StockTransferItem $model): void {
-            if (empty($model->uuid)) {
-                $model->uuid = (string) Str::uuid();
-            }
-        });
-    }
-
     /**
      * @return BelongsTo<StockTransfer, $this>
      */
@@ -131,5 +120,16 @@ final class StockTransferItem extends Model
     public function inMovement(): BelongsTo
     {
         return $this->belongsTo(StockMovement::class, 'in_movement_id');
+    }
+
+    protected static function boot(): void
+    {
+        parent::boot();
+
+        self::creating(static function (StockTransferItem $model): void {
+            if (empty($model->uuid)) {
+                $model->uuid = (string) Str::uuid();
+            }
+        });
     }
 }

@@ -20,7 +20,9 @@ class NotificationTest extends TestCase
     use RefreshDatabase;
 
     protected Tenant $tenant;
+
     protected User $user;
+
     protected string $token;
 
     protected function setUp(): void
@@ -75,7 +77,7 @@ class NotificationTest extends TestCase
 
     public function test_can_dispatch_and_fetch_notifications(): void
     {
-        $action = new SendNotificationAction();
+        $action = new SendNotificationAction;
 
         $action->execute(
             userId: $this->user->id,
@@ -87,7 +89,7 @@ class NotificationTest extends TestCase
         );
 
         $response = $this->getJson('/api/v1/notifications', [
-            'Authorization' => 'Bearer ' . $this->token,
+            'Authorization' => 'Bearer '.$this->token,
         ]);
 
         $response->assertOk()
@@ -111,11 +113,11 @@ class NotificationTest extends TestCase
         ]);
 
         $response = $this->postJson("/api/v1/notifications/{$notification->id}/read", [], [
-            'Authorization' => 'Bearer ' . $this->token,
+            'Authorization' => 'Bearer '.$this->token,
         ]);
 
         $response->assertOk()
-            ->assertJsonPath('data.read_at', fn ($readAt) => !empty($readAt));
+            ->assertJsonPath('data.read_at', fn ($readAt) => ! empty($readAt));
 
         $this->assertNotNull($notification->fresh()->read_at);
     }

@@ -13,56 +13,48 @@ class FinishedGoodsStockReportQuery implements ReportQueryInterface
 
     public function __construct(?InventoryDataProvider $provider = null)
     {
-        $this->provider = $provider ?? new InventoryDataProvider();
+        $this->provider = $provider ?? new InventoryDataProvider;
     }
 
     public function columns(): array
     {
-        return array (
-  'sku' => 
-  array (
-    'label' => 'Finished SKU',
-    'type' => 'string',
-    'sortable' => true,
-  ),
-  'product_name' => 
-  array (
-    'label' => 'Product Name',
-    'type' => 'string',
-  ),
-  'category' => 
-  array (
-    'label' => 'Category',
-    'type' => 'string',
-  ),
-  'warehouse' => 
-  array (
-    'label' => 'Warehouse',
-    'type' => 'string',
-  ),
-  'batch_code' => 
-  array (
-    'label' => 'Production Batch',
-    'type' => 'string',
-  ),
-  'quantity_on_hand' => 
-  array (
-    'label' => 'Available Quantity',
-    'type' => 'number',
-    'sortable' => true,
-  ),
-  'unit_cost' => 
-  array (
-    'label' => 'Standard Cost (BDT)',
-    'type' => 'currency',
-  ),
-  'total_valuation' => 
-  array (
-    'label' => 'Total Valuation (BDT)',
-    'type' => 'currency',
-    'sortable' => true,
-  ),
-);
+        return [
+            'sku' => [
+                'label' => 'Finished SKU',
+                'type' => 'string',
+                'sortable' => true,
+            ],
+            'product_name' => [
+                'label' => 'Product Name',
+                'type' => 'string',
+            ],
+            'category' => [
+                'label' => 'Category',
+                'type' => 'string',
+            ],
+            'warehouse' => [
+                'label' => 'Warehouse',
+                'type' => 'string',
+            ],
+            'batch_code' => [
+                'label' => 'Production Batch',
+                'type' => 'string',
+            ],
+            'quantity_on_hand' => [
+                'label' => 'Available Quantity',
+                'type' => 'number',
+                'sortable' => true,
+            ],
+            'unit_cost' => [
+                'label' => 'Standard Cost (BDT)',
+                'type' => 'currency',
+            ],
+            'total_valuation' => [
+                'label' => 'Total Valuation (BDT)',
+                'type' => 'currency',
+                'sortable' => true,
+            ],
+        ];
     }
 
     public function query(array $filters, int $page = 1, int $perPage = 25): array

@@ -11,7 +11,6 @@ use App\Models\Company;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Modules\Finance\Models\ChartOfAccount;
-use App\Modules\Finance\Models\JournalEntry;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -23,11 +22,17 @@ class JournalEntryTest extends TestCase
     use RefreshDatabase;
 
     private Tenant $tenant;
+
     private User $user;
+
     private string $token;
+
     private Company $company;
+
     private Branch $branch;
+
     private ChartOfAccount $cashAccount;
+
     private ChartOfAccount $salesAccount;
 
     protected function setUp(): void

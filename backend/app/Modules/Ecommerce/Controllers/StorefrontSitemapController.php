@@ -19,36 +19,6 @@ class StorefrontSitemapController extends Controller
     ) {}
 
     /**
-     * Resolve current tenant & storefront for sitemap requests.
-     */
-    protected function resolveTenantAndStorefront(Request $request): array
-    {
-        $tenantId = $request->attributes->get('tenant_id') ?? (TenantContext::isBound() ? TenantContext::current()->tenantId() : null);
-        $storefront = $request->attributes->get('storefront');
-
-        if (! $tenantId) {
-            $subdomain = $request->header('X-Storefront-Subdomain')
-                ?: $request->header('X-Tenant-Subdomain')
-                ?: $request->query('subdomain');
-
-            $storefront = Storefront::withoutTenantScope()
-                ->where('subdomain', $subdomain)
-                ->orWhere('domain', $subdomain)
-                ->first();
-
-            if (! $storefront) {
-                $storefront = Storefront::withoutTenantScope()->first();
-            }
-
-            $tenantId = $storefront?->tenant_id ?? Tenant::first()?->id;
-        }
-
-        $tenant = Tenant::find($tenantId) ?? Tenant::first();
-
-        return [$tenant, $storefront];
-    }
-
-    /**
      * Render main Sitemap Index XML.
      */
     public function index(Request $request): Response
@@ -122,5 +92,35 @@ class StorefrontSitemapController extends Controller
             'Content-Type' => 'application/xml; charset=utf-8',
             'Cache-Control' => 'public, max-age=3600',
         ]);
+    }
+
+    /**
+     * Resolve current tenant & storefront for sitemap requests.
+     */
+    protected function resolveTenantAndStorefront(Request $request): array
+    {
+        $tenantId = $request->attributes->get('tenant_id') ?? (TenantContext::isBound() ? TenantContext::current()->tenantId() : null);
+        $storefront = $request->attributes->get('storefront');
+
+        if (! $tenantId) {
+            $subdomain = $request->header('X-Storefront-Subdomain')
+                ?: $request->header('X-Tenant-Subdomain')
+                ?: $request->query('subdomain');
+
+            $storefront = Storefront::withoutTenantScope()
+                ->where('subdomain', $subdomain)
+                ->orWhere('domain', $subdomain)
+                ->first();
+
+            if (! $storefront) {
+                $storefront = Storefront::withoutTenantScope()->first();
+            }
+
+            $tenantId = $storefront?->tenant_id ?? Tenant::first()?->id;
+        }
+
+        $tenant = Tenant::find($tenantId) ?? Tenant::first();
+
+        return [$tenant, $storefront];
     }
 }

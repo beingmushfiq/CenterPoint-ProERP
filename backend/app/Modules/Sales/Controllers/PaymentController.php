@@ -58,9 +58,9 @@ final class PaymentController extends Controller
         /** @var array{direction: string, payment_date: string, method: string, amount: string} $validated */
         $payment = $this->recordPayment->execute([
             ...$validated,
-            'tenant_id'   => $tenantId,
+            'tenant_id' => $tenantId,
             'received_by' => (int) $request->user()?->id,
-            'created_by'  => (int) $request->user()?->id,
+            'created_by' => (int) $request->user()?->id,
         ]);
 
         return (new PaymentResource($payment))

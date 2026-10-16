@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace App\Modules\Purchasing\Controllers;
 
+use App\Core\Tenancy\TenantContext;
 use App\Http\Controllers\Controller;
 use App\Modules\Purchasing\Actions\ApprovePurchaseRequisitionAction;
 use App\Modules\Purchasing\Actions\CreatePurchaseRequisitionAction;
 use App\Modules\Purchasing\Models\PurchaseRequisition;
 use App\Modules\Purchasing\Requests\StorePurchaseRequisitionRequest;
 use App\Modules\Purchasing\Resources\PurchaseRequisitionResource;
-use App\Core\Tenancy\TenantContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -198,4 +198,3 @@ final class PurchaseRequisitionController extends Controller
         ]);
     }
 }
-

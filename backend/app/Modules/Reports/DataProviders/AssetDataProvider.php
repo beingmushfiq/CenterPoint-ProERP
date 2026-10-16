@@ -37,10 +37,10 @@ class AssetDataProvider extends BaseDataProvider
                 DB::raw("COALESCE(e.display_name, pl.name, 'Unassigned') as assigned_to"),
             ]);
 
-        if (!empty($filters['category_id'])) {
+        if (! empty($filters['category_id'])) {
             $query->where('a.asset_category_id', $filters['category_id']);
         }
-        if (!empty($filters['status'])) {
+        if (! empty($filters['status'])) {
             $query->where('a.status', $filters['status']);
         }
 
@@ -104,6 +104,7 @@ class AssetDataProvider extends BaseDataProvider
                 $cost = (float) $row->purchase_cost;
                 $dep = (float) ($row->accumulated_depreciation ?? 0);
                 $nbv = (float) ($row->book_value ?? ($cost - $dep));
+
                 return [
                     'asset_tag' => $row->asset_tag ?? "AST-{$row->id}",
                     'asset_name' => $row->asset_name,
@@ -138,10 +139,10 @@ class AssetDataProvider extends BaseDataProvider
             ->leftJoin('branches as b', 'a.branch_id', '=', 'b.id')
             ->where('a.tenant_id', $tenantId)
             ->whereNull('a.deleted_at')
-            ->where(function ($q) {
+            ->where(function ($q): void {
                 $q->whereNotNull('a.assigned_employee_id')
-                  ->orWhereNotNull('a.production_line_id')
-                  ->orWhereNotNull('a.branch_id');
+                    ->orWhereNotNull('a.production_line_id')
+                    ->orWhereNotNull('a.branch_id');
             })
             ->select([
                 'a.asset_tag',
@@ -241,9 +242,9 @@ class AssetDataProvider extends BaseDataProvider
 
         $query = DB::table('assets as a')
             ->where('a.tenant_id', $tenantId)
-            ->where(function ($q) {
+            ->where(function ($q): void {
                 $q->where('a.status', 'disposed')
-                  ->orWhereNotNull('a.disposal_date');
+                    ->orWhereNotNull('a.disposal_date');
             })
             ->select([
                 'a.asset_tag',

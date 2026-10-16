@@ -79,6 +79,11 @@ class TenantSeoSetting extends Model
         'supported_locales' => 'array',
     ];
 
+    public function storefront(): BelongsTo
+    {
+        return $this->belongsTo(Storefront::class);
+    }
+
     protected static function booted(): void
     {
         static::creating(function (TenantSeoSetting $model): void {
@@ -86,10 +91,5 @@ class TenantSeoSetting extends Model
                 $model->uuid = (string) Str::uuid();
             }
         });
-    }
-
-    public function storefront(): BelongsTo
-    {
-        return $this->belongsTo(Storefront::class);
     }
 }

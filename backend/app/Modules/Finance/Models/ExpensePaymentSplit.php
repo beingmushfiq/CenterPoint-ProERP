@@ -53,10 +53,10 @@ class ExpensePaymentSplit extends Model
      * @var array<string, string>
      */
     protected $casts = [
-        'amount'      => 'decimal:4',
+        'amount' => 'decimal:4',
         'cheque_date' => 'date',
-        'created_at'  => 'datetime',
-        'updated_at'  => 'datetime',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
     ];
 
     /**

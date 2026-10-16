@@ -51,22 +51,11 @@ final class DocumentTemplateVersion extends Model
      * @var array<string, string>
      */
     protected $casts = [
-        'version'       => 'integer',
+        'version' => 'integer',
         'layout_config' => 'array',
-        'created_at'    => 'datetime',
-        'updated_at'    => 'datetime',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
     ];
-
-    protected static function boot(): void
-    {
-        parent::boot();
-
-        static::creating(static function (DocumentTemplateVersion $model): void {
-            if (empty($model->uuid)) {
-                $model->uuid = (string) Str::uuid();
-            }
-        });
-    }
 
     /**
      * @return BelongsTo<DocumentTemplate, $this>
@@ -82,5 +71,16 @@ final class DocumentTemplateVersion extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    protected static function boot(): void
+    {
+        parent::boot();
+
+        self::creating(static function (DocumentTemplateVersion $model): void {
+            if (empty($model->uuid)) {
+                $model->uuid = (string) Str::uuid();
+            }
+        });
     }
 }

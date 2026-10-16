@@ -14,8 +14,6 @@ use App\Models\Tenant;
 use App\Models\Unit;
 use App\Models\User;
 use App\Models\Warehouse;
-use App\Modules\Sales\Models\Invoice;
-use App\Modules\Sales\Models\SalesOrder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -27,11 +25,17 @@ final class InvoiceTest extends TestCase
     use RefreshDatabase;
 
     private Tenant $tenant;
+
     private User $user;
+
     private string $jwt;
+
     private Party $customer;
+
     private Product $product;
+
     private Unit $unit;
+
     private Warehouse $warehouse;
 
     protected function setUp(): void
@@ -40,78 +44,78 @@ final class InvoiceTest extends TestCase
         TenantContext::flush();
 
         DB::table('plans')->insert([
-            'id'             => 1,
-            'uuid'           => (string) Str::uuid(),
-            'code'           => 'ENTERPRISE',
-            'name'           => 'Enterprise',
-            'price'          => '10000.0000',
+            'id' => 1,
+            'uuid' => (string) Str::uuid(),
+            'code' => 'ENTERPRISE',
+            'name' => 'Enterprise',
+            'price' => '10000.0000',
             'billing_period' => 'monthly',
-            'limits'         => json_encode(['max_users' => 100]),
-            'is_active'      => true,
-            'created_at'     => now(),
-            'updated_at'     => now(),
+            'limits' => json_encode(['max_users' => 100]),
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
         ]);
 
         $this->tenant = Tenant::create([
-            'id'            => 1,
-            'uuid'          => (string) Str::uuid(),
-            'plan_id'       => 1,
-            'name'          => 'SliceMart BD',
-            'slug'          => 'slicemart-bd',
-            'status'        => 'active',
+            'id' => 1,
+            'uuid' => (string) Str::uuid(),
+            'plan_id' => 1,
+            'name' => 'SliceMart BD',
+            'slug' => 'slicemart-bd',
+            'status' => 'active',
             'currency_code' => 'BDT',
-            'timezone'      => 'Asia/Dhaka',
-            'locale'        => 'en',
-            'date_format'   => 'Y-m-d',
+            'timezone' => 'Asia/Dhaka',
+            'locale' => 'en',
+            'date_format' => 'Y-m-d',
             'number_format' => 'standard',
         ]);
 
         TenantContext::bind($this->tenant->toArray());
 
         $this->user = User::create([
-            'uuid'          => (string) Str::uuid(),
-            'tenant_id'     => 1,
-            'name'          => 'Accountant',
-            'email'         => 'accounts@slicemart.test',
-            'password'      => Hash::make('Password123!'),
-            'status'        => 'active',
-            'locale'        => 'en',
+            'uuid' => (string) Str::uuid(),
+            'tenant_id' => 1,
+            'name' => 'Accountant',
+            'email' => 'accounts@slicemart.test',
+            'password' => Hash::make('Password123!'),
+            'status' => 'active',
+            'locale' => 'en',
             'token_version' => 1,
-            'perm_version'  => 1,
+            'perm_version' => 1,
         ]);
 
         $this->unit = Unit::create([
-            'uuid'      => (string) Str::uuid(),
+            'uuid' => (string) Str::uuid(),
             'tenant_id' => 1,
-            'code'      => 'BOX',
-            'name'      => 'Box',
-            'type'      => 'unit',
+            'code' => 'BOX',
+            'name' => 'Box',
+            'type' => 'unit',
         ]);
 
         $this->product = Product::create([
-            'uuid'         => (string) Str::uuid(),
-            'tenant_id'    => 1,
-            'sku'          => 'CAKE-BOX-12',
-            'name'         => 'Fruit Cake 12-Pack',
-            'type'         => 'finished',
+            'uuid' => (string) Str::uuid(),
+            'tenant_id' => 1,
+            'sku' => 'CAKE-BOX-12',
+            'name' => 'Fruit Cake 12-Pack',
+            'type' => 'finished',
             'base_unit_id' => $this->unit->id,
         ]);
 
         $this->warehouse = Warehouse::create([
-            'uuid'      => (string) Str::uuid(),
+            'uuid' => (string) Str::uuid(),
             'tenant_id' => 1,
-            'code'      => 'WH-FIN',
-            'name'      => 'Finished Goods Hub',
-            'type'      => 'finished',
+            'code' => 'WH-FIN',
+            'name' => 'Finished Goods Hub',
+            'type' => 'finished',
             'is_active' => true,
         ]);
 
         $this->customer = Party::create([
-            'uuid'      => (string) Str::uuid(),
+            'uuid' => (string) Str::uuid(),
             'tenant_id' => 1,
-            'code'      => 'CUST-002',
-            'name'      => 'Distributor Beta',
-            'type'      => 'customer',
+            'code' => 'CUST-002',
+            'name' => 'Distributor Beta',
+            'type' => 'customer',
         ]);
 
         $this->assignOnly(
@@ -128,12 +132,12 @@ final class InvoiceTest extends TestCase
     {
         $res = $this->postJson('/api/v1/sales/invoices', [
             'invoice_date' => now()->toDateString(),
-            'party_id'     => $this->customer->id,
-            'items'        => [
+            'party_id' => $this->customer->id,
+            'items' => [
                 [
                     'product_id' => $this->product->id,
-                    'quantity'   => '20.0000',
-                    'unit_id'    => $this->unit->id,
+                    'quantity' => '20.0000',
+                    'unit_id' => $this->unit->id,
                     'unit_price' => '350.0000',
                 ],
             ],
@@ -146,8 +150,8 @@ final class InvoiceTest extends TestCase
 
         $this->assertDatabaseHas('invoices', [
             'tenant_id' => 1,
-            'party_id'  => $this->customer->id,
-            'status'    => 'draft',
+            'party_id' => $this->customer->id,
+            'status' => 'draft',
         ]);
     }
 
@@ -155,12 +159,12 @@ final class InvoiceTest extends TestCase
     {
         $createRes = $this->postJson('/api/v1/sales/invoices', [
             'invoice_date' => now()->toDateString(),
-            'party_id'     => $this->customer->id,
-            'items'        => [
+            'party_id' => $this->customer->id,
+            'items' => [
                 [
                     'product_id' => $this->product->id,
-                    'quantity'   => '5.0000',
-                    'unit_id'    => $this->unit->id,
+                    'quantity' => '5.0000',
+                    'unit_id' => $this->unit->id,
                     'unit_price' => '100.0000',
                 ],
             ],
@@ -174,7 +178,7 @@ final class InvoiceTest extends TestCase
             ->assertJsonPath('data.status', 'posted');
 
         $this->assertDatabaseHas('invoices', [
-            'id'     => $invoiceId,
+            'id' => $invoiceId,
             'status' => 'posted',
         ]);
     }
@@ -183,12 +187,12 @@ final class InvoiceTest extends TestCase
     {
         $createRes = $this->postJson('/api/v1/sales/invoices', [
             'invoice_date' => now()->toDateString(),
-            'party_id'     => $this->customer->id,
-            'items'        => [
+            'party_id' => $this->customer->id,
+            'items' => [
                 [
                     'product_id' => $this->product->id,
-                    'quantity'   => '2.0000',
-                    'unit_id'    => $this->unit->id,
+                    'quantity' => '2.0000',
+                    'unit_id' => $this->unit->id,
                     'unit_price' => '100.0000',
                 ],
             ],
@@ -205,8 +209,8 @@ final class InvoiceTest extends TestCase
             ->assertJsonPath('data.void_reason', 'Customer cancelled the agreement before delivery');
 
         $this->assertDatabaseHas('invoices', [
-            'id'          => $invoiceId,
-            'status'      => 'void',
+            'id' => $invoiceId,
+            'status' => 'void',
             'void_reason' => 'Customer cancelled the agreement before delivery',
         ]);
     }
@@ -215,11 +219,11 @@ final class InvoiceTest extends TestCase
     {
         $this->postJson('/api/v1/sales/invoices', [
             'invoice_date' => now()->toDateString(),
-            'party_id'     => $this->customer->id,
-            'items'        => [
+            'party_id' => $this->customer->id,
+            'items' => [
                 [
                     'product_id' => $this->product->id,
-                    'quantity'   => '1.0000',
+                    'quantity' => '1.0000',
                     'unit_price' => '100.0000',
                 ],
             ],
@@ -229,9 +233,9 @@ final class InvoiceTest extends TestCase
 
         $res->assertStatus(200)
             ->assertJsonStructure([
-                'data'  => [['id', 'invoice_number', 'status', 'total_amount']],
+                'data' => [['id', 'invoice_number', 'status', 'total_amount']],
                 'links' => ['first', 'last'],
-                'meta'  => ['total'],
+                'meta' => ['total'],
             ])
             ->assertJsonPath('meta.total', 1);
     }
@@ -240,11 +244,11 @@ final class InvoiceTest extends TestCase
     {
         $createRes = $this->postJson('/api/v1/sales/invoices', [
             'invoice_date' => now()->toDateString(),
-            'party_id'     => $this->customer->id,
-            'items'        => [
+            'party_id' => $this->customer->id,
+            'items' => [
                 [
                     'product_id' => $this->product->id,
-                    'quantity'   => '1.0000',
+                    'quantity' => '1.0000',
                     'unit_price' => '100.0000',
                 ],
             ],
@@ -253,48 +257,48 @@ final class InvoiceTest extends TestCase
 
         // Create Tenant 2
         $tenant2 = Tenant::create([
-            'id'            => 2,
-            'uuid'          => (string) Str::uuid(),
-            'plan_id'       => 1,
-            'name'          => 'Competitor Corp',
-            'slug'          => 'competitor-corp',
-            'status'        => 'active',
+            'id' => 2,
+            'uuid' => (string) Str::uuid(),
+            'plan_id' => 1,
+            'name' => 'Competitor Corp',
+            'slug' => 'competitor-corp',
+            'status' => 'active',
             'currency_code' => 'BDT',
-            'timezone'      => 'Asia/Dhaka',
-            'locale'        => 'en',
-            'date_format'   => 'Y-m-d',
+            'timezone' => 'Asia/Dhaka',
+            'locale' => 'en',
+            'date_format' => 'Y-m-d',
             'number_format' => 'standard',
         ]);
 
         TenantContext::bind($tenant2->toArray());
 
         $user2 = User::create([
-            'uuid'          => (string) Str::uuid(),
-            'tenant_id'     => 2,
-            'name'          => 'Competitor User',
-            'email'         => 'comp@test.com',
-            'password'      => Hash::make('Password123!'),
-            'status'        => 'active',
-            'locale'        => 'en',
+            'uuid' => (string) Str::uuid(),
+            'tenant_id' => 2,
+            'name' => 'Competitor User',
+            'email' => 'comp@test.com',
+            'password' => Hash::make('Password123!'),
+            'status' => 'active',
+            'locale' => 'en',
             'token_version' => 1,
-            'perm_version'  => 1,
+            'perm_version' => 1,
         ]);
 
         $role2 = Role::create([
-            'uuid'      => (string) Str::uuid(),
+            'uuid' => (string) Str::uuid(),
             'tenant_id' => 2,
-            'name'      => 'Comp Role',
-            'slug'      => 'comp-'.Str::random(6),
+            'name' => 'Comp Role',
+            'slug' => 'comp-'.Str::random(6),
             'is_system' => false,
         ]);
 
         $permission = Permission::firstOrCreate(
             ['name' => 'sales.invoice.view'],
             [
-                'uuid'     => (string) Str::uuid(),
-                'module'   => 'sales',
+                'uuid' => (string) Str::uuid(),
+                'module' => 'sales',
                 'resource' => 'invoice',
-                'action'   => 'view',
+                'action' => 'view',
             ]
         );
         $role2->permissions()->attach($permission);
@@ -307,9 +311,9 @@ final class InvoiceTest extends TestCase
         );
 
         $res = $this->getJson("/api/v1/sales/invoices/{$invoiceId}", [
-            'Authorization' => 'Bearer ' . $jwt2,
-            'X-Tenant'      => $tenant2->slug,
-            'Accept'        => 'application/json',
+            'Authorization' => 'Bearer '.$jwt2,
+            'X-Tenant' => $tenant2->slug,
+            'Accept' => 'application/json',
         ]);
 
         $res->assertStatus(404);
@@ -323,19 +327,19 @@ final class InvoiceTest extends TestCase
     private function headers(): array
     {
         return [
-            'Authorization' => 'Bearer ' . $this->jwt,
-            'X-Tenant'      => $this->tenant->slug,
-            'Accept'        => 'application/json',
+            'Authorization' => 'Bearer '.$this->jwt,
+            'X-Tenant' => $this->tenant->slug,
+            'Accept' => 'application/json',
         ];
     }
 
     private function assignOnly(string ...$permissions): void
     {
         $role = Role::create([
-            'uuid'      => (string) Str::uuid(),
+            'uuid' => (string) Str::uuid(),
             'tenant_id' => 1,
-            'name'      => 'Accounts Role',
-            'slug'      => 'accounts-' . Str::random(6),
+            'name' => 'Accounts Role',
+            'slug' => 'accounts-'.Str::random(6),
             'is_system' => false,
         ]);
 
@@ -344,10 +348,10 @@ final class InvoiceTest extends TestCase
             $permission = Permission::firstOrCreate(
                 ['name' => $name],
                 [
-                    'uuid'     => (string) Str::uuid(),
-                    'module'   => $module,
+                    'uuid' => (string) Str::uuid(),
+                    'module' => $module,
                     'resource' => $resource,
-                    'action'   => $action,
+                    'action' => $action,
                 ]
             );
             $role->permissions()->attach($permission);

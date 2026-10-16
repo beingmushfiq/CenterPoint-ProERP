@@ -5,14 +5,14 @@ declare(strict_types=1);
 namespace App\Modules\Ecommerce\Services\Seo;
 
 use App\Models\Tenant;
-use App\Models\TenantSeoSetting;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Throwable;
 
 class IndexNowNotificationService
 {
     public function __construct(
-        protected SeoMetadataService $seoMetadataService = new SeoMetadataService()
+        protected SeoMetadataService $seoMetadataService = new SeoMetadataService
     ) {}
 
     /**
@@ -58,7 +58,7 @@ class IndexNowNotificationService
                 ->post('https://api.indexnow.org/indexnow', $payload);
 
             $status = $response->status();
-            $success = in_array($status, [200, 202]);
+            $success = in_array($status, [200, 202], true);
 
             if (! $success) {
                 Log::warning('IndexNow submission failed', [
@@ -72,9 +72,9 @@ class IndexNowNotificationService
                 'success' => $success,
                 'status_code' => $status,
                 'submitted_urls_count' => count($payload['urlList']),
-                'message' => $success ? 'URLs successfully submitted to IndexNow.' : 'IndexNow responded with status ' . $status,
+                'message' => $success ? 'URLs successfully submitted to IndexNow.' : 'IndexNow responded with status '.$status,
             ];
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             Log::error('IndexNow exception', [
                 'tenant_id' => $tenant->id,
                 'error' => $e->getMessage(),

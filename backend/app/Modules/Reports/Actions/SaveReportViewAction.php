@@ -20,7 +20,7 @@ class SaveReportViewAction
 
         $definition = ReportDefinition::resolveDefinition($code, $tenantId);
 
-        if (!$definition) {
+        if (! $definition) {
             throw ValidationException::withMessages([
                 'code' => ["Report definition with code '{$code}' not found."],
             ]);

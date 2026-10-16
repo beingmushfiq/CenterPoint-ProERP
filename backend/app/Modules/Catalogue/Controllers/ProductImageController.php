@@ -65,7 +65,7 @@ final class ProductImageController extends Controller
         $path = '';
         if ($request->hasFile('image')) {
             $file = $request->file('image');
-            $filename = Str::random(24) . '.' . $file->getClientOriginalExtension();
+            $filename = Str::random(24).'.'.$file->getClientOriginalExtension();
             $path = $file->storeAs("products/{$product->id}", $filename, 'public');
         } else {
             $path = (string) $request->input('url');
@@ -74,7 +74,7 @@ final class ProductImageController extends Controller
         $existingCount = $product->images()->count();
         $isPrimary = $request->boolean('is_primary', $existingCount === 0);
 
-        return DB::transaction(function () use ($product, $tenantId, $userId, $path, $request, $isPrimary, $existingCount) {
+        return DB::transaction(function () use ($product, $tenantId, $userId, $path, $request, $isPrimary) {
             if ($isPrimary) {
                 $product->images()->update(['is_primary' => false]);
             }

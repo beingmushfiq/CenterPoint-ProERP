@@ -28,7 +28,7 @@ final class CreateStockCountAction
     public function execute(array $data): StockCount
     {
         return DB::transaction(function () use ($data): StockCount {
-            $countNumber = $data['count_number'] ?? ('CNT-' . date('Ymd') . '-' . strtoupper(Str::random(6)));
+            $countNumber = $data['count_number'] ?? ('CNT-'.date('Ymd').'-'.strtoupper(Str::random(6)));
             $type = $data['type'] ?? $data['count_type'] ?? 'full';
 
             $stockCount = StockCount::create([

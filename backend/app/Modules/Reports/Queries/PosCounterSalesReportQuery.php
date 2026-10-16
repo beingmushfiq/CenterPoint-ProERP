@@ -13,65 +13,55 @@ class PosCounterSalesReportQuery implements ReportQueryInterface
 
     public function __construct(?SalesDataProvider $provider = null)
     {
-        $this->provider = $provider ?? new SalesDataProvider();
+        $this->provider = $provider ?? new SalesDataProvider;
     }
 
     public function columns(): array
     {
-        return array (
-  'order_number' => 
-  array (
-    'label' => 'POS Bill No',
-    'type' => 'string',
-    'sortable' => true,
-  ),
-  'order_date' => 
-  array (
-    'label' => 'Date & Time',
-    'type' => 'string',
-  ),
-  'customer_name' => 
-  array (
-    'label' => 'Customer',
-    'type' => 'string',
-  ),
-  'cashier' => 
-  array (
-    'label' => 'Cashier / Counter Agent',
-    'type' => 'string',
-  ),
-  'subtotal' => 
-  array (
-    'label' => 'Subtotal (BDT)',
-    'type' => 'currency',
-  ),
-  'discount_amount' => 
-  array (
-    'label' => 'Discount (BDT)',
-    'type' => 'currency',
-  ),
-  'tax_amount' => 
-  array (
-    'label' => 'VAT / Tax (BDT)',
-    'type' => 'currency',
-  ),
-  'total_amount' => 
-  array (
-    'label' => 'Total Amount (BDT)',
-    'type' => 'currency',
-    'sortable' => true,
-  ),
-  'paid_amount' => 
-  array (
-    'label' => 'Paid (BDT)',
-    'type' => 'currency',
-  ),
-  'payment_status' => 
-  array (
-    'label' => 'Payment Status',
-    'type' => 'badge',
-  ),
-);
+        return [
+            'order_number' => [
+                'label' => 'POS Bill No',
+                'type' => 'string',
+                'sortable' => true,
+            ],
+            'order_date' => [
+                'label' => 'Date & Time',
+                'type' => 'string',
+            ],
+            'customer_name' => [
+                'label' => 'Customer',
+                'type' => 'string',
+            ],
+            'cashier' => [
+                'label' => 'Cashier / Counter Agent',
+                'type' => 'string',
+            ],
+            'subtotal' => [
+                'label' => 'Subtotal (BDT)',
+                'type' => 'currency',
+            ],
+            'discount_amount' => [
+                'label' => 'Discount (BDT)',
+                'type' => 'currency',
+            ],
+            'tax_amount' => [
+                'label' => 'VAT / Tax (BDT)',
+                'type' => 'currency',
+            ],
+            'total_amount' => [
+                'label' => 'Total Amount (BDT)',
+                'type' => 'currency',
+                'sortable' => true,
+            ],
+            'paid_amount' => [
+                'label' => 'Paid (BDT)',
+                'type' => 'currency',
+            ],
+            'payment_status' => [
+                'label' => 'Payment Status',
+                'type' => 'badge',
+            ],
+        ];
     }
 
     public function query(array $filters, int $page = 1, int $perPage = 25): array

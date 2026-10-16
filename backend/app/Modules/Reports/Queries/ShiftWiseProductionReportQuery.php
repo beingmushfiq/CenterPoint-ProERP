@@ -13,50 +13,43 @@ class ShiftWiseProductionReportQuery implements ReportQueryInterface
 
     public function __construct(?ProductionDataProvider $provider = null)
     {
-        $this->provider = $provider ?? new ProductionDataProvider();
+        $this->provider = $provider ?? new ProductionDataProvider;
     }
 
     public function columns(): array
     {
-        return array (
-  'shift_code' => 
-  array (
-    'label' => 'Shift Code',
-    'type' => 'string',
-    'sortable' => true,
-  ),
-  'shift_name' => 
-  array (
-    'label' => 'Operational Shift',
-    'type' => 'string',
-  ),
-  'batches_count' => 
-  array (
-    'label' => 'Batches',
-    'type' => 'number',
-  ),
-  'planned_quantity' => 
-  array (
-    'label' => 'Planned Target',
-    'type' => 'number',
-  ),
-  'actual_quantity' => 
-  array (
-    'label' => 'Actual Produced',
-    'type' => 'number',
-    'sortable' => true,
-  ),
-  'rejected_quantity' => 
-  array (
-    'label' => 'Scrap',
-    'type' => 'number',
-  ),
-  'achievement_percentage' => 
-  array (
-    'label' => 'Adherence (%)',
-    'type' => 'string',
-  ),
-);
+        return [
+            'shift_code' => [
+                'label' => 'Shift Code',
+                'type' => 'string',
+                'sortable' => true,
+            ],
+            'shift_name' => [
+                'label' => 'Operational Shift',
+                'type' => 'string',
+            ],
+            'batches_count' => [
+                'label' => 'Batches',
+                'type' => 'number',
+            ],
+            'planned_quantity' => [
+                'label' => 'Planned Target',
+                'type' => 'number',
+            ],
+            'actual_quantity' => [
+                'label' => 'Actual Produced',
+                'type' => 'number',
+                'sortable' => true,
+            ],
+            'rejected_quantity' => [
+                'label' => 'Scrap',
+                'type' => 'number',
+            ],
+            'achievement_percentage' => [
+                'label' => 'Adherence (%)',
+                'type' => 'string',
+            ],
+        ];
     }
 
     public function query(array $filters, int $page = 1, int $perPage = 25): array

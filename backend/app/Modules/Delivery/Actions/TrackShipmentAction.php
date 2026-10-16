@@ -15,17 +15,17 @@ class TrackShipmentAction
     public function execute(CourierShipment $shipment): CourierShipment
     {
         $provider = $shipment->provider;
-        if (!$provider) {
+        if (! $provider) {
             throw new ValidationException('Courier provider not found.', 422);
         }
 
         $adapter = $provider->getAdapterInstance();
 
-        if (!$adapter->supports(CourierCapability::GET_STATUS)) {
+        if (! $adapter->supports(CourierCapability::GET_STATUS)) {
             throw new ValidationException('Courier provider does not support live status tracking.', 422);
         }
 
-        if (!$shipment->consignment_id) {
+        if (! $shipment->consignment_id) {
             throw new ValidationException('Shipment does not have an active consignment ID.', 422);
         }
 
@@ -52,7 +52,7 @@ class TrackShipmentAction
                     'source' => 'system',
                     'occurred_at' => now(),
                     'location' => $statusResult->location,
-                    'notes' => 'Status poll: ' . ($statusResult->providerStatusRaw ?? $statusResult->status),
+                    'notes' => 'Status poll: '.($statusResult->providerStatusRaw ?? $statusResult->status),
                 ]);
             }
 

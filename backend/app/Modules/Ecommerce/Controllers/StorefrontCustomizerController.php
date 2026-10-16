@@ -30,8 +30,8 @@ final class StorefrontCustomizerController extends Controller
                 'tenant_id' => $tenantId,
                 'uuid' => (string) Str::uuid(),
                 'name' => $tenant['name'] ?? 'Online Storefront',
-                'code' => 'STORE-' . strtoupper(Str::random(4)),
-                'subdomain' => $tenant['slug'] ?? 'store-' . $tenantId,
+                'code' => 'STORE-'.strtoupper(Str::random(4)),
+                'subdomain' => $tenant['slug'] ?? 'store-'.$tenantId,
                 'currency' => $tenant['currency_code'] ?? 'USD',
                 'locale' => $tenant['locale'] ?? 'en',
                 'theme' => [
@@ -40,7 +40,7 @@ final class StorefrontCustomizerController extends Controller
                     'hero_title' => 'Factory Fresh Goods',
                     'hero_subtitle' => 'Industrial quality delivered straight to your door.',
                 ],
-                'meta_title' => ($tenant['name'] ?? 'Storefront') . ' - Official Store',
+                'meta_title' => ($tenant['name'] ?? 'Storefront').' - Official Store',
                 'guest_checkout_enabled' => true,
                 'cod_enabled' => true,
                 'online_payment_enabled' => true,
@@ -177,6 +177,7 @@ final class StorefrontCustomizerController extends Controller
 
         $data = $products->map(function ($prod) use ($published) {
             $pub = $published->get($prod->id);
+
             return [
                 'id' => $prod->id,
                 'sku' => $prod->sku,
@@ -228,7 +229,7 @@ final class StorefrontCustomizerController extends Controller
             ],
             [
                 'uuid' => (string) Str::uuid(),
-                'seo_slug' => Str::slug($product->name) . '-' . strtolower($product->sku),
+                'seo_slug' => Str::slug($product->name).'-'.strtolower($product->sku),
                 'is_available' => $validated['is_published'],
                 'is_featured' => $validated['is_featured'] ?? false,
                 'price_override' => $validated['price_override'] ?? null,
@@ -271,7 +272,7 @@ final class StorefrontCustomizerController extends Controller
                 ],
                 [
                     'uuid' => (string) Str::uuid(),
-                    'seo_slug' => Str::slug($prod->name) . '-' . strtolower($prod->sku),
+                    'seo_slug' => Str::slug($prod->name).'-'.strtolower($prod->sku),
                     'is_available' => true,
                     'is_featured' => true,
                     'sort_order' => $index + 1,

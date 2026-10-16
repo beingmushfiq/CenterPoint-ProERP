@@ -21,7 +21,7 @@ class ReportSavedViewController extends Controller
         $userId = $user?->id ?? 1;
 
         $definition = ReportDefinition::resolveDefinition($code, $tenantId);
-        if (!$definition) {
+        if (! $definition) {
             abort(404, "Report definition with code '{$code}' not found.");
         }
 

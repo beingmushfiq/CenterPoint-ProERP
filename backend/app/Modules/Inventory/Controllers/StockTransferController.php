@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Inventory\Controllers;
 
+use App\Core\Tenancy\TenantContext;
 use App\Http\Controllers\Controller;
 use App\Modules\Inventory\Actions\CreateStockTransferAction;
 use App\Modules\Inventory\Actions\DispatchStockTransferAction;
@@ -12,7 +13,6 @@ use App\Modules\Inventory\Models\StockTransfer;
 use App\Modules\Inventory\Requests\ReceiveStockTransferRequest;
 use App\Modules\Inventory\Requests\StoreStockTransferRequest;
 use App\Modules\Inventory\Resources\StockTransferResource;
-use App\Core\Tenancy\TenantContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;

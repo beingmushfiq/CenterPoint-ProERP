@@ -41,17 +41,6 @@ class PayslipItem extends Model
         'sort_order' => 'integer',
     ];
 
-    protected static function boot(): void
-    {
-        parent::boot();
-
-        static::creating(static function (PayslipItem $model): void {
-            if (empty($model->uuid)) {
-                $model->uuid = (string) Str::uuid();
-            }
-        });
-    }
-
     /**
      * @return BelongsTo<Payslip, $this>
      */
@@ -66,5 +55,16 @@ class PayslipItem extends Model
     public function component(): BelongsTo
     {
         return $this->belongsTo(SalaryComponent::class, 'salary_component_id');
+    }
+
+    protected static function boot(): void
+    {
+        parent::boot();
+
+        static::creating(static function (PayslipItem $model): void {
+            if (empty($model->uuid)) {
+                $model->uuid = (string) Str::uuid();
+            }
+        });
     }
 }

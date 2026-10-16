@@ -24,7 +24,7 @@ class CreateReportExportAction
 
         $definition = ReportDefinition::resolveDefinition($code, $tenantId);
 
-        if (!$definition) {
+        if (! $definition) {
             throw ValidationException::withMessages([
                 'code' => ["Report definition with code '{$code}' not found."],
             ]);
@@ -38,7 +38,7 @@ class CreateReportExportAction
         // 2. Build real CSV stream
         $csvHandle = fopen('php://temp', 'r+');
         // Prepend UTF-8 BOM for Microsoft Excel / Sheets compatibility
-        fputs($csvHandle, "\xEF\xBB\xBF");
+        fwrite($csvHandle, "\xEF\xBB\xBF");
 
         $headerKeys = array_keys($columns);
         $headerLabels = [];
@@ -46,7 +46,7 @@ class CreateReportExportAction
             $headerLabels[] = is_array($col) ? ($col['label'] ?? 'Field') : (string) $col;
         }
 
-        if (!empty($headerLabels)) {
+        if (! empty($headerLabels)) {
             fputcsv($csvHandle, $headerLabels);
         }
 

@@ -24,7 +24,7 @@ class HandleTenantRedirects
             return $next($request);
         }
 
-        $path = '/' . ltrim($request->path(), '/');
+        $path = '/'.ltrim($request->path(), '/');
 
         // Check exact match redirect
         $redirect = TenantRedirect::withoutTenantScope()
@@ -38,7 +38,7 @@ class HandleTenantRedirects
             $redirect->updateQuietly(['last_hit_at' => now()]);
 
             $target = $redirect->target_path;
-            $code = in_array($redirect->status_code, [301, 302, 307, 308]) ? $redirect->status_code : 301;
+            $code = in_array($redirect->status_code, [301, 302, 307, 308], true) ? $redirect->status_code : 301;
 
             return redirect($target, $code);
         }

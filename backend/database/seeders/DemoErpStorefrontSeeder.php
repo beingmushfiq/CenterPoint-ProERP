@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace Database\Seeders;
 
 use App\Core\Tenancy\TenantContext;
+use App\Models\Branch;
 use App\Models\Brand;
 use App\Models\Category;
 use App\Models\Company;
-use App\Models\Branch;
 use App\Models\Party;
 use App\Models\PartyAddress;
 use App\Models\Product;
@@ -22,11 +22,9 @@ use App\Models\Tenant;
 use App\Models\Unit;
 use App\Models\Warehouse;
 use App\Modules\Inventory\Models\StockBalance;
-use App\Modules\Inventory\Models\StockMovement;
 use App\Modules\Sales\Models\SalesOrder;
 use App\Modules\Sales\Models\SalesOrderItem;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
@@ -179,7 +177,7 @@ final class DemoErpStorefrontSeeder extends Seeder
     {
         // ── 3. CLEAN UP OBSOLETE PLACEHOLDER PRODUCTS IN TENANT 2 ONLY ─────
         $oldTestProducts = Product::where('tenant_id', $tenantId)
-            ->where(function ($q) {
+            ->where(function ($q): void {
                 $q->where('sku', 'like', 'TEST%')
                     ->orWhere('sku', 'like', '%-DEMO');
             })
@@ -574,7 +572,7 @@ final class DemoErpStorefrontSeeder extends Seeder
                 [
                     'uuid' => (string) Str::uuid(),
                     'name' => $item['name'],
-                    'barcode' => '8801' . str_pad((string) ($index + 1), 6, '0', STR_PAD_LEFT),
+                    'barcode' => '8801'.str_pad((string) ($index + 1), 6, '0', STR_PAD_LEFT),
                     'description' => $item['description'],
                     'type' => 'finished',
                     'category_id' => $catId,
@@ -594,7 +592,7 @@ final class DemoErpStorefrontSeeder extends Seeder
                     'weight' => $item['weight'],
                     'dimensions' => $item['dimensions'],
                     'is_online' => true,
-                    'online_slug' => Str::slug($item['name']) . '-' . strtolower($item['sku']),
+                    'online_slug' => Str::slug($item['name']).'-'.strtolower($item['sku']),
                     'status' => 'active',
                 ]
             );
@@ -622,7 +620,7 @@ final class DemoErpStorefrontSeeder extends Seeder
                 ],
                 [
                     'uuid' => (string) Str::uuid(),
-                    'seo_slug' => Str::slug($product->name) . '-' . strtolower($product->sku),
+                    'seo_slug' => Str::slug($product->name).'-'.strtolower($product->sku),
                     'display_name_override' => null,
                     'price_override' => $item['price'],
                     'compare_at_price' => $item['compare_at'],
@@ -642,17 +640,17 @@ final class DemoErpStorefrontSeeder extends Seeder
 
             if (! $existingBalance || bccomp((string) $existingBalance->quantity, '0.0000', 4) <= 0) {
                 $recordStockMovement->execute([
-                    'tenant_id'     => $tenantId,
-                    'product_id'    => $product->id,
-                    'warehouse_id'  => $warehouse->id,
+                    'tenant_id' => $tenantId,
+                    'product_id' => $product->id,
+                    'warehouse_id' => $warehouse->id,
                     'movement_type' => 'opening_balance',
-                    'direction'     => 'in',
-                    'quantity'      => (string) $item['stock'] . '.0000',
-                    'unit_id'       => $unitPcs->id,
-                    'unit_cost'     => $item['cost'],
-                    'stock_state'   => 'available',
-                    'moved_at'      => now()->toIso8601String(),
-                    'created_by'    => null,
+                    'direction' => 'in',
+                    'quantity' => (string) $item['stock'].'.0000',
+                    'unit_id' => $unitPcs->id,
+                    'unit_cost' => $item['cost'],
+                    'stock_state' => 'available',
+                    'moved_at' => now()->toIso8601String(),
+                    'created_by' => null,
                 ]);
             }
 
@@ -1037,7 +1035,7 @@ final class DemoErpStorefrontSeeder extends Seeder
                         'id' => 'pol_priv',
                         'type' => 'rich_text',
                         'title' => 'Your Privacy & Data Protection',
-                        'content' => "CenterPoint ProERP Direct Ltd. respects your privacy. We collect customer names, phone numbers, and delivery addresses solely to process and dispatch orders and provide after-sales warranty support. Your personal information is encrypted and never sold to third parties.",
+                        'content' => 'CenterPoint ProERP Direct Ltd. respects your privacy. We collect customer names, phone numbers, and delivery addresses solely to process and dispatch orders and provide after-sales warranty support. Your personal information is encrypted and never sold to third parties.',
                     ],
                 ],
             ],
@@ -1051,7 +1049,7 @@ final class DemoErpStorefrontSeeder extends Seeder
                         'id' => 'pol_terms',
                         'type' => 'rich_text',
                         'title' => 'Storefront Terms of Service',
-                        'content' => "By using this storefront and placing orders, you agree to our standard terms of service. All prices include applicable statutory taxes unless explicitly stated otherwise. We reserve the right to verify high-value cash-on-delivery orders via telephone prior to dispatch.",
+                        'content' => 'By using this storefront and placing orders, you agree to our standard terms of service. All prices include applicable statutory taxes unless explicitly stated otherwise. We reserve the right to verify high-value cash-on-delivery orders via telephone prior to dispatch.',
                     ],
                 ],
             ],
@@ -1183,7 +1181,7 @@ final class DemoErpStorefrontSeeder extends Seeder
                 'discount_percentage' => '0.0000',
                 'discount_amount' => '500.0000',
                 'tax_amount' => '0.0000',
-                'line_total' => (string) ((float) $sampleProd1->default_sale_price - 500) . '.0000',
+                'line_total' => (string) ((float) $sampleProd1->default_sale_price - 500).'.0000',
             ]);
         }
         if ($sampleProd2) {

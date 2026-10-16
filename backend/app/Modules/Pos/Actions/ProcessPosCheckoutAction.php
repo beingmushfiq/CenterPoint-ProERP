@@ -13,6 +13,7 @@ use App\Modules\Sales\Models\PaymentAllocation;
 use App\Modules\Sales\Models\SalesOrder;
 use App\Modules\Sales\Models\SalesOrderItem;
 use App\Modules\Sales\Models\SalesOrderPayment;
+use DomainException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -67,12 +68,12 @@ final class ProcessPosCheckoutAction
                 ->firstOrFail();
 
             if ($session->status !== 'open') {
-                throw new \DomainException("POS Session [{$session->session_number}] is not open.");
+                throw new DomainException("POS Session [{$session->session_number}] is not open.");
             }
 
-            $orderNumber   = 'POS-SO-' . date('Ymd') . '-' . strtoupper(Str::random(6));
-            $invoiceNumber = 'POS-INV-' . date('Ymd') . '-' . strtoupper(Str::random(6));
-            $orderDate     = $data['order_date'] ?? date('Y-m-d');
+            $orderNumber = 'POS-SO-'.date('Ymd').'-'.strtoupper(Str::random(6));
+            $invoiceNumber = 'POS-INV-'.date('Ymd').'-'.strtoupper(Str::random(6));
+            $orderDate = $data['order_date'] ?? date('Y-m-d');
 
             /** @var numeric-string $subtotal */
             $subtotal = '0.0000';
@@ -103,7 +104,7 @@ final class ProcessPosCheckoutAction
                     $pct = isset($item['discount_value']) && is_numeric($item['discount_value']) ? (string) $item['discount_value'] : '0.00';
                     $itemDiscPct = $pct;
                     $itemDisc = bcdiv(bcmul($lineGross, $pct, 4), '100', 4);
-                } elseif (isset($item['discount_percentage']) && is_numeric($item['discount_percentage']) && (float)$item['discount_percentage'] > 0) {
+                } elseif (isset($item['discount_percentage']) && is_numeric($item['discount_percentage']) && (float) $item['discount_percentage'] > 0) {
                     $pct = (string) $item['discount_percentage'];
                     $itemDiscPct = $pct;
                     $itemDisc = bcdiv(bcmul($lineGross, $pct, 4), '100', 4);
@@ -121,14 +122,14 @@ final class ProcessPosCheckoutAction
                 $lineNet = bcsub($lineGross, $itemDisc, 4);
 
                 $computedItems[] = [
-                    'raw'         => $item,
-                    'qty'         => $qty,
-                    'price'       => $price,
-                    'tax'         => $itemTax,
-                    'lineGross'   => $lineGross,
-                    'lineDisc'    => $itemDisc,
+                    'raw' => $item,
+                    'qty' => $qty,
+                    'price' => $price,
+                    'tax' => $itemTax,
+                    'lineGross' => $lineGross,
+                    'lineDisc' => $itemDisc,
                     'lineDiscPct' => $itemDiscPct,
-                    'lineNet'     => $lineNet,
+                    'lineNet' => $lineNet,
                 ];
             }
 
@@ -166,29 +167,29 @@ final class ProcessPosCheckoutAction
 
             // 1. Create Sales Order
             $order = SalesOrder::create([
-                'tenant_id'       => $data['tenant_id'],
-                'order_number'    => $orderNumber,
-                'channel'         => 'counter',
-                'branch_id'       => $session->branch_id,
-                'warehouse_id'    => $session->warehouse_id,
-                'party_id'        => $data['party_id'] ?? null,
-                'customer_name'   => $data['customer_name'] ?? null,
-                'customer_phone'  => $data['customer_phone'] ?? null,
-                'pos_session_id'  => $session->id,
-                'order_date'      => $orderDate,
-                'currency_code'   => 'BDT',
-                'subtotal'        => $subtotal,
+                'tenant_id' => $data['tenant_id'],
+                'order_number' => $orderNumber,
+                'channel' => 'counter',
+                'branch_id' => $session->branch_id,
+                'warehouse_id' => $session->warehouse_id,
+                'party_id' => $data['party_id'] ?? null,
+                'customer_name' => $data['customer_name'] ?? null,
+                'customer_phone' => $data['customer_phone'] ?? null,
+                'pos_session_id' => $session->id,
+                'order_date' => $orderDate,
+                'currency_code' => 'BDT',
+                'subtotal' => $subtotal,
                 'discount_amount' => $totalDiscount,
-                'tax_amount'      => $totalTax,
+                'tax_amount' => $totalTax,
                 'shipping_amount' => '0.0000',
-                'round_off'       => $roundOff,
-                'total_amount'    => $grandTotal,
-                'paid_amount'     => $grandTotal,
-                'due_amount'      => '0.0000',
-                'status'          => 'delivered',
-                'payment_status'  => 'paid',
-                'notes'           => $data['notes'] ?? null,
-                'created_by'      => $data['user_id'],
+                'round_off' => $roundOff,
+                'total_amount' => $grandTotal,
+                'paid_amount' => $grandTotal,
+                'due_amount' => '0.0000',
+                'status' => 'delivered',
+                'payment_status' => 'paid',
+                'notes' => $data['notes'] ?? null,
+                'created_by' => $data['user_id'],
             ]);
 
             // 2. Line Items & Stock Deduction with proportional order discount allocation
@@ -213,73 +214,73 @@ final class ProcessPosCheckoutAction
                 $computedItems[$cIdx]['effectiveLineTotal'] = $effectiveLineTotal;
 
                 SalesOrderItem::create([
-                    'tenant_id'          => $data['tenant_id'],
-                    'sales_order_id'     => $order->id,
-                    'product_id'         => $item['product_id'],
-                    'variant_id'         => $item['variant_id'] ?? null,
-                    'quantity'           => $qty,
-                    'unit_id'            => $item['unit_id'],
-                    'unit_price'         => $price,
-                    'discount_percentage'=> $computed['lineDiscPct'],
-                    'discount_amount'    => $effectiveLineDisc,
-                    'tax_profile_id'     => $item['tax_profile_id'] ?? null,
-                    'tax_amount'         => $tax,
-                    'line_total'         => $effectiveLineTotal,
+                    'tenant_id' => $data['tenant_id'],
+                    'sales_order_id' => $order->id,
+                    'product_id' => $item['product_id'],
+                    'variant_id' => $item['variant_id'] ?? null,
+                    'quantity' => $qty,
+                    'unit_id' => $item['unit_id'],
+                    'unit_price' => $price,
+                    'discount_percentage' => $computed['lineDiscPct'],
+                    'discount_amount' => $effectiveLineDisc,
+                    'tax_profile_id' => $item['tax_profile_id'] ?? null,
+                    'tax_amount' => $tax,
+                    'line_total' => $effectiveLineTotal,
                     'delivered_quantity' => $qty,
-                    'returned_quantity'  => '0.0000',
+                    'returned_quantity' => '0.0000',
                 ]);
 
                 // Record stock movement (outbound POS sale)
                 if ($session->warehouse_id) {
                     $this->recordStockMovement->execute([
-                        'tenant_id'      => $data['tenant_id'],
-                        'product_id'     => $item['product_id'],
-                        'variant_id'     => $item['variant_id'] ?? null,
-                        'warehouse_id'   => $session->warehouse_id,
-                        'movement_type'  => 'pos_sale',
-                        'direction'      => 'out',
-                        'quantity'       => $qty,
-                        'unit_id'        => $item['unit_id'],
-                        'unit_cost'      => $price,
+                        'tenant_id' => $data['tenant_id'],
+                        'product_id' => $item['product_id'],
+                        'variant_id' => $item['variant_id'] ?? null,
+                        'warehouse_id' => $session->warehouse_id,
+                        'movement_type' => 'pos_sale',
+                        'direction' => 'out',
+                        'quantity' => $qty,
+                        'unit_id' => $item['unit_id'],
+                        'unit_cost' => $price,
                         'reference_type' => 'sales_order',
-                        'reference_id'   => $order->id,
-                        'moved_at'       => $orderDate,
-                        'created_by'     => $data['user_id'],
+                        'reference_id' => $order->id,
+                        'moved_at' => $orderDate,
+                        'created_by' => $data['user_id'],
                     ]);
                 }
             }
 
             // 3. Create Invoice
             $invoice = Invoice::create([
-                'tenant_id'       => $data['tenant_id'],
-                'invoice_number'  => $invoiceNumber,
-                'sales_order_id'  => $order->id,
-                'branch_id'       => $session->branch_id,
-                'party_id'        => $data['party_id'] ?? null,
-                'invoice_date'    => $orderDate,
-                'subtotal'        => $subtotal,
+                'tenant_id' => $data['tenant_id'],
+                'invoice_number' => $invoiceNumber,
+                'sales_order_id' => $order->id,
+                'branch_id' => $session->branch_id,
+                'party_id' => $data['party_id'] ?? null,
+                'invoice_date' => $orderDate,
+                'subtotal' => $subtotal,
                 'discount_amount' => $totalDiscount,
-                'tax_amount'      => $totalTax,
+                'tax_amount' => $totalTax,
                 'shipping_amount' => '0.0000',
-                'round_off'       => $roundOff,
-                'total_amount'    => $grandTotal,
-                'paid_amount'     => $grandTotal,
-                'status'          => 'paid',
-                'created_by'      => $data['user_id'],
+                'round_off' => $roundOff,
+                'total_amount' => $grandTotal,
+                'paid_amount' => $grandTotal,
+                'status' => 'paid',
+                'created_by' => $data['user_id'],
             ]);
 
             foreach ($computedItems as $computed) {
                 $item = $computed['raw'];
                 InvoiceItem::create([
-                    'tenant_id'       => $data['tenant_id'],
-                    'invoice_id'      => $invoice->id,
-                    'product_id'      => $item['product_id'],
-                    'quantity'        => $computed['qty'],
-                    'unit_id'         => $item['unit_id'],
-                    'unit_price'      => $computed['price'],
+                    'tenant_id' => $data['tenant_id'],
+                    'invoice_id' => $invoice->id,
+                    'product_id' => $item['product_id'],
+                    'quantity' => $computed['qty'],
+                    'unit_id' => $item['unit_id'],
+                    'unit_price' => $computed['price'],
                     'discount_amount' => $computed['effectiveLineDisc'],
-                    'tax_amount'      => $computed['tax'],
-                    'line_total'      => $computed['effectiveLineTotal'],
+                    'tax_amount' => $computed['tax'],
+                    'line_total' => $computed['effectiveLineTotal'],
                 ]);
             }
 
@@ -292,11 +293,11 @@ final class ProcessPosCheckoutAction
 
                 // Sales Order Payment record (tender)
                 SalesOrderPayment::create([
-                    'tenant_id'      => $data['tenant_id'],
+                    'tenant_id' => $data['tenant_id'],
                     'sales_order_id' => $order->id,
-                    'method'         => $paymentItem['method'],
-                    'amount'         => $amt,
-                    'change_given'   => $change,
+                    'method' => $paymentItem['method'],
+                    'amount' => $amt,
+                    'change_given' => $change,
                 ]);
 
                 // Payment entry (allocated net settled amount to the invoice)
@@ -305,27 +306,27 @@ final class ProcessPosCheckoutAction
 
                 if (bccomp($netAmt, '0.0000', 4) > 0) {
                     $payment = Payment::create([
-                        'tenant_id'          => $data['tenant_id'],
-                        'payment_number'     => 'PAY-' . date('Ymd') . '-' . strtoupper(Str::random(6)),
-                        'direction'          => 'in',
-                        'party_id'           => $data['party_id'] ?? null,
-                        'branch_id'          => $session->branch_id,
-                        'payment_date'       => $orderDate,
-                        'method'             => $paymentItem['method'],
-                        'amount'             => $netAmt,
-                        'allocated_amount'   => $netAmt,
+                        'tenant_id' => $data['tenant_id'],
+                        'payment_number' => 'PAY-'.date('Ymd').'-'.strtoupper(Str::random(6)),
+                        'direction' => 'in',
+                        'party_id' => $data['party_id'] ?? null,
+                        'branch_id' => $session->branch_id,
+                        'payment_date' => $orderDate,
+                        'method' => $paymentItem['method'],
+                        'amount' => $netAmt,
+                        'allocated_amount' => $netAmt,
                         'unallocated_amount' => '0.0000',
-                        'currency_code'      => $data['currency_code'] ?? 'BDT',
-                        'status'             => 'posted',
-                        'created_by'         => $data['user_id'],
+                        'currency_code' => $data['currency_code'] ?? 'BDT',
+                        'status' => 'posted',
+                        'created_by' => $data['user_id'],
                     ]);
 
                     PaymentAllocation::create([
-                        'tenant_id'        => $data['tenant_id'],
-                        'payment_id'       => $payment->id,
+                        'tenant_id' => $data['tenant_id'],
+                        'payment_id' => $payment->id,
                         'allocatable_type' => 'invoice',
-                        'allocatable_id'   => $invoice->id,
-                        'amount'           => $netAmt,
+                        'allocatable_id' => $invoice->id,
+                        'amount' => $netAmt,
                     ]);
                 }
 
@@ -348,7 +349,7 @@ final class ProcessPosCheckoutAction
             $session->save();
 
             return [
-                'order'   => $order->load(['items.product', 'items.unit']),
+                'order' => $order->load(['items.product', 'items.unit']),
                 'invoice' => $invoice->load(['items.product']),
                 'session' => $session->refresh(),
             ];

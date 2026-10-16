@@ -27,10 +27,15 @@ final class StockMovementTest extends TestCase
     use RefreshDatabase;
 
     private Tenant $tenant;
+
     private User $user;
+
     private string $jwt;
+
     private Warehouse $warehouse;
+
     private Product $product;
+
     private Unit $unit;
 
     protected function setUp(): void

@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace App\Modules\Purchasing\Controllers;
 
+use App\Core\Tenancy\TenantContext;
 use App\Http\Controllers\Controller;
 use App\Modules\Purchasing\Actions\CreatePurchaseBillAction;
 use App\Modules\Purchasing\Models\PurchaseBill;
 use App\Modules\Purchasing\Requests\StorePurchaseBillRequest;
 use App\Modules\Purchasing\Resources\PurchaseBillResource;
 use App\Modules\Sales\Actions\RecordPaymentAction;
-use App\Core\Tenancy\TenantContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -183,14 +183,14 @@ final class PurchaseBillController extends Controller
             'reference_number' => $validated['reference_number'] ?? null,
             'amount' => $paymentAmount,
             'currency_code' => $bill->currency_code ?? 'BDT',
-            'notes' => $validated['notes'] ?? ("Payment for bill " . $bill->bill_number),
+            'notes' => $validated['notes'] ?? ('Payment for bill '.$bill->bill_number),
             'created_by' => (int) $request->user()?->id,
             'allocations' => [
                 [
                     'allocatable_type' => 'purchase_bill',
                     'allocatable_id' => $bill->id,
                     'amount' => $paymentAmount,
-                ]
+                ],
             ],
             'splits' => $validated['splits'] ?? null,
         ]);

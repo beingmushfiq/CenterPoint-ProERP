@@ -15,7 +15,6 @@ use App\Models\Role;
 use App\Models\Tenant;
 use App\Models\Unit;
 use App\Models\User;
-use App\Models\WorkerProductionEntry;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -27,12 +26,19 @@ class WorkerProductionEntryBulkImportTest extends TestCase
     use RefreshDatabase;
 
     private Tenant $tenant;
+
     private User $user;
+
     private string $jwt;
+
     private Employee $employee1;
+
     private Employee $employee2;
+
     private Product $product;
+
     private ProductionBatch $batch;
+
     private Unit $unit;
 
     protected function setUp(): void
@@ -135,7 +141,7 @@ class WorkerProductionEntryBulkImportTest extends TestCase
             'uuid' => (string) Str::uuid(),
             'tenant_id' => $this->tenant->id,
             'name' => 'Floor Lead Role',
-            'slug' => 'floor-role-' . Str::random(4),
+            'slug' => 'floor-role-'.Str::random(4),
             'is_system' => false,
         ]);
 
@@ -213,16 +219,6 @@ class WorkerProductionEntryBulkImportTest extends TestCase
             'employment_status' => 'active',
             'is_active' => 1,
         ]);
-    }
-
-    private function headers(): array
-    {
-        return [
-            'Authorization' => "Bearer {$this->jwt}",
-            'X-Tenant-Id' => $this->tenant->uuid,
-            'X-Tenant' => $this->tenant->slug,
-            'Accept' => 'application/json',
-        ];
     }
 
     public function test_can_bulk_import_worker_entries_in_skip_mode(): void
@@ -335,5 +331,15 @@ class WorkerProductionEntryBulkImportTest extends TestCase
             'rework_quantity' => '3.0000',
             'status' => 'verified',
         ]);
+    }
+
+    private function headers(): array
+    {
+        return [
+            'Authorization' => "Bearer {$this->jwt}",
+            'X-Tenant-Id' => $this->tenant->uuid,
+            'X-Tenant' => $this->tenant->slug,
+            'Accept' => 'application/json',
+        ];
     }
 }

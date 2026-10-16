@@ -111,9 +111,9 @@ final class BatchReconciliationController extends Controller
         $batch = ProductionBatch::query()
             ->with(['product:id,uuid,name,sku', 'supervisor:id,name,email'])
             ->where('tenant_id', $tenantId)
-            ->where(function ($q) use ($identifier) {
+            ->where(function ($q) use ($identifier): void {
                 $q->where('uuid', $identifier)
-                  ->orWhere('batch_number', $identifier);
+                    ->orWhere('batch_number', $identifier);
                 if (is_numeric($identifier)) {
                     $q->orWhere('id', (int) $identifier);
                 }
@@ -134,7 +134,7 @@ final class BatchReconciliationController extends Controller
                 'employee' => $entry->employee ? [
                     'id' => $entry->employee->id,
                     'uuid' => $entry->employee->uuid,
-                    'name' => trim(($entry->employee->first_name ?? '') . ' ' . ($entry->employee->last_name ?? '')),
+                    'name' => trim(($entry->employee->first_name ?? '').' '.($entry->employee->last_name ?? '')),
                     'code' => $entry->employee->employee_code,
                 ] : null,
                 'work_date' => $entry->work_date ? $entry->work_date->toDateString() : null,
@@ -173,9 +173,9 @@ final class BatchReconciliationController extends Controller
 
         $batch = ProductionBatch::query()
             ->where('tenant_id', $tenantId)
-            ->where(function ($q) use ($identifier) {
+            ->where(function ($q) use ($identifier): void {
                 $q->where('uuid', $identifier)
-                  ->orWhere('batch_number', $identifier);
+                    ->orWhere('batch_number', $identifier);
                 if (is_numeric($identifier)) {
                     $q->orWhere('id', (int) $identifier);
                 }

@@ -27,11 +27,17 @@ final class SalesOrderTest extends TestCase
     use RefreshDatabase;
 
     private Tenant $tenant;
+
     private User $user;
+
     private string $jwt;
+
     private Party $customer;
+
     private Warehouse $warehouse;
+
     private Product $product;
+
     private Unit $unit;
 
     protected function setUp(): void
@@ -40,78 +46,78 @@ final class SalesOrderTest extends TestCase
         TenantContext::flush();
 
         DB::table('plans')->insert([
-            'id'             => 1,
-            'uuid'           => (string) Str::uuid(),
-            'code'           => 'ENTERPRISE',
-            'name'           => 'Enterprise',
-            'price'          => '10000.0000',
+            'id' => 1,
+            'uuid' => (string) Str::uuid(),
+            'code' => 'ENTERPRISE',
+            'name' => 'Enterprise',
+            'price' => '10000.0000',
             'billing_period' => 'monthly',
-            'limits'         => json_encode(['max_users' => 100]),
-            'is_active'      => true,
-            'created_at'     => now(),
-            'updated_at'     => now(),
+            'limits' => json_encode(['max_users' => 100]),
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
         ]);
 
         $this->tenant = Tenant::create([
-            'id'            => 1,
-            'uuid'          => (string) Str::uuid(),
-            'plan_id'       => 1,
-            'name'          => 'SliceMart BD',
-            'slug'          => 'slicemart-bd',
-            'status'        => 'active',
+            'id' => 1,
+            'uuid' => (string) Str::uuid(),
+            'plan_id' => 1,
+            'name' => 'SliceMart BD',
+            'slug' => 'slicemart-bd',
+            'status' => 'active',
             'currency_code' => 'BDT',
-            'timezone'      => 'Asia/Dhaka',
-            'locale'        => 'en',
-            'date_format'   => 'Y-m-d',
+            'timezone' => 'Asia/Dhaka',
+            'locale' => 'en',
+            'date_format' => 'Y-m-d',
             'number_format' => 'standard',
         ]);
 
         TenantContext::bind($this->tenant->toArray());
 
         $this->user = User::create([
-            'uuid'          => (string) Str::uuid(),
-            'tenant_id'     => 1,
-            'name'          => 'Sales Officer',
-            'email'         => 'sales@slicemart.test',
-            'password'      => Hash::make('Password123!'),
-            'status'        => 'active',
-            'locale'        => 'en',
+            'uuid' => (string) Str::uuid(),
+            'tenant_id' => 1,
+            'name' => 'Sales Officer',
+            'email' => 'sales@slicemart.test',
+            'password' => Hash::make('Password123!'),
+            'status' => 'active',
+            'locale' => 'en',
             'token_version' => 1,
-            'perm_version'  => 1,
+            'perm_version' => 1,
         ]);
 
         $this->unit = Unit::create([
-            'uuid'      => (string) Str::uuid(),
+            'uuid' => (string) Str::uuid(),
             'tenant_id' => 1,
-            'code'      => 'PCS',
-            'name'      => 'Pieces',
-            'type'      => 'unit',
+            'code' => 'PCS',
+            'name' => 'Pieces',
+            'type' => 'unit',
         ]);
 
         $this->product = Product::create([
-            'uuid'         => (string) Str::uuid(),
-            'tenant_id'    => 1,
-            'sku'          => 'BREAD-STD',
-            'name'         => 'Standard Bread Loaf',
-            'type'         => 'finished',
+            'uuid' => (string) Str::uuid(),
+            'tenant_id' => 1,
+            'sku' => 'BREAD-STD',
+            'name' => 'Standard Bread Loaf',
+            'type' => 'finished',
             'base_unit_id' => $this->unit->id,
         ]);
 
         $this->warehouse = Warehouse::create([
-            'uuid'      => (string) Str::uuid(),
+            'uuid' => (string) Str::uuid(),
             'tenant_id' => 1,
-            'code'      => 'WH-MAIN',
-            'name'      => 'Main Dispatch Warehouse',
-            'type'      => 'finished',
+            'code' => 'WH-MAIN',
+            'name' => 'Main Dispatch Warehouse',
+            'type' => 'finished',
             'is_active' => true,
         ]);
 
         $this->customer = Party::create([
-            'uuid'      => (string) Str::uuid(),
+            'uuid' => (string) Str::uuid(),
             'tenant_id' => 1,
-            'code'      => 'CUST-001',
-            'name'      => 'Retail Partner Alpha',
-            'type'      => 'customer',
+            'code' => 'CUST-001',
+            'name' => 'Retail Partner Alpha',
+            'type' => 'customer',
         ]);
 
         $this->assignOnly(
@@ -124,15 +130,15 @@ final class SalesOrderTest extends TestCase
     public function test_create_sales_order_returns_201_with_draft_status(): void
     {
         $res = $this->postJson('/api/v1/sales/orders', [
-            'order_date'   => now()->toDateString(),
-            'channel'      => 'counter',
-            'party_id'     => $this->customer->id,
+            'order_date' => now()->toDateString(),
+            'channel' => 'counter',
+            'party_id' => $this->customer->id,
             'warehouse_id' => $this->warehouse->id,
-            'items'        => [
+            'items' => [
                 [
                     'product_id' => $this->product->id,
-                    'quantity'   => '10.0000',
-                    'unit_id'    => $this->unit->id,
+                    'quantity' => '10.0000',
+                    'unit_id' => $this->unit->id,
                     'unit_price' => '120.0000',
                 ],
             ],
@@ -147,8 +153,8 @@ final class SalesOrderTest extends TestCase
 
         $this->assertDatabaseHas('sales_orders', [
             'tenant_id' => 1,
-            'status'    => 'draft',
-            'channel'   => 'counter',
+            'status' => 'draft',
+            'channel' => 'counter',
         ]);
     }
 
@@ -156,12 +162,12 @@ final class SalesOrderTest extends TestCase
     {
         $res = $this->postJson('/api/v1/sales/orders', [
             'order_date' => now()->toDateString(),
-            'channel'    => 'dealer',
-            'party_id'   => $this->customer->uuid,
-            'items'      => [
+            'channel' => 'dealer',
+            'party_id' => $this->customer->uuid,
+            'items' => [
                 [
                     'product_id' => $this->product->uuid,
-                    'quantity'   => '3.0000',
+                    'quantity' => '3.0000',
                     'unit_price' => '150.0000',
                 ],
             ],
@@ -172,9 +178,9 @@ final class SalesOrderTest extends TestCase
             ->assertJsonPath('data.total_amount', '450.0000');
 
         $this->assertDatabaseHas('sales_order_items', [
-            'tenant_id'  => 1,
+            'tenant_id' => 1,
             'product_id' => $this->product->id,
-            'unit_id'    => $this->product->base_unit_id,
+            'unit_id' => $this->product->base_unit_id,
         ]);
     }
 
@@ -182,13 +188,13 @@ final class SalesOrderTest extends TestCase
     {
         $createRes = $this->postJson('/api/v1/sales/orders', [
             'order_date' => now()->toDateString(),
-            'channel'    => 'dealer',
-            'party_id'   => $this->customer->id,
-            'items'      => [
+            'channel' => 'dealer',
+            'party_id' => $this->customer->id,
+            'items' => [
                 [
                     'product_id' => $this->product->id,
-                    'quantity'   => '5.0000',
-                    'unit_id'    => $this->unit->id,
+                    'quantity' => '5.0000',
+                    'unit_id' => $this->unit->id,
                     'unit_price' => '200.0000',
                 ],
             ],
@@ -204,7 +210,7 @@ final class SalesOrderTest extends TestCase
             ->assertJsonPath('data.status', 'confirmed');
 
         $this->assertDatabaseHas('sales_orders', [
-            'id'     => $orderId,
+            'id' => $orderId,
             'status' => 'confirmed',
         ]);
     }
@@ -214,21 +220,21 @@ final class SalesOrderTest extends TestCase
         // Create two orders
         $this->postJson('/api/v1/sales/orders', [
             'order_date' => now()->toDateString(),
-            'items'      => [[
+            'items' => [[
                 'product_id' => $this->product->id,
-                'quantity'   => '2.0000',
-                'unit_id'    => $this->unit->id,
+                'quantity' => '2.0000',
+                'unit_id' => $this->unit->id,
                 'unit_price' => '50.0000',
             ]],
         ], $this->headers());
 
         $this->postJson('/api/v1/sales/orders', [
             'order_date' => now()->toDateString(),
-            'channel'    => 'online',
-            'items'      => [[
+            'channel' => 'online',
+            'items' => [[
                 'product_id' => $this->product->id,
-                'quantity'   => '1.0000',
-                'unit_id'    => $this->unit->id,
+                'quantity' => '1.0000',
+                'unit_id' => $this->unit->id,
                 'unit_price' => '50.0000',
             ]],
         ], $this->headers());
@@ -237,9 +243,9 @@ final class SalesOrderTest extends TestCase
 
         $res->assertStatus(200)
             ->assertJsonStructure([
-                'data'  => [['id', 'order_number', 'channel', 'status', 'total_amount']],
+                'data' => [['id', 'order_number', 'channel', 'status', 'total_amount']],
                 'links' => ['first', 'last'],
-                'meta'  => ['total', 'per_page'],
+                'meta' => ['total', 'per_page'],
             ])
             ->assertJsonPath('meta.total', 2);
     }
@@ -248,22 +254,22 @@ final class SalesOrderTest extends TestCase
     {
         $this->postJson('/api/v1/sales/orders', [
             'order_date' => now()->toDateString(),
-            'channel'    => 'counter',
-            'items'      => [[
+            'channel' => 'counter',
+            'items' => [[
                 'product_id' => $this->product->id,
-                'quantity'   => '1.0000',
-                'unit_id'    => $this->unit->id,
+                'quantity' => '1.0000',
+                'unit_id' => $this->unit->id,
                 'unit_price' => '50.0000',
             ]],
         ], $this->headers());
 
         $this->postJson('/api/v1/sales/orders', [
             'order_date' => now()->toDateString(),
-            'channel'    => 'online',
-            'items'      => [[
+            'channel' => 'online',
+            'items' => [[
                 'product_id' => $this->product->id,
-                'quantity'   => '1.0000',
-                'unit_id'    => $this->unit->id,
+                'quantity' => '1.0000',
+                'unit_id' => $this->unit->id,
                 'unit_price' => '50.0000',
             ]],
         ], $this->headers());
@@ -279,10 +285,10 @@ final class SalesOrderTest extends TestCase
     {
         $createRes = $this->postJson('/api/v1/sales/orders', [
             'order_date' => now()->toDateString(),
-            'items'      => [[
+            'items' => [[
                 'product_id' => $this->product->id,
-                'quantity'   => '3.0000',
-                'unit_id'    => $this->unit->id,
+                'quantity' => '3.0000',
+                'unit_id' => $this->unit->id,
                 'unit_price' => '80.0000',
             ]],
         ], $this->headers());
@@ -302,10 +308,10 @@ final class SalesOrderTest extends TestCase
         // Create order for tenant 1
         $createRes = $this->postJson('/api/v1/sales/orders', [
             'order_date' => now()->toDateString(),
-            'items'      => [[
+            'items' => [[
                 'product_id' => $this->product->id,
-                'quantity'   => '1.0000',
-                'unit_id'    => $this->unit->id,
+                'quantity' => '1.0000',
+                'unit_id' => $this->unit->id,
                 'unit_price' => '100.0000',
             ]],
         ], $this->headers());
@@ -313,48 +319,48 @@ final class SalesOrderTest extends TestCase
 
         // Create tenant 2 and its own user
         $tenant2 = Tenant::create([
-            'id'            => 2,
-            'uuid'          => (string) Str::uuid(),
-            'plan_id'       => 1,
-            'name'          => 'Rival Corp',
-            'slug'          => 'rival-corp',
-            'status'        => 'active',
+            'id' => 2,
+            'uuid' => (string) Str::uuid(),
+            'plan_id' => 1,
+            'name' => 'Rival Corp',
+            'slug' => 'rival-corp',
+            'status' => 'active',
             'currency_code' => 'BDT',
-            'timezone'      => 'Asia/Dhaka',
-            'locale'        => 'en',
-            'date_format'   => 'Y-m-d',
+            'timezone' => 'Asia/Dhaka',
+            'locale' => 'en',
+            'date_format' => 'Y-m-d',
             'number_format' => 'standard',
         ]);
 
         TenantContext::bind($tenant2->toArray());
 
         $user2 = User::create([
-            'uuid'          => (string) Str::uuid(),
-            'tenant_id'     => 2,
-            'name'          => 'Rival Sales',
-            'email'         => 'rival@rival.test',
-            'password'      => Hash::make('Password123!'),
-            'status'        => 'active',
-            'locale'        => 'en',
+            'uuid' => (string) Str::uuid(),
+            'tenant_id' => 2,
+            'name' => 'Rival Sales',
+            'email' => 'rival@rival.test',
+            'password' => Hash::make('Password123!'),
+            'status' => 'active',
+            'locale' => 'en',
             'token_version' => 1,
-            'perm_version'  => 1,
+            'perm_version' => 1,
         ]);
 
         $role2 = Role::create([
-            'uuid'      => (string) Str::uuid(),
+            'uuid' => (string) Str::uuid(),
             'tenant_id' => 2,
-            'name'      => 'Rival Role',
-            'slug'      => 'rival-'.Str::random(6),
+            'name' => 'Rival Role',
+            'slug' => 'rival-'.Str::random(6),
             'is_system' => false,
         ]);
 
         $permission = Permission::firstOrCreate(
             ['name' => 'sales.order.view'],
             [
-                'uuid'     => (string) Str::uuid(),
-                'module'   => 'sales',
+                'uuid' => (string) Str::uuid(),
+                'module' => 'sales',
                 'resource' => 'order',
-                'action'   => 'view',
+                'action' => 'view',
             ]
         );
         $role2->permissions()->attach($permission);
@@ -368,9 +374,9 @@ final class SalesOrderTest extends TestCase
 
         // Tenant 2 must not see Tenant 1's order
         $res = $this->getJson("/api/v1/sales/orders/{$orderId}", [
-            'Authorization' => 'Bearer ' . $jwt2,
-            'X-Tenant'      => $tenant2->slug,
-            'Accept'        => 'application/json',
+            'Authorization' => 'Bearer '.$jwt2,
+            'X-Tenant' => $tenant2->slug,
+            'Accept' => 'application/json',
         ]);
 
         $res->assertStatus(404);
@@ -397,22 +403,22 @@ final class SalesOrderTest extends TestCase
     {
         // Create a separate user with no permissions
         $noPermUser = User::create([
-            'uuid'          => (string) Str::uuid(),
-            'tenant_id'     => 1,
-            'name'          => 'No Perms User',
-            'email'         => 'noperms@slicemart.test',
-            'password'      => Hash::make('Password123!'),
-            'status'        => 'active',
-            'locale'        => 'en',
+            'uuid' => (string) Str::uuid(),
+            'tenant_id' => 1,
+            'name' => 'No Perms User',
+            'email' => 'noperms@slicemart.test',
+            'password' => Hash::make('Password123!'),
+            'status' => 'active',
+            'locale' => 'en',
             'token_version' => 1,
-            'perm_version'  => 1,
+            'perm_version' => 1,
         ]);
 
         $emptyRole = Role::create([
-            'uuid'      => (string) Str::uuid(),
+            'uuid' => (string) Str::uuid(),
             'tenant_id' => 1,
-            'name'      => 'Empty Role',
-            'slug'      => 'empty-' . Str::random(6),
+            'name' => 'Empty Role',
+            'slug' => 'empty-'.Str::random(6),
             'is_system' => false,
         ]);
         $noPermUser->roles()->attach($emptyRole);
@@ -425,34 +431,33 @@ final class SalesOrderTest extends TestCase
 
         $res = $this->postJson('/api/v1/sales/orders', [
             'order_date' => now()->toDateString(),
-            'items'      => [[
+            'items' => [[
                 'product_id' => $this->product->id,
-                'quantity'   => '1.0000',
-                'unit_id'    => $this->unit->id,
+                'quantity' => '1.0000',
+                'unit_id' => $this->unit->id,
                 'unit_price' => '100.0000',
             ]],
         ], [
-            'Authorization' => 'Bearer ' . $noPermJwt,
-            'X-Tenant'      => $this->tenant->slug,
-            'Accept'        => 'application/json',
+            'Authorization' => 'Bearer '.$noPermJwt,
+            'X-Tenant' => $this->tenant->slug,
+            'Accept' => 'application/json',
         ]);
 
         $res->assertStatus(403);
     }
 
-
     public function test_line_totals_computed_correctly_with_discount(): void
     {
         $res = $this->postJson('/api/v1/sales/orders', [
             'order_date' => now()->toDateString(),
-            'items'      => [
+            'items' => [
                 [
-                    'product_id'      => $this->product->id,
-                    'quantity'        => '10.0000',
-                    'unit_id'         => $this->unit->id,
-                    'unit_price'      => '100.0000',
+                    'product_id' => $this->product->id,
+                    'quantity' => '10.0000',
+                    'unit_id' => $this->unit->id,
+                    'unit_price' => '100.0000',
                     'discount_amount' => '50.0000',
-                    'tax_amount'      => '30.0000',
+                    'tax_amount' => '30.0000',
                 ],
             ],
         ], $this->headers());
@@ -468,17 +473,17 @@ final class SalesOrderTest extends TestCase
     public function test_create_sales_order_automatically_creates_unverified_crm_lead(): void
     {
         $res = $this->postJson('/api/v1/sales/orders', [
-            'order_date'     => now()->toDateString(),
-            'channel'        => 'dealer',
-            'party_id'       => $this->customer->id,
-            'customer_name'  => 'Diamond Electronics',
+            'order_date' => now()->toDateString(),
+            'channel' => 'dealer',
+            'party_id' => $this->customer->id,
+            'customer_name' => 'Diamond Electronics',
             'customer_phone' => '+8801700112233',
-            'notes'          => 'Urgent delivery required',
-            'items'          => [
+            'notes' => 'Urgent delivery required',
+            'items' => [
                 [
                     'product_id' => $this->product->id,
-                    'quantity'   => '5.0000',
-                    'unit_id'    => $this->unit->id,
+                    'quantity' => '5.0000',
+                    'unit_id' => $this->unit->id,
                     'unit_price' => '300.0000',
                 ],
             ],
@@ -490,31 +495,31 @@ final class SalesOrderTest extends TestCase
 
         $this->assertNotNull($leadId);
         $this->assertDatabaseHas('crm_leads', [
-            'id'                  => $leadId,
-            'tenant_id'           => 1,
-            'name'                => 'Diamond Electronics',
-            'phone'               => '+8801700112233',
-            'source'              => 'referral', // dealer channel maps to referral
-            'stage'               => 'proposal',
-            'is_fake'             => false,
-            'validated_at'        => null,
-            'converted_party_id'  => $this->customer->id,
+            'id' => $leadId,
+            'tenant_id' => 1,
+            'name' => 'Diamond Electronics',
+            'phone' => '+8801700112233',
+            'source' => 'referral', // dealer channel maps to referral
+            'stage' => 'proposal',
+            'is_fake' => false,
+            'validated_at' => null,
+            'converted_party_id' => $this->customer->id,
         ]);
     }
 
     public function test_approving_sales_order_verifies_linked_lead_as_sold(): void
     {
         $res = $this->postJson('/api/v1/sales/orders', [
-            'order_date'     => now()->toDateString(),
-            'channel'        => 'counter',
-            'party_id'       => $this->customer->id,
-            'customer_name'  => 'Apex Super Store',
+            'order_date' => now()->toDateString(),
+            'channel' => 'counter',
+            'party_id' => $this->customer->id,
+            'customer_name' => 'Apex Super Store',
             'customer_phone' => '+8801811223344',
-            'items'          => [
+            'items' => [
                 [
                     'product_id' => $this->product->id,
-                    'quantity'   => '2.0000',
-                    'unit_id'    => $this->unit->id,
+                    'quantity' => '2.0000',
+                    'unit_id' => $this->unit->id,
                     'unit_price' => '500.0000',
                 ],
             ],
@@ -531,9 +536,9 @@ final class SalesOrderTest extends TestCase
 
         // Verify lead has transitioned to won & validated_at set
         $this->assertDatabaseHas('crm_leads', [
-            'id'           => $leadId,
-            'stage'        => 'won',
-            'is_fake'      => false,
+            'id' => $leadId,
+            'stage' => 'won',
+            'is_fake' => false,
             'validated_by' => $this->user->id,
         ]);
 
@@ -547,12 +552,12 @@ final class SalesOrderTest extends TestCase
         // Create an order for a walk-in lead (no party_id initially)
         $createRes = $this->postJson('/api/v1/sales/orders', [
             'customer_name' => 'Walk-in Customer Test',
-            'order_date'    => now()->toDateString(),
-            'notes'         => 'Walk-in buyer',
-            'items'         => [[
+            'order_date' => now()->toDateString(),
+            'notes' => 'Walk-in buyer',
+            'items' => [[
                 'product_id' => $this->product->id,
-                'quantity'   => '2.0000',
-                'unit_id'    => $this->unit->id,
+                'quantity' => '2.0000',
+                'unit_id' => $this->unit->id,
                 'unit_price' => '250.0000',
             ]],
         ], $this->headers());
@@ -591,11 +596,11 @@ final class SalesOrderTest extends TestCase
     {
         $createRes = $this->postJson('/api/v1/sales/orders', [
             'customer_name' => 'Status Change Test',
-            'order_date'    => now()->toDateString(),
-            'items'         => [[
+            'order_date' => now()->toDateString(),
+            'items' => [[
                 'product_id' => $this->product->id,
-                'quantity'   => '1.0000',
-                'unit_id'    => $this->unit->id,
+                'quantity' => '1.0000',
+                'unit_id' => $this->unit->id,
                 'unit_price' => '100.0000',
             ]],
         ], $this->headers());
@@ -635,19 +640,19 @@ final class SalesOrderTest extends TestCase
     private function headers(): array
     {
         return [
-            'Authorization' => 'Bearer ' . $this->jwt,
-            'X-Tenant'      => $this->tenant->slug,
-            'Accept'        => 'application/json',
+            'Authorization' => 'Bearer '.$this->jwt,
+            'X-Tenant' => $this->tenant->slug,
+            'Accept' => 'application/json',
         ];
     }
 
     private function assignOnly(string ...$permissions): void
     {
         $role = Role::create([
-            'uuid'      => (string) Str::uuid(),
+            'uuid' => (string) Str::uuid(),
             'tenant_id' => 1,
-            'name'      => 'Sales Role',
-            'slug'      => 'sales-' . Str::random(6),
+            'name' => 'Sales Role',
+            'slug' => 'sales-'.Str::random(6),
             'is_system' => false,
         ]);
 
@@ -656,10 +661,10 @@ final class SalesOrderTest extends TestCase
             $permission = Permission::firstOrCreate(
                 ['name' => $name],
                 [
-                    'uuid'     => (string) Str::uuid(),
-                    'module'   => $module,
+                    'uuid' => (string) Str::uuid(),
+                    'module' => $module,
                     'resource' => $resource,
-                    'action'   => $action,
+                    'action' => $action,
                 ]
             );
             $role->permissions()->attach($permission);

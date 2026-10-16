@@ -4,17 +4,14 @@ declare(strict_types=1);
 
 namespace App\Modules\Ecommerce\Services\Seo;
 
-use App\Models\Category;
 use App\Models\Product;
 use App\Models\Storefront;
-use App\Models\StorefrontPage;
 use App\Models\Tenant;
-use App\Models\TenantSeoSetting;
 
 class SeoHealthAuditService
 {
     public function __construct(
-        protected SeoMetadataService $seoMetadataService = new SeoMetadataService()
+        protected SeoMetadataService $seoMetadataService = new SeoMetadataService
     ) {}
 
     /**
@@ -129,7 +126,7 @@ class SeoHealthAuditService
             'title' => 'Online Products with Rich Descriptions',
             'passed' => $productDescRatio >= 0.8,
             'importance' => 'high',
-            'details' => "{$productsWithDesc} of {$productsCount} online products have descriptive content (" . round($productDescRatio * 100) . "%).",
+            'details' => "{$productsWithDesc} of {$productsCount} online products have descriptive content (".round($productDescRatio * 100).'%).',
             'weight' => 15,
         ];
         $totalWeight += 15;
@@ -143,7 +140,7 @@ class SeoHealthAuditService
             'title' => 'Online Products with High-Resolution Photography',
             'passed' => $productImgRatio >= 0.8,
             'importance' => 'high',
-            'details' => "{$productsWithImages} of {$productsCount} online products have attached photos (" . round($productImgRatio * 100) . "%).",
+            'details' => "{$productsWithImages} of {$productsCount} online products have attached photos (".round($productImgRatio * 100).'%).',
             'weight' => 10,
         ];
         $totalWeight += 10;

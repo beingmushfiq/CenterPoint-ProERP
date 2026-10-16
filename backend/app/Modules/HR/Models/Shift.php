@@ -43,6 +43,14 @@ class Shift extends Model
         'is_active' => 'boolean',
     ];
 
+    /**
+     * @return HasMany<Employee, $this>
+     */
+    public function employees(): HasMany
+    {
+        return $this->hasMany(Employee::class, 'default_shift_id');
+    }
+
     protected static function boot(): void
     {
         parent::boot();
@@ -52,13 +60,5 @@ class Shift extends Model
                 $model->uuid = (string) Str::uuid();
             }
         });
-    }
-
-    /**
-     * @return HasMany<Employee, $this>
-     */
-    public function employees(): HasMany
-    {
-        return $this->hasMany(Employee::class, 'default_shift_id');
     }
 }

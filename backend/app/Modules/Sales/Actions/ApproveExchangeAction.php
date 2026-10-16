@@ -7,6 +7,7 @@ namespace App\Modules\Sales\Actions;
 use App\Modules\Inventory\Actions\RecordStockMovementAction;
 use App\Modules\Sales\Models\Exchange;
 use App\Modules\Sales\Models\Invoice;
+use DomainException;
 use Illuminate\Support\Facades\DB;
 
 final class ApproveExchangeAction
@@ -19,7 +20,7 @@ final class ApproveExchangeAction
     {
         return DB::transaction(function () use ($exchange, $userId): Exchange {
             if ($exchange->status !== 'draft') {
-                throw new \DomainException("Exchange [{$exchange->exchange_number}] is already {$exchange->status}.");
+                throw new DomainException("Exchange [{$exchange->exchange_number}] is already {$exchange->status}.");
             }
 
             $exchange->loadMissing(['returnItems', 'replacementItems']);
@@ -31,19 +32,19 @@ final class ApproveExchangeAction
                     $qty = (string) $item->quantity;
 
                     $movement = $this->recordStockMovement->execute([
-                        'tenant_id'      => $exchange->tenant_id,
-                        'warehouse_id'   => $exchange->warehouse_id,
-                        'product_id'     => $item->product_id,
-                        'variant_id'     => $item->variant_id,
-                        'movement_type'  => 'exchange_return',
-                        'direction'      => 'in',
-                        'quantity'       => $qty,
-                        'unit_id'        => $item->unit_id,
-                        'unit_cost'      => (string) $item->unit_price,
+                        'tenant_id' => $exchange->tenant_id,
+                        'warehouse_id' => $exchange->warehouse_id,
+                        'product_id' => $item->product_id,
+                        'variant_id' => $item->variant_id,
+                        'movement_type' => 'exchange_return',
+                        'direction' => 'in',
+                        'quantity' => $qty,
+                        'unit_id' => $item->unit_id,
+                        'unit_cost' => (string) $item->unit_price,
                         'reference_type' => 'exchange',
-                        'reference_id'   => $exchange->id,
-                        'moved_at'       => $exchange->exchange_date,
-                        'created_by'     => $userId,
+                        'reference_id' => $exchange->id,
+                        'moved_at' => $exchange->exchange_date,
+                        'created_by' => $userId,
                     ]);
 
                     $item->stock_movement_id = $movement->id;
@@ -57,19 +58,19 @@ final class ApproveExchangeAction
                 $qty = (string) $item->quantity;
 
                 $movement = $this->recordStockMovement->execute([
-                    'tenant_id'      => $exchange->tenant_id,
-                    'warehouse_id'   => $exchange->warehouse_id,
-                    'product_id'     => $item->product_id,
-                    'variant_id'     => $item->variant_id,
-                    'movement_type'  => 'exchange_dispatch',
-                    'direction'      => 'out',
-                    'quantity'       => $qty,
-                    'unit_id'        => $item->unit_id,
-                    'unit_cost'      => (string) $item->unit_price,
+                    'tenant_id' => $exchange->tenant_id,
+                    'warehouse_id' => $exchange->warehouse_id,
+                    'product_id' => $item->product_id,
+                    'variant_id' => $item->variant_id,
+                    'movement_type' => 'exchange_dispatch',
+                    'direction' => 'out',
+                    'quantity' => $qty,
+                    'unit_id' => $item->unit_id,
+                    'unit_cost' => (string) $item->unit_price,
                     'reference_type' => 'exchange',
-                    'reference_id'   => $exchange->id,
-                    'moved_at'       => $exchange->exchange_date,
-                    'created_by'     => $userId,
+                    'reference_id' => $exchange->id,
+                    'moved_at' => $exchange->exchange_date,
+                    'created_by' => $userId,
                 ]);
 
                 $item->stock_movement_id = $movement->id;
@@ -86,7 +87,7 @@ final class ApproveExchangeAction
                     if ($exchange->difference_settlement === 'customer_paid') {
                         // Customer paid the upgrade delta: both total and paid amount increment
                         $invoice->total_amount = (string) round((float) $invoice->total_amount + $diffAmount, 4);
-                        $invoice->paid_amount  = (string) round((float) $invoice->paid_amount + $diffAmount, 4);
+                        $invoice->paid_amount = (string) round((float) $invoice->paid_amount + $diffAmount, 4);
                     } elseif ($exchange->difference_settlement === 'top_up') {
                         // Upgrade difference added to invoice receivable
                         $invoice->total_amount = (string) round((float) $invoice->total_amount + $diffAmount, 4);
@@ -104,13 +105,13 @@ final class ApproveExchangeAction
                         $exchange->difference_amount,
                         $exchange->difference_settlement
                     );
-                    $invoice->void_reason = trim($prevNotes . ' ' . $exchangeNote);
+                    $invoice->void_reason = trim($prevNotes.' '.$exchangeNote);
                     $invoice->save();
                 }
             }
 
             // Step 4: Mark approved
-            $exchange->status      = 'approved';
+            $exchange->status = 'approved';
             $exchange->approved_by = $userId;
             $exchange->approved_at = now();
             $exchange->save();

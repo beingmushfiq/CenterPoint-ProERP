@@ -59,8 +59,10 @@ final class EnsureTenantActive
             $tenant = Tenant::find($tenantId);
             if ($tenant !== null && $tenant->isSubscriptionExpiredPastGrace()) {
                 $tenant->syncSuspensionStateIfNeeded();
+
                 return true;
             }
+
             return false;
         });
 

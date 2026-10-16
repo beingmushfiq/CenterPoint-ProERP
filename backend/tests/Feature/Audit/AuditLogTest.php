@@ -20,7 +20,9 @@ class AuditLogTest extends TestCase
     use RefreshDatabase;
 
     protected Tenant $tenant;
+
     protected User $user;
+
     protected string $token;
 
     protected function setUp(): void
@@ -75,7 +77,7 @@ class AuditLogTest extends TestCase
 
     public function test_can_record_and_query_immutable_audit_logs(): void
     {
-        $action = new RecordAuditLogAction();
+        $action = new RecordAuditLogAction;
 
         $action->execute(
             action: AuditAction::Updated,
@@ -87,7 +89,7 @@ class AuditLogTest extends TestCase
         );
 
         $response = $this->getJson('/api/v1/audit-logs', [
-            'Authorization' => 'Bearer ' . $this->token,
+            'Authorization' => 'Bearer '.$this->token,
         ]);
 
         $response->assertOk()

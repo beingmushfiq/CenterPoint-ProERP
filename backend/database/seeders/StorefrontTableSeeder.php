@@ -41,9 +41,9 @@ final class StorefrontTableSeeder extends Seeder
             \Illuminate\Support\Facades\DB::table('storefronts')
                 ->where('id', $sf->id)
                 ->update([
-                    'subdomain' => 'tmp_' . $sf->id . '_' . Str::random(8),
+                    'subdomain' => 'tmp_'.$sf->id.'_'.Str::random(8),
                     'domain' => null,
-                    'code' => 'TMP_' . $sf->id . '_' . Str::random(8),
+                    'code' => 'TMP_'.$sf->id.'_'.Str::random(8),
                 ]);
         }
 
@@ -182,7 +182,7 @@ final class StorefrontTableSeeder extends Seeder
                 ],
                 [
                     'uuid' => (string) Str::uuid(),
-                    'seo_slug' => Str::slug($prod->name) . '-' . strtolower($prod->sku),
+                    'seo_slug' => Str::slug($prod->name).'-'.strtolower($prod->sku),
                     'is_available' => true,
                     'is_featured' => true,
                     'sort_order' => $index + 1,
@@ -418,8 +418,8 @@ final class StorefrontTableSeeder extends Seeder
                     $newProd = \App\Models\Product::create([
                         'tenant_id' => $demoTenant->id,
                         'uuid' => (string) Str::uuid(),
-                        'sku' => $prod->sku . '-DEMO',
-                        'barcode' => $prod->barcode ? $prod->barcode . '0' : null,
+                        'sku' => $prod->sku.'-DEMO',
+                        'barcode' => $prod->barcode ? $prod->barcode.'0' : null,
                         'name' => $prod->name,
                         'description' => $prod->description,
                         'type' => $prod->type,
@@ -451,7 +451,7 @@ final class StorefrontTableSeeder extends Seeder
                         ],
                         [
                             'uuid' => (string) Str::uuid(),
-                            'seo_slug' => Str::slug($newProd->name) . '-' . strtolower($newProd->sku),
+                            'seo_slug' => Str::slug($newProd->name).'-'.strtolower($newProd->sku),
                             'is_available' => true,
                             'is_featured' => true,
                             'sort_order' => 1,
@@ -471,7 +471,7 @@ final class StorefrontTableSeeder extends Seeder
                         ],
                         [
                             'uuid' => (string) Str::uuid(),
-                            'seo_slug' => Str::slug($prod->name) . '-' . strtolower($prod->sku),
+                            'seo_slug' => Str::slug($prod->name).'-'.strtolower($prod->sku),
                             'is_available' => true,
                             'is_featured' => true,
                             'sort_order' => $index + 1,

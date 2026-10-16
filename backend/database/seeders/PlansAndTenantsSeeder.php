@@ -27,7 +27,7 @@ final class PlansAndTenantsSeeder extends Seeder
 
         if ($conflictingTenant) {
             $conflictingTenant->update([
-                'slug' => 'slicemart-migrating-' . $conflictingTenant->id,
+                'slug' => 'slicemart-migrating-'.$conflictingTenant->id,
             ]);
         }
 

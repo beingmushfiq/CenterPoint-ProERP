@@ -60,24 +60,13 @@ final class PosOfflineQueue extends Model
      * @var array<string, string>
      */
     protected $casts = [
-        'payload'           => 'array',
+        'payload' => 'array',
         'client_created_at' => 'datetime',
-        'synced_at'         => 'datetime',
-        'created_at'        => 'datetime',
-        'updated_at'        => 'datetime',
-        'deleted_at'        => 'datetime',
+        'synced_at' => 'datetime',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
+        'deleted_at' => 'datetime',
     ];
-
-    protected static function boot(): void
-    {
-        parent::boot();
-
-        static::creating(static function (PosOfflineQueue $model): void {
-            if (empty($model->uuid)) {
-                $model->uuid = (string) Str::uuid();
-            }
-        });
-    }
 
     /**
      * @return BelongsTo<PosTerminal, $this>
@@ -93,5 +82,16 @@ final class PosOfflineQueue extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class, 'user_id');
+    }
+
+    protected static function boot(): void
+    {
+        parent::boot();
+
+        self::creating(static function (PosOfflineQueue $model): void {
+            if (empty($model->uuid)) {
+                $model->uuid = (string) Str::uuid();
+            }
+        });
     }
 }

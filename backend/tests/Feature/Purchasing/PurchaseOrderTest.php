@@ -14,7 +14,6 @@ use App\Models\Tenant;
 use App\Models\Unit;
 use App\Models\User;
 use App\Models\Warehouse;
-use App\Modules\Purchasing\Models\PurchaseOrder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -26,11 +25,17 @@ final class PurchaseOrderTest extends TestCase
     use RefreshDatabase;
 
     private Tenant $tenant;
+
     private User $user;
+
     private string $jwt;
+
     private Party $supplier;
+
     private Warehouse $warehouse;
+
     private Product $product;
+
     private Unit $unit;
 
     protected function setUp(): void
@@ -165,23 +170,23 @@ final class PurchaseOrderTest extends TestCase
         // Order discount: 0 (or absent order_discount_value with discount_amount: 500).
         // Grand total MUST be 4000.0000 and total discount MUST be exactly 500.0000.
         $res = $this->postJson('/api/v1/purchasing/orders', [
-            'party_id'             => $this->supplier->id,
-            'warehouse_id'         => $this->warehouse->id,
-            'order_date'           => '2026-08-25',
-            'order_discount_type'  => 'flat',
+            'party_id' => $this->supplier->id,
+            'warehouse_id' => $this->warehouse->id,
+            'order_date' => '2026-08-25',
+            'order_discount_type' => 'flat',
             'order_discount_value' => '0.0000',
-            'discount_amount'      => '500.0000',
-            'currency_code'        => 'BDT',
-            'items'                => [
+            'discount_amount' => '500.0000',
+            'currency_code' => 'BDT',
+            'items' => [
                 [
-                    'product_id'          => $this->product->id,
-                    'quantity'            => '100.0000',
-                    'unit_id'             => $this->unit->id,
-                    'unit_price'          => '45.0000',
-                    'discount_type'       => 'flat',
-                    'discount_value'      => '500.0000',
-                    'discount_amount'     => '500.0000',
-                    'tax_rate'            => '0.0000',
+                    'product_id' => $this->product->id,
+                    'quantity' => '100.0000',
+                    'unit_id' => $this->unit->id,
+                    'unit_price' => '45.0000',
+                    'discount_type' => 'flat',
+                    'discount_value' => '500.0000',
+                    'discount_amount' => '500.0000',
+                    'tax_rate' => '0.0000',
                 ],
             ],
         ], $this->headers());
@@ -192,10 +197,10 @@ final class PurchaseOrderTest extends TestCase
             ->assertJsonPath('data.grand_total', '4000.0000');
 
         $this->assertDatabaseHas('purchase_orders', [
-            'id'              => $res->json('data.id'),
-            'subtotal'        => '4500.0000',
+            'id' => $res->json('data.id'),
+            'subtotal' => '4500.0000',
             'discount_amount' => '500.0000',
-            'total_amount'    => '4000.0000',
+            'total_amount' => '4000.0000',
         ]);
     }
 

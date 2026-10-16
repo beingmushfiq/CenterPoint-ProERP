@@ -42,6 +42,11 @@ class TenantRedirect extends Model
         'last_hit_at' => 'datetime',
     ];
 
+    public function storefront(): BelongsTo
+    {
+        return $this->belongsTo(Storefront::class);
+    }
+
     protected static function booted(): void
     {
         static::creating(function (TenantRedirect $model): void {
@@ -49,16 +54,11 @@ class TenantRedirect extends Model
                 $model->uuid = (string) Str::uuid();
             }
             if (! empty($model->source_path)) {
-                $model->source_path = '/' . ltrim(trim($model->source_path), '/');
+                $model->source_path = '/'.ltrim(trim($model->source_path), '/');
             }
             if (! empty($model->target_path) && ! str_starts_with($model->target_path, 'http')) {
-                $model->target_path = '/' . ltrim(trim($model->target_path), '/');
+                $model->target_path = '/'.ltrim(trim($model->target_path), '/');
             }
         });
-    }
-
-    public function storefront(): BelongsTo
-    {
-        return $this->belongsTo(Storefront::class);
     }
 }

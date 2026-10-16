@@ -14,9 +14,9 @@ class AuditLog extends Model
 {
     use BelongsToTenant;
 
-    protected $table = 'audit_logs';
-
     public $timestamps = false;
+
+    protected $table = 'audit_logs';
 
     protected $fillable = [
         'tenant_id',
@@ -43,6 +43,11 @@ class AuditLog extends Model
         'created_at' => 'datetime',
     ];
 
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'user_id');
+    }
+
     protected static function boot(): void
     {
         parent::boot();
@@ -55,10 +60,5 @@ class AuditLog extends Model
                 $model->created_at = now();
             }
         });
-    }
-
-    public function user(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'user_id');
     }
 }

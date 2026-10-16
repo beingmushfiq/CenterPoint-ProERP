@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Modules\Finance\Models;
 
 use App\Core\Tenancy\Concerns\BelongsToTenant;
-use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -74,26 +73,6 @@ class BankAccount extends Model
         return $this->attributes['currency'] ?? null;
     }
 
-    protected static function boot(): void
-    {
-        parent::boot();
-
-        static::creating(static function (BankAccount $model): void {
-            if (empty($model->uuid)) {
-                $model->uuid = (string) Str::uuid();
-            }
-            if (empty($model->code)) {
-                $model->code = 'BA-' . strtoupper(Str::random(6));
-            }
-            if (empty($model->account_type)) {
-                $model->account_type = 'bank';
-            }
-            if (empty($model->name) && !empty($model->account_name)) {
-                $model->name = $model->account_name;
-            }
-        });
-    }
-
     /**
      * @return BelongsTo<ChartOfAccount, $this>
      */
@@ -108,5 +87,25 @@ class BankAccount extends Model
     public function transactions(): HasMany
     {
         return $this->hasMany(BankTransaction::class, 'bank_account_id');
+    }
+
+    protected static function boot(): void
+    {
+        parent::boot();
+
+        static::creating(static function (BankAccount $model): void {
+            if (empty($model->uuid)) {
+                $model->uuid = (string) Str::uuid();
+            }
+            if (empty($model->code)) {
+                $model->code = 'BA-'.strtoupper(Str::random(6));
+            }
+            if (empty($model->account_type)) {
+                $model->account_type = 'bank';
+            }
+            if (empty($model->name) && ! empty($model->account_name)) {
+                $model->name = $model->account_name;
+            }
+        });
     }
 }

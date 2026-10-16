@@ -13,7 +13,7 @@ class CustomerArAgingReportQuery implements ReportQueryInterface
 
     public function __construct(?FinanceDataProvider $provider = null)
     {
-        $this->provider = $provider ?? new FinanceDataProvider();
+        $this->provider = $provider ?? new FinanceDataProvider;
     }
 
     public function columns(): array

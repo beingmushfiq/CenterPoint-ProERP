@@ -67,7 +67,7 @@ class ReportExportController extends Controller
 
         /** @var FilesystemAdapter $disk */
         $disk = Storage::disk('local');
-        if (!$disk->exists($export->file_path)) {
+        if (! $disk->exists($export->file_path)) {
             abort(404, 'Export file not found or expired on disk.');
         }
 

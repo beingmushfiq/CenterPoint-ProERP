@@ -22,7 +22,7 @@ class AuditLogController extends Controller
 
         if ($request->filled('action')) {
             $action = (string) $request->query('action');
-            $query->where(function ($q) use ($action) {
+            $query->where(function ($q) use ($action): void {
                 $q->where('action', $action)
                     ->orWhere('action', 'like', "{$action}%");
             });
@@ -30,7 +30,7 @@ class AuditLogController extends Controller
 
         if ($request->filled('auditable_type')) {
             $type = (string) $request->query('auditable_type');
-            $query->where(function ($q) use ($type) {
+            $query->where(function ($q) use ($type): void {
                 $q->where('auditable_type', $type)
                     ->orWhere('auditable_type', 'like', "%{$type}%");
             });
@@ -54,11 +54,11 @@ class AuditLogController extends Controller
 
         if ($request->filled('q')) {
             $search = (string) $request->query('q');
-            $query->where(function ($q) use ($search) {
+            $query->where(function ($q) use ($search): void {
                 $q->where('action', 'like', "%{$search}%")
                     ->orWhere('auditable_type', 'like', "%{$search}%")
                     ->orWhere('correlation_id', 'like', "%{$search}%")
-                    ->orWhereHas('user', function ($uq) use ($search) {
+                    ->orWhereHas('user', function ($uq) use ($search): void {
                         $uq->where('name', 'like', "%{$search}%")
                             ->orWhere('email', 'like', "%{$search}%");
                     });
@@ -105,7 +105,7 @@ class AuditLogController extends Controller
     public function entityHistory(string $type, int|string $id): JsonResponse
     {
         $logs = AuditLog::with('user:id,name,email')
-            ->where(function ($q) use ($type) {
+            ->where(function ($q) use ($type): void {
                 $q->where('auditable_type', $type)
                     ->orWhere('auditable_type', 'like', "%{$type}%");
             })

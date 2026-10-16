@@ -67,7 +67,7 @@ final class SalesOrderController extends Controller
         /** @var array{order_date: string, items: list<array{product_id: int, quantity: string, unit_id: int, unit_price: string}>} $validated */
         $order = $this->createOrder->execute([
             ...$validated,
-            'tenant_id'  => $tenantId,
+            'tenant_id' => $tenantId,
             'created_by' => (int) $request->user()?->id,
         ]);
 
@@ -109,7 +109,7 @@ final class SalesOrderController extends Controller
         $tenantId = TenantContext::current()->tenantId();
         $validated = $request->validate([
             'status' => 'required|string|in:draft,pending,confirmed,allocated,picking,packed,dispatched,delivered,cancelled',
-            'notes'  => 'nullable|string',
+            'notes' => 'nullable|string',
         ]);
 
         $order = SalesOrder::where('tenant_id', $tenantId)
@@ -131,7 +131,7 @@ final class SalesOrderController extends Controller
             $order->confirmed_at = now();
             $order->confirmed_by = (int) $request->user()?->id;
         }
-        if (!empty($validated['notes'])) {
+        if (! empty($validated['notes'])) {
             $order->internal_notes = $validated['notes'];
         }
         $order->save();
@@ -161,7 +161,7 @@ final class SalesOrderController extends Controller
         $tenantId = TenantContext::current()->tenantId();
         $validated = $request->validate([
             'payment_status' => 'required|string|in:paid,partially_paid,pending,failed,unpaid',
-            'paid_amount'    => 'nullable|numeric',
+            'paid_amount' => 'nullable|numeric',
         ]);
 
         $order = SalesOrder::where('tenant_id', $tenantId)
@@ -194,38 +194,38 @@ final class SalesOrderController extends Controller
         if ($existing) {
             return response()->json([
                 'message' => 'Invoice already exists for this order',
-                'data'    => new \App\Modules\Sales\Resources\InvoiceResource($existing),
+                'data' => new \App\Modules\Sales\Resources\InvoiceResource($existing),
             ]);
         }
 
         $items = [];
         foreach ($order->items as $item) {
             $items[] = [
-                'product_id'          => $item->product_id,
+                'product_id' => $item->product_id,
                 'sales_order_item_id' => $item->id,
-                'quantity'            => (string) $item->quantity,
-                'unit_id'             => $item->unit_id,
-                'unit_price'          => (string) $item->unit_price,
-                'discount_amount'     => (string) ($item->line_discount ?? '0.0000'),
-                'tax_amount'          => (string) ($item->tax_amount ?? '0.0000'),
+                'quantity' => (string) $item->quantity,
+                'unit_id' => $item->unit_id,
+                'unit_price' => (string) $item->unit_price,
+                'discount_amount' => (string) ($item->line_discount ?? '0.0000'),
+                'tax_amount' => (string) ($item->tax_amount ?? '0.0000'),
             ];
         }
 
         $invoice = app(\App\Modules\Sales\Actions\CreateInvoiceAction::class)->execute([
-            'tenant_id'      => $tenantId,
+            'tenant_id' => $tenantId,
             'sales_order_id' => $order->id,
-            'company_id'     => $order->company_id,
-            'branch_id'      => $order->branch_id,
-            'party_id'       => $order->party_id,
-            'invoice_date'   => now()->toDateString(),
-            'due_date'       => now()->addDays(7)->toDateString(),
-            'created_by'     => (int) $request->user()?->id,
-            'items'          => $items,
+            'company_id' => $order->company_id,
+            'branch_id' => $order->branch_id,
+            'party_id' => $order->party_id,
+            'invoice_date' => now()->toDateString(),
+            'due_date' => now()->addDays(7)->toDateString(),
+            'created_by' => (int) $request->user()?->id,
+            'items' => $items,
         ]);
 
         return response()->json([
             'message' => 'Invoice created successfully',
-            'data'    => new \App\Modules\Sales\Resources\InvoiceResource($invoice),
+            'data' => new \App\Modules\Sales\Resources\InvoiceResource($invoice),
         ], 201);
     }
 
@@ -260,7 +260,7 @@ final class SalesOrderController extends Controller
             ->whereNull('deleted_at')
             ->exists();
 
-        if ($hasInvoice && !in_array($order->status, ['cancelled', 'draft'], true)) {
+        if ($hasInvoice && ! in_array($order->status, ['cancelled', 'draft'], true)) {
             return response()->json([
                 'message' => 'Cannot delete an active order with an associated commercial invoice. Void or cancel the invoice first.',
             ], 422);

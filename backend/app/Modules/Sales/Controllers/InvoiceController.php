@@ -65,7 +65,7 @@ final class InvoiceController extends Controller
         /** @var array{invoice_date: string, items: list<array{quantity: string, unit_price: string}>} $validated */
         $invoice = $this->createInvoice->execute([
             ...$validated,
-            'tenant_id'  => $tenantId,
+            'tenant_id' => $tenantId,
             'created_by' => (int) $request->user()?->id,
         ]);
 
@@ -171,7 +171,7 @@ final class InvoiceController extends Controller
             ): void {
                 $chunkInvoiceNumbers = [];
                 foreach ($chunk as $row) {
-                    if (!empty($row['invoice_number'])) {
+                    if (! empty($row['invoice_number'])) {
                         $chunkInvoiceNumbers[] = trim((string) $row['invoice_number']);
                     }
                 }
@@ -193,6 +193,7 @@ final class InvoiceController extends Controller
                             'field' => 'invoice_number',
                             'message' => 'Invoice number is required.',
                         ];
+
                         continue;
                     }
 
@@ -203,17 +204,18 @@ final class InvoiceController extends Controller
                             'field' => 'customer_code',
                             'message' => 'Customer code or name is required.',
                         ];
+
                         continue;
                     }
 
                     $lowerCustomerKey = strtolower($customerKey);
-                    if (!isset($partyMap[$lowerCustomerKey])) {
+                    if (! isset($partyMap[$lowerCustomerKey])) {
                         // Auto-create customer party if missing
-                        $newParty = new \App\Models\Party();
+                        $newParty = new \App\Models\Party;
                         $newParty->uuid = (string) \Illuminate\Support\Str::uuid();
                         $newParty->tenant_id = $tenantId;
                         $newParty->code = strtoupper($customerKey);
-                        $newParty->name = !empty($row['customer_name']) ? trim((string) $row['customer_name']) : $customerKey;
+                        $newParty->name = ! empty($row['customer_name']) ? trim((string) $row['customer_name']) : $customerKey;
                         $newParty->is_customer = 1;
                         $newParty->type = 'business';
                         $newParty->status = 'active';
@@ -225,19 +227,20 @@ final class InvoiceController extends Controller
                     $party = $partyMap[$lowerCustomerKey];
 
                     $date = \Illuminate\Support\Carbon::parse(
-                        !empty($row['invoice_date']) ? trim((string) $row['invoice_date']) : now()->format('Y-m-d')
+                        ! empty($row['invoice_date']) ? trim((string) $row['invoice_date']) : now()->format('Y-m-d')
                     );
                     $dueDate = \Illuminate\Support\Carbon::parse(
-                        !empty($row['due_date']) ? trim((string) $row['due_date']) : $date->toDateString()
+                        ! empty($row['due_date']) ? trim((string) $row['due_date']) : $date->toDateString()
                     );
 
                     $totalAmountRaw = $row['total_amount'] ?? null;
-                    if ($totalAmountRaw === null || !is_numeric($totalAmountRaw) || (float) $totalAmountRaw <= 0) {
+                    if ($totalAmountRaw === null || ! is_numeric($totalAmountRaw) || (float) $totalAmountRaw <= 0) {
                         $errors[] = [
                             'row' => $rowNum,
                             'field' => 'total_amount',
                             'message' => 'Total amount must be a positive number.',
                         ];
+
                         continue;
                     }
                     $totalAmount = (float) $totalAmountRaw;
@@ -246,7 +249,7 @@ final class InvoiceController extends Controller
                     $paidAmount = (is_numeric($paidAmountRaw) && (float) $paidAmountRaw >= 0) ? (float) $paidAmountRaw : 0.0000;
 
                     // Determine status
-                    $rawStatus = !empty($row['status']) ? strtolower(trim((string) $row['status'])) : null;
+                    $rawStatus = ! empty($row['status']) ? strtolower(trim((string) $row['status'])) : null;
                     if ($rawStatus && in_array($rawStatus, ['draft', 'posted', 'partially_paid', 'paid', 'void'], true)) {
                         $status = $rawStatus;
                     } elseif ($paidAmount >= $totalAmount) {
@@ -262,6 +265,7 @@ final class InvoiceController extends Controller
                     if ($existingInvoice) {
                         if ($mode === 'skip') {
                             $skipped++;
+
                             continue;
                         }
 
@@ -278,11 +282,12 @@ final class InvoiceController extends Controller
                         ]);
 
                         $updated++;
+
                         continue;
                     }
 
                     // Insert
-                    $newInvoice = new Invoice();
+                    $newInvoice = new Invoice;
                     $newInvoice->uuid = (string) \Illuminate\Support\Str::uuid();
                     $newInvoice->tenant_id = $tenantId;
                     $newInvoice->invoice_number = $invoiceNumber;
@@ -300,11 +305,11 @@ final class InvoiceController extends Controller
                     $newInvoice->save();
 
                     // Create line item for historical opening entry
-                    $lineItem = new InvoiceItem();
+                    $lineItem = new InvoiceItem;
                     $lineItem->uuid = (string) \Illuminate\Support\Str::uuid();
                     $lineItem->tenant_id = $tenantId;
                     $lineItem->invoice_id = $newInvoice->id;
-                    $lineItem->description = !empty($row['notes']) ? (string) $row['notes'] : 'Opening Balance Migration';
+                    $lineItem->description = ! empty($row['notes']) ? (string) $row['notes'] : 'Opening Balance Migration';
                     $lineItem->quantity = '1.0000';
                     $lineItem->unit_price = number_format($totalAmount, 4, '.', '');
                     $lineItem->discount_amount = '0.0000';
@@ -360,6 +365,7 @@ final class InvoiceController extends Controller
                 (int) $request->user()?->id,
                 'Invoice deleted by user'
             );
+
             return response()->json([
                 'success' => true,
                 'message' => 'Approved invoice was voided successfully.',
@@ -374,4 +380,3 @@ final class InvoiceController extends Controller
         ]);
     }
 }
-

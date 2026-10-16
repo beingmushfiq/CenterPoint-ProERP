@@ -22,8 +22,11 @@ class RedxCourierIntegrationTest extends TestCase
     use RefreshDatabase;
 
     private Tenant $tenant;
+
     private User $tenantUser;
+
     private string $tenantToken;
+
     private CourierProvider $redxProvider;
 
     protected function setUp(): void

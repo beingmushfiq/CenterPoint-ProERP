@@ -8,7 +8,6 @@ use App\Core\Auth\JwtService;
 use App\Core\Tenancy\TenantContext;
 use App\Models\Permission;
 use App\Models\Product;
-use App\Models\QcParameter;
 use App\Models\Role;
 use App\Models\Tenant;
 use App\Models\Unit;
@@ -24,9 +23,13 @@ class QcParameterBulkImportTest extends TestCase
     use RefreshDatabase;
 
     private Tenant $tenant;
+
     private User $user;
+
     private string $jwt;
+
     private Product $product;
+
     private Unit $unit;
 
     protected function setUp(): void
@@ -94,7 +97,7 @@ class QcParameterBulkImportTest extends TestCase
             'uuid' => (string) Str::uuid(),
             'tenant_id' => $this->tenant->id,
             'name' => 'QC Role',
-            'slug' => 'qc-role-' . Str::random(4),
+            'slug' => 'qc-role-'.Str::random(4),
             'is_system' => false,
         ]);
 
@@ -113,16 +116,6 @@ class QcParameterBulkImportTest extends TestCase
             tenantId: $this->tenant->id,
             tokenVersion: 1
         );
-    }
-
-    private function headers(): array
-    {
-        return [
-            'Authorization' => "Bearer {$this->jwt}",
-            'X-Tenant-Id' => $this->tenant->uuid,
-            'X-Tenant' => $this->tenant->slug,
-            'Accept' => 'application/json',
-        ];
     }
 
     public function test_can_bulk_import_qc_parameters_in_skip_mode(): void
@@ -230,5 +223,15 @@ class QcParameterBulkImportTest extends TestCase
             'max_value' => '65.0000',
             'sort_order' => 5,
         ]);
+    }
+
+    private function headers(): array
+    {
+        return [
+            'Authorization' => "Bearer {$this->jwt}",
+            'X-Tenant-Id' => $this->tenant->uuid,
+            'X-Tenant' => $this->tenant->slug,
+            'Accept' => 'application/json',
+        ];
     }
 }

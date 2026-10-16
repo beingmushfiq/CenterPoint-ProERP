@@ -67,26 +67,6 @@ class BankTransaction extends Model
         return ($this->attributes['reconciliation_status'] ?? '') === 'reconciled';
     }
 
-    protected static function boot(): void
-    {
-        parent::boot();
-
-        static::creating(static function (BankTransaction $model): void {
-            if (empty($model->uuid)) {
-                $model->uuid = (string) Str::uuid();
-            }
-            if (empty($model->direction)) {
-                $model->direction = in_array($model->transaction_type, ['withdrawal', 'payment', 'expense', 'transfer_out']) ? 'out' : 'in';
-            }
-            if (!isset($model->attributes['running_balance'])) {
-                $model->attributes['running_balance'] = '0.0000';
-            }
-            if (empty($model->reconciliation_status)) {
-                $model->reconciliation_status = 'unreconciled';
-            }
-        });
-    }
-
     /**
      * @return BelongsTo<BankAccount, $this>
      */
@@ -101,5 +81,25 @@ class BankTransaction extends Model
     public function journalEntry(): BelongsTo
     {
         return $this->belongsTo(JournalEntry::class, 'journal_entry_id');
+    }
+
+    protected static function boot(): void
+    {
+        parent::boot();
+
+        static::creating(static function (BankTransaction $model): void {
+            if (empty($model->uuid)) {
+                $model->uuid = (string) Str::uuid();
+            }
+            if (empty($model->direction)) {
+                $model->direction = in_array($model->transaction_type, ['withdrawal', 'payment', 'expense', 'transfer_out'], true) ? 'out' : 'in';
+            }
+            if (! isset($model->attributes['running_balance'])) {
+                $model->attributes['running_balance'] = '0.0000';
+            }
+            if (empty($model->reconciliation_status)) {
+                $model->reconciliation_status = 'unreconciled';
+            }
+        });
     }
 }

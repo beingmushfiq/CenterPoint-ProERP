@@ -15,6 +15,27 @@ final class StoreProductionBatchRequest extends FormRequest
         return true;
     }
 
+    /**
+     * @return array<string, mixed>
+     */
+    public function rules(): array
+    {
+        return [
+            'batch_number' => ['required', 'string', 'max:64'],
+            'production_plan_item_id' => ['sometimes', 'nullable', 'uuid'],
+            'factory_id' => ['required', 'uuid'],
+            'production_line_id' => ['sometimes', 'nullable', 'uuid'],
+            'product_id' => ['required', 'uuid'],
+            'bill_of_material_id' => ['required', 'uuid'],
+            'shift_id' => ['sometimes', 'nullable', 'uuid'],
+            'batch_date' => ['required', 'date_format:Y-m-d'],
+            'planned_quantity' => ['required', 'numeric', 'gt:0'],
+            'output_unit_id' => ['required', 'uuid'],
+            'status' => ['sometimes', Rule::in(['draft', 'scheduled', 'in_progress', 'completed', 'closed', 'cancelled'])],
+            'supervisor_id' => ['sometimes', 'nullable', 'uuid'],
+        ];
+    }
+
     protected function prepareForValidation(): void
     {
         $merge = [];
@@ -86,26 +107,5 @@ final class StoreProductionBatchRequest extends FormRequest
         if (! empty($merge)) {
             $this->merge($merge);
         }
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    public function rules(): array
-    {
-        return [
-            'batch_number' => ['required', 'string', 'max:64'],
-            'production_plan_item_id' => ['sometimes', 'nullable', 'uuid'],
-            'factory_id' => ['required', 'uuid'],
-            'production_line_id' => ['sometimes', 'nullable', 'uuid'],
-            'product_id' => ['required', 'uuid'],
-            'bill_of_material_id' => ['required', 'uuid'],
-            'shift_id' => ['sometimes', 'nullable', 'uuid'],
-            'batch_date' => ['required', 'date_format:Y-m-d'],
-            'planned_quantity' => ['required', 'numeric', 'gt:0'],
-            'output_unit_id' => ['required', 'uuid'],
-            'status' => ['sometimes', Rule::in(['draft', 'scheduled', 'in_progress', 'completed', 'closed', 'cancelled'])],
-            'supervisor_id' => ['sometimes', 'nullable', 'uuid'],
-        ];
     }
 }

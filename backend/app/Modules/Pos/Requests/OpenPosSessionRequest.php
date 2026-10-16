@@ -19,11 +19,11 @@ final class OpenPosSessionRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'terminal_id'    => ['required', 'integer'],
-            'branch_id'      => ['required', 'integer'],
-            'warehouse_id'   => ['required', 'integer'],
-            'opening_cash'   => ['nullable', 'numeric', 'gte:0'],
-            'notes'          => ['nullable', 'string', 'max:1000'],
+            'terminal_id' => ['required', 'integer'],
+            'branch_id' => ['required', 'integer'],
+            'warehouse_id' => ['required', 'integer'],
+            'opening_cash' => ['nullable', 'numeric', 'gte:0'],
+            'notes' => ['nullable', 'string', 'max:1000'],
             'session_number' => ['nullable', 'string', 'max:64'],
         ];
     }

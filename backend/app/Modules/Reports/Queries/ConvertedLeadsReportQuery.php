@@ -13,60 +13,51 @@ class ConvertedLeadsReportQuery implements ReportQueryInterface
 
     public function __construct(?CRMDataProvider $provider = null)
     {
-        $this->provider = $provider ?? new CRMDataProvider();
+        $this->provider = $provider ?? new CRMDataProvider;
     }
 
     public function columns(): array
     {
-        return array (
-  'lead_number' => 
-  array (
-    'label' => 'Lead No',
-    'type' => 'string',
-    'sortable' => true,
-  ),
-  'contact_name' => 
-  array (
-    'label' => 'Contact Name',
-    'type' => 'string',
-  ),
-  'company_name' => 
-  array (
-    'label' => 'Company Name',
-    'type' => 'string',
-  ),
-  'phone' => 
-  array (
-    'label' => 'Phone',
-    'type' => 'string',
-  ),
-  'source' => 
-  array (
-    'label' => 'Source Channel',
-    'type' => 'badge',
-  ),
-  'salesman' => 
-  array (
-    'label' => 'Account Executive',
-    'type' => 'string',
-  ),
-  'deal_value' => 
-  array (
-    'label' => 'Won Value (BDT)',
-    'type' => 'currency',
-    'sortable' => true,
-  ),
-  'converted_at' => 
-  array (
-    'label' => 'Conversion Date',
-    'type' => 'date',
-  ),
-  'account_name' => 
-  array (
-    'label' => 'Created Client Account',
-    'type' => 'string',
-  ),
-);
+        return [
+            'lead_number' => [
+                'label' => 'Lead No',
+                'type' => 'string',
+                'sortable' => true,
+            ],
+            'contact_name' => [
+                'label' => 'Contact Name',
+                'type' => 'string',
+            ],
+            'company_name' => [
+                'label' => 'Company Name',
+                'type' => 'string',
+            ],
+            'phone' => [
+                'label' => 'Phone',
+                'type' => 'string',
+            ],
+            'source' => [
+                'label' => 'Source Channel',
+                'type' => 'badge',
+            ],
+            'salesman' => [
+                'label' => 'Account Executive',
+                'type' => 'string',
+            ],
+            'deal_value' => [
+                'label' => 'Won Value (BDT)',
+                'type' => 'currency',
+                'sortable' => true,
+            ],
+            'converted_at' => [
+                'label' => 'Conversion Date',
+                'type' => 'date',
+            ],
+            'account_name' => [
+                'label' => 'Created Client Account',
+                'type' => 'string',
+            ],
+        ];
     }
 
     public function query(array $filters, int $page = 1, int $perPage = 25): array

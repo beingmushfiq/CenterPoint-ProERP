@@ -39,7 +39,7 @@ final class CreateSalesReturnAction
     public function execute(array $data): SalesReturn
     {
         return DB::transaction(function () use ($data): SalesReturn {
-            $returnNumber = $data['return_number'] ?? ('SR-' . date('Ymd') . '-' . strtoupper(Str::random(6)));
+            $returnNumber = $data['return_number'] ?? ('SR-'.date('Ymd').'-'.strtoupper(Str::random(6)));
 
             /** @var numeric-string $subtotal */
             $subtotal = '0.0000';
@@ -56,22 +56,22 @@ final class CreateSalesReturnAction
             }
 
             $salesReturn = SalesReturn::create([
-                'tenant_id'          => $data['tenant_id'],
-                'return_number'      => $returnNumber,
-                'invoice_id'         => $data['invoice_id'] ?? null,
-                'sales_order_id'     => $data['sales_order_id'] ?? null,
-                'party_id'           => $data['party_id'] ?? null,
-                'warehouse_id'       => $data['warehouse_id'],
-                'return_date'        => $data['return_date'],
-                'reason_code_id'     => $data['reason_code_id'],
-                'restock'            => $data['restock'] ?? true,
-                'subtotal'           => $subtotal,
-                'tax_amount'         => '0.0000',
-                'total_amount'       => $subtotal,
-                'refund_method'      => $data['refund_method'] ?? 'credit_note',
-                'credit_note_number' => $data['credit_note_number'] ?? (($data['refund_method'] ?? 'credit_note') === 'credit_note' ? 'CN-' . date('Ymd') . '-' . strtoupper(Str::random(6)) : null),
-                'status'             => 'draft',
-                'created_by'         => $data['created_by'] ?? null,
+                'tenant_id' => $data['tenant_id'],
+                'return_number' => $returnNumber,
+                'invoice_id' => $data['invoice_id'] ?? null,
+                'sales_order_id' => $data['sales_order_id'] ?? null,
+                'party_id' => $data['party_id'] ?? null,
+                'warehouse_id' => $data['warehouse_id'],
+                'return_date' => $data['return_date'],
+                'reason_code_id' => $data['reason_code_id'],
+                'restock' => $data['restock'] ?? true,
+                'subtotal' => $subtotal,
+                'tax_amount' => '0.0000',
+                'total_amount' => $subtotal,
+                'refund_method' => $data['refund_method'] ?? 'credit_note',
+                'credit_note_number' => $data['credit_note_number'] ?? (($data['refund_method'] ?? 'credit_note') === 'credit_note' ? 'CN-'.date('Ymd').'-'.strtoupper(Str::random(6)) : null),
+                'status' => 'draft',
+                'created_by' => $data['created_by'] ?? null,
             ]);
 
             foreach ($data['items'] as $item) {
@@ -83,17 +83,17 @@ final class CreateSalesReturnAction
                 $lineTotal = bcmul($qty, $price, 4);
 
                 SalesReturnItem::create([
-                    'tenant_id'       => $data['tenant_id'],
+                    'tenant_id' => $data['tenant_id'],
                     'sales_return_id' => $salesReturn->id,
-                    'product_id'      => $item['product_id'],
-                    'variant_id'      => $item['variant_id'] ?? null,
-                    'quantity'        => $qty,
-                    'unit_id'         => $item['unit_id'],
-                    'unit_price'      => $price,
-                    'line_total'      => $lineTotal,
-                    'condition'       => $item['condition'] ?? 'good',
-                    'batch_code'      => $item['batch_code'] ?? null,
-                    'created_by'      => $data['created_by'] ?? null,
+                    'product_id' => $item['product_id'],
+                    'variant_id' => $item['variant_id'] ?? null,
+                    'quantity' => $qty,
+                    'unit_id' => $item['unit_id'],
+                    'unit_price' => $price,
+                    'line_total' => $lineTotal,
+                    'condition' => $item['condition'] ?? 'good',
+                    'batch_code' => $item['batch_code'] ?? null,
+                    'created_by' => $data['created_by'] ?? null,
                 ]);
             }
 

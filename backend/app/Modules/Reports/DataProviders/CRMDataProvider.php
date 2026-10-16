@@ -33,10 +33,10 @@ class CRMDataProvider extends BaseDataProvider
                 DB::raw("COALESCE(u.name, 'Unassigned') as assigned_rep"),
             ]);
 
-        if (!empty($filters['stage'])) {
+        if (! empty($filters['stage'])) {
             $query->where('l.stage', $filters['stage']);
         }
-        if (!empty($filters['source'])) {
+        if (! empty($filters['source'])) {
             $query->where('l.source', $filters['source']);
         }
         if (isset($filters['is_fake'])) {
@@ -90,7 +90,7 @@ class CRMDataProvider extends BaseDataProvider
                 DB::raw('COUNT(l.id) as total_leads'),
                 DB::raw("SUM(CASE WHEN l.stage IN ('won', 'converted') THEN 1 ELSE 0 END) as converted_leads"),
                 DB::raw("SUM(CASE WHEN l.stage NOT IN ('won', 'lost', 'converted') THEN 1 ELSE 0 END) as active_leads"),
-                DB::raw("SUM(CASE WHEN l.is_fake = 1 THEN 1 ELSE 0 END) as fake_leads"),
+                DB::raw('SUM(CASE WHEN l.is_fake = 1 THEN 1 ELSE 0 END) as fake_leads'),
                 DB::raw('COALESCE(SUM(l.expected_value), 0) as total_pipeline_value'),
             ]);
 
@@ -113,7 +113,7 @@ class CRMDataProvider extends BaseDataProvider
                     'active_leads' => (int) $row->active_leads,
                     'converted_leads' => $conv,
                     'fake_leads' => (int) $row->fake_leads,
-                    'conversion_rate' => number_format($rate, 2, '.', '') . '%',
+                    'conversion_rate' => number_format($rate, 2, '.', '').'%',
                     'pipeline_value' => number_format((float) $row->total_pipeline_value, 2, '.', ''),
                 ];
             })
@@ -195,7 +195,7 @@ class CRMDataProvider extends BaseDataProvider
                 DB::raw('COUNT(l.id) as total_leads'),
                 DB::raw("SUM(CASE WHEN l.stage IN ('won', 'converted') THEN 1 ELSE 0 END) as converted_leads"),
                 DB::raw("SUM(CASE WHEN l.stage = 'lost' THEN 1 ELSE 0 END) as lost_leads"),
-                DB::raw("SUM(CASE WHEN l.is_fake = 1 THEN 1 ELSE 0 END) as fake_leads"),
+                DB::raw('SUM(CASE WHEN l.is_fake = 1 THEN 1 ELSE 0 END) as fake_leads'),
                 DB::raw('COALESCE(SUM(l.expected_value), 0) as total_pipeline_value'),
             ]);
 
@@ -217,7 +217,7 @@ class CRMDataProvider extends BaseDataProvider
                     'converted_leads' => $conv,
                     'lost_leads' => (int) $row->lost_leads,
                     'fake_leads' => (int) $row->fake_leads,
-                    'conversion_rate' => number_format($rate, 2, '.', '') . '%',
+                    'conversion_rate' => number_format($rate, 2, '.', '').'%',
                     'pipeline_value' => number_format((float) $row->total_pipeline_value, 2, '.', ''),
                 ];
             })
@@ -249,10 +249,10 @@ class CRMDataProvider extends BaseDataProvider
                 DB::raw('AVG(COALESCE(expected_value, 0)) as average_value'),
             ]);
 
-        if (!empty($filters['start_date'])) {
+        if (! empty($filters['start_date'])) {
             $query->where('created_at', '>=', $filters['start_date']);
         }
-        if (!empty($filters['end_date'])) {
+        if (! empty($filters['end_date'])) {
             $query->where('created_at', '<=', $filters['end_date']);
         }
 
@@ -294,7 +294,7 @@ class CRMDataProvider extends BaseDataProvider
             ->leftJoin('parties as p', 'l.converted_party_id', '=', 'p.id')
             ->where('l.tenant_id', $tenantId)
             ->whereNull('l.deleted_at')
-            ->where(function ($q) {
+            ->where(function ($q): void {
                 $q->whereIn('l.stage', ['won', 'converted'])
                     ->orWhereNotNull('l.converted_at');
             })
@@ -311,13 +311,13 @@ class CRMDataProvider extends BaseDataProvider
                 DB::raw("COALESCE(p.name, 'Customer Account Created') as account_name"),
             ]);
 
-        if (!empty($filters['start_date'])) {
+        if (! empty($filters['start_date'])) {
             $query->where('l.converted_at', '>=', $filters['start_date']);
         }
-        if (!empty($filters['end_date'])) {
+        if (! empty($filters['end_date'])) {
             $query->where('l.converted_at', '<=', $filters['end_date']);
         }
-        if (!empty($filters['salesman_id'])) {
+        if (! empty($filters['salesman_id'])) {
             $query->where('l.assigned_to', $filters['salesman_id']);
         }
 
@@ -378,10 +378,10 @@ class CRMDataProvider extends BaseDataProvider
                 'l.updated_at as lost_at',
             ]);
 
-        if (!empty($filters['start_date'])) {
+        if (! empty($filters['start_date'])) {
             $query->where('l.updated_at', '>=', $filters['start_date']);
         }
-        if (!empty($filters['end_date'])) {
+        if (! empty($filters['end_date'])) {
             $query->where('l.updated_at', '<=', $filters['end_date']);
         }
 
@@ -443,7 +443,7 @@ class CRMDataProvider extends BaseDataProvider
             'active_pipeline_leads' => (int) ($stats->active_leads ?? 0),
             'converted_leads' => $conv,
             'fake_leads_detected' => (int) ($stats->fake_leads ?? 0),
-            'conversion_rate' => number_format($rate, 2, '.', '') . '%',
+            'conversion_rate' => number_format($rate, 2, '.', '').'%',
             'total_pipeline_value' => number_format((float) ($stats->total_pipeline_value ?? 0), 2, '.', ''),
         ];
     }

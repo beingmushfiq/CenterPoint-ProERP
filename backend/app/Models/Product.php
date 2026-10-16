@@ -238,6 +238,7 @@ final class Product extends Model
     {
         if ($this->relationLoaded('images') && $this->images->isNotEmpty()) {
             $primary = $this->images->firstWhere('is_primary', true) ?? $this->images->first();
+
             return $primary?->url;
         }
 
@@ -245,11 +246,12 @@ final class Product extends Model
             return $this->primaryImage->url;
         }
 
-        if (!empty($this->online_meta['image_url'])) {
+        if (! empty($this->online_meta['image_url'])) {
             return $this->online_meta['image_url'];
         }
 
         $primary = $this->images()->where('is_primary', true)->first() ?? $this->images()->first();
+
         return $primary?->url;
     }
 

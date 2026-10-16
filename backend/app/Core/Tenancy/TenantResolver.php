@@ -58,7 +58,7 @@ final class TenantResolver
         }
 
         // Check if request is on a subdomain of tenant base domain
-        if (str_ends_with($host, '.' . $baseDomain)) {
+        if (str_ends_with($host, '.'.$baseDomain)) {
             $subdomain = substr($host, 0, -(strlen($baseDomain) + 1));
 
             if (! self::isValidSubdomain($subdomain) || self::isReservedSubdomain($subdomain)) {
@@ -232,6 +232,7 @@ final class TenantResolver
     public static function isReservedSubdomain(string $subdomain): bool
     {
         $reserved = config('platform.reserved_subdomains', []);
+
         return in_array(strtolower($subdomain), $reserved, true);
     }
 
@@ -243,6 +244,7 @@ final class TenantResolver
         if (preg_match('#^/?store/([^/]+)#i', $path, $matches)) {
             return strtolower($matches[1]);
         }
+
         return null;
     }
 }

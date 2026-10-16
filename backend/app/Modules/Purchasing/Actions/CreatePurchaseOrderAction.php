@@ -51,7 +51,7 @@ final class CreatePurchaseOrderAction
     public function execute(array $data): PurchaseOrder
     {
         return DB::transaction(function () use ($data): PurchaseOrder {
-            $poNumber = $data['po_number'] ?? ('PO-' . date('Ymd') . '-' . strtoupper(Str::random(6)));
+            $poNumber = $data['po_number'] ?? ('PO-'.date('Ymd').'-'.strtoupper(Str::random(6)));
 
             // Resolve party (supplier)
             $partyId = $data['party_id'] ?? null;
@@ -62,7 +62,7 @@ final class CreatePurchaseOrderAction
             } else {
                 $party = null;
             }
-            if (!$party) {
+            if (! $party) {
                 throw ValidationException::withMessages([
                     'party_id' => ['The selected supplier is invalid or does not exist for this company.'],
                 ]);
@@ -78,10 +78,10 @@ final class CreatePurchaseOrderAction
             } else {
                 $warehouse = null;
             }
-            if (!$warehouse) {
+            if (! $warehouse) {
                 $warehouse = Warehouse::where('tenant_id', $data['tenant_id'])->first();
             }
-            if (!$warehouse) {
+            if (! $warehouse) {
                 throw ValidationException::withMessages([
                     'warehouse_id' => ['The selected warehouse is invalid or does not exist for this company.'],
                 ]);
@@ -106,9 +106,9 @@ final class CreatePurchaseOrderAction
                     $productId = $product?->id;
                 }
 
-                if (!$productId || !$product) {
+                if (! $productId || ! $product) {
                     throw ValidationException::withMessages([
-                        "items.{$idx}.product_id" => ["The selected product is invalid or does not exist for this company."],
+                        "items.{$idx}.product_id" => ['The selected product is invalid or does not exist for this company.'],
                     ]);
                 }
 
@@ -121,13 +121,13 @@ final class CreatePurchaseOrderAction
                     $unitId = $unit?->id;
                 }
 
-                if (!$unitId) {
+                if (! $unitId) {
                     $unitId = $product->base_unit_id;
                 }
 
-                if (!$unitId) {
+                if (! $unitId) {
                     throw ValidationException::withMessages([
-                        "items.{$idx}.unit_id" => ["The selected unit of measure is invalid."],
+                        "items.{$idx}.unit_id" => ['The selected unit of measure is invalid.'],
                     ]);
                 }
 

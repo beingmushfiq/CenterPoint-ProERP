@@ -11,12 +11,12 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('assets', function (Blueprint $table): void {
-            if (!Schema::hasColumn('assets', 'is_consumable')) {
+            if (! Schema::hasColumn('assets', 'is_consumable')) {
                 $table->boolean('is_consumable')->default(false)->after('status');
             }
         });
 
-        if (!Schema::hasTable('asset_expenses')) {
+        if (! Schema::hasTable('asset_expenses')) {
             Schema::create('asset_expenses', function (Blueprint $table): void {
                 $table->id();
                 $table->unsignedBigInteger('tenant_id');

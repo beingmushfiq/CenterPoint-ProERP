@@ -19,8 +19,8 @@ use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1/storefront')->group(function (): void {
     // Catalog & Branding
-    Route::get('/manifest.json', [\App\Modules\Ecommerce\Controllers\StorefrontManifestController::class, 'manifest']);
-    Route::get('/storefront-manifest.json', [\App\Modules\Ecommerce\Controllers\StorefrontManifestController::class, 'manifest']);
+    Route::get('/manifest.json', [App\Modules\Ecommerce\Controllers\StorefrontManifestController::class, 'manifest']);
+    Route::get('/storefront-manifest.json', [App\Modules\Ecommerce\Controllers\StorefrontManifestController::class, 'manifest']);
     Route::get('/config', [StorefrontCatalogController::class, 'config']);
     Route::get('/categories', [StorefrontCatalogController::class, 'categories']);
     Route::get('/products', [StorefrontCatalogController::class, 'products']);
@@ -33,35 +33,34 @@ Route::prefix('v1/storefront')->group(function (): void {
     Route::delete('/cart/items/{id}', [StorefrontCartController::class, 'removeItem']);
 
     // Coupons
-    Route::post('/cart/coupon', [\App\Modules\Ecommerce\Controllers\StorefrontCouponController::class, 'applyCoupon']);
-    Route::delete('/cart/coupon', [\App\Modules\Ecommerce\Controllers\StorefrontCouponController::class, 'removeCoupon']);
+    Route::post('/cart/coupon', [App\Modules\Ecommerce\Controllers\StorefrontCouponController::class, 'applyCoupon']);
+    Route::delete('/cart/coupon', [App\Modules\Ecommerce\Controllers\StorefrontCouponController::class, 'removeCoupon']);
 
     // Checkout (anti-carding & anti-bot throttling)
     Route::post('/checkout', [StorefrontCheckoutController::class, 'checkout'])
         ->middleware('throttle:storefront_checkout');
 
     // Public Order Tracking
-    Route::get('/orders/track', [\App\Modules\Ecommerce\Controllers\StorefrontOrderTrackingController::class, 'track']);
+    Route::get('/orders/track', [App\Modules\Ecommerce\Controllers\StorefrontOrderTrackingController::class, 'track']);
 
     // Public CMS Pages
-    Route::get('/pages/{slug}', [\App\Modules\Ecommerce\Controllers\StorefrontPageBuilderController::class, 'getPublicPage']);
+    Route::get('/pages/{slug}', [App\Modules\Ecommerce\Controllers\StorefrontPageBuilderController::class, 'getPublicPage']);
 
     // Customer Authentication & Self-Service Account Portal
-    Route::post('/customer/register', [\App\Modules\Ecommerce\Controllers\StorefrontCustomerAuthController::class, 'register'])
+    Route::post('/customer/register', [App\Modules\Ecommerce\Controllers\StorefrontCustomerAuthController::class, 'register'])
         ->middleware('throttle:customer_register');
-    Route::post('/customer/login', [\App\Modules\Ecommerce\Controllers\StorefrontCustomerAuthController::class, 'login'])
+    Route::post('/customer/login', [App\Modules\Ecommerce\Controllers\StorefrontCustomerAuthController::class, 'login'])
         ->middleware('throttle:customer_login');
-    Route::get('/customer/profile', [\App\Modules\Ecommerce\Controllers\StorefrontCustomerAuthController::class, 'profile']);
-    Route::get('/customer/orders', [\App\Modules\Ecommerce\Controllers\StorefrontCustomerAuthController::class, 'orders']);
+    Route::get('/customer/profile', [App\Modules\Ecommerce\Controllers\StorefrontCustomerAuthController::class, 'profile']);
+    Route::get('/customer/orders', [App\Modules\Ecommerce\Controllers\StorefrontCustomerAuthController::class, 'orders']);
 
     // Contextual WhatsApp Quick Ordering
-    Route::post('/whatsapp/order-link', [\App\Modules\Ecommerce\Controllers\StorefrontWhatsAppOrderController::class, 'generateOrderLink']);
+    Route::post('/whatsapp/order-link', [App\Modules\Ecommerce\Controllers\StorefrontWhatsAppOrderController::class, 'generateOrderLink']);
 
     // Dynamic Sitemaps & Search Engine Crawlability
-    Route::get('/sitemap.xml', [\App\Modules\Ecommerce\Controllers\StorefrontSitemapController::class, 'index']);
-    Route::get('/sitemap-products.xml', [\App\Modules\Ecommerce\Controllers\StorefrontSitemapController::class, 'products']);
-    Route::get('/sitemap-categories.xml', [\App\Modules\Ecommerce\Controllers\StorefrontSitemapController::class, 'categories']);
-    Route::get('/sitemap-pages.xml', [\App\Modules\Ecommerce\Controllers\StorefrontSitemapController::class, 'pages']);
-    Route::get('/robots.txt', \App\Modules\Ecommerce\Controllers\StorefrontRobotsController::class);
+    Route::get('/sitemap.xml', [App\Modules\Ecommerce\Controllers\StorefrontSitemapController::class, 'index']);
+    Route::get('/sitemap-products.xml', [App\Modules\Ecommerce\Controllers\StorefrontSitemapController::class, 'products']);
+    Route::get('/sitemap-categories.xml', [App\Modules\Ecommerce\Controllers\StorefrontSitemapController::class, 'categories']);
+    Route::get('/sitemap-pages.xml', [App\Modules\Ecommerce\Controllers\StorefrontSitemapController::class, 'pages']);
+    Route::get('/robots.txt', App\Modules\Ecommerce\Controllers\StorefrontRobotsController::class);
 });
-

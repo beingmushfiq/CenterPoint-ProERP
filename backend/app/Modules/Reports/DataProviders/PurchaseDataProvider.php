@@ -93,16 +93,16 @@ class PurchaseDataProvider extends BaseDataProvider
                 'po.status as po_status',
             ]);
 
-        if (!empty($filters['start_date'])) {
+        if (! empty($filters['start_date'])) {
             $query->where('po.order_date', '>=', $filters['start_date']);
         }
-        if (!empty($filters['end_date'])) {
+        if (! empty($filters['end_date'])) {
             $query->where('po.order_date', '<=', $filters['end_date']);
         }
-        if (!empty($filters['supplier_id'])) {
+        if (! empty($filters['supplier_id'])) {
             $query->where('po.party_id', $filters['supplier_id']);
         }
-        if (!empty($filters['product_id'])) {
+        if (! empty($filters['product_id'])) {
             $query->where('poi.product_id', $filters['product_id']);
         }
 
@@ -163,10 +163,10 @@ class PurchaseDataProvider extends BaseDataProvider
                 DB::raw('SUM(po.received_value) as total_received_value'),
             ]);
 
-        if (!empty($filters['start_date'])) {
+        if (! empty($filters['start_date'])) {
             $query->where('po.order_date', '>=', $filters['start_date']);
         }
-        if (!empty($filters['end_date'])) {
+        if (! empty($filters['end_date'])) {
             $query->where('po.order_date', '<=', $filters['end_date']);
         }
 
@@ -288,16 +288,16 @@ class PurchaseDataProvider extends BaseDataProvider
                 'po.status as order_status',
             ]);
 
-        if (!empty($filters['product_id'])) {
+        if (! empty($filters['product_id'])) {
             $query->where('poi.product_id', $filters['product_id']);
         }
-        if (!empty($filters['supplier_id'])) {
+        if (! empty($filters['supplier_id'])) {
             $query->where('po.party_id', $filters['supplier_id']);
         }
-        if (!empty($filters['start_date'])) {
+        if (! empty($filters['start_date'])) {
             $query->where('po.order_date', '>=', $filters['start_date']);
         }
-        if (!empty($filters['end_date'])) {
+        if (! empty($filters['end_date'])) {
             $query->where('po.order_date', '<=', $filters['end_date']);
         }
 
@@ -358,13 +358,13 @@ class PurchaseDataProvider extends BaseDataProvider
                 'pr.status',
             ]);
 
-        if (!empty($filters['start_date'])) {
+        if (! empty($filters['start_date'])) {
             $query->where('pr.return_date', '>=', $filters['start_date']);
         }
-        if (!empty($filters['end_date'])) {
+        if (! empty($filters['end_date'])) {
             $query->where('pr.return_date', '<=', $filters['end_date']);
         }
-        if (!empty($filters['supplier_id'])) {
+        if (! empty($filters['supplier_id'])) {
             $query->where('pr.party_id', $filters['supplier_id']);
         }
 
@@ -424,13 +424,13 @@ class PurchaseDataProvider extends BaseDataProvider
                 'pay.notes',
             ]);
 
-        if (!empty($filters['start_date'])) {
+        if (! empty($filters['start_date'])) {
             $query->where('pay.payment_date', '>=', $filters['start_date']);
         }
-        if (!empty($filters['end_date'])) {
+        if (! empty($filters['end_date'])) {
             $query->where('pay.payment_date', '<=', $filters['end_date']);
         }
-        if (!empty($filters['supplier_id'])) {
+        if (! empty($filters['supplier_id'])) {
             $query->where('pay.party_id', $filters['supplier_id']);
         }
 
@@ -511,17 +511,17 @@ class PurchaseDataProvider extends BaseDataProvider
             ->whereNull('po.deleted_at')
             ->whereNotIn('po.status', ['cancelled', 'draft']);
 
-        if (!empty($filters['start_date'])) {
+        if (! empty($filters['start_date'])) {
             $poQuery->where('po.order_date', '>=', $filters['start_date']);
         }
-        if (!empty($filters['end_date'])) {
+        if (! empty($filters['end_date'])) {
             $poQuery->where('po.order_date', '<=', $filters['end_date']);
         }
-        if (!empty($filters['supplier_id'])) {
+        if (! empty($filters['supplier_id'])) {
             $poQuery->where('po.party_id', $filters['supplier_id']);
         }
-        if (!empty($filters['search'])) {
-            $term = '%' . $filters['search'] . '%';
+        if (! empty($filters['search'])) {
+            $term = '%'.$filters['search'].'%';
             $poQuery->where(function ($q) use ($term): void {
                 $q->where('p.name', 'like', $term)
                     ->orWhere('p.code', 'like', $term);
@@ -559,10 +559,10 @@ class PurchaseDataProvider extends BaseDataProvider
             ->whereNull('po.deleted_at')
             ->whereNotIn('gr.status', ['cancelled', 'draft']);
 
-        if (!empty($filters['start_date'])) {
+        if (! empty($filters['start_date'])) {
             $grQuery->where('po.order_date', '>=', $filters['start_date']);
         }
-        if (!empty($filters['end_date'])) {
+        if (! empty($filters['end_date'])) {
             $grQuery->where('po.order_date', '<=', $filters['end_date']);
         }
 
@@ -578,7 +578,7 @@ class PurchaseDataProvider extends BaseDataProvider
         $receiptStats = [];
         foreach ($receipts as $gr) {
             $sid = (int) $gr->supplier_id;
-            if (!isset($receiptStats[$sid])) {
+            if (! isset($receiptStats[$sid])) {
                 $receiptStats[$sid] = [
                     'total_receipts' => 0,
                     'on_time_receipts' => 0,
@@ -611,10 +611,10 @@ class PurchaseDataProvider extends BaseDataProvider
             ->whereNull('po.deleted_at')
             ->whereNotIn('gr.status', ['cancelled', 'draft']);
 
-        if (!empty($filters['start_date'])) {
+        if (! empty($filters['start_date'])) {
             $griQuery->where('po.order_date', '>=', $filters['start_date']);
         }
-        if (!empty($filters['end_date'])) {
+        if (! empty($filters['end_date'])) {
             $griQuery->where('po.order_date', '<=', $filters['end_date']);
         }
 
@@ -679,12 +679,12 @@ class PurchaseDataProvider extends BaseDataProvider
                 $tier = 'At Risk';
             }
 
-            if (!empty($filters['min_orders']) && $orders < (int) $filters['min_orders']) {
+            if (! empty($filters['min_orders']) && $orders < (int) $filters['min_orders']) {
                 continue;
             }
 
             $records[] = [
-                'supplier_code' => $sup->supplier_code ?? ('SUP-' . $sid),
+                'supplier_code' => $sup->supplier_code ?? ('SUP-'.$sid),
                 'supplier_name' => $sup->supplier_name,
                 'total_orders' => $orders,
                 'total_spend' => $spend,
@@ -704,7 +704,7 @@ class PurchaseDataProvider extends BaseDataProvider
             $valA = $a[$sortBy] ?? 0;
             $valB = $b[$sortBy] ?? 0;
 
-            if ($valA == $valB) {
+            if ($valA === $valB) {
                 return 0;
             }
 
@@ -781,16 +781,16 @@ class PurchaseDataProvider extends BaseDataProvider
 
     protected function applyOrderFilters($query, array $filters): void
     {
-        if (!empty($filters['start_date'])) {
+        if (! empty($filters['start_date'])) {
             $query->where('po.order_date', '>=', $filters['start_date']);
         }
-        if (!empty($filters['end_date'])) {
+        if (! empty($filters['end_date'])) {
             $query->where('po.order_date', '<=', $filters['end_date']);
         }
-        if (!empty($filters['supplier_id'])) {
+        if (! empty($filters['supplier_id'])) {
             $query->where('po.party_id', $filters['supplier_id']);
         }
-        if (!empty($filters['status'])) {
+        if (! empty($filters['status'])) {
             $query->where('po.status', $filters['status']);
         }
     }

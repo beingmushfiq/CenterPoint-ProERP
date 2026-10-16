@@ -23,12 +23,19 @@ class BillOfMaterialBulkImportTest extends TestCase
     use RefreshDatabase;
 
     private Tenant $tenant;
+
     private User $user;
+
     private string $token;
+
     private Product $finishedProduct;
+
     private Product $rawMaterial1;
+
     private Product $rawMaterial2;
+
     private Unit $pcsUnit;
+
     private Unit $mtrUnit;
 
     protected function setUp(): void
@@ -170,15 +177,6 @@ class BillOfMaterialBulkImportTest extends TestCase
         ]);
     }
 
-    private function authHeaders(): array
-    {
-        return [
-            'Authorization' => "Bearer {$this->token}",
-            'X-Tenant-ID' => (string) $this->tenant->id,
-            'Accept' => 'application/json',
-        ];
-    }
-
     public function test_can_bulk_import_bom_with_multiple_grouped_items(): void
     {
         $payload = [
@@ -244,5 +242,14 @@ class BillOfMaterialBulkImportTest extends TestCase
             'product_id' => $this->rawMaterial2->id,
             'quantity' => '0.1000',
         ]);
+    }
+
+    private function authHeaders(): array
+    {
+        return [
+            'Authorization' => "Bearer {$this->token}",
+            'X-Tenant-ID' => (string) $this->tenant->id,
+            'Accept' => 'application/json',
+        ];
     }
 }

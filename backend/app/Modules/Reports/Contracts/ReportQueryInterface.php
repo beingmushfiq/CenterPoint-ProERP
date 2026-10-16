@@ -16,9 +16,7 @@ interface ReportQueryInterface
     /**
      * Execute paginated report dataset.
      *
-     * @param array<string, mixed> $filters
-     * @param int $page
-     * @param int $perPage
+     * @param  array<string, mixed>  $filters
      * @return array{data: array<int, array<string, mixed>>, total: int, current_page: int, per_page: int}
      */
     public function query(array $filters, int $page = 1, int $perPage = 25): array;
@@ -26,7 +24,7 @@ interface ReportQueryInterface
     /**
      * Calculate server-side totals and summary metrics.
      *
-     * @param array<string, mixed> $filters
+     * @param  array<string, mixed>  $filters
      * @return array<string, mixed>
      */
     public function summary(array $filters): array;

@@ -7,10 +7,10 @@ namespace App\Modules\QC\Actions;
 use App\Core\Actions\Action;
 use App\Core\Audit\AuditAction;
 use App\Core\Audit\AuditLogger;
-use App\Modules\Inventory\Actions\RecordStockMovementAction;
 use App\Models\ProductionOutput;
 use App\Models\QcInspection;
 use App\Models\User;
+use App\Modules\Inventory\Actions\RecordStockMovementAction;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 

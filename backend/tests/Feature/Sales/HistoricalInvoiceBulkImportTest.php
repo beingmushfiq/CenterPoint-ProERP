@@ -10,7 +10,6 @@ use App\Models\Party;
 use App\Models\Role;
 use App\Models\Tenant;
 use App\Models\User;
-use App\Modules\Sales\Models\Invoice;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -22,8 +21,11 @@ class HistoricalInvoiceBulkImportTest extends TestCase
     use RefreshDatabase;
 
     private Tenant $tenant;
+
     private User $user;
+
     private string $token;
+
     private Party $party;
 
     protected function setUp(): void

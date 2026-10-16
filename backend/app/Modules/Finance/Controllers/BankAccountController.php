@@ -5,17 +5,17 @@ declare(strict_types=1);
 namespace App\Modules\Finance\Controllers;
 
 use App\Http\Controllers\Controller;
-use App\Modules\Finance\Actions\CreateExpenseAction;
-use App\Modules\Finance\Actions\RollupProductionCostAction;
 use App\Modules\Finance\Models\BankAccount;
 use App\Modules\Finance\Models\Expense;
-use App\Modules\Finance\Models\ExpenseCategory;
-use App\Modules\Finance\Models\ProductCost;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class BankAccountController extends Controller
 {
+    public function __construct(
+        private readonly \App\Modules\Finance\Actions\PostJournalEntryAction $postJournalEntryAction
+    ) {}
+
     public function index(Request $request): JsonResponse
     {
         $accounts = BankAccount::query()->with('chartOfAccount')->orderBy('account_name')->get();
@@ -135,7 +135,6 @@ class BankAccountController extends Controller
                 $chunkIndex,
                 $tenantId,
                 $userId,
-                $defaultCompanyId,
                 $bankMap,
                 $bankAccounts,
                 $mode,
@@ -153,20 +152,21 @@ class BankAccountController extends Controller
                     if ($bankKey !== '') {
                         $bankAccount = $bankMap[strtolower($bankKey)] ?? null;
                     }
-                    if (!$bankAccount) {
+                    if (! $bankAccount) {
                         $bankAccount = $bankAccounts->first();
                     }
 
-                    if (!$bankAccount) {
+                    if (! $bankAccount) {
                         $errors[] = [
                             'row' => $rowNum,
                             'field' => 'bank_account',
                             'message' => 'No valid bank account found.',
                         ];
+
                         continue;
                     }
 
-                    $date = !empty($row['transaction_date']) ? (string) $row['transaction_date'] : (!empty($row['date']) ? (string) $row['date'] : now()->format('Y-m-d'));
+                    $date = ! empty($row['transaction_date']) ? (string) $row['transaction_date'] : (! empty($row['date']) ? (string) $row['date'] : now()->format('Y-m-d'));
                     $ref = trim((string) ($row['reference_number'] ?? $row['reference'] ?? $row['cheque_no'] ?? $row['txn_id'] ?? ''));
                     $desc = trim((string) ($row['description'] ?? $row['particulars'] ?? $row['narration'] ?? 'Bank Statement Entry'));
 
@@ -201,6 +201,7 @@ class BankAccountController extends Controller
                             'field' => 'amount',
                             'message' => 'Transaction amount must be greater than zero.',
                         ];
+
                         continue;
                     }
 
@@ -221,6 +222,7 @@ class BankAccountController extends Controller
                     if ($existing) {
                         if ($mode === 'skip') {
                             $skipped++;
+
                             continue;
                         }
 
@@ -235,21 +237,22 @@ class BankAccountController extends Controller
                         ]);
 
                         $updated++;
+
                         continue;
                     }
 
                     // Insert
-                    $txn = new \App\Modules\Finance\Models\BankTransaction();
+                    $txn = new \App\Modules\Finance\Models\BankTransaction;
                     $txn->uuid = (string) \Illuminate\Support\Str::uuid();
                     $txn->tenant_id = $tenantId;
                     $txn->bank_account_id = $bankAccount->id;
                     $txn->transaction_date = $date;
-                    $txn->direction = in_array($type, ['withdrawal', 'payment', 'expense', 'transfer_out']) ? 'out' : 'in';
+                    $txn->direction = in_array($type, ['withdrawal', 'payment', 'expense', 'transfer_out'], true) ? 'out' : 'in';
                     $txn->transaction_type = $type;
                     $txn->amount = number_format($amount, 4, '.', '');
                     $txn->running_balance = $balanceAfter ?? '0.0000';
                     $txn->balance_after = $balanceAfter ?? '0.0000';
-                    $txn->reference_number = $ref !== '' ? $ref : 'TXN-' . date('Ymd') . '-' . str_pad((string) random_int(1000, 99999), 5, '0', STR_PAD_LEFT);
+                    $txn->reference_number = $ref !== '' ? $ref : 'TXN-'.date('Ymd').'-'.str_pad((string) random_int(1000, 99999), 5, '0', STR_PAD_LEFT);
                     $txn->description = $desc;
                     $txn->reconciliation_status = isset($row['reconciled']) && filter_var($row['reconciled'], FILTER_VALIDATE_BOOLEAN) ? 'reconciled' : 'unreconciled';
                     $txn->created_by = $userId;
@@ -308,10 +311,6 @@ class BankAccountController extends Controller
         ]);
     }
 
-    public function __construct(
-        private readonly \App\Modules\Finance\Actions\PostJournalEntryAction $postJournalEntryAction
-    ) {}
-
     public function deposit(Request $request, int $id): JsonResponse
     {
         $account = BankAccount::findOrFail($id);
@@ -330,10 +329,10 @@ class BankAccountController extends Controller
         $date = $validated['date'] ?? date('Y-m-d');
         $creditAccountId = (int) $validated['credit_account_id'];
         $paymentMethod = $validated['payment_method'] ?? 'cash';
-        $ref = $validated['reference_number'] ?? ('DEP-' . date('Ymd') . '-' . str_pad((string) random_int(1000, 99999), 5, '0', STR_PAD_LEFT));
+        $ref = $validated['reference_number'] ?? ('DEP-'.date('Ymd').'-'.str_pad((string) random_int(1000, 99999), 5, '0', STR_PAD_LEFT));
         $narration = $validated['narration'] ?? "Money Deposit into {$account->name}";
 
-        return \Illuminate\Support\Facades\DB::transaction(function () use ($account, $amount, $date, $creditAccountId, $paymentMethod, $ref, $narration, $userId): JsonResponse {
+        return \Illuminate\Support\Facades\DB::transaction(function () use ($account, $amount, $date, $creditAccountId, $ref, $narration, $userId): JsonResponse {
             // Update balance
             $currentBal = (float) ($account->current_balance ?? 0.0);
             $newBal = $currentBal + $amount;
@@ -369,7 +368,7 @@ class BankAccountController extends Controller
             $journalEntry = $this->postJournalEntryAction->execute($journalData, $userId);
 
             // Record Bank Transaction
-            $txn = new \App\Modules\Finance\Models\BankTransaction();
+            $txn = new \App\Modules\Finance\Models\BankTransaction;
             $txn->uuid = (string) \Illuminate\Support\Str::uuid();
             $txn->tenant_id = $account->tenant_id;
             $txn->bank_account_id = $account->id;
@@ -416,10 +415,10 @@ class BankAccountController extends Controller
         $date = $validated['date'] ?? date('Y-m-d');
         $debitAccountId = (int) $validated['debit_account_id'];
         $paymentMethod = $validated['payment_method'] ?? 'cash';
-        $ref = $validated['reference_number'] ?? ('WTH-' . date('Ymd') . '-' . str_pad((string) random_int(1000, 99999), 5, '0', STR_PAD_LEFT));
+        $ref = $validated['reference_number'] ?? ('WTH-'.date('Ymd').'-'.str_pad((string) random_int(1000, 99999), 5, '0', STR_PAD_LEFT));
         $narration = $validated['narration'] ?? "Money Withdrawal from {$account->name}";
 
-        return \Illuminate\Support\Facades\DB::transaction(function () use ($account, $amount, $date, $debitAccountId, $paymentMethod, $ref, $narration, $userId): JsonResponse {
+        return \Illuminate\Support\Facades\DB::transaction(function () use ($account, $amount, $date, $debitAccountId, $ref, $narration, $userId): JsonResponse {
             // Update balance
             $currentBal = (float) ($account->current_balance ?? 0.0);
             $newBal = $currentBal - $amount;
@@ -455,7 +454,7 @@ class BankAccountController extends Controller
             $journalEntry = $this->postJournalEntryAction->execute($journalData, $userId);
 
             // Record Bank Transaction
-            $txn = new \App\Modules\Finance\Models\BankTransaction();
+            $txn = new \App\Modules\Finance\Models\BankTransaction;
             $txn->uuid = (string) \Illuminate\Support\Str::uuid();
             $txn->tenant_id = $account->tenant_id;
             $txn->bank_account_id = $account->id;
@@ -501,7 +500,7 @@ class BankAccountController extends Controller
         $amount = (float) $validated['amount'];
         $date = $validated['date'] ?? date('Y-m-d');
         $purpose = $validated['purpose'] ?? 'Internal Transfer';
-        $ref = $validated['reference_number'] ?? ('TRF-' . date('Ymd') . '-' . str_pad((string) random_int(1000, 99999), 5, '0', STR_PAD_LEFT));
+        $ref = $validated['reference_number'] ?? ('TRF-'.date('Ymd').'-'.str_pad((string) random_int(1000, 99999), 5, '0', STR_PAD_LEFT));
 
         $fromCoa = \App\Modules\Finance\Models\ChartOfAccount::findOrFail($fromCoaId);
         $toCoa = \App\Modules\Finance\Models\ChartOfAccount::findOrFail($toCoaId);
@@ -559,7 +558,7 @@ class BankAccountController extends Controller
             $inTxn = null;
 
             if ($fromBank) {
-                $outTxn = new \App\Modules\Finance\Models\BankTransaction();
+                $outTxn = new \App\Modules\Finance\Models\BankTransaction;
                 $outTxn->uuid = (string) \Illuminate\Support\Str::uuid();
                 $outTxn->tenant_id = $fromBank->tenant_id;
                 $outTxn->bank_account_id = $fromBank->id;
@@ -578,7 +577,7 @@ class BankAccountController extends Controller
             }
 
             if ($toBank) {
-                $inTxn = new \App\Modules\Finance\Models\BankTransaction();
+                $inTxn = new \App\Modules\Finance\Models\BankTransaction;
                 $inTxn->uuid = (string) \Illuminate\Support\Str::uuid();
                 $inTxn->tenant_id = $toBank->tenant_id;
                 $inTxn->bank_account_id = $toBank->id;
@@ -614,4 +613,3 @@ class BankAccountController extends Controller
         });
     }
 }
-

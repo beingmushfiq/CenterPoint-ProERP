@@ -30,6 +30,7 @@ class RedxCourierAdapter implements CourierProviderInterface
     {
         $this->credentials = $credentials;
         $this->settings = $settings;
+
         return $this;
     }
 
@@ -50,8 +51,8 @@ class RedxCourierAdapter implements CourierProviderInterface
 
     public function createShipment(DeliveryOrder $deliveryOrder, array $options = []): ShipmentResult
     {
-        $trackingId = 'REDX-' . strtoupper(Str::random(8));
-        $trackingUrl = 'https://redx.com.bd/track/' . $trackingId;
+        $trackingId = 'REDX-'.strtoupper(Str::random(8));
+        $trackingUrl = 'https://redx.com.bd/track/'.$trackingId;
         $charge = '60.0000';
 
         return new ShipmentResult(
@@ -94,7 +95,7 @@ class RedxCourierAdapter implements CourierProviderInterface
         return new LabelFile(
             consignmentId: $consignmentId,
             mimeType: 'application/pdf',
-            fileContent: '%PDF-1.4 REDX shipping label mock ' . $consignmentId,
+            fileContent: '%PDF-1.4 REDX shipping label mock '.$consignmentId,
             fileName: "label_redx_{$consignmentId}.pdf"
         );
     }
@@ -115,7 +116,8 @@ class RedxCourierAdapter implements CourierProviderInterface
 
     public function schedulePickup(PickupRequest $request): PickupResult
     {
-        $pickupId = 'PKP-REDX-' . rand(100000, 999999);
+        $pickupId = 'PKP-REDX-'.rand(100000, 999999);
+
         return new PickupResult(
             success: true,
             pickupReference: $pickupId,
@@ -126,7 +128,7 @@ class RedxCourierAdapter implements CourierProviderInterface
 
     public function handleWebhook(array $payload, ?string $signature = null): NormalisedEvent
     {
-        $eventId = (string) ($payload['event_id'] ?? $payload['tracking_id'] ?? ('redx_evt_' . Str::random(8)));
+        $eventId = (string) ($payload['event_id'] ?? $payload['tracking_id'] ?? ('redx_evt_'.Str::random(8)));
         $trackingId = (string) ($payload['tracking_id'] ?? $payload['consignment_id'] ?? '');
         $rawStatus = strtolower((string) ($payload['status'] ?? 'pending'));
 

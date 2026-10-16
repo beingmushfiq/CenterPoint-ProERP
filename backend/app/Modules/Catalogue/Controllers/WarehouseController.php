@@ -19,6 +19,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Throwable;
 
 final class WarehouseController extends Controller
 {
@@ -172,12 +173,12 @@ final class WarehouseController extends Controller
                 &$updated,
                 &$skipped,
                 &$errors
-            ) {
+            ): void {
                 foreach ($chunk as $index => $row) {
                     $rowNum = ($chunkIndex * 100) + $index + 1;
                     $code = isset($row['code']) && trim((string) $row['code']) !== '' ? trim((string) $row['code']) : null;
                     $name = trim((string) ($row['name'] ?? ''));
-                    $type = !empty($row['type']) ? strtolower(trim((string) $row['type'])) : 'general';
+                    $type = ! empty($row['type']) ? strtolower(trim((string) $row['type'])) : 'general';
                     $address = isset($row['address']) && trim((string) $row['address']) !== '' ? trim((string) $row['address']) : null;
                     $allowsNeg = isset($row['allows_negative_stock']) ? (bool) $row['allows_negative_stock'] : false;
                     $isDefault = isset($row['is_default']) ? (bool) $row['is_default'] : false;
@@ -191,6 +192,7 @@ final class WarehouseController extends Controller
                             'value' => '',
                             'message' => 'Warehouse name is required.',
                         ];
+
                         continue;
                     }
 
@@ -224,20 +226,21 @@ final class WarehouseController extends Controller
                                 } else {
                                     $skipped++;
                                 }
-                            } catch (\Throwable $e) {
+                            } catch (Throwable $e) {
                                 $errors[] = [
                                     'row' => $rowNum,
                                     'field' => 'name',
                                     'value' => $name,
-                                    'message' => 'Update failed: ' . $e->getMessage(),
+                                    'message' => 'Update failed: '.$e->getMessage(),
                                 ];
+
                                 continue;
                             }
                         }
                     } else {
                         // Generate code if missing
-                        if (!$code) {
-                            $code = 'WH-' . str_pad((string) random_int(100, 99999), 5, '0', STR_PAD_LEFT);
+                        if (! $code) {
+                            $code = 'WH-'.str_pad((string) random_int(100, 99999), 5, '0', STR_PAD_LEFT);
                         }
 
                         try {
@@ -257,13 +260,14 @@ final class WarehouseController extends Controller
                             $existingCodes[strtolower($code)] = $warehouse->id;
                             $existingNames[strtolower($name)] = $warehouse->id;
                             $imported++;
-                        } catch (\Throwable $e) {
+                        } catch (Throwable $e) {
                             $errors[] = [
                                 'row' => $rowNum,
                                 'field' => 'code',
                                 'value' => $code,
-                                'message' => 'Creation failed: ' . $e->getMessage(),
+                                'message' => 'Creation failed: '.$e->getMessage(),
                             ];
+
                             continue;
                         }
                     }
@@ -272,15 +276,17 @@ final class WarehouseController extends Controller
                     if ($warehouse && $locationsRaw !== '') {
                         $locNames = array_filter(array_map('trim', explode(',', $locationsRaw)));
                         foreach ($locNames as $locName) {
-                            if ($locName === '') continue;
+                            if ($locName === '') {
+                                continue;
+                            }
                             $locCode = strtoupper((string) preg_replace('/[^A-Za-z0-9]/', '', $locName)) ?: 'BIN';
-                            
+
                             $locExists = WarehouseLocation::query()
                                 ->where('warehouse_id', $warehouse->id)
                                 ->where(fn ($q) => $q->where('code', $locCode)->orWhere('name', $locName))
                                 ->exists();
 
-                            if (!$locExists) {
+                            if (! $locExists) {
                                 WarehouseLocation::create([
                                     'uuid' => (string) Str::uuid(),
                                     'warehouse_id' => $warehouse->id,

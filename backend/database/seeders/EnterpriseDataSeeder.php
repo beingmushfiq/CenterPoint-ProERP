@@ -10,8 +10,6 @@ use App\Models\Coupon;
 use App\Models\Employee;
 use App\Models\Party;
 use App\Models\Product;
-use App\Models\ProductionBatch;
-use App\Models\QcInspection;
 use App\Models\Storefront;
 use App\Models\Tenant;
 use App\Models\User;
@@ -28,18 +26,15 @@ use App\Modules\Finance\Models\JournalEntry;
 use App\Modules\Finance\Models\JournalLine;
 use App\Modules\HR\Models\PayrollPeriod;
 use App\Modules\HR\Models\Payslip;
-use App\Modules\Inventory\Models\StockTransfer;
 use App\Modules\Purchasing\Models\GoodsReceipt;
 use App\Modules\Purchasing\Models\GoodsReceiptItem;
 use App\Modules\Purchasing\Models\PurchaseBill;
 use App\Modules\Purchasing\Models\PurchaseOrder;
 use App\Modules\Purchasing\Models\PurchaseOrderItem;
 use App\Modules\Sales\Models\DeliveryOrder;
-use App\Modules\Sales\Models\DeliveryOrderItem;
 use App\Modules\Sales\Models\SalesOrder;
 use Carbon\Carbon;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 final class EnterpriseDataSeeder extends Seeder
@@ -47,15 +42,17 @@ final class EnterpriseDataSeeder extends Seeder
     public function run(): void
     {
         $tenant = Tenant::first();
-        if (!$tenant) {
+        if (! $tenant) {
             $this->command->error('No tenant found. Run PlansAndTenantsSeeder first.');
+
             return;
         }
 
         $tenantId = (string) $tenant->id;
         $company = Company::where('tenant_id', $tenantId)->first();
-        if (!$company) {
+        if (! $company) {
             $this->command->error('No company found for tenant.');
+
             return;
         }
 
@@ -130,7 +127,7 @@ final class EnterpriseDataSeeder extends Seeder
     }
 
     /**
-     * @param array<string, ChartOfAccount> $coaMap
+     * @param  array<string, ChartOfAccount>  $coaMap
      * @return array<string, BankAccount>
      */
     private function seedBankAccounts(string $tenantId, Company $company, ?int $userId, array $coaMap): array
@@ -209,7 +206,7 @@ final class EnterpriseDataSeeder extends Seeder
     }
 
     /**
-     * @param array<string, ChartOfAccount> $coaMap
+     * @param  array<string, ChartOfAccount>  $coaMap
      */
     private function seedJournalEntries(string $tenantId, Company $company, ?int $userId, array $coaMap): void
     {
@@ -314,8 +311,8 @@ final class EnterpriseDataSeeder extends Seeder
     }
 
     /**
-     * @param array<string, ChartOfAccount> $coaMap
-     * @param array<string, BankAccount> $bankMap
+     * @param  array<string, ChartOfAccount>  $coaMap
+     * @param  array<string, BankAccount>  $bankMap
      */
     private function seedExpenses(string $tenantId, Company $company, int $branchId, ?int $userId, array $coaMap, array $bankMap): void
     {
@@ -718,7 +715,7 @@ final class EnterpriseDataSeeder extends Seeder
             $period = PayrollPeriod::create([
                 'tenant_id' => $tenantId,
                 'company_id' => $company->id,
-                'period_code' => 'PR-' . $prevMonth->format('Y-m'),
+                'period_code' => 'PR-'.$prevMonth->format('Y-m'),
                 'pay_frequency' => 'monthly',
                 'period_start' => $prevMonth->copy()->startOfMonth()->format('Y-m-d'),
                 'period_end' => $prevMonth->copy()->endOfMonth()->format('Y-m-d'),
@@ -745,7 +742,7 @@ final class EnterpriseDataSeeder extends Seeder
                     'tenant_id' => $tenantId,
                     'payroll_period_id' => $period->id,
                     'employee_id' => $emp->id,
-                    'payslip_number' => 'PS-' . $prevMonth->format('Ym') . '-' . str_pad((string)($idx + 1), 4, '0', STR_PAD_LEFT),
+                    'payslip_number' => 'PS-'.$prevMonth->format('Ym').'-'.str_pad((string) ($idx + 1), 4, '0', STR_PAD_LEFT),
                     'gross_amount' => $gross,
                     'total_earnings' => $gross,
                     'total_deductions' => $deduction,
@@ -758,7 +755,7 @@ final class EnterpriseDataSeeder extends Seeder
                     'payment_method' => 'bank_transfer',
                     'payment_status' => 'paid',
                     'paid_at' => Carbon::now()->subDays(8),
-                    'payment_reference' => 'EFT-DBBL-PR-' . ($idx + 1),
+                    'payment_reference' => 'EFT-DBBL-PR-'.($idx + 1),
                     'created_by' => $userId,
                 ]);
             }

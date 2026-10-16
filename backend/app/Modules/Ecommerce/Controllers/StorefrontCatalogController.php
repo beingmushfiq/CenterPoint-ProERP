@@ -19,8 +19,8 @@ use Illuminate\Http\Request;
 class StorefrontCatalogController extends Controller
 {
     public function __construct(
-        protected SeoMetadataService $seoMetadataService = new SeoMetadataService(),
-        protected StructuredDataBuilder $structuredDataBuilder = new StructuredDataBuilder()
+        protected SeoMetadataService $seoMetadataService = new SeoMetadataService,
+        protected StructuredDataBuilder $structuredDataBuilder = new StructuredDataBuilder
     ) {}
 
     /**
@@ -74,7 +74,7 @@ class StorefrontCatalogController extends Controller
         $storefrontName = $storefront->name;
         if (empty($storefrontName) || preg_match('/\b(Online Store|Direct Storefront)\b/i', $storefrontName)) {
             $effectiveBrand = $resolvedCompanyName ?: ($resolvedLegalName ?: 'Official Store');
-            $syncedName = $effectiveBrand . ' Online Store';
+            $syncedName = $effectiveBrand.' Online Store';
             if ($storefrontName !== $syncedName) {
                 $storefrontName = $syncedName;
                 if ($storefront->name !== $syncedName) {
@@ -210,6 +210,7 @@ class StorefrontCatalogController extends Controller
                 }
                 $array['is_featured'] = (bool) $sfProd->is_featured;
             }
+
             return $array;
         });
 
@@ -268,9 +269,9 @@ class StorefrontCatalogController extends Controller
         ];
         if ($product->category) {
             $catSlug = $product->category->slug ?? strtolower((string) preg_replace('/[^a-zA-Z0-9]+/', '-', $product->category->name));
-            $breadcrumbs[] = ['name' => $product->category->name, 'url' => '/collections/' . $catSlug];
+            $breadcrumbs[] = ['name' => $product->category->name, 'url' => '/collections/'.$catSlug];
         }
-        $breadcrumbs[] = ['name' => $product->name, 'url' => '/products/' . ($product->online_slug ?: $product->sku)];
+        $breadcrumbs[] = ['name' => $product->name, 'url' => '/products/'.($product->online_slug ?: $product->sku)];
 
         $breadcrumbSchema = $tenant ? $this->structuredDataBuilder->buildBreadcrumbSchema($breadcrumbs, $tenant, $storefront) : [];
 
@@ -323,4 +324,3 @@ class StorefrontCatalogController extends Controller
         ]);
     }
 }
-

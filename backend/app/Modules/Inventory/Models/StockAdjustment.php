@@ -79,17 +79,6 @@ final class StockAdjustment extends Model
         'deleted_at' => 'datetime',
     ];
 
-    protected static function boot(): void
-    {
-        parent::boot();
-
-        static::creating(static function (StockAdjustment $model): void {
-            if (empty($model->uuid)) {
-                $model->uuid = (string) Str::uuid();
-            }
-        });
-    }
-
     /**
      * @return BelongsTo<Warehouse, $this>
      */
@@ -128,5 +117,16 @@ final class StockAdjustment extends Model
     public function items(): HasMany
     {
         return $this->hasMany(StockAdjustmentItem::class, 'stock_adjustment_id');
+    }
+
+    protected static function boot(): void
+    {
+        parent::boot();
+
+        self::creating(static function (StockAdjustment $model): void {
+            if (empty($model->uuid)) {
+                $model->uuid = (string) Str::uuid();
+            }
+        });
     }
 }

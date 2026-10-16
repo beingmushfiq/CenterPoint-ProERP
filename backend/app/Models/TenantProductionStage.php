@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class TenantProductionStage extends Model
 {
     use BelongsToTenant;
+
     protected $fillable = [
         'tenant_id',
         'key',
@@ -23,6 +24,11 @@ class TenantProductionStage extends Model
         'is_active',
     ];
 
+    public function tenant(): BelongsTo
+    {
+        return $this->belongsTo(Tenant::class);
+    }
+
     protected function casts(): array
     {
         return [
@@ -33,10 +39,5 @@ class TenantProductionStage extends Model
             'requires_machine_tracking' => 'boolean',
             'is_active' => 'boolean',
         ];
-    }
-
-    public function tenant(): BelongsTo
-    {
-        return $this->belongsTo(Tenant::class);
     }
 }

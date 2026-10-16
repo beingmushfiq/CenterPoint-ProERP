@@ -119,33 +119,22 @@ final class SalesOrder extends Model
      * @var array<string, string>
      */
     protected $casts = [
-        'order_date'   => 'date',
+        'order_date' => 'date',
         'required_date' => 'date',
-        'subtotal'      => 'decimal:4',
+        'subtotal' => 'decimal:4',
         'discount_amount' => 'decimal:4',
-        'tax_amount'    => 'decimal:4',
+        'tax_amount' => 'decimal:4',
         'shipping_amount' => 'decimal:4',
-        'round_off'     => 'decimal:4',
-        'total_amount'  => 'decimal:4',
-        'paid_amount'   => 'decimal:4',
-        'due_amount'    => 'decimal:4',
-        'confirmed_at'  => 'datetime',
-        'cancelled_at'  => 'datetime',
-        'created_at'    => 'datetime',
-        'updated_at'    => 'datetime',
-        'deleted_at'    => 'datetime',
+        'round_off' => 'decimal:4',
+        'total_amount' => 'decimal:4',
+        'paid_amount' => 'decimal:4',
+        'due_amount' => 'decimal:4',
+        'confirmed_at' => 'datetime',
+        'cancelled_at' => 'datetime',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
+        'deleted_at' => 'datetime',
     ];
-
-    protected static function boot(): void
-    {
-        parent::boot();
-
-        static::creating(static function (SalesOrder $model): void {
-            if (empty($model->uuid)) {
-                $model->uuid = (string) Str::uuid();
-            }
-        });
-    }
 
     /**
      * @return BelongsTo<Party, $this>
@@ -209,5 +198,16 @@ final class SalesOrder extends Model
     public function invoices(): HasMany
     {
         return $this->hasMany(Invoice::class, 'sales_order_id');
+    }
+
+    protected static function boot(): void
+    {
+        parent::boot();
+
+        self::creating(static function (SalesOrder $model): void {
+            if (empty($model->uuid)) {
+                $model->uuid = (string) Str::uuid();
+            }
+        });
     }
 }

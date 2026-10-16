@@ -20,8 +20,11 @@ class ReportDataReconciliationTest extends TestCase
     use RefreshDatabase;
 
     protected Tenant $tenant;
+
     protected Company $company;
+
     protected User $user;
+
     protected string $token;
 
     protected function setUp(): void
@@ -166,7 +169,7 @@ class ReportDataReconciliationTest extends TestCase
         ]);
 
         $response = $this->getJson('/api/v1/reports/production_yield/data', [
-            'Authorization' => 'Bearer ' . $this->token,
+            'Authorization' => 'Bearer '.$this->token,
         ]);
 
         $response->assertOk()
@@ -262,7 +265,7 @@ class ReportDataReconciliationTest extends TestCase
         ]);
 
         $response = $this->getJson('/api/v1/reports/gl_summary/data', [
-            'Authorization' => 'Bearer ' . $this->token,
+            'Authorization' => 'Bearer '.$this->token,
         ]);
 
         $response->assertOk()

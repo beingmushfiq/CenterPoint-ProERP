@@ -30,6 +30,7 @@ class SteadfastCourierAdapter implements CourierProviderInterface
     {
         $this->credentials = $credentials;
         $this->settings = $settings;
+
         return $this;
     }
 
@@ -50,9 +51,9 @@ class SteadfastCourierAdapter implements CourierProviderInterface
 
     public function createShipment(DeliveryOrder $deliveryOrder, array $options = []): ShipmentResult
     {
-        $consignmentId = 'STDF-' . strtoupper(Str::random(10));
-        $trackingCode = 'CID-' . rand(1000000, 9999999);
-        $trackingUrl = 'https://steadfast.com.bd/tracking/' . $consignmentId;
+        $consignmentId = 'STDF-'.strtoupper(Str::random(10));
+        $trackingCode = 'CID-'.rand(1000000, 9999999);
+        $trackingUrl = 'https://steadfast.com.bd/tracking/'.$consignmentId;
         $charge = '70.0000';
 
         return new ShipmentResult(
@@ -97,7 +98,7 @@ class SteadfastCourierAdapter implements CourierProviderInterface
     {
         return new LabelFile(
             success: true,
-            url: 'https://steadfast.com.bd/api/v1/orders/' . $consignmentId . '/invoice',
+            url: 'https://steadfast.com.bd/api/v1/orders/'.$consignmentId.'/invoice',
             mimeType: 'application/pdf'
         );
     }

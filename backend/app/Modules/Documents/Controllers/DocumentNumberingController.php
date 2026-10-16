@@ -41,10 +41,10 @@ final class DocumentNumberingController extends Controller
         }
 
         $validated = $request->validate([
-            'prefix'       => ['nullable', 'string', 'max:32'],
-            'suffix'       => ['nullable', 'string', 'max:32'],
-            'padding'      => ['sometimes', 'integer', 'min:1', 'max:12'],
-            'next_number'  => ['sometimes', 'integer', 'min:1'],
+            'prefix' => ['nullable', 'string', 'max:32'],
+            'suffix' => ['nullable', 'string', 'max:32'],
+            'padding' => ['sometimes', 'integer', 'min:1', 'max:12'],
+            'next_number' => ['sometimes', 'integer', 'min:1'],
             'reset_period' => ['sometimes', 'string', 'in:never,yearly,monthly'],
         ]);
 
@@ -73,29 +73,29 @@ final class DocumentNumberingController extends Controller
 
         $validated = $request->validate([
             'document_type' => ['required', 'string', 'max:64'],
-            'prefix'        => ['nullable', 'string', 'max:32'],
-            'suffix'        => ['nullable', 'string', 'max:32'],
-            'padding'       => ['nullable', 'integer', 'min:1', 'max:12'],
-            'next_number'   => ['nullable', 'integer', 'min:1'],
-            'reset_period'  => ['nullable', 'string', 'in:never,yearly,monthly'],
-            'company_id'    => ['nullable', 'integer'],
-            'branch_id'     => ['nullable', 'integer'],
+            'prefix' => ['nullable', 'string', 'max:32'],
+            'suffix' => ['nullable', 'string', 'max:32'],
+            'padding' => ['nullable', 'integer', 'min:1', 'max:12'],
+            'next_number' => ['nullable', 'integer', 'min:1'],
+            'reset_period' => ['nullable', 'string', 'in:never,yearly,monthly'],
+            'company_id' => ['nullable', 'integer'],
+            'branch_id' => ['nullable', 'integer'],
         ]);
 
         $id = DB::table('document_sequences')->insertGetId([
-            'tenant_id'     => $tenantId,
-            'uuid'          => (string) Str::uuid(),
-            'company_id'    => $validated['company_id'] ?? null,
-            'branch_id'     => $validated['branch_id'] ?? null,
+            'tenant_id' => $tenantId,
+            'uuid' => (string) Str::uuid(),
+            'company_id' => $validated['company_id'] ?? null,
+            'branch_id' => $validated['branch_id'] ?? null,
             'document_type' => $validated['document_type'],
-            'prefix'        => $validated['prefix'] ?? strtoupper(substr($validated['document_type'], 0, 3)) . '-',
-            'suffix'        => $validated['suffix'] ?? null,
-            'padding'       => $validated['padding'] ?? 5,
-            'next_number'   => $validated['next_number'] ?? 1,
-            'reset_period'  => $validated['reset_period'] ?? 'never',
-            'created_at'    => now(),
-            'updated_at'    => now(),
-            'created_by'    => (int) ($request->user()?->id ?? 0),
+            'prefix' => $validated['prefix'] ?? strtoupper(substr($validated['document_type'], 0, 3)).'-',
+            'suffix' => $validated['suffix'] ?? null,
+            'padding' => $validated['padding'] ?? 5,
+            'next_number' => $validated['next_number'] ?? 1,
+            'reset_period' => $validated['reset_period'] ?? 'never',
+            'created_at' => now(),
+            'updated_at' => now(),
+            'created_by' => (int) ($request->user()?->id ?? 0),
         ]);
 
         $created = DB::table('document_sequences')

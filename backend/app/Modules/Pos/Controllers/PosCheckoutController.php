@@ -28,12 +28,12 @@ final class PosCheckoutController extends Controller
         $result = $this->checkoutAction->execute([
             ...$validated,
             'tenant_id' => $tenantId,
-            'user_id'   => (int) $request->user()?->id,
+            'user_id' => (int) $request->user()?->id,
         ]);
 
         return response()->json([
             'data' => [
-                'order'   => new SalesOrderResource($result['order']),
+                'order' => new SalesOrderResource($result['order']),
                 'invoice' => new InvoiceResource($result['invoice']),
                 'session' => new PosSessionResource($result['session']),
             ],

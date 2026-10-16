@@ -97,13 +97,13 @@ class ProductionDataProvider extends BaseDataProvider
                 DB::raw('SUM(COALESCE(pb.variance_quantity, 0)) as total_scrap'),
             ]);
 
-        if (!empty($filters['start_date'])) {
+        if (! empty($filters['start_date'])) {
             $query->where('pb.batch_date', '>=', $filters['start_date']);
         }
-        if (!empty($filters['end_date'])) {
+        if (! empty($filters['end_date'])) {
             $query->where('pb.batch_date', '<=', $filters['end_date']);
         }
-        if (!empty($filters['production_line_id'])) {
+        if (! empty($filters['production_line_id'])) {
             $query->where('pb.production_line_id', $filters['production_line_id']);
         }
 
@@ -149,15 +149,15 @@ class ProductionDataProvider extends BaseDataProvider
         $tenantId = $this->getTenantId();
 
         $query = DB::table('production_lines as pl')
-            ->leftJoin('production_batches as pb', function ($join) use ($tenantId, $filters) {
+            ->leftJoin('production_batches as pb', function ($join) use ($tenantId, $filters): void {
                 $join->on('pl.id', '=', 'pb.production_line_id')
                     ->where('pb.tenant_id', '=', $tenantId)
                     ->whereNull('pb.deleted_at');
 
-                if (!empty($filters['start_date'])) {
+                if (! empty($filters['start_date'])) {
                     $join->where('pb.batch_date', '>=', $filters['start_date']);
                 }
-                if (!empty($filters['end_date'])) {
+                if (! empty($filters['end_date'])) {
                     $join->where('pb.batch_date', '<=', $filters['end_date']);
                 }
             })
@@ -237,16 +237,16 @@ class ProductionDataProvider extends BaseDataProvider
                 DB::raw('COALESCE(wpe.quantity * wpe.rate, 0) as earnings'),
             ]);
 
-        if (!empty($filters['start_date'])) {
+        if (! empty($filters['start_date'])) {
             $query->where('wpe.work_date', '>=', $filters['start_date']);
         }
-        if (!empty($filters['end_date'])) {
+        if (! empty($filters['end_date'])) {
             $query->where('wpe.work_date', '<=', $filters['end_date']);
         }
-        if (!empty($filters['employee_id'])) {
+        if (! empty($filters['employee_id'])) {
             $query->where('wpe.employee_id', $filters['employee_id']);
         }
-        if (!empty($filters['product_id'])) {
+        if (! empty($filters['product_id'])) {
             $query->where('wpe.product_id', $filters['product_id']);
         }
 
@@ -266,7 +266,7 @@ class ProductionDataProvider extends BaseDataProvider
                 return [
                     'date' => $row->work_date,
                     'employee_code' => $row->employee_code,
-                    'worker_name' => !empty(trim($row->worker_name)) ? trim($row->worker_name) : 'Worker #' . $row->employee_code,
+                    'worker_name' => ! empty(trim($row->worker_name)) ? trim($row->worker_name) : 'Worker #'.$row->employee_code,
                     'product_sku' => $row->sku,
                     'product_name' => $row->product_name,
                     'batch_number' => $row->batch_number ?? '—',
@@ -297,9 +297,9 @@ class ProductionDataProvider extends BaseDataProvider
         $query = DB::table('production_batches as pb')
             ->where('pb.tenant_id', $tenantId)
             ->whereNull('pb.deleted_at')
-            ->groupBy(DB::raw("SUBSTR(pb.batch_date, 1, 7)"))
+            ->groupBy(DB::raw('SUBSTR(pb.batch_date, 1, 7)'))
             ->select([
-                DB::raw("SUBSTR(pb.batch_date, 1, 7) as month_period"),
+                DB::raw('SUBSTR(pb.batch_date, 1, 7) as month_period'),
                 DB::raw('COUNT(pb.id) as batches_count'),
                 DB::raw('COALESCE(SUM(pb.planned_quantity), 0) as total_planned'),
                 DB::raw('COALESCE(SUM(pb.total_output_quantity), 0) as total_actual'),
@@ -736,13 +736,13 @@ class ProductionDataProvider extends BaseDataProvider
                 'wr.notes',
             ]);
 
-        if (!empty($filters['start_date'])) {
+        if (! empty($filters['start_date'])) {
             $query->where('wr.recorded_at', '>=', $filters['start_date']);
         }
-        if (!empty($filters['end_date'])) {
+        if (! empty($filters['end_date'])) {
             $query->where('wr.recorded_at', '<=', $filters['end_date']);
         }
-        if (!empty($filters['product_id'])) {
+        if (! empty($filters['product_id'])) {
             $query->where('wr.product_id', $filters['product_id']);
         }
 
@@ -814,19 +814,19 @@ class ProductionDataProvider extends BaseDataProvider
 
     protected function applyBatchFilters($query, array $filters): void
     {
-        if (!empty($filters['start_date'])) {
+        if (! empty($filters['start_date'])) {
             $query->where('pb.batch_date', '>=', $filters['start_date']);
         }
-        if (!empty($filters['end_date'])) {
+        if (! empty($filters['end_date'])) {
             $query->where('pb.batch_date', '<=', $filters['end_date']);
         }
-        if (!empty($filters['product_id'])) {
+        if (! empty($filters['product_id'])) {
             $query->where('pb.product_id', $filters['product_id']);
         }
-        if (!empty($filters['status'])) {
+        if (! empty($filters['status'])) {
             $query->where('pb.status', $filters['status']);
         }
-        if (!empty($filters['production_line_id'])) {
+        if (! empty($filters['production_line_id'])) {
             $query->where('pb.production_line_id', $filters['production_line_id']);
         }
     }

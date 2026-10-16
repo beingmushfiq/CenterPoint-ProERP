@@ -71,7 +71,7 @@ class StorefrontCartController extends Controller
                 'cart_id' => $cart->id,
                 'product_id' => $product->id,
                 'variant_id' => $variant?->id,
-                'product_name' => $product->name . ($variant ? " ({$variant->name})" : ''),
+                'product_name' => $product->name.($variant ? " ({$variant->name})" : ''),
                 'quantity' => $quantity,
                 'unit_id' => $product->base_unit_id,
                 'unit_price' => $unitPrice,

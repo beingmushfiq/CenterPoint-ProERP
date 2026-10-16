@@ -20,9 +20,9 @@ final class DocumentResolveController extends Controller
     {
         $request->validate([
             'document_type' => ['required', 'string'],
-            'template_id'   => ['nullable', 'integer'],
-            'branch_id'     => ['nullable', 'integer'],
-            'company_id'    => ['nullable', 'integer'],
+            'template_id' => ['nullable', 'integer'],
+            'branch_id' => ['nullable', 'integer'],
+            'company_id' => ['nullable', 'integer'],
         ]);
 
         $template = $this->resolverService->resolve(
@@ -35,7 +35,7 @@ final class DocumentResolveController extends Controller
         if (! $template) {
             return response()->json([
                 'data' => null,
-                'message' => 'No active template found for document type ' . $request->query('document_type'),
+                'message' => 'No active template found for document type '.$request->query('document_type'),
             ], 404);
         }
 

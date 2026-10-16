@@ -35,6 +35,14 @@ class EmployeeDocument extends Model
         'expires_on' => 'date',
     ];
 
+    /**
+     * @return BelongsTo<Employee, $this>
+     */
+    public function employee(): BelongsTo
+    {
+        return $this->belongsTo(Employee::class, 'employee_id');
+    }
+
     protected static function boot(): void
     {
         parent::boot();
@@ -44,13 +52,5 @@ class EmployeeDocument extends Model
                 $model->uuid = (string) Str::uuid();
             }
         });
-    }
-
-    /**
-     * @return BelongsTo<Employee, $this>
-     */
-    public function employee(): BelongsTo
-    {
-        return $this->belongsTo(Employee::class, 'employee_id');
     }
 }

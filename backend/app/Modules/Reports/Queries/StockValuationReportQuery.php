@@ -13,7 +13,7 @@ class StockValuationReportQuery implements ReportQueryInterface
 
     public function __construct(?InventoryDataProvider $provider = null)
     {
-        $this->provider = $provider ?? new InventoryDataProvider();
+        $this->provider = $provider ?? new InventoryDataProvider;
     }
 
     public function columns(): array

@@ -50,22 +50,11 @@ final class PaymentAllocation extends Model
      * @var array<string, string>
      */
     protected $casts = [
-        'amount'     => 'decimal:4',
+        'amount' => 'decimal:4',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
         'deleted_at' => 'datetime',
     ];
-
-    protected static function boot(): void
-    {
-        parent::boot();
-
-        static::creating(static function (PaymentAllocation $model): void {
-            if (empty($model->uuid)) {
-                $model->uuid = (string) Str::uuid();
-            }
-        });
-    }
 
     /**
      * @return BelongsTo<Payment, $this>
@@ -81,5 +70,16 @@ final class PaymentAllocation extends Model
     public function invoice(): BelongsTo
     {
         return $this->belongsTo(Invoice::class, 'allocatable_id');
+    }
+
+    protected static function boot(): void
+    {
+        parent::boot();
+
+        self::creating(static function (PaymentAllocation $model): void {
+            if (empty($model->uuid)) {
+                $model->uuid = (string) Str::uuid();
+            }
+        });
     }
 }

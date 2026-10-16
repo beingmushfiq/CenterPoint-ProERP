@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Tests\Feature\Ecommerce;
 
 use App\Models\Tenant;
-use App\Models\TenantDomain;
 use App\Models\User;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -16,7 +15,9 @@ class TenantDomainTest extends TestCase
     use RefreshDatabase;
 
     private Tenant $tenant;
+
     private User $admin;
+
     private string $token;
 
     protected function setUp(): void
@@ -38,19 +39,19 @@ class TenantDomainTest extends TestCase
 
     public function test_can_list_domains_and_auto_provisions_platform_subdomain(): void
     {
-        $response = $this->withHeader('Authorization', 'Bearer ' . $this->token)
+        $response = $this->withHeader('Authorization', 'Bearer '.$this->token)
             ->getJson('/api/v1/storefront/domains');
 
         $response->assertOk();
         $response->assertJsonPath('success', true);
         $this->assertNotEmpty($response->json('data'));
-        $this->assertEquals($this->tenant->slug . '.devcenterpoint.com', $response->json('data.0.domain'));
+        $this->assertEquals($this->tenant->slug.'.devcenterpoint.com', $response->json('data.0.domain'));
         $this->assertEquals('platform_subdomain', $response->json('data.0.type'));
     }
 
     public function test_can_add_custom_domain_with_verification_instructions(): void
     {
-        $response = $this->withHeader('Authorization', 'Bearer ' . $this->token)
+        $response = $this->withHeader('Authorization', 'Bearer '.$this->token)
             ->postJson('/api/v1/storefront/domains', [
                 'domain' => 'slicemart.tech',
                 'type' => 'custom_alias',
@@ -67,14 +68,14 @@ class TenantDomainTest extends TestCase
     public function test_cannot_add_invalid_or_reserved_domain(): void
     {
         // Reserved domain
-        $res1 = $this->withHeader('Authorization', 'Bearer ' . $this->token)
+        $res1 = $this->withHeader('Authorization', 'Bearer '.$this->token)
             ->postJson('/api/v1/storefront/domains', [
                 'domain' => 'devcenterpoint.com',
             ]);
         $res1->assertStatus(422);
 
         // Invalid format
-        $res2 = $this->withHeader('Authorization', 'Bearer ' . $this->token)
+        $res2 = $this->withHeader('Authorization', 'Bearer '.$this->token)
             ->postJson('/api/v1/storefront/domains', [
                 'domain' => 'invalid_domain_format!',
             ]);
@@ -84,14 +85,14 @@ class TenantDomainTest extends TestCase
     public function test_can_verify_and_set_primary_domain(): void
     {
         // 1. Add domain
-        $addRes = $this->withHeader('Authorization', 'Bearer ' . $this->token)
+        $addRes = $this->withHeader('Authorization', 'Bearer '.$this->token)
             ->postJson('/api/v1/storefront/domains', [
                 'domain' => 'slicemart.tech',
             ]);
         $domainId = $addRes->json('data.id');
 
         // 2. Verify domain
-        $verifyRes = $this->withHeader('Authorization', 'Bearer ' . $this->token)
+        $verifyRes = $this->withHeader('Authorization', 'Bearer '.$this->token)
             ->postJson("/api/v1/storefront/domains/{$domainId}/verify");
 
         $verifyRes->assertOk();
@@ -99,7 +100,7 @@ class TenantDomainTest extends TestCase
         $verifyRes->assertJsonPath('data.ssl_status', 'active');
 
         // 3. Set as primary
-        $primaryRes = $this->withHeader('Authorization', 'Bearer ' . $this->token)
+        $primaryRes = $this->withHeader('Authorization', 'Bearer '.$this->token)
             ->postJson("/api/v1/storefront/domains/{$domainId}/set-primary");
 
         $primaryRes->assertOk();

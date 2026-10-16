@@ -12,25 +12,26 @@ use App\Modules\Delivery\Models\DeliveryStatusEvent;
 use App\Modules\Sales\Models\DeliveryOrder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use RuntimeException;
 
 class CreateShipmentAction
 {
     /**
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      */
     public function execute(DeliveryOrder $deliveryOrder, CourierProvider $provider, array $data = []): CourierShipment
     {
         $adapter = $provider->getAdapterInstance();
 
-        if (!$adapter->supports(CourierCapability::CREATE_SHIPMENT)) {
+        if (! $adapter->supports(CourierCapability::CREATE_SHIPMENT)) {
             throw new ValidationException('Courier provider does not support creating shipments.', 422);
         }
 
         return DB::transaction(function () use ($deliveryOrder, $provider, $adapter, $data): CourierShipment {
             $result = $adapter->createShipment($deliveryOrder, $data);
 
-            if (!$result->success) {
-                throw new \RuntimeException($result->errorMessage ?? 'Failed to create shipment upstream.');
+            if (! $result->success) {
+                throw new RuntimeException($result->errorMessage ?? 'Failed to create shipment upstream.');
             }
 
             /** @var CourierShipment $shipment */

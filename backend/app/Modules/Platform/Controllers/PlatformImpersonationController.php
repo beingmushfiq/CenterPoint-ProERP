@@ -44,10 +44,10 @@ final class PlatformImpersonationController extends Controller
         $tenantUser = User::withoutTenantScope()
             ->where('tenant_id', $tenant->id)
             ->where('status', 'active')
-            ->whereHas('roles', function ($q) {
+            ->whereHas('roles', function ($q): void {
                 $q->whereIn('slug', ['super_admin', 'admin', 'tenant_admin', 'enterprise_admin']);
             })
-            ->where(function ($q) {
+            ->where(function ($q): void {
                 $q->where('email', 'like', 'admin@%')
                     ->orWhere('name', 'like', '%System Administrator%')
                     ->orWhere('name', 'like', '%Administrator%');
@@ -60,7 +60,7 @@ final class PlatformImpersonationController extends Controller
             $tenantUser = User::withoutTenantScope()
                 ->where('tenant_id', $tenant->id)
                 ->where('status', 'active')
-                ->whereHas('roles', function ($q) {
+                ->whereHas('roles', function ($q): void {
                     $q->whereIn('slug', ['super_admin', 'admin', 'tenant_admin', 'enterprise_admin']);
                 })
                 ->orderBy('id', 'asc')
@@ -72,7 +72,7 @@ final class PlatformImpersonationController extends Controller
             $tenantUser = User::withoutTenantScope()
                 ->where('tenant_id', $tenant->id)
                 ->where('status', 'active')
-                ->where(function ($q) {
+                ->where(function ($q): void {
                     $q->where('email', 'like', 'admin@%')
                         ->orWhere('name', 'like', '%System Administrator%')
                         ->orWhere('name', 'like', '%Admin%')
@@ -86,7 +86,7 @@ final class PlatformImpersonationController extends Controller
         if (! $tenantUser) {
             $tenantUser = User::withoutTenantScope()
                 ->where('tenant_id', $tenant->id)
-                ->whereHas('roles', function ($q) {
+                ->whereHas('roles', function ($q): void {
                     $q->whereIn('slug', ['super_admin', 'admin', 'tenant_admin', 'enterprise_admin']);
                 })
                 ->orderBy('id', 'asc')
@@ -125,7 +125,7 @@ final class PlatformImpersonationController extends Controller
 
         // Ensure the tenant user has the administrator role attached
         $adminRole = Role::withoutTenantScope()
-            ->where(function ($q) use ($tenant) {
+            ->where(function ($q) use ($tenant): void {
                 $q->where('tenant_id', $tenant->id)->orWhereNull('tenant_id');
             })
             ->whereIn('slug', ['super_admin', 'admin', 'tenant_admin'])

@@ -13,60 +13,51 @@ class CodReconciliationReportQuery implements ReportQueryInterface
 
     public function __construct(?DeliveryDataProvider $provider = null)
     {
-        $this->provider = $provider ?? new DeliveryDataProvider();
+        $this->provider = $provider ?? new DeliveryDataProvider;
     }
 
     public function columns(): array
     {
-        return array (
-  'delivery_number' => 
-  array (
-    'label' => 'Shipment Tracking No',
-    'type' => 'string',
-    'sortable' => true,
-  ),
-  'recipient_name' => 
-  array (
-    'label' => 'Customer',
-    'type' => 'string',
-  ),
-  'courier_name' => 
-  array (
-    'label' => 'Courier Partner',
-    'type' => 'string',
-  ),
-  'delivery_status' => 
-  array (
-    'label' => 'Delivery Status',
-    'type' => 'badge',
-  ),
-  'delivered_at' => 
-  array (
-    'label' => 'Delivery Timestamp',
-    'type' => 'string',
-  ),
-  'cod_amount' => 
-  array (
-    'label' => 'COD Invoiced (BDT)',
-    'type' => 'currency',
-  ),
-  'collected_amount' => 
-  array (
-    'label' => 'Courier Remitted (BDT)',
-    'type' => 'currency',
-  ),
-  'variance' => 
-  array (
-    'label' => 'Settlement Variance (BDT)',
-    'type' => 'currency',
-    'sortable' => true,
-  ),
-  'cod_status' => 
-  array (
-    'label' => 'Remittance Status',
-    'type' => 'badge',
-  ),
-);
+        return [
+            'delivery_number' => [
+                'label' => 'Shipment Tracking No',
+                'type' => 'string',
+                'sortable' => true,
+            ],
+            'recipient_name' => [
+                'label' => 'Customer',
+                'type' => 'string',
+            ],
+            'courier_name' => [
+                'label' => 'Courier Partner',
+                'type' => 'string',
+            ],
+            'delivery_status' => [
+                'label' => 'Delivery Status',
+                'type' => 'badge',
+            ],
+            'delivered_at' => [
+                'label' => 'Delivery Timestamp',
+                'type' => 'string',
+            ],
+            'cod_amount' => [
+                'label' => 'COD Invoiced (BDT)',
+                'type' => 'currency',
+            ],
+            'collected_amount' => [
+                'label' => 'Courier Remitted (BDT)',
+                'type' => 'currency',
+            ],
+            'variance' => [
+                'label' => 'Settlement Variance (BDT)',
+                'type' => 'currency',
+                'sortable' => true,
+            ],
+            'cod_status' => [
+                'label' => 'Remittance Status',
+                'type' => 'badge',
+            ],
+        ];
     }
 
     public function query(array $filters, int $page = 1, int $perPage = 25): array

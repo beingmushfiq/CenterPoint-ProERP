@@ -22,10 +22,15 @@ class AccountingPeriodTest extends TestCase
     use RefreshDatabase;
 
     private Tenant $tenant;
+
     private User $user;
+
     private string $token;
+
     private Company $company;
+
     private ChartOfAccount $account1;
+
     private ChartOfAccount $account2;
 
     protected function setUp(): void

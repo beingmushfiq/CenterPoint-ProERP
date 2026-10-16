@@ -13,45 +13,39 @@ class SalesmanIncentiveAccrualReportQuery implements ReportQueryInterface
 
     public function __construct(?SalesDataProvider $provider = null)
     {
-        $this->provider = $provider ?? new SalesDataProvider();
+        $this->provider = $provider ?? new SalesDataProvider;
     }
 
     public function columns(): array
     {
-        return array (
-  'salesman_name' => 
-  array (
-    'label' => 'Salesperson',
-    'type' => 'string',
-    'sortable' => true,
-  ),
-  'orders_count' => 
-  array (
-    'label' => 'Orders Count',
-    'type' => 'number',
-  ),
-  'total_sales' => 
-  array (
-    'label' => 'Total Bookings (BDT)',
-    'type' => 'currency',
-  ),
-  'collected_sales' => 
-  array (
-    'label' => 'Realized Collections (BDT)',
-    'type' => 'currency',
-  ),
-  'incentive_rate' => 
-  array (
-    'label' => 'Incentive Rate',
-    'type' => 'string',
-  ),
-  'accrued_incentive' => 
-  array (
-    'label' => 'Incentive Payable (BDT)',
-    'type' => 'currency',
-    'sortable' => true,
-  ),
-);
+        return [
+            'salesman_name' => [
+                'label' => 'Salesperson',
+                'type' => 'string',
+                'sortable' => true,
+            ],
+            'orders_count' => [
+                'label' => 'Orders Count',
+                'type' => 'number',
+            ],
+            'total_sales' => [
+                'label' => 'Total Bookings (BDT)',
+                'type' => 'currency',
+            ],
+            'collected_sales' => [
+                'label' => 'Realized Collections (BDT)',
+                'type' => 'currency',
+            ],
+            'incentive_rate' => [
+                'label' => 'Incentive Rate',
+                'type' => 'string',
+            ],
+            'accrued_incentive' => [
+                'label' => 'Incentive Payable (BDT)',
+                'type' => 'currency',
+                'sortable' => true,
+            ],
+        ];
     }
 
     public function query(array $filters, int $page = 1, int $perPage = 25): array

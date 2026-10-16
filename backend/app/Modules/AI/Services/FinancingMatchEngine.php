@@ -8,8 +8,6 @@ use App\Models\Tenant;
 use App\Modules\AI\Models\FinancingAssessment;
 use App\Modules\Finance\Models\BankAccount;
 use App\Modules\Finance\Models\Expense;
-use App\Modules\Inventory\Models\StockBalance;
-use App\Modules\Purchasing\Models\PurchaseBill;
 use App\Modules\Sales\Models\Invoice;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;

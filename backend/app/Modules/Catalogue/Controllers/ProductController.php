@@ -22,6 +22,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Throwable;
 
 final class ProductController extends Controller
 {
@@ -228,7 +229,7 @@ final class ProductController extends Controller
 
         // Ensure at least one unit exists for tenant
         $defaultUnit = Unit::where('is_base', true)->first() ?? Unit::first();
-        if (!$defaultUnit) {
+        if (! $defaultUnit) {
             $defaultUnit = Unit::create([
                 'uuid' => (string) Str::uuid(),
                 'code' => 'PCS',
@@ -289,11 +290,11 @@ final class ProductController extends Controller
                 &$updated,
                 &$skipped,
                 &$errors
-            ) {
+            ): void {
                 foreach ($chunk as $relIdx => $row) {
                     $rowNum = ($chunkIdx * 100) + $relIdx + 2;
-                    $sku = !empty($row['sku']) ? trim((string) $row['sku']) : null;
-                    $barcode = !empty($row['barcode']) ? trim((string) $row['barcode']) : null;
+                    $sku = ! empty($row['sku']) ? trim((string) $row['sku']) : null;
+                    $barcode = ! empty($row['barcode']) ? trim((string) $row['barcode']) : null;
 
                     // Match existing product
                     $existing = null;
@@ -309,6 +310,7 @@ final class ProductController extends Controller
                     if ($existing) {
                         if ($mode === 'skip') {
                             $skipped++;
+
                             continue;
                         }
 
@@ -323,10 +325,10 @@ final class ProductController extends Controller
                             if ($barcode) {
                                 $updateData['barcode'] = $barcode;
                             }
-                            if (!empty($row['reorder_level'])) {
+                            if (! empty($row['reorder_level'])) {
                                 $updateData['reorder_level'] = (float) $row['reorder_level'];
                             }
-                            if (!empty($row['status'])) {
+                            if (! empty($row['status'])) {
                                 $updateData['status'] = strtolower(trim((string) $row['status']));
                             }
                             if (isset($row['description'])) {
@@ -335,21 +337,23 @@ final class ProductController extends Controller
 
                             $existing->update($updateData);
                             $updated++;
+
                             continue;
-                        } catch (\Throwable $e) {
+                        } catch (Throwable $e) {
                             $errors[] = [
                                 'row' => $rowNum,
                                 'field' => 'sku',
                                 'value' => $sku,
-                                'message' => 'Update failed: ' . $e->getMessage(),
+                                'message' => 'Update failed: '.$e->getMessage(),
                             ];
+
                             continue;
                         }
                     }
 
                     // Resolve category
                     $categoryId = null;
-                    if (!empty($row['category'])) {
+                    if (! empty($row['category'])) {
                         $catKey = strtolower(trim((string) $row['category']));
                         if (isset($catMap[$catKey])) {
                             $categoryId = $catMap[$catKey];
@@ -370,7 +374,7 @@ final class ProductController extends Controller
 
                     // Resolve brand
                     $brandId = null;
-                    if (!empty($row['brand'])) {
+                    if (! empty($row['brand'])) {
                         $brandKey = strtolower(trim((string) $row['brand']));
                         if (isset($brandMap[$brandKey])) {
                             $brandId = $brandMap[$brandKey];
@@ -391,7 +395,7 @@ final class ProductController extends Controller
 
                     // Resolve unit
                     $unitId = $defaultUnitId;
-                    if (!empty($row['unit'])) {
+                    if (! empty($row['unit'])) {
                         $uKey = strtolower(trim((string) $row['unit']));
                         if (isset($unitMap[$uKey])) {
                             $unitId = $unitMap[$uKey];
@@ -415,17 +419,19 @@ final class ProductController extends Controller
 
                     // Resolve type
                     $rawType = strtolower(trim((string) ($row['type'] ?? 'finished')));
-                    if ($rawType === 'standard') $rawType = 'finished';
+                    if ($rawType === 'standard') {
+                        $rawType = 'finished';
+                    }
                     $type = in_array($rawType, $validTypes, true) ? $rawType : 'finished';
 
                     // Generate SKU if missing
-                    if (!$sku) {
-                        $sku = 'SKU-' . str_pad((string) random_int(10000, 999999), 6, '0', STR_PAD_LEFT);
+                    if (! $sku) {
+                        $sku = 'SKU-'.str_pad((string) random_int(10000, 999999), 6, '0', STR_PAD_LEFT);
                     }
 
                     // Status
-                    $status = !empty($row['status']) ? strtolower(trim((string) $row['status'])) : 'active';
-                    if (!in_array($status, ['active', 'draft', 'discontinued', 'archived'], true)) {
+                    $status = ! empty($row['status']) ? strtolower(trim((string) $row['status'])) : 'active';
+                    if (! in_array($status, ['active', 'draft', 'discontinued', 'archived'], true)) {
                         $status = 'active';
                     }
 
@@ -447,7 +453,7 @@ final class ProductController extends Controller
                             'is_purchased' => 1,
                             'standard_cost' => $cost,
                             'default_sale_price' => $salePrice,
-                            'reorder_level' => !empty($row['reorder_level']) ? (float) $row['reorder_level'] : null,
+                            'reorder_level' => ! empty($row['reorder_level']) ? (float) $row['reorder_level'] : null,
                             'status' => $status,
                             'created_by' => $userId,
                             'updated_by' => $userId,
@@ -457,7 +463,7 @@ final class ProductController extends Controller
                         $openingStock = (float) ($row['opening_stock'] ?? 0);
                         if ($openingStock > 0 && $defaultWarehouse) {
                             $totalVal = $openingStock * $cost;
-                            $movNumber = 'MOV-OPN-' . strtoupper(Str::random(8));
+                            $movNumber = 'MOV-OPN-'.strtoupper(Str::random(8));
 
                             $movId = DB::table('stock_movements')->insertGetId([
                                 'tenant_id' => $tenantId,
@@ -502,12 +508,12 @@ final class ProductController extends Controller
                         }
 
                         $imported++;
-                    } catch (\Throwable $e) {
+                    } catch (Throwable $e) {
                         $errors[] = [
                             'row' => $rowNum,
                             'field' => 'sku',
                             'value' => $sku,
-                            'message' => 'Creation failed: ' . $e->getMessage(),
+                            'message' => 'Creation failed: '.$e->getMessage(),
                         ];
                     }
                 }
@@ -532,4 +538,3 @@ final class ProductController extends Controller
         ]);
     }
 }
-

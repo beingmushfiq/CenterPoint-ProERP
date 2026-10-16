@@ -20,8 +20,11 @@ class ReportRegistryTest extends TestCase
     use RefreshDatabase;
 
     protected Tenant $tenant;
+
     protected Company $company;
+
     protected User $user;
+
     protected string $token;
 
     protected function setUp(): void
@@ -113,7 +116,7 @@ class ReportRegistryTest extends TestCase
         ]);
 
         $response = $this->getJson('/api/v1/reports', [
-            'Authorization' => 'Bearer ' . $this->token,
+            'Authorization' => 'Bearer '.$this->token,
         ]);
 
         $response->assertOk()
@@ -139,7 +142,7 @@ class ReportRegistryTest extends TestCase
         ]);
 
         $response = $this->getJson('/api/v1/reports/sales_performance/schema', [
-            'Authorization' => 'Bearer ' . $this->token,
+            'Authorization' => 'Bearer '.$this->token,
         ]);
 
         $response->assertOk()

@@ -111,7 +111,7 @@ final class ProductionHardeningTest extends TestCase
             'number_format' => '1,234.56',
         ]);
 
-        $tenantUser = new User();
+        $tenantUser = new User;
         $tenantUser->id = 10;
         $tenantUser->tenant_id = $tenant->id;
         $tenantUser->is_platform_user = false;
@@ -119,7 +119,7 @@ final class ProductionHardeningTest extends TestCase
         $request = Request::create('https://proerp.devcenterpoint.com/api/v1/platform/tenants');
         $request->setUserResolver(fn () => $tenantUser);
 
-        $middleware = new EnsurePlatformAdmin();
+        $middleware = new EnsurePlatformAdmin;
         $response = $middleware->handle($request, fn () => response('OK'));
 
         $this->assertSame(403, $response->getStatusCode());

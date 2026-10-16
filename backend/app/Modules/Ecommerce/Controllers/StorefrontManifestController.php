@@ -77,11 +77,11 @@ final class StorefrontManifestController extends Controller
             $trackUrl = "/store/{$subdomain}/track";
             $checkoutUrl = "/store/{$subdomain}/checkout";
         } else {
-            $startUrl = "/?mode=pwa&source=pwa_storefront";
-            $scope = "/";
-            $catalogUrl = "/products";
-            $trackUrl = "/track";
-            $checkoutUrl = "/checkout";
+            $startUrl = '/?mode=pwa&source=pwa_storefront';
+            $scope = '/';
+            $catalogUrl = '/products';
+            $trackUrl = '/track';
+            $checkoutUrl = '/checkout';
         }
 
         $manifestData = [
@@ -104,13 +104,13 @@ final class StorefrontManifestController extends Controller
                     'purpose' => 'any',
                 ],
                 [
-                    'src' => "/api/v1/pwa/icon/storefront?size=192&v=" . md5($resolvedLogo),
+                    'src' => '/api/v1/pwa/icon/storefront?size=192&v='.md5($resolvedLogo),
                     'sizes' => '192x192',
                     'type' => 'image/svg+xml',
                     'purpose' => 'any',
                 ],
                 [
-                    'src' => "/api/v1/pwa/icon/storefront?size=512&maskable=1&v=" . md5($resolvedLogo),
+                    'src' => '/api/v1/pwa/icon/storefront?size=512&maskable=1&v='.md5($resolvedLogo),
                     'sizes' => '512x512',
                     'type' => 'image/svg+xml',
                     'purpose' => 'maskable',

@@ -23,7 +23,9 @@ final class ProductCapabilityTest extends TestCase
     use RefreshDatabase;
 
     private Tenant $tenant;
+
     private User $user;
+
     private string $jwt;
 
     protected function setUp(): void

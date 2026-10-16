@@ -68,24 +68,13 @@ final class SalesReturnItem extends Model
      * @var array<string, string>
      */
     protected $casts = [
-        'quantity'   => 'decimal:4',
+        'quantity' => 'decimal:4',
         'unit_price' => 'decimal:4',
         'line_total' => 'decimal:4',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
         'deleted_at' => 'datetime',
     ];
-
-    protected static function boot(): void
-    {
-        parent::boot();
-
-        static::creating(static function (SalesReturnItem $model): void {
-            if (empty($model->uuid)) {
-                $model->uuid = (string) Str::uuid();
-            }
-        });
-    }
 
     /**
      * @return BelongsTo<SalesReturn, $this>
@@ -109,5 +98,16 @@ final class SalesReturnItem extends Model
     public function variant(): BelongsTo
     {
         return $this->belongsTo(ProductVariant::class, 'variant_id');
+    }
+
+    protected static function boot(): void
+    {
+        parent::boot();
+
+        self::creating(static function (SalesReturnItem $model): void {
+            if (empty($model->uuid)) {
+                $model->uuid = (string) Str::uuid();
+            }
+        });
     }
 }

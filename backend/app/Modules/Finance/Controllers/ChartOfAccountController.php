@@ -43,6 +43,7 @@ class ChartOfAccountController extends Controller
             $cr = (float) ($lineStats->total_credit ?? 0.0);
             $net = $account->normal_balance === 'debit' ? ($dr - $cr) : ($cr - $dr);
             $account->current_balance = number_format($net, 4, '.', '');
+
             return $account;
         });
 
@@ -190,6 +191,7 @@ class ChartOfAccountController extends Controller
                             'field' => $code === '' ? 'account_code' : 'name',
                             'message' => 'Account code and name are required.',
                         ];
+
                         continue;
                     }
 
@@ -197,7 +199,7 @@ class ChartOfAccountController extends Controller
                     if ($rawType === 'revenue') {
                         $rawType = 'income';
                     }
-                    if (!in_array($rawType, ['asset', 'liability', 'equity', 'income', 'expense'], true)) {
+                    if (! in_array($rawType, ['asset', 'liability', 'equity', 'income', 'expense'], true)) {
                         $rawType = 'asset';
                     }
 
@@ -205,7 +207,7 @@ class ChartOfAccountController extends Controller
                     $isGroup = isset($row['is_group']) ? filter_var($row['is_group'], FILTER_VALIDATE_BOOLEAN) : false;
 
                     $normalBalance = strtolower(trim((string) ($row['normal_balance'] ?? '')));
-                    if (!in_array($normalBalance, ['debit', 'credit'], true)) {
+                    if (! in_array($normalBalance, ['debit', 'credit'], true)) {
                         $normalBalance = in_array($rawType, ['asset', 'expense'], true) ? 'debit' : 'credit';
                     }
 
@@ -227,6 +229,7 @@ class ChartOfAccountController extends Controller
                     if ($existing) {
                         if ($mode === 'skip') {
                             $skipped++;
+
                             continue;
                         }
 
@@ -243,11 +246,12 @@ class ChartOfAccountController extends Controller
                         ]);
 
                         $updated++;
+
                         continue;
                     }
 
                     // Insert
-                    $newAccount = new ChartOfAccount();
+                    $newAccount = new ChartOfAccount;
                     $newAccount->uuid = (string) \Illuminate\Support\Str::uuid();
                     $newAccount->tenant_id = $tenantId;
                     $newAccount->company_id = (int) ($row['company_id'] ?? $defaultCompanyId);
@@ -282,4 +286,3 @@ class ChartOfAccountController extends Controller
         ]);
     }
 }
-

@@ -20,7 +20,9 @@ class PartyBulkImportTest extends TestCase
     use RefreshDatabase;
 
     private Tenant $tenant;
+
     private User $user;
+
     private string $token;
 
     protected function setUp(): void
@@ -83,15 +85,6 @@ class PartyBulkImportTest extends TestCase
             tenantId: 1,
             tokenVersion: 1
         );
-    }
-
-    private function authHeaders(): array
-    {
-        return [
-            'Authorization' => "Bearer {$this->token}",
-            'X-Tenant-ID' => (string) $this->tenant->id,
-            'Accept' => 'application/json',
-        ];
     }
 
     public function test_can_bulk_import_parties_with_addresses(): void
@@ -236,5 +229,14 @@ class PartyBulkImportTest extends TestCase
         $party->refresh();
         $this->assertEquals('Renamed Corporation Ltd', $party->name);
         $this->assertEquals(750000.00, (float) $party->credit_limit);
+    }
+
+    private function authHeaders(): array
+    {
+        return [
+            'Authorization' => "Bearer {$this->token}",
+            'X-Tenant-ID' => (string) $this->tenant->id,
+            'Accept' => 'application/json',
+        ];
     }
 }

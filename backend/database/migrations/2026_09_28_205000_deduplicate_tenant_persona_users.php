@@ -80,6 +80,14 @@ return new class extends Migration
     }
 
     /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        // Data cleanup is irreversible
+    }
+
+    /**
      * Safely prune a user record and its foreign dependencies if unreferenced by transactions.
      */
     private function pruneUser(int $userId): void
@@ -103,6 +111,7 @@ return new class extends Migration
 
         if ($hasPosSessions) {
             Log::info("Skipping deletion of user {$userId} due to active POS sessions.");
+
             return;
         }
 
@@ -112,6 +121,7 @@ return new class extends Migration
 
         if ($hasSalesOrders) {
             Log::info("Skipping deletion of user {$userId} due to active sales orders.");
+
             return;
         }
 
@@ -121,6 +131,7 @@ return new class extends Migration
 
         if ($hasInvoices) {
             Log::info("Skipping deletion of user {$userId} due to invoice records.");
+
             return;
         }
 
@@ -134,16 +145,8 @@ return new class extends Migration
 
                 $user->forceDelete();
             });
-        } catch (\Throwable $e) {
-            Log::warning("Could not prune duplicate user {$userId}: " . $e->getMessage());
+        } catch (Throwable $e) {
+            Log::warning("Could not prune duplicate user {$userId}: ".$e->getMessage());
         }
-    }
-
-    /**
-     * Reverse the migrations.
-     */
-    public function down(): void
-    {
-        // Data cleanup is irreversible
     }
 };

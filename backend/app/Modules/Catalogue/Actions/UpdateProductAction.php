@@ -39,12 +39,12 @@ final class UpdateProductAction extends Action
         }
 
         // 2. Barcode uniqueness check
-        if (!empty($input['barcode']) && $input['barcode'] !== $product->barcode && Product::withoutGlobalScope('tenant')->where('tenant_id', $actor->tenant_id)->where('barcode', $input['barcode'])->where('id', '!=', $product->getKey())->withTrashed()->exists()) {
+        if (! empty($input['barcode']) && $input['barcode'] !== $product->barcode && Product::withoutGlobalScope('tenant')->where('tenant_id', $actor->tenant_id)->where('barcode', $input['barcode'])->where('id', '!=', $product->getKey())->withTrashed()->exists()) {
             throw new DuplicateResourceException(field: 'barcode', value: is_string($input['barcode']) ? $input['barcode'] : '');
         }
 
         // 3. Online slug uniqueness check
-        if (!empty($input['online_slug']) && $input['online_slug'] !== $product->online_slug && Product::withoutGlobalScope('tenant')->where('tenant_id', $actor->tenant_id)->where('online_slug', $input['online_slug'])->where('id', '!=', $product->getKey())->withTrashed()->exists()) {
+        if (! empty($input['online_slug']) && $input['online_slug'] !== $product->online_slug && Product::withoutGlobalScope('tenant')->where('tenant_id', $actor->tenant_id)->where('online_slug', $input['online_slug'])->where('id', '!=', $product->getKey())->withTrashed()->exists()) {
             throw new DuplicateResourceException(field: 'online_slug', value: is_string($input['online_slug']) ? $input['online_slug'] : '');
         }
 
@@ -83,23 +83,23 @@ final class UpdateProductAction extends Action
             // Inventory balance synchronization
             if ($hasOpeningStock && ($product->is_stock_tracked ?? true)) {
                 $warehouseId = null;
-                if (!empty($warehouseUuid)) {
+                if (! empty($warehouseUuid)) {
                     $wh = Warehouse::withoutGlobalScope('tenant')
                         ->where('tenant_id', $actor->tenant_id)
-                        ->where(function ($q) use ($warehouseUuid) {
+                        ->where(function ($q) use ($warehouseUuid): void {
                             $q->where('uuid', $warehouseUuid)->orWhere('id', $warehouseUuid);
                         })
                         ->first();
                     $warehouseId = $wh ? (int) $wh->getKey() : null;
                 }
-                if (!$warehouseId) {
+                if (! $warehouseId) {
                     $existingWhId = DB::table('stock_balances')
                         ->where('tenant_id', $actor->tenant_id)
                         ->where('product_id', $product->id)
                         ->value('warehouse_id');
                     $warehouseId = $existingWhId ? (int) $existingWhId : null;
                 }
-                if (!$warehouseId) {
+                if (! $warehouseId) {
                     $firstWh = Warehouse::withoutGlobalScope('tenant')
                         ->where('tenant_id', $actor->tenant_id)
                         ->where('is_active', true)
@@ -154,7 +154,7 @@ final class UpdateProductAction extends Action
                                     ]);
                             } else {
                                 $direction = $delta > 0 ? 'in' : 'out';
-                                $adjNumber = 'MOV-ADJ-' . strtoupper(Str::random(8));
+                                $adjNumber = 'MOV-ADJ-'.strtoupper(Str::random(8));
 
                                 $movementId = DB::table('stock_movements')->insertGetId([
                                     'tenant_id' => $actor->tenant_id,
@@ -195,7 +195,7 @@ final class UpdateProductAction extends Action
                             }
                         }
                     } elseif ($openingStock > 0) {
-                        $movementNumber = 'MOV-OPN-' . strtoupper(Str::random(8));
+                        $movementNumber = 'MOV-OPN-'.strtoupper(Str::random(8));
 
                         $movementId = DB::table('stock_movements')->insertGetId([
                             'tenant_id' => $actor->tenant_id,

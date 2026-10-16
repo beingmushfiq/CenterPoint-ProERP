@@ -42,6 +42,16 @@ class CrmActivity extends Model
         'deleted_at' => 'datetime',
     ];
 
+    public function assignedUser(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'assigned_to');
+    }
+
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
     protected static function boot(): void
     {
         parent::boot();
@@ -51,15 +61,5 @@ class CrmActivity extends Model
                 $model->uuid = (string) Str::uuid();
             }
         });
-    }
-
-    public function assignedUser(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'assigned_to');
-    }
-
-    public function creator(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'created_by');
     }
 }

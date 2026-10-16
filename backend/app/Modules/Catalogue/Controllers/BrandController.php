@@ -19,6 +19,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Throwable;
 
 final class BrandController extends Controller
 {
@@ -191,7 +192,7 @@ final class BrandController extends Controller
                 &$updated,
                 &$skipped,
                 &$errors
-            ) {
+            ): void {
                 foreach ($chunk as $index => $row) {
                     $rowNum = ($chunkIndex * 100) + $index + 1;
                     $code = isset($row['code']) && trim((string) $row['code']) !== '' ? trim((string) $row['code']) : null;
@@ -206,6 +207,7 @@ final class BrandController extends Controller
                             'value' => '',
                             'message' => 'Brand name is required.',
                         ];
+
                         continue;
                     }
 
@@ -219,6 +221,7 @@ final class BrandController extends Controller
                     if ($existingId !== null) {
                         if ($mode === 'skip') {
                             $skipped++;
+
                             continue;
                         }
 
@@ -236,21 +239,23 @@ final class BrandController extends Controller
                             } else {
                                 $skipped++;
                             }
+
                             continue;
-                        } catch (\Throwable $e) {
+                        } catch (Throwable $e) {
                             $errors[] = [
                                 'row' => $rowNum,
                                 'field' => 'name',
                                 'value' => $name,
-                                'message' => 'Update failed: ' . $e->getMessage(),
+                                'message' => 'Update failed: '.$e->getMessage(),
                             ];
+
                             continue;
                         }
                     }
 
                     // Generate code if missing
-                    if (!$code) {
-                        $code = 'BRD-' . str_pad((string) random_int(100, 99999), 5, '0', STR_PAD_LEFT);
+                    if (! $code) {
+                        $code = 'BRD-'.str_pad((string) random_int(100, 99999), 5, '0', STR_PAD_LEFT);
                     }
 
                     try {
@@ -267,12 +272,12 @@ final class BrandController extends Controller
                         $existingCodes[strtolower($code)] = $newBrand->id;
                         $existingNames[strtolower($name)] = $newBrand->id;
                         $imported++;
-                    } catch (\Throwable $e) {
+                    } catch (Throwable $e) {
                         $errors[] = [
                             'row' => $rowNum,
                             'field' => 'code',
                             'value' => $code,
-                            'message' => 'Creation failed: ' . $e->getMessage(),
+                            'message' => 'Creation failed: '.$e->getMessage(),
                         ];
                     }
                 }

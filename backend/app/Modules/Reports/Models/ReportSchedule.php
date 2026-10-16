@@ -48,6 +48,16 @@ class ReportSchedule extends Model
         'next_run_at' => 'datetime',
     ];
 
+    public function reportDefinition(): BelongsTo
+    {
+        return $this->belongsTo(ReportDefinition::class, 'report_definition_id');
+    }
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'user_id');
+    }
+
     protected static function boot(): void
     {
         parent::boot();
@@ -57,15 +67,5 @@ class ReportSchedule extends Model
                 $model->uuid = (string) Str::uuid();
             }
         });
-    }
-
-    public function reportDefinition(): BelongsTo
-    {
-        return $this->belongsTo(ReportDefinition::class, 'report_definition_id');
-    }
-
-    public function user(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'user_id');
     }
 }

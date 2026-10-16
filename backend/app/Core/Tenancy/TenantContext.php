@@ -168,6 +168,7 @@ final class TenantContext
         if (is_string($raw)) {
             return (array) json_decode($raw, true);
         }
+
         return is_array($raw) ? $raw : ['manufacturing'];
     }
 
@@ -190,6 +191,7 @@ final class TenantContext
         if (is_string($raw)) {
             return (array) json_decode($raw, true);
         }
+
         return is_array($raw) ? $raw : [];
     }
 

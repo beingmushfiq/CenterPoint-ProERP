@@ -13,50 +13,43 @@ class OutOfStockReportQuery implements ReportQueryInterface
 
     public function __construct(?InventoryDataProvider $provider = null)
     {
-        $this->provider = $provider ?? new InventoryDataProvider();
+        $this->provider = $provider ?? new InventoryDataProvider;
     }
 
     public function columns(): array
     {
-        return array (
-  'sku' => 
-  array (
-    'label' => 'SKU',
-    'type' => 'string',
-    'sortable' => true,
-  ),
-  'product_name' => 
-  array (
-    'label' => 'Product Name',
-    'type' => 'string',
-  ),
-  'category' => 
-  array (
-    'label' => 'Category',
-    'type' => 'string',
-  ),
-  'current_stock' => 
-  array (
-    'label' => 'Available Stock',
-    'type' => 'number',
-    'sortable' => true,
-  ),
-  'reorder_level' => 
-  array (
-    'label' => 'Reorder Point',
-    'type' => 'number',
-  ),
-  'unit_cost' => 
-  array (
-    'label' => 'Unit Cost (BDT)',
-    'type' => 'currency',
-  ),
-  'stock_status' => 
-  array (
-    'label' => 'Deficit Status',
-    'type' => 'badge',
-  ),
-);
+        return [
+            'sku' => [
+                'label' => 'SKU',
+                'type' => 'string',
+                'sortable' => true,
+            ],
+            'product_name' => [
+                'label' => 'Product Name',
+                'type' => 'string',
+            ],
+            'category' => [
+                'label' => 'Category',
+                'type' => 'string',
+            ],
+            'current_stock' => [
+                'label' => 'Available Stock',
+                'type' => 'number',
+                'sortable' => true,
+            ],
+            'reorder_level' => [
+                'label' => 'Reorder Point',
+                'type' => 'number',
+            ],
+            'unit_cost' => [
+                'label' => 'Unit Cost (BDT)',
+                'type' => 'currency',
+            ],
+            'stock_status' => [
+                'label' => 'Deficit Status',
+                'type' => 'badge',
+            ],
+        ];
     }
 
     public function query(array $filters, int $page = 1, int $perPage = 25): array

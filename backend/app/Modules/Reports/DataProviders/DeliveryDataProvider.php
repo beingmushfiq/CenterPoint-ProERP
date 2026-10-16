@@ -36,10 +36,10 @@ class DeliveryDataProvider extends BaseDataProvider
                 'do.status',
             ]);
 
-        if (!empty($filters['courier_provider_id'])) {
+        if (! empty($filters['courier_provider_id'])) {
             $query->where('do.courier_provider_id', $filters['courier_provider_id']);
         }
-        if (!empty($filters['warehouse_id'])) {
+        if (! empty($filters['warehouse_id'])) {
             $query->where('do.warehouse_id', $filters['warehouse_id']);
         }
 
@@ -98,10 +98,10 @@ class DeliveryDataProvider extends BaseDataProvider
                 'do.pod_received_by',
             ]);
 
-        if (!empty($filters['date_from'])) {
+        if (! empty($filters['date_from'])) {
             $query->whereDate('do.delivered_at', '>=', $filters['date_from']);
         }
-        if (!empty($filters['date_to'])) {
+        if (! empty($filters['date_to'])) {
             $query->whereDate('do.delivered_at', '<=', $filters['date_to']);
         }
 
@@ -224,7 +224,7 @@ class DeliveryDataProvider extends BaseDataProvider
                     'total_assigned' => $assigned,
                     'total_delivered' => $delivered,
                     'total_returned' => (int) $row->total_returned,
-                    'success_rate' => number_format($rate, 2, '.', '') . '%',
+                    'success_rate' => number_format($rate, 2, '.', '').'%',
                     'total_cod_collected' => number_format((float) $row->total_cod_collected, 2, '.', ''),
                 ];
             })
@@ -445,7 +445,7 @@ class DeliveryDataProvider extends BaseDataProvider
             'pending_shipments' => (int) ($stats->pending_orders ?? 0),
             'delivered_shipments' => $delivered,
             'returned_shipments' => (int) ($stats->returned_orders ?? 0),
-            'overall_delivery_rate' => number_format($rate, 2, '.', '') . '%',
+            'overall_delivery_rate' => number_format($rate, 2, '.', '').'%',
             'total_cod_collected' => number_format((float) ($stats->total_cod_collected ?? 0), 2, '.', ''),
         ];
     }
@@ -494,7 +494,7 @@ class DeliveryDataProvider extends BaseDataProvider
                 $slaStatus = 'On Schedule';
                 if ($row->status === 'delivered') {
                     $slaStatus = ($sched && $deliv && $deliv > $sched) ? 'Delayed SLA Breach' : 'Delivered On-Time';
-                } elseif ($sched && $sched < date('Y-m-d') && !in_array($row->status, ['delivered', 'cancelled'], true)) {
+                } elseif ($sched && $sched < date('Y-m-d') && ! in_array($row->status, ['delivered', 'cancelled'], true)) {
                     $slaStatus = 'Overdue';
                 }
 
@@ -528,21 +528,20 @@ class DeliveryDataProvider extends BaseDataProvider
 
     protected function applyDeliveryFilters($query, array $filters): void
     {
-        if (!empty($filters['start_date'])) {
+        if (! empty($filters['start_date'])) {
             $query->where('do.scheduled_date', '>=', $filters['start_date']);
         }
-        if (!empty($filters['end_date'])) {
+        if (! empty($filters['end_date'])) {
             $query->where('do.scheduled_date', '<=', $filters['end_date']);
         }
-        if (!empty($filters['courier_provider_id'])) {
+        if (! empty($filters['courier_provider_id'])) {
             $query->where('do.courier_provider_id', $filters['courier_provider_id']);
         }
-        if (!empty($filters['warehouse_id'])) {
+        if (! empty($filters['warehouse_id'])) {
             $query->where('do.warehouse_id', $filters['warehouse_id']);
         }
-        if (!empty($filters['status'])) {
+        if (! empty($filters['status'])) {
             $query->where('do.status', $filters['status']);
         }
     }
 }
-

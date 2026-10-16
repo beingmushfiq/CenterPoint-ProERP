@@ -19,12 +19,12 @@ final class StorePosTerminalRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'code'                 => ['required', 'string', 'max:32'],
-            'name'                 => ['required', 'string', 'max:255'],
-            'branch_id'            => ['required', 'integer'],
+            'code' => ['required', 'string', 'max:32'],
+            'name' => ['required', 'string', 'max:255'],
+            'branch_id' => ['required', 'integer'],
             'default_warehouse_id' => ['nullable', 'integer'],
-            'printer_config'       => ['nullable', 'array'],
-            'is_active'            => ['nullable', 'boolean'],
+            'printer_config' => ['nullable', 'array'],
+            'is_active' => ['nullable', 'boolean'],
         ];
     }
 }

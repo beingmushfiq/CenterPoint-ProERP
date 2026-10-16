@@ -7,14 +7,13 @@ namespace App\Modules\Documents\Services;
 use App\Core\Tenancy\TenantContext;
 use App\Modules\Documents\Models\DocumentTemplate;
 use App\Modules\Documents\Models\DocumentTemplateVersion;
-use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
 final class TemplateService
 {
     /**
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      */
     public function createTemplate(array $data, int $userId): DocumentTemplate
     {
@@ -29,29 +28,29 @@ final class TemplateService
             }
 
             $template = DocumentTemplate::create([
-                'tenant_id'        => $tenantId,
-                'company_id'       => $data['company_id'] ?? null,
-                'branch_id'        => $data['branch_id'] ?? null,
-                'name'             => (string) $data['name'],
-                'document_type'    => $documentType,
-                'paper_size_id'    => $data['paper_size_id'] ?? null,
+                'tenant_id' => $tenantId,
+                'company_id' => $data['company_id'] ?? null,
+                'branch_id' => $data['branch_id'] ?? null,
+                'name' => (string) $data['name'],
+                'document_type' => $documentType,
+                'paper_size_id' => $data['paper_size_id'] ?? null,
                 'print_profile_id' => $data['print_profile_id'] ?? null,
-                'status'           => (string) ($data['status'] ?? 'active'),
-                'is_default'       => $isDefault,
-                'current_version'  => 1,
-                'created_by'       => $userId,
-                'updated_by'       => $userId,
+                'status' => (string) ($data['status'] ?? 'active'),
+                'is_default' => $isDefault,
+                'current_version' => 1,
+                'created_by' => $userId,
+                'updated_by' => $userId,
             ]);
 
             $version = DocumentTemplateVersion::create([
-                'tenant_id'      => $tenantId,
-                'template_id'    => $template->id,
-                'version'        => 1,
-                'status'         => 'active',
+                'tenant_id' => $tenantId,
+                'template_id' => $template->id,
+                'version' => 1,
+                'status' => 'active',
                 'change_summary' => 'Initial version',
-                'layout_config'  => $data['layout_config'] ?? [],
-                'created_by'     => $userId,
-                'updated_by'     => $userId,
+                'layout_config' => $data['layout_config'] ?? [],
+                'created_by' => $userId,
+                'updated_by' => $userId,
             ]);
 
             $template->update(['active_version_id' => $version->id]);
@@ -61,7 +60,7 @@ final class TemplateService
     }
 
     /**
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      */
     public function updateTemplate(DocumentTemplate $template, array $data, int $userId): DocumentTemplate
     {
@@ -76,29 +75,29 @@ final class TemplateService
             }
 
             $template->fill([
-                'name'             => $data['name'] ?? $template->name,
-                'document_type'    => $documentType,
-                'company_id'       => array_key_exists('company_id', $data) ? $data['company_id'] : $template->company_id,
-                'branch_id'        => array_key_exists('branch_id', $data) ? $data['branch_id'] : $template->branch_id,
-                'paper_size_id'    => array_key_exists('paper_size_id', $data) ? $data['paper_size_id'] : $template->paper_size_id,
+                'name' => $data['name'] ?? $template->name,
+                'document_type' => $documentType,
+                'company_id' => array_key_exists('company_id', $data) ? $data['company_id'] : $template->company_id,
+                'branch_id' => array_key_exists('branch_id', $data) ? $data['branch_id'] : $template->branch_id,
+                'paper_size_id' => array_key_exists('paper_size_id', $data) ? $data['paper_size_id'] : $template->paper_size_id,
                 'print_profile_id' => array_key_exists('print_profile_id', $data) ? $data['print_profile_id'] : $template->print_profile_id,
-                'status'           => $data['status'] ?? $template->status,
-                'is_default'       => $isDefault,
-                'updated_by'       => $userId,
+                'status' => $data['status'] ?? $template->status,
+                'is_default' => $isDefault,
+                'updated_by' => $userId,
             ]);
 
             // If layout_config is provided and changed, create a new version
             if (isset($data['layout_config'])) {
                 $newVersionNumber = $template->current_version + 1;
                 $newVersion = DocumentTemplateVersion::create([
-                    'tenant_id'      => $tenantId,
-                    'template_id'    => $template->id,
-                    'version'        => $newVersionNumber,
-                    'status'         => 'active',
+                    'tenant_id' => $tenantId,
+                    'template_id' => $template->id,
+                    'version' => $newVersionNumber,
+                    'status' => 'active',
                     'change_summary' => (string) ($data['change_summary'] ?? "Updated version {$newVersionNumber}"),
-                    'layout_config'  => $data['layout_config'],
-                    'created_by'     => $userId,
-                    'updated_by'     => $userId,
+                    'layout_config' => $data['layout_config'],
+                    'created_by' => $userId,
+                    'updated_by' => $userId,
                 ]);
 
                 $template->current_version = $newVersionNumber;
@@ -136,7 +135,7 @@ final class TemplateService
 
         $template->update([
             'active_version_id' => $version->id,
-            'updated_by'        => $userId,
+            'updated_by' => $userId,
         ]);
 
         return $template->load(['activeVersion', 'paperSize', 'printProfile']);
@@ -150,29 +149,29 @@ final class TemplateService
             $activeVersion = $template->activeVersion;
 
             $newTemplate = DocumentTemplate::create([
-                'tenant_id'        => $tenantId,
-                'company_id'       => $template->company_id,
-                'branch_id'        => $template->branch_id,
-                'name'             => $newName,
-                'document_type'    => $template->document_type,
-                'paper_size_id'    => $template->paper_size_id,
+                'tenant_id' => $tenantId,
+                'company_id' => $template->company_id,
+                'branch_id' => $template->branch_id,
+                'name' => $newName,
+                'document_type' => $template->document_type,
+                'paper_size_id' => $template->paper_size_id,
                 'print_profile_id' => $template->print_profile_id,
-                'status'           => 'draft',
-                'is_default'       => false,
-                'current_version'  => 1,
-                'created_by'       => $userId,
-                'updated_by'       => $userId,
+                'status' => 'draft',
+                'is_default' => false,
+                'current_version' => 1,
+                'created_by' => $userId,
+                'updated_by' => $userId,
             ]);
 
             $version = DocumentTemplateVersion::create([
-                'tenant_id'      => $tenantId,
-                'template_id'    => $newTemplate->id,
-                'version'        => 1,
-                'status'         => 'active',
+                'tenant_id' => $tenantId,
+                'template_id' => $newTemplate->id,
+                'version' => 1,
+                'status' => 'active',
                 'change_summary' => "Cloned from {$template->name} (v{$template->current_version})",
-                'layout_config'  => $activeVersion ? $activeVersion->layout_config : [],
-                'created_by'     => $userId,
-                'updated_by'     => $userId,
+                'layout_config' => $activeVersion ? $activeVersion->layout_config : [],
+                'created_by' => $userId,
+                'updated_by' => $userId,
             ]);
 
             $newTemplate->update(['active_version_id' => $version->id]);

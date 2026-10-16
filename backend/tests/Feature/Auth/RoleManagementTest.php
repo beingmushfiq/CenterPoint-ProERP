@@ -21,7 +21,9 @@ class RoleManagementTest extends TestCase
     use RefreshDatabase;
 
     private Tenant $tenant;
+
     private User $user;
+
     private JwtService $jwtService;
 
     protected function setUp(): void
@@ -69,48 +71,11 @@ class RoleManagementTest extends TestCase
         $this->jwtService = app(JwtService::class);
     }
 
-    private function issueJwt(): string
-    {
-        return $this->jwtService->issueToken(
-            userId: $this->user->id,
-            tenantId: $this->tenant->id,
-            tokenVersion: $this->user->token_version
-        );
-    }
-
-    private function assignPermissions(string ...$permissionNames): void
-    {
-        $role = Role::query()->create([
-            'uuid' => (string) Str::uuid(),
-            'tenant_id' => $this->tenant->id,
-            'name' => 'Tester Role ' . Str::random(5),
-            'slug' => 'tester-role-' . Str::lower(Str::random(5)),
-            'is_system' => false,
-        ]);
-
-        foreach ($permissionNames as $name) {
-            $parts = explode('.', $name);
-            $perm = Permission::query()->firstOrCreate(
-                ['name' => $name],
-                [
-                    'uuid' => (string) Str::uuid(),
-                    'module' => $parts[0] ?? 'core',
-                    'resource' => $parts[1] ?? 'general',
-                    'action' => $parts[2] ?? 'view',
-                    'description' => "Permission {$name}",
-                ]
-            );
-            $role->permissions()->attach($perm->id);
-        }
-
-        $this->user->roles()->attach($role->id);
-    }
-
     public function test_get_roles_without_permission_returns_403(): void
     {
         $jwt = $this->issueJwt();
 
-        $response = $this->withHeader('Authorization', 'Bearer ' . $jwt)
+        $response = $this->withHeader('Authorization', 'Bearer '.$jwt)
             ->getJson('/api/v1/roles');
 
         $response->assertStatus(403);
@@ -122,7 +87,7 @@ class RoleManagementTest extends TestCase
         $this->assignPermissions('core.role.view');
         $jwt = $this->issueJwt();
 
-        $response = $this->withHeader('Authorization', 'Bearer ' . $jwt)
+        $response = $this->withHeader('Authorization', 'Bearer '.$jwt)
             ->getJson('/api/v1/roles');
 
         $response->assertStatus(200);
@@ -144,7 +109,7 @@ class RoleManagementTest extends TestCase
             'description' => 'Invalid rogue permission',
         ]);
 
-        $response = $this->withHeader('Authorization', 'Bearer ' . $jwt)
+        $response = $this->withHeader('Authorization', 'Bearer '.$jwt)
             ->postJson('/api/v1/roles', [
                 'name' => 'Rogue Role',
                 'description' => 'Should fail validation',
@@ -172,7 +137,7 @@ class RoleManagementTest extends TestCase
         );
 
         // 1. Create Role
-        $createRes = $this->withHeader('Authorization', 'Bearer ' . $jwt)
+        $createRes = $this->withHeader('Authorization', 'Bearer '.$jwt)
             ->postJson('/api/v1/roles', [
                 'name' => 'Inventory Assistant',
                 'description' => 'Can view products',
@@ -184,7 +149,7 @@ class RoleManagementTest extends TestCase
         $this->assertNotNull($roleId);
 
         // 2. Update Role
-        $updateRes = $this->withHeader('Authorization', 'Bearer ' . $jwt)
+        $updateRes = $this->withHeader('Authorization', 'Bearer '.$jwt)
             ->putJson("/api/v1/roles/{$roleId}", [
                 'name' => 'Senior Inventory Assistant',
                 'permission_ids' => [$validPerm->id],
@@ -194,10 +159,47 @@ class RoleManagementTest extends TestCase
         $this->assertEquals('Senior Inventory Assistant', $updateRes->json('data.name'));
 
         // 3. Delete Role (soft delete)
-        $deleteRes = $this->withHeader('Authorization', 'Bearer ' . $jwt)
+        $deleteRes = $this->withHeader('Authorization', 'Bearer '.$jwt)
             ->deleteJson("/api/v1/roles/{$roleId}");
 
         $deleteRes->assertStatus(200);
         $this->assertSoftDeleted('roles', ['id' => $roleId]);
+    }
+
+    private function issueJwt(): string
+    {
+        return $this->jwtService->issueToken(
+            userId: $this->user->id,
+            tenantId: $this->tenant->id,
+            tokenVersion: $this->user->token_version
+        );
+    }
+
+    private function assignPermissions(string ...$permissionNames): void
+    {
+        $role = Role::query()->create([
+            'uuid' => (string) Str::uuid(),
+            'tenant_id' => $this->tenant->id,
+            'name' => 'Tester Role '.Str::random(5),
+            'slug' => 'tester-role-'.Str::lower(Str::random(5)),
+            'is_system' => false,
+        ]);
+
+        foreach ($permissionNames as $name) {
+            $parts = explode('.', $name);
+            $perm = Permission::query()->firstOrCreate(
+                ['name' => $name],
+                [
+                    'uuid' => (string) Str::uuid(),
+                    'module' => $parts[0] ?? 'core',
+                    'resource' => $parts[1] ?? 'general',
+                    'action' => $parts[2] ?? 'view',
+                    'description' => "Permission {$name}",
+                ]
+            );
+            $role->permissions()->attach($perm->id);
+        }
+
+        $this->user->roles()->attach($role->id);
     }
 }

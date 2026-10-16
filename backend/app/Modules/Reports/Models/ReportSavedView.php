@@ -40,6 +40,16 @@ class ReportSavedView extends Model
         'is_default' => 'boolean',
     ];
 
+    public function reportDefinition(): BelongsTo
+    {
+        return $this->belongsTo(ReportDefinition::class, 'report_definition_id');
+    }
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'user_id');
+    }
+
     protected static function boot(): void
     {
         parent::boot();
@@ -49,15 +59,5 @@ class ReportSavedView extends Model
                 $model->uuid = (string) Str::uuid();
             }
         });
-    }
-
-    public function reportDefinition(): BelongsTo
-    {
-        return $this->belongsTo(ReportDefinition::class, 'report_definition_id');
-    }
-
-    public function user(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'user_id');
     }
 }

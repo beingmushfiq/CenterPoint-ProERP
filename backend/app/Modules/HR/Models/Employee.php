@@ -6,7 +6,6 @@ namespace App\Modules\HR\Models;
 
 use App\Core\Tenancy\Concerns\BelongsToTenant;
 use App\Models\Branch;
-use App\Models\Company;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -65,20 +64,6 @@ class Employee extends Model
         'date_of_leaving' => 'date:Y-m-d',
         'is_active' => 'boolean',
     ];
-
-    protected static function boot(): void
-    {
-        parent::boot();
-
-        static::creating(static function (Employee $model): void {
-            if (empty($model->uuid)) {
-                $model->uuid = (string) Str::uuid();
-            }
-            if (empty($model->display_name)) {
-                $model->display_name = trim($model->first_name . ' ' . ($model->last_name ?? ''));
-            }
-        });
-    }
 
     /**
      * @return BelongsTo<Department, $this>
@@ -142,5 +127,19 @@ class Employee extends Model
     public function payslips(): HasMany
     {
         return $this->hasMany(Payslip::class, 'employee_id');
+    }
+
+    protected static function boot(): void
+    {
+        parent::boot();
+
+        static::creating(static function (Employee $model): void {
+            if (empty($model->uuid)) {
+                $model->uuid = (string) Str::uuid();
+            }
+            if (empty($model->display_name)) {
+                $model->display_name = trim($model->first_name.' '.($model->last_name ?? ''));
+            }
+        });
     }
 }

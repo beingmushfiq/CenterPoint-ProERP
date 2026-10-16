@@ -46,25 +46,25 @@ Route::prefix('v1')
         });
 
         Route::prefix('pwa')->name('pwa.')->group(static function (): void {
-            Route::get('erp-manifest.json', [\App\Modules\Platform\Controllers\ErpManifestController::class, 'manifest'])->name('erp-manifest');
-            Route::get('storefront-manifest.json', [\App\Modules\Ecommerce\Controllers\StorefrontManifestController::class, 'manifest'])->name('storefront-manifest');
-            Route::get('icon/{scope}', [\App\Modules\Platform\Controllers\PwaIconController::class, 'icon'])->name('icon');
+            Route::get('erp-manifest.json', [App\Modules\Platform\Controllers\ErpManifestController::class, 'manifest'])->name('erp-manifest');
+            Route::get('storefront-manifest.json', [App\Modules\Ecommerce\Controllers\StorefrontManifestController::class, 'manifest'])->name('storefront-manifest');
+            Route::get('icon/{scope}', [App\Modules\Platform\Controllers\PwaIconController::class, 'icon'])->name('icon');
         });
 
         Route::prefix('webhooks')->middleware('throttle:webhooks')->name('webhooks.')->group(static function (): void {
             Route::post('couriers/{providerCode}', [App\Modules\Delivery\Controllers\CourierWebhookController::class, 'handle'])->name('couriers.handle');
         });
 
-        Route::get('industry-profiles', [\App\Modules\Platform\Controllers\IndustryProfileController::class, 'index'])->name('industry-profiles.index');
-        Route::get('industry-profiles/{key}', [\App\Modules\Platform\Controllers\IndustryProfileController::class, 'show'])->name('industry-profiles.show');
-        Route::get('business-types', [\App\Modules\Platform\Controllers\IndustryProfileController::class, 'businessTypes'])->name('business-types.index');
+        Route::get('industry-profiles', [App\Modules\Platform\Controllers\IndustryProfileController::class, 'index'])->name('industry-profiles.index');
+        Route::get('industry-profiles/{key}', [App\Modules\Platform\Controllers\IndustryProfileController::class, 'show'])->name('industry-profiles.show');
+        Route::get('business-types', [App\Modules\Platform\Controllers\IndustryProfileController::class, 'businessTypes'])->name('business-types.index');
 
         Route::match(['get', 'head'], 'health', function () {
             $dbStart = microtime(true);
             $dbStatus = 'ok';
             try {
-                \Illuminate\Support\Facades\DB::connection()->getPdo();
-            } catch (\Throwable $e) {
+                Illuminate\Support\Facades\DB::connection()->getPdo();
+            } catch (Throwable $e) {
                 $dbStatus = 'unreachable';
             }
             $dbLatencyMs = round((microtime(true) - $dbStart) * 1000, 2);
@@ -72,12 +72,12 @@ Route::prefix('v1')
             $cacheStart = microtime(true);
             $cacheStatus = 'ok';
             try {
-                \Illuminate\Support\Facades\Cache::put('health_check_ping', 1, 10);
-                $val = \Illuminate\Support\Facades\Cache::get('health_check_ping');
+                Illuminate\Support\Facades\Cache::put('health_check_ping', 1, 10);
+                $val = Illuminate\Support\Facades\Cache::get('health_check_ping');
                 if ($val !== 1) {
                     $cacheStatus = 'degraded';
                 }
-            } catch (\Throwable $e) {
+            } catch (Throwable $e) {
                 $cacheStatus = 'unreachable';
             }
             $cacheLatencyMs = round((microtime(true) - $cacheStart) * 1000, 2);

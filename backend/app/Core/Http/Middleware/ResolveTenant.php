@@ -75,6 +75,7 @@ final class ResolveTenant
         $tenantCacheKey = "t{$tenantId}:tenant:profile";
         $tenantData = Cache::remember($tenantCacheKey, 300, static function () use ($tenantId): ?array {
             $row = DB::table('tenants')->where('id', $tenantId)->first();
+
             return $row !== null ? (array) $row : null;
         });
 

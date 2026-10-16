@@ -44,18 +44,6 @@ class CartItem extends Model
         'added_at' => 'datetime',
     ];
 
-    protected static function booted(): void
-    {
-        static::creating(function (CartItem $model): void {
-            if (empty($model->uuid)) {
-                $model->uuid = (string) Str::uuid();
-            }
-            if (empty($model->added_at)) {
-                $model->added_at = now();
-            }
-        });
-    }
-
     public function cart(): BelongsTo
     {
         return $this->belongsTo(Cart::class);
@@ -74,5 +62,17 @@ class CartItem extends Model
     public function unit(): BelongsTo
     {
         return $this->belongsTo(Unit::class);
+    }
+
+    protected static function booted(): void
+    {
+        static::creating(function (CartItem $model): void {
+            if (empty($model->uuid)) {
+                $model->uuid = (string) Str::uuid();
+            }
+            if (empty($model->added_at)) {
+                $model->added_at = now();
+            }
+        });
     }
 }

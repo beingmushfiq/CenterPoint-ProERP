@@ -6,8 +6,6 @@ namespace Tests\Feature\Catalogue;
 
 use App\Core\Auth\JwtService;
 use App\Core\Tenancy\TenantContext;
-use App\Models\Brand;
-use App\Models\Category;
 use App\Models\Product;
 use App\Models\Tenant;
 use App\Models\Unit;
@@ -23,7 +21,9 @@ class ProductBulkImportTest extends TestCase
     use RefreshDatabase;
 
     private Tenant $tenant;
+
     private User $user;
+
     private string $token;
 
     protected function setUp(): void
@@ -99,15 +99,6 @@ class ProductBulkImportTest extends TestCase
             'created_by' => $this->user->id,
             'updated_by' => $this->user->id,
         ]);
-    }
-
-    private function authHeaders(): array
-    {
-        return [
-            'Authorization' => "Bearer {$this->token}",
-            'X-Tenant-ID' => (string) $this->tenant->id,
-            'Accept' => 'application/json',
-        ];
     }
 
     public function test_can_bulk_import_products_and_auto_create_category_and_brand(): void
@@ -256,5 +247,14 @@ class ProductBulkImportTest extends TestCase
         $prod->refresh();
         $this->assertEquals('New Upgraded Product Name', $prod->name);
         $this->assertEquals(299.00, (float) $prod->default_sale_price);
+    }
+
+    private function authHeaders(): array
+    {
+        return [
+            'Authorization' => "Bearer {$this->token}",
+            'X-Tenant-ID' => (string) $this->tenant->id,
+            'Accept' => 'application/json',
+        ];
     }
 }

@@ -7,7 +7,7 @@ namespace App\Modules\Delivery\Contracts\DTOs;
 final readonly class NormalisedEvent
 {
     /**
-     * @param array<string, mixed> $rawPayload
+     * @param  array<string, mixed>  $rawPayload
      */
     public function __construct(
         public string $providerEventId,

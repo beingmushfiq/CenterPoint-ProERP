@@ -82,17 +82,6 @@ final class PurchaseReturn extends Model
         'deleted_at' => 'datetime',
     ];
 
-    protected static function boot(): void
-    {
-        parent::boot();
-
-        static::creating(static function (PurchaseReturn $model): void {
-            if (empty($model->uuid)) {
-                $model->uuid = (string) Str::uuid();
-            }
-        });
-    }
-
     /**
      * @return BelongsTo<Party, $this>
      */
@@ -139,5 +128,16 @@ final class PurchaseReturn extends Model
     public function items(): HasMany
     {
         return $this->hasMany(PurchaseReturnItem::class, 'purchase_return_id');
+    }
+
+    protected static function boot(): void
+    {
+        parent::boot();
+
+        self::creating(static function (PurchaseReturn $model): void {
+            if (empty($model->uuid)) {
+                $model->uuid = (string) Str::uuid();
+            }
+        });
     }
 }

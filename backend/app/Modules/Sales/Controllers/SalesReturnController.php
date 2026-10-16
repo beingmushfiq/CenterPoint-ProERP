@@ -56,7 +56,7 @@ final class SalesReturnController extends Controller
         /** @var array{return_date: string, warehouse_id: int, reason_code_id: int, items: list<array{product_id: int, quantity: string, unit_id: int, unit_price: string}>} $validated */
         $salesReturn = $this->createReturn->execute([
             ...$validated,
-            'tenant_id'  => $tenantId,
+            'tenant_id' => $tenantId,
             'created_by' => (int) $request->user()?->id,
         ]);
 

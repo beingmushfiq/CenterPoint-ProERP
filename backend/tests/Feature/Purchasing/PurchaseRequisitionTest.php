@@ -13,7 +13,6 @@ use App\Models\Tenant;
 use App\Models\Unit;
 use App\Models\User;
 use App\Models\Warehouse;
-use App\Modules\Purchasing\Models\PurchaseRequisition;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -25,10 +24,15 @@ final class PurchaseRequisitionTest extends TestCase
     use RefreshDatabase;
 
     private Tenant $tenant;
+
     private User $user;
+
     private string $jwt;
+
     private Warehouse $warehouse;
+
     private Product $product;
+
     private Unit $unit;
 
     protected function setUp(): void

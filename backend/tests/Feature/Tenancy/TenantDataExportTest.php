@@ -22,7 +22,9 @@ class TenantDataExportTest extends TestCase
     use RefreshDatabase;
 
     private Tenant $tenant;
+
     private User $user;
+
     private string $jwt;
 
     protected function setUp(): void
@@ -60,19 +62,19 @@ class TenantDataExportTest extends TestCase
 
         $this->user = User::create([
             'tenant_id' => $this->tenant->id,
-            'uuid'      => (string) Str::uuid(),
-            'name'      => 'Compliance Officer',
-            'email'     => 'compliance@dataexport.test',
-            'password'  => 'secret123',
-            'status'    => 'active',
+            'uuid' => (string) Str::uuid(),
+            'name' => 'Compliance Officer',
+            'email' => 'compliance@dataexport.test',
+            'password' => 'secret123',
+            'status' => 'active',
         ]);
 
         $role = Role::create([
-            'tenant_id'  => $this->tenant->id,
-            'uuid'       => (string) Str::uuid(),
-            'name'       => 'Super Administrator',
-            'slug'       => 'super-admin',
-            'is_system'  => true,
+            'tenant_id' => $this->tenant->id,
+            'uuid' => (string) Str::uuid(),
+            'name' => 'Super Administrator',
+            'slug' => 'super-admin',
+            'is_system' => true,
         ]);
         $this->user->roles()->attach($role->id, ['tenant_id' => $this->tenant->id]);
 
@@ -86,25 +88,25 @@ class TenantDataExportTest extends TestCase
         );
 
         $unit = Unit::create([
-            'tenant_id'     => $this->tenant->id,
-            'uuid'          => (string) Str::uuid(),
-            'code'          => 'PCS',
-            'name'          => 'Pieces',
-            'symbol'        => 'pcs',
-            'type'          => 'unit',
+            'tenant_id' => $this->tenant->id,
+            'uuid' => (string) Str::uuid(),
+            'code' => 'PCS',
+            'name' => 'Pieces',
+            'symbol' => 'pcs',
+            'type' => 'unit',
             'allow_decimal' => false,
         ]);
 
         Product::create([
-            'tenant_id'    => $this->tenant->id,
-            'uuid'         => (string) Str::uuid(),
-            'name'         => 'Industrial Exhaust Fan',
-            'sku'          => 'FAN-001',
+            'tenant_id' => $this->tenant->id,
+            'uuid' => (string) Str::uuid(),
+            'name' => 'Industrial Exhaust Fan',
+            'sku' => 'FAN-001',
             'base_unit_id' => $unit->id,
-            'type'         => 'finished',
-            'cost_price'   => '1200.0000',
+            'type' => 'finished',
+            'cost_price' => '1200.0000',
             'selling_price' => '2500.0000',
-            'is_active'    => true,
+            'is_active' => true,
         ]);
     }
 
@@ -112,7 +114,7 @@ class TenantDataExportTest extends TestCase
     {
         $response = $this->withHeaders([
             'Authorization' => "Bearer {$this->jwt}",
-            'X-Tenant-Id'   => $this->tenant->slug,
+            'X-Tenant-Id' => $this->tenant->slug,
         ])->postJson('/api/v1/tenant/export');
 
         $response->assertStatus(200)
@@ -131,7 +133,7 @@ class TenantDataExportTest extends TestCase
         // 1. Generate export
         $genResponse = $this->withHeaders([
             'Authorization' => "Bearer {$this->jwt}",
-            'X-Tenant-Id'   => $this->tenant->slug,
+            'X-Tenant-Id' => $this->tenant->slug,
         ])->postJson('/api/v1/tenant/export');
 
         $exportId = $genResponse->json('data.export_id');
@@ -139,7 +141,7 @@ class TenantDataExportTest extends TestCase
         // 2. Download export
         $downloadResponse = $this->withHeaders([
             'Authorization' => "Bearer {$this->jwt}",
-            'X-Tenant-Id'   => $this->tenant->slug,
+            'X-Tenant-Id' => $this->tenant->slug,
         ])->get("/api/v1/tenant/export/{$exportId}/download");
 
         $downloadResponse->assertStatus(200);
@@ -160,7 +162,7 @@ class TenantDataExportTest extends TestCase
 
         $response = $this->withHeaders([
             'Authorization' => "Bearer {$this->jwt}",
-            'X-Tenant-Id'   => $this->tenant->slug,
+            'X-Tenant-Id' => $this->tenant->slug,
         ])->get("/api/v1/tenant/export/{$fakeUuid}/download");
 
         $response->assertStatus(404)

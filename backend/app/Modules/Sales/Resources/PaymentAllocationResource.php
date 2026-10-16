@@ -19,13 +19,13 @@ final class PaymentAllocationResource extends JsonResource
     public function toArray(Request $request): array
     {
         return [
-            'id'               => $this->id,
-            'uuid'             => $this->uuid,
-            'payment_id'       => $this->payment_id,
+            'id' => $this->id,
+            'uuid' => $this->uuid,
+            'payment_id' => $this->payment_id,
             'allocatable_type' => $this->allocatable_type,
-            'allocatable_id'   => $this->allocatable_id,
-            'amount'           => $this->amount,
-            'created_at'       => $this->created_at?->toIso8601String(),
+            'allocatable_id' => $this->allocatable_id,
+            'amount' => $this->amount,
+            'created_at' => $this->created_at?->toIso8601String(),
         ];
     }
 }

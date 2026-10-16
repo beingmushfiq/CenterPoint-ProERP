@@ -32,7 +32,7 @@ final class CreateStockTransferAction
     public function execute(array $data): StockTransfer
     {
         return DB::transaction(function () use ($data): StockTransfer {
-            $transferNumber = $data['transfer_number'] ?? ('TRF-' . date('Ymd') . '-' . strtoupper(Str::random(6)));
+            $transferNumber = $data['transfer_number'] ?? ('TRF-'.date('Ymd').'-'.strtoupper(Str::random(6)));
 
             $transfer = StockTransfer::create([
                 'tenant_id' => $data['tenant_id'],

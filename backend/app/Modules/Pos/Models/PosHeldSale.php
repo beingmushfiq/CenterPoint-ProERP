@@ -42,6 +42,16 @@ class PosHeldSale extends Model
         'updated_at' => 'datetime',
     ];
 
+    public function customer(): BelongsTo
+    {
+        return $this->belongsTo(Party::class, 'customer_party_id');
+    }
+
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
     protected static function boot(): void
     {
         parent::boot();
@@ -51,15 +61,5 @@ class PosHeldSale extends Model
                 $model->uuid = (string) Str::uuid();
             }
         });
-    }
-
-    public function customer(): BelongsTo
-    {
-        return $this->belongsTo(Party::class, 'customer_party_id');
-    }
-
-    public function creator(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'created_by');
     }
 }

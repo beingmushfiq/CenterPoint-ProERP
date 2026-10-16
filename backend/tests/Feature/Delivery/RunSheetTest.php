@@ -11,7 +11,6 @@ use App\Models\Party;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Models\Warehouse;
-use App\Modules\Delivery\Models\RunSheet;
 use App\Modules\Sales\Models\DeliveryOrder;
 use App\Modules\Sales\Models\SalesOrder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -25,11 +24,17 @@ final class RunSheetTest extends TestCase
     use RefreshDatabase;
 
     private Tenant $tenant;
+
     private User $user;
+
     private User $rider;
+
     private Branch $branch;
+
     private string $jwt;
+
     private DeliveryOrder $order1;
+
     private DeliveryOrder $order2;
 
     protected function setUp(): void
@@ -38,45 +43,45 @@ final class RunSheetTest extends TestCase
         TenantContext::flush();
 
         DB::table('plans')->insert([
-            'id'             => 1,
-            'uuid'           => (string) Str::uuid(),
-            'code'           => 'ENTERPRISE',
-            'name'           => 'Enterprise',
-            'price'          => '10000.0000',
+            'id' => 1,
+            'uuid' => (string) Str::uuid(),
+            'code' => 'ENTERPRISE',
+            'name' => 'Enterprise',
+            'price' => '10000.0000',
             'billing_period' => 'monthly',
-            'limits'         => json_encode(['max_users' => 100]),
-            'is_active'      => true,
-            'created_at'     => now(),
-            'updated_at'     => now(),
+            'limits' => json_encode(['max_users' => 100]),
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
         ]);
 
         $this->tenant = Tenant::create([
-            'id'            => 1,
-            'uuid'          => (string) Str::uuid(),
-            'plan_id'       => 1,
-            'name'          => 'SliceMart BD',
-            'slug'          => 'slicemart-bd',
-            'status'        => 'active',
+            'id' => 1,
+            'uuid' => (string) Str::uuid(),
+            'plan_id' => 1,
+            'name' => 'SliceMart BD',
+            'slug' => 'slicemart-bd',
+            'status' => 'active',
             'currency_code' => 'BDT',
-            'timezone'      => 'Asia/Dhaka',
-            'locale'        => 'en',
-            'date_format'   => 'Y-m-d',
+            'timezone' => 'Asia/Dhaka',
+            'locale' => 'en',
+            'date_format' => 'Y-m-d',
             'number_format' => 'standard',
         ]);
 
         TenantContext::bind($this->tenant->toArray());
 
         $companyId = DB::table('companies')->insertGetId([
-            'uuid'                => (string) Str::uuid(),
-            'tenant_id'           => 1,
-            'name'                => 'SliceMart Retail',
-            'legal_name'          => 'SliceMart Retail Ltd.',
-            'tax_identifier'      => 'BIN-RS-01',
+            'uuid' => (string) Str::uuid(),
+            'tenant_id' => 1,
+            'name' => 'SliceMart Retail',
+            'legal_name' => 'SliceMart Retail Ltd.',
+            'tax_identifier' => 'BIN-RS-01',
             'registration_number' => 'REG-RS-01',
-            'is_default'          => true,
-            'is_active'           => true,
-            'created_at'          => now(),
-            'updated_at'          => now(),
+            'is_default' => true,
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
         ]);
 
         $this->branch = Branch::create([
@@ -89,14 +94,14 @@ final class RunSheetTest extends TestCase
         ]);
 
         $this->user = User::create([
-            'id'                => 1,
-            'tenant_id'         => $this->tenant->id,
-            'uuid'              => (string) Str::uuid(),
-            'email'             => 'manager@slicemart.com',
-            'password'          => Hash::make('password123'),
-            'name'              => 'Dispatch Manager',
-            'is_active'         => true,
-            'status'            => 'active',
+            'id' => 1,
+            'tenant_id' => $this->tenant->id,
+            'uuid' => (string) Str::uuid(),
+            'email' => 'manager@slicemart.com',
+            'password' => Hash::make('password123'),
+            'name' => 'Dispatch Manager',
+            'is_active' => true,
+            'status' => 'active',
             'email_verified_at' => now(),
         ]);
 
@@ -110,14 +115,14 @@ final class RunSheetTest extends TestCase
         $this->user->roles()->attach($role);
 
         $this->rider = User::create([
-            'id'                => 2,
-            'tenant_id'         => $this->tenant->id,
-            'uuid'              => (string) Str::uuid(),
-            'email'             => 'rider@slicemart.com',
-            'password'          => Hash::make('password123'),
-            'name'              => 'Karim Rider',
-            'is_active'         => true,
-            'status'            => 'active',
+            'id' => 2,
+            'tenant_id' => $this->tenant->id,
+            'uuid' => (string) Str::uuid(),
+            'email' => 'rider@slicemart.com',
+            'password' => Hash::make('password123'),
+            'name' => 'Karim Rider',
+            'is_active' => true,
+            'status' => 'active',
             'email_verified_at' => now(),
         ]);
 
@@ -195,7 +200,7 @@ final class RunSheetTest extends TestCase
             'delivery_order_ids' => [$this->order1->id, $this->order2->id],
         ];
 
-        $response = $this->withHeader('Authorization', 'Bearer ' . $this->jwt)
+        $response = $this->withHeader('Authorization', 'Bearer '.$this->jwt)
             ->postJson('/api/v1/logistics/run-sheets', $payload);
 
         $response->assertStatus(201)
@@ -225,7 +230,7 @@ final class RunSheetTest extends TestCase
             ],
         ];
 
-        $completeResponse = $this->withHeader('Authorization', 'Bearer ' . $this->jwt)
+        $completeResponse = $this->withHeader('Authorization', 'Bearer '.$this->jwt)
             ->postJson("/api/v1/logistics/run-sheets/{$runSheetId}/complete", $completePayload);
 
         $completeResponse->assertStatus(200)

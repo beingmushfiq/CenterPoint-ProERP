@@ -16,7 +16,7 @@ if (file_exists($maintenance = __DIR__.'/../storage/framework/maintenance.php'))
 require __DIR__.'/../vendor/autoload.php';
 
 // Fix Authorization header for FastCGI / LiteSpeed / Apache
-if (!isset($_SERVER['HTTP_AUTHORIZATION'])) {
+if (! isset($_SERVER['HTTP_AUTHORIZATION'])) {
     if (isset($_SERVER['REDIRECT_HTTP_AUTHORIZATION'])) {
         $_SERVER['HTTP_AUTHORIZATION'] = $_SERVER['REDIRECT_HTTP_AUTHORIZATION'];
     } elseif (isset($_SERVER['REDIRECT_REDIRECT_HTTP_AUTHORIZATION'])) {

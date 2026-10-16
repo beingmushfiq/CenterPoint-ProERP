@@ -30,7 +30,7 @@ class SecurityHeadersTest extends TestCase
             scopes: ['storefront:customer']
         );
 
-        $response = $this->withHeader('Authorization', 'Bearer ' . $customerToken)
+        $response = $this->withHeader('Authorization', 'Bearer '.$customerToken)
             ->getJson('/api/v1/auth/me');
 
         $response->assertStatus(403);

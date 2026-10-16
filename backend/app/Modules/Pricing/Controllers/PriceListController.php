@@ -196,16 +196,18 @@ final class PriceListController extends Controller
                             'field' => 'product_sku',
                             'message' => 'Product SKU is required.',
                         ];
+
                         continue;
                     }
 
                     $lowerSku = strtolower($sku);
-                    if (!isset($productSkuMap[$lowerSku])) {
+                    if (! isset($productSkuMap[$lowerSku])) {
                         $errors[] = [
                             'row' => $rowNum,
                             'field' => 'product_sku',
                             'message' => "Product with SKU '{$sku}' not found.",
                         ];
+
                         continue;
                     }
                     $product = $productSkuMap[$lowerSku];
@@ -217,17 +219,17 @@ final class PriceListController extends Controller
                     $lowerPlCode = strtolower($priceListCode);
 
                     // Auto-resolve or create Price List
-                    if (!isset($priceListMap[$lowerPlCode])) {
-                        $plName = !empty($row['price_list_name'])
+                    if (! isset($priceListMap[$lowerPlCode])) {
+                        $plName = ! empty($row['price_list_name'])
                             ? trim((string) $row['price_list_name'])
-                            : ucfirst(strtolower($priceListCode)) . ' Price List';
+                            : ucfirst(strtolower($priceListCode)).' Price List';
 
-                        $newPl = new PriceList();
+                        $newPl = new PriceList;
                         $newPl->uuid = (string) \Illuminate\Support\Str::uuid();
                         $newPl->tenant_id = $tenantId;
                         $newPl->code = strtoupper($priceListCode);
                         $newPl->name = $plName;
-                        $newPl->currency_code = !empty($row['currency_code']) ? strtoupper(trim((string) $row['currency_code'])) : 'BDT';
+                        $newPl->currency_code = ! empty($row['currency_code']) ? strtoupper(trim((string) $row['currency_code'])) : 'BDT';
                         $newPl->applies_to = 'all';
                         $newPl->is_active = true;
                         $newPl->save();
@@ -237,12 +239,13 @@ final class PriceListController extends Controller
                     $priceList = $priceListMap[$lowerPlCode];
 
                     $unitPriceRaw = $row['unit_price'] ?? null;
-                    if ($unitPriceRaw === null || !is_numeric($unitPriceRaw) || (float) $unitPriceRaw < 0) {
+                    if ($unitPriceRaw === null || ! is_numeric($unitPriceRaw) || (float) $unitPriceRaw < 0) {
                         $errors[] = [
                             'row' => $rowNum,
                             'field' => 'unit_price',
                             'message' => 'Unit price must be a valid non-negative number.',
                         ];
+
                         continue;
                     }
                     $unitPrice = number_format((float) $unitPriceRaw, 4, '.', '');
@@ -268,6 +271,7 @@ final class PriceListController extends Controller
                     if ($existingItem) {
                         if ($mode === 'skip') {
                             $skipped++;
+
                             continue;
                         }
 
@@ -277,6 +281,7 @@ final class PriceListController extends Controller
                             'discount_percentage' => $discountPct,
                         ]);
                         $updated++;
+
                         continue;
                     }
 
@@ -315,4 +320,3 @@ final class PriceListController extends Controller
         ]);
     }
 }
-

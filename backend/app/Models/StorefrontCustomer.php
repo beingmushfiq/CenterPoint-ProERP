@@ -39,6 +39,16 @@ class StorefrontCustomer extends Model
         'last_login_at' => 'datetime',
     ];
 
+    public function storefront(): BelongsTo
+    {
+        return $this->belongsTo(Storefront::class, 'storefront_id');
+    }
+
+    public function party(): BelongsTo
+    {
+        return $this->belongsTo(Party::class, 'party_id');
+    }
+
     protected static function boot(): void
     {
         parent::boot();
@@ -48,15 +58,5 @@ class StorefrontCustomer extends Model
                 $model->uuid = (string) Str::uuid();
             }
         });
-    }
-
-    public function storefront(): BelongsTo
-    {
-        return $this->belongsTo(Storefront::class, 'storefront_id');
-    }
-
-    public function party(): BelongsTo
-    {
-        return $this->belongsTo(Party::class, 'party_id');
     }
 }

@@ -16,6 +16,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Throwable;
 
 class AttendanceController extends Controller
 {
@@ -87,7 +88,7 @@ class AttendanceController extends Controller
                 &$updated,
                 &$skipped,
                 &$errors
-            ) {
+            ): void {
                 foreach ($chunk as $index => $row) {
                     $rowNum = ($chunkIndex * 100) + $index + 1;
                     $empCode = trim((string) ($row['employee_code'] ?? $row['code'] ?? $row['emp_id'] ?? $row['staff_id'] ?? ''));
@@ -107,6 +108,7 @@ class AttendanceController extends Controller
                             'value' => '',
                             'message' => 'Employee code is required.',
                         ];
+
                         continue;
                     }
 
@@ -117,17 +119,19 @@ class AttendanceController extends Controller
                             'value' => '',
                             'message' => 'Attendance date is required.',
                         ];
+
                         continue;
                     }
 
                     $employee = $employeeMap[strtolower($empCode)] ?? null;
-                    if (!$employee) {
+                    if (! $employee) {
                         $errors[] = [
                             'row' => $rowNum,
                             'field' => 'employee_code',
                             'value' => $empCode,
                             'message' => "Employee with code '{$empCode}' does not exist.",
                         ];
+
                         continue;
                     }
 
@@ -143,14 +147,14 @@ class AttendanceController extends Controller
                     $checkOut = null;
                     if ($checkInRaw) {
                         if (strlen($checkInRaw) <= 8 && str_contains($checkInRaw, ':')) {
-                            $checkIn = Carbon::parse($attDate . ' ' . $checkInRaw);
+                            $checkIn = Carbon::parse($attDate.' '.$checkInRaw);
                         } else {
                             $checkIn = Carbon::parse($checkInRaw);
                         }
                     }
                     if ($checkOutRaw) {
                         if (strlen($checkOutRaw) <= 8 && str_contains($checkOutRaw, ':')) {
-                            $checkOut = Carbon::parse($attDate . ' ' . $checkOutRaw);
+                            $checkOut = Carbon::parse($attDate.' '.$checkOutRaw);
                         } else {
                             $checkOut = Carbon::parse($checkOutRaw);
                         }
@@ -166,7 +170,7 @@ class AttendanceController extends Controller
                         $workedMinutes = (int) max(0, floor($diffSec / 60));
 
                         if ($shift && $shift->start_time) {
-                            $shiftStart = Carbon::parse($attDate . ' ' . $shift->start_time);
+                            $shiftStart = Carbon::parse($attDate.' '.$shift->start_time);
                             $grace = (int) ($shift->grace_in_minutes ?? 0);
                             $allowedStart = $shiftStart->copy()->addMinutes($grace);
                             if ($checkIn->getTimestamp() > $allowedStart->getTimestamp()) {
@@ -179,7 +183,7 @@ class AttendanceController extends Controller
                         }
                     }
 
-                    if (!$status) {
+                    if (! $status) {
                         if ($lateMinutes > 0) {
                             $status = 'late';
                         } elseif ($workedMinutes > 0 || $checkIn) {
@@ -199,6 +203,7 @@ class AttendanceController extends Controller
                     if ($existing) {
                         if ($mode === 'skip') {
                             $skipped++;
+
                             continue;
                         }
 
@@ -218,12 +223,12 @@ class AttendanceController extends Controller
                                 'updated_by' => $userId,
                             ]);
                             $updated++;
-                        } catch (\Throwable $e) {
+                        } catch (Throwable $e) {
                             $errors[] = [
                                 'row' => $rowNum,
                                 'field' => 'attendance_date',
                                 'value' => $attDate,
-                                'message' => 'Attendance update failed: ' . $e->getMessage(),
+                                'message' => 'Attendance update failed: '.$e->getMessage(),
                             ];
                         }
                     } else {
@@ -248,12 +253,12 @@ class AttendanceController extends Controller
                                 'updated_by' => $userId,
                             ]);
                             $imported++;
-                        } catch (\Throwable $e) {
+                        } catch (Throwable $e) {
                             $errors[] = [
                                 'row' => $rowNum,
                                 'field' => 'attendance_date',
                                 'value' => $attDate,
-                                'message' => 'Attendance creation failed: ' . $e->getMessage(),
+                                'message' => 'Attendance creation failed: '.$e->getMessage(),
                             ];
                         }
                     }

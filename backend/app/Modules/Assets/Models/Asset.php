@@ -7,7 +7,6 @@ namespace App\Modules\Assets\Models;
 use App\Core\Tenancy\Concerns\BelongsToTenant;
 use App\Models\Branch;
 use App\Models\Company;
-use App\Models\User;
 use App\Modules\HR\Models\Employee;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -70,17 +69,6 @@ class Asset extends Model
         'disposal_amount' => 'string',
     ];
 
-    protected static function boot(): void
-    {
-        parent::boot();
-
-        static::creating(static function (Asset $model): void {
-            if (empty($model->uuid)) {
-                $model->uuid = (string) Str::uuid();
-            }
-        });
-    }
-
     /**
      * @return BelongsTo<AssetCategory, $this>
      */
@@ -127,5 +115,16 @@ class Asset extends Model
     public function maintenanceOrders(): HasMany
     {
         return $this->hasMany(MaintenanceOrder::class, 'asset_id');
+    }
+
+    protected static function boot(): void
+    {
+        parent::boot();
+
+        static::creating(static function (Asset $model): void {
+            if (empty($model->uuid)) {
+                $model->uuid = (string) Str::uuid();
+            }
+        });
     }
 }

@@ -64,24 +64,13 @@ final class DeliveryOrderItem extends Model
      * @var array<string, string>
      */
     protected $casts = [
-        'quantity'           => 'decimal:4',
+        'quantity' => 'decimal:4',
         'delivered_quantity' => 'decimal:4',
-        'returned_quantity'  => 'decimal:4',
-        'created_at'         => 'datetime',
-        'updated_at'         => 'datetime',
-        'deleted_at'         => 'datetime',
+        'returned_quantity' => 'decimal:4',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
+        'deleted_at' => 'datetime',
     ];
-
-    protected static function boot(): void
-    {
-        parent::boot();
-
-        static::creating(static function (DeliveryOrderItem $model): void {
-            if (empty($model->uuid)) {
-                $model->uuid = (string) Str::uuid();
-            }
-        });
-    }
 
     /**
      * @return BelongsTo<DeliveryOrder, $this>
@@ -105,5 +94,16 @@ final class DeliveryOrderItem extends Model
     public function variant(): BelongsTo
     {
         return $this->belongsTo(ProductVariant::class, 'variant_id');
+    }
+
+    protected static function boot(): void
+    {
+        parent::boot();
+
+        self::creating(static function (DeliveryOrderItem $model): void {
+            if (empty($model->uuid)) {
+                $model->uuid = (string) Str::uuid();
+            }
+        });
     }
 }

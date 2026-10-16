@@ -37,6 +37,16 @@ class OrderFraudAssessment extends Model
         'verified_at' => 'datetime',
     ];
 
+    public function salesOrder(): BelongsTo
+    {
+        return $this->belongsTo(SalesOrder::class, 'sales_order_id');
+    }
+
+    public function verifier(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'verified_by');
+    }
+
     protected static function boot(): void
     {
         parent::boot();
@@ -46,15 +56,5 @@ class OrderFraudAssessment extends Model
                 $model->uuid = (string) Str::uuid();
             }
         });
-    }
-
-    public function salesOrder(): BelongsTo
-    {
-        return $this->belongsTo(SalesOrder::class, 'sales_order_id');
-    }
-
-    public function verifier(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'verified_by');
     }
 }

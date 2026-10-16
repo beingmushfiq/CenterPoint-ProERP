@@ -7,7 +7,6 @@ namespace App\Modules\Ecommerce\Controllers;
 use App\Core\Auth\JwtService;
 use App\Http\Controllers\Controller;
 use App\Models\Party;
-use App\Models\PartyAddress;
 use App\Models\Storefront;
 use App\Models\StorefrontCustomer;
 use App\Modules\Sales\Models\SalesOrder;
@@ -16,6 +15,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
+use Throwable;
 
 class StorefrontCustomerAuthController extends Controller
 {
@@ -66,7 +66,7 @@ class StorefrontCustomerAuthController extends Controller
                 $party = Party::create([
                     'tenant_id' => $storefront->tenant_id,
                     'uuid' => (string) Str::uuid(),
-                    'code' => 'CUST-' . strtoupper(Str::random(6)),
+                    'code' => 'CUST-'.strtoupper(Str::random(6)),
                     'name' => $validated['name'],
                     'phone' => $validated['phone'],
                     'email' => $validated['email'] ?? null,
@@ -254,7 +254,7 @@ class StorefrontCustomerAuthController extends Controller
                 ->where('tenant_id', $storefront->tenant_id)
                 ->where('storefront_id', $storefront->id)
                 ->first();
-        } catch (\Throwable) {
+        } catch (Throwable) {
             return null;
         }
     }

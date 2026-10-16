@@ -13,13 +13,6 @@ final class UpdateQcInspectionRequest extends FormRequest
         return true;
     }
 
-    protected function prepareForValidation(): void
-    {
-        if (! $this->has('failed_quantity') && $this->has('rejected_quantity')) {
-            $this->merge(['failed_quantity' => $this->input('rejected_quantity')]);
-        }
-    }
-
     /**
      * @return array<string, array<int, string>>
      */
@@ -37,5 +30,12 @@ final class UpdateQcInspectionRequest extends FormRequest
             'status' => ['nullable', 'string', 'in:draft,submitted,approved,rejected'],
             'notes' => ['nullable', 'string'],
         ];
+    }
+
+    protected function prepareForValidation(): void
+    {
+        if (! $this->has('failed_quantity') && $this->has('rejected_quantity')) {
+            $this->merge(['failed_quantity' => $this->input('rejected_quantity')]);
+        }
     }
 }

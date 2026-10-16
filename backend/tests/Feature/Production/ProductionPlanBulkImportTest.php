@@ -7,10 +7,8 @@ namespace Tests\Feature\Production;
 use App\Core\Auth\JwtService;
 use App\Core\Tenancy\TenantContext;
 use App\Models\BillOfMaterial;
-use App\Models\Company;
 use App\Models\Permission;
 use App\Models\Product;
-use App\Models\ProductionPlan;
 use App\Models\Role;
 use App\Models\Tenant;
 use App\Models\Unit;
@@ -26,11 +24,17 @@ class ProductionPlanBulkImportTest extends TestCase
     use RefreshDatabase;
 
     private Tenant $tenant;
+
     private User $user;
+
     private string $jwt;
+
     private Product $product1;
+
     private Product $product2;
+
     private Unit $unit;
+
     private BillOfMaterial $bom1;
 
     protected function setUp(): void
@@ -143,7 +147,7 @@ class ProductionPlanBulkImportTest extends TestCase
             'uuid' => (string) Str::uuid(),
             'tenant_id' => $this->tenant->id,
             'name' => 'Production Manager Role',
-            'slug' => 'prod-mgr-' . Str::random(4),
+            'slug' => 'prod-mgr-'.Str::random(4),
             'is_system' => false,
         ]);
 
@@ -176,16 +180,6 @@ class ProductionPlanBulkImportTest extends TestCase
             'is_active' => true,
             'created_by' => $this->user->id,
         ]);
-    }
-
-    private function headers(): array
-    {
-        return [
-            'Authorization' => "Bearer {$this->jwt}",
-            'X-Tenant-Id' => $this->tenant->uuid,
-            'X-Tenant' => $this->tenant->slug,
-            'Accept' => 'application/json',
-        ];
     }
 
     public function test_can_bulk_import_production_plans_in_skip_mode(): void
@@ -294,5 +288,15 @@ class ProductionPlanBulkImportTest extends TestCase
             'product_id' => $this->product1->id,
             'planned_quantity' => '600.0000',
         ]);
+    }
+
+    private function headers(): array
+    {
+        return [
+            'Authorization' => "Bearer {$this->jwt}",
+            'X-Tenant-Id' => $this->tenant->uuid,
+            'X-Tenant' => $this->tenant->slug,
+            'Accept' => 'application/json',
+        ];
     }
 }

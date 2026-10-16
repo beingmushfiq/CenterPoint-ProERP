@@ -147,7 +147,7 @@ class ProcessPayrollRunAction
 
                 $net = bcsub($gross, $deductions, 4);
 
-                $payslipNumber = 'PS-' . str_replace('-', '', (string) $period->period_start) . '-' . str_pad((string) $employee->id, 4, '0', STR_PAD_LEFT);
+                $payslipNumber = 'PS-'.str_replace('-', '', (string) $period->period_start).'-'.str_pad((string) $employee->id, 4, '0', STR_PAD_LEFT);
 
                 // Create or update payslip
                 $payslip = Payslip::updateOrCreate(

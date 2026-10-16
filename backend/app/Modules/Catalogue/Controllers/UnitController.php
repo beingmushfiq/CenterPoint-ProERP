@@ -20,6 +20,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Throwable;
 
 final class UnitController extends Controller
 {
@@ -343,13 +344,13 @@ final class UnitController extends Controller
                 &$updated,
                 &$skipped,
                 &$errors
-            ) {
+            ): void {
                 foreach ($chunk as $index => $row) {
                     $rowNum = ($chunkIndex * 100) + $index + 1;
                     $code = trim((string) ($row['code'] ?? ''));
                     $name = trim((string) ($row['name'] ?? ''));
                     $type = strtolower(trim((string) ($row['type'] ?? 'piece')));
-                    if (!in_array($type, $validTypes, true)) {
+                    if (! in_array($type, $validTypes, true)) {
                         $type = 'piece';
                     }
                     $isBase = isset($row['is_base']) ? (bool) $row['is_base'] : false;
@@ -366,6 +367,7 @@ final class UnitController extends Controller
                             'value' => $code === '' ? $code : $name,
                             'message' => 'Unit code and name are required.',
                         ];
+
                         continue;
                     }
 
@@ -374,6 +376,7 @@ final class UnitController extends Controller
                     if ($existingId !== null) {
                         if ($mode === 'skip') {
                             $skipped++;
+
                             continue;
                         }
 
@@ -393,14 +396,16 @@ final class UnitController extends Controller
                             } else {
                                 $skipped++;
                             }
+
                             continue;
-                        } catch (\Throwable $e) {
+                        } catch (Throwable $e) {
                             $errors[] = [
                                 'row' => $rowNum,
                                 'field' => 'code',
                                 'value' => $code,
-                                'message' => 'Update failed: ' . $e->getMessage(),
+                                'message' => 'Update failed: '.$e->getMessage(),
                             ];
+
                             continue;
                         }
                     }
@@ -420,12 +425,12 @@ final class UnitController extends Controller
 
                         $existingUnits[strtolower($code)] = $newUnit->id;
                         $imported++;
-                    } catch (\Throwable $e) {
+                    } catch (Throwable $e) {
                         $errors[] = [
                             'row' => $rowNum,
                             'field' => 'code',
                             'value' => $code,
-                            'message' => 'Creation failed: ' . $e->getMessage(),
+                            'message' => 'Creation failed: '.$e->getMessage(),
                         ];
                     }
                 }

@@ -23,7 +23,7 @@ return new class extends Migration
 
             $table->string('name', 255);
             $table->string('document_type', 64); // sales_invoice, delivery_challan, purchase_order, goods_receipt, credit_note, debit_note, stock_transfer, payment_receipt, pos_receipt_80mm, pos_receipt_58mm, barcode_label, report, etc.
-            
+
             $table->unsignedBigInteger('paper_size_id')->nullable();
             $table->unsignedBigInteger('print_profile_id')->nullable();
 

@@ -54,17 +54,6 @@ class Payslip extends Model
         'paid_at' => 'datetime',
     ];
 
-    protected static function boot(): void
-    {
-        parent::boot();
-
-        static::creating(static function (Payslip $model): void {
-            if (empty($model->uuid)) {
-                $model->uuid = (string) Str::uuid();
-            }
-        });
-    }
-
     /**
      * @return BelongsTo<PayrollPeriod, $this>
      */
@@ -87,5 +76,16 @@ class Payslip extends Model
     public function items(): HasMany
     {
         return $this->hasMany(PayslipItem::class, 'payslip_id');
+    }
+
+    protected static function boot(): void
+    {
+        parent::boot();
+
+        static::creating(static function (Payslip $model): void {
+            if (empty($model->uuid)) {
+                $model->uuid = (string) Str::uuid();
+            }
+        });
     }
 }

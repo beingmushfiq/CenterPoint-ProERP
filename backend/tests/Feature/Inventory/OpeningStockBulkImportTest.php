@@ -12,7 +12,6 @@ use App\Models\Tenant;
 use App\Models\Unit;
 use App\Models\User;
 use App\Models\Warehouse;
-use App\Models\WarehouseLocation;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -24,11 +23,17 @@ class OpeningStockBulkImportTest extends TestCase
     use RefreshDatabase;
 
     private Tenant $tenant;
+
     private User $user;
+
     private string $token;
+
     private Product $product1;
+
     private Product $product2;
+
     private Warehouse $warehouse;
+
     private Unit $unit;
 
     protected function setUp(): void
@@ -136,15 +141,6 @@ class OpeningStockBulkImportTest extends TestCase
             'selling_price' => '80.0000',
             'is_active' => true,
         ]);
-    }
-
-    private function authHeaders(): array
-    {
-        return [
-            'Authorization' => "Bearer {$this->token}",
-            'X-Tenant-ID' => (string) $this->tenant->id,
-            'Accept' => 'application/json',
-        ];
     }
 
     public function test_can_bulk_import_opening_stock_balances_and_movements(): void
@@ -278,5 +274,14 @@ class OpeningStockBulkImportTest extends TestCase
             'average_cost' => '35.0000',
             'total_value' => '2800.0000',
         ]);
+    }
+
+    private function authHeaders(): array
+    {
+        return [
+            'Authorization' => "Bearer {$this->token}",
+            'X-Tenant-ID' => (string) $this->tenant->id,
+            'Accept' => 'application/json',
+        ];
     }
 }

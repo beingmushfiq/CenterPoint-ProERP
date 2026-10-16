@@ -55,17 +55,6 @@ class PayrollPeriod extends Model
         'locked_at' => 'datetime',
     ];
 
-    protected static function boot(): void
-    {
-        parent::boot();
-
-        static::creating(static function (PayrollPeriod $model): void {
-            if (empty($model->uuid)) {
-                $model->uuid = (string) Str::uuid();
-            }
-        });
-    }
-
     /**
      * @return HasMany<Payslip, $this>
      */
@@ -85,5 +74,16 @@ class PayrollPeriod extends Model
     public function isLocked(): bool
     {
         return $this->status === 'closed' || $this->locked_at !== null;
+    }
+
+    protected static function boot(): void
+    {
+        parent::boot();
+
+        static::creating(static function (PayrollPeriod $model): void {
+            if (empty($model->uuid)) {
+                $model->uuid = (string) Str::uuid();
+            }
+        });
     }
 }

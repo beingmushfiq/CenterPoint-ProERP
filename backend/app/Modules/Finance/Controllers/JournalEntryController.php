@@ -110,7 +110,7 @@ class JournalEntryController extends Controller
 
         // Group rows by entry_number or reference
         $groupedEntries = [];
-        $singleOpeningKey = 'JE-OPEN-' . date('Ymd');
+        $singleOpeningKey = 'JE-OPEN-'.date('Ymd');
 
         foreach ($rows as $index => $row) {
             $rowNum = $index + 1;
@@ -119,12 +119,12 @@ class JournalEntryController extends Controller
                 $entryKey = $singleOpeningKey;
             }
 
-            if (!isset($groupedEntries[$entryKey])) {
+            if (! isset($groupedEntries[$entryKey])) {
                 $groupedEntries[$entryKey] = [
                     'entry_number' => $entryKey,
-                    'entry_date' => !empty($row['entry_date']) ? (string) $row['entry_date'] : (!empty($row['date']) ? (string) $row['date'] : now()->format('Y-m-d')),
-                    'narration' => !empty($row['narration']) ? (string) $row['narration'] : (!empty($row['description']) ? (string) $row['description'] : 'Opening Balances Migration'),
-                    'entry_type' => !empty($row['entry_type']) ? (string) $row['entry_type'] : 'manual',
+                    'entry_date' => ! empty($row['entry_date']) ? (string) $row['entry_date'] : (! empty($row['date']) ? (string) $row['date'] : now()->format('Y-m-d')),
+                    'narration' => ! empty($row['narration']) ? (string) $row['narration'] : (! empty($row['description']) ? (string) $row['description'] : 'Opening Balances Migration'),
+                    'entry_type' => ! empty($row['entry_type']) ? (string) $row['entry_type'] : 'manual',
                     'company_id' => (int) ($row['company_id'] ?? $defaultCompanyId),
                     'lines' => [],
                     'first_row_num' => $rowNum,
@@ -156,17 +156,19 @@ class JournalEntryController extends Controller
                         'message' => 'Account code is required.',
                     ];
                     $entryHasError = true;
+
                     continue;
                 }
 
                 $lowerAccKey = strtolower($accKey);
-                if (!isset($accountMap[$lowerAccKey])) {
+                if (! isset($accountMap[$lowerAccKey])) {
                     $errors[] = [
                         'row' => $rowNum,
                         'field' => 'account_code',
                         'message' => "Account '{$accKey}' not found in Chart of Accounts.",
                     ];
                     $entryHasError = true;
+
                     continue;
                 }
                 $account = $accountMap[$lowerAccKey];
@@ -184,6 +186,7 @@ class JournalEntryController extends Controller
                         'message' => 'Either Debit or Credit must be greater than zero.',
                     ];
                     $entryHasError = true;
+
                     continue;
                 }
 
@@ -194,7 +197,7 @@ class JournalEntryController extends Controller
                     'account_id' => $account->id,
                     'debit_amount' => $dr,
                     'credit_amount' => $cr,
-                    'narration' => !empty($r['description']) ? (string) $r['description'] : (!empty($r['narration']) ? (string) $r['narration'] : null),
+                    'narration' => ! empty($r['description']) ? (string) $r['description'] : (! empty($r['narration']) ? (string) $r['narration'] : null),
                 ];
             }
 
@@ -208,6 +211,7 @@ class JournalEntryController extends Controller
                     'field' => 'lines',
                     'message' => "Journal entry '{$entryKey}' must have at least 2 lines.",
                 ];
+
                 continue;
             }
 
@@ -218,6 +222,7 @@ class JournalEntryController extends Controller
                     'field' => 'balance',
                     'message' => "Journal entry '{$entryKey}' is out of balance. Total Debits: {$totalDebit}, Total Credits: {$totalCredit}.",
                 ];
+
                 continue;
             }
 
@@ -242,6 +247,7 @@ class JournalEntryController extends Controller
                 if ($existing) {
                     if ($mode === 'skip') {
                         $skipped++;
+
                         return;
                     }
 
@@ -272,11 +278,12 @@ class JournalEntryController extends Controller
                     }
 
                     $updated++;
+
                     return;
                 }
 
                 // Insert new journal entry
-                $journalEntry = new JournalEntry();
+                $journalEntry = new JournalEntry;
                 $journalEntry->uuid = (string) \Illuminate\Support\Str::uuid();
                 $journalEntry->tenant_id = $tenantId;
                 $journalEntry->company_id = $entryData['company_id'];
@@ -336,4 +343,3 @@ class JournalEntryController extends Controller
         ]);
     }
 }
-

@@ -15,6 +15,7 @@ final class DualPwaManifestTest extends TestCase
     use RefreshDatabase;
 
     private Tenant $tenant;
+
     private Storefront $storefront;
 
     protected function setUp(): void

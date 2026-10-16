@@ -8,7 +8,6 @@ use App\Core\Auth\JwtService;
 use App\Core\Capabilities\TenantCapabilityManifest;
 use App\Core\Tenancy\TenantContext;
 use App\Models\Company;
-use App\Models\Plan;
 use App\Models\Role;
 use App\Models\Tenant;
 use App\Models\TenantModule;
@@ -25,8 +24,11 @@ class TenantModuleAndQuotaGatingTest extends TestCase
     use RefreshDatabase;
 
     protected Tenant $tenant;
+
     protected Company $company;
+
     protected User $user;
+
     protected string $token;
 
     protected function setUp(): void

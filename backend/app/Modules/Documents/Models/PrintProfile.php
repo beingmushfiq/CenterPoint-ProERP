@@ -68,30 +68,19 @@ final class PrintProfile extends Model
      * @var array<string, string>
      */
     protected $casts = [
-        'margin_top_mm'       => 'decimal:2',
-        'margin_bottom_mm'    => 'decimal:2',
-        'margin_left_mm'      => 'decimal:2',
-        'margin_right_mm'     => 'decimal:2',
-        'scale'               => 'decimal:2',
-        'copies'              => 'integer',
+        'margin_top_mm' => 'decimal:2',
+        'margin_bottom_mm' => 'decimal:2',
+        'margin_left_mm' => 'decimal:2',
+        'margin_right_mm' => 'decimal:2',
+        'scale' => 'decimal:2',
+        'copies' => 'integer',
         'is_printer_friendly' => 'boolean',
-        'is_default'          => 'boolean',
-        'is_active'           => 'boolean',
-        'created_at'          => 'datetime',
-        'updated_at'          => 'datetime',
-        'deleted_at'          => 'datetime',
+        'is_default' => 'boolean',
+        'is_active' => 'boolean',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
+        'deleted_at' => 'datetime',
     ];
-
-    protected static function boot(): void
-    {
-        parent::boot();
-
-        static::creating(static function (PrintProfile $model): void {
-            if (empty($model->uuid)) {
-                $model->uuid = (string) Str::uuid();
-            }
-        });
-    }
 
     /**
      * @return BelongsTo<PaperSize, $this>
@@ -107,5 +96,16 @@ final class PrintProfile extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    protected static function boot(): void
+    {
+        parent::boot();
+
+        self::creating(static function (PrintProfile $model): void {
+            if (empty($model->uuid)) {
+                $model->uuid = (string) Str::uuid();
+            }
+        });
     }
 }

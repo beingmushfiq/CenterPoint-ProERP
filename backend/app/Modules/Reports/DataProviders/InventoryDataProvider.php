@@ -161,22 +161,22 @@ class InventoryDataProvider extends BaseDataProvider
                 'u.name as operator_name',
             ]);
 
-        if (!empty($filters['start_date'])) {
+        if (! empty($filters['start_date'])) {
             $query->where('sm.moved_at', '>=', $filters['start_date']);
         }
-        if (!empty($filters['end_date'])) {
+        if (! empty($filters['end_date'])) {
             $query->where('sm.moved_at', '<=', $filters['end_date']);
         }
-        if (!empty($filters['warehouse_id'])) {
+        if (! empty($filters['warehouse_id'])) {
             $query->where('sm.warehouse_id', $filters['warehouse_id']);
         }
-        if (!empty($filters['product_id'])) {
+        if (! empty($filters['product_id'])) {
             $query->where('sm.product_id', $filters['product_id']);
         }
-        if (!empty($filters['movement_type'])) {
+        if (! empty($filters['movement_type'])) {
             $query->where('sm.movement_type', $filters['movement_type']);
         }
-        if (!empty($filters['direction'])) {
+        if (! empty($filters['direction'])) {
             $query->where('sm.direction', $filters['direction']);
         }
 
@@ -234,10 +234,10 @@ class InventoryDataProvider extends BaseDataProvider
                 DB::raw('MAX(sm.moved_at) as last_movement_at'),
             ]);
 
-        if (!empty($filters['start_date'])) {
+        if (! empty($filters['start_date'])) {
             $query->where('sm.moved_at', '>=', $filters['start_date']);
         }
-        if (!empty($filters['end_date'])) {
+        if (! empty($filters['end_date'])) {
             $query->where('sm.moved_at', '<=', $filters['end_date']);
         }
 
@@ -282,7 +282,7 @@ class InventoryDataProvider extends BaseDataProvider
         $tenantId = $this->getTenantId();
 
         $query = DB::table('products as p')
-            ->leftJoin('stock_balances as sb', function ($join) use ($tenantId) {
+            ->leftJoin('stock_balances as sb', function ($join) use ($tenantId): void {
                 $join->on('p.id', '=', 'sb.product_id')
                     ->where('sb.tenant_id', '=', $tenantId);
             })
@@ -345,7 +345,7 @@ class InventoryDataProvider extends BaseDataProvider
         $tenantId = $this->getTenantId();
 
         $query = DB::table('products as p')
-            ->leftJoin('stock_balances as sb', function ($join) use ($tenantId) {
+            ->leftJoin('stock_balances as sb', function ($join) use ($tenantId): void {
                 $join->on('p.id', '=', 'sb.product_id')
                     ->where('sb.tenant_id', '=', $tenantId);
             })
@@ -365,7 +365,7 @@ class InventoryDataProvider extends BaseDataProvider
                 DB::raw('COALESCE(SUM(sb.quantity), 0) as current_stock'),
             ]);
 
-        if (!empty($filters['category_id'])) {
+        if (! empty($filters['category_id'])) {
             $query->where('p.category_id', $filters['category_id']);
         }
 
@@ -483,19 +483,19 @@ class InventoryDataProvider extends BaseDataProvider
                 'st.notes',
             ]);
 
-        if (!empty($filters['status'])) {
+        if (! empty($filters['status'])) {
             $query->where('st.status', $filters['status']);
         }
-        if (!empty($filters['from_warehouse_id'])) {
+        if (! empty($filters['from_warehouse_id'])) {
             $query->where('st.from_warehouse_id', $filters['from_warehouse_id']);
         }
-        if (!empty($filters['to_warehouse_id'])) {
+        if (! empty($filters['to_warehouse_id'])) {
             $query->where('st.to_warehouse_id', $filters['to_warehouse_id']);
         }
-        if (!empty($filters['start_date'])) {
+        if (! empty($filters['start_date'])) {
             $query->where('st.transfer_date', '>=', $filters['start_date']);
         }
-        if (!empty($filters['end_date'])) {
+        if (! empty($filters['end_date'])) {
             $query->where('st.transfer_date', '<=', $filters['end_date']);
         }
 
@@ -711,7 +711,7 @@ class InventoryDataProvider extends BaseDataProvider
             ->first();
 
         $lowStockCount = DB::table('products as p')
-            ->leftJoin('stock_balances as sb', function ($join) use ($tenantId) {
+            ->leftJoin('stock_balances as sb', function ($join) use ($tenantId): void {
                 $join->on('p.id', '=', 'sb.product_id')
                     ->where('sb.tenant_id', '=', $tenantId);
             })
@@ -730,19 +730,6 @@ class InventoryDataProvider extends BaseDataProvider
             'total_skus' => (int) ($balanceStats->total_skus ?? 0),
             'low_stock_alerts' => $lowStockCount,
         ];
-    }
-
-    protected function applyBalanceFilters($query, array $filters): void
-    {
-        if (!empty($filters['warehouse_id'])) {
-            $query->where('sb.warehouse_id', $filters['warehouse_id']);
-        }
-        if (!empty($filters['product_id'])) {
-            $query->where('sb.product_id', $filters['product_id']);
-        }
-        if (!empty($filters['category_id'])) {
-            $query->where('p.category_id', $filters['category_id']);
-        }
     }
 
     /**
@@ -769,7 +756,7 @@ class InventoryDataProvider extends BaseDataProvider
             ->join('products as p', 'sb.product_id', '=', 'p.id')
             ->join('warehouses as w', 'sb.warehouse_id', '=', 'w.id')
             ->leftJoin('categories as c', 'p.category_id', '=', 'c.id')
-            ->leftJoinSub($expirySub, 'exp', function ($join) {
+            ->leftJoinSub($expirySub, 'exp', function ($join): void {
                 $join->on('sb.product_id', '=', 'exp.product_id')
                     ->on('sb.batch_code', '=', 'exp.batch_code');
             })
@@ -791,10 +778,10 @@ class InventoryDataProvider extends BaseDataProvider
 
         $this->applyBalanceFilters($query, $filters);
 
-        if (!empty($filters['stock_state'])) {
+        if (! empty($filters['stock_state'])) {
             $query->where('sb.stock_state', $filters['stock_state']);
         }
-        if (!empty($filters['product_type'])) {
+        if (! empty($filters['product_type'])) {
             $query->where('p.type', $filters['product_type']);
         }
 
@@ -821,13 +808,13 @@ class InventoryDataProvider extends BaseDataProvider
             ->count();
 
         $rows = $query
-            ->orderByRaw("CASE WHEN exp.resolved_expiry_date IS NULL THEN 1 ELSE 0 END")
+            ->orderByRaw('CASE WHEN exp.resolved_expiry_date IS NULL THEN 1 ELSE 0 END')
             ->orderBy('exp.resolved_expiry_date', 'asc')
             ->forPage($page, $perPage)
             ->get()
             ->map(function ($row): array {
                 $days = null;
-                if (!empty($row->expiry_date) && $row->expiry_date !== '—') {
+                if (! empty($row->expiry_date) && $row->expiry_date !== '—') {
                     $expTime = strtotime((string) $row->expiry_date);
                     $nowTime = strtotime(date('Y-m-d'));
                     $days = (int) round(($expTime - $nowTime) / 86400);
@@ -891,7 +878,7 @@ class InventoryDataProvider extends BaseDataProvider
 
         $query = DB::table('stock_balances as sb')
             ->join('products as p', 'sb.product_id', '=', 'p.id')
-            ->leftJoinSub($expirySub, 'exp', function ($join) {
+            ->leftJoinSub($expirySub, 'exp', function ($join): void {
                 $join->on('sb.product_id', '=', 'exp.product_id')
                     ->on('sb.batch_code', '=', 'exp.batch_code');
             })
@@ -933,7 +920,7 @@ class InventoryDataProvider extends BaseDataProvider
             ->leftJoin('categories as c', 'p.category_id', '=', 'c.id')
             ->where('sb.tenant_id', $tenantId)
             ->where('sb.quantity', '>', 0)
-            ->where(function ($q) use ($thresholdDate) {
+            ->where(function ($q) use ($thresholdDate): void {
                 $q->whereNull('sb.last_movement_at')
                     ->orWhere('sb.last_movement_at', '<=', $thresholdDate);
             })
@@ -953,7 +940,7 @@ class InventoryDataProvider extends BaseDataProvider
 
         $this->applyBalanceFilters($query, $filters);
 
-        if (!empty($filters['product_type'])) {
+        if (! empty($filters['product_type'])) {
             $query->where('p.type', $filters['product_type']);
         }
 
@@ -1018,7 +1005,7 @@ class InventoryDataProvider extends BaseDataProvider
             ->join('products as p', 'sb.product_id', '=', 'p.id')
             ->where('sb.tenant_id', $tenantId)
             ->where('sb.quantity', '>', 0)
-            ->where(function ($q) use ($thresholdDate) {
+            ->where(function ($q) use ($thresholdDate): void {
                 $q->whereNull('sb.last_movement_at')
                     ->orWhere('sb.last_movement_at', '<=', $thresholdDate);
             });
@@ -1036,5 +1023,18 @@ class InventoryDataProvider extends BaseDataProvider
             'total_idle_quantity' => (float) ($stats->total_idle_quantity ?? 0),
             'total_idle_value' => (float) ($stats->total_idle_value ?? 0),
         ];
+    }
+
+    protected function applyBalanceFilters($query, array $filters): void
+    {
+        if (! empty($filters['warehouse_id'])) {
+            $query->where('sb.warehouse_id', $filters['warehouse_id']);
+        }
+        if (! empty($filters['product_id'])) {
+            $query->where('sb.product_id', $filters['product_id']);
+        }
+        if (! empty($filters['category_id'])) {
+            $query->where('p.category_id', $filters['category_id']);
+        }
     }
 }

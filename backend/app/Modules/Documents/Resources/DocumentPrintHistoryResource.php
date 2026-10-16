@@ -19,22 +19,22 @@ final class DocumentPrintHistoryResource extends JsonResource
     public function toArray(Request $request): array
     {
         return [
-            'id'               => $this->id,
-            'uuid'             => $this->uuid,
-            'document_type'    => $this->document_type,
-            'document_id'      => $this->document_id,
-            'document_number'  => $this->document_number,
-            'template_id'      => $this->template_id,
-            'template_name'    => $this->template?->name,
+            'id' => $this->id,
+            'uuid' => $this->uuid,
+            'document_type' => $this->document_type,
+            'document_id' => $this->document_id,
+            'document_number' => $this->document_number,
+            'template_id' => $this->template_id,
+            'template_name' => $this->template?->name,
             'template_version' => (int) $this->template_version,
             'print_profile_id' => $this->print_profile_id,
-            'print_profile'    => $this->printProfile?->name,
-            'action'           => $this->action,
-            'copies'           => (int) $this->copies,
-            'user_id'          => $this->user_id,
-            'user_name'        => $this->user?->name ?? 'System / Operator',
-            'ip_address'       => $this->ip_address,
-            'created_at'       => $this->created_at?->toISOString(),
+            'print_profile' => $this->printProfile?->name,
+            'action' => $this->action,
+            'copies' => (int) $this->copies,
+            'user_id' => $this->user_id,
+            'user_name' => $this->user?->name ?? 'System / Operator',
+            'ip_address' => $this->ip_address,
+            'created_at' => $this->created_at?->toISOString(),
         ];
     }
 }

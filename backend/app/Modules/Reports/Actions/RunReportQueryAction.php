@@ -54,14 +54,14 @@ use App\Modules\Reports\Queries\PaymentMethodSummaryReportQuery;
 use App\Modules\Reports\Queries\PayrollSummaryReportQuery;
 use App\Modules\Reports\Queries\PendingDeliveriesReportQuery;
 use App\Modules\Reports\Queries\PosCounterSalesReportQuery;
-use App\Modules\Reports\Queries\ProductProfitReportQuery;
-use App\Modules\Reports\Queries\ProductPurchaseReportQuery;
-use App\Modules\Reports\Queries\ProductWiseProductionReportQuery;
 use App\Modules\Reports\Queries\ProductionEfficiencyReportQuery;
 use App\Modules\Reports\Queries\ProductionOutputReportQuery;
 use App\Modules\Reports\Queries\ProductionTargetVsAchievementReportQuery;
 use App\Modules\Reports\Queries\ProductionWastageScrapReportQuery;
 use App\Modules\Reports\Queries\ProductionYieldReportQuery;
+use App\Modules\Reports\Queries\ProductProfitReportQuery;
+use App\Modules\Reports\Queries\ProductPurchaseReportQuery;
+use App\Modules\Reports\Queries\ProductWiseProductionReportQuery;
 use App\Modules\Reports\Queries\PurchaseDetailsReportQuery;
 use App\Modules\Reports\Queries\PurchaseReturnReportQuery;
 use App\Modules\Reports\Queries\PurchaseSummaryReportQuery;
@@ -72,15 +72,15 @@ use App\Modules\Reports\Queries\SalesByCustomerReportQuery;
 use App\Modules\Reports\Queries\SalesByProductReportQuery;
 use App\Modules\Reports\Queries\SalesBySalesmanReportQuery;
 use App\Modules\Reports\Queries\SalesCommissionPayoutReportQuery;
-use App\Modules\Reports\Queries\SalesPerformanceReportQuery;
-use App\Modules\Reports\Queries\SalesReturnReportQuery;
 use App\Modules\Reports\Queries\SalesmanIncentiveAccrualReportQuery;
 use App\Modules\Reports\Queries\SalesmanLeaderboardReportQuery;
 use App\Modules\Reports\Queries\SalesmanLeadsReportQuery;
-use App\Modules\Reports\Queries\SalesmanProfitContributionReportQuery;
 use App\Modules\Reports\Queries\SalesmanProfitabilityReportQuery;
+use App\Modules\Reports\Queries\SalesmanProfitContributionReportQuery;
 use App\Modules\Reports\Queries\SalesmanQuotaAchievementReportQuery;
 use App\Modules\Reports\Queries\SalesmanRemainingTargetReportQuery;
+use App\Modules\Reports\Queries\SalesPerformanceReportQuery;
+use App\Modules\Reports\Queries\SalesReturnReportQuery;
 use App\Modules\Reports\Queries\ShiftWiseProductionReportQuery;
 use App\Modules\Reports\Queries\SlowMovingStockReportQuery;
 use App\Modules\Reports\Queries\StockLedgerReportQuery;
@@ -96,7 +96,6 @@ use App\Modules\Reports\Queries\WarehouseStockReportQuery;
 use App\Modules\Reports\Queries\WarehouseTransferReportQuery;
 use App\Modules\Reports\Queries\WorkerPieceRateReportQuery;
 use App\Modules\Reports\Queries\WorkerProductionReportQuery;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class RunReportQueryAction
@@ -224,7 +223,7 @@ class RunReportQueryAction
             ?? ReportDefinition::withoutTenantScope()->where('code', $canonicalCode)->first()
             ?? ReportDefinition::withoutTenantScope()->where('code', $code)->first();
 
-        if (!$definition) {
+        if (! $definition) {
             throw ValidationException::withMessages([
                 'code' => ["Report definition with code '{$code}' not found."],
             ]);
@@ -232,12 +231,12 @@ class RunReportQueryAction
 
         $queryClass = $this->queryMap[$code] ?? $this->queryMap[$canonicalCode] ?? null;
 
-        if (!$queryClass || !class_exists($queryClass)) {
+        if (! $queryClass || ! class_exists($queryClass)) {
             return $this->generateGenericReportData($definition, $filters, $page, $perPage, $code);
         }
 
         /** @var ReportQueryInterface $runner */
-        $runner = new $queryClass();
+        $runner = new $queryClass;
 
         $result = $runner->query($filters, $page, $perPage);
         $summary = $runner->summary($filters);
@@ -277,7 +276,7 @@ class RunReportQueryAction
     protected function generateGenericReportData(ReportDefinition $definition, array $filters, int $page, int $perPage, ?string $requestedCode = null): array
     {
         $columns = [];
-        if (!empty($definition->available_columns) && is_array($definition->available_columns)) {
+        if (! empty($definition->available_columns) && is_array($definition->available_columns)) {
             foreach ($definition->available_columns as $colKey => $colDef) {
                 if (is_array($colDef)) {
                     $columns[$colKey] = $colDef;

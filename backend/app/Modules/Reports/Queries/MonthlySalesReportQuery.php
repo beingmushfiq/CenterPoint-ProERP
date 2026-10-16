@@ -13,40 +13,35 @@ class MonthlySalesReportQuery implements ReportQueryInterface
 
     public function __construct(?SalesDataProvider $provider = null)
     {
-        $this->provider = $provider ?? new SalesDataProvider();
+        $this->provider = $provider ?? new SalesDataProvider;
     }
 
     public function columns(): array
     {
-        return array (
-  'month' => 
-  array (
-    'label' => 'Month',
-    'type' => 'string',
-    'sortable' => true,
-  ),
-  'orders_count' => 
-  array (
-    'label' => 'Orders Count',
-    'type' => 'number',
-  ),
-  'total_revenue' => 
-  array (
-    'label' => 'Total Sales Revenue (BDT)',
-    'type' => 'currency',
-    'sortable' => true,
-  ),
-  'collected_amount' => 
-  array (
-    'label' => 'Realized Cash (BDT)',
-    'type' => 'currency',
-  ),
-  'due_amount' => 
-  array (
-    'label' => 'Due Amount (BDT)',
-    'type' => 'currency',
-  ),
-);
+        return [
+            'month' => [
+                'label' => 'Month',
+                'type' => 'string',
+                'sortable' => true,
+            ],
+            'orders_count' => [
+                'label' => 'Orders Count',
+                'type' => 'number',
+            ],
+            'total_revenue' => [
+                'label' => 'Total Sales Revenue (BDT)',
+                'type' => 'currency',
+                'sortable' => true,
+            ],
+            'collected_amount' => [
+                'label' => 'Realized Cash (BDT)',
+                'type' => 'currency',
+            ],
+            'due_amount' => [
+                'label' => 'Due Amount (BDT)',
+                'type' => 'currency',
+            ],
+        ];
     }
 
     public function query(array $filters, int $page = 1, int $perPage = 25): array

@@ -22,12 +22,12 @@ class DeliverWebhookPayloadJob implements ShouldQueue
     use SerializesModels;
 
     public int $tries = 1;
+
     public int $timeout = 30;
 
     public function __construct(
         public readonly int $deliveryId
-    ) {
-    }
+    ) {}
 
     public function handle(): void
     {
@@ -43,11 +43,12 @@ class DeliverWebhookPayloadJob implements ShouldQueue
                 'status' => 'abandoned',
                 'response_body' => 'Endpoint missing or inactive',
             ]);
+
             return;
         }
 
         $payloadJson = json_encode($delivery->payload, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES);
-        $signature = 'sha256=' . hash_hmac('sha256', $payloadJson, (string) $endpoint->secret);
+        $signature = 'sha256='.hash_hmac('sha256', $payloadJson, (string) $endpoint->secret);
 
         $delivery->increment('attempt_count');
 

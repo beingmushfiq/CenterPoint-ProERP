@@ -13,42 +13,37 @@ class PaymentMethodSummaryReportQuery implements ReportQueryInterface
 
     public function __construct(?FinanceDataProvider $provider = null)
     {
-        $this->provider = $provider ?? new FinanceDataProvider();
+        $this->provider = $provider ?? new FinanceDataProvider;
     }
 
     public function columns(): array
     {
-        return array (
-  'payment_method' => 
-  array (
-    'label' => 'Payment Channel',
-    'type' => 'string',
-    'sortable' => true,
-  ),
-  'transaction_count' => 
-  array (
-    'label' => 'Transactions Count',
-    'type' => 'number',
-    'sortable' => true,
-  ),
-  'total_inflow' => 
-  array (
-    'label' => 'Total Inflows (BDT)',
-    'type' => 'currency',
-    'sortable' => true,
-  ),
-  'total_outflow' => 
-  array (
-    'label' => 'Total Outflows (BDT)',
-    'type' => 'currency',
-  ),
-  'net_cash_flow' => 
-  array (
-    'label' => 'Net Liquidity Flow (BDT)',
-    'type' => 'currency',
-    'sortable' => true,
-  ),
-);
+        return [
+            'payment_method' => [
+                'label' => 'Payment Channel',
+                'type' => 'string',
+                'sortable' => true,
+            ],
+            'transaction_count' => [
+                'label' => 'Transactions Count',
+                'type' => 'number',
+                'sortable' => true,
+            ],
+            'total_inflow' => [
+                'label' => 'Total Inflows (BDT)',
+                'type' => 'currency',
+                'sortable' => true,
+            ],
+            'total_outflow' => [
+                'label' => 'Total Outflows (BDT)',
+                'type' => 'currency',
+            ],
+            'net_cash_flow' => [
+                'label' => 'Net Liquidity Flow (BDT)',
+                'type' => 'currency',
+                'sortable' => true,
+            ],
+        ];
     }
 
     public function query(array $filters, int $page = 1, int $perPage = 25): array

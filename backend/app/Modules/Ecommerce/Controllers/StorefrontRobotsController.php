@@ -50,7 +50,7 @@ class StorefrontRobotsController extends Controller
         $lines = [];
         $isProduction = config('app.env') === 'production';
         if (! $isProduction) {
-            $lines[] = '# Development Environment (APP_ENV=' . config('app.env') . ')';
+            $lines[] = '# Development Environment (APP_ENV='.config('app.env').')';
         }
 
         if (! $indexingAllowed) {
@@ -112,11 +112,11 @@ class StorefrontRobotsController extends Controller
                 $lines[] = '';
             }
 
-            $lines[] = "# XML Sitemaps";
+            $lines[] = '# XML Sitemaps';
             $lines[] = "Sitemap: {$baseUrl}/sitemap.xml";
         }
 
-        $content = implode("\n", $lines) . "\n";
+        $content = implode("\n", $lines)."\n";
 
         return response($content, 200, [
             'Content-Type' => 'text/plain; charset=utf-8',

@@ -32,6 +32,11 @@ class CustomFieldDefinition extends Model
         'updated_by',
     ];
 
+    public function tenant(): BelongsTo
+    {
+        return $this->belongsTo(Tenant::class);
+    }
+
     protected static function booted(): void
     {
         static::creating(function (self $model): void {
@@ -54,10 +59,5 @@ class CustomFieldDefinition extends Model
             'is_active' => 'boolean',
             'is_archived' => 'boolean',
         ];
-    }
-
-    public function tenant(): BelongsTo
-    {
-        return $this->belongsTo(Tenant::class);
     }
 }

@@ -13,7 +13,6 @@ use App\Models\Tenant;
 use App\Models\Unit;
 use App\Models\User;
 use App\Models\Warehouse;
-use App\Modules\Inventory\Models\ProductWarehouseMinStock;
 use App\Modules\Inventory\Models\StockBalance;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -26,10 +25,15 @@ final class StockThresholdTest extends TestCase
     use RefreshDatabase;
 
     private Tenant $tenant;
+
     private User $user;
+
     private string $jwt;
+
     private Warehouse $warehouse;
+
     private Product $product;
+
     private Unit $unit;
 
     protected function setUp(): void
@@ -115,49 +119,6 @@ final class StockThresholdTest extends TestCase
         );
     }
 
-    private function headers(): array
-    {
-        return [
-            'Authorization' => 'Bearer ' . $this->jwt,
-            'X-Tenant' => $this->tenant->slug,
-            'Accept' => 'application/json',
-        ];
-    }
-
-    private function assignOnly(string ...$permissions): void
-    {
-        $role = Role::create([
-            'uuid' => (string) Str::uuid(),
-            'tenant_id' => 1,
-            'name' => 'Stock Role',
-            'slug' => 'stock-' . Str::random(6),
-            'is_system' => false,
-        ]);
-
-        foreach ($permissions as $name) {
-            [$module, $resource, $action] = explode('.', $name);
-            $permission = Permission::firstOrCreate(
-                ['name' => $name],
-                [
-                    'uuid' => (string) Str::uuid(),
-                    'module' => $module,
-                    'resource' => $resource,
-                    'action' => $action,
-                ]
-            );
-            $role->permissions()->attach($permission);
-        }
-
-        $this->user->roles()->detach();
-        $this->user->roles()->attach($role);
-
-        $this->jwt = app(JwtService::class)->issueToken(
-            userId: $this->user->id,
-            tenantId: 1,
-            tokenVersion: 1
-        );
-    }
-
     public function test_thresholds_index_returns_monitored_products_and_balances(): void
     {
         // Seed an available stock balance
@@ -231,5 +192,48 @@ final class StockThresholdTest extends TestCase
             'min_stock_alert' => '50.0000',
             'reorder_quantity' => '200.0000',
         ]);
+    }
+
+    private function headers(): array
+    {
+        return [
+            'Authorization' => 'Bearer '.$this->jwt,
+            'X-Tenant' => $this->tenant->slug,
+            'Accept' => 'application/json',
+        ];
+    }
+
+    private function assignOnly(string ...$permissions): void
+    {
+        $role = Role::create([
+            'uuid' => (string) Str::uuid(),
+            'tenant_id' => 1,
+            'name' => 'Stock Role',
+            'slug' => 'stock-'.Str::random(6),
+            'is_system' => false,
+        ]);
+
+        foreach ($permissions as $name) {
+            [$module, $resource, $action] = explode('.', $name);
+            $permission = Permission::firstOrCreate(
+                ['name' => $name],
+                [
+                    'uuid' => (string) Str::uuid(),
+                    'module' => $module,
+                    'resource' => $resource,
+                    'action' => $action,
+                ]
+            );
+            $role->permissions()->attach($permission);
+        }
+
+        $this->user->roles()->detach();
+        $this->user->roles()->attach($role);
+
+        $this->jwt = app(JwtService::class)->issueToken(
+            userId: $this->user->id,
+            tenantId: 1,
+            tokenVersion: 1
+        );
     }
 }

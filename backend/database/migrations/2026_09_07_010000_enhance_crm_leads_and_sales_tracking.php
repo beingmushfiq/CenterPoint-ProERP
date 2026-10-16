@@ -11,7 +11,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('crm_leads', function (Blueprint $table): void {
-            if (!Schema::hasColumn('crm_leads', 'is_fake')) {
+            if (! Schema::hasColumn('crm_leads', 'is_fake')) {
                 $table->boolean('is_fake')->default(false)->after('stage');
                 $table->text('validation_notes')->nullable()->after('is_fake');
                 $table->unsignedBigInteger('validated_by')->nullable()->after('validation_notes');
@@ -25,7 +25,7 @@ return new class extends Migration
         });
 
         Schema::table('sales_orders', function (Blueprint $table): void {
-            if (!Schema::hasColumn('sales_orders', 'lead_id')) {
+            if (! Schema::hasColumn('sales_orders', 'lead_id')) {
                 $table->unsignedBigInteger('lead_id')->nullable()->after('party_id');
                 $table->unsignedBigInteger('salesman_id')->nullable()->after('lead_id');
 
@@ -42,7 +42,7 @@ return new class extends Migration
         });
 
         Schema::table('invoices', function (Blueprint $table): void {
-            if (!Schema::hasColumn('invoices', 'lead_id')) {
+            if (! Schema::hasColumn('invoices', 'lead_id')) {
                 $table->unsignedBigInteger('lead_id')->nullable()->after('party_id');
                 $table->unsignedBigInteger('salesman_id')->nullable()->after('lead_id');
 

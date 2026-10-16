@@ -77,17 +77,6 @@ final class StockBalance extends Model
         'updated_at' => 'datetime',
     ];
 
-    protected static function boot(): void
-    {
-        parent::boot();
-
-        static::creating(static function (StockBalance $model): void {
-            if (empty($model->uuid)) {
-                $model->uuid = (string) Str::uuid();
-            }
-        });
-    }
-
     /**
      * @return BelongsTo<Product, $this>
      */
@@ -126,5 +115,16 @@ final class StockBalance extends Model
     public function lastMovement(): BelongsTo
     {
         return $this->belongsTo(StockMovement::class, 'last_movement_id');
+    }
+
+    protected static function boot(): void
+    {
+        parent::boot();
+
+        self::creating(static function (StockBalance $model): void {
+            if (empty($model->uuid)) {
+                $model->uuid = (string) Str::uuid();
+            }
+        });
     }
 }

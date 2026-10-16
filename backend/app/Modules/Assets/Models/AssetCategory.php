@@ -38,17 +38,6 @@ class AssetCategory extends Model
         'is_active' => 'boolean',
     ];
 
-    protected static function boot(): void
-    {
-        parent::boot();
-
-        static::creating(static function (AssetCategory $model): void {
-            if (empty($model->uuid)) {
-                $model->uuid = (string) Str::uuid();
-            }
-        });
-    }
-
     /**
      * @return BelongsTo<AssetCategory, $this>
      */
@@ -63,5 +52,16 @@ class AssetCategory extends Model
     public function assets(): HasMany
     {
         return $this->hasMany(Asset::class, 'asset_category_id');
+    }
+
+    protected static function boot(): void
+    {
+        parent::boot();
+
+        static::creating(static function (AssetCategory $model): void {
+            if (empty($model->uuid)) {
+                $model->uuid = (string) Str::uuid();
+            }
+        });
     }
 }

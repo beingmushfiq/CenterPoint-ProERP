@@ -32,7 +32,7 @@ final class StockThresholdController extends Controller
         $thresholds = ProductWarehouseMinStock::where('tenant_id', $tenantId)->get();
         $thresholdMap = [];
         foreach ($thresholds as $t) {
-            $thresholdMap[$t->product_id . '_' . $t->warehouse_id] = $t;
+            $thresholdMap[$t->product_id.'_'.$t->warehouse_id] = $t;
         }
 
         // Sum current stock by product and warehouse
@@ -44,13 +44,13 @@ final class StockThresholdController extends Controller
 
         $balanceMap = [];
         foreach ($balances as $b) {
-            $balanceMap[$b->product_id . '_' . $b->warehouse_id] = (float) $b->available_qty;
+            $balanceMap[$b->product_id.'_'.$b->warehouse_id] = (float) $b->available_qty;
         }
 
         $items = [];
         foreach ($products as $p) {
             foreach ($warehouses as $w) {
-                $key = $p->id . '_' . $w->id;
+                $key = $p->id.'_'.$w->id;
                 $threshold = $thresholdMap[$key] ?? null;
                 $currentStock = $balanceMap[$key] ?? 0.0;
                 $minAlert = $threshold ? (float) $threshold->min_stock_alert : (float) ($p->reorder_level ?? 10.0);

@@ -43,6 +43,16 @@ class ReportExport extends Model
         'expires_at' => 'datetime',
     ];
 
+    public function reportDefinition(): BelongsTo
+    {
+        return $this->belongsTo(ReportDefinition::class, 'report_definition_id');
+    }
+
+    public function requester(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'requested_by');
+    }
+
     protected static function boot(): void
     {
         parent::boot();
@@ -52,15 +62,5 @@ class ReportExport extends Model
                 $model->uuid = (string) Str::uuid();
             }
         });
-    }
-
-    public function reportDefinition(): BelongsTo
-    {
-        return $this->belongsTo(ReportDefinition::class, 'report_definition_id');
-    }
-
-    public function requester(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'requested_by');
     }
 }

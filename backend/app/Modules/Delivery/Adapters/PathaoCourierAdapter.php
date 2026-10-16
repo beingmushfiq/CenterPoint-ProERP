@@ -30,6 +30,7 @@ class PathaoCourierAdapter implements CourierProviderInterface
     {
         $this->credentials = $credentials;
         $this->settings = $settings;
+
         return $this;
     }
 
@@ -50,9 +51,9 @@ class PathaoCourierAdapter implements CourierProviderInterface
 
     public function createShipment(DeliveryOrder $deliveryOrder, array $options = []): ShipmentResult
     {
-        $consignmentId = 'PTH-' . strtoupper(Str::random(10));
-        $trackingCode = 'TRK-PTH-' . rand(100000, 999999);
-        $trackingUrl = 'https://merchant.pathao.com/tracking?consignment_id=' . $consignmentId;
+        $consignmentId = 'PTH-'.strtoupper(Str::random(10));
+        $trackingCode = 'TRK-PTH-'.rand(100000, 999999);
+        $trackingUrl = 'https://merchant.pathao.com/tracking?consignment_id='.$consignmentId;
         $charge = bcmul((string) max(1, (int) ($deliveryOrder->weight ?? 1)), '60.0000', 4);
 
         return new ShipmentResult(
@@ -79,7 +80,7 @@ class PathaoCourierAdapter implements CourierProviderInterface
     {
         return new CancelResult(
             success: true,
-            message: 'Pathao consignment ' . $consignmentId . ' cancelled successfully.',
+            message: 'Pathao consignment '.$consignmentId.' cancelled successfully.',
             rawResponse: ['status' => 'success', 'consignment_id' => $consignmentId]
         );
     }
@@ -103,7 +104,7 @@ class PathaoCourierAdapter implements CourierProviderInterface
     {
         return new LabelFile(
             success: true,
-            url: 'https://merchant.pathao.com/api/v1/orders/' . $consignmentId . '/label',
+            url: 'https://merchant.pathao.com/api/v1/orders/'.$consignmentId.'/label',
             mimeType: 'application/pdf'
         );
     }
@@ -124,12 +125,12 @@ class PathaoCourierAdapter implements CourierProviderInterface
 
     public function schedulePickup(PickupRequest $request): PickupResult
     {
-        $pickupId = 'PKP-PTH-' . strtoupper(Str::random(8));
+        $pickupId = 'PKP-PTH-'.strtoupper(Str::random(8));
 
         return new PickupResult(
             success: true,
             pickupTrackingId: $pickupId,
-            message: 'Pickup scheduled for ' . $request->scheduledDate,
+            message: 'Pickup scheduled for '.$request->scheduledDate,
             rawResponse: ['pickup_id' => $pickupId, 'status' => 'Scheduled']
         );
     }

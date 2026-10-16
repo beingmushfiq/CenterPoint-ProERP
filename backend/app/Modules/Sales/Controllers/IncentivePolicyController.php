@@ -37,40 +37,40 @@ final class IncentivePolicyController extends Controller
         $tenantId = TenantContext::current()->tenantId();
 
         $validated = $request->validate([
-            'name'                => ['required', 'string', 'max:128'],
-            'code'                => ['required', 'string', 'max:32'],
-            'description'         => ['nullable', 'string'],
-            'basis'               => ['required', 'string', 'in:total_revenue,profit,collection'],
+            'name' => ['required', 'string', 'max:128'],
+            'code' => ['required', 'string', 'max:32'],
+            'description' => ['nullable', 'string'],
+            'basis' => ['required', 'string', 'in:total_revenue,profit,collection'],
             'min_achievement_pct' => ['required', 'numeric', 'min:0', 'max:100'],
-            'is_active'           => ['nullable', 'boolean'],
-            'rules'               => ['required', 'array', 'min:1'],
-            'rules.*.min_pct'     => ['required', 'numeric', 'min:0'],
-            'rules.*.max_pct'     => ['required', 'numeric', 'min:0'],
+            'is_active' => ['nullable', 'boolean'],
+            'rules' => ['required', 'array', 'min:1'],
+            'rules.*.min_pct' => ['required', 'numeric', 'min:0'],
+            'rules.*.max_pct' => ['required', 'numeric', 'min:0'],
             'rules.*.incentive_type' => ['required', 'string', 'in:percentage,fixed'],
             'rules.*.incentive_value' => ['required', 'numeric', 'min:0'],
         ]);
 
         return DB::transaction(function () use ($validated, $tenantId) {
             $policy = IncentivePolicy::create([
-                'tenant_id'           => $tenantId,
-                'name'                => $validated['name'],
-                'code'                => $validated['code'],
-                'description'         => $validated['description'] ?? null,
-                'basis'               => $validated['basis'],
+                'tenant_id' => $tenantId,
+                'name' => $validated['name'],
+                'code' => $validated['code'],
+                'description' => $validated['description'] ?? null,
+                'basis' => $validated['basis'],
                 'min_achievement_pct' => (string) $validated['min_achievement_pct'],
-                'is_active'           => $validated['is_active'] ?? true,
-                'created_by'          => Auth::id() ? (int) Auth::id() : null,
+                'is_active' => $validated['is_active'] ?? true,
+                'created_by' => Auth::id() ? (int) Auth::id() : null,
             ]);
 
             foreach ($validated['rules'] as $ruleData) {
                 IncentivePolicyRule::create([
-                    'tenant_id'           => $tenantId,
+                    'tenant_id' => $tenantId,
                     'incentive_policy_id' => $policy->id,
-                    'min_pct'             => (string) $ruleData['min_pct'],
-                    'max_pct'             => (string) $ruleData['max_pct'],
-                    'incentive_type'      => $ruleData['incentive_type'],
-                    'incentive_value'     => (string) $ruleData['incentive_value'],
-                    'created_by'          => Auth::id() ? (int) Auth::id() : null,
+                    'min_pct' => (string) $ruleData['min_pct'],
+                    'max_pct' => (string) $ruleData['max_pct'],
+                    'incentive_type' => $ruleData['incentive_type'],
+                    'incentive_value' => (string) $ruleData['incentive_value'],
+                    'created_by' => Auth::id() ? (int) Auth::id() : null,
                 ]);
             }
 
@@ -105,7 +105,7 @@ final class IncentivePolicyController extends Controller
 
         $validated = $request->validate([
             'period_month' => ['required', 'string', 'regex:/^\d{4}-\d{2}$/'],
-            'policy_id'    => ['nullable', 'integer', 'exists:incentive_policies,id'],
+            'policy_id' => ['nullable', 'integer', 'exists:incentive_policies,id'],
         ]);
 
         $periodMonth = $validated['period_month'];
@@ -114,7 +114,7 @@ final class IncentivePolicyController extends Controller
             ? IncentivePolicy::with('rules')->where('tenant_id', $tenantId)->findOrFail($validated['policy_id'])
             : IncentivePolicy::with('rules')->where('tenant_id', $tenantId)->where('is_active', true)->first();
 
-        if (!$policy) {
+        if (! $policy) {
             return response()->json(['message' => 'No active incentive policy configured'], 422);
         }
 
@@ -124,7 +124,7 @@ final class IncentivePolicyController extends Controller
 
         $generated = [];
 
-        DB::transaction(function () use ($targets, $policy, $tenantId, $periodMonth, &$generated) {
+        DB::transaction(function () use ($targets, $policy, $tenantId, $periodMonth, &$generated): void {
             foreach ($targets as $target) {
                 $achieved = (float) $target->achieved_amount;
                 $targetAmt = (float) $target->target_amount;
@@ -147,20 +147,20 @@ final class IncentivePolicyController extends Controller
 
                 $calculation = IncentiveCalculation::updateOrCreate(
                     [
-                        'tenant_id'    => $tenantId,
-                        'employee_id'  => $target->employee_id,
+                        'tenant_id' => $tenantId,
+                        'employee_id' => $target->employee_id,
                         'period_month' => $periodMonth,
                     ],
                     [
                         'salesman_target_id' => $target->id,
-                        'incentive_policy_id'=> $policy->id,
-                        'target_amount'      => (string) $targetAmt,
-                        'achieved_amount'    => (string) $achieved,
-                        'achievement_pct'    => (string) $achievementPct,
-                        'calculated_amount'  => (string) round($calculatedAmount, 4),
-                        'approved_amount'    => (string) round($calculatedAmount, 4),
-                        'status'             => 'draft',
-                        'notes'              => "Auto-calculated on {$policy->name} rules",
+                        'incentive_policy_id' => $policy->id,
+                        'target_amount' => (string) $targetAmt,
+                        'achieved_amount' => (string) $achieved,
+                        'achievement_pct' => (string) $achievementPct,
+                        'calculated_amount' => (string) round($calculatedAmount, 4),
+                        'approved_amount' => (string) round($calculatedAmount, 4),
+                        'status' => 'draft',
+                        'notes' => "Auto-calculated on {$policy->name} rules",
                     ]
                 );
 
@@ -170,8 +170,8 @@ final class IncentivePolicyController extends Controller
 
         return response()->json([
             'message' => 'Incentives calculated successfully',
-            'count'   => count($generated),
-            'period'  => $periodMonth,
+            'count' => count($generated),
+            'period' => $periodMonth,
         ]);
     }
 
@@ -183,7 +183,7 @@ final class IncentivePolicyController extends Controller
 
         $validated = $request->validate([
             'approved_amount' => ['nullable', 'numeric', 'min:0'],
-            'notes'           => ['nullable', 'string'],
+            'notes' => ['nullable', 'string'],
         ]);
 
         if (isset($validated['approved_amount'])) {

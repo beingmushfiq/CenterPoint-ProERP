@@ -53,15 +53,15 @@ final class DocumentTemplateController extends Controller
     public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'name'             => ['required', 'string', 'max:255'],
-            'document_type'    => ['required', 'string', 'max:64'],
-            'company_id'       => ['nullable', 'integer'],
-            'branch_id'        => ['nullable', 'integer'],
-            'paper_size_id'    => ['nullable', 'integer'],
+            'name' => ['required', 'string', 'max:255'],
+            'document_type' => ['required', 'string', 'max:64'],
+            'company_id' => ['nullable', 'integer'],
+            'branch_id' => ['nullable', 'integer'],
+            'paper_size_id' => ['nullable', 'integer'],
             'print_profile_id' => ['nullable', 'integer'],
-            'status'           => ['nullable', 'string', 'in:active,draft,archived'],
-            'is_default'       => ['nullable', 'boolean'],
-            'layout_config'    => ['nullable', 'array'],
+            'status' => ['nullable', 'string', 'in:active,draft,archived'],
+            'is_default' => ['nullable', 'boolean'],
+            'layout_config' => ['nullable', 'array'],
         ]);
 
         $userId = (int) ($request->user()?->id ?? 0);
@@ -93,16 +93,16 @@ final class DocumentTemplateController extends Controller
             ->firstOrFail();
 
         $validated = $request->validate([
-            'name'             => ['sometimes', 'string', 'max:255'],
-            'document_type'    => ['sometimes', 'string', 'max:64'],
-            'company_id'       => ['nullable', 'integer'],
-            'branch_id'        => ['nullable', 'integer'],
-            'paper_size_id'    => ['nullable', 'integer'],
+            'name' => ['sometimes', 'string', 'max:255'],
+            'document_type' => ['sometimes', 'string', 'max:64'],
+            'company_id' => ['nullable', 'integer'],
+            'branch_id' => ['nullable', 'integer'],
+            'paper_size_id' => ['nullable', 'integer'],
             'print_profile_id' => ['nullable', 'integer'],
-            'status'           => ['sometimes', 'string', 'in:active,draft,archived'],
-            'is_default'       => ['sometimes', 'boolean'],
-            'change_summary'   => ['nullable', 'string', 'max:255'],
-            'layout_config'    => ['nullable', 'array'],
+            'status' => ['sometimes', 'string', 'in:active,draft,archived'],
+            'is_default' => ['sometimes', 'boolean'],
+            'change_summary' => ['nullable', 'string', 'max:255'],
+            'layout_config' => ['nullable', 'array'],
         ]);
 
         $userId = (int) ($request->user()?->id ?? 0);

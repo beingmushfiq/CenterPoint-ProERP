@@ -42,8 +42,8 @@ final class CreatePurchaseBillAction
     public function execute(array $data): PurchaseBill
     {
         return DB::transaction(function () use ($data): PurchaseBill {
-            $billNumber = $data['bill_number'] ?? ('BILL-' . date('Ymd') . '-' . strtoupper(Str::random(6)));
-            $invoiceNumber = $data['supplier_bill_number'] ?? $data['supplier_invoice_number'] ?? ('INV-' . strtoupper(Str::random(8)));
+            $billNumber = $data['bill_number'] ?? ('BILL-'.date('Ymd').'-'.strtoupper(Str::random(6)));
+            $invoiceNumber = $data['supplier_bill_number'] ?? $data['supplier_invoice_number'] ?? ('INV-'.strtoupper(Str::random(8)));
             $dueDate = $data['due_date'] ?? $data['bill_date'];
 
             /** @var numeric-string $grossSubtotal */

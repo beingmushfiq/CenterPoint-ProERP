@@ -194,13 +194,13 @@ class User extends Authenticatable
         // Support module.* wildcard
         $parts = explode('.', $permission);
         if (count($parts) >= 2) {
-            $moduleWildcard = $parts[0] . '.*';
+            $moduleWildcard = $parts[0].'.*';
             if (in_array($moduleWildcard, $effective, true)) {
                 return true;
             }
 
             // Support {module}.{resource}.manage as power-user shortcut for create/update/delete/view
-            $manageToken = $parts[0] . '.' . $parts[1] . '.manage';
+            $manageToken = $parts[0].'.'.$parts[1].'.manage';
             if (in_array($manageToken, $effective, true)) {
                 return true;
             }
@@ -215,6 +215,7 @@ class User extends Authenticatable
     public function hasRole(string $roleName): bool
     {
         $this->loadMissing('roles');
+
         return $this->roles->contains(fn (Role $role) => strcasecmp($role->name, $roleName) === 0 || strcasecmp($role->slug ?? '', $roleName) === 0);
     }
 
@@ -251,7 +252,7 @@ class User extends Authenticatable
                 return true;
             }
             $parts = explode('.', $permission);
-            if (count($parts) >= 2 && in_array($parts[0] . '.*', $perms, true)) {
+            if (count($parts) >= 2 && in_array($parts[0].'.*', $perms, true)) {
                 return true;
             }
         }

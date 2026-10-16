@@ -14,9 +14,8 @@ class WebhookDispatchService
     /**
      * Dispatch an event to all matching active webhook endpoints for a tenant.
      *
-     * @param int $tenantId
-     * @param string $eventType e.g. 'order.created', 'order.cancelled', 'stock.low'
-     * @param array<string, mixed> $payload
+     * @param  string  $eventType  e.g. 'order.created', 'order.cancelled', 'stock.low'
+     * @param  array<string, mixed>  $payload
      * @return int Number of deliveries queued
      */
     public function dispatch(int $tenantId, string $eventType, array $payload): int

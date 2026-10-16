@@ -50,8 +50,10 @@ class AuthController extends Controller
             if ($subHeader) {
                 $subClean = strtolower(trim((string) $subHeader));
                 $domainTenantId = \App\Models\Tenant::where('slug', $subClean)
-                    ->orWhere(function ($q) use ($subClean) {
-                        if ($subClean === 'democorp') $q->where('slug', 'demoerp');
+                    ->orWhere(function ($q) use ($subClean): void {
+                        if ($subClean === 'democorp') {
+                            $q->where('slug', 'demoerp');
+                        }
                     })
                     ->value('id');
             }
@@ -64,15 +66,19 @@ class AuthController extends Controller
                 if (str_ends_with($cleanHost, '.localhost')) {
                     $sub = substr($cleanHost, 0, -strlen('.localhost'));
                     $domainTenantId = \App\Models\Tenant::where('slug', $sub)
-                        ->orWhere(function ($q) use ($sub) {
-                            if ($sub === 'democorp') $q->where('slug', 'demoerp');
+                        ->orWhere(function ($q) use ($sub): void {
+                            if ($sub === 'democorp') {
+                                $q->where('slug', 'demoerp');
+                            }
                         })
                         ->value('id');
                 } elseif (str_contains($cleanHost, '.')) {
                     $sub = explode('.', $cleanHost)[0];
                     $domainTenantId = \App\Models\Tenant::where('slug', $sub)
-                        ->orWhere(function ($q) use ($sub) {
-                            if ($sub === 'democorp') $q->where('slug', 'demoerp');
+                        ->orWhere(function ($q) use ($sub): void {
+                            if ($sub === 'democorp') {
+                                $q->where('slug', 'demoerp');
+                            }
                         })
                         ->value('id');
                 }
@@ -466,12 +472,15 @@ class AuthController extends Controller
                 $extractStr = static function (mixed $val): ?string {
                     if (is_string($val)) {
                         $t = trim($val);
+
                         return $t !== '' ? $t : null;
                     }
                     if (is_array($val) && isset($val['val']) && is_string($val['val'])) {
                         $t = trim($val['val']);
+
                         return $t !== '' ? $t : null;
                     }
+
                     return null;
                 };
 
@@ -520,7 +529,7 @@ class AuthController extends Controller
                 ],
             ]);
         } catch (Throwable $e) {
-            \Illuminate\Support\Facades\Log::warning('Branding resolution fallback error: ' . $e->getMessage());
+            \Illuminate\Support\Facades\Log::warning('Branding resolution fallback error: '.$e->getMessage());
 
             return response()->json([
                 'success' => true,

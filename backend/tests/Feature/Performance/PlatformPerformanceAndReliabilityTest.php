@@ -5,11 +5,9 @@ declare(strict_types=1);
 namespace Tests\Feature\Performance;
 
 use App\Core\Auth\JwtService;
-use App\Models\Role;
 use App\Models\Tenant;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
@@ -22,60 +20,6 @@ class PlatformPerformanceAndReliabilityTest extends TestCase
     {
         parent::setUp();
         $this->seed();
-    }
-
-    private function getTenantAuthHeader(Tenant $tenant, User $user): array
-    {
-        $jwtService = app(JwtService::class);
-        $token = $jwtService->issueToken(
-            userId: $user->id,
-            tenantId: $tenant->id,
-            tokenVersion: $user->token_version ?? 1,
-            permVersion: '1',
-            scopes: [],
-            customClaims: ['email' => $user->email, 'is_platform_user' => false]
-        );
-
-        return [
-            'Authorization' => "Bearer {$token}",
-            'X-Tenant' => $tenant->slug,
-        ];
-    }
-
-    private function getTenantUser(Tenant $tenant, string $email = 'admin@slicemart.test'): User
-    {
-        /** @var User|null $user */
-        $user = User::withoutTenantScope()->where('tenant_id', $tenant->id)->where('email', $email)->first();
-
-        if (! $user) {
-            $user = User::withoutTenantScope()->where('tenant_id', $tenant->id)->first();
-        }
-
-        if (! $user) {
-            $company = \App\Models\Company::withoutTenantScope()->where('tenant_id', $tenant->id)->first();
-            if (! $company) {
-                $company = \App\Models\Company::create([
-                    'tenant_id' => $tenant->id,
-                    'name' => $tenant->name.' Co',
-                    'code' => strtoupper(substr((string) $tenant->slug, 0, 4)),
-                    'is_active' => true,
-                ]);
-            }
-
-            $user = User::create([
-                'uuid' => (string) \Illuminate\Support\Str::uuid(),
-                'email' => $email === 'admin@slicemart.test' ? "admin-{$tenant->id}@slicemart.test" : "{$tenant->slug}-{$email}",
-                'name' => 'Performance Test User',
-                'password' => \Illuminate\Support\Facades\Hash::make('12345678'),
-                'tenant_id' => $tenant->id,
-                'default_company_id' => $company->id,
-                'status' => 'active',
-                'token_version' => 1,
-                'perm_version' => 1,
-            ]);
-        }
-
-        return $user;
     }
 
     public function test_health_check_returns_services_telemetry_and_latencies(): void
@@ -132,7 +76,7 @@ class PlatformPerformanceAndReliabilityTest extends TestCase
 
         $firstQueryCount = count(DB::getQueryLog());
         // Strictly bounded to constant O(1) queries (no N+1 loops across metrics and models).
-        $this->assertLessThanOrEqual(36, $firstQueryCount, "Initial dashboard load exceeded expected bounded query threshold.");
+        $this->assertLessThanOrEqual(36, $firstQueryCount, 'Initial dashboard load exceeded expected bounded query threshold.');
 
         // Assert cache was created with required tenant namespace standard
         $cacheKey = "t{$tenant->id}:dashboard:metrics";
@@ -145,7 +89,7 @@ class PlatformPerformanceAndReliabilityTest extends TestCase
 
         $cachedQueryCount = count(DB::getQueryLog());
         // Middleware cached profile & scopes + cached metrics means only user lookup query
-        $this->assertLessThanOrEqual(2, $cachedQueryCount, "Cached invocation did not leverage cache efficiently.");
+        $this->assertLessThanOrEqual(2, $cachedQueryCount, 'Cached invocation did not leverage cache efficiently.');
 
         // 3. Invalidation with ?refresh=1
         $refreshedResponse = $this->getJson('/api/v1/dashboard/metrics?refresh=1', $headers);
@@ -279,5 +223,59 @@ class PlatformPerformanceAndReliabilityTest extends TestCase
         // 6th attempt should be blocked with 429 Too Many Requests
         $blockedResponse = $this->postJson('/api/v1/auth/login', $payload);
         $blockedResponse->assertStatus(429);
+    }
+
+    private function getTenantAuthHeader(Tenant $tenant, User $user): array
+    {
+        $jwtService = app(JwtService::class);
+        $token = $jwtService->issueToken(
+            userId: $user->id,
+            tenantId: $tenant->id,
+            tokenVersion: $user->token_version ?? 1,
+            permVersion: '1',
+            scopes: [],
+            customClaims: ['email' => $user->email, 'is_platform_user' => false]
+        );
+
+        return [
+            'Authorization' => "Bearer {$token}",
+            'X-Tenant' => $tenant->slug,
+        ];
+    }
+
+    private function getTenantUser(Tenant $tenant, string $email = 'admin@slicemart.test'): User
+    {
+        /** @var User|null $user */
+        $user = User::withoutTenantScope()->where('tenant_id', $tenant->id)->where('email', $email)->first();
+
+        if (! $user) {
+            $user = User::withoutTenantScope()->where('tenant_id', $tenant->id)->first();
+        }
+
+        if (! $user) {
+            $company = \App\Models\Company::withoutTenantScope()->where('tenant_id', $tenant->id)->first();
+            if (! $company) {
+                $company = \App\Models\Company::create([
+                    'tenant_id' => $tenant->id,
+                    'name' => $tenant->name.' Co',
+                    'code' => strtoupper(substr((string) $tenant->slug, 0, 4)),
+                    'is_active' => true,
+                ]);
+            }
+
+            $user = User::create([
+                'uuid' => (string) \Illuminate\Support\Str::uuid(),
+                'email' => $email === 'admin@slicemart.test' ? "admin-{$tenant->id}@slicemart.test" : "{$tenant->slug}-{$email}",
+                'name' => 'Performance Test User',
+                'password' => \Illuminate\Support\Facades\Hash::make('12345678'),
+                'tenant_id' => $tenant->id,
+                'default_company_id' => $company->id,
+                'status' => 'active',
+                'token_version' => 1,
+                'perm_version' => 1,
+            ]);
+        }
+
+        return $user;
     }
 }

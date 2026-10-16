@@ -13,51 +13,44 @@ class InvoiceProfitReportQuery implements ReportQueryInterface
 
     public function __construct(?SalesDataProvider $provider = null)
     {
-        $this->provider = $provider ?? new SalesDataProvider();
+        $this->provider = $provider ?? new SalesDataProvider;
     }
 
     public function columns(): array
     {
-        return array (
-  'order_number' => 
-  array (
-    'label' => 'Invoice / Order No',
-    'type' => 'string',
-    'sortable' => true,
-  ),
-  'order_date' => 
-  array (
-    'label' => 'Date',
-    'type' => 'date',
-  ),
-  'customer_name' => 
-  array (
-    'label' => 'Customer',
-    'type' => 'string',
-  ),
-  'revenue' => 
-  array (
-    'label' => 'Revenue (BDT)',
-    'type' => 'currency',
-    'sortable' => true,
-  ),
-  'cost_of_goods' => 
-  array (
-    'label' => 'COGS (BDT)',
-    'type' => 'currency',
-  ),
-  'gross_profit' => 
-  array (
-    'label' => 'Gross Profit (BDT)',
-    'type' => 'currency',
-    'sortable' => true,
-  ),
-  'margin_percent' => 
-  array (
-    'label' => 'Gross Margin (%)',
-    'type' => 'string',
-  ),
-);
+        return [
+            'order_number' => [
+                'label' => 'Invoice / Order No',
+                'type' => 'string',
+                'sortable' => true,
+            ],
+            'order_date' => [
+                'label' => 'Date',
+                'type' => 'date',
+            ],
+            'customer_name' => [
+                'label' => 'Customer',
+                'type' => 'string',
+            ],
+            'revenue' => [
+                'label' => 'Revenue (BDT)',
+                'type' => 'currency',
+                'sortable' => true,
+            ],
+            'cost_of_goods' => [
+                'label' => 'COGS (BDT)',
+                'type' => 'currency',
+            ],
+            'gross_profit' => [
+                'label' => 'Gross Profit (BDT)',
+                'type' => 'currency',
+                'sortable' => true,
+            ],
+            'margin_percent' => [
+                'label' => 'Gross Margin (%)',
+                'type' => 'string',
+            ],
+        ];
     }
 
     public function query(array $filters, int $page = 1, int $perPage = 25): array

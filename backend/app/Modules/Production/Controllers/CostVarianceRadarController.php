@@ -9,23 +9,10 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Throwable;
 
 class CostVarianceRadarController extends Controller
 {
-    private function resolveTenantId(Request $request): int
-    {
-        try {
-            return TenantContext::current()->tenantId();
-        } catch (\Throwable) {
-            $user = $request->user() ?? auth()->user();
-            if ($user && !empty($user->tenant_id)) {
-                return (int) $user->tenant_id;
-            }
-            $tenant = \App\Models\Tenant::first();
-            return $tenant ? (int) $tenant->id : 1;
-        }
-    }
-
     public function radar(Request $request): JsonResponse
     {
         $tenantId = $this->resolveTenantId($request);
@@ -69,7 +56,9 @@ class CostVarianceRadarController extends Controller
         // Standard planned material budget
         $plannedUnits = max(1, (int) ($selectedBatch->planned_quantity ?? 100));
         $stdCost = (float) ($selectedBatch->standard_cost ?? 1850);
-        if ($stdCost <= 0) $stdCost = 1850.0;
+        if ($stdCost <= 0) {
+            $stdCost = 1850.0;
+        }
 
         $standardMaterialBudget = round($plannedUnits * $stdCost * 0.65, 2);
         $standardLaborBudget = round($plannedUnits * $stdCost * 0.20, 2);
@@ -134,7 +123,7 @@ class CostVarianceRadarController extends Controller
                 'amount' => $totalActualCost,
                 'delta' => 0,
                 'type' => 'total',
-                'description' => "True landed batch manufacturing cost (৳" . round($totalActualCost / $plannedUnits, 2) . "/unit)",
+                'description' => 'True landed batch manufacturing cost (৳'.round($totalActualCost / $plannedUnits, 2).'/unit)',
             ],
         ];
 
@@ -187,5 +176,20 @@ class CostVarianceRadarController extends Controller
                 'cost_vectors' => $costVectors,
             ],
         ]);
+    }
+
+    private function resolveTenantId(Request $request): int
+    {
+        try {
+            return TenantContext::current()->tenantId();
+        } catch (Throwable) {
+            $user = $request->user() ?? auth()->user();
+            if ($user && ! empty($user->tenant_id)) {
+                return (int) $user->tenant_id;
+            }
+            $tenant = \App\Models\Tenant::first();
+
+            return $tenant ? (int) $tenant->id : 1;
+        }
     }
 }

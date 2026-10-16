@@ -20,12 +20,19 @@ class FinanceAnalyticsReportTest extends TestCase
     use RefreshDatabase;
 
     protected Tenant $tenantA;
+
     protected Tenant $tenantB;
+
     protected User $userA;
+
     protected User $userB;
+
     protected string $tokenA;
+
     protected string $tokenB;
+
     protected Company $companyA;
+
     protected Company $companyB;
 
     protected function setUp(): void
@@ -130,6 +137,136 @@ class FinanceAnalyticsReportTest extends TestCase
     {
         TenantContext::flush();
         parent::tearDown();
+    }
+
+    public function test_gl_summary_report_returns_trial_balance_and_verifies_balance(): void
+    {
+        $this->seedFinanceData();
+
+        $response = $this->withHeaders([
+            'Authorization' => "Bearer {$this->tokenA}",
+            'X-Tenant-ID' => (string) $this->tenantA->id,
+        ])->getJson('/api/v1/reports/gl_summary/data');
+
+        $response->assertOk()
+            ->assertJsonPath('report.code', 'gl_summary')
+            ->assertJsonPath('summary.is_balanced', true);
+
+        $data = $response->json('data');
+        $this->assertNotEmpty($data);
+
+        $arRow = collect($data)->firstWhere('account_code', '1100');
+        $this->assertNotNull($arRow);
+        $this->assertEquals('Accounts Receivable', $arRow['account_name']);
+        $this->assertEquals('50000.0000', $arRow['total_debit']);
+
+        // Check summary debit equals credit
+        $totalDebits = $response->json('summary.total_debits');
+        $totalCredits = $response->json('summary.total_credits');
+        $this->assertEquals($totalDebits, $totalCredits);
+    }
+
+    public function test_income_statement_report_classifies_revenue_and_expenditure(): void
+    {
+        $this->seedFinanceData();
+
+        $response = $this->withHeaders([
+            'Authorization' => "Bearer {$this->tokenA}",
+            'X-Tenant-ID' => (string) $this->tenantA->id,
+        ])->getJson('/api/v1/reports/income_statement/data');
+
+        $response->assertOk()
+            ->assertJsonPath('report.code', 'income_statement');
+
+        $data = $response->json('data');
+        $this->assertNotEmpty($data);
+
+        $salesRow = collect($data)->firstWhere('account_code', '4001');
+        $this->assertNotNull($salesRow);
+        $this->assertEquals('Revenue', $salesRow['classification']);
+        $this->assertEquals(50000.0, (float) $salesRow['amount']);
+
+        $rentRow = collect($data)->firstWhere('account_code', '5010');
+        $this->assertNotNull($rentRow);
+        $this->assertEquals('Expenditure', $rentRow['classification']);
+        $this->assertEquals(15000.0, (float) $rentRow['amount']);
+    }
+
+    public function test_operating_expenses_report_groups_by_expense_accounts(): void
+    {
+        $this->seedFinanceData();
+
+        $response = $this->withHeaders([
+            'Authorization' => "Bearer {$this->tokenA}",
+            'X-Tenant-ID' => (string) $this->tenantA->id,
+        ])->getJson('/api/v1/reports/operating_expenses/data');
+
+        $response->assertOk()
+            ->assertJsonPath('report.code', 'operating_expenses');
+
+        $data = $response->json('data');
+        $this->assertCount(2, $data);
+
+        // Highest expense first: Rent (15,000) then Utilities (5,000)
+        $this->assertEquals('5010', $data[0]['account_code']);
+        $this->assertEquals(15000.0, (float) $data[0]['net_expense']);
+
+        $this->assertEquals('5020', $data[1]['account_code']);
+        $this->assertEquals(5000.0, (float) $data[1]['net_expense']);
+    }
+
+    public function test_customer_ar_aging_report_buckets_aging_correctly(): void
+    {
+        $this->seedFinanceData();
+
+        $response = $this->withHeaders([
+            'Authorization' => "Bearer {$this->tokenA}",
+            'X-Tenant-ID' => (string) $this->tenantA->id,
+        ])->getJson('/api/v1/reports/customer_ar_aging/data');
+
+        $response->assertOk()
+            ->assertJsonPath('report.code', 'customer_ar_aging');
+
+        $data = $response->json('data');
+        $this->assertCount(2, $data);
+
+        $cust1 = collect($data)->firstWhere('customer_code', 'CUST-001');
+        $this->assertNotNull($cust1);
+        $this->assertEquals(12000.0, (float) $cust1['current_30']);
+        $this->assertEquals(8000.0, (float) $cust1['days_31_60']);
+        $this->assertEquals(20000.0, (float) $cust1['total_due']);
+
+        $cust2 = collect($data)->firstWhere('customer_code', 'CUST-002');
+        $this->assertNotNull($cust2);
+        $this->assertEquals(5000.0, (float) $cust2['days_61_90']);
+        $this->assertEquals(3000.0, (float) $cust2['days_over_90']);
+        $this->assertEquals(8000.0, (float) $cust2['total_due']);
+    }
+
+    public function test_strict_tenant_isolation_in_finance_reports(): void
+    {
+        $this->seedFinanceData();
+
+        // Tenant A request
+        $responseA = $this->withHeaders([
+            'Authorization' => "Bearer {$this->tokenA}",
+            'X-Tenant-ID' => (string) $this->tenantA->id,
+        ])->getJson('/api/v1/reports/gl_summary/data');
+
+        $responseA->assertOk();
+        $accountCodesA = collect($responseA->json('data'))->pluck('account_code')->all();
+        $this->assertNotContains('9999', $accountCodesA);
+
+        // Tenant B request
+        $responseB = $this->withHeaders([
+            'Authorization' => "Bearer {$this->tokenB}",
+            'X-Tenant-ID' => (string) $this->tenantB->id,
+        ])->getJson('/api/v1/reports/gl_summary/data');
+
+        $responseB->assertOk();
+        $accountCodesB = collect($responseB->json('data'))->pluck('account_code')->all();
+        $this->assertContains('9999', $accountCodesB);
+        $this->assertNotContains('1001', $accountCodesB);
     }
 
     protected function seedReportDefinitions(): void
@@ -459,135 +596,5 @@ class FinanceAnalyticsReportTest extends TestCase
             'created_at' => now(),
             'updated_at' => now(),
         ]);
-    }
-
-    public function test_gl_summary_report_returns_trial_balance_and_verifies_balance(): void
-    {
-        $this->seedFinanceData();
-
-        $response = $this->withHeaders([
-            'Authorization' => "Bearer {$this->tokenA}",
-            'X-Tenant-ID' => (string) $this->tenantA->id,
-        ])->getJson('/api/v1/reports/gl_summary/data');
-
-        $response->assertOk()
-            ->assertJsonPath('report.code', 'gl_summary')
-            ->assertJsonPath('summary.is_balanced', true);
-
-        $data = $response->json('data');
-        $this->assertNotEmpty($data);
-
-        $arRow = collect($data)->firstWhere('account_code', '1100');
-        $this->assertNotNull($arRow);
-        $this->assertEquals('Accounts Receivable', $arRow['account_name']);
-        $this->assertEquals('50000.0000', $arRow['total_debit']);
-
-        // Check summary debit equals credit
-        $totalDebits = $response->json('summary.total_debits');
-        $totalCredits = $response->json('summary.total_credits');
-        $this->assertEquals($totalDebits, $totalCredits);
-    }
-
-    public function test_income_statement_report_classifies_revenue_and_expenditure(): void
-    {
-        $this->seedFinanceData();
-
-        $response = $this->withHeaders([
-            'Authorization' => "Bearer {$this->tokenA}",
-            'X-Tenant-ID' => (string) $this->tenantA->id,
-        ])->getJson('/api/v1/reports/income_statement/data');
-
-        $response->assertOk()
-            ->assertJsonPath('report.code', 'income_statement');
-
-        $data = $response->json('data');
-        $this->assertNotEmpty($data);
-
-        $salesRow = collect($data)->firstWhere('account_code', '4001');
-        $this->assertNotNull($salesRow);
-        $this->assertEquals('Revenue', $salesRow['classification']);
-        $this->assertEquals(50000.0, (float) $salesRow['amount']);
-
-        $rentRow = collect($data)->firstWhere('account_code', '5010');
-        $this->assertNotNull($rentRow);
-        $this->assertEquals('Expenditure', $rentRow['classification']);
-        $this->assertEquals(15000.0, (float) $rentRow['amount']);
-    }
-
-    public function test_operating_expenses_report_groups_by_expense_accounts(): void
-    {
-        $this->seedFinanceData();
-
-        $response = $this->withHeaders([
-            'Authorization' => "Bearer {$this->tokenA}",
-            'X-Tenant-ID' => (string) $this->tenantA->id,
-        ])->getJson('/api/v1/reports/operating_expenses/data');
-
-        $response->assertOk()
-            ->assertJsonPath('report.code', 'operating_expenses');
-
-        $data = $response->json('data');
-        $this->assertCount(2, $data);
-
-        // Highest expense first: Rent (15,000) then Utilities (5,000)
-        $this->assertEquals('5010', $data[0]['account_code']);
-        $this->assertEquals(15000.0, (float) $data[0]['net_expense']);
-
-        $this->assertEquals('5020', $data[1]['account_code']);
-        $this->assertEquals(5000.0, (float) $data[1]['net_expense']);
-    }
-
-    public function test_customer_ar_aging_report_buckets_aging_correctly(): void
-    {
-        $this->seedFinanceData();
-
-        $response = $this->withHeaders([
-            'Authorization' => "Bearer {$this->tokenA}",
-            'X-Tenant-ID' => (string) $this->tenantA->id,
-        ])->getJson('/api/v1/reports/customer_ar_aging/data');
-
-        $response->assertOk()
-            ->assertJsonPath('report.code', 'customer_ar_aging');
-
-        $data = $response->json('data');
-        $this->assertCount(2, $data);
-
-        $cust1 = collect($data)->firstWhere('customer_code', 'CUST-001');
-        $this->assertNotNull($cust1);
-        $this->assertEquals(12000.0, (float) $cust1['current_30']);
-        $this->assertEquals(8000.0, (float) $cust1['days_31_60']);
-        $this->assertEquals(20000.0, (float) $cust1['total_due']);
-
-        $cust2 = collect($data)->firstWhere('customer_code', 'CUST-002');
-        $this->assertNotNull($cust2);
-        $this->assertEquals(5000.0, (float) $cust2['days_61_90']);
-        $this->assertEquals(3000.0, (float) $cust2['days_over_90']);
-        $this->assertEquals(8000.0, (float) $cust2['total_due']);
-    }
-
-    public function test_strict_tenant_isolation_in_finance_reports(): void
-    {
-        $this->seedFinanceData();
-
-        // Tenant A request
-        $responseA = $this->withHeaders([
-            'Authorization' => "Bearer {$this->tokenA}",
-            'X-Tenant-ID' => (string) $this->tenantA->id,
-        ])->getJson('/api/v1/reports/gl_summary/data');
-
-        $responseA->assertOk();
-        $accountCodesA = collect($responseA->json('data'))->pluck('account_code')->all();
-        $this->assertNotContains('9999', $accountCodesA);
-
-        // Tenant B request
-        $responseB = $this->withHeaders([
-            'Authorization' => "Bearer {$this->tokenB}",
-            'X-Tenant-ID' => (string) $this->tenantB->id,
-        ])->getJson('/api/v1/reports/gl_summary/data');
-
-        $responseB->assertOk();
-        $accountCodesB = collect($responseB->json('data'))->pluck('account_code')->all();
-        $this->assertContains('9999', $accountCodesB);
-        $this->assertNotContains('1001', $accountCodesB);
     }
 }

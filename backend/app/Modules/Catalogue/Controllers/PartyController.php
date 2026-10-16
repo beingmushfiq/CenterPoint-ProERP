@@ -21,6 +21,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Throwable;
 
 final class PartyController extends Controller
 {
@@ -191,18 +192,18 @@ final class PartyController extends Controller
 
         /** @var Collection<int, array<string, mixed>> $items */
         $items = $query->limit(500)->get(['uuid', 'id', 'code', 'name', 'phone', 'email', 'type', 'is_dealer', 'is_customer', 'credit_limit', 'current_balance'])->map(static fn (Party $p) => [
-            'id'              => (string) $p->uuid,
-            'party_id'        => $p->id,
-            'code'            => (string) $p->code,
-            'name'            => (string) $p->name,
-            'phone'           => $p->phone,
-            'email'           => $p->email,
-            'type'            => $p->type,
-            'is_dealer'       => (bool) $p->is_dealer,
-            'is_customer'     => (bool) $p->is_customer,
-            'credit_limit'    => (string) $p->credit_limit,
+            'id' => (string) $p->uuid,
+            'party_id' => $p->id,
+            'code' => (string) $p->code,
+            'name' => (string) $p->name,
+            'phone' => $p->phone,
+            'email' => $p->email,
+            'type' => $p->type,
+            'is_dealer' => (bool) $p->is_dealer,
+            'is_customer' => (bool) $p->is_customer,
+            'credit_limit' => (string) $p->credit_limit,
             'current_balance' => (string) $p->current_balance,
-            'label'           => ((string) $p->name).' ('.((string) $p->code).')',
+            'label' => ((string) $p->name).' ('.((string) $p->code).')',
         ])->values();
 
         return response()->json([
@@ -371,7 +372,6 @@ final class PartyController extends Controller
                 $chunk,
                 $chunkIdx,
                 $mode,
-                $tenantId,
                 $userId,
                 &$codeMap,
                 &$phoneMap,
@@ -380,13 +380,13 @@ final class PartyController extends Controller
                 &$updated,
                 &$skipped,
                 &$errors
-            ) {
+            ): void {
                 foreach ($chunk as $relIdx => $row) {
                     $rowNum = ($chunkIdx * 100) + $relIdx + 2;
-                    $code = !empty($row['code']) ? trim((string) $row['code']) : null;
-                    $phone = !empty($row['phone']) ? trim((string) $row['phone']) : null;
+                    $code = ! empty($row['code']) ? trim((string) $row['code']) : null;
+                    $phone = ! empty($row['phone']) ? trim((string) $row['phone']) : null;
                     $cleanPhone = $phone ? preg_replace('/[^0-9]/', '', $phone) : null;
-                    $email = !empty($row['email']) ? strtolower(trim((string) $row['email'])) : null;
+                    $email = ! empty($row['email']) ? strtolower(trim((string) $row['email'])) : null;
 
                     // Match existing
                     $existing = null;
@@ -404,17 +404,33 @@ final class PartyController extends Controller
                     $isDealer = 0;
                     $isAgent = 0;
 
-                    if (isset($row['is_customer'])) $isCustomer = $row['is_customer'] ? 1 : 0;
-                    if (isset($row['is_supplier'])) $isSupplier = $row['is_supplier'] ? 1 : 0;
-                    if (isset($row['is_dealer'])) $isDealer = $row['is_dealer'] ? 1 : 0;
-                    if (isset($row['is_agent'])) $isAgent = $row['is_agent'] ? 1 : 0;
+                    if (isset($row['is_customer'])) {
+                        $isCustomer = $row['is_customer'] ? 1 : 0;
+                    }
+                    if (isset($row['is_supplier'])) {
+                        $isSupplier = $row['is_supplier'] ? 1 : 0;
+                    }
+                    if (isset($row['is_dealer'])) {
+                        $isDealer = $row['is_dealer'] ? 1 : 0;
+                    }
+                    if (isset($row['is_agent'])) {
+                        $isAgent = $row['is_agent'] ? 1 : 0;
+                    }
 
-                    if (!empty($row['role'])) {
+                    if (! empty($row['role'])) {
                         $roleLower = strtolower(trim((string) $row['role']));
-                        if (str_contains($roleLower, 'cust')) $isCustomer = 1;
-                        if (str_contains($roleLower, 'supp') || str_contains($roleLower, 'vendor')) $isSupplier = 1;
-                        if (str_contains($roleLower, 'deal')) $isDealer = 1;
-                        if (str_contains($roleLower, 'agent')) $isAgent = 1;
+                        if (str_contains($roleLower, 'cust')) {
+                            $isCustomer = 1;
+                        }
+                        if (str_contains($roleLower, 'supp') || str_contains($roleLower, 'vendor')) {
+                            $isSupplier = 1;
+                        }
+                        if (str_contains($roleLower, 'deal')) {
+                            $isDealer = 1;
+                        }
+                        if (str_contains($roleLower, 'agent')) {
+                            $isAgent = 1;
+                        }
                         if (str_contains($roleLower, 'both')) {
                             $isCustomer = 1;
                             $isSupplier = 1;
@@ -426,11 +442,11 @@ final class PartyController extends Controller
                         $isCustomer = 1;
                     }
 
-                    $type = !empty($row['type']) && in_array(strtolower(trim((string) $row['type'])), ['individual', 'business'], true)
+                    $type = ! empty($row['type']) && in_array(strtolower(trim((string) $row['type'])), ['individual', 'business'], true)
                         ? strtolower(trim((string) $row['type']))
                         : 'business';
 
-                    $status = !empty($row['status']) && in_array(strtolower(trim((string) $row['status'])), ['active', 'inactive', 'blacklisted'], true)
+                    $status = ! empty($row['status']) && in_array(strtolower(trim((string) $row['status'])), ['active', 'inactive', 'blacklisted'], true)
                         ? strtolower(trim((string) $row['status']))
                         : 'active';
 
@@ -442,6 +458,7 @@ final class PartyController extends Controller
                     if ($existing) {
                         if ($mode === 'skip') {
                             $skipped++;
+
                             continue;
                         }
 
@@ -459,29 +476,39 @@ final class PartyController extends Controller
                                 'status' => $status,
                                 'updated_by' => $userId,
                             ];
-                            if ($isCustomer) $updateData['is_customer'] = 1;
-                            if ($isSupplier) $updateData['is_supplier'] = 1;
-                            if ($isDealer) $updateData['is_dealer'] = 1;
-                            if ($isAgent) $updateData['is_agent'] = 1;
+                            if ($isCustomer) {
+                                $updateData['is_customer'] = 1;
+                            }
+                            if ($isSupplier) {
+                                $updateData['is_supplier'] = 1;
+                            }
+                            if ($isDealer) {
+                                $updateData['is_dealer'] = 1;
+                            }
+                            if ($isAgent) {
+                                $updateData['is_agent'] = 1;
+                            }
 
                             $existing->update($updateData);
                             $updated++;
+
                             continue;
-                        } catch (\Throwable $e) {
+                        } catch (Throwable $e) {
                             $errors[] = [
                                 'row' => $rowNum,
                                 'field' => 'code',
                                 'value' => $code,
-                                'message' => 'Update failed: ' . $e->getMessage(),
+                                'message' => 'Update failed: '.$e->getMessage(),
                             ];
+
                             continue;
                         }
                     }
 
                     // Auto-generate code if missing
-                    if (!$code) {
-                        $prefix = $isSupplier && !$isCustomer ? 'SUP-' : 'CUST-';
-                        $code = $prefix . str_pad((string) random_int(1000, 99999), 5, '0', STR_PAD_LEFT);
+                    if (! $code) {
+                        $prefix = $isSupplier && ! $isCustomer ? 'SUP-' : 'CUST-';
+                        $code = $prefix.str_pad((string) random_int(1000, 99999), 5, '0', STR_PAD_LEFT);
                     }
 
                     try {
@@ -531,12 +558,12 @@ final class PartyController extends Controller
                         }
 
                         $imported++;
-                    } catch (\Throwable $e) {
+                    } catch (Throwable $e) {
                         $errors[] = [
                             'row' => $rowNum,
                             'field' => 'code',
                             'value' => $code,
-                            'message' => 'Creation failed: ' . $e->getMessage(),
+                            'message' => 'Creation failed: '.$e->getMessage(),
                         ];
                     }
                 }

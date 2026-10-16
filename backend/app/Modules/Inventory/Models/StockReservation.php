@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Modules\Inventory\Models;
 
 use App\Core\Tenancy\Concerns\BelongsToTenant;
-use App\Models\User;
 use App\Models\Product;
+use App\Models\User;
 use App\Models\Warehouse;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -64,15 +64,6 @@ final class StockReservation extends Model
         'created_by' => 'integer',
     ];
 
-    protected static function booted(): void
-    {
-        static::creating(function (self $res): void {
-            if (empty($res->uuid)) {
-                $res->uuid = (string) Str::uuid();
-            }
-        });
-    }
-
     /**
      * @return BelongsTo<Product, $this>
      */
@@ -95,5 +86,14 @@ final class StockReservation extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    protected static function booted(): void
+    {
+        self::creating(function (self $res): void {
+            if (empty($res->uuid)) {
+                $res->uuid = (string) Str::uuid();
+            }
+        });
     }
 }

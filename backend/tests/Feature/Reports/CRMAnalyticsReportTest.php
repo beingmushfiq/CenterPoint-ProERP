@@ -19,12 +19,19 @@ class CRMAnalyticsReportTest extends TestCase
     use RefreshDatabase;
 
     protected Tenant $tenantA;
+
     protected Tenant $tenantB;
+
     protected User $userA;
+
     protected User $userB;
+
     protected User $repA1;
+
     protected User $repA2;
+
     protected string $tokenA;
+
     protected string $tokenB;
 
     protected function setUp(): void
@@ -131,6 +138,145 @@ class CRMAnalyticsReportTest extends TestCase
     {
         TenantContext::flush();
         parent::tearDown();
+    }
+
+    public function test_lead_summary_report_returns_pipeline_leads_with_deal_values(): void
+    {
+        $this->seedCRMData();
+
+        $response = $this->withHeaders([
+            'Authorization' => "Bearer {$this->tokenA}",
+            'X-Tenant-ID' => (string) $this->tenantA->id,
+        ])->getJson('/api/v1/reports/lead_summary/data');
+
+        $response->assertOk()
+            ->assertJsonPath('report.code', 'lead_summary');
+
+        $data = $response->json('data');
+        $this->assertCount(4, $data);
+
+        $lead1 = collect($data)->firstWhere('lead_number', 'LEAD-2026-001');
+        $this->assertNotNull($lead1);
+        $this->assertEquals('Arif Chowdhury', $lead1['contact_name']);
+        $this->assertEquals('Apex Retail Ltd', $lead1['company_name']);
+        $this->assertEquals('Won', $lead1['stage']);
+        $this->assertEquals('Tariqul Islam', $lead1['assigned_rep']);
+        $this->assertEquals('150000.00', $lead1['expected_value']);
+        $this->assertEquals('Valid', $lead1['is_fake']);
+
+        $lead3 = collect($data)->firstWhere('lead_number', 'LEAD-2026-003');
+        $this->assertNotNull($lead3);
+        $this->assertEquals('Flagged Fake', $lead3['is_fake']);
+    }
+
+    public function test_salesman_leads_report_aggregates_workload_and_conversion_rates(): void
+    {
+        $this->seedCRMData();
+
+        $response = $this->withHeaders([
+            'Authorization' => "Bearer {$this->tokenA}",
+            'X-Tenant-ID' => (string) $this->tenantA->id,
+        ])->getJson('/api/v1/reports/salesman_leads/data');
+
+        $response->assertOk()
+            ->assertJsonPath('report.code', 'salesman_leads');
+
+        $data = $response->json('data');
+        $this->assertCount(2, $data);
+
+        // Tariqul Islam: 2 leads (1 won, 1 active, 0 fake) -> 50.00% conversion, 235,000 value
+        $tariqul = collect($data)->firstWhere('representative_name', 'Tariqul Islam');
+        $this->assertNotNull($tariqul);
+        $this->assertEquals(2, $tariqul['total_assigned_leads']);
+        $this->assertEquals(1, $tariqul['active_leads']);
+        $this->assertEquals(1, $tariqul['converted_leads']);
+        $this->assertEquals(0, $tariqul['fake_leads']);
+        $this->assertEquals('50.00%', $tariqul['conversion_rate']);
+        $this->assertEquals('235000.00', $tariqul['pipeline_value']);
+
+        // Shakil Ahmed: 2 leads (0 won, 1 fake, 0 active) -> 0.00% conversion, 90,000 value
+        $shakil = collect($data)->firstWhere('representative_name', 'Shakil Ahmed');
+        $this->assertNotNull($shakil);
+        $this->assertEquals(2, $shakil['total_assigned_leads']);
+        $this->assertEquals(1, $shakil['fake_leads']);
+        $this->assertEquals('0.00%', $shakil['conversion_rate']);
+    }
+
+    public function test_fake_leads_audit_report_isolates_fraudulent_leads_with_auditor_notes(): void
+    {
+        $this->seedCRMData();
+
+        $response = $this->withHeaders([
+            'Authorization' => "Bearer {$this->tokenA}",
+            'X-Tenant-ID' => (string) $this->tenantA->id,
+        ])->getJson('/api/v1/reports/fake_leads_audit/data');
+
+        $response->assertOk()
+            ->assertJsonPath('report.code', 'fake_leads_audit');
+
+        $data = $response->json('data');
+        $this->assertCount(1, $data);
+
+        $row = $data[0];
+        $this->assertEquals('LEAD-2026-003', $row['lead_number']);
+        $this->assertEquals('Test Bot Spammer', $row['contact_name']);
+        $this->assertEquals('Shakil Ahmed', $row['assigned_rep']);
+        $this->assertEquals('CRM Manager Alpha', $row['auditor_name']);
+        $this->assertStringContainsString('disposable bot domain', $row['audit_reason']);
+    }
+
+    public function test_lead_conversion_rate_by_source_report_calculates_channel_efficiency(): void
+    {
+        $this->seedCRMData();
+
+        $response = $this->withHeaders([
+            'Authorization' => "Bearer {$this->tokenA}",
+            'X-Tenant-ID' => (string) $this->tenantA->id,
+        ])->getJson('/api/v1/reports/conversion_rate_source/data');
+
+        $response->assertOk()
+            ->assertJsonPath('report.code', 'conversion_rate_source');
+
+        $data = $response->json('data');
+        $this->assertCount(3, $data);
+
+        // Online source: 2 leads (1 won, 1 lost/fake) -> 50.00% conversion
+        $online = collect($data)->firstWhere('source_channel', 'Online');
+        $this->assertNotNull($online);
+        $this->assertEquals(2, $online['total_leads']);
+        $this->assertEquals(1, $online['converted_leads']);
+        $this->assertEquals(1, $online['fake_leads']);
+        $this->assertEquals('50.00%', $online['conversion_rate']);
+
+        // Walk in: 1 lead (0 won, 1 active)
+        $walkIn = collect($data)->firstWhere('source_channel', 'Walk in');
+        $this->assertNotNull($walkIn);
+        $this->assertEquals(1, $walkIn['total_leads']);
+        $this->assertEquals(0, $walkIn['converted_leads']);
+    }
+
+    public function test_strict_tenant_isolation_in_crm_reports(): void
+    {
+        $this->seedCRMData();
+
+        // Tenant A request
+        $responseA = $this->withHeaders([
+            'Authorization' => "Bearer {$this->tokenA}",
+            'X-Tenant-ID' => (string) $this->tenantA->id,
+        ])->getJson('/api/v1/reports/lead_summary/data');
+
+        $responseA->assertOk();
+        $responseA->assertDontSee('LEAD-BETA-SECRET-999');
+
+        // Tenant B request
+        $responseB = $this->withHeaders([
+            'Authorization' => "Bearer {$this->tokenB}",
+            'X-Tenant-ID' => (string) $this->tenantB->id,
+        ])->getJson('/api/v1/reports/lead_summary/data');
+
+        $responseB->assertOk();
+        $responseB->assertSee('LEAD-BETA-SECRET-999');
+        $responseB->assertDontSee('LEAD-2026-001');
     }
 
     protected function seedReportDefinitions(): void
@@ -293,144 +439,5 @@ class CRMAnalyticsReportTest extends TestCase
             'created_at' => now(),
             'updated_at' => now(),
         ]);
-    }
-
-    public function test_lead_summary_report_returns_pipeline_leads_with_deal_values(): void
-    {
-        $this->seedCRMData();
-
-        $response = $this->withHeaders([
-            'Authorization' => "Bearer {$this->tokenA}",
-            'X-Tenant-ID' => (string) $this->tenantA->id,
-        ])->getJson('/api/v1/reports/lead_summary/data');
-
-        $response->assertOk()
-            ->assertJsonPath('report.code', 'lead_summary');
-
-        $data = $response->json('data');
-        $this->assertCount(4, $data);
-
-        $lead1 = collect($data)->firstWhere('lead_number', 'LEAD-2026-001');
-        $this->assertNotNull($lead1);
-        $this->assertEquals('Arif Chowdhury', $lead1['contact_name']);
-        $this->assertEquals('Apex Retail Ltd', $lead1['company_name']);
-        $this->assertEquals('Won', $lead1['stage']);
-        $this->assertEquals('Tariqul Islam', $lead1['assigned_rep']);
-        $this->assertEquals('150000.00', $lead1['expected_value']);
-        $this->assertEquals('Valid', $lead1['is_fake']);
-
-        $lead3 = collect($data)->firstWhere('lead_number', 'LEAD-2026-003');
-        $this->assertNotNull($lead3);
-        $this->assertEquals('Flagged Fake', $lead3['is_fake']);
-    }
-
-    public function test_salesman_leads_report_aggregates_workload_and_conversion_rates(): void
-    {
-        $this->seedCRMData();
-
-        $response = $this->withHeaders([
-            'Authorization' => "Bearer {$this->tokenA}",
-            'X-Tenant-ID' => (string) $this->tenantA->id,
-        ])->getJson('/api/v1/reports/salesman_leads/data');
-
-        $response->assertOk()
-            ->assertJsonPath('report.code', 'salesman_leads');
-
-        $data = $response->json('data');
-        $this->assertCount(2, $data);
-
-        // Tariqul Islam: 2 leads (1 won, 1 active, 0 fake) -> 50.00% conversion, 235,000 value
-        $tariqul = collect($data)->firstWhere('representative_name', 'Tariqul Islam');
-        $this->assertNotNull($tariqul);
-        $this->assertEquals(2, $tariqul['total_assigned_leads']);
-        $this->assertEquals(1, $tariqul['active_leads']);
-        $this->assertEquals(1, $tariqul['converted_leads']);
-        $this->assertEquals(0, $tariqul['fake_leads']);
-        $this->assertEquals('50.00%', $tariqul['conversion_rate']);
-        $this->assertEquals('235000.00', $tariqul['pipeline_value']);
-
-        // Shakil Ahmed: 2 leads (0 won, 1 fake, 0 active) -> 0.00% conversion, 90,000 value
-        $shakil = collect($data)->firstWhere('representative_name', 'Shakil Ahmed');
-        $this->assertNotNull($shakil);
-        $this->assertEquals(2, $shakil['total_assigned_leads']);
-        $this->assertEquals(1, $shakil['fake_leads']);
-        $this->assertEquals('0.00%', $shakil['conversion_rate']);
-    }
-
-    public function test_fake_leads_audit_report_isolates_fraudulent_leads_with_auditor_notes(): void
-    {
-        $this->seedCRMData();
-
-        $response = $this->withHeaders([
-            'Authorization' => "Bearer {$this->tokenA}",
-            'X-Tenant-ID' => (string) $this->tenantA->id,
-        ])->getJson('/api/v1/reports/fake_leads_audit/data');
-
-        $response->assertOk()
-            ->assertJsonPath('report.code', 'fake_leads_audit');
-
-        $data = $response->json('data');
-        $this->assertCount(1, $data);
-
-        $row = $data[0];
-        $this->assertEquals('LEAD-2026-003', $row['lead_number']);
-        $this->assertEquals('Test Bot Spammer', $row['contact_name']);
-        $this->assertEquals('Shakil Ahmed', $row['assigned_rep']);
-        $this->assertEquals('CRM Manager Alpha', $row['auditor_name']);
-        $this->assertStringContainsString('disposable bot domain', $row['audit_reason']);
-    }
-
-    public function test_lead_conversion_rate_by_source_report_calculates_channel_efficiency(): void
-    {
-        $this->seedCRMData();
-
-        $response = $this->withHeaders([
-            'Authorization' => "Bearer {$this->tokenA}",
-            'X-Tenant-ID' => (string) $this->tenantA->id,
-        ])->getJson('/api/v1/reports/conversion_rate_source/data');
-
-        $response->assertOk()
-            ->assertJsonPath('report.code', 'conversion_rate_source');
-
-        $data = $response->json('data');
-        $this->assertCount(3, $data);
-
-        // Online source: 2 leads (1 won, 1 lost/fake) -> 50.00% conversion
-        $online = collect($data)->firstWhere('source_channel', 'Online');
-        $this->assertNotNull($online);
-        $this->assertEquals(2, $online['total_leads']);
-        $this->assertEquals(1, $online['converted_leads']);
-        $this->assertEquals(1, $online['fake_leads']);
-        $this->assertEquals('50.00%', $online['conversion_rate']);
-
-        // Walk in: 1 lead (0 won, 1 active)
-        $walkIn = collect($data)->firstWhere('source_channel', 'Walk in');
-        $this->assertNotNull($walkIn);
-        $this->assertEquals(1, $walkIn['total_leads']);
-        $this->assertEquals(0, $walkIn['converted_leads']);
-    }
-
-    public function test_strict_tenant_isolation_in_crm_reports(): void
-    {
-        $this->seedCRMData();
-
-        // Tenant A request
-        $responseA = $this->withHeaders([
-            'Authorization' => "Bearer {$this->tokenA}",
-            'X-Tenant-ID' => (string) $this->tenantA->id,
-        ])->getJson('/api/v1/reports/lead_summary/data');
-
-        $responseA->assertOk();
-        $responseA->assertDontSee('LEAD-BETA-SECRET-999');
-
-        // Tenant B request
-        $responseB = $this->withHeaders([
-            'Authorization' => "Bearer {$this->tokenB}",
-            'X-Tenant-ID' => (string) $this->tenantB->id,
-        ])->getJson('/api/v1/reports/lead_summary/data');
-
-        $responseB->assertOk();
-        $responseB->assertSee('LEAD-BETA-SECRET-999');
-        $responseB->assertDontSee('LEAD-2026-001');
     }
 }

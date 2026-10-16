@@ -55,7 +55,7 @@ final class RecordStockMovementAction
             /** @var numeric-string $totalCost */
             $totalCost = bcmul($quantity, $unitCost, 4);
 
-            $movementNumber = $data['movement_number'] ?? ('MOV-' . date('Ymd') . '-' . strtoupper(Str::random(6)));
+            $movementNumber = $data['movement_number'] ?? ('MOV-'.date('Ymd').'-'.strtoupper(Str::random(6)));
             $movedAt = isset($data['moved_at']) ? \Illuminate\Support\Carbon::parse($data['moved_at']) : now();
 
             // Find or initialize the exact StockBalance slot with pessimistic lock

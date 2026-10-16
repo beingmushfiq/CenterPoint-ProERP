@@ -19,6 +19,7 @@ class StorefrontCustomerAuthTest extends TestCase
     use RefreshDatabase;
 
     private Tenant $tenant;
+
     private Storefront $storefront;
 
     protected function setUp(): void

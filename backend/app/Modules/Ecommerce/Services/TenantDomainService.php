@@ -14,6 +14,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
+use Throwable;
 
 class TenantDomainService
 {
@@ -61,13 +62,13 @@ class TenantDomainService
             throw new InvalidArgumentException("Domain '{$domain}' is already registered in the platform.");
         }
 
-        $verificationToken = 'dcp-verify-' . Str::random(32);
-        $platformSubdomain = $tenant->slug . '.devcenterpoint.com';
+        $verificationToken = 'dcp-verify-'.Str::random(32);
+        $platformSubdomain = $tenant->slug.'.devcenterpoint.com';
 
         $expectedDns = [
             'txt_record' => [
                 'type' => 'TXT',
-                'host' => '_dcp-challenge.' . $domain,
+                'host' => '_dcp-challenge.'.$domain,
                 'value' => $verificationToken,
                 'purpose' => 'Domain Ownership Verification',
             ],
@@ -141,7 +142,7 @@ class TenantDomainService
                             'A' => $rec['ip'] ?? '',
                             default => '',
                         };
-                        if (!empty($val)) {
+                        if (! empty($val)) {
                             $records[] = [
                                 'type' => $recType,
                                 'value' => trim((string) $val),
@@ -150,7 +151,7 @@ class TenantDomainService
                         }
                     }
                 }
-            } catch (\Throwable) {
+            } catch (Throwable) {
                 // Ignore system lookup error
             }
         }
@@ -176,7 +177,7 @@ class TenantDomainService
                             default => (string) $typeCode,
                         };
                         $data = trim((string) ($ans['data'] ?? ''), '" ');
-                        if (!empty($data)) {
+                        if (! empty($data)) {
                             $records[] = [
                                 'type' => $typeName,
                                 'value' => $data,
@@ -186,15 +187,15 @@ class TenantDomainService
                     }
                 }
             }
-        } catch (\Throwable) {
+        } catch (Throwable) {
             // DoH lookup failed (e.g. offline/network firewall)
         }
 
         // De-duplicate records by type + value
         $unique = [];
         foreach ($records as $item) {
-            $key = $item['type'] . '::' . strtolower(rtrim($item['value'], '.'));
-            if (!isset($unique[$key])) {
+            $key = $item['type'].'::'.strtolower(rtrim($item['value'], '.'));
+            if (! isset($unique[$key])) {
                 $unique[$key] = [
                     'type' => $item['type'],
                     'value' => rtrim($item['value'], '.'),
@@ -212,10 +213,10 @@ class TenantDomainService
     public function verifyDomain(TenantDomain $tenantDomain, ?User $actor = null, bool $allowDevOverride = false): array
     {
         $domain = $tenantDomain->domain;
-        $challengeHost = '_dcp-challenge.' . $domain;
+        $challengeHost = '_dcp-challenge.'.$domain;
         $expectedToken = $tenantDomain->verification_token;
         $tenant = Tenant::find($tenantDomain->tenant_id);
-        $expectedCname = $tenant ? ($tenant->slug . '.devcenterpoint.com') : '';
+        $expectedCname = $tenant ? ($tenant->slug.'.devcenterpoint.com') : '';
 
         // 1. Query TXT challenge host
         $txtRecords = $this->queryPublicDns($challengeHost, 'TXT');
@@ -240,7 +241,7 @@ class TenantDomainService
         }
 
         // Check CNAME routing if TXT not matched
-        if (!$verified && !empty($expectedCname)) {
+        if (! $verified && ! empty($expectedCname)) {
             foreach ($domainRecords as $rec) {
                 if ($rec['type'] === 'CNAME') {
                     $cnameTarget = strtolower(rtrim($rec['value'], '.'));
@@ -256,7 +257,7 @@ class TenantDomainService
 
         // In test environments or explicit local sandbox override
         $isUnitTesting = app()->runningUnitTests();
-        if (!$verified && ($isUnitTesting || $allowDevOverride)) {
+        if (! $verified && ($isUnitTesting || $allowDevOverride)) {
             $verified = true;
             $matchedMethod = $isUnitTesting ? 'test_mock' : 'dev_override';
             $matchedRecord = [
@@ -284,7 +285,7 @@ class TenantDomainService
                 ->where('is_primary', true)
                 ->exists();
 
-            if (!$hasPrimary) {
+            if (! $hasPrimary) {
                 $tenantDomain->is_primary = true;
                 $this->syncStorefrontPrimaryDomain($tenantDomain);
             }
@@ -323,7 +324,7 @@ class TenantDomainService
 
         $foundSummary = empty($allFoundRecords)
             ? 'No DNS records were detected for this hostname.'
-            : 'Detected ' . count($allFoundRecords) . ' record(s) in public DNS, but none matched the verification requirements.';
+            : 'Detected '.count($allFoundRecords).' record(s) in public DNS, but none matched the verification requirements.';
 
         return [
             'success' => false,
@@ -347,7 +348,7 @@ class TenantDomainService
     public function setPrimaryDomain(TenantDomain $tenantDomain, ?User $actor = null): void
     {
         if ($tenantDomain->verification_status !== 'verified') {
-            throw new InvalidArgumentException("Only verified domains can be designated as the primary domain.");
+            throw new InvalidArgumentException('Only verified domains can be designated as the primary domain.');
         }
 
         // Unset any existing primary domain for this tenant
@@ -380,7 +381,7 @@ class TenantDomainService
     public function removeDomain(TenantDomain $tenantDomain, ?User $actor = null): void
     {
         if ($tenantDomain->type === 'platform_subdomain') {
-            throw new InvalidArgumentException("The default platform subdomain cannot be deleted.");
+            throw new InvalidArgumentException('The default platform subdomain cannot be deleted.');
         }
 
         $domainName = $tenantDomain->domain;
@@ -414,7 +415,7 @@ class TenantDomainService
      */
     public function ensurePlatformSubdomain(Tenant $tenant): TenantDomain
     {
-        $platformDomain = $tenant->slug . '.devcenterpoint.com';
+        $platformDomain = $tenant->slug.'.devcenterpoint.com';
 
         /** @var TenantDomain $domain */
         $domain = TenantDomain::withoutTenantScope()->firstOrCreate(

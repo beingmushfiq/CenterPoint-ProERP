@@ -50,7 +50,7 @@ final class TenantCapabilityManifest
     public static function buildManifestForTenant(int $tenantId): array
     {
         $tenant = Tenant::find($tenantId);
-        if (!$tenant) {
+        if (! $tenant) {
             return self::defaultManifest();
         }
 
@@ -76,156 +76,6 @@ final class TenantCapabilityManifest
             'custom_fields' => self::resolveCustomFields($tenantId),
             'feature_flags' => self::resolveFeatureFlags($tenantId),
         ];
-    }
-
-    /**
-     * @return array<string, array{enabled: bool, plan_allowed: bool, config: array}>
-     */
-    private static function resolveModules(int $tenantId): array
-    {
-        $storedModules = TenantModule::where('tenant_id', $tenantId)->get()->keyBy('module_key');
-        $modules = [];
-
-        foreach (self::ALL_MODULE_KEYS as $modKey => $meta) {
-            if ($storedModules->has($modKey)) {
-                $mod = $storedModules->get($modKey);
-                $modules[$modKey] = [
-                    'enabled' => (bool) ($mod->enabled && $mod->plan_allowed),
-                    'plan_allowed' => (bool) $mod->plan_allowed,
-                    'config' => $mod->config ?? [],
-                ];
-            } else {
-                $modules[$modKey] = [
-                    'enabled' => true,
-                    'plan_allowed' => true,
-                    'config' => [],
-                ];
-            }
-        }
-
-        return $modules;
-    }
-
-    /**
-     * @return array<string, string>
-     */
-    private static function resolveTerminology(Tenant $tenant, ?IndustryProfile $industryProfile): array
-    {
-        $defaultTerminology = [
-            'raw_material' => 'Raw Material',
-            'finished_good' => 'Finished Good',
-            'production' => 'Production',
-            'bom' => 'Bill of Materials',
-            'warehouse' => 'Warehouse',
-            'worker' => 'Worker / Operator',
-            'customer' => 'Customer',
-            'supplier' => 'Supplier / Vendor',
-        ];
-
-        if ($industryProfile && !empty($industryProfile->default_terminology)) {
-            $defaultTerminology = array_merge($defaultTerminology, $industryProfile->default_terminology);
-        }
-
-        return array_merge($defaultTerminology, (array) ($tenant->terminology ?? []));
-    }
-
-    /**
-     * @return array<int, array<string, mixed>>
-     */
-    private static function resolveProductionStages(int $tenantId, ?IndustryProfile $industryProfile): array
-    {
-        $stages = TenantProductionStage::where('tenant_id', $tenantId)
-            ->where('is_active', true)
-            ->orderBy('sort_order')
-            ->get()
-            ->map(fn (TenantProductionStage $stage): array => [
-                'id' => $stage->id,
-                'key' => $stage->key,
-                'label' => $stage->label,
-                'sort_order' => $stage->sort_order,
-                'is_qc_stage' => (bool) $stage->is_qc_stage,
-                'requires_worker_tracking' => (bool) $stage->requires_worker_tracking,
-                'requires_machine_tracking' => (bool) $stage->requires_machine_tracking,
-            ])
-            ->values()
-            ->toArray();
-
-        if (!empty($stages)) {
-            return $stages;
-        }
-
-        if ($industryProfile && !empty($industryProfile->default_production_stages)) {
-            return $industryProfile->default_production_stages;
-        }
-
-        return [
-            ['key' => 'material_prep', 'label' => 'Material Preparation', 'sort_order' => 1, 'is_qc_stage' => false, 'requires_worker_tracking' => true, 'requires_machine_tracking' => false],
-            ['key' => 'assembly', 'label' => 'Assembly & Fabrication', 'sort_order' => 2, 'is_qc_stage' => false, 'requires_worker_tracking' => true, 'requires_machine_tracking' => false],
-            ['key' => 'qc_inspection', 'label' => 'Quality Control', 'sort_order' => 3, 'is_qc_stage' => true, 'requires_worker_tracking' => true, 'requires_machine_tracking' => false],
-            ['key' => 'packaging', 'label' => 'Packaging & Boxing', 'sort_order' => 4, 'is_qc_stage' => false, 'requires_worker_tracking' => true, 'requires_machine_tracking' => false],
-        ];
-    }
-
-    /**
-     * @return array<string, array<int, array<string, mixed>>>
-     */
-    private static function resolveCustomFields(int $tenantId): array
-    {
-        return CustomFieldDefinition::where('tenant_id', $tenantId)
-            ->where('is_active', true)
-            ->where('is_archived', false)
-            ->orderBy('sort_order')
-            ->get()
-            ->groupBy(fn (CustomFieldDefinition $f): string => "{$f->module}.{$f->entity}")
-            ->map(fn ($group) => $group->map(fn (CustomFieldDefinition $f): array => [
-                'uuid' => $f->uuid,
-                'key' => $f->internal_key,
-                'label' => $f->label,
-                'field_type' => $f->field_type,
-                'options' => $f->options,
-                'validation_rules' => $f->validation_rules,
-                'is_required' => (bool) $f->is_required,
-                'default_value' => $f->default_value,
-                'placeholder' => $f->placeholder,
-                'help_text' => $f->help_text,
-                'visibility_rules' => $f->visibility_rules,
-                'sort_order' => $f->sort_order,
-            ])->values())
-            ->toArray();
-    }
-
-    /**
-     * @return array<string, bool>
-     */
-    private static function resolveFeatureFlags(int $tenantId): array
-    {
-        return DB::table('feature_flags')
-            ->where(function ($query) use ($tenantId) {
-                $query->where('tenant_id', $tenantId)->orWhereNull('tenant_id');
-            })
-            ->get()
-            ->mapWithKeys(fn ($row): array => [$row->key => (bool) $row->enabled])
-            ->toArray();
-    }
-
-    /**
-     * @return array<int, string>
-     */
-    private static function resolveNavOrder(int $tenantId): array
-    {
-        /** @var Setting|null $navSetting */
-        $navSetting = Setting::withoutTenantScope()
-            ->where('tenant_id', $tenantId)
-            ->where('group', 'navigation')
-            ->where('key', 'nav_order')
-            ->first();
-
-        $raw = $navSetting?->value;
-        if (is_string($raw)) {
-            $raw = json_decode($raw, true);
-        }
-
-        return is_array($raw) && !empty($raw['sections']) ? $raw : TenantModuleController::DEFAULT_NAV_ORDER;
     }
 
     public static function invalidate(int $tenantId): void
@@ -276,5 +126,155 @@ final class TenantCapabilityManifest
             'custom_fields' => [],
             'feature_flags' => [],
         ];
+    }
+
+    /**
+     * @return array<string, array{enabled: bool, plan_allowed: bool, config: array}>
+     */
+    private static function resolveModules(int $tenantId): array
+    {
+        $storedModules = TenantModule::where('tenant_id', $tenantId)->get()->keyBy('module_key');
+        $modules = [];
+
+        foreach (self::ALL_MODULE_KEYS as $modKey => $meta) {
+            if ($storedModules->has($modKey)) {
+                $mod = $storedModules->get($modKey);
+                $modules[$modKey] = [
+                    'enabled' => (bool) ($mod->enabled && $mod->plan_allowed),
+                    'plan_allowed' => (bool) $mod->plan_allowed,
+                    'config' => $mod->config ?? [],
+                ];
+            } else {
+                $modules[$modKey] = [
+                    'enabled' => true,
+                    'plan_allowed' => true,
+                    'config' => [],
+                ];
+            }
+        }
+
+        return $modules;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private static function resolveTerminology(Tenant $tenant, ?IndustryProfile $industryProfile): array
+    {
+        $defaultTerminology = [
+            'raw_material' => 'Raw Material',
+            'finished_good' => 'Finished Good',
+            'production' => 'Production',
+            'bom' => 'Bill of Materials',
+            'warehouse' => 'Warehouse',
+            'worker' => 'Worker / Operator',
+            'customer' => 'Customer',
+            'supplier' => 'Supplier / Vendor',
+        ];
+
+        if ($industryProfile && ! empty($industryProfile->default_terminology)) {
+            $defaultTerminology = array_merge($defaultTerminology, $industryProfile->default_terminology);
+        }
+
+        return array_merge($defaultTerminology, (array) ($tenant->terminology ?? []));
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private static function resolveProductionStages(int $tenantId, ?IndustryProfile $industryProfile): array
+    {
+        $stages = TenantProductionStage::where('tenant_id', $tenantId)
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->get()
+            ->map(fn (TenantProductionStage $stage): array => [
+                'id' => $stage->id,
+                'key' => $stage->key,
+                'label' => $stage->label,
+                'sort_order' => $stage->sort_order,
+                'is_qc_stage' => (bool) $stage->is_qc_stage,
+                'requires_worker_tracking' => (bool) $stage->requires_worker_tracking,
+                'requires_machine_tracking' => (bool) $stage->requires_machine_tracking,
+            ])
+            ->values()
+            ->toArray();
+
+        if (! empty($stages)) {
+            return $stages;
+        }
+
+        if ($industryProfile && ! empty($industryProfile->default_production_stages)) {
+            return $industryProfile->default_production_stages;
+        }
+
+        return [
+            ['key' => 'material_prep', 'label' => 'Material Preparation', 'sort_order' => 1, 'is_qc_stage' => false, 'requires_worker_tracking' => true, 'requires_machine_tracking' => false],
+            ['key' => 'assembly', 'label' => 'Assembly & Fabrication', 'sort_order' => 2, 'is_qc_stage' => false, 'requires_worker_tracking' => true, 'requires_machine_tracking' => false],
+            ['key' => 'qc_inspection', 'label' => 'Quality Control', 'sort_order' => 3, 'is_qc_stage' => true, 'requires_worker_tracking' => true, 'requires_machine_tracking' => false],
+            ['key' => 'packaging', 'label' => 'Packaging & Boxing', 'sort_order' => 4, 'is_qc_stage' => false, 'requires_worker_tracking' => true, 'requires_machine_tracking' => false],
+        ];
+    }
+
+    /**
+     * @return array<string, array<int, array<string, mixed>>>
+     */
+    private static function resolveCustomFields(int $tenantId): array
+    {
+        return CustomFieldDefinition::where('tenant_id', $tenantId)
+            ->where('is_active', true)
+            ->where('is_archived', false)
+            ->orderBy('sort_order')
+            ->get()
+            ->groupBy(fn (CustomFieldDefinition $f): string => "{$f->module}.{$f->entity}")
+            ->map(fn ($group) => $group->map(fn (CustomFieldDefinition $f): array => [
+                'uuid' => $f->uuid,
+                'key' => $f->internal_key,
+                'label' => $f->label,
+                'field_type' => $f->field_type,
+                'options' => $f->options,
+                'validation_rules' => $f->validation_rules,
+                'is_required' => (bool) $f->is_required,
+                'default_value' => $f->default_value,
+                'placeholder' => $f->placeholder,
+                'help_text' => $f->help_text,
+                'visibility_rules' => $f->visibility_rules,
+                'sort_order' => $f->sort_order,
+            ])->values())
+            ->toArray();
+    }
+
+    /**
+     * @return array<string, bool>
+     */
+    private static function resolveFeatureFlags(int $tenantId): array
+    {
+        return DB::table('feature_flags')
+            ->where(function ($query) use ($tenantId): void {
+                $query->where('tenant_id', $tenantId)->orWhereNull('tenant_id');
+            })
+            ->get()
+            ->mapWithKeys(fn ($row): array => [$row->key => (bool) $row->enabled])
+            ->toArray();
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private static function resolveNavOrder(int $tenantId): array
+    {
+        /** @var Setting|null $navSetting */
+        $navSetting = Setting::withoutTenantScope()
+            ->where('tenant_id', $tenantId)
+            ->where('group', 'navigation')
+            ->where('key', 'nav_order')
+            ->first();
+
+        $raw = $navSetting?->value;
+        if (is_string($raw)) {
+            $raw = json_decode($raw, true);
+        }
+
+        return is_array($raw) && ! empty($raw['sections']) ? $raw : TenantModuleController::DEFAULT_NAV_ORDER;
     }
 }

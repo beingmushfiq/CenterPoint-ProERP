@@ -16,28 +16,6 @@ class ReportDefinition extends Model
 {
     use BelongsToTenant, SoftDeletes;
 
-    protected $table = 'report_definitions';
-
-    protected $fillable = [
-        'tenant_id',
-        'uuid',
-        'code',
-        'canonical_code',
-        'name',
-        'module',
-        'category',
-        'description',
-        'default_filters',
-        'available_columns',
-        'required_permission',
-        'supports_export',
-        'tier',
-        'summary_table',
-        'is_active',
-        'created_by',
-        'updated_by',
-    ];
-
     /**
      * Canonical aliases mapping legacy / single-filter report codes to their consolidated parents.
      */
@@ -118,6 +96,35 @@ class ReportDefinition extends Model
         'defect_categorization' => 'qc_inspection_ratio',
     ];
 
+    protected $table = 'report_definitions';
+
+    protected $fillable = [
+        'tenant_id',
+        'uuid',
+        'code',
+        'canonical_code',
+        'name',
+        'module',
+        'category',
+        'description',
+        'default_filters',
+        'available_columns',
+        'required_permission',
+        'supports_export',
+        'tier',
+        'summary_table',
+        'is_active',
+        'created_by',
+        'updated_by',
+    ];
+
+    protected $casts = [
+        'default_filters' => 'array',
+        'available_columns' => 'array',
+        'supports_export' => 'boolean',
+        'is_active' => 'boolean',
+    ];
+
     /**
      * Resolves a report definition by code, alias, or canonical fallback.
      */
@@ -125,7 +132,7 @@ class ReportDefinition extends Model
     {
         $canonical = self::CANONICAL_ALIASES[$code] ?? $code;
 
-        $buildScope = function ($q) use ($tenantId) {
+        $buildScope = function ($q) use ($tenantId): void {
             if ($tenantId !== null) {
                 $q->whereNull('tenant_id')->orWhere('tenant_id', $tenantId);
             }
@@ -154,24 +161,6 @@ class ReportDefinition extends Model
             ->first();
     }
 
-    protected $casts = [
-        'default_filters' => 'array',
-        'available_columns' => 'array',
-        'supports_export' => 'boolean',
-        'is_active' => 'boolean',
-    ];
-
-    protected static function boot(): void
-    {
-        parent::boot();
-
-        static::creating(function ($model): void {
-            if (empty($model->uuid)) {
-                $model->uuid = (string) Str::uuid();
-            }
-        });
-    }
-
     public function savedViews(): HasMany
     {
         return $this->hasMany(ReportSavedView::class, 'report_definition_id');
@@ -190,5 +179,16 @@ class ReportDefinition extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    protected static function boot(): void
+    {
+        parent::boot();
+
+        static::creating(function ($model): void {
+            if (empty($model->uuid)) {
+                $model->uuid = (string) Str::uuid();
+            }
+        });
     }
 }

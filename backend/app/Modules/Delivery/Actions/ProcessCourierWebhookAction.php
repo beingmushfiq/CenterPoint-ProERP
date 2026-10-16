@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Modules\Delivery\Actions;
 
-use App\Exceptions\ValidationException;
 use App\Modules\Delivery\Models\CourierProvider;
 use App\Modules\Delivery\Models\CourierShipment;
 use App\Modules\Delivery\Models\CourierWebhookEvent;
@@ -29,7 +28,7 @@ class ProcessCourierWebhookAction
     ];
 
     /**
-     * @param array<string, mixed> $payload
+     * @param  array<string, mixed>  $payload
      */
     public function execute(CourierProvider $provider, array $payload, ?string $signature = null): CourierWebhookEvent
     {

@@ -16,7 +16,9 @@ class StorefrontWhatsAppOrderTest extends TestCase
     use RefreshDatabase;
 
     private Tenant $tenant;
+
     private Storefront $storefront;
+
     private Product $product;
 
     protected function setUp(): void

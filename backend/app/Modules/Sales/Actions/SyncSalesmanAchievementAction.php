@@ -16,12 +16,12 @@ final class SyncSalesmanAchievementAction
     public function execute(int $tenantId, ?int $salesmanId, ?int $userId, string $periodMonth): void
     {
         $employeeId = $salesmanId;
-        if (!$employeeId && $userId) {
+        if (! $employeeId && $userId) {
             $emp = Employee::where('tenant_id', $tenantId)->where('user_id', $userId)->first();
             $employeeId = $emp?->id;
         }
 
-        if (!$employeeId) {
+        if (! $employeeId) {
             return;
         }
 
@@ -31,7 +31,7 @@ final class SyncSalesmanAchievementAction
             ->where('period_month', $periodMonth)
             ->first();
 
-        if (!$target) {
+        if (! $target) {
             return;
         }
 
@@ -45,9 +45,9 @@ final class SyncSalesmanAchievementAction
             ->whereBetween('invoice_date', [$startOfMonth, $endOfMonth]);
 
         if ($employee && $employee->user_id) {
-            $salesQuery->where(function ($q) use ($employeeId, $employee) {
+            $salesQuery->where(function ($q) use ($employeeId, $employee): void {
                 $q->where('salesman_id', $employeeId)
-                  ->orWhere('created_by', $employee->user_id);
+                    ->orWhere('created_by', $employee->user_id);
             });
         } else {
             $salesQuery->where('salesman_id', $employeeId);
@@ -103,20 +103,20 @@ final class SyncSalesmanAchievementAction
 
             IncentiveCalculation::updateOrCreate(
                 [
-                    'tenant_id'    => $tenantId,
-                    'employee_id'  => $employeeId,
+                    'tenant_id' => $tenantId,
+                    'employee_id' => $employeeId,
                     'period_month' => $periodMonth,
                 ],
                 [
                     'salesman_target_id' => $target->id,
-                    'incentive_policy_id'=> $policy->id,
-                    'target_amount'      => (string) $targetAmt,
-                    'achieved_amount'    => (string) $achieved,
-                    'achievement_pct'    => (string) $achievementPct,
-                    'calculated_amount'  => (string) round($calculatedAmount, 4),
-                    'approved_amount'    => (string) round($calculatedAmount, 4),
-                    'status'             => 'draft',
-                    'notes'              => "Auto-calculated on {$policy->name} rules",
+                    'incentive_policy_id' => $policy->id,
+                    'target_amount' => (string) $targetAmt,
+                    'achieved_amount' => (string) $achieved,
+                    'achievement_pct' => (string) $achievementPct,
+                    'calculated_amount' => (string) round($calculatedAmount, 4),
+                    'approved_amount' => (string) round($calculatedAmount, 4),
+                    'status' => 'draft',
+                    'notes' => "Auto-calculated on {$policy->name} rules",
                 ]
             );
         }

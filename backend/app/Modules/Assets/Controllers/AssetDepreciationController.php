@@ -6,9 +6,7 @@ namespace App\Modules\Assets\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Assets\Actions\CalculateDepreciationAction;
-use App\Modules\Assets\Actions\CreateMaintenanceOrderAction;
 use App\Modules\Assets\Models\AssetDepreciationEntry;
-use App\Modules\Assets\Models\MaintenanceOrder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 

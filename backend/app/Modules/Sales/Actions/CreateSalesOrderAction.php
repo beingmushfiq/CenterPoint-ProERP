@@ -60,7 +60,7 @@ final class CreateSalesOrderAction
     public function execute(array $data): SalesOrder
     {
         return DB::transaction(function () use ($data): SalesOrder {
-            $orderNumber = $data['order_number'] ?? ('SO-' . date('Ymd') . '-' . strtoupper(Str::random(6)));
+            $orderNumber = $data['order_number'] ?? ('SO-'.date('Ymd').'-'.strtoupper(Str::random(6)));
 
             /** @var numeric-string $grossSubtotal */
             $grossSubtotal = '0.0000';
@@ -80,9 +80,9 @@ final class CreateSalesOrderAction
                     $productId = $product?->id;
                 }
 
-                if (!$productId || !$product) {
+                if (! $productId || ! $product) {
                     throw ValidationException::withMessages([
-                        "items.{$idx}.product_id" => ["The selected product is invalid or does not exist for this company."],
+                        "items.{$idx}.product_id" => ['The selected product is invalid or does not exist for this company.'],
                     ]);
                 }
 
@@ -95,13 +95,13 @@ final class CreateSalesOrderAction
                     $unitId = $unit?->id;
                 }
 
-                if (!$unitId) {
+                if (! $unitId) {
                     $unitId = $product->base_unit_id;
                 }
 
-                if (!$unitId) {
+                if (! $unitId) {
                     throw ValidationException::withMessages([
-                        "items.{$idx}.unit_id" => ["The selected unit of measure is invalid."],
+                        "items.{$idx}.unit_id" => ['The selected unit of measure is invalid.'],
                     ]);
                 }
 
@@ -249,7 +249,7 @@ final class CreateSalesOrderAction
             $userId = isset($data['created_by']) ? (int) $data['created_by'] : null;
             $salespersonId = isset($data['salesperson_id']) ? (int) $data['salesperson_id'] : $userId;
             $salesmanId = isset($data['salesman_id']) ? (int) $data['salesman_id'] : null;
-            if (!$salesmanId && $userId) {
+            if (! $salesmanId && $userId) {
                 $employee = Employee::where('tenant_id', $data['tenant_id'])->where('user_id', $userId)->first();
                 if ($employee) {
                     $salesmanId = $employee->id;
@@ -258,18 +258,18 @@ final class CreateSalesOrderAction
 
             // 3. Create CRM Lead first with all info (pending verification if sold later)
             $leadId = isset($data['lead_id']) && is_numeric($data['lead_id']) ? (int) $data['lead_id'] : null;
-            if (!$leadId) {
+            if (! $leadId) {
                 $channel = $data['channel'] ?? 'counter';
                 $sourceMapping = [
                     'counter' => 'walk_in',
-                    'dealer'  => 'referral',
-                    'phone'   => 'phone',
-                    'field'   => 'field_visit',
-                    'online'  => 'online',
+                    'dealer' => 'referral',
+                    'phone' => 'phone',
+                    'field' => 'field_visit',
+                    'online' => 'online',
                 ];
                 $leadSource = $sourceMapping[$channel] ?? 'walk_in';
 
-                $lead = new CrmLead();
+                $lead = new CrmLead;
                 $lead->tenant_id = $data['tenant_id'];
                 $lead->name = $customerName;
                 $lead->company_name = $party?->legal_name ?? $party?->name ?? null;
@@ -285,9 +285,9 @@ final class CreateSalesOrderAction
                 $lead->expected_close_date = $data['order_date'] ?? date('Y-m-d');
                 $lead->converted_party_id = $partyId;
 
-                $leadNotes = "Auto-created from sales order {$orderNumber}. Line items: " . count($data['items']) . ", Amount: {$grandTotal} BDT.";
-                if (!empty($data['notes'])) {
-                    $leadNotes .= "\nOrder Instructions: " . $data['notes'];
+                $leadNotes = "Auto-created from sales order {$orderNumber}. Line items: ".count($data['items']).", Amount: {$grandTotal} BDT.";
+                if (! empty($data['notes'])) {
+                    $leadNotes .= "\nOrder Instructions: ".$data['notes'];
                 }
                 $lead->notes = $leadNotes;
                 $lead->created_by = $userId;
@@ -296,7 +296,7 @@ final class CreateSalesOrderAction
                 $leadId = $lead->id;
 
                 // Log task activity on the newly minted lead
-                $activity = new CrmActivity();
+                $activity = new CrmActivity;
                 $activity->tenant_id = $data['tenant_id'];
                 $activity->subject_type = 'lead';
                 $activity->subject_id = $lead->id;
@@ -310,66 +310,66 @@ final class CreateSalesOrderAction
 
             // 4. Create Sales Order linked to Lead & Salesman
             $order = SalesOrder::create([
-                'tenant_id'       => $data['tenant_id'],
-                'order_number'    => $orderNumber,
-                'channel'         => $data['channel'] ?? 'counter',
-                'company_id'      => $data['company_id'] ?? null,
-                'branch_id'       => $data['branch_id'] ?? null,
-                'warehouse_id'    => $data['warehouse_id'] ?? null,
-                'party_id'        => $partyId,
-                'lead_id'         => $leadId,
-                'salesman_id'     => $salesmanId,
-                'customer_name'   => $customerName,
-                'customer_phone'  => $customerPhone,
-                'pos_session_id'  => $data['pos_session_id'] ?? null,
-                'order_date'      => $data['order_date'],
-                'required_date'   => $data['required_date'] ?? null,
-                'price_list_id'   => $data['price_list_id'] ?? null,
-                'currency_code'   => $data['currency_code'] ?? 'BDT',
-                'subtotal'        => $grossSubtotal,
+                'tenant_id' => $data['tenant_id'],
+                'order_number' => $orderNumber,
+                'channel' => $data['channel'] ?? 'counter',
+                'company_id' => $data['company_id'] ?? null,
+                'branch_id' => $data['branch_id'] ?? null,
+                'warehouse_id' => $data['warehouse_id'] ?? null,
+                'party_id' => $partyId,
+                'lead_id' => $leadId,
+                'salesman_id' => $salesmanId,
+                'customer_name' => $customerName,
+                'customer_phone' => $customerPhone,
+                'pos_session_id' => $data['pos_session_id'] ?? null,
+                'order_date' => $data['order_date'],
+                'required_date' => $data['required_date'] ?? null,
+                'price_list_id' => $data['price_list_id'] ?? null,
+                'currency_code' => $data['currency_code'] ?? 'BDT',
+                'subtotal' => $grossSubtotal,
                 'discount_amount' => $totalDiscount,
-                'tax_amount'      => $totalTax,
+                'tax_amount' => $totalTax,
                 'shipping_amount' => $shipping,
-                'round_off'       => $roundOff,
-                'total_amount'    => $grandTotal,
-                'paid_amount'     => '0.0000',
-                'due_amount'      => $grandTotal,
-                'delivery_type'   => $data['delivery_type'] ?? 'pickup',
-                'status'          => 'draft',
-                'payment_status'  => 'unpaid',
-                'salesperson_id'  => $salespersonId,
-                'notes'           => $data['notes'] ?? null,
-                'internal_notes'  => $data['internal_notes'] ?? null,
-                'created_by'      => $userId,
+                'round_off' => $roundOff,
+                'total_amount' => $grandTotal,
+                'paid_amount' => '0.0000',
+                'due_amount' => $grandTotal,
+                'delivery_type' => $data['delivery_type'] ?? 'pickup',
+                'status' => 'draft',
+                'payment_status' => 'unpaid',
+                'salesperson_id' => $salespersonId,
+                'notes' => $data['notes'] ?? null,
+                'internal_notes' => $data['internal_notes'] ?? null,
+                'created_by' => $userId,
             ]);
 
             foreach ($finalItems as $fi) {
                 SalesOrderItem::create([
-                    'tenant_id'           => $data['tenant_id'],
-                    'sales_order_id'      => $order->id,
-                    'product_id'          => $fi['resolved_product_id'],
-                    'variant_id'          => $fi['item']['variant_id'] ?? null,
-                    'description'         => $fi['item']['description'] ?? null,
-                    'quantity'            => $fi['quantity'],
-                    'unit_id'             => $fi['resolved_unit_id'],
-                    'unit_price'          => $fi['unit_price'],
+                    'tenant_id' => $data['tenant_id'],
+                    'sales_order_id' => $order->id,
+                    'product_id' => $fi['resolved_product_id'],
+                    'variant_id' => $fi['item']['variant_id'] ?? null,
+                    'description' => $fi['item']['description'] ?? null,
+                    'quantity' => $fi['quantity'],
+                    'unit_id' => $fi['resolved_unit_id'],
+                    'unit_price' => $fi['unit_price'],
                     'discount_percentage' => $fi['disc_pct'],
-                    'discount_amount'     => $fi['total_line_disc'],
-                    'tax_profile_id'      => $fi['item']['tax_profile_id'] ?? null,
-                    'tax_amount'          => $fi['tax_amount'],
-                    'line_total'          => $fi['line_total'],
-                    'delivered_quantity'  => '0.0000',
-                    'returned_quantity'   => '0.0000',
-                    'batch_code'          => $fi['item']['batch_code'] ?? null,
-                    'sort_order'          => $fi['item']['sort_order'] ?? $fi['idx'],
-                    'created_by'          => $userId,
+                    'discount_amount' => $fi['total_line_disc'],
+                    'tax_profile_id' => $fi['item']['tax_profile_id'] ?? null,
+                    'tax_amount' => $fi['tax_amount'],
+                    'line_total' => $fi['line_total'],
+                    'delivered_quantity' => '0.0000',
+                    'returned_quantity' => '0.0000',
+                    'batch_code' => $fi['item']['batch_code'] ?? null,
+                    'sort_order' => $fi['item']['sort_order'] ?? $fi['idx'],
+                    'created_by' => $userId,
                 ]);
             }
 
             // Sync salesman targets for the current month
             if ($salesmanId || $userId) {
                 $periodMonth = substr($data['order_date'], 0, 7);
-                app(\App\Modules\Sales\Actions\SyncSalesmanAchievementAction::class)
+                app(SyncSalesmanAchievementAction::class)
                     ->execute($data['tenant_id'], $salesmanId, $userId, $periodMonth);
             }
 

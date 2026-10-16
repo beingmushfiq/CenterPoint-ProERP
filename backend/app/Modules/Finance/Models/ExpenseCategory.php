@@ -35,17 +35,6 @@ class ExpenseCategory extends Model
         'is_active' => 'boolean',
     ];
 
-    protected static function boot(): void
-    {
-        parent::boot();
-
-        static::creating(static function (ExpenseCategory $model): void {
-            if (empty($model->uuid)) {
-                $model->uuid = (string) Str::uuid();
-            }
-        });
-    }
-
     /**
      * @return BelongsTo<ChartOfAccount, $this>
      */
@@ -60,5 +49,16 @@ class ExpenseCategory extends Model
     public function expenses(): HasMany
     {
         return $this->hasMany(Expense::class, 'expense_category_id');
+    }
+
+    protected static function boot(): void
+    {
+        parent::boot();
+
+        static::creating(static function (ExpenseCategory $model): void {
+            if (empty($model->uuid)) {
+                $model->uuid = (string) Str::uuid();
+            }
+        });
     }
 }

@@ -82,29 +82,15 @@ final class Payment extends Model
      * @var array<string, string>
      */
     protected $casts = [
-        'payment_date'      => 'date',
-        'amount'            => 'decimal:4',
-        'allocated_amount'  => 'decimal:4',
+        'payment_date' => 'date',
+        'amount' => 'decimal:4',
+        'allocated_amount' => 'decimal:4',
         'unallocated_amount' => 'decimal:4',
-        'posted_at'         => 'datetime',
-        'created_at'        => 'datetime',
-        'updated_at'        => 'datetime',
-        'deleted_at'        => 'datetime',
+        'posted_at' => 'datetime',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
+        'deleted_at' => 'datetime',
     ];
-
-    protected static function boot(): void
-    {
-        parent::boot();
-
-        static::creating(static function (Payment $model): void {
-            if (empty($model->uuid)) {
-                $model->uuid = (string) Str::uuid();
-            }
-            if (empty($model->currency_code)) {
-                $model->currency_code = 'BDT';
-            }
-        });
-    }
 
     /**
      * @return BelongsTo<Party, $this>
@@ -136,5 +122,19 @@ final class Payment extends Model
     public function splits(): HasMany
     {
         return $this->hasMany(PaymentSplit::class, 'payment_id');
+    }
+
+    protected static function boot(): void
+    {
+        parent::boot();
+
+        self::creating(static function (Payment $model): void {
+            if (empty($model->uuid)) {
+                $model->uuid = (string) Str::uuid();
+            }
+            if (empty($model->currency_code)) {
+                $model->currency_code = 'BDT';
+            }
+        });
     }
 }

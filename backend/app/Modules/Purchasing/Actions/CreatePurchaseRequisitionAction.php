@@ -36,7 +36,7 @@ final class CreatePurchaseRequisitionAction
     public function execute(array $data): PurchaseRequisition
     {
         return DB::transaction(function () use ($data): PurchaseRequisition {
-            $reqNumber = $data['requisition_number'] ?? ('REQ-' . date('Ymd') . '-' . strtoupper(Str::random(6)));
+            $reqNumber = $data['requisition_number'] ?? ('REQ-'.date('Ymd').'-'.strtoupper(Str::random(6)));
             $requiredByDate = $data['required_by_date'] ?? $data['requisition_date'] ?? now()->toDateString();
 
             $requisition = PurchaseRequisition::create([

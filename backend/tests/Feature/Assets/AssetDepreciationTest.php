@@ -24,12 +24,19 @@ class AssetDepreciationTest extends TestCase
     use RefreshDatabase;
 
     private Tenant $tenant;
+
     private User $user;
+
     private string $token;
+
     private Company $company;
+
     private Branch $branch;
+
     private AssetCategory $category;
+
     private ChartOfAccount $expenseAccount;
+
     private ChartOfAccount $accumAccount;
 
     protected function setUp(): void

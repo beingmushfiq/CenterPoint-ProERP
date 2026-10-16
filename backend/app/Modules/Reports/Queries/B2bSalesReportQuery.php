@@ -13,65 +13,55 @@ class B2bSalesReportQuery implements ReportQueryInterface
 
     public function __construct(?SalesDataProvider $provider = null)
     {
-        $this->provider = $provider ?? new SalesDataProvider();
+        $this->provider = $provider ?? new SalesDataProvider;
     }
 
     public function columns(): array
     {
-        return array (
-  'order_number' => 
-  array (
-    'label' => 'Invoice / Order No',
-    'type' => 'string',
-    'sortable' => true,
-  ),
-  'order_date' => 
-  array (
-    'label' => 'Date',
-    'type' => 'date',
-  ),
-  'customer_name' => 
-  array (
-    'label' => 'Corporate / B2B Client',
-    'type' => 'string',
-  ),
-  'salesperson' => 
-  array (
-    'label' => 'Account Manager',
-    'type' => 'string',
-  ),
-  'branch' => 
-  array (
-    'label' => 'Branch',
-    'type' => 'string',
-  ),
-  'grand_total' => 
-  array (
-    'label' => 'Order Total (BDT)',
-    'type' => 'currency',
-    'sortable' => true,
-  ),
-  'paid_amount' => 
-  array (
-    'label' => 'Paid (BDT)',
-    'type' => 'currency',
-  ),
-  'due_amount' => 
-  array (
-    'label' => 'Outstanding (BDT)',
-    'type' => 'currency',
-  ),
-  'status' => 
-  array (
-    'label' => 'Fulfillment Status',
-    'type' => 'badge',
-  ),
-  'payment_status' => 
-  array (
-    'label' => 'Payment Status',
-    'type' => 'badge',
-  ),
-);
+        return [
+            'order_number' => [
+                'label' => 'Invoice / Order No',
+                'type' => 'string',
+                'sortable' => true,
+            ],
+            'order_date' => [
+                'label' => 'Date',
+                'type' => 'date',
+            ],
+            'customer_name' => [
+                'label' => 'Corporate / B2B Client',
+                'type' => 'string',
+            ],
+            'salesperson' => [
+                'label' => 'Account Manager',
+                'type' => 'string',
+            ],
+            'branch' => [
+                'label' => 'Branch',
+                'type' => 'string',
+            ],
+            'grand_total' => [
+                'label' => 'Order Total (BDT)',
+                'type' => 'currency',
+                'sortable' => true,
+            ],
+            'paid_amount' => [
+                'label' => 'Paid (BDT)',
+                'type' => 'currency',
+            ],
+            'due_amount' => [
+                'label' => 'Outstanding (BDT)',
+                'type' => 'currency',
+            ],
+            'status' => [
+                'label' => 'Fulfillment Status',
+                'type' => 'badge',
+            ],
+            'payment_status' => [
+                'label' => 'Payment Status',
+                'type' => 'badge',
+            ],
+        ];
     }
 
     public function query(array $filters, int $page = 1, int $perPage = 25): array

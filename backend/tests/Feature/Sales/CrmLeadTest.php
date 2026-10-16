@@ -10,7 +10,6 @@ use App\Models\Permission;
 use App\Models\Role;
 use App\Models\Tenant;
 use App\Models\User;
-use App\Modules\Sales\Models\CrmActivity;
 use App\Modules\Sales\Models\CrmLead;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -23,7 +22,9 @@ class CrmLeadTest extends TestCase
     use RefreshDatabase;
 
     private Tenant $tenant;
+
     private User $user;
+
     private string $token;
 
     protected function setUp(): void
@@ -95,38 +96,6 @@ class CrmLeadTest extends TestCase
             tenantId: $this->tenant->id,
             tokenVersion: 1
         );
-    }
-
-    private function assignOnly(string ...$permissions): void
-    {
-        $role = Role::create([
-            'uuid'      => (string) Str::uuid(),
-            'tenant_id' => $this->tenant->id,
-            'name'      => 'CRM Role ' . Str::random(6),
-            'slug'      => 'crm-' . Str::random(6),
-            'is_system' => false,
-        ]);
-
-        foreach ($permissions as $name) {
-            $parts = explode('.', $name);
-            $module = $parts[0] ?? 'sales';
-            $resource = $parts[1] ?? 'lead';
-            $action = $parts[2] ?? 'view';
-
-            $permission = Permission::firstOrCreate(
-                ['name' => $name],
-                [
-                    'uuid'     => (string) Str::uuid(),
-                    'module'   => $module,
-                    'resource' => $resource,
-                    'action'   => $action,
-                ]
-            );
-            $role->permissions()->attach($permission);
-        }
-
-        $this->user->roles()->detach();
-        $this->user->roles()->attach($role);
     }
 
     public function test_can_create_lead_with_all_controls(): void
@@ -418,5 +387,37 @@ class CrmLeadTest extends TestCase
             ]);
 
         $res->assertStatus(403);
+    }
+
+    private function assignOnly(string ...$permissions): void
+    {
+        $role = Role::create([
+            'uuid' => (string) Str::uuid(),
+            'tenant_id' => $this->tenant->id,
+            'name' => 'CRM Role '.Str::random(6),
+            'slug' => 'crm-'.Str::random(6),
+            'is_system' => false,
+        ]);
+
+        foreach ($permissions as $name) {
+            $parts = explode('.', $name);
+            $module = $parts[0] ?? 'sales';
+            $resource = $parts[1] ?? 'lead';
+            $action = $parts[2] ?? 'view';
+
+            $permission = Permission::firstOrCreate(
+                ['name' => $name],
+                [
+                    'uuid' => (string) Str::uuid(),
+                    'module' => $module,
+                    'resource' => $resource,
+                    'action' => $action,
+                ]
+            );
+            $role->permissions()->attach($permission);
+        }
+
+        $this->user->roles()->detach();
+        $this->user->roles()->attach($role);
     }
 }

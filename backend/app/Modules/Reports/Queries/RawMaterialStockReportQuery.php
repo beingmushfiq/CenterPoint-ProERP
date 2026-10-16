@@ -13,56 +13,48 @@ class RawMaterialStockReportQuery implements ReportQueryInterface
 
     public function __construct(?InventoryDataProvider $provider = null)
     {
-        $this->provider = $provider ?? new InventoryDataProvider();
+        $this->provider = $provider ?? new InventoryDataProvider;
     }
 
     public function columns(): array
     {
-        return array (
-  'sku' => 
-  array (
-    'label' => 'Raw Material SKU',
-    'type' => 'string',
-    'sortable' => true,
-  ),
-  'product_name' => 
-  array (
-    'label' => 'Material Description',
-    'type' => 'string',
-  ),
-  'category' => 
-  array (
-    'label' => 'Material Category',
-    'type' => 'string',
-  ),
-  'warehouse' => 
-  array (
-    'label' => 'Storage Warehouse',
-    'type' => 'string',
-  ),
-  'batch_code' => 
-  array (
-    'label' => 'Lot / Batch No',
-    'type' => 'string',
-  ),
-  'quantity_on_hand' => 
-  array (
-    'label' => 'Quantity on Hand',
-    'type' => 'number',
-    'sortable' => true,
-  ),
-  'unit_cost' => 
-  array (
-    'label' => 'Unit Cost (BDT)',
-    'type' => 'currency',
-  ),
-  'total_valuation' => 
-  array (
-    'label' => 'Inventory Value (BDT)',
-    'type' => 'currency',
-    'sortable' => true,
-  ),
-);
+        return [
+            'sku' => [
+                'label' => 'Raw Material SKU',
+                'type' => 'string',
+                'sortable' => true,
+            ],
+            'product_name' => [
+                'label' => 'Material Description',
+                'type' => 'string',
+            ],
+            'category' => [
+                'label' => 'Material Category',
+                'type' => 'string',
+            ],
+            'warehouse' => [
+                'label' => 'Storage Warehouse',
+                'type' => 'string',
+            ],
+            'batch_code' => [
+                'label' => 'Lot / Batch No',
+                'type' => 'string',
+            ],
+            'quantity_on_hand' => [
+                'label' => 'Quantity on Hand',
+                'type' => 'number',
+                'sortable' => true,
+            ],
+            'unit_cost' => [
+                'label' => 'Unit Cost (BDT)',
+                'type' => 'currency',
+            ],
+            'total_valuation' => [
+                'label' => 'Inventory Value (BDT)',
+                'type' => 'currency',
+                'sortable' => true,
+            ],
+        ];
     }
 
     public function query(array $filters, int $page = 1, int $perPage = 25): array

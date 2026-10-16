@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Modules\Ecommerce\Services;
 
 use App\Models\OrderFraudAssessment;
-use App\Models\Party;
 use App\Modules\Sales\Models\SalesOrder;
 
 class OrderFraudScorerService

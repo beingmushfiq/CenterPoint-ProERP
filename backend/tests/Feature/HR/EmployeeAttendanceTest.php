@@ -24,11 +24,17 @@ class EmployeeAttendanceTest extends TestCase
     use RefreshDatabase;
 
     private Tenant $tenant;
+
     private User $user;
+
     private string $token;
+
     private Company $company;
+
     private Branch $branch;
+
     private Shift $shift;
+
     private LeaveType $leaveType;
 
     protected function setUp(): void

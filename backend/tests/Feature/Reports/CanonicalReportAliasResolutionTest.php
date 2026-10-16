@@ -20,7 +20,9 @@ class CanonicalReportAliasResolutionTest extends TestCase
     use RefreshDatabase;
 
     protected Tenant $tenant;
+
     protected User $adminUser;
+
     protected string $token;
 
     protected function setUp(): void

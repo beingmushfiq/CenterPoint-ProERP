@@ -4,11 +4,9 @@ declare(strict_types=1);
 
 namespace App\Modules\Ecommerce\Controllers;
 
-use App\Core\Http\Controllers\Controller;
 use App\Core\Tenancy\TenantContext;
 use App\Http\Controllers\Controller as BaseController;
 use App\Models\Tenant;
-use App\Models\TenantSeoSetting;
 use App\Modules\Ecommerce\Services\Seo\IndexNowNotificationService;
 use App\Modules\Ecommerce\Services\Seo\SeoHealthAuditService;
 use App\Modules\Ecommerce\Services\Seo\SeoMetadataService;
@@ -22,14 +20,6 @@ class TenantSeoSettingsController extends BaseController
         protected SeoHealthAuditService $seoHealthAuditService,
         protected IndexNowNotificationService $indexNowService
     ) {}
-
-    protected function getTenantId(Request $request): int
-    {
-        if (TenantContext::isBound()) {
-            return TenantContext::current()->tenantId();
-        }
-        return (int) ($request->attributes->get('tenant_id') ?? auth()->user()?->tenant_id ?? 1);
-    }
 
     /**
      * Get SEO settings for the authenticated tenant.
@@ -136,5 +126,14 @@ class TenantSeoSettingsController extends BaseController
         $result = $this->indexNowService->submitUrls($tenant, $request->input('urls'));
 
         return response()->json($result);
+    }
+
+    protected function getTenantId(Request $request): int
+    {
+        if (TenantContext::isBound()) {
+            return TenantContext::current()->tenantId();
+        }
+
+        return (int) ($request->attributes->get('tenant_id') ?? auth()->user()?->tenant_id ?? 1);
     }
 }

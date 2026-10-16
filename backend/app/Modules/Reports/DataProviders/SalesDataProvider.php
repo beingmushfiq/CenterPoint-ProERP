@@ -108,13 +108,13 @@ class SalesDataProvider extends BaseDataProvider
                 DB::raw('SUM(soi.quantity * COALESCE(p.standard_cost, 0)) as total_cogs'),
             ]);
 
-        if (!empty($filters['start_date'])) {
+        if (! empty($filters['start_date'])) {
             $query->where('so.order_date', '>=', $filters['start_date']);
         }
-        if (!empty($filters['end_date'])) {
+        if (! empty($filters['end_date'])) {
             $query->where('so.order_date', '<=', $filters['end_date']);
         }
-        if (!empty($filters['category_id'])) {
+        if (! empty($filters['category_id'])) {
             $query->where('p.category_id', $filters['category_id']);
         }
 
@@ -334,9 +334,9 @@ class SalesDataProvider extends BaseDataProvider
             ->where('so.tenant_id', $tenantId)
             ->whereNull('so.deleted_at')
             ->whereNotIn('so.status', ['cancelled', 'draft'])
-            ->groupBy(DB::raw("SUBSTR(so.order_date, 1, 7)"))
+            ->groupBy(DB::raw('SUBSTR(so.order_date, 1, 7)'))
             ->select([
-                DB::raw("SUBSTR(so.order_date, 1, 7) as month_period"),
+                DB::raw('SUBSTR(so.order_date, 1, 7) as month_period'),
                 DB::raw('COUNT(so.id) as orders_count'),
                 DB::raw('COALESCE(SUM(so.total_amount), 0) as total_revenue'),
                 DB::raw('COALESCE(SUM(so.paid_amount), 0) as total_collected'),
@@ -378,6 +378,7 @@ class SalesDataProvider extends BaseDataProvider
     public function b2bSales(array $filters, int $page = 1, int $perPage = 25): array
     {
         $filters['channel'] = 'b2b';
+
         return $this->performance($filters, $page, $perPage);
     }
 
@@ -449,7 +450,7 @@ class SalesDataProvider extends BaseDataProvider
             ->leftJoin('users as u', 'so.salesperson_id', '=', 'u.id')
             ->where('so.tenant_id', $tenantId)
             ->whereNull('so.deleted_at')
-            ->where(function ($q) {
+            ->where(function ($q): void {
                 $q->whereIn('so.channel', ['pos', 'counter'])
                     ->orWhereNotNull('so.pos_session_id');
             })
@@ -527,10 +528,10 @@ class SalesDataProvider extends BaseDataProvider
                 'sr.status',
             ]);
 
-        if (!empty($filters['start_date'])) {
+        if (! empty($filters['start_date'])) {
             $query->where('sr.return_date', '>=', $filters['start_date']);
         }
-        if (!empty($filters['end_date'])) {
+        if (! empty($filters['end_date'])) {
             $query->where('sr.return_date', '<=', $filters['end_date']);
         }
 
@@ -710,9 +711,9 @@ class SalesDataProvider extends BaseDataProvider
             ->where('so.tenant_id', $tenantId)
             ->whereNull('so.deleted_at')
             ->whereNotIn('so.status', ['cancelled', 'draft'])
-            ->groupBy(DB::raw("SUBSTR(so.order_date, 1, 7)"))
+            ->groupBy(DB::raw('SUBSTR(so.order_date, 1, 7)'))
             ->select([
-                DB::raw("SUBSTR(so.order_date, 1, 7) as month_period"),
+                DB::raw('SUBSTR(so.order_date, 1, 7) as month_period'),
                 DB::raw('COUNT(DISTINCT so.id) as orders_count'),
                 DB::raw('COALESCE(SUM(so.total_amount), 0) as total_revenue'),
                 DB::raw('COALESCE(SUM(soi.quantity * COALESCE(pr.standard_cost, 0)), 0) as total_cogs'),
@@ -948,7 +949,7 @@ class SalesDataProvider extends BaseDataProvider
             ->get()
             ->map(function ($row) use (&$rank): array {
                 return [
-                    'rank' => '#' . ($rank++),
+                    'rank' => '#'.($rank++),
                     'salesman_name' => $row->salesman_name,
                     'deals_closed' => (int) $row->deals_count,
                     'total_volume' => (float) $row->total_volume,
@@ -1021,40 +1022,6 @@ class SalesDataProvider extends BaseDataProvider
     }
 
     /**
-     * Apply common tenant-safe filters.
-     */
-    protected function applyFilters($query, array $filters): void
-    {
-        if (!empty($filters['start_date'])) {
-            $query->where('so.order_date', '>=', $filters['start_date']);
-        }
-        if (!empty($filters['end_date'])) {
-            $query->where('so.order_date', '<=', $filters['end_date']);
-        }
-        if (!empty($filters['channel'])) {
-            $query->where('so.channel', $filters['channel']);
-        }
-        if (!empty($filters['payment_status'])) {
-            $query->where('so.payment_status', $filters['payment_status']);
-        }
-        if (!empty($filters['status'])) {
-            $query->where('so.status', $filters['status']);
-        }
-        if (!empty($filters['branch_id'])) {
-            $query->where('so.branch_id', $filters['branch_id']);
-        }
-        if (!empty($filters['warehouse_id'])) {
-            $query->where('so.warehouse_id', $filters['warehouse_id']);
-        }
-        if (!empty($filters['salesperson_id'])) {
-            $query->where('so.salesperson_id', $filters['salesperson_id']);
-        }
-        if (!empty($filters['party_id'])) {
-            $query->where('so.party_id', $filters['party_id']);
-        }
-    }
-
-    /**
      * Best-selling products ranked by revenue, volume, velocity, and gross margins.
      */
     public function bestSellingProducts(array $filters, int $page = 1, int $perPage = 25): array
@@ -1085,10 +1052,10 @@ class SalesDataProvider extends BaseDataProvider
 
         $this->applyFilters($query, $filters);
 
-        if (!empty($filters['category_id'])) {
+        if (! empty($filters['category_id'])) {
             $query->where('p.category_id', $filters['category_id']);
         }
-        if (!empty($filters['brand_id'])) {
+        if (! empty($filters['brand_id'])) {
             $query->where('p.brand_id', $filters['brand_id']);
         }
 
@@ -1113,8 +1080,8 @@ class SalesDataProvider extends BaseDataProvider
         };
 
         // Determine days in period for run-rate / velocity
-        $startDate = !empty($filters['start_date']) ? strtotime((string) $filters['start_date']) : null;
-        $endDate = !empty($filters['end_date']) ? strtotime((string) $filters['end_date']) : time();
+        $startDate = ! empty($filters['start_date']) ? strtotime((string) $filters['start_date']) : null;
+        $endDate = ! empty($filters['end_date']) ? strtotime((string) $filters['end_date']) : time();
         $daysInPeriod = ($startDate && $endDate && $endDate >= $startDate)
             ? max(1, (int) round(($endDate - $startDate) / 86400) + 1)
             : 30;
@@ -1187,10 +1154,10 @@ class SalesDataProvider extends BaseDataProvider
 
         $this->applyFilters($query, $filters);
 
-        if (!empty($filters['category_id'])) {
+        if (! empty($filters['category_id'])) {
             $query->where('p.category_id', $filters['category_id']);
         }
-        if (!empty($filters['brand_id'])) {
+        if (! empty($filters['brand_id'])) {
             $query->where('p.brand_id', $filters['brand_id']);
         }
 
@@ -1215,5 +1182,39 @@ class SalesDataProvider extends BaseDataProvider
             'overall_margin_percentage' => $margin,
             'total_orders' => (int) ($stats->total_orders ?? 0),
         ];
+    }
+
+    /**
+     * Apply common tenant-safe filters.
+     */
+    protected function applyFilters($query, array $filters): void
+    {
+        if (! empty($filters['start_date'])) {
+            $query->where('so.order_date', '>=', $filters['start_date']);
+        }
+        if (! empty($filters['end_date'])) {
+            $query->where('so.order_date', '<=', $filters['end_date']);
+        }
+        if (! empty($filters['channel'])) {
+            $query->where('so.channel', $filters['channel']);
+        }
+        if (! empty($filters['payment_status'])) {
+            $query->where('so.payment_status', $filters['payment_status']);
+        }
+        if (! empty($filters['status'])) {
+            $query->where('so.status', $filters['status']);
+        }
+        if (! empty($filters['branch_id'])) {
+            $query->where('so.branch_id', $filters['branch_id']);
+        }
+        if (! empty($filters['warehouse_id'])) {
+            $query->where('so.warehouse_id', $filters['warehouse_id']);
+        }
+        if (! empty($filters['salesperson_id'])) {
+            $query->where('so.salesperson_id', $filters['salesperson_id']);
+        }
+        if (! empty($filters['party_id'])) {
+            $query->where('so.party_id', $filters['party_id']);
+        }
     }
 }

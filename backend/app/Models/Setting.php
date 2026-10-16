@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Core\Tenancy\Concerns\BelongsToTenant;
+use Exception;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Facades\Crypt;
@@ -35,17 +36,6 @@ class Setting extends Model
         'is_encrypted' => 'boolean',
     ];
 
-    protected static function boot(): void
-    {
-        parent::boot();
-
-        static::creating(function (Setting $model): void {
-            if (empty($model->uuid)) {
-                $model->uuid = (string) Str::uuid();
-            }
-        });
-    }
-
     public function tenant(): BelongsTo
     {
         return $this->belongsTo(Tenant::class);
@@ -61,7 +51,7 @@ class Setting extends Model
         if ($this->is_encrypted && is_string($raw)) {
             try {
                 $raw = Crypt::decryptString($raw);
-            } catch (\Exception) {
+            } catch (Exception) {
                 // If decryption fails, keep raw
             }
         }
@@ -86,6 +76,7 @@ class Setting extends Model
     {
         if ($isEncrypted) {
             $stringVal = is_array($value) ? json_encode($value) : (string) $value;
+
             return Crypt::encryptString($stringVal);
         }
 
@@ -95,5 +86,16 @@ class Setting extends Model
             'json' => is_array($value) ? $value : (json_decode((string) $value, true) ?? []),
             default => is_array($value) ? $value : (string) $value,
         };
+    }
+
+    protected static function boot(): void
+    {
+        parent::boot();
+
+        static::creating(function (Setting $model): void {
+            if (empty($model->uuid)) {
+                $model->uuid = (string) Str::uuid();
+            }
+        });
     }
 }

@@ -45,6 +45,11 @@ class TenantDomain extends Model
         'dns_last_checked_at' => 'datetime',
     ];
 
+    public function tenant(): BelongsTo
+    {
+        return $this->belongsTo(Tenant::class);
+    }
+
     protected static function boot(): void
     {
         parent::boot();
@@ -54,13 +59,8 @@ class TenantDomain extends Model
                 $model->uuid = (string) Str::uuid();
             }
             if (empty($model->verification_token)) {
-                $model->verification_token = 'dcp-verify-' . Str::random(32);
+                $model->verification_token = 'dcp-verify-'.Str::random(32);
             }
         });
-    }
-
-    public function tenant(): BelongsTo
-    {
-        return $this->belongsTo(Tenant::class);
     }
 }

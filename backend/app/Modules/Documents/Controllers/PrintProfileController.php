@@ -29,17 +29,17 @@ final class PrintProfileController extends Controller
     public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'name'                => ['required', 'string', 'max:128'],
-            'paper_size_id'       => ['nullable', 'integer'],
-            'orientation'         => ['nullable', 'string', 'in:portrait,landscape'],
-            'margin_top_mm'       => ['nullable', 'numeric', 'min:0', 'max:100'],
-            'margin_bottom_mm'    => ['nullable', 'numeric', 'min:0', 'max:100'],
-            'margin_left_mm'      => ['nullable', 'numeric', 'min:0', 'max:100'],
-            'margin_right_mm'     => ['nullable', 'numeric', 'min:0', 'max:100'],
-            'scale'               => ['nullable', 'numeric', 'min:0.2', 'max:3.0'],
-            'copies'              => ['nullable', 'integer', 'min:1', 'max:100'],
+            'name' => ['required', 'string', 'max:128'],
+            'paper_size_id' => ['nullable', 'integer'],
+            'orientation' => ['nullable', 'string', 'in:portrait,landscape'],
+            'margin_top_mm' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'margin_bottom_mm' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'margin_left_mm' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'margin_right_mm' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'scale' => ['nullable', 'numeric', 'min:0.2', 'max:3.0'],
+            'copies' => ['nullable', 'integer', 'min:1', 'max:100'],
             'is_printer_friendly' => ['nullable', 'boolean'],
-            'is_default'          => ['nullable', 'boolean'],
+            'is_default' => ['nullable', 'boolean'],
         ]);
 
         $userId = (int) ($request->user()?->id ?? 0);
@@ -59,18 +59,18 @@ final class PrintProfileController extends Controller
             ->firstOrFail();
 
         $validated = $request->validate([
-            'name'                => ['sometimes', 'string', 'max:128'],
-            'paper_size_id'       => ['nullable', 'integer'],
-            'orientation'         => ['sometimes', 'string', 'in:portrait,landscape'],
-            'margin_top_mm'       => ['sometimes', 'numeric', 'min:0', 'max:100'],
-            'margin_bottom_mm'    => ['sometimes', 'numeric', 'min:0', 'max:100'],
-            'margin_left_mm'      => ['sometimes', 'numeric', 'min:0', 'max:100'],
-            'margin_right_mm'     => ['sometimes', 'numeric', 'min:0', 'max:100'],
-            'scale'               => ['sometimes', 'numeric', 'min:0.2', 'max:3.0'],
-            'copies'              => ['sometimes', 'integer', 'min:1', 'max:100'],
+            'name' => ['sometimes', 'string', 'max:128'],
+            'paper_size_id' => ['nullable', 'integer'],
+            'orientation' => ['sometimes', 'string', 'in:portrait,landscape'],
+            'margin_top_mm' => ['sometimes', 'numeric', 'min:0', 'max:100'],
+            'margin_bottom_mm' => ['sometimes', 'numeric', 'min:0', 'max:100'],
+            'margin_left_mm' => ['sometimes', 'numeric', 'min:0', 'max:100'],
+            'margin_right_mm' => ['sometimes', 'numeric', 'min:0', 'max:100'],
+            'scale' => ['sometimes', 'numeric', 'min:0.2', 'max:3.0'],
+            'copies' => ['sometimes', 'integer', 'min:1', 'max:100'],
             'is_printer_friendly' => ['sometimes', 'boolean'],
-            'is_default'          => ['sometimes', 'boolean'],
-            'is_active'           => ['sometimes', 'boolean'],
+            'is_default' => ['sometimes', 'boolean'],
+            'is_active' => ['sometimes', 'boolean'],
         ]);
 
         $userId = (int) ($request->user()?->id ?? 0);

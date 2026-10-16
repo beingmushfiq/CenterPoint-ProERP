@@ -5,14 +5,13 @@ declare(strict_types=1);
 namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
-
 use Illuminate\Support\Facades\Schema;
 
 class DatabaseBackupCommand extends Command
 {
     protected $signature = 'backup:database {--retention=30 : Number of days to retain backups}';
+
     protected $description = 'Create an automated verified database backup with point-in-time recovery checksum';
 
     public function handle(): int
@@ -20,7 +19,7 @@ class DatabaseBackupCommand extends Command
         $this->info('Starting automated database backup routine...');
 
         $backupDir = storage_path('app/backups');
-        if (!File::exists($backupDir)) {
+        if (! File::exists($backupDir)) {
             File::makeDirectory($backupDir, 0755, true);
         }
 
@@ -57,7 +56,7 @@ class DatabaseBackupCommand extends Command
         foreach ($files as $file) {
             if ($file->getMTime() < $cutoff) {
                 File::delete($file->getPathname());
-                $this->line("Pruned expired backup: " . $file->getFilename());
+                $this->line('Pruned expired backup: '.$file->getFilename());
             }
         }
     }

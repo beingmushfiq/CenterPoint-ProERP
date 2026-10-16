@@ -15,7 +15,6 @@ use App\Models\Unit;
 use App\Models\User;
 use App\Models\WorkerProductionEntry;
 use App\Modules\HR\Models\Employee;
-use App\Modules\HR\Models\PayrollPeriod;
 use App\Modules\HR\Models\Payslip;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -28,10 +27,15 @@ class PayrollPieceRateTest extends TestCase
     use RefreshDatabase;
 
     private Tenant $tenant;
+
     private User $user;
+
     private User $workerUser;
+
     private string $token;
+
     private Company $company;
+
     private Branch $branch;
 
     protected function setUp(): void

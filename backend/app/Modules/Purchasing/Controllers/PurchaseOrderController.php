@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace App\Modules\Purchasing\Controllers;
 
+use App\Core\Tenancy\TenantContext;
 use App\Http\Controllers\Controller;
 use App\Modules\Purchasing\Actions\ApprovePurchaseOrderAction;
 use App\Modules\Purchasing\Actions\CreatePurchaseOrderAction;
 use App\Modules\Purchasing\Models\PurchaseOrder;
 use App\Modules\Purchasing\Requests\StorePurchaseOrderRequest;
 use App\Modules\Purchasing\Resources\PurchaseOrderResource;
-use App\Core\Tenancy\TenantContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -155,6 +155,7 @@ final class PurchaseOrderController extends Controller
             // Cannot delete orders that are completed or received
             if (in_array($order->status, ['completed', 'received'], true)) {
                 $skipped++;
+
                 continue;
             }
 
@@ -170,7 +171,7 @@ final class PurchaseOrderController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => "{$processed} purchase order(s) {$actionText}." . ($skipped > 0 ? " {$skipped} order(s) were skipped because they are completed/received." : ''),
+            'message' => "{$processed} purchase order(s) {$actionText}.".($skipped > 0 ? " {$skipped} order(s) were skipped because they are completed/received." : ''),
             'data' => [
                 'processed' => $processed,
                 'skipped' => $skipped,
@@ -236,4 +237,3 @@ final class PurchaseOrderController extends Controller
         ]);
     }
 }
-

@@ -21,6 +21,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Throwable;
 
 final class BillOfMaterialController extends Controller
 {
@@ -171,22 +172,25 @@ final class BillOfMaterialController extends Controller
                     'value' => $fSku === '' ? $fSku : $cSku,
                     'message' => 'Both Finished SKU and Component SKU are required.',
                 ];
+
                 continue;
             }
 
             $version = trim((string) ($row['version'] ?? 'v1.0'));
-            if ($version === '') $version = 'v1.0';
+            if ($version === '') {
+                $version = 'v1.0';
+            }
 
-            $groupKey = strtolower($fSku) . '::' . strtolower($version);
+            $groupKey = strtolower($fSku).'::'.strtolower($version);
 
-            if (!isset($grouped[$groupKey])) {
+            if (! isset($grouped[$groupKey])) {
                 $grouped[$groupKey] = [
                     'finished_sku' => $fSku,
                     'version' => $version,
                     'bom_name' => trim((string) ($row['bom_name'] ?? '')) ?: "BOM for {$fSku} ({$version})",
                     'output_quantity' => (float) ($row['output_quantity'] ?? 1),
                     'output_unit' => isset($row['output_unit']) ? trim((string) $row['output_unit']) : null,
-                    'status' => !empty($row['status']) ? strtolower(trim((string) $row['status'])) : 'active',
+                    'status' => ! empty($row['status']) ? strtolower(trim((string) $row['status'])) : 'active',
                     'first_row' => $rowNum,
                     'items' => [],
                 ];
@@ -208,13 +212,14 @@ final class BillOfMaterialController extends Controller
 
         foreach ($grouped as $bomDef) {
             $fSkuKey = strtolower($bomDef['finished_sku']);
-            if (!isset($prodSkuMap[$fSkuKey])) {
+            if (! isset($prodSkuMap[$fSkuKey])) {
                 $errors[] = [
                     'row' => $bomDef['first_row'],
                     'field' => 'finished_sku',
                     'value' => $bomDef['finished_sku'],
                     'message' => "Finished product SKU '{$bomDef['finished_sku']}' does not exist.",
                 ];
+
                 continue;
             }
 
@@ -227,13 +232,14 @@ final class BillOfMaterialController extends Controller
                 $outputUnitId = $prodUnitMap[$finishedProdId] ?? null;
             }
 
-            if (!$outputUnitId) {
+            if (! $outputUnitId) {
                 $errors[] = [
                     'row' => $bomDef['first_row'],
                     'field' => 'output_unit',
                     'value' => (string) $bomDef['output_unit'],
-                    'message' => "Could not resolve valid output unit for finished product.",
+                    'message' => 'Could not resolve valid output unit for finished product.',
                 ];
+
                 continue;
             }
 
@@ -245,11 +251,12 @@ final class BillOfMaterialController extends Controller
             if ($existingBom) {
                 if ($mode === 'skip') {
                     $skipped++;
+
                     continue;
                 }
 
                 try {
-                    DB::transaction(function () use ($existingBom, $bomDef, $outputUnitId, $userId, $prodSkuMap, $unitCodeMap, $prodUnitMap, &$errors) {
+                    DB::transaction(function () use ($existingBom, $bomDef, $outputUnitId, $userId, $prodSkuMap, $unitCodeMap, $prodUnitMap, &$errors): void {
                         $existingBom->update([
                             'name' => $bomDef['bom_name'],
                             'output_quantity' => $bomDef['output_quantity'],
@@ -262,7 +269,7 @@ final class BillOfMaterialController extends Controller
 
                         foreach ($bomDef['items'] as $itemIdx => $cItem) {
                             $cSkuKey = strtolower($cItem['component_sku']);
-                            if (!isset($prodSkuMap[$cSkuKey])) {
+                            if (! isset($prodSkuMap[$cSkuKey])) {
                                 continue;
                             }
                             $cProdId = $prodSkuMap[$cSkuKey];
@@ -272,7 +279,9 @@ final class BillOfMaterialController extends Controller
                             } else {
                                 $cUnitId = $prodUnitMap[$cProdId] ?? null;
                             }
-                            if (!$cUnitId) continue;
+                            if (! $cUnitId) {
+                                continue;
+                            }
 
                             BillOfMaterialItem::create([
                                 'bill_of_material_id' => $existingBom->id,
@@ -288,19 +297,20 @@ final class BillOfMaterialController extends Controller
                         }
                     });
                     $updated++;
-                } catch (\Throwable $e) {
+                } catch (Throwable $e) {
                     $errors[] = [
                         'row' => $bomDef['first_row'],
                         'field' => 'finished_sku',
                         'value' => $bomDef['finished_sku'],
-                        'message' => 'BOM update failed: ' . $e->getMessage(),
+                        'message' => 'BOM update failed: '.$e->getMessage(),
                     ];
                 }
+
                 continue;
             }
 
             try {
-                DB::transaction(function () use ($finishedProdId, $bomDef, $outputUnitId, $userId, $prodSkuMap, $unitCodeMap, $prodUnitMap, &$errors) {
+                DB::transaction(function () use ($finishedProdId, $bomDef, $outputUnitId, $userId, $prodSkuMap, $unitCodeMap, $prodUnitMap, &$errors): void {
                     $newBom = BillOfMaterial::create([
                         'uuid' => (string) Str::uuid(),
                         'product_id' => $finishedProdId,
@@ -316,7 +326,7 @@ final class BillOfMaterialController extends Controller
 
                     foreach ($bomDef['items'] as $itemIdx => $cItem) {
                         $cSkuKey = strtolower($cItem['component_sku']);
-                        if (!isset($prodSkuMap[$cSkuKey])) {
+                        if (! isset($prodSkuMap[$cSkuKey])) {
                             continue;
                         }
                         $cProdId = $prodSkuMap[$cSkuKey];
@@ -326,7 +336,9 @@ final class BillOfMaterialController extends Controller
                         } else {
                             $cUnitId = $prodUnitMap[$cProdId] ?? null;
                         }
-                        if (!$cUnitId) continue;
+                        if (! $cUnitId) {
+                            continue;
+                        }
 
                         BillOfMaterialItem::create([
                             'bill_of_material_id' => $newBom->id,
@@ -342,12 +354,12 @@ final class BillOfMaterialController extends Controller
                     }
                 });
                 $imported++;
-            } catch (\Throwable $e) {
+            } catch (Throwable $e) {
                 $errors[] = [
                     'row' => $bomDef['first_row'],
                     'field' => 'finished_sku',
                     'value' => $bomDef['finished_sku'],
-                    'message' => 'BOM creation failed: ' . $e->getMessage(),
+                    'message' => 'BOM creation failed: '.$e->getMessage(),
                 ];
             }
         }

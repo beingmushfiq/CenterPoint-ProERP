@@ -42,15 +42,6 @@ class StorefrontPage extends Model
         'sort_order' => 'integer',
     ];
 
-    protected static function booted(): void
-    {
-        static::creating(function (StorefrontPage $model): void {
-            if (empty($model->uuid)) {
-                $model->uuid = (string) Str::uuid();
-            }
-        });
-    }
-
     public function storefront(): BelongsTo
     {
         return $this->belongsTo(Storefront::class);
@@ -59,5 +50,14 @@ class StorefrontPage extends Model
     public function author(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    protected static function booted(): void
+    {
+        static::creating(function (StorefrontPage $model): void {
+            if (empty($model->uuid)) {
+                $model->uuid = (string) Str::uuid();
+            }
+        });
     }
 }

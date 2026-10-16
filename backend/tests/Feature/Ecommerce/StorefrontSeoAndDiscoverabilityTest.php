@@ -6,15 +6,10 @@ namespace Tests\Feature\Ecommerce;
 
 use App\Core\Auth\JwtService;
 use App\Core\Tenancy\TenantContext;
-use App\Models\Category;
 use App\Models\Product;
 use App\Models\Storefront;
-use App\Models\StorefrontPage;
 use App\Models\Tenant;
-use App\Models\TenantDomain;
 use App\Models\TenantNotFoundLog;
-use App\Models\TenantRedirect;
-use App\Models\TenantSeoSetting;
 use App\Models\Unit;
 use App\Models\User;
 use Database\Seeders\DatabaseSeeder;
@@ -27,8 +22,11 @@ class StorefrontSeoAndDiscoverabilityTest extends TestCase
     use RefreshDatabase;
 
     protected Tenant $tenant;
+
     protected User $tenantUser;
+
     protected string $tenantToken;
+
     protected Storefront $storefront;
 
     protected function setUp(): void

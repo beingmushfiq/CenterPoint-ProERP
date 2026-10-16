@@ -350,6 +350,7 @@ final class TenantCouponController extends Controller
                             'field' => 'code',
                             'message' => 'Coupon code is required.',
                         ];
+
                         continue;
                     }
 
@@ -372,7 +373,7 @@ final class TenantCouponController extends Controller
                         ? number_format((float) $row['max_discount_amount'], 4, '.', '')
                         : null;
 
-                    $appliesTo = !empty($row['applies_to']) ? (string) $row['applies_to'] : 'order';
+                    $appliesTo = ! empty($row['applies_to']) ? (string) $row['applies_to'] : 'order';
 
                     $usageLimit = isset($row['usage_limit_total']) && is_numeric($row['usage_limit_total'])
                         ? (int) $row['usage_limit_total']
@@ -382,8 +383,8 @@ final class TenantCouponController extends Controller
                         ? (int) $row['usage_limit_per_customer']
                         : 1;
 
-                    $startsAt = !empty($row['starts_at']) ? (string) $row['starts_at'] : (!empty($row['start_date']) ? (string) $row['start_date'] : null);
-                    $endsAt = !empty($row['ends_at']) ? (string) $row['ends_at'] : (!empty($row['expiry_date']) ? (string) $row['expiry_date'] : (!empty($row['end_date']) ? (string) $row['end_date'] : null));
+                    $startsAt = ! empty($row['starts_at']) ? (string) $row['starts_at'] : (! empty($row['start_date']) ? (string) $row['start_date'] : null);
+                    $endsAt = ! empty($row['ends_at']) ? (string) $row['ends_at'] : (! empty($row['expiry_date']) ? (string) $row['expiry_date'] : (! empty($row['end_date']) ? (string) $row['end_date'] : null));
 
                     $isActive = isset($row['is_active']) ? filter_var($row['is_active'], FILTER_VALIDATE_BOOLEAN) : true;
 
@@ -395,6 +396,7 @@ final class TenantCouponController extends Controller
                     if ($existing) {
                         if ($mode === 'skip') {
                             $skipped++;
+
                             continue;
                         }
 
@@ -415,6 +417,7 @@ final class TenantCouponController extends Controller
                         ]);
 
                         $updated++;
+
                         continue;
                     }
 
@@ -461,4 +464,3 @@ final class TenantCouponController extends Controller
         ]);
     }
 }
-

@@ -42,6 +42,7 @@ final class EnsureModuleActive
 
             // Fallback to default capability definition
             $meta = TenantCapabilityManifest::ALL_MODULE_KEYS[$moduleKey] ?? null;
+
             return [
                 'enabled' => $meta['default'] ?? true,
                 'plan_allowed' => true,

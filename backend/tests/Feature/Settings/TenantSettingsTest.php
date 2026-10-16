@@ -6,8 +6,6 @@ namespace Tests\Feature\Settings;
 
 use App\Core\Auth\JwtService;
 use App\Core\Tenancy\TenantContext;
-use App\Models\AuditLog;
-use App\Models\Setting;
 use App\Models\Tenant;
 use App\Models\User;
 use Database\Seeders\DatabaseSeeder;
@@ -19,7 +17,9 @@ class TenantSettingsTest extends TestCase
     use RefreshDatabase;
 
     private Tenant $tenant;
+
     private User $admin;
+
     private string $token;
 
     protected function setUp(): void
@@ -44,7 +44,7 @@ class TenantSettingsTest extends TestCase
 
     public function test_can_fetch_settings_schema(): void
     {
-        $response = $this->withHeader('Authorization', 'Bearer ' . $this->token)
+        $response = $this->withHeader('Authorization', 'Bearer '.$this->token)
             ->getJson('/api/v1/settings/schema');
 
         $response->assertOk();
@@ -74,7 +74,7 @@ class TenantSettingsTest extends TestCase
     public function test_can_reset_settings_group_to_defaults(): void
     {
         // 1. Set custom value
-        $this->withHeader('Authorization', 'Bearer ' . $this->token)
+        $this->withHeader('Authorization', 'Bearer '.$this->token)
             ->putJson('/api/v1/settings/general', [
                 'settings' => [
                     'company_legal_name' => 'Custom Name Inc.',
@@ -82,7 +82,7 @@ class TenantSettingsTest extends TestCase
             ]);
 
         // 2. Reset group
-        $resetRes = $this->withHeader('Authorization', 'Bearer ' . $this->token)
+        $resetRes = $this->withHeader('Authorization', 'Bearer '.$this->token)
             ->postJson('/api/v1/settings/general/reset');
 
         $resetRes->assertOk();
@@ -93,14 +93,14 @@ class TenantSettingsTest extends TestCase
     public function test_can_read_and_batch_update_general_settings(): void
     {
         // 1. Read default group settings
-        $getRes = $this->withHeader('Authorization', 'Bearer ' . $this->token)
+        $getRes = $this->withHeader('Authorization', 'Bearer '.$this->token)
             ->getJson('/api/v1/settings/general');
 
         $getRes->assertOk();
         $getRes->assertJsonPath('success', true);
 
         // 2. Batch update settings
-        $updateRes = $this->withHeader('Authorization', 'Bearer ' . $this->token)
+        $updateRes = $this->withHeader('Authorization', 'Bearer '.$this->token)
             ->putJson('/api/v1/settings/general', [
                 'settings' => [
                     'company_legal_name' => 'SliceMart Global Foods Ltd.',
@@ -125,7 +125,7 @@ class TenantSettingsTest extends TestCase
     public function test_sensitive_credentials_are_masked_on_read(): void
     {
         // Update sensitive API key
-        $updateRes = $this->withHeader('Authorization', 'Bearer ' . $this->token)
+        $updateRes = $this->withHeader('Authorization', 'Bearer '.$this->token)
             ->putJson('/api/v1/settings/delivery', [
                 'settings' => [
                     'steadfast_api_key' => 'secret_sf_key_998877',
@@ -136,7 +136,7 @@ class TenantSettingsTest extends TestCase
         $updateRes->assertOk();
 
         // Read delivery settings - must return masked bullets
-        $getRes = $this->withHeader('Authorization', 'Bearer ' . $this->token)
+        $getRes = $this->withHeader('Authorization', 'Bearer '.$this->token)
             ->getJson('/api/v1/settings/delivery');
 
         $getRes->assertOk();
@@ -146,7 +146,7 @@ class TenantSettingsTest extends TestCase
 
     public function test_can_test_courier_connection(): void
     {
-        $response = $this->withHeader('Authorization', 'Bearer ' . $this->token)
+        $response = $this->withHeader('Authorization', 'Bearer '.$this->token)
             ->postJson('/api/v1/settings/delivery/test-connection', [
                 'provider' => 'steadfast',
                 'credentials' => [

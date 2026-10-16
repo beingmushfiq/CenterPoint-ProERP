@@ -256,6 +256,7 @@ final class QcParameterController extends Controller
                             'field' => 'name',
                             'message' => 'Parameter name is required.',
                         ];
+
                         continue;
                     }
 
@@ -270,6 +271,7 @@ final class QcParameterController extends Controller
                                 'field' => 'product_sku',
                                 'message' => "Product '{$prodKey}' not found.",
                             ];
+
                             continue;
                         }
                         $productId = $product->id;
@@ -285,7 +287,7 @@ final class QcParameterController extends Controller
                         }
                     }
 
-                    $type = !empty($row['type']) ? strtolower((string) $row['type']) : 'numeric';
+                    $type = ! empty($row['type']) ? strtolower((string) $row['type']) : 'numeric';
                     if (! in_array($type, ['numeric', 'boolean', 'select', 'text'], true)) {
                         $type = 'numeric';
                     }
@@ -311,6 +313,7 @@ final class QcParameterController extends Controller
                     if ($existing) {
                         if ($mode === 'skip') {
                             $skipped++;
+
                             continue;
                         }
 
@@ -326,6 +329,7 @@ final class QcParameterController extends Controller
                         ]);
 
                         $updated++;
+
                         continue;
                     }
 
@@ -367,4 +371,3 @@ final class QcParameterController extends Controller
         ]);
     }
 }
-

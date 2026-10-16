@@ -22,8 +22,11 @@ final class PosTerminalTest extends TestCase
     use RefreshDatabase;
 
     private Tenant $tenant;
+
     private User $user;
+
     private string $jwt;
+
     private int $branchId;
 
     protected function setUp(): void
@@ -32,70 +35,70 @@ final class PosTerminalTest extends TestCase
         TenantContext::flush();
 
         DB::table('plans')->insert([
-            'id'             => 1,
-            'uuid'           => (string) Str::uuid(),
-            'code'           => 'ENTERPRISE',
-            'name'           => 'Enterprise',
-            'price'          => '10000.0000',
+            'id' => 1,
+            'uuid' => (string) Str::uuid(),
+            'code' => 'ENTERPRISE',
+            'name' => 'Enterprise',
+            'price' => '10000.0000',
             'billing_period' => 'monthly',
-            'limits'         => json_encode(['max_users' => 100]),
-            'is_active'      => true,
-            'created_at'     => now(),
-            'updated_at'     => now(),
+            'limits' => json_encode(['max_users' => 100]),
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
         ]);
 
         $this->tenant = Tenant::create([
-            'id'            => 1,
-            'uuid'          => (string) Str::uuid(),
-            'plan_id'       => 1,
-            'name'          => 'SliceMart BD',
-            'slug'          => 'slicemart-bd',
-            'status'        => 'active',
+            'id' => 1,
+            'uuid' => (string) Str::uuid(),
+            'plan_id' => 1,
+            'name' => 'SliceMart BD',
+            'slug' => 'slicemart-bd',
+            'status' => 'active',
             'currency_code' => 'BDT',
-            'timezone'      => 'Asia/Dhaka',
-            'locale'        => 'en',
-            'date_format'   => 'Y-m-d',
+            'timezone' => 'Asia/Dhaka',
+            'locale' => 'en',
+            'date_format' => 'Y-m-d',
             'number_format' => 'standard',
         ]);
 
         TenantContext::bind($this->tenant->toArray());
 
         $this->user = User::create([
-            'uuid'          => (string) Str::uuid(),
-            'tenant_id'     => 1,
-            'name'          => 'Store Manager',
-            'email'         => 'manager@slicemart.test',
-            'password'      => Hash::make('Password123!'),
-            'status'        => 'active',
-            'locale'        => 'en',
+            'uuid' => (string) Str::uuid(),
+            'tenant_id' => 1,
+            'name' => 'Store Manager',
+            'email' => 'manager@slicemart.test',
+            'password' => Hash::make('Password123!'),
+            'status' => 'active',
+            'locale' => 'en',
             'token_version' => 1,
-            'perm_version'  => 1,
+            'perm_version' => 1,
         ]);
 
         $companyId = DB::table('companies')->insertGetId([
-            'uuid'                => (string) Str::uuid(),
-            'tenant_id'           => 1,
-            'name'                => 'SliceMart Retail',
-            'legal_name'          => 'SliceMart Retail Ltd.',
-            'tax_identifier'      => 'BIN-POS-01',
+            'uuid' => (string) Str::uuid(),
+            'tenant_id' => 1,
+            'name' => 'SliceMart Retail',
+            'legal_name' => 'SliceMart Retail Ltd.',
+            'tax_identifier' => 'BIN-POS-01',
             'registration_number' => 'REG-POS-01',
-            'is_default'          => true,
-            'is_active'           => true,
-            'created_at'          => now(),
-            'updated_at'          => now(),
+            'is_default' => true,
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
         ]);
 
         $this->branchId = (int) DB::table('branches')->insertGetId([
-            'uuid'        => (string) Str::uuid(),
-            'tenant_id'   => 1,
-            'company_id'  => $companyId,
-            'code'        => 'BR-DHK-01',
-            'name'        => 'Dhaka Main Store',
-            'type'        => 'retail',
-            'is_default'  => true,
-            'is_active'   => true,
-            'created_at'  => now(),
-            'updated_at'  => now(),
+            'uuid' => (string) Str::uuid(),
+            'tenant_id' => 1,
+            'company_id' => $companyId,
+            'code' => 'BR-DHK-01',
+            'name' => 'Dhaka Main Store',
+            'type' => 'retail',
+            'is_default' => true,
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
         ]);
 
         $this->assignOnly(
@@ -107,8 +110,8 @@ final class PosTerminalTest extends TestCase
     public function test_create_pos_terminal(): void
     {
         $res = $this->postJson('/api/v1/pos/terminals', [
-            'code'      => 'POS-01',
-            'name'      => 'Main Counter Register 1',
+            'code' => 'POS-01',
+            'name' => 'Main Counter Register 1',
             'branch_id' => $this->branchId,
             'is_active' => true,
         ], $this->headers());
@@ -120,7 +123,7 @@ final class PosTerminalTest extends TestCase
 
         $this->assertDatabaseHas('pos_terminals', [
             'tenant_id' => 1,
-            'code'      => 'POS-01',
+            'code' => 'POS-01',
             'branch_id' => $this->branchId,
         ]);
     }
@@ -129,9 +132,9 @@ final class PosTerminalTest extends TestCase
     {
         PosTerminal::create([
             'tenant_id' => 1,
-            'uuid'      => (string) Str::uuid(),
-            'code'      => 'REG-1',
-            'name'      => 'Register One',
+            'uuid' => (string) Str::uuid(),
+            'code' => 'REG-1',
+            'name' => 'Register One',
             'branch_id' => $this->branchId,
             'is_active' => true,
         ]);
@@ -140,9 +143,9 @@ final class PosTerminalTest extends TestCase
 
         $res->assertStatus(200)
             ->assertJsonStructure([
-                'data'  => [['id', 'code', 'name', 'is_active']],
+                'data' => [['id', 'code', 'name', 'is_active']],
                 'links' => ['first', 'last'],
-                'meta'  => ['total'],
+                'meta' => ['total'],
             ])
             ->assertJsonPath('meta.total', 1);
     }
@@ -151,9 +154,9 @@ final class PosTerminalTest extends TestCase
     {
         $term = PosTerminal::create([
             'tenant_id' => 1,
-            'uuid'      => (string) Str::uuid(),
-            'code'      => 'REG-2',
-            'name'      => 'Register Two',
+            'uuid' => (string) Str::uuid(),
+            'code' => 'REG-2',
+            'name' => 'Register Two',
             'branch_id' => $this->branchId,
             'is_active' => true,
         ]);
@@ -169,56 +172,56 @@ final class PosTerminalTest extends TestCase
     {
         $term = PosTerminal::create([
             'tenant_id' => 1,
-            'uuid'      => (string) Str::uuid(),
-            'code'      => 'REG-ISOLATED',
-            'name'      => 'Tenant 1 Terminal',
+            'uuid' => (string) Str::uuid(),
+            'code' => 'REG-ISOLATED',
+            'name' => 'Tenant 1 Terminal',
             'branch_id' => $this->branchId,
             'is_active' => true,
         ]);
 
         $tenant2 = Tenant::create([
-            'id'            => 2,
-            'uuid'          => (string) Str::uuid(),
-            'plan_id'       => 1,
-            'name'          => 'Other Chain',
-            'slug'          => 'other-chain',
-            'status'        => 'active',
+            'id' => 2,
+            'uuid' => (string) Str::uuid(),
+            'plan_id' => 1,
+            'name' => 'Other Chain',
+            'slug' => 'other-chain',
+            'status' => 'active',
             'currency_code' => 'BDT',
-            'timezone'      => 'Asia/Dhaka',
-            'locale'        => 'en',
-            'date_format'   => 'Y-m-d',
+            'timezone' => 'Asia/Dhaka',
+            'locale' => 'en',
+            'date_format' => 'Y-m-d',
             'number_format' => 'standard',
         ]);
 
         TenantContext::bind($tenant2->toArray());
 
         $user2 = User::create([
-            'uuid'          => (string) Str::uuid(),
-            'tenant_id'     => 2,
-            'name'          => 'Other Manager',
-            'email'         => 'otherman@test.com',
-            'password'      => Hash::make('Password123!'),
-            'status'        => 'active',
-            'locale'        => 'en',
+            'uuid' => (string) Str::uuid(),
+            'tenant_id' => 2,
+            'name' => 'Other Manager',
+            'email' => 'otherman@test.com',
+            'password' => Hash::make('Password123!'),
+            'status' => 'active',
+            'locale' => 'en',
             'token_version' => 1,
-            'perm_version'  => 1,
+            'perm_version' => 1,
         ]);
 
         $role2 = Role::create([
-            'uuid'      => (string) Str::uuid(),
+            'uuid' => (string) Str::uuid(),
             'tenant_id' => 2,
-            'name'      => 'Other Role',
-            'slug'      => 'other-'.Str::random(6),
+            'name' => 'Other Role',
+            'slug' => 'other-'.Str::random(6),
             'is_system' => false,
         ]);
 
         $permission = Permission::firstOrCreate(
             ['name' => 'pos.terminal.view'],
             [
-                'uuid'     => (string) Str::uuid(),
-                'module'   => 'pos',
+                'uuid' => (string) Str::uuid(),
+                'module' => 'pos',
                 'resource' => 'terminal',
-                'action'   => 'view',
+                'action' => 'view',
             ]
         );
         $role2->permissions()->attach($permission);
@@ -231,9 +234,9 @@ final class PosTerminalTest extends TestCase
         );
 
         $res = $this->getJson("/api/v1/pos/terminals/{$term->id}", [
-            'Authorization' => 'Bearer ' . $jwt2,
-            'X-Tenant'      => $tenant2->slug,
-            'Accept'        => 'application/json',
+            'Authorization' => 'Bearer '.$jwt2,
+            'X-Tenant' => $tenant2->slug,
+            'Accept' => 'application/json',
         ]);
 
         $res->assertStatus(404);
@@ -247,19 +250,19 @@ final class PosTerminalTest extends TestCase
     private function headers(): array
     {
         return [
-            'Authorization' => 'Bearer ' . $this->jwt,
-            'X-Tenant'      => $this->tenant->slug,
-            'Accept'        => 'application/json',
+            'Authorization' => 'Bearer '.$this->jwt,
+            'X-Tenant' => $this->tenant->slug,
+            'Accept' => 'application/json',
         ];
     }
 
     private function assignOnly(string ...$permissions): void
     {
         $role = Role::create([
-            'uuid'      => (string) Str::uuid(),
+            'uuid' => (string) Str::uuid(),
             'tenant_id' => 1,
-            'name'      => 'Pos Admin',
-            'slug'      => 'posadmin-' . Str::random(6),
+            'name' => 'Pos Admin',
+            'slug' => 'posadmin-'.Str::random(6),
             'is_system' => false,
         ]);
 
@@ -268,10 +271,10 @@ final class PosTerminalTest extends TestCase
             $permission = Permission::firstOrCreate(
                 ['name' => $name],
                 [
-                    'uuid'     => (string) Str::uuid(),
-                    'module'   => $module,
+                    'uuid' => (string) Str::uuid(),
+                    'module' => $module,
                     'resource' => $resource,
-                    'action'   => $action,
+                    'action' => $action,
                 ]
             );
             $role->permissions()->attach($permission);

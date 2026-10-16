@@ -9,7 +9,6 @@ use App\Core\Tenancy\TenantContext;
 use App\Models\Role;
 use App\Models\Tenant;
 use App\Models\User;
-use App\Modules\Sales\Models\CrmLead;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -21,7 +20,9 @@ class CrmLeadBulkImportTest extends TestCase
     use RefreshDatabase;
 
     private Tenant $tenant;
+
     private User $user;
+
     private string $token;
 
     protected function setUp(): void

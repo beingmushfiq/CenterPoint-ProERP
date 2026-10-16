@@ -20,10 +20,15 @@ class InventoryAnalyticsReportTest extends TestCase
     use RefreshDatabase;
 
     protected Tenant $tenantA;
+
     protected Tenant $tenantB;
+
     protected User $userA;
+
     protected User $userB;
+
     protected string $tokenA;
+
     protected string $tokenB;
 
     protected function setUp(): void

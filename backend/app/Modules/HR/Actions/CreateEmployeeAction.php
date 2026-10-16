@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Modules\HR\Actions;
 
-use App\Core\Exceptions\AppException;
 use App\Modules\HR\Models\Employee;
 use Illuminate\Support\Facades\DB;
 
@@ -34,12 +33,12 @@ class CreateEmployeeAction
     public function execute(array $data, int $userId): Employee
     {
         return DB::transaction(function () use ($data, $userId): Employee {
-            $code = 'EMP-' . str_pad((string) random_int(1000, 99999), 5, '0', STR_PAD_LEFT);
-            $displayName = trim($data['first_name'] . ' ' . ($data['last_name'] ?? ''));
+            $code = 'EMP-'.str_pad((string) random_int(1000, 99999), 5, '0', STR_PAD_LEFT);
+            $displayName = trim($data['first_name'].' '.($data['last_name'] ?? ''));
 
             $assignedUserId = $data['user_id'] ?? null;
 
-            if (!empty($data['grant_user_access']) && !empty($data['email']) && !empty($data['user_password'])) {
+            if (! empty($data['grant_user_access']) && ! empty($data['email']) && ! empty($data['user_password'])) {
                 $tenantId = $data['tenant_id'] ?? null;
                 $user = \App\Models\User::create([
                     'uuid' => (string) \Illuminate\Support\Str::uuid(),
@@ -56,7 +55,7 @@ class CreateEmployeeAction
                     'default_factory_id' => $data['factory_id'] ?? null,
                 ]);
 
-                if (!empty($data['role_ids'])) {
+                if (! empty($data['role_ids'])) {
                     $pivotData = [];
                     foreach ($data['role_ids'] as $rId) {
                         $pivotData[$rId] = ['tenant_id' => $tenantId];

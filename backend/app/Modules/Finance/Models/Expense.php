@@ -63,17 +63,6 @@ class Expense extends Model
         'paid_at' => 'datetime',
     ];
 
-    protected static function boot(): void
-    {
-        parent::boot();
-
-        static::creating(static function (Expense $model): void {
-            if (empty($model->uuid)) {
-                $model->uuid = (string) Str::uuid();
-            }
-        });
-    }
-
     /**
      * @return BelongsTo<ExpenseCategory, $this>
      */
@@ -120,5 +109,16 @@ class Expense extends Model
     public function splits(): HasMany
     {
         return $this->hasMany(ExpensePaymentSplit::class, 'expense_id');
+    }
+
+    protected static function boot(): void
+    {
+        parent::boot();
+
+        static::creating(static function (Expense $model): void {
+            if (empty($model->uuid)) {
+                $model->uuid = (string) Str::uuid();
+            }
+        });
     }
 }

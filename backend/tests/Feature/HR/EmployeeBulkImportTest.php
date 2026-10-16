@@ -8,8 +8,6 @@ use App\Core\Auth\JwtService;
 use App\Core\Tenancy\TenantContext;
 use App\Models\Tenant;
 use App\Models\User;
-use App\Modules\HR\Models\Department;
-use App\Modules\HR\Models\Designation;
 use App\Modules\HR\Models\Employee;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -22,7 +20,9 @@ class EmployeeBulkImportTest extends TestCase
     use RefreshDatabase;
 
     private Tenant $tenant;
+
     private User $user;
+
     private string $token;
 
     protected function setUp(): void
@@ -96,15 +96,6 @@ class EmployeeBulkImportTest extends TestCase
             'created_at' => now(),
             'updated_at' => now(),
         ]);
-    }
-
-    private function authHeaders(): array
-    {
-        return [
-            'Authorization' => "Bearer {$this->token}",
-            'X-Tenant-ID' => (string) $this->tenant->id,
-            'Accept' => 'application/json',
-        ];
     }
 
     public function test_can_bulk_import_employees_and_auto_create_departments(): void
@@ -256,5 +247,14 @@ class EmployeeBulkImportTest extends TestCase
         $emp->refresh();
         $this->assertEquals('NewName', $emp->first_name);
         $this->assertEquals('Updated', $emp->last_name);
+    }
+
+    private function authHeaders(): array
+    {
+        return [
+            'Authorization' => "Bearer {$this->token}",
+            'X-Tenant-ID' => (string) $this->tenant->id,
+            'Accept' => 'application/json',
+        ];
     }
 }

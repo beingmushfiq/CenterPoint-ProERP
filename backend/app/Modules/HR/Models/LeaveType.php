@@ -44,6 +44,14 @@ class LeaveType extends Model
         'is_active' => 'boolean',
     ];
 
+    /**
+     * @return HasMany<LeaveRequest, $this>
+     */
+    public function requests(): HasMany
+    {
+        return $this->hasMany(LeaveRequest::class, 'leave_type_id');
+    }
+
     protected static function boot(): void
     {
         parent::boot();
@@ -53,13 +61,5 @@ class LeaveType extends Model
                 $model->uuid = (string) Str::uuid();
             }
         });
-    }
-
-    /**
-     * @return HasMany<LeaveRequest, $this>
-     */
-    public function requests(): HasMany
-    {
-        return $this->hasMany(LeaveRequest::class, 'leave_type_id');
     }
 }

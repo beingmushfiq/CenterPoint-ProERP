@@ -9,7 +9,6 @@ use App\Core\Tenancy\TenantContext;
 use App\Models\Role;
 use App\Models\Tenant;
 use App\Models\User;
-use App\Modules\HR\Models\Attendance;
 use App\Modules\HR\Models\Employee;
 use App\Modules\HR\Models\Shift;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -23,10 +22,15 @@ class AttendanceBulkImportTest extends TestCase
     use RefreshDatabase;
 
     private Tenant $tenant;
+
     private User $user;
+
     private string $token;
+
     private Employee $employee1;
+
     private Employee $employee2;
+
     private Shift $shift;
 
     protected function setUp(): void
@@ -146,15 +150,6 @@ class AttendanceBulkImportTest extends TestCase
             'employment_status' => 'active',
             'is_active' => 1,
         ]);
-    }
-
-    private function authHeaders(): array
-    {
-        return [
-            'Authorization' => "Bearer {$this->token}",
-            'X-Tenant-ID' => (string) $this->tenant->id,
-            'Accept' => 'application/json',
-        ];
     }
 
     public function test_can_bulk_import_attendance_records(): void
@@ -278,5 +273,14 @@ class AttendanceBulkImportTest extends TestCase
             'worked_minutes' => 570,
             'overtime_minutes' => 90,
         ]);
+    }
+
+    private function authHeaders(): array
+    {
+        return [
+            'Authorization' => "Bearer {$this->token}",
+            'X-Tenant-ID' => (string) $this->tenant->id,
+            'Accept' => 'application/json',
+        ];
     }
 }

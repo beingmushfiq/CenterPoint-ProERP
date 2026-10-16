@@ -10,7 +10,6 @@ use App\Models\Role;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Modules\HR\Models\Employee;
-use App\Modules\HR\Models\PayrollAdvance;
 use App\Modules\HR\Models\PayrollPeriod;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -23,10 +22,15 @@ class PayrollAdvanceBulkImportTest extends TestCase
     use RefreshDatabase;
 
     private Tenant $tenant;
+
     private User $user;
+
     private string $token;
+
     private Employee $employee1;
+
     private Employee $employee2;
+
     private PayrollPeriod $period;
 
     protected function setUp(): void
@@ -177,7 +181,7 @@ class PayrollAdvanceBulkImportTest extends TestCase
             ],
         ];
 
-        $res = $this->withHeader('Authorization', 'Bearer ' . $this->token)
+        $res = $this->withHeader('Authorization', 'Bearer '.$this->token)
             ->postJson('/api/v1/hr/payroll/advances/bulk-import', $payload);
 
         $res->assertOk()
@@ -207,7 +211,7 @@ class PayrollAdvanceBulkImportTest extends TestCase
             ],
         ];
 
-        $resUpsert = $this->withHeader('Authorization', 'Bearer ' . $this->token)
+        $resUpsert = $this->withHeader('Authorization', 'Bearer '.$this->token)
             ->postJson('/api/v1/hr/payroll/advances/bulk-import', $upsertPayload);
 
         $resUpsert->assertOk()

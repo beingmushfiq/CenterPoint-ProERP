@@ -18,7 +18,7 @@ use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 final class ExchangeController extends Controller
 {
     public function __construct(
-        private readonly CreateExchangeAction  $createExchange,
+        private readonly CreateExchangeAction $createExchange,
         private readonly ApproveExchangeAction $approveExchange
     ) {}
 
@@ -77,7 +77,7 @@ final class ExchangeController extends Controller
         /** @var array{exchange_date: string, warehouse_id: int, reason_code_id: int, return_items: list<array<string,mixed>>, replacement_items: list<array<string,mixed>>} $validated */
         $exchange = $this->createExchange->execute([
             ...$validated,
-            'tenant_id'  => $tenantId,
+            'tenant_id' => $tenantId,
             'created_by' => (int) $request->user()?->id,
         ]);
 
@@ -135,7 +135,7 @@ final class ExchangeController extends Controller
             abort(422, "Only draft exchanges can be cancelled. Current status: {$exchange->status}.");
         }
 
-        $exchange->status     = 'cancelled';
+        $exchange->status = 'cancelled';
         $exchange->updated_by = (int) $request->user()?->id;
         $exchange->save();
 
@@ -151,7 +151,7 @@ final class ExchangeController extends Controller
             ->where('id', $id)
             ->firstOrFail();
 
-        if (!in_array($exchange->status, ['draft', 'cancelled'], true)) {
+        if (! in_array($exchange->status, ['draft', 'cancelled'], true)) {
             return response()->json([
                 'message' => 'Cannot delete an active or approved exchange. Cancel it first.',
             ], 422);

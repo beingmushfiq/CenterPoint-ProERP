@@ -7,14 +7,11 @@ namespace Tests\Feature\Delivery;
 use App\Core\Auth\JwtService;
 use App\Core\Tenancy\TenantContext;
 use App\Models\Party;
-use App\Models\Product;
 use App\Models\Tenant;
-use App\Models\Unit;
 use App\Models\User;
 use App\Models\Warehouse;
 use App\Modules\Delivery\Adapters\PathaoCourierAdapter;
 use App\Modules\Delivery\Models\CourierProvider;
-use App\Modules\Delivery\Models\CourierShipment;
 use App\Modules\Sales\Models\DeliveryOrder;
 use App\Modules\Sales\Models\SalesOrder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -28,9 +25,13 @@ final class CourierShipmentTest extends TestCase
     use RefreshDatabase;
 
     private Tenant $tenant;
+
     private User $user;
+
     private string $jwt;
+
     private DeliveryOrder $deliveryOrder;
+
     private CourierProvider $provider;
 
     protected function setUp(): void
@@ -39,43 +40,43 @@ final class CourierShipmentTest extends TestCase
         TenantContext::flush();
 
         DB::table('plans')->insert([
-            'id'             => 1,
-            'uuid'           => (string) Str::uuid(),
-            'code'           => 'ENTERPRISE',
-            'name'           => 'Enterprise',
-            'price'          => '10000.0000',
+            'id' => 1,
+            'uuid' => (string) Str::uuid(),
+            'code' => 'ENTERPRISE',
+            'name' => 'Enterprise',
+            'price' => '10000.0000',
             'billing_period' => 'monthly',
-            'limits'         => json_encode(['max_users' => 100]),
-            'is_active'      => true,
-            'created_at'     => now(),
-            'updated_at'     => now(),
+            'limits' => json_encode(['max_users' => 100]),
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
         ]);
 
         $this->tenant = Tenant::create([
-            'id'            => 1,
-            'uuid'          => (string) Str::uuid(),
-            'plan_id'       => 1,
-            'name'          => 'SliceMart BD',
-            'slug'          => 'slicemart-bd',
-            'status'        => 'active',
+            'id' => 1,
+            'uuid' => (string) Str::uuid(),
+            'plan_id' => 1,
+            'name' => 'SliceMart BD',
+            'slug' => 'slicemart-bd',
+            'status' => 'active',
             'currency_code' => 'BDT',
-            'timezone'      => 'Asia/Dhaka',
-            'locale'        => 'en',
-            'date_format'   => 'Y-m-d',
+            'timezone' => 'Asia/Dhaka',
+            'locale' => 'en',
+            'date_format' => 'Y-m-d',
             'number_format' => 'standard',
         ]);
 
         TenantContext::bind($this->tenant->toArray());
 
         $this->user = User::create([
-            'id'                => 1,
-            'tenant_id'         => $this->tenant->id,
-            'uuid'              => (string) Str::uuid(),
-            'email'             => 'admin@slicemart.com',
-            'password'          => Hash::make('password123'),
-            'name'              => 'Admin User',
-            'is_active'         => true,
-            'status'            => 'active',
+            'id' => 1,
+            'tenant_id' => $this->tenant->id,
+            'uuid' => (string) Str::uuid(),
+            'email' => 'admin@slicemart.com',
+            'password' => Hash::make('password123'),
+            'name' => 'Admin User',
+            'is_active' => true,
+            'status' => 'active',
             'email_verified_at' => now(),
         ]);
 
@@ -160,7 +161,7 @@ final class CourierShipmentTest extends TestCase
             'pickup_address' => 'Tejgaon Industrial Area, Dhaka',
         ];
 
-        $response = $this->withHeader('Authorization', 'Bearer ' . $this->jwt)
+        $response = $this->withHeader('Authorization', 'Bearer '.$this->jwt)
             ->postJson('/api/v1/logistics/shipments', $payload);
 
         $response->assertStatus(201)
@@ -174,21 +175,21 @@ final class CourierShipmentTest extends TestCase
         $shipmentId = $response->json('data.id');
 
         // Track shipment
-        $trackResponse = $this->withHeader('Authorization', 'Bearer ' . $this->jwt)
+        $trackResponse = $this->withHeader('Authorization', 'Bearer '.$this->jwt)
             ->postJson("/api/v1/logistics/shipments/{$shipmentId}/track");
 
         $trackResponse->assertStatus(200)
             ->assertJsonPath('data.status', 'in_transit');
 
         // Get label URL
-        $labelResponse = $this->withHeader('Authorization', 'Bearer ' . $this->jwt)
+        $labelResponse = $this->withHeader('Authorization', 'Bearer '.$this->jwt)
             ->getJson("/api/v1/logistics/shipments/{$shipmentId}/label");
 
         $labelResponse->assertStatus(200)
             ->assertJsonPath('success', true);
 
         // Cancel shipment
-        $cancelResponse = $this->withHeader('Authorization', 'Bearer ' . $this->jwt)
+        $cancelResponse = $this->withHeader('Authorization', 'Bearer '.$this->jwt)
             ->postJson("/api/v1/logistics/shipments/{$shipmentId}/cancel", [
                 'reason' => 'Customer requested cancellation',
             ]);
