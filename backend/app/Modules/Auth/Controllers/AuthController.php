@@ -48,7 +48,12 @@ class AuthController extends Controller
         if ($domainTenantId === null) {
             $subHeader = $request->header('X-Tenant-Subdomain') ?: $request->header('X-Tenant-Slug');
             if ($subHeader) {
-                $domainTenantId = \App\Models\Tenant::where('slug', strtolower(trim((string) $subHeader)))->value('id');
+                $subClean = strtolower(trim((string) $subHeader));
+                $domainTenantId = \App\Models\Tenant::where('slug', $subClean)
+                    ->orWhere(function ($q) use ($subClean) {
+                        if ($subClean === 'democorp') $q->where('slug', 'demoerp');
+                    })
+                    ->value('id');
             }
         }
 
@@ -58,10 +63,18 @@ class AuthController extends Controller
             if (! $domainTenantId) {
                 if (str_ends_with($cleanHost, '.localhost')) {
                     $sub = substr($cleanHost, 0, -strlen('.localhost'));
-                    $domainTenantId = \App\Models\Tenant::where('slug', $sub)->value('id');
+                    $domainTenantId = \App\Models\Tenant::where('slug', $sub)
+                        ->orWhere(function ($q) use ($sub) {
+                            if ($sub === 'democorp') $q->where('slug', 'demoerp');
+                        })
+                        ->value('id');
                 } elseif (str_contains($cleanHost, '.')) {
                     $sub = explode('.', $cleanHost)[0];
-                    $domainTenantId = \App\Models\Tenant::where('slug', $sub)->value('id');
+                    $domainTenantId = \App\Models\Tenant::where('slug', $sub)
+                        ->orWhere(function ($q) use ($sub) {
+                            if ($sub === 'democorp') $q->where('slug', 'demoerp');
+                        })
+                        ->value('id');
                 }
             }
         }

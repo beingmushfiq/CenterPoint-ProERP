@@ -215,6 +215,9 @@ export default function LoginPage() {
         setIsLoading(false);
         return;
       }
+      if (!data || typeof data !== 'object' || !('access_token' in (data as Record<string, unknown>))) {
+        throw new Error('Invalid authentication response received from server.');
+      }
       setAuthSession(data as unknown as import('../../types/api/auth').LoginResponseData);
       navigate(from, { replace: true });
     } catch (err: unknown) {
@@ -306,10 +309,10 @@ export default function LoginPage() {
               </a>
               <span>&bull;</span>
               <a
-                href={`${typeof window !== 'undefined' ? window.location.protocol : 'http:'}//democorp.localhost:${(typeof window !== 'undefined' && window.location.port) || '5173'}/login`}
+                href={`${typeof window !== 'undefined' ? window.location.protocol : 'http:'}//demoerp.localhost:${(typeof window !== 'undefined' && window.location.port) || '5173'}/login`}
                 className="font-mono font-semibold text-primary hover:underline"
               >
-                democorp
+                demoerp
               </a>
             </div>
           )}

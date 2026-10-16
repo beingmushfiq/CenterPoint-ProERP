@@ -322,11 +322,17 @@ return Application::configure(basePath: dirname(__DIR__))
         // The full stack trace is logged server-side with the correlation id;
         // the client receives only a safe message and the id for support lookup.
         $exceptions->render(function (Throwable $e, Request $request) {
-            Illuminate\Support\Facades\Log::error('Unhandled exception.', [
-                'exception' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-                'correlation_id' => $request->attributes->get('correlation_id'),
-            ]);
+            try {
+                if (app()->bound('log')) {
+                    Illuminate\Support\Facades\Log::error('Unhandled exception.', [
+                        'exception' => $e->getMessage(),
+                        'trace' => $e->getTraceAsString(),
+                        'correlation_id' => $request->attributes->get('correlation_id'),
+                    ]);
+                }
+            } catch (Throwable) {
+                // Secondary fallback: avoid masking the error response
+            }
 
             return ErrorResponse::make(
                 request: $request,

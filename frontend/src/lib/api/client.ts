@@ -556,15 +556,16 @@ async function execute<T>(
   let envelope: RawEnvelope;
   try {
     const text = await response.text();
-    // Resilient fallback: if web server rewrite served HTML (e.g. index.html) instead of API JSON,
-    // automatically fallback to /index.php/api/v1
-    if (!isReplay && activeApiBase === '/api/v1' && (text.includes('<!DOCTYPE') || text.includes('<html') || response.headers.get('content-type')?.includes('text/html'))) {
+    const isLocalhost = typeof window !== 'undefined' && (window.location.hostname.endsWith('localhost') || window.location.hostname === '127.0.0.1');
+    // Resilient fallback for production Apache/LiteSpeed web servers where mod_rewrite routes via index.php
+    if (!isReplay && !isLocalhost && activeApiBase === '/api/v1' && (text.includes('<!DOCTYPE') || text.includes('<html') || response.headers.get('content-type')?.includes('text/html'))) {
       activeApiBase = '/index.php/api/v1';
       return execute<T>(method, path, options, correlationId, true);
     }
     envelope = JSON.parse(text) as RawEnvelope;
   } catch {
-    if (!isReplay && activeApiBase === '/api/v1') {
+    const isLocalhost = typeof window !== 'undefined' && (window.location.hostname.endsWith('localhost') || window.location.hostname === '127.0.0.1');
+    if (!isReplay && !isLocalhost && activeApiBase === '/api/v1') {
       activeApiBase = '/index.php/api/v1';
       return execute<T>(method, path, options, correlationId, true);
     }
