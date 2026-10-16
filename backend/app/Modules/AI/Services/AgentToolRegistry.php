@@ -445,43 +445,64 @@ class AgentToolRegistry
         $totalRevenue = 0.0;
         if (Schema::hasTable('invoices')) {
             $totalRevenue = (float) Invoice::where('tenant_id', $tenantId)
+                ->whereIn('status', ['posted', 'partially_paid', 'paid'])
                 ->whereBetween('invoice_date', [$startDate, $endDate])
                 ->sum('total_amount');
         }
 
         $totalExpenses = 0.0;
-        $expensesByCategory = [];
+        $expenseBreakdown = [];
         if (Schema::hasTable('expenses')) {
             $totalExpenses = (float) Expense::where('expenses.tenant_id', $tenantId)
                 ->whereBetween('expenses.expense_date', [$startDate, $endDate])
                 ->sum('expenses.amount');
 
-            $expensesByCategory = Expense::where('expenses.tenant_id', $tenantId)
+            $expenseBreakdown = Expense::where('expenses.tenant_id', $tenantId)
                 ->whereBetween('expenses.expense_date', [$startDate, $endDate])
-                ->leftJoin('expense_categories', 'expenses.category_id', '=', 'expense_categories.id')
+                ->leftJoin('expense_categories', 'expenses.expense_category_id', '=', 'expense_categories.id')
                 ->selectRaw('COALESCE(expense_categories.name, "General") as category, SUM(expenses.amount) as total')
                 ->groupBy('expense_categories.name')
                 ->orderByDesc('total')
                 ->limit(5)
                 ->get()
-                ->map(fn ($row) => ['category' => $row->category, 'amount' => round((float) $row->total, 2)])
+                ->map(fn ($row): array => [
+                    'category' => (string) $row->category,
+                    'amount' => round((float) $row->total, 2),
+                    'pct_of_total' => $totalExpenses > 0
+                        ? round(((float) $row->total / $totalExpenses) * 100, 2)
+                        : 0.0,
+                ])
                 ->all();
         }
 
-        $netProfit = $totalRevenue - $totalExpenses;
-        $profitMargin = $totalRevenue > 0 ? round(($netProfit / $totalRevenue) * 100, 2) : 0.0;
+        // COGS comes from posted ledger balances on cost_of_goods_sold accounts.
+        $cogs = 0.0;
+        if (Schema::hasTable('chart_of_accounts') && Schema::hasTable('journal_lines')) {
+            $cogsRow = DB::table('chart_of_accounts as coa')
+                ->leftJoin('journal_lines as jl', 'coa.id', '=', 'jl.account_id')
+                ->where('coa.tenant_id', $tenantId)
+                ->where('coa.account_type', 'cost_of_goods_sold')
+                ->whereNull('coa.deleted_at')
+                ->selectRaw('COALESCE(SUM(jl.debit_amount - jl.credit_amount), 0) as cogs')
+                ->value('cogs');
+
+            $cogs = max(0.0, (float) $cogsRow);
+        }
+
+        $grossProfit = $totalRevenue - $cogs;
+        $netOperatingIncome = $grossProfit - $totalExpenses;
 
         return [
-            'period' => [
-                'start_date' => $startDate->toDateString(),
-                'end_date' => $endDate->toDateString(),
-            ],
+            'period_start' => $startDate->toDateString(),
+            'period_end' => $endDate->toDateString(),
             'total_revenue' => round($totalRevenue, 2),
-            'total_expenses' => round($totalExpenses, 2),
-            'net_profit' => round($netProfit, 2),
-            'net_margin_percentage' => $profitMargin,
-            'top_expense_categories' => $expensesByCategory,
-            'currency' => 'BDT',
+            'cogs' => round($cogs, 2),
+            'gross_profit' => round($grossProfit, 2),
+            'gross_margin_pct' => $totalRevenue > 0 ? round(($grossProfit / $totalRevenue) * 100, 2) : 0.0,
+            'operating_expenses' => round($totalExpenses, 2),
+            'net_operating_income' => round($netOperatingIncome, 2),
+            'net_margin_pct' => $totalRevenue > 0 ? round(($netOperatingIncome / $totalRevenue) * 100, 2) : 0.0,
+            'expense_breakdown' => $expenseBreakdown,
         ];
     }
 
