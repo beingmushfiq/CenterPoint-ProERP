@@ -51,6 +51,8 @@ export default defineConfig({
       'react-hook-form',
       'zod',
       'bwip-js',
+      'apexcharts',
+      'react-apexcharts',
     ],
   },
   build: {
