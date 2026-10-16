@@ -380,7 +380,7 @@ class CopilotController extends Controller
             'collateral_type' => 'nullable|string',
         ]);
 
-        $assessment = app(FinancingMatchEngine::class)->assessAndMatch(
+        $assessment = $this->financingMatchEngine->assessAndMatch(
             tenantId: $tenantId,
             userId: $userId,
             customInputs: ['requested_amount' => $validated['requested_amount']]
@@ -400,13 +400,7 @@ class CopilotController extends Controller
             'tenant_id' => $tenantId,
             'status' => 'PRE_QUALIFIED',
             'product_selected' => $matchedProduct,
-            'credit_assessment' => [
-                'solvency_score' => $assessment['credit_score_indicator'] ?? 92,
-                'monthly_revenue_verified' => $assessment['metrics']['monthly_revenue'] ?? 0,
-                'operating_margin_verified' => $assessment['metrics']['operating_margin_pct'] ?? 0,
-                'verified_ar_pool' => $assessment['metrics']['ar_outstanding'] ?? 0,
-                'runway_cushion_days' => $assessment['metrics']['runway_days'] ?? 16,
-            ],
+            'credit_assessment' => $this->financingMatchEngine->webankCreditAssessment($assessment),
             'disbursement_route' => 'INSTANT_DIGITAL_WALLET',
             'underwriting_timestamp' => now()->toIso8601String(),
         ];

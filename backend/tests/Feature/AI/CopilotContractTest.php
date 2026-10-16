@@ -829,5 +829,42 @@ final class CopilotContractTest extends TestCase
         $this->assertIsString($formatted['created_at']);
         $this->assertArrayNotHasKey('recommendations', $formatted);
     }
-}
 
+    public function test_webank_pre_qualify_uses_computed_metrics_not_hardcoded_fallbacks(): void
+    {
+        $engine = app(\App\Modules\AI\Services\FinancingMatchEngine::class);
+
+        $profile = $engine->computeRiskProfile([
+            'monthly_revenue' => 500000.0,
+            'monthly_expenses' => 450000.0,
+            'bank_balance' => 300000.0,
+            'operating_margin_pct' => 10.0,
+        ]);
+
+        $this->assertSame(20, $profile['runway_cushion_days']);
+        $this->assertSame(10.0, $profile['operating_margin_pct']);
+    }
+
+    public function test_webank_pre_qualify_payload_keys_are_computed(): void
+    {
+        $tenant = $this->createTenant();
+        $tenantId = $tenant->id;
+
+        $engine = app(\App\Modules\AI\Services\FinancingMatchEngine::class);
+        $assessment = $engine->assessAndMatch($tenantId, null, [
+            'monthly_revenue' => 800000.0,
+            'monthly_expenses' => 600000.0,
+            'ar_outstanding' => 300000.0,
+            'bank_balance' => 200000.0,
+            'inventory_value' => 500000.0,
+        ]);
+
+        $result = $engine->webankCreditAssessment($assessment);
+
+        $this->assertSame(100, $result['solvency_score']);
+        $this->assertSame(800000.0, (float) $result['monthly_revenue_verified']);
+        $this->assertSame(25.0, (float) $result['operating_margin_verified']);
+        $this->assertSame(300000.0, (float) $result['verified_ar_pool']);
+        $this->assertSame(10, $result['runway_cushion_days']);
+    }
+}

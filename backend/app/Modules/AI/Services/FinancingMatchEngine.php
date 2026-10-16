@@ -118,6 +118,54 @@ class FinancingMatchEngine
     }
 
     /**
+     * Derive runway and margin indicators from verified metrics.
+     *
+     * @param  array<string, mixed>  $metrics
+     * @return array{runway_cushion_days: int, operating_margin_pct: float}
+     */
+    public function computeRiskProfile(array $metrics): array
+    {
+        $bank = (float) ($metrics['bank_balance'] ?? 0);
+        $revenue = (float) ($metrics['monthly_revenue'] ?? 0);
+        $expenses = (float) ($metrics['monthly_expenses'] ?? 0);
+
+        $dailyBurn = $expenses / 30.0;
+        $runway = $dailyBurn > 0 ? (int) floor($bank / $dailyBurn) : 999;
+
+        $margin = $revenue > 0
+            ? round((($revenue - $expenses) / $revenue) * 100, 2)
+            : 0.0;
+
+        return [
+            'runway_cushion_days' => $runway,
+            'operating_margin_pct' => is_numeric($metrics['operating_margin_pct'] ?? null)
+                ? (float) $metrics['operating_margin_pct']
+                : $margin,
+        ];
+    }
+
+    /**
+     * Build the WeBank credit_assessment block from a completed assessment.
+     *
+     * @param  array<string, mixed>  $assessment
+     * @return array<string, mixed>
+     */
+    public function webankCreditAssessment(array $assessment): array
+    {
+        /** @var array<string, mixed> $metrics */
+        $metrics = is_array($assessment['metrics'] ?? null) ? $assessment['metrics'] : [];
+        $profile = $this->computeRiskProfile($metrics);
+
+        return [
+            'solvency_score' => $this->computeSolvencyScore($metrics),
+            'monthly_revenue_verified' => round((float) ($metrics['monthly_revenue'] ?? 0), 2),
+            'operating_margin_verified' => $profile['operating_margin_pct'],
+            'verified_ar_pool' => round((float) ($metrics['ar_outstanding'] ?? 0), 2),
+            'runway_cushion_days' => $profile['runway_cushion_days'],
+        ];
+    }
+
+    /**
      * Convert an internal product row into the FinancingProduct contract.
      *
      * @param  array<string, mixed>  $product
