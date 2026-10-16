@@ -670,5 +670,67 @@ final class CopilotContractTest extends TestCase
         $this->assertArrayNotHasKey('tool_name', $action);
         $this->assertArrayNotHasKey('tier', $action);
     }
-}
 
+    public function test_confirm_endpoint_accepts_action_id_contract(): void
+    {
+        $tenant = $this->createTenant();
+        $tenantId = $tenant->id;
+
+        $user = \App\Models\User::create([
+            'uuid' => (string) \Illuminate\Support\Str::uuid(),
+            'tenant_id' => $tenantId,
+            'name' => 'Confirm Officer',
+            'email' => 'confirm_'.\Illuminate\Support\Str::random(5).'@example.com',
+            'password' => \Illuminate\Support\Facades\Hash::make('Password123!'),
+            'status' => 'active',
+            'locale' => 'en',
+            'token_version' => 1,
+            'perm_version' => 1,
+        ]);
+
+        $orchestrator = app(\App\Modules\AI\Services\AgentOrchestrator::class);
+
+        $chat = $orchestrator->chat(
+            tenantId: $tenantId,
+            userId: $user->id,
+            conversationUuid: null,
+            userMessage: 'Create a cash flow alert for low liquidity'
+        );
+
+        $actionId = $chat['pending_action']['action_id'];
+        $conversationUuid = $chat['conversation_uuid'];
+
+        $approved = $orchestrator->resolveAndConfirmAction(
+            tenantId: $tenantId,
+            userId: $user->id,
+            conversationUuid: $conversationUuid,
+            actionId: $actionId,
+            approved: true
+        );
+
+        $this->assertTrue($approved['executed']);
+        $this->assertSame($actionId, $approved['action_id']);
+        $this->assertSame('CONFIRMED_AND_CREATED', $approved['result']['status']);
+        $this->assertSame(1, \App\Modules\AI\Models\CashFlowAlert::where('tenant_id', $tenantId)->count());
+
+        $second = $orchestrator->chat(
+            tenantId: $tenantId,
+            userId: $user->id,
+            conversationUuid: null,
+            userMessage: 'Create a cash flow alert for low liquidity'
+        );
+
+        $rejected = $orchestrator->resolveAndConfirmAction(
+            tenantId: $tenantId,
+            userId: $user->id,
+            conversationUuid: $second['conversation_uuid'],
+            actionId: $second['pending_action']['action_id'],
+            approved: false,
+            rejectionReason: 'Not needed right now'
+        );
+
+        $this->assertFalse($rejected['executed']);
+        $this->assertSame('Not needed right now', $rejected['reason']);
+        $this->assertSame(1, \App\Modules\AI\Models\CashFlowAlert::where('tenant_id', $tenantId)->count());
+    }
+}

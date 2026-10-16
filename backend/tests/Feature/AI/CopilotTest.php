@@ -316,36 +316,31 @@ final class CopilotTest extends TestCase
 
     public function test_confirm_action_executes_tier_2_and_creates_alert(): void
     {
-        $conv = AgentConversation::create([
-            'tenant_id' => $this->tenant->id,
-            'user_id' => $this->user->id,
-            'title' => 'Test Confirmation Session',
-            'status' => 'active',
-        ]);
+        $chat = $this->withHeader('Authorization', "Bearer {$this->jwt}")
+            ->json('POST', '/api/v1/ai/copilot/chat', [
+                'message' => 'Create a cash flow alert for low liquidity',
+            ]);
+
+        $chat->assertOk();
+
+        $conversationUuid = $chat->json('data.conversation_uuid');
+        $actionId = $chat->json('data.pending_action.action_id');
 
         $response = $this->withHeader('Authorization', "Bearer {$this->jwt}")
-            ->json('POST', "/api/v1/ai/copilot/conversations/{$conv->uuid}/confirm", [
-                'tool_name' => 'create_cash_flow_alert',
-                'arguments' => [
-                    'alert_type' => 'low_balance',
-                    'severity' => 'critical',
-                    'title' => 'Critical Bank Account Runway Alert',
-                    'description' => 'Cash balance dropped below safety buffer threshold.',
-                    'threshold_value' => 100000.0,
-                    'actual_value' => 45000.0,
-                    'currency' => 'BDT',
-                ],
+            ->json('POST', "/api/v1/ai/copilot/conversations/{$conversationUuid}/confirm", [
+                'action_id' => $actionId,
+                'approved' => true,
             ]);
 
         $response->assertOk()
             ->assertJsonPath('status', 'success')
+            ->assertJsonPath('data.executed', true)
+            ->assertJsonPath('data.action_id', $actionId)
             ->assertJsonPath('data.result.status', 'CONFIRMED_AND_CREATED');
 
         $this->assertDatabaseHas('cash_flow_alerts', [
             'tenant_id' => $this->tenant->id,
             'alert_type' => 'low_balance',
-            'severity' => 'critical',
-            'title' => 'Critical Bank Account Runway Alert',
             'status' => 'active',
         ]);
 

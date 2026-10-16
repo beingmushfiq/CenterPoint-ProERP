@@ -104,19 +104,21 @@ class CopilotController extends Controller
     public function confirmAction(Request $request, string $uuid): JsonResponse
     {
         $validated = $request->validate([
-            'tool_name' => 'required|string|max:100',
-            'arguments' => 'required|array',
+            'action_id' => 'required|string|max:100',
+            'approved' => 'required|boolean',
+            'rejection_reason' => 'nullable|string|max:500',
         ]);
 
         $tenantId = TenantContext::current()->tenantId();
         $userId = (int) (Auth::id() ?? 1);
 
-        $result = $this->orchestrator->executeConfirmedAction(
+        $result = $this->orchestrator->resolveAndConfirmAction(
             tenantId: $tenantId,
             userId: $userId,
             conversationUuid: $uuid,
-            toolName: $validated['tool_name'],
-            actionData: $validated['arguments'],
+            actionId: $validated['action_id'],
+            approved: (bool) $validated['approved'],
+            rejectionReason: $validated['rejection_reason'] ?? null,
             ipAddress: $request->ip()
         );
 

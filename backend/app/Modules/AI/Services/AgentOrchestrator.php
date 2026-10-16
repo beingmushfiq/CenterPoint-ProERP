@@ -12,6 +12,7 @@ use Carbon\Carbon;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Throwable;
 
 class AgentOrchestrator
@@ -190,6 +191,7 @@ class AgentOrchestrator
             'metadata' => [
                 'tier_used' => $maxTierUsed,
                 'has_pending_action' => $pendingAction !== null,
+                'pending_action' => $pendingAction,
             ],
         ]);
 
@@ -262,6 +264,96 @@ class AgentOrchestrator
             'status' => 'SUCCESS',
             'tool_name' => $toolName,
             'result' => $result,
+        ];
+    }
+
+    /**
+     * Resolve a previously persisted pending action by id, then execute or reject it.
+     *
+     * @return array{executed: bool, action_id: string, result?: array<string, mixed>, reason?: string}
+     */
+    public function resolveAndConfirmAction(
+        int $tenantId,
+        int $userId,
+        string $conversationUuid,
+        string $actionId,
+        bool $approved,
+        ?string $rejectionReason = null,
+        ?string $ipAddress = null
+    ): array {
+        $conversation = AgentConversation::where('tenant_id', $tenantId)->where('uuid', $conversationUuid)->firstOrFail();
+
+        $message = AgentMessage::where('conversation_id', $conversation->id)
+            ->where('role', 'assistant')
+            ->orderBy('id', 'desc')
+            ->get()
+            ->first(function (AgentMessage $candidate) use ($actionId): bool {
+                $metadata = is_array($candidate->metadata) ? $candidate->metadata : [];
+                $pending = $metadata['pending_action'] ?? null;
+
+                return is_array($pending) && ($pending['action_id'] ?? null) === $actionId;
+            });
+
+        if (! $message instanceof AgentMessage) {
+            throw ValidationException::withMessages([
+                'action_id' => ['No pending action matches the supplied identifier.'],
+            ]);
+        }
+
+        $metadata = is_array($message->metadata) ? $message->metadata : [];
+        /** @var array<string, mixed> $pending */
+        $pending = $metadata['pending_action'];
+
+        if (! $approved) {
+            $message->update([
+                'metadata' => array_merge($metadata, [
+                    'has_pending_action' => false,
+                    'pending_action' => array_merge($pending, [
+                        'status' => 'REJECTED',
+                        'rejection_reason' => $rejectionReason,
+                    ]),
+                ]),
+            ]);
+
+            $this->auditLogger->log(
+                tenantId: $tenantId,
+                userId: $userId,
+                conversationId: $conversation->id,
+                action: (string) ($pending['tool'] ?? 'unknown'),
+                permissionTier: AgentPermissionGuard::TIER_2_SUPERVISED,
+                inputParams: is_array($pending['arguments'] ?? null) ? $pending['arguments'] : [],
+                resultSummary: 'Operator rejected the pending action: '.($rejectionReason ?? 'no reason supplied'),
+                executed: false,
+                ipAddress: $ipAddress
+            );
+
+            return [
+                'executed' => false,
+                'action_id' => $actionId,
+                'reason' => $rejectionReason ?? 'Action rejected by operator.',
+            ];
+        }
+
+        $result = $this->executeConfirmedAction(
+            tenantId: $tenantId,
+            userId: $userId,
+            conversationUuid: $conversationUuid,
+            toolName: (string) ($pending['tool'] ?? ''),
+            actionData: is_array($pending['arguments'] ?? null) ? $pending['arguments'] : [],
+            ipAddress: $ipAddress
+        );
+
+        $message->update([
+            'metadata' => array_merge($metadata, [
+                'has_pending_action' => false,
+                'pending_action' => array_merge($pending, ['status' => 'CONFIRMED']),
+            ]),
+        ]);
+
+        return [
+            'executed' => true,
+            'action_id' => $actionId,
+            'result' => is_array($result['result'] ?? null) ? $result['result'] : [],
         ];
     }
 
