@@ -286,6 +286,10 @@ class CopilotController extends Controller
             'ap_outstanding' => 'nullable|numeric|min:0',
             'inventory_value' => 'nullable|numeric|min:0',
             'bank_balance' => 'nullable|numeric|min:0',
+            'requested_amount' => 'nullable|numeric|min:0',
+            'preferred_term_months' => 'nullable|integer|min:1|max:120',
+            'collateral_available' => 'nullable|string|max:100',
+            'purpose' => 'nullable|string|max:100',
         ]);
 
         $tenantId = TenantContext::current()->tenantId();
@@ -294,7 +298,7 @@ class CopilotController extends Controller
         $assessment = $this->financingMatchEngine->assessAndMatch(
             tenantId: $tenantId,
             userId: $userId,
-            customInputs: $validated
+            customInputs: $this->financingMatchEngine->normalizeMatchInputs($validated)
         );
 
         $data = $this->financingMatchEngine->formatMatchData($assessment);

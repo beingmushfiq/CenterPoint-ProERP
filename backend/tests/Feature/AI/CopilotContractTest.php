@@ -867,4 +867,24 @@ final class CopilotContractTest extends TestCase
         $this->assertSame(300000.0, (float) $result['verified_ar_pool']);
         $this->assertSame(10, $result['runway_cushion_days']);
     }
+
+    public function test_financing_match_accepts_ui_request_contract(): void
+    {
+        $engine = app(\App\Modules\AI\Services\FinancingMatchEngine::class);
+
+        $inputs = $engine->normalizeMatchInputs([
+            'requested_amount' => 500000,
+            'preferred_term_months' => 12,
+            'collateral_available' => 'unsecured',
+            'purpose' => 'working_capital',
+            'monthly_revenue' => 400000,
+        ]);
+
+        $this->assertSame(400000.0, $inputs['monthly_revenue']);
+        $this->assertSame(500000.0, $inputs['requested_amount']);
+        $this->assertSame(12, $inputs['preferred_term_months']);
+        $this->assertSame('unsecured', $inputs['collateral_available']);
+        $this->assertSame('working_capital', $inputs['purpose']);
+    }
 }
+

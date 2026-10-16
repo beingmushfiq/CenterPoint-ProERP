@@ -166,6 +166,41 @@ class FinancingMatchEngine
     }
 
     /**
+     * Merge the UI request contract into the internal custom-input map.
+     *
+     * @param  array<string, mixed>  $payload
+     * @return array<string, mixed>
+     */
+    public function normalizeMatchInputs(array $payload): array
+    {
+        $inputs = [];
+
+        foreach (['monthly_revenue', 'monthly_expenses', 'ar_outstanding', 'ap_outstanding', 'inventory_value', 'bank_balance'] as $key) {
+            if (isset($payload[$key]) && is_numeric($payload[$key])) {
+                $inputs[$key] = (float) $payload[$key];
+            }
+        }
+
+        if (isset($payload['requested_amount']) && is_numeric($payload['requested_amount'])) {
+            $inputs['requested_amount'] = (float) $payload['requested_amount'];
+        }
+
+        if (isset($payload['preferred_term_months']) && is_numeric($payload['preferred_term_months'])) {
+            $inputs['preferred_term_months'] = (int) $payload['preferred_term_months'];
+        }
+
+        if (isset($payload['collateral_available']) && is_string($payload['collateral_available'])) {
+            $inputs['collateral_available'] = $payload['collateral_available'];
+        }
+
+        if (isset($payload['purpose']) && is_string($payload['purpose'])) {
+            $inputs['purpose'] = $payload['purpose'];
+        }
+
+        return $inputs;
+    }
+
+    /**
      * Convert an internal product row into the FinancingProduct contract.
      *
      * @param  array<string, mixed>  $product
