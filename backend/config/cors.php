@@ -25,7 +25,7 @@ return [
 
     'allowed_origins_patterns' => [
         '#^https?://([a-z0-9\-]+\.)?devcenterpoint\.com(:\d+)?$#i',
-        '#^https?://localhost(:\d+)?$#i',
+        '#^https?://([a-z0-9\-]+\.)?localhost(:\d+)?$#i',
         '#^https?://127\.0\.0\.1(:\d+)?$#i',
     ],
 

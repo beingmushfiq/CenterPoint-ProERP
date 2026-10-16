@@ -1,9 +1,9 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { AlertCircle, CheckCircle, Download, Eye, EyeOff, Lock, Mail, Moon, Package, Sun, X } from 'lucide-react';
+import { AlertCircle, Building2, CheckCircle, Download, ExternalLink, Eye, EyeOff, Lock, Mail, Moon, Package, Sun, X } from 'lucide-react';
 import { useAuthStore } from '../../lib/auth/authStore';
 import { api } from '../../lib/api/client';
 import { isApiError } from '../../lib/api/errors';
@@ -86,6 +86,17 @@ export default function LoginPage() {
   const state = location.state as LocationState | null;
   const from = state?.from?.pathname ?? '/dashboard';
 
+  // Subdomain detection for local/dev multi-tenancy (e.g. slicemart.localhost:5173)
+  const currentSubdomain = useMemo(() => {
+    if (typeof window === 'undefined') return null;
+    const host = window.location.hostname.toLowerCase();
+    if (host.endsWith('.localhost')) {
+      const sub = host.slice(0, -'.localhost'.length);
+      return !['admin', 'platform', 'app', 'erp', 'api', 'www'].includes(sub) ? sub : null;
+    }
+    return null;
+  }, []);
+
   // Forgot / Reset Password state
   const [showForgotModal, setShowForgotModal] = useState(false);
   const [forgotEmail, setForgotEmail] = useState('');
@@ -155,12 +166,19 @@ export default function LoginPage() {
     }
   };
 
-  const handleSelectTenant = async (tenantId: number) => {
+  const handleSelectTenant = async (tenant: { id: number; name: string; slug?: string }) => {
     setIsLoading(true);
     setServerError(null);
     try {
-      await selectTenant({ email: pendingEmail, tenant_id: tenantId });
+      await selectTenant({ email: pendingEmail, tenant_id: tenant.id });
       setShowTenantModal(false);
+      // In local development, if on generic localhost and a slug is available,
+      // redirect to the local subdomain URL so subsequent logins/refreshes never loop.
+      if (typeof window !== 'undefined' && window.location.hostname === 'localhost' && tenant.slug) {
+        const port = window.location.port ? `:${window.location.port}` : '';
+        window.location.href = `${window.location.protocol}//${tenant.slug}.localhost${port}${from || '/dashboard'}`;
+        return;
+      }
       navigate(from, { replace: true });
     } catch (err: unknown) {
       const errorObj = err as { response?: { data?: { message?: string } }; message?: string };
@@ -270,6 +288,30 @@ export default function LoginPage() {
             {displayName}
           </h1>
           <p className="mt-1 text-xs text-muted">Business Operations Platform</p>
+
+          {currentSubdomain ? (
+            <div className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-[11px] font-mono font-bold text-primary">
+              <Building2 className="size-3.5" />
+              <span>Workspace: {currentSubdomain}</span>
+            </div>
+          ) : (
+            <div className="mt-3 inline-flex items-center gap-2 rounded-xl border border-default/70 bg-surface-sunken/60 px-3 py-1 text-[11px] text-muted">
+              <span className="font-medium">Direct workspace:</span>
+              <a
+                href={`${typeof window !== 'undefined' ? window.location.protocol : 'http:'}//slicemart.localhost:${(typeof window !== 'undefined' && window.location.port) || '5173'}/login`}
+                className="font-mono font-semibold text-primary hover:underline"
+              >
+                slicemart
+              </a>
+              <span>&bull;</span>
+              <a
+                href={`${typeof window !== 'undefined' ? window.location.protocol : 'http:'}//democorp.localhost:${(typeof window !== 'undefined' && window.location.port) || '5173'}/login`}
+                className="font-mono font-semibold text-primary hover:underline"
+              >
+                democorp
+              </a>
+            </div>
+          )}
         </div>
 
         {/* Server error alert banner */}
@@ -550,14 +592,22 @@ export default function LoginPage() {
                 <button
                   key={t.id}
                   type="button"
-                  onClick={() => handleSelectTenant(t.id)}
+                  onClick={() => handleSelectTenant(t)}
                   className="w-full flex items-center justify-between p-3 rounded-xl border border-default bg-surface-sunken hover:border-primary/50 hover:bg-primary-subtle text-left transition-colors cursor-pointer group"
                 >
                   <div>
                     <p className="text-xs font-bold text-default group-hover:text-primary">{t.name}</p>
-                    {t.slug && <p className="text-[10px] text-muted font-mono">{t.slug}</p>}
+                    {t.slug && (
+                      <p className="text-[10px] text-muted font-mono flex items-center gap-1 mt-0.5">
+                        <span>{t.slug}.localhost:5173</span>
+                        <ExternalLink className="size-2.5 opacity-60 group-hover:opacity-100" />
+                      </p>
+                    )}
                   </div>
-                  <span className="text-xs text-primary font-semibold">Select &rarr;</span>
+                  <span className="text-xs text-primary font-semibold flex items-center gap-1">
+                    <span>Enter Workspace</span>
+                    <span>&rarr;</span>
+                  </span>
                 </button>
               ))}
             </div>

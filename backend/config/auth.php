@@ -151,8 +151,8 @@ return [
         'cookie_name' => env('REFRESH_TOKEN_COOKIE_NAME', 'slicemart_refresh_token'),
         'cookie_path' => env('REFRESH_TOKEN_COOKIE_PATH', '/api/v1/auth'),
         'cookie_domain' => env('REFRESH_TOKEN_COOKIE_DOMAIN', null),
-        'cookie_secure' => env('REFRESH_TOKEN_COOKIE_SECURE', true),
-        'cookie_same_site' => env('REFRESH_TOKEN_COOKIE_SAME_SITE', 'strict'),
+        'cookie_secure' => env('REFRESH_TOKEN_COOKIE_SECURE', ! app()->environment('local', 'testing')),
+        'cookie_same_site' => env('REFRESH_TOKEN_COOKIE_SAME_SITE', 'lax'),
     ],
 
 ];

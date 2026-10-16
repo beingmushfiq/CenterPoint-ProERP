@@ -79,12 +79,21 @@ export default defineConfig({
     },
   },
   server: {
+    host: true,
+    allowedHosts: true,
     port: 5173,
     strictPort: true,
     proxy: {
       '/api': {
         target: 'http://127.0.0.1:8000',
         changeOrigin: true,
+        configure: (proxy) => {
+          proxy.on('proxyReq', (proxyReq, req) => {
+            if (req.headers.host) {
+              proxyReq.setHeader('X-Forwarded-Host', req.headers.host);
+            }
+          });
+        },
       },
       '/sitemap.xml': {
         target: 'http://127.0.0.1:8000',

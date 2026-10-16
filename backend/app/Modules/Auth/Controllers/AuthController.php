@@ -36,13 +36,33 @@ class AuthController extends Controller
             'tenant_id' => 'nullable|integer',
         ]);
 
-        $host = $request->getHost();
+        $host = $request->header('X-Forwarded-Host') ?? $request->getHost();
+        if ((! $host || in_array($host, ['localhost', '127.0.0.1'], true)) && ($origin = $request->header('Origin') ?: $request->header('Referer'))) {
+            $parsedHost = parse_url($origin, PHP_URL_HOST);
+            if ($parsedHost) {
+                $host = $parsedHost;
+            }
+        }
+
         $domainTenantId = $validated['tenant_id'] ?? null;
+        if ($domainTenantId === null) {
+            $subHeader = $request->header('X-Tenant-Subdomain') ?: $request->header('X-Tenant-Slug');
+            if ($subHeader) {
+                $domainTenantId = \App\Models\Tenant::where('slug', strtolower(trim((string) $subHeader)))->value('id');
+            }
+        }
+
         if ($domainTenantId === null && $host) {
-            $domainTenantId = \App\Models\TenantDomain::where('domain', $host)->value('tenant_id');
-            if (! $domainTenantId && str_contains($host, '.')) {
-                $sub = explode('.', $host)[0];
-                $domainTenantId = \App\Models\Tenant::where('slug', $sub)->value('id');
+            $cleanHost = preg_replace('/:\d+$/', '', strtolower(trim($host)));
+            $domainTenantId = \App\Models\TenantDomain::where('domain', $cleanHost)->value('tenant_id');
+            if (! $domainTenantId) {
+                if (str_ends_with($cleanHost, '.localhost')) {
+                    $sub = substr($cleanHost, 0, -strlen('.localhost'));
+                    $domainTenantId = \App\Models\Tenant::where('slug', $sub)->value('id');
+                } elseif (str_contains($cleanHost, '.')) {
+                    $sub = explode('.', $cleanHost)[0];
+                    $domainTenantId = \App\Models\Tenant::where('slug', $sub)->value('id');
+                }
             }
         }
 
@@ -391,17 +411,33 @@ class AuthController extends Controller
                 $tenant = \App\Models\Tenant::find((int) $request->header('X-Tenant-Id'));
             }
 
-            if (! $tenant && $request->header('X-Tenant-Slug')) {
-                $tenant = \App\Models\Tenant::where('slug', (string) $request->header('X-Tenant-Slug'))->first();
+            if (! $tenant) {
+                $subHeader = $request->header('X-Tenant-Subdomain') ?: $request->header('X-Tenant-Slug');
+                if ($subHeader) {
+                    $tenant = \App\Models\Tenant::where('slug', strtolower(trim((string) $subHeader)))->first();
+                }
             }
 
-            if (! $tenant && ($host = $request->getHost())) {
-                $tenantId = \App\Models\TenantDomain::where('domain', $host)->value('tenant_id');
-                if ($tenantId) {
-                    $tenant = \App\Models\Tenant::find($tenantId);
-                } elseif (str_contains($host, '.')) {
-                    $sub = explode('.', $host)[0];
-                    $tenant = \App\Models\Tenant::where('slug', $sub)->first();
+            if (! $tenant) {
+                $host = $request->header('X-Forwarded-Host') ?? $request->getHost();
+                if ((! $host || in_array($host, ['localhost', '127.0.0.1'], true)) && ($origin = $request->header('Origin') ?: $request->header('Referer'))) {
+                    $parsedHost = parse_url($origin, PHP_URL_HOST);
+                    if ($parsedHost) {
+                        $host = $parsedHost;
+                    }
+                }
+                if ($host) {
+                    $cleanHost = preg_replace('/:\d+$/', '', strtolower(trim($host)));
+                    $tenantId = \App\Models\TenantDomain::where('domain', $cleanHost)->value('tenant_id');
+                    if ($tenantId) {
+                        $tenant = \App\Models\Tenant::find($tenantId);
+                    } elseif (str_ends_with($cleanHost, '.localhost')) {
+                        $sub = substr($cleanHost, 0, -strlen('.localhost'));
+                        $tenant = \App\Models\Tenant::where('slug', $sub)->first();
+                    } elseif (str_contains($cleanHost, '.')) {
+                        $sub = explode('.', $cleanHost)[0];
+                        $tenant = \App\Models\Tenant::where('slug', $sub)->first();
+                    }
                 }
             }
 

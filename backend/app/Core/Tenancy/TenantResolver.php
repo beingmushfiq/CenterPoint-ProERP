@@ -46,6 +46,17 @@ final class TenantResolver
 
         $baseDomain = strtolower((string) config('platform.tenant_base_domain', 'devcenterpoint.com'));
 
+        // Check if request is on a *.localhost subdomain (local/dev environment)
+        if (str_ends_with($host, '.localhost')) {
+            $subdomain = substr($host, 0, -strlen('.localhost'));
+
+            if (self::isValidSubdomain($subdomain) && ! self::isReservedSubdomain($subdomain)) {
+                return Tenant::where('slug', $subdomain)
+                    ->where('status', '!=', 'suspended')
+                    ->first();
+            }
+        }
+
         // Check if request is on a subdomain of tenant base domain
         if (str_ends_with($host, '.' . $baseDomain)) {
             $subdomain = substr($host, 0, -(strlen($baseDomain) + 1));
@@ -185,9 +196,23 @@ final class TenantResolver
     {
         $rawHost = $request->getHost();
 
-        // In local/testing, allow X-Storefront-Domain or X-Forwarded-Host if present
+        // In local/testing, allow X-Forwarded-Host, X-Storefront-Domain, or Origin host if present
         if (app()->environment('local', 'testing')) {
-            $rawHost = $request->header('X-Storefront-Domain') ?: $rawHost;
+            $forwarded = $request->header('X-Forwarded-Host');
+            $storefront = $request->header('X-Storefront-Domain');
+            if ($forwarded) {
+                $rawHost = $forwarded;
+            } elseif ($storefront) {
+                $rawHost = $storefront;
+            } elseif (in_array($rawHost, ['localhost', '127.0.0.1'], true)) {
+                $origin = $request->header('Origin') ?: $request->header('Referer');
+                if ($origin) {
+                    $originHost = parse_url($origin, PHP_URL_HOST);
+                    if ($originHost) {
+                        $rawHost = $originHost;
+                    }
+                }
+            }
         }
 
         return preg_replace('/:\d+$/', '', strtolower(trim($rawHost)));
