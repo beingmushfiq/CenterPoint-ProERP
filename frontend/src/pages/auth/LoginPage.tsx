@@ -176,7 +176,8 @@ export default function LoginPage() {
       // redirect to the local subdomain URL so subsequent logins/refreshes never loop.
       if (typeof window !== 'undefined' && window.location.hostname === 'localhost' && tenant.slug) {
         const port = window.location.port ? `:${window.location.port}` : '';
-        window.location.href = `${window.location.protocol}//${tenant.slug}.localhost${port}${from || '/dashboard'}`;
+        const targetUrl = `${window.location.protocol}//${tenant.slug}.localhost${port}${from || '/dashboard'}`;
+        window.location.assign(targetUrl);
         return;
       }
       navigate(from, { replace: true });

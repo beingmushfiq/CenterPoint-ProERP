@@ -23,6 +23,14 @@ import {
   Flame,
 } from 'lucide-react';
 
+interface ErrorStats {
+  total: number;
+  open: number;
+  investigating: number;
+  resolved: number;
+  critical: number;
+}
+
 interface ErrorListResponse {
   data: PlatformErrorLogItem[];
   meta?: {
@@ -31,15 +39,10 @@ interface ErrorListResponse {
       page: number;
       per_page: number;
       total_pages: number;
-    };
-    stats?: {
-      total: number;
-      open: number;
-      investigating: number;
-      resolved: number;
-      critical: number;
-    };
-  };
+      has_more?: boolean;
+    } | undefined;
+    stats?: ErrorStats | undefined;
+  } | undefined;
 }
 
 export const PlatformErrorMonitoringWorkspace: React.FC = () => {
@@ -70,7 +73,7 @@ export const PlatformErrorMonitoringWorkspace: React.FC = () => {
         data: Array.isArray(res.data) ? res.data : ((res.data as unknown as { data?: PlatformErrorLogItem[] })?.data ?? []),
         meta: {
           pagination: res.meta?.pagination,
-          stats: (res.meta as unknown as { stats?: ErrorListResponse['meta']['stats'] })?.stats,
+          stats: (res.meta as { stats?: ErrorStats } | undefined)?.stats,
         },
       };
     },

@@ -19,6 +19,15 @@ import {
   ChevronRight,
 } from 'lucide-react';
 
+interface SupportStats {
+  total: number;
+  open: number;
+  in_progress: number;
+  waiting: number;
+  resolved: number;
+  closed: number;
+}
+
 interface TicketsResponse {
   data: PlatformSupportTicket[];
   meta?: {
@@ -27,16 +36,10 @@ interface TicketsResponse {
       page: number;
       per_page: number;
       total_pages: number;
-    };
-    stats?: {
-      total: number;
-      open: number;
-      in_progress: number;
-      waiting: number;
-      resolved: number;
-      closed: number;
-    };
-  };
+      has_more?: boolean;
+    } | undefined;
+    stats?: SupportStats | undefined;
+  } | undefined;
 }
 
 export const PlatformSupportWorkspace: React.FC = () => {
@@ -91,7 +94,7 @@ export const PlatformSupportWorkspace: React.FC = () => {
         data: Array.isArray(res.data) ? res.data : ((res.data as unknown as { data?: PlatformSupportTicket[] })?.data ?? []),
         meta: {
           pagination: res.meta?.pagination,
-          stats: (res.meta as unknown as { stats?: TicketsResponse['meta']['stats'] })?.stats,
+          stats: (res.meta as { stats?: SupportStats } | undefined)?.stats,
         },
       };
     },

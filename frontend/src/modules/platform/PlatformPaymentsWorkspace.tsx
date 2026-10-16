@@ -28,8 +28,9 @@ interface PaymentsResponse {
       page: number;
       per_page: number;
       total_pages: number;
-    };
-  };
+      has_more?: boolean;
+    } | undefined;
+  } | undefined;
 }
 
 export const PlatformPaymentsWorkspace: React.FC = () => {
