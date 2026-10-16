@@ -206,12 +206,48 @@ class CopilotController extends Controller
             $query->where('alert_type', $request->query('alert_type'));
         }
 
-        $alerts = $query->orderBy('created_at', 'desc')->get();
+        $alerts = $query->orderBy('created_at', 'desc')->get()
+            ->map(fn (CashFlowAlert $alert): array => $this->formatAlert($alert))
+            ->all();
 
         return response()->json([
             'status' => 'success',
             'data' => $alerts,
         ]);
+    }
+
+    /**
+     * Map a stored alert onto the CashFlowAlertItem UI contract.
+     *
+     * @return array<string, mixed>
+     */
+    public function formatAlert(CashFlowAlert $alert): array
+    {
+        $severityMap = ['info' => 'low', 'warning' => 'medium', 'critical' => 'critical'];
+        $threshold = is_numeric($alert->threshold_value) ? (float) $alert->threshold_value : 0.0;
+        $actual = is_numeric($alert->actual_value) ? (float) $alert->actual_value : 0.0;
+
+        $daysUntilShortfall = 30;
+        if ($alert->expires_at !== null) {
+            $daysUntilShortfall = max(0, (int) Carbon::now()->diffInDays($alert->expires_at, false));
+        } elseif ($alert->created_at !== null) {
+            $daysUntilShortfall = max(0, 30 - (int) $alert->created_at->diffInDays(Carbon::now()));
+        }
+
+        return [
+            'id' => (int) $alert->id,
+            'uuid' => (string) $alert->uuid,
+            'alert_type' => (string) $alert->alert_type,
+            'severity' => $severityMap[(string) $alert->severity] ?? 'medium',
+            'title' => (string) $alert->title,
+            'description' => (string) ($alert->description ?? ''),
+            'projected_shortfall' => round(max(0.0, $threshold - $actual), 2),
+            'days_until_shortfall' => $daysUntilShortfall,
+            'status' => (string) $alert->status,
+            'acknowledged_at' => $alert->acknowledged_at?->toIso8601String(),
+            'acknowledged_by_user' => $alert->acknowledgedByUser,
+            'created_at' => $alert->created_at?->toIso8601String(),
+        ];
     }
 
     /**
@@ -234,7 +270,7 @@ class CopilotController extends Controller
         return response()->json([
             'status' => 'success',
             'message' => 'Alert successfully acknowledged.',
-            'data' => $alert,
+            'data' => $this->formatAlert($alert->fresh('acknowledgedByUser')),
         ]);
     }
 

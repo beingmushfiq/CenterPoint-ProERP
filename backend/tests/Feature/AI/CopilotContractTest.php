@@ -764,5 +764,37 @@ final class CopilotContractTest extends TestCase
         $this->assertSame('127.0.0.1', $formatted['ip_address']);
         $this->assertIsString($formatted['created_at']);
     }
-}
 
+    public function test_alerts_endpoint_matches_cash_flow_alert_item_contract(): void
+    {
+        $tenant = $this->createTenant();
+        $tenantId = $tenant->id;
+
+        $alert = \App\Modules\AI\Models\CashFlowAlert::create([
+            'tenant_id' => $tenantId,
+            'alert_type' => 'payroll_due',
+            'severity' => 'critical',
+            'title' => '14-Day Factory Payroll Deficit Warning',
+            'description' => 'Payroll obligations exceed available liquidity.',
+            'threshold_value' => '250000.0000',
+            'actual_value' => '145000.0000',
+            'currency' => 'BDT',
+            'status' => 'active',
+            'generated_by' => 'agent',
+        ]);
+
+        $formatted = app(\App\Modules\AI\Controllers\CopilotController::class)->formatAlert($alert);
+
+        $this->assertSame($alert->id, $formatted['id']);
+        $this->assertSame($alert->uuid, $formatted['uuid']);
+        $this->assertSame('payroll_due', $formatted['alert_type']);
+        $this->assertSame('critical', $formatted['severity']);
+        $this->assertSame('14-Day Factory Payroll Deficit Warning', $formatted['title']);
+        $this->assertSame(105000.0, (float) $formatted['projected_shortfall']);
+        $this->assertIsInt($formatted['days_until_shortfall']);
+        $this->assertSame('active', $formatted['status']);
+        $this->assertIsString($formatted['created_at']);
+        $this->assertArrayNotHasKey('threshold_value', $formatted);
+        $this->assertArrayNotHasKey('actual_value', $formatted);
+    }
+}
