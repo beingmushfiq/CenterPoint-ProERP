@@ -137,8 +137,8 @@ class CopilotController extends Controller
 
         $query = AgentAuditLog::where('tenant_id', $tenantId)->with(['user:id,name,email', 'confirmedByUser:id,name,email']);
 
-        if ($request->has('action')) {
-            $query->where('action', $request->query('action'));
+        if ($request->has('action') || $request->has('tool_name')) {
+            $query->where('action', $request->query('tool_name', $request->query('action')));
         }
 
         if ($request->has('permission_tier')) {
@@ -151,11 +151,38 @@ class CopilotController extends Controller
 
         $perPage = $request->integer('per_page', 25);
         $logs = $query->orderBy('created_at', 'desc')->paginate($perPage);
+        $logs->through(fn (AgentAuditLog $log): array => $this->formatAuditLog($log));
 
         return response()->json([
             'status' => 'success',
             'data' => $logs,
         ]);
+    }
+
+    /**
+     * Map a stored audit row onto the AgentAuditLogItem UI contract.
+     *
+     * @return array<string, mixed>
+     */
+    public function formatAuditLog(AgentAuditLog $log): array
+    {
+        return [
+            'id' => (int) $log->id,
+            'uuid' => 'audit-'.$log->id,
+            'tool_name' => (string) $log->action,
+            'permission_tier' => (int) $log->permission_tier,
+            'input_payload' => is_array($log->input_params) ? $log->input_params : [],
+            'output_payload' => [
+                'result_summary' => $log->result_summary,
+                'confirmed_by' => $log->confirmed_by,
+            ],
+            'executed' => (bool) $log->executed,
+            'blocked_reason' => $log->executed ? null : $log->result_summary,
+            'duration_ms' => (int) ($log->duration_ms ?? 0),
+            'ip_address' => $log->ip_address,
+            'user' => $log->user,
+            'created_at' => $log->created_at?->toIso8601String(),
+        ];
     }
 
     /**

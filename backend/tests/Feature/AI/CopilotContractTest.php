@@ -733,4 +733,36 @@ final class CopilotContractTest extends TestCase
         $this->assertSame('Not needed right now', $rejected['reason']);
         $this->assertSame(1, \App\Modules\AI\Models\CashFlowAlert::where('tenant_id', $tenantId)->count());
     }
+
+    public function test_audit_log_endpoint_matches_agent_audit_log_item_contract(): void
+    {
+        $tenant = $this->createTenant();
+        $tenantId = $tenant->id;
+
+        $log = \App\Modules\AI\Models\AgentAuditLog::create([
+            'tenant_id' => $tenantId,
+            'action' => 'list_overdue_invoices',
+            'permission_tier' => 0,
+            'input_params' => ['days_overdue' => 0],
+            'result_summary' => 'Returned 2 overdue invoices totalling BDT 150,000.00',
+            'executed' => true,
+            'duration_ms' => 42,
+            'ip_address' => '127.0.0.1',
+        ]);
+
+        $formatted = app(\App\Modules\AI\Controllers\CopilotController::class)->formatAuditLog($log);
+
+        $this->assertSame($log->id, $formatted['id']);
+        $this->assertSame('audit-'.$log->id, $formatted['uuid']);
+        $this->assertSame('list_overdue_invoices', $formatted['tool_name']);
+        $this->assertSame(0, $formatted['permission_tier']);
+        $this->assertSame(['days_overdue' => 0], $formatted['input_payload']);
+        $this->assertSame('Returned 2 overdue invoices totalling BDT 150,000.00', $formatted['output_payload']['result_summary']);
+        $this->assertTrue($formatted['executed']);
+        $this->assertNull($formatted['blocked_reason']);
+        $this->assertSame(42, $formatted['duration_ms']);
+        $this->assertSame('127.0.0.1', $formatted['ip_address']);
+        $this->assertIsString($formatted['created_at']);
+    }
 }
+
