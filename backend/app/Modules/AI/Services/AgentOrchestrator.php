@@ -557,64 +557,69 @@ PROMPT;
             $content = "⚠️ **Action Requires Operator Confirmation (Tier 2 Supervised)**\n\n"
                 ."The Copilot proposes creating a new **Cash Flow Alert** on your tenant dashboard with a threshold of BDT 50,000.00.\n\n"
                 .'Please review and confirm this action to proceed.';
-        } elseif (str_contains($lower, 'cash') || str_contains($lower, 'balance') || str_contains($lower, 'liquidity')) {
-            $toolOutput = $this->auditLogger->measureAndLog(
-                tenantId: $tenantId,
-                userId: $userId,
-                conversationId: $conversationId,
-                toolName: 'get_cash_position',
-                permissionTier: 0,
-                inputParams: [],
-                callback: fn () => $this->toolRegistry->executeTool('get_cash_position', [], $tenantId, $userId),
-                ipAddress: $ipAddress
-            );
+        } elseif (str_contains($lower, 'risk') || str_contains($lower, 'runway') || str_contains($lower, 'forecast') || str_contains($lower, 'burn rate')) {
+            $turn = $this->fallbackToolTurn('analyze_cash_flow_risk', ['forecast_days' => 30], $tenantId, $userId, $conversationId, AgentPermissionGuard::TIER_0_READ, $ipAddress);
+            $executedTools[] = $turn['tool'];
+            $toolOutput = $turn['output'];
 
-            $executedTools[] = [
-                'tool_call_id' => 'call_'.Str::random(8),
-                'tool' => 'get_cash_position',
-                'arguments' => [],
-                'permission_tier' => 0,
-                'result' => $toolOutput,
-            ];
+            $riskLevel = is_string($toolOutput['risk_level'] ?? null) ? (string) $toolOutput['risk_level'] : 'UNKNOWN';
+            $runwayDays = is_scalar($toolOutput['estimated_runway_days'] ?? null) ? (string) $toolOutput['estimated_runway_days'] : '0';
+            $burnRate = number_format(is_numeric($toolOutput['daily_burn_rate'] ?? null) ? (float) $toolOutput['daily_burn_rate'] : 0.0, 2);
+            $cashOnHand = number_format(is_numeric($toolOutput['cash_on_hand'] ?? null) ? (float) $toolOutput['cash_on_hand'] : 0.0, 2);
+            $arColl = number_format(is_numeric($toolOutput['receivables_expected_70pct'] ?? null) ? (float) $toolOutput['receivables_expected_70pct'] : 0.0, 2);
+            $apDue = number_format(is_numeric($toolOutput['payables_due'] ?? null) ? (float) $toolOutput['payables_due'] : 0.0, 2);
+            $netProj = number_format(is_numeric($toolOutput['net_projected_cash_at_horizon'] ?? null) ? (float) $toolOutput['net_projected_cash_at_horizon'] : 0.0, 2);
+            $recom = is_string($toolOutput['recommendation'] ?? null) ? (string) $toolOutput['recommendation'] : '';
 
-            $rawTotal = is_numeric($toolOutput['total_liquidity'] ?? null) ? (float) $toolOutput['total_liquidity'] : 0.0;
-            $total = number_format($rawTotal, 2);
-            $accountCount = is_scalar($toolOutput['account_count'] ?? null) ? (string) $toolOutput['account_count'] : '0';
-            $content = "### Enterprise Cash Position Summary\n\n"
-                ."Live cash and bank liquidity across **{$accountCount}** active accounts is **BDT {$total}**.\n\n"
-                ."| Account Name | Bank | Type | Balance (BDT) |\n"
-                ."|:---|:---|:---|:---:|\n";
+            $content = "### 30-Day Liquidity & Cash Runway Assessment\n\n"
+                ."- **Overall Risk Rating:** **{$riskLevel}**\n"
+                ."- **Estimated Runway:** **{$runwayDays} days** (Daily burn: BDT {$burnRate})\n"
+                .'- **Liquid Cash on Hand:** BDT '.$cashOnHand."\n"
+                .'- **Expected AR Collections (70%):** BDT '.$arColl."\n"
+                .'- **Payables Due (AP):** BDT '.$apDue."\n"
+                .'- **Projected Net Cash (Day 30):** BDT '.$netProj."\n\n"
+                ."**Strategic Recommendation:** {$recom}";
+        } elseif (preg_match('/\b(p&l|profit|loss|revenue|operating\s+expenses?)\b/i', $lower) === 1 || str_contains($lower, 'p&l') || str_contains($lower, 'p and l')) {
+            $turn = $this->fallbackToolTurn('get_pl_summary', [], $tenantId, $userId, $conversationId, AgentPermissionGuard::TIER_0_READ, $ipAddress);
+            $executedTools[] = $turn['tool'];
+            $toolOutput = $turn['output'];
 
-            $accountsList = is_array($toolOutput['accounts'] ?? null) ? $toolOutput['accounts'] : [];
-            foreach ($accountsList as $acc) {
-                if (! is_array($acc)) {
-                    continue;
-                }
-                $bal = number_format(is_numeric($acc['current_balance'] ?? null) ? (float) $acc['current_balance'] : 0.0, 2);
-                $accName = is_string($acc['name'] ?? null) ? (string) $acc['name'] : '';
-                $bankName = is_string($acc['bank_name'] ?? null) ? (string) $acc['bank_name'] : '';
-                $accType = is_string($acc['account_type'] ?? null) ? (string) $acc['account_type'] : '';
-                $content .= "| {$accName} | {$bankName} | {$accType} | {$bal} |\n";
-            }
-        } elseif (str_contains($lower, 'overdue') || str_contains($lower, 'invoice') || str_contains($lower, 'ar')) {
-            $toolOutput = $this->auditLogger->measureAndLog(
-                tenantId: $tenantId,
-                userId: $userId,
-                conversationId: $conversationId,
-                toolName: 'list_overdue_invoices',
-                permissionTier: 0,
-                inputParams: ['days_overdue' => 0, 'limit' => 5],
-                callback: fn () => $this->toolRegistry->executeTool('list_overdue_invoices', ['days_overdue' => 0, 'limit' => 5], $tenantId, $userId),
-                ipAddress: $ipAddress
-            );
+            $period = is_string($toolOutput['period'] ?? null) ? (string) $toolOutput['period'] : 'Current Period';
+            $rev = number_format(is_numeric($toolOutput['revenue'] ?? null) ? (float) $toolOutput['revenue'] : 0.0, 2);
+            $cogs = number_format(is_numeric($toolOutput['cogs'] ?? null) ? (float) $toolOutput['cogs'] : 0.0, 2);
+            $gp = number_format(is_numeric($toolOutput['gross_profit'] ?? null) ? (float) $toolOutput['gross_profit'] : 0.0, 2);
+            $opex = number_format(is_numeric($toolOutput['operating_expenses'] ?? null) ? (float) $toolOutput['operating_expenses'] : 0.0, 2);
+            $np = number_format(is_numeric($toolOutput['net_profit'] ?? null) ? (float) $toolOutput['net_profit'] : 0.0, 2);
+            $gm = number_format(is_numeric($toolOutput['gross_margin_pct'] ?? null) ? (float) $toolOutput['gross_margin_pct'] : 0.0, 1);
+            $nm = number_format(is_numeric($toolOutput['net_margin_pct'] ?? null) ? (float) $toolOutput['net_margin_pct'] : 0.0, 1);
 
-            $executedTools[] = [
-                'tool_call_id' => 'call_'.Str::random(8),
-                'tool' => 'list_overdue_invoices',
-                'arguments' => ['days_overdue' => 0, 'limit' => 5],
-                'permission_tier' => 0,
-                'result' => $toolOutput,
-            ];
+            $content = "### Profit & Loss Statement ({$period})\n\n"
+                ."- **Total Revenue:** BDT {$rev}\n"
+                ."- **Cost of Goods Sold (COGS):** BDT {$cogs}\n"
+                ."- **Gross Profit:** BDT {$gp} (Gross Margin: {$gm}%)\n"
+                ."- **Operating Expenses:** BDT {$opex}\n"
+                ."- **Net Profit:** BDT {$np} (Net Margin: {$nm}%)\n";
+        } elseif (preg_match('/\b(inventory|stock|valuation)\b/i', $lower) === 1) {
+            $turn = $this->fallbackToolTurn('get_inventory_value', [], $tenantId, $userId, $conversationId, AgentPermissionGuard::TIER_0_READ, $ipAddress);
+            $executedTools[] = $turn['tool'];
+            $toolOutput = $turn['output'];
+
+            $val = number_format(is_numeric($toolOutput['total_valuation'] ?? null) ? (float) $toolOutput['total_valuation'] : 0.0, 2);
+            $items = is_scalar($toolOutput['item_count'] ?? null) ? (string) $toolOutput['item_count'] : '0';
+            $low = is_scalar($toolOutput['low_stock_count'] ?? null) ? (string) $toolOutput['low_stock_count'] : '0';
+            $out = is_scalar($toolOutput['out_of_stock_count'] ?? null) ? (string) $toolOutput['out_of_stock_count'] : '0';
+            $method = is_string($toolOutput['valuation_method'] ?? null) ? (string) $toolOutput['valuation_method'] : 'WAC';
+
+            $content = "### Inventory Valuation Summary ({$method})\n\n"
+                ."- **Total Inventory Value:** BDT {$val}\n"
+                ."- **Active SKU Count:** {$items}\n"
+                ."- **Low Stock Alerts:** {$low} SKUs\n"
+                ."- **Out of Stock:** {$out} SKUs\n";
+        } elseif (preg_match('/\b(overdue|invoice|invoices|ar|receivable|receivables)\b/i', $lower) === 1) {
+            $args = ['days_overdue' => 0, 'limit' => 5];
+            $turn = $this->fallbackToolTurn('list_overdue_invoices', $args, $tenantId, $userId, $conversationId, AgentPermissionGuard::TIER_0_READ, $ipAddress);
+            $executedTools[] = $turn['tool'];
+            $toolOutput = $turn['output'];
 
             $rawTotalOverdue = is_numeric($toolOutput['total_overdue_amount'] ?? null) ? (float) $toolOutput['total_overdue_amount'] : 0.0;
             $total = number_format($rawTotalOverdue, 2);
@@ -639,26 +644,11 @@ PROMPT;
             } else {
                 $content .= 'No overdue receivables currently detected on book.';
             }
-        } elseif (str_contains($lower, 'financing') || str_contains($lower, 'loan') || str_contains($lower, 'credit') || str_contains($lower, 'borrow')) {
+        } elseif (str_contains($lower, 'financing') || str_contains($lower, 'loan') || str_contains($lower, 'credit') || str_contains($lower, 'borrow') || str_contains($lower, 'qualif') || str_contains($lower, 'facility')) {
             $tier = AgentPermissionGuard::TIER_1_ADVISORY;
-            $toolOutput = $this->auditLogger->measureAndLog(
-                tenantId: $tenantId,
-                userId: $userId,
-                conversationId: $conversationId,
-                toolName: 'match_financing_options',
-                permissionTier: 1,
-                inputParams: [],
-                callback: fn () => $this->toolRegistry->executeTool('match_financing_options', [], $tenantId, $userId),
-                ipAddress: $ipAddress
-            );
-
-            $executedTools[] = [
-                'tool_call_id' => 'call_'.Str::random(8),
-                'tool' => 'match_financing_options',
-                'arguments' => [],
-                'permission_tier' => 1,
-                'result' => $toolOutput,
-            ];
+            $turn = $this->fallbackToolTurn('match_financing_options', [], $tenantId, $userId, $conversationId, $tier, $ipAddress);
+            $executedTools[] = $turn['tool'];
+            $toolOutput = $turn['output'];
 
             $summaryText = is_string($toolOutput['summary'] ?? null) ? (string) $toolOutput['summary'] : '';
             $content = "### SME Financing Matching Engine (FinTechathon 2026)\n\n"
@@ -683,43 +673,30 @@ PROMPT;
                     ."  - **Confidence:** {$conf}\n"
                     ."  - *Rationale:* {$rationale}\n\n";
             }
-        } elseif (str_contains($lower, 'risk') || str_contains($lower, 'runway') || str_contains($lower, 'forecast')) {
-            $toolOutput = $this->auditLogger->measureAndLog(
-                tenantId: $tenantId,
-                userId: $userId,
-                conversationId: $conversationId,
-                toolName: 'analyze_cash_flow_risk',
-                permissionTier: 0,
-                inputParams: ['forecast_days' => 30],
-                callback: fn () => $this->toolRegistry->executeTool('analyze_cash_flow_risk', ['forecast_days' => 30], $tenantId, $userId),
-                ipAddress: $ipAddress
-            );
+        } elseif (str_contains($lower, 'cash') || str_contains($lower, 'balance') || str_contains($lower, 'liquidity')) {
+            $turn = $this->fallbackToolTurn('get_cash_position', [], $tenantId, $userId, $conversationId, AgentPermissionGuard::TIER_0_READ, $ipAddress);
+            $executedTools[] = $turn['tool'];
+            $toolOutput = $turn['output'];
 
-            $executedTools[] = [
-                'tool_call_id' => 'call_'.Str::random(8),
-                'tool' => 'analyze_cash_flow_risk',
-                'arguments' => ['forecast_days' => 30],
-                'permission_tier' => 0,
-                'result' => $toolOutput,
-            ];
+            $rawTotal = is_numeric($toolOutput['total_liquidity'] ?? null) ? (float) $toolOutput['total_liquidity'] : 0.0;
+            $total = number_format($rawTotal, 2);
+            $accountCount = is_scalar($toolOutput['account_count'] ?? null) ? (string) $toolOutput['account_count'] : '0';
+            $content = "### Enterprise Cash Position Summary\n\n"
+                ."Live cash and bank liquidity across **{$accountCount}** active accounts is **BDT {$total}**.\n\n"
+                ."| Account Name | Bank | Type | Balance (BDT) |\n"
+                ."|:---|:---|:---|:---:|\n";
 
-            $riskLevel = is_string($toolOutput['risk_level'] ?? null) ? (string) $toolOutput['risk_level'] : 'UNKNOWN';
-            $runwayDays = is_scalar($toolOutput['estimated_runway_days'] ?? null) ? (string) $toolOutput['estimated_runway_days'] : '0';
-            $burnRate = number_format(is_numeric($toolOutput['daily_burn_rate'] ?? null) ? (float) $toolOutput['daily_burn_rate'] : 0.0, 2);
-            $cashOnHand = number_format(is_numeric($toolOutput['cash_on_hand'] ?? null) ? (float) $toolOutput['cash_on_hand'] : 0.0, 2);
-            $arColl = number_format(is_numeric($toolOutput['receivables_expected_70pct'] ?? null) ? (float) $toolOutput['receivables_expected_70pct'] : 0.0, 2);
-            $apDue = number_format(is_numeric($toolOutput['payables_due'] ?? null) ? (float) $toolOutput['payables_due'] : 0.0, 2);
-            $netProj = number_format(is_numeric($toolOutput['net_projected_cash_at_horizon'] ?? null) ? (float) $toolOutput['net_projected_cash_at_horizon'] : 0.0, 2);
-            $recom = is_string($toolOutput['recommendation'] ?? null) ? (string) $toolOutput['recommendation'] : '';
-
-            $content = "### 30-Day Liquidity & Cash Runway Assessment\n\n"
-                ."- **Overall Risk Rating:** **{$riskLevel}**\n"
-                ."- **Estimated Runway:** **{$runwayDays} days** (Daily burn: BDT {$burnRate})\n"
-                .'- **Liquid Cash on Hand:** BDT '.$cashOnHand."\n"
-                .'- **Expected AR Collections (70%):** BDT '.$arColl."\n"
-                .'- **Payables Due (AP):** BDT '.$apDue."\n"
-                .'- **Projected Net Cash (Day 30):** BDT '.$netProj."\n\n"
-                ."**Strategic Recommendation:** {$recom}";
+            $accountsList = is_array($toolOutput['accounts'] ?? null) ? $toolOutput['accounts'] : [];
+            foreach ($accountsList as $acc) {
+                if (! is_array($acc)) {
+                    continue;
+                }
+                $bal = number_format(is_numeric($acc['current_balance'] ?? null) ? (float) $acc['current_balance'] : 0.0, 2);
+                $accName = is_string($acc['name'] ?? null) ? (string) $acc['name'] : '';
+                $bankName = is_string($acc['bank_name'] ?? null) ? (string) $acc['bank_name'] : '';
+                $accType = is_string($acc['account_type'] ?? null) ? (string) $acc['account_type'] : '';
+                $content .= "| {$accName} | {$bankName} | {$accType} | {$bal} |\n";
+            }
         } else {
             // Default financial overview
             $content = "Hello! I am your **CenterPoint SME Finance Copilot** for the FinTechathon 2026 WeBank Track E.\n\n"
@@ -738,6 +715,44 @@ PROMPT;
             'tools' => $executedTools,
             'pending_action' => $pendingAction,
             'tier' => $tier,
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $arguments
+     * @return array{tool: array<string, mixed>, output: array<string, mixed>}
+     */
+    protected function fallbackToolTurn(
+        string $toolName,
+        array $arguments,
+        int $tenantId,
+        int $userId,
+        int $conversationId,
+        int $permissionTier = AgentPermissionGuard::TIER_0_READ,
+        ?string $ipAddress = null
+    ): array {
+        $toolOutput = $this->auditLogger->measureAndLog(
+            tenantId: $tenantId,
+            userId: $userId,
+            conversationId: $conversationId,
+            toolName: $toolName,
+            permissionTier: $permissionTier,
+            inputParams: $arguments,
+            callback: fn () => $this->toolRegistry->executeTool($toolName, $arguments, $tenantId, $userId),
+            ipAddress: $ipAddress
+        );
+
+        $toolCall = [
+            'tool_call_id' => 'call_'.Str::random(8),
+            'tool' => $toolName,
+            'arguments' => $arguments,
+            'permission_tier' => $permissionTier,
+            'result' => $toolOutput,
+        ];
+
+        return [
+            'tool' => $toolCall,
+            'output' => $toolOutput,
         ];
     }
 }
