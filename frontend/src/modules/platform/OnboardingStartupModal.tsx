@@ -1,7 +1,7 @@
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState } from 'react';
 import { useOnboardingProgress } from './useOnboardingProgress';
 import { useAuthStore } from '../../lib/auth/authStore';
+import { OnboardingWizardModal } from './OnboardingWizardModal';
 import { Button } from '../../components/ui/Button';
 import {
   CheckCircle2,
@@ -88,17 +88,19 @@ const MILESTONES: MilestoneDetail[] = [
 ];
 
 export const OnboardingStartupModal: React.FC = () => {
-  const navigate = useNavigate();
   const {
     shouldShowStartupModal,
     isLoading,
     completionPercentage,
     milestones,
     skipOnboarding,
-    resumeOnboarding,
   } = useOnboardingProgress();
 
   const tenant = useAuthStore((s) => s.tenant);
+
+  // Modal open state — replaces navigate('/onboarding') for in-place wizard
+  const [isWizardOpen, setIsWizardOpen] = useState(false);
+  const [wizardInitialStep, setWizardInitialStep] = useState(1);
 
   const [isCollapsed, setIsCollapsed] = React.useState<boolean>(() => {
     try {
@@ -133,12 +135,14 @@ export const OnboardingStartupModal: React.FC = () => {
     MILESTONES.find((m) => !completedKeys.includes(m.key)) ?? MILESTONES[0]!;
 
   const handleOpenStep = (stepId: number) => {
-    navigate(`/onboarding?step=${stepId}`);
+    setWizardInitialStep(stepId);
+    setIsWizardOpen(true);
   };
 
   // ── Collapsed Compact Mode ──────────────────────────────────────────────
   if (isCollapsed) {
     return (
+      <>
       <section
         aria-label="Workspace Setup Progress Bar"
         className="rounded-2xl border border-default/80 bg-surface-raised px-4 py-3 shadow-xs flex flex-wrap items-center justify-between gap-3 text-xs animate-in fade-in duration-150"
@@ -195,11 +199,20 @@ export const OnboardingStartupModal: React.FC = () => {
           </button>
         </div>
       </section>
-    );
+
+      {/* Onboarding Wizard Modal — collapsed banner launch point */}
+      <OnboardingWizardModal
+        isOpen={isWizardOpen}
+        onClose={() => setIsWizardOpen(false)}
+        initialStep={wizardInitialStep}
+      />
+    </>
+  );
   }
 
   // ── Expanded Interactive Wizard Hub ──────────────────────────────────────
   return (
+    <>
     <section
       aria-label="Workspace Initialization Setup Hub"
       className="rounded-2xl border border-default/90 bg-surface-raised p-4 sm:p-5 lg:p-6 shadow-sm space-y-5 animate-in fade-in duration-200"
@@ -420,7 +433,7 @@ export const OnboardingStartupModal: React.FC = () => {
         <div className="flex items-center gap-2">
           <Button
             variant="primary"
-            onClick={resumeOnboarding}
+            onClick={() => setIsWizardOpen(true)}
             className="flex items-center justify-center gap-2 min-h-[38px] px-5 text-xs font-semibold shadow-xs"
           >
             <span>Resume Guided Setup</span>
@@ -429,6 +442,14 @@ export const OnboardingStartupModal: React.FC = () => {
         </div>
       </div>
     </section>
+
+      {/* Onboarding Wizard Modal — replaces full-page /onboarding route */}
+      <OnboardingWizardModal
+        isOpen={isWizardOpen}
+        onClose={() => setIsWizardOpen(false)}
+        initialStep={wizardInitialStep}
+      />
+    </>
   );
 };
 
