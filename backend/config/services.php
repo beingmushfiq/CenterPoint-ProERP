@@ -37,4 +37,12 @@ return [
         ],
     ],
 
+    'anthropic' => [
+        'key' => env('ANTHROPIC_API_KEY'),
+        'base_url' => env('ANTHROPIC_BASE_URL', 'https://agentrouter.org'),
+        'model' => env('ANTHROPIC_MODEL', 'deepseek-v4-flash'),
+        'max_tokens' => (int) env('ANTHROPIC_MAX_TOKENS', 2000),
+        'version' => env('ANTHROPIC_VERSION', '2023-06-01'),
+    ],
+
 ];
