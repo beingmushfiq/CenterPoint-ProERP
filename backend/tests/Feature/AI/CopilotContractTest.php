@@ -89,9 +89,20 @@ final class CopilotContractTest extends TestCase
             'updated_at' => now(),
         ]);
 
+        $catId = DB::table('expense_categories')->insertGetId([
+            'tenant_id' => $tenant->id,
+            'uuid' => (string) Str::uuid(),
+            'code' => 'GEN-EXP',
+            'name' => 'General Operations',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
         $tenant->setAttribute('default_company_id', $companyId);
         $tenant->setAttribute('default_coa_id', $coaId);
         $tenant->setAttribute('default_branch_id', $branchId);
+        $tenant->setAttribute('default_expense_category_id', $catId);
 
         return $tenant;
     }
@@ -102,6 +113,7 @@ final class CopilotContractTest extends TestCase
             'tenant_id' => $tenant->id,
             'company_id' => $tenant->getAttribute('default_company_id'),
             'branch_id' => $tenant->getAttribute('default_branch_id'),
+            'expense_category_id' => $attributes['expense_category_id'] ?? $tenant->getAttribute('default_expense_category_id'),
             'uuid' => (string) Str::uuid(),
             'expense_number' => 'EXP-'.Str::upper(Str::random(6)),
             'expense_date' => now()->toDateString(),
@@ -439,7 +451,46 @@ final class CopilotContractTest extends TestCase
         $this->assertMatchesRegularExpression('/^\d{4}-\d{2}-\d{2}$/', $result['period_end']);
         $this->assertArrayNotHasKey('net_profit', $result);
     }
+
+    public function test_cash_flow_risk_tool_matches_contract(): void
+    {
+        $tenant = $this->createTenant();
+        $tenantId = $tenant->id;
+
+        $this->createBankAccount($tenant, [
+            'name' => 'Risk Account',
+            'account_number' => 'RISK-0001',
+            'bank_name' => 'City Bank',
+            'account_type' => 'bank',
+            'current_balance' => '50000.0000',
+        ]);
+
+        $this->createExpense($tenant, [
+            'expense_number' => 'EXP-RISK-1',
+            'expense_date' => now()->subDays(5)->toDateString(),
+            'amount' => '900000.0000',
+            'total_amount' => '900000.0000',
+            'status' => 'approved',
+        ]);
+
+        $result = app(\App\Modules\AI\Services\AgentToolRegistry::class)
+            ->executeTool('analyze_cash_flow_risk', ['forecast_days' => 30], $tenantId);
+
+        $this->assertSame(30, $result['horizon_days']);
+        $this->assertSame(50000.0, (float) $result['starting_cash']);
+        $this->assertSame(0.0, (float) $result['projected_inflows']);
+        $this->assertSame(300000.0, (float) $result['projected_outflows']);
+        $this->assertSame(-300000.0, (float) $result['projected_net_cash_flow']);
+        $this->assertSame(-250000.0, (float) $result['ending_cash']);
+        $this->assertTrue($result['liquidity_shortfall']);
+        $this->assertSame(250000.0, (float) $result['shortfall_amount']);
+        $this->assertSame('critical', $result['risk_level']);
+        $this->assertIsArray($result['recommended_actions']);
+        $this->assertNotEmpty($result['recommended_actions']);
+        $this->assertArrayNotHasKey('estimated_runway_days', $result);
+    }
 }
+
 
 
 

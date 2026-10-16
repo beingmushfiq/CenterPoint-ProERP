@@ -516,44 +516,66 @@ class AgentToolRegistry
         $horizonDays = max(7, min(90, $forecastDays));
 
         $metrics = $this->financingMatchEngine->gatherFinancialMetrics($tenantId);
-        $bankBalance = is_numeric($metrics['bank_balance'] ?? null) ? (float) $metrics['bank_balance'] : 0.0;
+        $startingCash = is_numeric($metrics['bank_balance'] ?? null) ? (float) $metrics['bank_balance'] : 0.0;
         $ar = is_numeric($metrics['ar_outstanding'] ?? null) ? (float) $metrics['ar_outstanding'] : 0.0;
         $ap = is_numeric($metrics['ap_outstanding'] ?? null) ? (float) $metrics['ap_outstanding'] : 0.0;
-        $expenses = is_numeric($metrics['monthly_expenses'] ?? null) ? (float) $metrics['monthly_expenses'] : 0.0;
-        $dailyBurnRate = $expenses / 30.0;
+        $monthlyExpenses = is_numeric($metrics['monthly_expenses'] ?? null) ? (float) $metrics['monthly_expenses'] : 0.0;
 
-        // Estimated collections: 70% of current AR within horizon
-        $expectedCollections = $ar * 0.70;
-        $projectedLiquidity = $bankBalance + $expectedCollections - $ap - ($dailyBurnRate * $horizonDays);
+        $dailyBurnRate = $monthlyExpenses / 30.0;
+        $projectedInflows = round($ar * 0.70, 2);
+        $projectedOutflows = round($ap + ($dailyBurnRate * $horizonDays), 2);
+        $projectedNet = round($projectedInflows - $projectedOutflows, 2);
+        $endingCash = round($startingCash + $projectedNet, 2);
+        $liquidityShortfall = $endingCash < 0;
+        $shortfallAmount = $liquidityShortfall ? round(abs($endingCash), 2) : 0.0;
 
-        $runwayDays = $dailyBurnRate > 0 ? (int) floor($bankBalance / $dailyBurnRate) : 999;
+        $daysUntilDeficit = null;
+        if ($dailyBurnRate > 0) {
+            $daysUntilDeficit = $startingCash + $projectedInflows >= $projectedOutflows
+                ? null
+                : max(0, (int) floor(($startingCash + $projectedInflows) / $dailyBurnRate));
+        }
 
-        // Risk grading
-        if ($runwayDays < 15 || $projectedLiquidity < 0) {
-            $riskLevel = 'CRITICAL';
-            $recommendation = 'Immediate liquidity intervention required. Accelerate AR collection via discounting and defer non-critical capex.';
-        } elseif ($runwayDays < 30) {
-            $riskLevel = 'HIGH';
-            $recommendation = 'Short runway. Apply for Working Capital or Invoice Factoring facility to buffer upcoming payables.';
-        } elseif ($runwayDays < 60) {
-            $riskLevel = 'MEDIUM';
-            $recommendation = 'Adequate cash buffer. Maintain disciplined supplier payment terms and monitor receivables aging.';
+        if ($daysUntilDeficit !== null && $daysUntilDeficit < 15) {
+            $riskLevel = 'critical';
+            $actions = [
+                'Accelerate overdue receivables collection',
+                'Apply for invoice discounting against validated AR',
+                'Defer all non-critical capital expenditure',
+            ];
+        } elseif ($daysUntilDeficit !== null && $daysUntilDeficit < 30) {
+            $riskLevel = 'severe';
+            $actions = [
+                'Accelerate overdue receivables collection',
+                'Negotiate extended supplier payment terms',
+                'Secure a working capital facility before the deficit window',
+            ];
+        } elseif ($liquidityShortfall) {
+            $riskLevel = 'moderate';
+            $actions = [
+                'Tighten receivables follow-up on 31-60 day buckets',
+                'Reschedule discretionary operating expenses',
+            ];
         } else {
-            $riskLevel = 'LOW';
-            $recommendation = 'Healthy liquidity buffer. Consider deploying surplus capital into inventory or high-margin product lines.';
+            $riskLevel = 'low';
+            $actions = [
+                'Maintain current collection discipline',
+                'Consider deploying surplus liquidity into inventory or high-margin lines',
+            ];
         }
 
         return [
-            'risk_level' => $riskLevel,
-            'cash_on_hand' => round($bankBalance, 2),
-            'receivables_expected_70pct' => round($expectedCollections, 2),
-            'payables_due' => round($ap, 2),
-            'daily_burn_rate' => round($dailyBurnRate, 2),
-            'estimated_runway_days' => $runwayDays,
-            'net_projected_cash_at_horizon' => round($projectedLiquidity, 2),
             'horizon_days' => $horizonDays,
-            'recommendation' => $recommendation,
-            'currency' => 'BDT',
+            'starting_cash' => round($startingCash, 2),
+            'projected_inflows' => $projectedInflows,
+            'projected_outflows' => $projectedOutflows,
+            'projected_net_cash_flow' => $projectedNet,
+            'ending_cash' => $endingCash,
+            'liquidity_shortfall' => $liquidityShortfall,
+            'days_until_deficit' => $daysUntilDeficit,
+            'shortfall_amount' => $shortfallAmount,
+            'risk_level' => $riskLevel,
+            'recommended_actions' => $actions,
         ];
     }
 
