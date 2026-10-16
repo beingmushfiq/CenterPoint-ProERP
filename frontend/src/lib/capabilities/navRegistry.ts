@@ -963,6 +963,12 @@ export const PLATFORM_NAV_DEFINITIONS: DynamicNavSection[] = [
         permission: ['core.setting.view', 'core.setting.manage'],
       },
       {
+        id: 'troubleshoot',
+        defaultLabel: 'Diagnostics & Troubleshoot',
+        to: '/settings/troubleshoot',
+        icon: Wrench,
+      },
+      {
         id: 'settings',
         defaultLabel: 'System Settings',
         to: '/settings',
@@ -1017,6 +1023,13 @@ export const PLATFORM_NAV_DEFINITIONS: DynamicNavSection[] = [
             defaultLabel: 'Security Audit Trail',
             to: '/activity-logs',
             icon: Activity,
+            group: 'Core Governance & Workstation',
+          },
+          {
+            id: 'set-troubleshoot',
+            defaultLabel: 'Diagnostics & Troubleshoot',
+            to: '/settings/troubleshoot',
+            icon: Wrench,
             group: 'Core Governance & Workstation',
           },
 

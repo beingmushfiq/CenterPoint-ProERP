@@ -57,6 +57,7 @@ import {
   Zap,
   Radio,
   UserCheck,
+  Wrench,
 } from 'lucide-react';
 import { m, AnimatePresence } from 'framer-motion';
 import { api } from '../../lib/api/client';
@@ -78,6 +79,7 @@ import { RolesManagementWorkspace } from '../../pages/settings/RolesManagementWo
 import { UsersManagementWorkspace } from '../../pages/settings/UsersManagementWorkspace';
 import { ActivityLogWorkspace } from '../../pages/settings/ActivityLogWorkspace';
 import { DataBinWorkspace } from '../../pages/settings/DataBinWorkspace';
+import { TroubleshootWorkspace } from '../../pages/settings/TroubleshootWorkspace';
 import { ProfileSettingsWorkspace } from '../../pages/settings/ProfileSettingsWorkspace';
 import { SeoDiscoverabilityWorkspace } from '../../pages/settings/SeoDiscoverabilityWorkspace';
 import { WorkflowAutomationWorkspace } from './WorkflowAutomationWorkspace';
@@ -136,6 +138,7 @@ const GROUP_ICONS: Record<string, React.ElementType> = {
   security: ShieldCheck,
   reports: FileSpreadsheet,
   bin: Trash2,
+  troubleshoot: Wrench,
 };
 
 const GROUP_LABELS: Record<string, string> = {
@@ -171,6 +174,7 @@ const GROUP_LABELS: Record<string, string> = {
   security: 'Session & Auth Hardening',
   reports: 'Reports & Export Defaults',
   bin: 'Data Bin & Recovery Vault',
+  troubleshoot: 'Diagnostics & Troubleshoot',
 };
 
 type SettingFieldValue = string | number | boolean | string[] | Record<string, unknown>;
@@ -221,7 +225,8 @@ export type SettingsTab =
   | 'finance'
   | 'hr_payroll'
   | 'notifications'
-  | 'reports';
+  | 'reports'
+  | 'troubleshoot';
 
 export const SettingsCenterWorkspace: React.FC = () => {
   const { t } = useTranslation();
@@ -364,6 +369,7 @@ export const SettingsCenterWorkspace: React.FC = () => {
         'workflows',
         'bin',
         'webhooks',
+        'troubleshoot',
       ].includes(group)
     ) {
       setLoading(false);
@@ -432,6 +438,7 @@ export const SettingsCenterWorkspace: React.FC = () => {
         'workflows',
         'bin',
         'webhooks',
+        'troubleshoot',
       ].includes(activeGroup)
     ) {
       return [];
@@ -757,7 +764,7 @@ export const SettingsCenterWorkspace: React.FC = () => {
         theme: WORKSPACE_THEMES.purple,
         shortcut: '2',
         defaultTab: 'modules',
-        tabs: ['modules', 'workflows', 'terminology', 'production_stages', 'custom_fields', 'documents', 'bin'],
+        tabs: ['modules', 'workflows', 'terminology', 'production_stages', 'custom_fields', 'documents', 'bin', 'troubleshoot'],
       },
       {
         id: 'operations',
@@ -813,6 +820,7 @@ export const SettingsCenterWorkspace: React.FC = () => {
         { id: 'custom_fields', label: 'Custom Attributes & Fields', shortLabel: 'Attributes', category: 'platform', icon: Sparkles },
         { id: 'documents', label: 'Document Templates', shortLabel: 'Templates', category: 'platform', icon: FileSpreadsheet },
         { id: 'bin', label: 'Data Bin & Recovery Vault', shortLabel: 'Data Bin', category: 'platform', icon: Trash2 },
+        { id: 'troubleshoot', label: 'System Diagnostics & Troubleshoot', shortLabel: 'Troubleshoot', category: 'platform', icon: Wrench },
 
         // Operations
         { id: 'production', label: 'Production & Manufacturing', shortLabel: 'Production', category: 'operations', icon: Factory },
@@ -1032,6 +1040,25 @@ export const SettingsCenterWorkspace: React.FC = () => {
                     </Button>
                   </div>
                   <DataBinWorkspace />
+                </div>
+              ) : activeGroup === 'troubleshoot' ? (
+                /* System Diagnostics & Troubleshoot Embedded */
+                <div className="bg-surface rounded-(--card-radius) border border-default p-6 space-y-6 shadow-xs">
+                  <div className="flex items-center justify-between pb-4 border-b border-default">
+                    <div className="flex items-center gap-2.5">
+                      <Wrench className="size-5 text-amber-500" />
+                      <div>
+                        <h2 className="text-sm font-bold text-default">System Diagnostics & Troubleshoot</h2>
+                        <p className="text-2xs text-muted">
+                          Operational diagnostic center with plain-English reasons, fix steps, and recovery actions.
+                        </p>
+                      </div>
+                    </div>
+                    <Button variant="secondary" size="sm" onClick={() => setActiveGroup('overview')}>
+                      Back to Hub
+                    </Button>
+                  </div>
+                  <TroubleshootWorkspace />
                 </div>
               ) : activeGroup === 'profile' ? (
                 /* Profile & Workstation Settings Embedded */

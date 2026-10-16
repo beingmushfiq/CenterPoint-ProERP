@@ -80,6 +80,11 @@ const InteractiveTutorialWorkspace = lazy(() =>
     default: m.InteractiveTutorialWorkspace,
   }))
 );
+const TroubleshootWorkspace = lazy(() =>
+  import('../pages/settings/TroubleshootWorkspace').then((m) => ({
+    default: m.TroubleshootWorkspace,
+  }))
+);
 
 // Master SaaS Platform Admin imports
 import { PlatformProtectedRoute } from '../components/platform/PlatformProtectedRoute';
@@ -492,6 +497,14 @@ const erpWorkspaceRouteChildren: RouteObject[] = [
   {
     path: 'bin',
     element: <Navigate to="/settings/bin" replace />,
+  },
+  {
+    path: 'settings/troubleshoot',
+    element: <TroubleshootWorkspace />,
+  },
+  {
+    path: 'troubleshoot',
+    element: <Navigate to="/settings/troubleshoot" replace />,
   },
   {
     path: 'settings/workflows',

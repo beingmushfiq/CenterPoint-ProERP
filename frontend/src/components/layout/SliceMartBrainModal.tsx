@@ -103,6 +103,7 @@ export interface BrainMessage {
 interface SliceMartBrainModalProps {
   open: boolean;
   onClose: () => void;
+  initialPrompt?: string | undefined;
 }
 
 const TONE_STYLES: Record<string, string> = {
@@ -694,7 +695,7 @@ function getDefaultWelcomeMessage(brandName: string): BrainMessage {
   };
 }
 
-export const SliceMartBrainModal: React.FC<SliceMartBrainModalProps> = ({ open, onClose }) => {
+export const SliceMartBrainModal: React.FC<SliceMartBrainModalProps> = ({ open, onClose, initialPrompt }) => {
   const navigate = useNavigate();
   const { companyName } = useTenantBranding();
   const tenant = useAuthStore((s) => s.tenant);
@@ -716,7 +717,15 @@ export const SliceMartBrainModal: React.FC<SliceMartBrainModalProps> = ({ open, 
     return [getDefaultWelcomeMessage(brandName)];
   });
 
-  const [inputQuery, setInputQuery] = useState('');
+  const [inputQuery, setInputQuery] = useState(initialPrompt || '');
+  const [prevInitialPrompt, setPrevInitialPrompt] = useState(initialPrompt);
+
+  if (initialPrompt !== prevInitialPrompt) {
+    setPrevInitialPrompt(initialPrompt);
+    if (initialPrompt) {
+      setInputQuery(initialPrompt);
+    }
+  }
   const [isStreaming, setIsStreaming] = useState(false);
   const [streamStatus, setStreamStatus] = useState<string | null>(null);
   const [activeCategory, setActiveCategory] = useState<string>('commercial');

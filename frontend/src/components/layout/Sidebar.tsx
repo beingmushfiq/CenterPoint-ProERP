@@ -178,6 +178,11 @@ function getParentTone(id: string, active: boolean): string {
       ? 'text-amber-500 dark:text-amber-300 drop-shadow-[0_0_8px_rgba(245,158,11,0.5)]'
       : 'text-amber-500 dark:text-amber-400 group-hover:text-amber-600 dark:group-hover:text-amber-300';
   }
+  if (normId === 'troubleshoot') {
+    return active
+      ? 'text-amber-600 dark:text-amber-400 drop-shadow-[0_0_8px_rgba(245,158,11,0.5)]'
+      : 'text-amber-500 dark:text-amber-400 group-hover:text-amber-600 dark:group-hover:text-amber-300';
+  }
   if (normId === 'settings') {
     return active
       ? 'text-slate-600 dark:text-slate-300 drop-shadow-[0_0_8px_rgba(100,116,139,0.5)]'

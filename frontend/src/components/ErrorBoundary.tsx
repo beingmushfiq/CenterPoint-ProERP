@@ -10,7 +10,7 @@
 
 import { Component } from 'react';
 import type { ErrorInfo, ReactNode } from 'react';
-import { RotateCcw, Home, Copy, Check, ShieldAlert, Sparkles, TriangleAlert, ArrowLeft } from 'lucide-react';
+import { RotateCcw, Home, Copy, Check, ShieldAlert, Sparkles, TriangleAlert, ArrowLeft, Wrench } from 'lucide-react';
 import { Button } from './ui/Button';
 import { logBoundaryError } from '../lib/observability/logger';
 
@@ -28,6 +28,7 @@ interface ErrorBoundaryState {
   error: Error | null;
   errorInfo: ErrorInfo | null;
   referenceId: string;
+  logEntryId: string;
   copied: boolean;
 }
 
@@ -37,20 +38,22 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
     error: null,
     errorInfo: null,
     referenceId: '',
+    logEntryId: '',
     copied: false,
   };
 
   public static getDerivedStateFromError(error: Error): Partial<ErrorBoundaryState> {
     const referenceId = 'ERR-' + Math.random().toString(36).substring(2, 8).toUpperCase();
-    return { hasError: true, error, referenceId };
+    return { hasError: true, error, referenceId, logEntryId: referenceId };
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
-    logBoundaryError(error, {
+    const entry = logBoundaryError(error, {
       level: this.props.level ?? 'global',
       componentStack: `${errorInfo.componentStack ?? ''} [Ref: ${this.state.referenceId}]`,
+      correlationId: this.state.referenceId,
     });
-    this.setState({ errorInfo });
+    this.setState({ errorInfo, logEntryId: entry.id });
   }
 
   private handleReset = (): void => {
@@ -67,6 +70,10 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
     } else if (level === 'global') {
       window.location.href = '/';
     }
+  };
+
+  private handleViewTroubleshoot = (): void => {
+    window.location.href = '/settings/troubleshoot';
   };
 
   private handleCopyDiagnostics = (): void => {
@@ -152,22 +159,33 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
               <p className="text-sm text-muted mb-1">
                 Nothing you entered was saved. Your other pages are unaffected.
               </p>
-              <div className="flex items-center justify-center gap-3 mt-5">
+              <div className="flex flex-col items-center gap-3 mt-5">
+                <div className="flex items-center gap-3">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={this.handleReset}
+                    leftIcon={<ArrowLeft className="size-4" />}
+                  >
+                    Go back
+                  </Button>
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    onClick={() => window.location.reload()}
+                    leftIcon={<RotateCcw className="size-4" />}
+                  >
+                    Reload
+                  </Button>
+                </div>
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={this.handleReset}
-                  leftIcon={<ArrowLeft className="size-4" />}
+                  onClick={this.handleViewTroubleshoot}
+                  leftIcon={<Wrench className="size-4 text-primary" />}
+                  className="text-primary border border-primary/20 bg-primary/5 hover:bg-primary/10 w-full"
                 >
-                  Go back
-                </Button>
-                <Button
-                  variant="primary"
-                  size="sm"
-                  onClick={() => window.location.reload()}
-                  leftIcon={<RotateCcw className="size-4" />}
-                >
-                  Reload
+                  View Error Details in Troubleshoot
                 </Button>
               </div>
               <div className="mt-5 text-[11px] text-muted font-mono">
@@ -225,9 +243,21 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
               </Button>
             </div>
 
+            {/* Troubleshoot CTA — the key new addition */}
+            <div className="mt-2">
+              <Button
+                variant="ghost"
+                onClick={this.handleViewTroubleshoot}
+                leftIcon={<Wrench className="size-4 text-primary" />}
+                className="w-full text-primary border border-primary/20 bg-primary/5 hover:bg-primary/10"
+              >
+                View Diagnosis &amp; Fix Steps in Troubleshoot
+              </Button>
+            </div>
+
             <div className="pt-4 border-t border-default flex flex-col items-center gap-1 text-[11px] text-muted font-mono">
               <div>Support Reference ID: <span className="font-bold text-default">{referenceId}</span></div>
-              <div className="text-[10px] text-muted font-sans">Provide this code to technical support if the issue persists.</div>
+              <div className="text-[10px] text-muted font-sans">Share this reference code with technical support if the issue persists.</div>
             </div>
           </div>
         </div>

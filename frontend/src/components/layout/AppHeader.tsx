@@ -38,8 +38,10 @@ import {
   Layers,
   Monitor,
   Languages,
+  Wrench,
 } from 'lucide-react';
 import { SliceMartBrainModal } from './SliceMartBrainModal';
+import { TroubleshootPanel, useTroubleshootBadge } from '../troubleshoot/TroubleshootPanel';
 import { MotionActionSheet } from '../motion/MotionActionSheet';
 import { LanguageSwitcher } from '../ui/LanguageSwitcher';
 import { useAuthStore } from '../../lib/auth/authStore';
@@ -88,7 +90,10 @@ export function AppHeader({
   const [isNotifMenuOpen, setIsNotifMenuOpen] = useState(false);
   const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
   const [isBrainOpen, setIsBrainOpen] = useState(false);
+  const [brainPrompt, setBrainPrompt] = useState<string | undefined>(undefined);
+  const [isTroubleshootOpen, setIsTroubleshootOpen] = useState(false);
   const [isKebabOpen, setIsKebabOpen] = useState(false);
+  const { hasErrors, errorCount, criticalCount } = useTroubleshootBadge();
   const openTutorial = useTutorialStore((s) => s.openTutorial);
   
   // Search state
@@ -843,13 +848,48 @@ export function AppHeader({
         {/* Local Agentic Operations AI Brain */}
         <button
           type="button"
-          onClick={() => setIsBrainOpen(true)}
+          onClick={() => {
+            setBrainPrompt(undefined);
+            setIsBrainOpen(true);
+          }}
           className="hidden xl:flex items-center gap-1.5 rounded-xl bg-purple-500/10 hover:bg-purple-500/20 text-purple-600 dark:text-purple-400 border border-purple-500/25 px-2.5 py-1 text-xs font-bold transition-all cursor-pointer shadow-2xs group"
           title="Operations AI Brain — 100% Local Agentic AI (Ctrl+Space)"
         >
           <Brain className="size-3.5 group-hover:scale-110 transition-transform" />
           <span>Brain</span>
           <span className="size-1.5 rounded-full bg-purple-500 animate-pulse" />
+        </button>
+
+        {/* System Troubleshoot Diagnostics Trigger */}
+        <button
+          type="button"
+          onClick={() => setIsTroubleshootOpen(true)}
+          className={cn(
+            'flex items-center gap-1.5 rounded-xl px-2.5 py-1 text-xs font-bold transition-all cursor-pointer shadow-2xs group',
+            hasErrors
+              ? criticalCount > 0
+                ? 'bg-rose-500/15 hover:bg-rose-500/25 text-rose-700 dark:text-rose-300 border border-rose-500/35 animate-pulse'
+                : 'bg-amber-500/15 hover:bg-amber-500/25 text-amber-700 dark:text-amber-300 border border-amber-500/35'
+              : 'hidden xl:flex bg-surface-sunken hover:bg-surface-raised text-muted hover:text-default border border-default'
+          )}
+          title={
+            hasErrors
+              ? `${errorCount} session issue${errorCount !== 1 ? 's' : ''} detected — click to troubleshoot`
+              : 'System Diagnostics & Troubleshoot'
+          }
+        >
+          <Wrench className={cn('size-3.5 transition-transform group-hover:rotate-45', hasErrors && (criticalCount > 0 ? 'text-rose-500' : 'text-amber-500'))} />
+          <span className="hidden sm:inline">Troubleshoot</span>
+          {hasErrors && (
+            <span
+              className={cn(
+                'px-1.5 py-0.2 rounded-full text-[10px] font-black text-white font-mono',
+                criticalCount > 0 ? 'bg-rose-500' : 'bg-amber-500'
+              )}
+            >
+              {errorCount}
+            </span>
+          )}
         </button>
 
         {/* Data Bin & Recovery Vault Quick Link */}
@@ -994,6 +1034,15 @@ export function AppHeader({
                   <span>{t('navigation.items.bin', 'Data Bin & Recovery')}</span>
                 </Link>
 
+                <Link
+                  to="/settings/troubleshoot"
+                  onClick={() => setIsUserMenuOpen(false)}
+                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-medium text-default hover:bg-surface-sunken transition-token-colors focus-visible:ring-focus"
+                >
+                  <Wrench className="size-3.5 text-amber-500" />
+                  <span>System Troubleshoot & Diagnostics</span>
+                </Link>
+
                 <button
                   type="button"
                   onClick={() => {
@@ -1079,7 +1128,24 @@ export function AppHeader({
       )}
 
       {/* SliceMart Brain Agent Modal */}
-      <SliceMartBrainModal open={isBrainOpen} onClose={() => setIsBrainOpen(false)} />
+      <SliceMartBrainModal
+        open={isBrainOpen}
+        onClose={() => {
+          setIsBrainOpen(false);
+          setBrainPrompt(undefined);
+        }}
+        initialPrompt={brainPrompt}
+      />
+
+      {/* Troubleshoot Floating Diagnostic Panel */}
+      <TroubleshootPanel
+        open={isTroubleshootOpen}
+        onClose={() => setIsTroubleshootOpen(false)}
+        onOpenBrain={(ctx) => {
+          setBrainPrompt(ctx);
+          setIsBrainOpen(true);
+        }}
+      />
 
       {/* Mobile Overflow Kebab Action Sheet (< 640px) */}
       <MotionActionSheet
@@ -1184,6 +1250,28 @@ export function AppHeader({
           >
             <Trash2 className="size-4" />
             <span>Data Bin & Recovery Vault</span>
+          </button>
+
+          {/* Troubleshoot Diagnostics Quick Link */}
+          <button
+            type="button"
+            onClick={() => {
+              setIsKebabOpen(false);
+              setIsTroubleshootOpen(true);
+            }}
+            className="w-full min-h-11 px-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/25 text-amber-700 dark:text-amber-300 hover:bg-amber-500/20 flex items-center justify-between font-semibold text-xs transition-colors cursor-pointer"
+          >
+            <span className="flex items-center gap-2">
+              <Wrench className="size-4" />
+              <span>Troubleshoot & Diagnostics</span>
+            </span>
+            {hasErrors ? (
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500 text-white font-mono">
+                {errorCount} Issue{errorCount !== 1 ? 's' : ''}
+              </span>
+            ) : (
+              <span className="text-[10px] text-muted">Ready</span>
+            )}
           </button>
         </div>
       </MotionActionSheet>

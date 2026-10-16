@@ -95,6 +95,14 @@ const routeLoaders: Record<string, { id: string; load: ModuleLoader }> = {
     id: 'databin',
     load: () => import('../pages/settings/DataBinWorkspace'),
   },
+  '/settings/troubleshoot': {
+    id: 'troubleshoot',
+    load: () => import('../pages/settings/TroubleshootWorkspace'),
+  },
+  '/troubleshoot': {
+    id: 'troubleshoot',
+    load: () => import('../pages/settings/TroubleshootWorkspace'),
+  },
   '/settings/users': {
     id: 'users',
     load: () => import('../pages/settings/UsersManagementWorkspace'),
