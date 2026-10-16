@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
@@ -111,9 +112,13 @@ export default function PosWorkspace() {
   };
 
   // Direct POS Launch: By default when visiting /pos (from Topbar, search, quick add),
-  // directly open the POS cashier interface
+  // directly open the POS cashier interface cleanly portaled to document.body
   if (!isManageMode && activeSession) {
-    return <POSShell session={activeSession} onExit={handleExitPOS} />;
+    const posContent = <POSShell session={activeSession} onExit={handleExitPOS} />;
+    if (typeof document !== 'undefined' && document.body) {
+      return createPortal(posContent, document.body);
+    }
+    return posContent;
   }
 
   const currentTab = tabs.find((t) => t.id === activeTab) ?? tabs[0];

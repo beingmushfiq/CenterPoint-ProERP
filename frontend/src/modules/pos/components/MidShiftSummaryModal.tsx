@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   X,
@@ -287,7 +287,7 @@ export function MidShiftSummaryModal({ isOpen, onClose, session }: MidShiftSumma
     }
   }, [curr.opened_at]);
 
-  const handlePrintSlip = () => {
+  const handlePrintSlip = useCallback(() => {
     printDocument(
       <XReportThermalSlip
         curr={curr}
@@ -312,7 +312,7 @@ export function MidShiftSummaryModal({ isOpen, onClose, session }: MidShiftSumma
         documentTitle: `X-Report-${curr.session_number}`,
       }
     );
-  };
+  }, [printDocument, curr, businessConfig, openingFloat, expectedCash, cashSalesCollected, cardTotal, mobileTotal, creditTotal, refundTotal, salesCount, grossRevenue, netRevenue, averageBasket, tenderPercentages, currencySymbol]);
 
   // Keyboard shortcut Ctrl+P / Cmd+P while modal is active
   useEffect(() => {
@@ -325,7 +325,7 @@ export function MidShiftSummaryModal({ isOpen, onClose, session }: MidShiftSumma
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [isOpen, curr, businessConfig, openingFloat, expectedCash, cashSalesCollected, cardTotal, mobileTotal, creditTotal, refundTotal, salesCount, grossRevenue, netRevenue, averageBasket, tenderPercentages, currencySymbol]);
+  }, [isOpen, handlePrintSlip]);
 
   if (!isOpen) return null;
 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { api } from '../../lib/api/client';
 import { useTenantCapabilityStore } from '../../lib/capabilities/tenantCapabilityStore';
 import { useAuthStore } from '../../lib/auth/authStore';
@@ -68,7 +68,11 @@ const AVAILABLE_UNITS = ['PCS', 'KG', 'BOX', 'PACK', 'LTR', 'MTR', 'TON', 'PAIR'
 
 export const OnboardingWizard: React.FC = () => {
   const navigate = useNavigate();
-  const [currentStep, setCurrentStep] = useState(1);
+  const [searchParams] = useSearchParams();
+  const stepParam = searchParams.get('step');
+  const requestedStep = stepParam ? parseInt(stepParam, 10) : null;
+  const initialStep = requestedStep && requestedStep >= 1 && requestedStep <= 6 ? requestedStep : 1;
+  const [currentStep, setCurrentStep] = useState(initialStep);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const invalidateManifest = useTenantCapabilityStore((state) => state.invalidate);
@@ -173,7 +177,9 @@ export const OnboardingWizard: React.FC = () => {
           if (d.invoice_terms) setInvoiceTerms(String(d.invoice_terms));
           if (Array.isArray(d.units)) setSelectedUnits(d.units);
 
-          if (typeof d.onboarding_step === 'number' && d.onboarding_step > 1 && d.onboarding_step <= 6) {
+          if (requestedStep && requestedStep >= 1 && requestedStep <= 6) {
+            setCurrentStep(requestedStep);
+          } else if (typeof d.onboarding_step === 'number' && d.onboarding_step > 1 && d.onboarding_step <= 6) {
             setCurrentStep(d.onboarding_step);
           }
         }
@@ -184,7 +190,7 @@ export const OnboardingWizard: React.FC = () => {
       }
     };
     fetchState();
-  }, []);
+  }, [requestedStep]);
 
   // Calculate live completion score
   const liveCompletionPercentage = useMemo(() => {

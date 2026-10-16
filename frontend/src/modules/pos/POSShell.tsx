@@ -1169,7 +1169,7 @@ export function POSShell({ session, onExit }: POSShellProps) {
   }, [session.operator_name]);
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-base text-default">
+    <div className="fixed inset-0 z-50 flex flex-col bg-base text-default h-dvh w-screen overflow-hidden">
 
       {/* ── Terminal Drawer Backdrop ─────────────────────────────────── */}
       <div

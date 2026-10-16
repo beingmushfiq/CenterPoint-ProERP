@@ -31,8 +31,9 @@ import {
   Flame,
   RefreshCw,
   ClipboardList,
+  Trash2,
 } from 'lucide-react';
-import { getLogs, subscribeToLogs } from '../../lib/observability/logger';
+import { clearLogs, getLogs, subscribeToLogs } from '../../lib/observability/logger';
 import { buildDiagnosisSummary, severityMeta } from '../../lib/troubleshoot/troubleshootEngine';
 import type { TroubleshootDiagnosis, TroubleshootSeverity } from '../../lib/troubleshoot/troubleshootEngine';
 import { cn } from '../../lib/utils';
@@ -387,15 +388,26 @@ export function TroubleshootPanel({
           </button>
           <div className="flex items-center gap-1.5">
             {hasErrors && (
-              <button
-                type="button"
-                onClick={() => window.location.reload()}
-                className="flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-medium border border-default bg-surface hover:bg-surface-sunken text-muted hover:text-default transition-colors cursor-pointer"
-                title="Reload Page"
-              >
-                <RefreshCw className="size-3" />
-                Reload
-              </button>
+              <>
+                <button
+                  type="button"
+                  onClick={() => clearLogs()}
+                  className="flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-medium border border-default bg-surface hover:bg-surface-sunken text-muted hover:text-red-500 transition-colors cursor-pointer"
+                  title="Clear diagnostic log history"
+                >
+                  <Trash2 className="size-3" />
+                  Clear Log
+                </button>
+                <button
+                  type="button"
+                  onClick={() => window.location.reload()}
+                  className="flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-medium border border-default bg-surface hover:bg-surface-sunken text-muted hover:text-default transition-colors cursor-pointer"
+                  title="Reload Page"
+                >
+                  <RefreshCw className="size-3" />
+                  Reload
+                </button>
+              </>
             )}
             <Button variant="ghost" size="sm" onClick={onClose}>
               Close
@@ -405,20 +417,4 @@ export function TroubleshootPanel({
       </div>
     </>
   );
-}
-
-// ── Helper: Badge visibility hook ──────────────────────────────────────────────
-// Used by AppHeader to decide whether to show the pulsing badge.
-
-export function useTroubleshootBadge(): {
-  hasErrors: boolean;
-  errorCount: number;
-  criticalCount: number;
-  topSeverity: TroubleshootSeverity | null;
-} {
-  const entries = useSyncExternalStore(subscribeToLogs, getLogs);
-  return useMemo(() => {
-    const { hasErrors, errorCount, criticalCount, topSeverity } = buildDiagnosisSummary(entries);
-    return { hasErrors, errorCount, criticalCount, topSeverity };
-  }, [entries]);
 }

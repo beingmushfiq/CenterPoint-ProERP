@@ -36,12 +36,12 @@ import {
   Brain,
   Compass,
   Layers,
-  Monitor,
   Languages,
   Wrench,
 } from 'lucide-react';
 import { SliceMartBrainModal } from './SliceMartBrainModal';
-import { TroubleshootPanel, useTroubleshootBadge } from '../troubleshoot/TroubleshootPanel';
+import { TroubleshootPanel } from '../troubleshoot/TroubleshootPanel';
+import { useTroubleshootBadge } from '../troubleshoot/useTroubleshootBadge';
 import { MotionActionSheet } from '../motion/MotionActionSheet';
 import { LanguageSwitcher } from '../ui/LanguageSwitcher';
 import { useAuthStore } from '../../lib/auth/authStore';
@@ -86,7 +86,6 @@ export function AppHeader({
   
   // Menus and dialog states
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
-  const [isBranchMenuOpen, setIsBranchMenuOpen] = useState(false);
   const [isNotifMenuOpen, setIsNotifMenuOpen] = useState(false);
   const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
   const [isBrainOpen, setIsBrainOpen] = useState(false);
@@ -202,7 +201,6 @@ export function AppHeader({
         setIsSearchOpen(false);
         setIsMobileSearchOpen(false);
         setIsQuickAddOpen(false);
-        setIsBranchMenuOpen(false);
         setIsUserMenuOpen(false);
         setIsNotifMenuOpen(false);
       }
@@ -438,23 +436,23 @@ export function AppHeader({
             onFocus={() => setIsSearchOpen(true)}
             onKeyDown={handleSearchKeyDown}
             placeholder={t('navigation.searchPlaceholder', 'Search products, orders, batches... (Ctrl+K)')}
-            className="w-full rounded-xl border border-default bg-surface-sunken pl-9 pr-28 py-1.5 text-xs text-default placeholder:text-muted focus:border-primary focus:outline-hidden focus:ring-1 focus:ring-primary transition-all"
+            className="w-full rounded-xl border border-default bg-surface-sunken pl-9 pr-16 py-1.5 text-xs text-default placeholder:text-muted focus:border-primary focus:outline-hidden focus:ring-1 focus:ring-primary transition-all"
           />
 
-          <div className="absolute right-2 flex items-center gap-1.5">
-            {searchQuery && (
+          <div className="absolute right-2.5 flex items-center gap-1.5 pointer-events-none">
+            {searchQuery ? (
               <button
                 type="button"
                 onClick={() => setSearchQuery('')}
-                className="text-muted hover:text-default cursor-pointer p-0.5"
+                className="text-muted hover:text-default cursor-pointer p-0.5 pointer-events-auto"
               >
                 <X className="size-3" />
               </button>
+            ) : (
+              <kbd className="hidden sm:inline-flex items-center px-1.5 py-0.5 rounded bg-surface border border-default text-[10px] font-mono text-muted select-none shadow-2xs">
+                Ctrl+K
+              </kbd>
             )}
-            <span className="flex items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[9px] font-bold text-emerald-600 dark:text-emerald-400 border border-emerald-500/25 select-none">
-              <span className="size-1.5 rounded-full bg-emerald-500" />
-              OPERATIONAL
-            </span>
           </div>
 
           {/* Omnisearch Interactive Dropdown */}
@@ -527,72 +525,15 @@ export function AppHeader({
 
       {/* Right side: POS Button + Branch + Quick Add + Notifications + Theme toggle + User profile */}
       <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-        {/* ── Interactive Tutorial & System Tour Direct Action Button ──── */}
-        <button
-          type="button"
-          onClick={() => openTutorial()}
-          className="hidden 2xl:flex items-center gap-1.5 rounded-xl border border-indigo-500/30 bg-indigo-500/10 hover:bg-indigo-500/20 px-2.5 py-1.5 text-xs font-semibold text-indigo-600 dark:text-indigo-400 shadow-xs transition-colors cursor-pointer shrink-0"
-          title="Interactive Beginner Tutorial & System Tour"
-        >
-          <Compass className="size-3.5" />
-          <span>{t('navigation.systemTour', 'System Tour')}</span>
-        </button>
-
-        {/* ── POS (Point of Sale) Register Direct Action Button (Desktop only >= lg; Mobile uses BottomNav POS) ──── */}
+        {/* ── Cluster 1: Primary Quick Actions (POS Terminal + Quick Add) ──── */}
         <Link
           to="/pos"
-          className="hidden lg:flex items-center gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-600 dark:hover:bg-emerald-500 px-2 sm:px-2.5 py-1.5 text-xs font-bold text-white shadow-xs transition-colors cursor-pointer shrink-0"
+          className="hidden lg:flex items-center gap-1.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 px-2.5 py-1.5 text-xs font-bold text-emerald-600 dark:text-emerald-400 shadow-2xs transition-colors cursor-pointer shrink-0"
           title="Open Point of Sale Counter Terminal"
         >
           <Store className="size-3.5" />
           <span className="hidden xl:inline">{t('navigation.posTerminal', 'POS Terminal')}</span>
         </Link>
-
-        {/* Branch Selector Dropdown */}
-        {branches && branches.length > 0 && (
-          <div className="relative hidden xl:block">
-            <button
-              type="button"
-              onClick={() => setIsBranchMenuOpen(!isBranchMenuOpen)}
-              className="flex items-center gap-2 rounded-lg border border-default bg-surface-raised px-3 py-1.5 text-xs text-default hover:bg-surface-sunken transition-token-colors focus-visible:ring-focus shadow-xs cursor-pointer"
-            >
-              <Building2 className="size-3.5 text-primary" aria-hidden="true" />
-              <span className="font-medium">{activeBranch?.name ?? 'Head Office'}</span>
-              <ChevronDown className="size-3 text-muted" aria-hidden="true" />
-            </button>
-
-            {isBranchMenuOpen && (
-              <div className="absolute left-0 mt-2 w-56 rounded-xl border border-default bg-surface-raised p-1.5 shadow-xl z-50 animate-fade-in">
-                <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-muted">
-                  {t('navigation.operatingBranch', 'Operating Branch')}
-                </div>
-                {branches.map((b) => (
-                  <button
-                    key={b.id}
-                    type="button"
-                    onClick={() => {
-                      void switchBranch(b.id);
-                      setIsBranchMenuOpen(false);
-                    }}
-                    className={cn(
-                      'flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 text-left text-xs transition-token-colors focus-visible:ring-focus',
-                      activeBranch?.id === b.id
-                        ? 'bg-primary-subtle text-primary font-semibold'
-                        : 'text-default hover:bg-surface-sunken'
-                    )}
-                  >
-                    <span>{b.name}</span>
-                    {b.is_head_office && (
-                      <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-blue-500/20 text-blue-400 font-bold">
-                        HQ
-                      </span>
-                    )}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
 
         {/* ── Comprehensive + Quick Add Dropdown (Desktop >= lg; Mobile uses BottomNav center +) ── */}
         <div className="relative shrink-0 hidden lg:block">
@@ -845,122 +786,90 @@ export function AppHeader({
           )}
         </div>
 
-        {/* Local Agentic Operations AI Brain */}
-        <button
-          type="button"
-          onClick={() => {
-            setBrainPrompt(undefined);
-            setIsBrainOpen(true);
-          }}
-          className="hidden xl:flex items-center gap-1.5 rounded-xl bg-purple-500/10 hover:bg-purple-500/20 text-purple-600 dark:text-purple-400 border border-purple-500/25 px-2.5 py-1 text-xs font-bold transition-all cursor-pointer shadow-2xs group"
-          title="Operations AI Brain — 100% Local Agentic AI (Ctrl+Space)"
-        >
-          <Brain className="size-3.5 group-hover:scale-110 transition-transform" />
-          <span>Brain</span>
-          <span className="size-1.5 rounded-full bg-purple-500 animate-pulse" />
-        </button>
+        {/* ── Cluster 2: Intelligence & System Health Capsule (Desktop >= sm) ──── */}
+        <div className="hidden sm:flex items-center rounded-xl border border-default bg-surface-sunken/80 p-0.5 shadow-2xs shrink-0">
+          {/* AI Brain Section */}
+          <button
+            type="button"
+            onClick={() => {
+              setBrainPrompt(undefined);
+              setIsBrainOpen(true);
+            }}
+            className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold text-purple-600 dark:text-purple-400 hover:bg-surface rounded-lg transition-colors cursor-pointer group"
+            title="Operations AI Brain (Ctrl+Space)"
+          >
+            <Brain className="size-3.5 group-hover:scale-110 transition-transform text-purple-500" />
+            <span className="hidden xl:inline">Brain</span>
+            <span className="size-1.5 rounded-full bg-purple-500 animate-pulse" />
+          </button>
 
-        {/* System Troubleshoot Diagnostics Trigger */}
-        <button
-          type="button"
-          onClick={() => setIsTroubleshootOpen(true)}
-          className={cn(
-            'flex items-center gap-1.5 rounded-xl px-2.5 py-1 text-xs font-bold transition-all cursor-pointer shadow-2xs group',
-            hasErrors
-              ? criticalCount > 0
-                ? 'bg-rose-500/15 hover:bg-rose-500/25 text-rose-700 dark:text-rose-300 border border-rose-500/35 animate-pulse'
-                : 'bg-amber-500/15 hover:bg-amber-500/25 text-amber-700 dark:text-amber-300 border border-amber-500/35'
-              : 'hidden xl:flex bg-surface-sunken hover:bg-surface-raised text-muted hover:text-default border border-default'
-          )}
-          title={
-            hasErrors
-              ? `${errorCount} session issue${errorCount !== 1 ? 's' : ''} detected — click to troubleshoot`
-              : 'System Diagnostics & Troubleshoot'
-          }
-        >
-          <Wrench className={cn('size-3.5 transition-transform group-hover:rotate-45', hasErrors && (criticalCount > 0 ? 'text-rose-500' : 'text-amber-500'))} />
-          <span className="hidden sm:inline">Troubleshoot</span>
-          {hasErrors && (
-            <span
-              className={cn(
-                'px-1.5 py-0.2 rounded-full text-[10px] font-black text-white font-mono',
-                criticalCount > 0 ? 'bg-rose-500' : 'bg-amber-500'
-              )}
-            >
-              {errorCount}
-            </span>
-          )}
-        </button>
+          {/* Micro Divider */}
+          <div className="h-3.5 w-px bg-default/80 mx-0.5" />
 
-        {/* Data Bin & Recovery Vault Quick Link */}
-        <Link
-          to="/settings/bin"
-          className="hidden 2xl:flex rounded-lg p-2 text-muted hover:bg-surface-sunken hover:text-red-500 transition-token-colors focus-visible:ring-focus relative group cursor-pointer"
-          title="Data Bin & Recovery Vault"
-        >
-          <Trash2 className="size-4" />
-        </Link>
-
-        {/* Language Switcher (EN / বাংলা) (Desktop >= lg) */}
-        <div className="hidden lg:block">
-          <LanguageSwitcher />
+          {/* System Health / Diagnostics Section */}
+          <button
+            type="button"
+            onClick={() => setIsTroubleshootOpen(true)}
+            className={cn(
+              'flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-lg transition-colors cursor-pointer group',
+              hasErrors
+                ? criticalCount > 0
+                  ? 'text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 font-bold'
+                  : 'text-amber-600 dark:text-amber-400 hover:bg-amber-500/10 font-bold'
+                : 'text-muted hover:text-default hover:bg-surface'
+            )}
+            title={
+              hasErrors
+                ? `${errorCount} session issue${errorCount !== 1 ? 's' : ''} detected — click to troubleshoot`
+                : 'System Operational — Health Diagnostics'
+            }
+          >
+            {hasErrors ? (
+              <>
+                <Wrench className={cn('size-3.5 group-hover:rotate-45 transition-transform', criticalCount > 0 ? 'text-rose-500' : 'text-amber-500')} />
+                <span className={cn(
+                  'px-1.5 py-0.2 rounded-full text-[10px] font-black text-white font-mono',
+                  criticalCount > 0 ? 'bg-rose-500' : 'bg-amber-500'
+                )}>
+                  {errorCount}
+                </span>
+              </>
+            ) : (
+              <>
+                <span className="size-1.5 rounded-full bg-emerald-500" />
+                <span className="hidden xl:inline text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
+                  Healthy
+                </span>
+              </>
+            )}
+          </button>
         </div>
 
-        {/* Theme Toggle with Smooth Ripple and Rotating Morph (Desktop >= lg) */}
-        <button
-          type="button"
-          onClick={toggleTheme}
-          className="hidden lg:relative lg:flex size-9 items-center justify-center rounded-xl p-1.5 sm:p-2 text-muted hover:bg-surface-sunken hover:text-default transition-all duration-300 focus-visible:ring-focus cursor-pointer shrink-0 group overflow-hidden border border-transparent hover:border-default shadow-2xs"
-          aria-label={
-            themeMode === 'light'
-              ? 'Switch to Dark Mode'
-              : 'Switch to Light Mode'
-          }
-          title={
-            themeMode === 'light'
-              ? 'Theme: Light (Click for Dark)'
-              : themeMode === 'dark'
-                ? 'Theme: Dark (Click for Light)'
-                : 'Theme: System (Click for Light)'
-          }
-        >
-          <Sun className={cn(
-            "size-4 text-amber-500 transition-all duration-500 transform absolute",
-            themeMode === 'light' ? "rotate-0 scale-100 opacity-100 group-hover:rotate-45" : "rotate-90 scale-0 opacity-0"
-          )} />
-          <Moon className={cn(
-            "size-4 text-indigo-400 transition-all duration-500 transform absolute",
-            themeMode === 'dark' ? "rotate-0 scale-100 opacity-100 group-hover:-rotate-12" : "-rotate-90 scale-0 opacity-0"
-          )} />
-          {themeMode === 'system' && (
-            <Monitor className="size-4 text-primary transition-all duration-300 transform scale-100 opacity-100" />
-          )}
-        </button>
-
-        {/* User Profile Dropdown (Always visible on mobile & desktop) */}
+        {/* ── Cluster 3: Control & Profile Capsule ──── */}
         <div className="relative shrink-0">
           <button
             type="button"
             onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-            className="flex items-center gap-1.5 rounded-xl p-1 hover:bg-surface-sunken transition-token-colors focus-visible:ring-focus border border-transparent hover:border-default cursor-pointer shrink-0"
+            className="flex items-center gap-2 rounded-xl p-1 sm:px-2 sm:py-1 hover:bg-surface-sunken transition-token-colors focus-visible:ring-focus border border-transparent hover:border-default cursor-pointer shrink-0 shadow-2xs"
             title={user?.name ?? 'User Profile & Preferences'}
             aria-label="User Profile"
           >
-            <div className="flex size-8 items-center justify-center rounded-lg bg-surface-sunken text-default font-bold text-xs border border-default shadow-xs shrink-0">
-              {user?.name ? user.name.split(' ').map((n) => n[0]).slice(0, 2).join('') : 'MR'}
+            <div className="flex size-7 sm:size-8 items-center justify-center rounded-lg bg-surface-sunken text-default font-bold text-xs border border-default shadow-xs shrink-0">
+              {user?.name ? user.name.split(' ').map((n) => n[0]).slice(0, 2).join('') : 'SA'}
             </div>
             <div className="hidden text-left lg:block">
               <div className="text-xs font-semibold text-default leading-tight">{user?.name ?? 'System User'}</div>
-              <div className="text-[10px] text-muted truncate max-w-36">
-                {user?.designation || user?.role_label || user?.role || (user?.is_platform_admin ? 'Platform Administrator' : 'Operations Member')}
+              <div className="text-[10px] text-muted truncate max-w-32">
+                {user?.designation || user?.role_label || user?.role || (user?.is_platform_admin ? 'Platform Admin' : 'Operations Member')}
               </div>
             </div>
             <ChevronDown className="hidden size-3 text-muted lg:block" />
           </button>
 
           {isUserMenuOpen && (
-            <div className="fixed inset-x-2 top-16 sm:absolute sm:inset-x-auto sm:right-0 sm:top-full sm:mt-2 w-auto sm:w-60 max-w-[calc(100vw-1rem)] rounded-2xl border border-default bg-surface-raised p-1.5 shadow-2xl z-50 animate-fade-in">
-              <div className="border-b border-default px-3 py-2.5">
+            <div className="fixed inset-x-2 top-16 sm:absolute sm:inset-x-auto sm:right-0 sm:top-full sm:mt-2 w-auto sm:w-64 max-w-[calc(100vw-1rem)] rounded-2xl border border-default bg-surface-raised p-2 shadow-2xl z-50 animate-fade-in space-y-1.5">
+              {/* Identity Header */}
+              <div className="border-b border-default px-2.5 pb-2.5">
                 <p className="text-xs font-bold text-default">{user?.name ?? 'Operations User'}</p>
                 <p className="text-[11px] text-muted truncate">{user?.email ?? 'operations@company.com'}</p>
                 <div className="mt-1.5 inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-0.5 text-[10px] font-semibold text-primary border border-primary/20">
@@ -969,40 +878,76 @@ export function AppHeader({
                 </div>
               </div>
 
-              <div className="mt-1 space-y-0.5">
-                {/* Mobile & Tablet preferences (< lg) */}
-                <div className="lg:hidden flex items-center justify-between px-3 py-2 border-b border-default/70 mb-1">
+              {/* Operating Branch Switcher (if multi-branch) */}
+              {branches && branches.length > 0 && (
+                <div className="p-2 border-b border-default/70 bg-surface-sunken/40 rounded-xl space-y-1">
+                  <div className="text-[10px] font-bold uppercase tracking-wider text-muted flex items-center gap-1.5">
+                    <Building2 className="size-3 text-primary" />
+                    <span>{t('navigation.operatingBranch', 'Operating Branch')}</span>
+                  </div>
+                  <div className="space-y-0.5 max-h-32 overflow-y-auto">
+                    {branches.map((b) => (
+                      <button
+                        key={b.id}
+                        type="button"
+                        onClick={() => {
+                          void switchBranch(b.id);
+                          setIsUserMenuOpen(false);
+                        }}
+                        className={cn(
+                          'flex w-full items-center justify-between rounded-lg px-2 py-1 text-xs transition-colors cursor-pointer text-left',
+                          activeBranch?.id === b.id
+                            ? 'bg-primary/10 text-primary font-bold'
+                            : 'text-default hover:bg-surface-sunken'
+                        )}
+                      >
+                        <span className="truncate">{b.name}</span>
+                        {b.is_head_office && (
+                          <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-blue-500/20 text-blue-500 font-bold shrink-0">
+                            HQ
+                          </span>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Quick Preferences Bar (Theme & Language) */}
+              <div className="p-2.5 border-b border-default/70 bg-surface-sunken/30 rounded-xl space-y-2">
+                <div className="flex items-center justify-between gap-2">
                   <span className="text-xs text-muted font-medium flex items-center gap-1.5">
-                    <Sun className="size-3.5" />
+                    <Sun className="size-3.5 text-amber-500" />
                     <span>Theme</span>
                   </span>
                   <button
                     type="button"
                     onClick={toggleTheme}
-                    className="flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-md bg-surface-sunken border border-default text-default cursor-pointer"
+                    className="flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-lg bg-surface border border-default text-default hover:bg-surface-sunken transition-all cursor-pointer shadow-2xs"
                   >
-                    {themeMode === 'dark' ? 'Dark' : themeMode === 'light' ? 'Light' : 'System'}
+                    {themeMode === 'dark' ? <Moon className="size-3 text-indigo-400" /> : <Sun className="size-3 text-amber-500" />}
+                    <span>{themeMode === 'dark' ? 'Dark' : themeMode === 'light' ? 'Light' : 'Auto'}</span>
                   </button>
                 </div>
-
-                <div className="lg:hidden flex items-center justify-between px-3 py-2 border-b border-default/70 mb-1">
+                <div className="flex items-center justify-between gap-2 pt-1.5 border-t border-default/40">
                   <span className="text-xs text-muted font-medium flex items-center gap-1.5">
                     <Languages className="size-3.5 text-primary" />
                     <span>Language</span>
                   </span>
                   <LanguageSwitcher />
                 </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsUserMenuOpen(false);
-                    setIsBrainOpen(true);
-                  }}
-                  className="lg:hidden flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-medium text-purple-600 dark:text-purple-400 hover:bg-purple-500/10 transition-token-colors cursor-pointer"
+              </div>
+
+              {/* Quick Tools & Navigation */}
+              <div className="space-y-0.5">
+                <Link
+                  to="/profile"
+                  onClick={() => setIsUserMenuOpen(false)}
+                  className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-xs font-medium text-default hover:bg-surface-sunken transition-colors"
                 >
-                  <Brain className="size-3.5" />
-                  <span>Operations AI Brain</span>
-                </button>
+                  <User className="size-3.5 text-primary" />
+                  <span>{i18n.language === 'bn' ? 'প্রোফাইল ও অ্যাকাউন্ট' : 'Profile & Account'}</span>
+                </Link>
 
                 <button
                   type="button"
@@ -1010,37 +955,28 @@ export function AppHeader({
                     setIsUserMenuOpen(false);
                     openTutorial();
                   }}
-                  className="lg:hidden flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:bg-indigo-500/10 transition-token-colors cursor-pointer"
+                  className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:bg-indigo-500/10 transition-colors cursor-pointer"
                 >
                   <Compass className="size-3.5" />
                   <span>{t('navigation.systemTour', 'Interactive System Tour')}</span>
                 </button>
 
                 <Link
-                  to="/profile"
-                  onClick={() => setIsUserMenuOpen(false)}
-                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-medium text-default hover:bg-surface-sunken transition-token-colors focus-visible:ring-focus"
-                >
-                  <User className="size-3.5 text-primary" />
-                  <span>{i18n.language === 'bn' ? 'প্রোফাইল ও অ্যাকাউন্ট' : 'Profile & Account'}</span>
-                </Link>
-
-                <Link
                   to="/settings/bin"
                   onClick={() => setIsUserMenuOpen(false)}
-                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-medium text-default hover:bg-surface-sunken transition-token-colors focus-visible:ring-focus"
+                  className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-xs font-medium text-default hover:bg-surface-sunken transition-colors"
                 >
-                  <Trash2 className="size-3.5 text-red-500" />
+                  <Trash2 className="size-3.5 text-rose-500" />
                   <span>{t('navigation.items.bin', 'Data Bin & Recovery')}</span>
                 </Link>
 
                 <Link
                   to="/settings/troubleshoot"
                   onClick={() => setIsUserMenuOpen(false)}
-                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-medium text-default hover:bg-surface-sunken transition-token-colors focus-visible:ring-focus"
+                  className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-xs font-medium text-default hover:bg-surface-sunken transition-colors"
                 >
                   <Wrench className="size-3.5 text-amber-500" />
-                  <span>System Troubleshoot & Diagnostics</span>
+                  <span>System Diagnostics</span>
                 </Link>
 
                 <button
@@ -1049,23 +985,16 @@ export function AppHeader({
                     setIsUserMenuOpen(false);
                     void logout();
                   }}
-                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-medium text-red-500 hover:bg-red-500/10 transition-token-colors focus-visible:ring-focus cursor-pointer"
+                  className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-xs font-medium text-red-500 hover:bg-red-500/10 transition-colors cursor-pointer"
                 >
                   <LogOut className="size-3.5" />
                   <span>{t('common:action.signOut', 'Sign out')}</span>
                 </button>
+              </div>
 
-                <div className="mt-1 pt-2 border-t border-default/60 px-3 py-1.5 flex items-center justify-between text-[10px] text-muted">
-                  <span>ProERP Engine</span>
-                  <a
-                    href="https://devcenterpoint.com"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-primary hover:underline font-semibold transition-colors"
-                  >
-                    DevCenterPoint
-                  </a>
-                </div>
+              <div className="pt-2 border-t border-default/60 px-2.5 py-1 flex items-center justify-between text-[10px] text-muted">
+                <span>ProERP SaaS</span>
+                <span className="font-mono">v2.0</span>
               </div>
             </div>
           )}
