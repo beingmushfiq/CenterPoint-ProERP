@@ -316,12 +316,52 @@ class CopilotController extends Controller
             ->orderBy('assessment_date', 'desc')
             ->orderBy('created_at', 'desc')
             ->limit(20)
-            ->get();
+            ->get()
+            ->map(fn (FinancingAssessment $record): array => $this->formatAssessmentRecord($record))
+            ->all();
 
         return response()->json([
             'status' => 'success',
             'data' => $history,
         ]);
+    }
+
+    /**
+     * Map a stored assessment onto the FinancingAssessmentRecord UI contract.
+     *
+     * @return array<string, mixed>
+     */
+    public function formatAssessmentRecord(FinancingAssessment $record): array
+    {
+        $recommendations = is_array($record->recommendations) ? $record->recommendations : [];
+        $products = is_array($recommendations['products'] ?? null) ? $recommendations['products'] : [];
+        $top = is_array($recommendations['top_recommendation'] ?? null) ? $recommendations['top_recommendation'] : null;
+
+        $monthlyExpenses = (float) $record->monthly_expenses;
+        $bankBalance = (float) $record->bank_balance;
+        $dailyBurnRate = round($monthlyExpenses / 30.0, 2);
+        $runwayDays = $dailyBurnRate > 0 ? (int) floor($bankBalance / $dailyBurnRate) : 999;
+
+        $requestedAmount = 0.0;
+        if (is_array($top) && is_numeric($top['max_amount'] ?? null)) {
+            $requestedAmount = (float) $top['max_amount'];
+        }
+
+        return [
+            'id' => (int) $record->id,
+            'uuid' => (string) $record->uuid,
+            'requested_amount' => round($requestedAmount, 2),
+            'projected_runway_days' => $runwayDays,
+            'burn_rate' => $dailyBurnRate,
+            'revenue_run_rate' => round((float) $record->monthly_revenue, 2),
+            'collateral_value' => round((float) $record->inventory_value, 2),
+            'recommended_products' => array_map(
+                fn (array $product): array => $this->financingMatchEngine->formatProduct($product),
+                array_values(array_filter($products, 'is_array'))
+            ),
+            'status' => $products === [] ? 'draft' : 'submitted',
+            'created_at' => $record->created_at?->toIso8601String(),
+        ];
     }
 
     /**

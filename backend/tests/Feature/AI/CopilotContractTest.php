@@ -797,4 +797,37 @@ final class CopilotContractTest extends TestCase
         $this->assertArrayNotHasKey('threshold_value', $formatted);
         $this->assertArrayNotHasKey('actual_value', $formatted);
     }
+
+    public function test_financing_history_matches_assessment_record_contract(): void
+    {
+        $tenant = $this->createTenant();
+        $tenantId = $tenant->id;
+
+        $engine = app(\App\Modules\AI\Services\FinancingMatchEngine::class);
+        $engine->assessAndMatch($tenantId, null, [
+            'monthly_revenue' => 500000.0,
+            'monthly_expenses' => 300000.0,
+            'ar_outstanding' => 250000.0,
+            'inventory_value' => 600000.0,
+            'bank_balance' => 450000.0,
+        ]);
+
+        $record = \App\Modules\AI\Models\FinancingAssessment::where('tenant_id', $tenantId)->firstOrFail();
+
+        $formatted = app(\App\Modules\AI\Controllers\CopilotController::class)->formatAssessmentRecord($record);
+
+        $this->assertSame($record->id, $formatted['id']);
+        $this->assertSame($record->uuid, $formatted['uuid']);
+        $this->assertSame(4800000.0, (float) $formatted['requested_amount']);
+        $this->assertSame(45, $formatted['projected_runway_days']);
+        $this->assertSame(10000.0, (float) $formatted['burn_rate']);
+        $this->assertSame(500000.0, (float) $formatted['revenue_run_rate']);
+        $this->assertSame(600000.0, (float) $formatted['collateral_value']);
+        $this->assertCount(4, $formatted['recommended_products']);
+        $this->assertArrayHasKey('eligibility_score', $formatted['recommended_products'][0]);
+        $this->assertSame('submitted', $formatted['status']);
+        $this->assertIsString($formatted['created_at']);
+        $this->assertArrayNotHasKey('recommendations', $formatted);
+    }
 }
+
