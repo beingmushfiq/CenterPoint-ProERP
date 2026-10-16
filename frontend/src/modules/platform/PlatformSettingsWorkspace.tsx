@@ -161,41 +161,46 @@ const PlatformSettingsForm: React.FC<PlatformSettingsFormProps> = ({
   };
 
   return (
-    <div className="rounded-2xl bg-surface border border-default shadow-xl p-6 font-mono text-xs max-w-3xl">
+    <div className="rounded-2xl bg-surface border border-default/80 shadow-xs p-6 sm:p-8 font-sans text-xs max-w-4xl">
       {/* General Tab */}
       {activeTab === 'general' && (
-        <form onSubmit={handleGeneralSubmit} className="space-y-4">
-          <h2 className="text-sm font-bold text-default font-sans uppercase tracking-wider mb-2">
-            {t('platform.engineSettings.general.title')}
-          </h2>
+        <form onSubmit={handleGeneralSubmit} className="space-y-5">
+          <div className="border-b border-default/60 pb-3 mb-4">
+            <h2 className="text-sm font-bold text-default tracking-wide uppercase">
+              {t('platform.engineSettings.general.title')}
+            </h2>
+            <p className="text-xs text-muted mt-0.5">
+              Configure universal SaaS platform identity, primary billing currency, and standard free trial duration.
+            </p>
+          </div>
 
           <div>
-            <label className="block text-default mb-1">{t('platform.engineSettings.general.platformName')}</label>
+            <label className="block text-xs font-semibold text-default mb-1.5">{t('platform.engineSettings.general.platformName')}</label>
             <input
               type="text"
               value={platformName}
               onChange={(e) => setPlatformName(e.target.value)}
-              className="w-full bg-surface-sunken border border-default rounded-xl p-2.5 text-default focus:outline-hidden focus:border-amber-500"
+              className="w-full bg-surface-sunken/60 hover:bg-surface-sunken focus:bg-surface border border-default/80 rounded-xl px-3.5 py-2.5 text-xs text-default transition-all focus:outline-hidden focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 shadow-2xs"
             />
           </div>
 
           <div>
-            <label className="block text-default mb-1">{t('platform.engineSettings.general.supportEmail')}</label>
+            <label className="block text-xs font-semibold text-default mb-1.5">{t('platform.engineSettings.general.supportEmail')}</label>
             <input
               type="email"
               value={supportEmail}
               onChange={(e) => setSupportEmail(e.target.value)}
-              className="w-full bg-surface-sunken border border-default rounded-xl p-2.5 text-default focus:outline-hidden focus:border-amber-500"
+              className="w-full bg-surface-sunken/60 hover:bg-surface-sunken focus:bg-surface border border-default/80 rounded-xl px-3.5 py-2.5 text-xs text-default font-mono transition-all focus:outline-hidden focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 shadow-2xs"
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-default mb-1">{t('platform.engineSettings.general.defaultCurrency')}</label>
+              <label className="block text-xs font-semibold text-default mb-1.5">{t('platform.engineSettings.general.defaultCurrency')}</label>
               <select
                 value={defaultCurrency}
                 onChange={(e) => setDefaultCurrency(e.target.value)}
-                className="w-full bg-surface-sunken border border-default rounded-xl p-2.5 text-default focus:outline-hidden focus:border-amber-500"
+                className="w-full bg-surface-sunken/60 hover:bg-surface-sunken focus:bg-surface border border-default/80 rounded-xl px-3.5 py-2.5 text-xs text-default transition-all focus:outline-hidden focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 shadow-2xs cursor-pointer"
               >
                 <option value="BDT">BDT (৳ - Bangladeshi Taka)</option>
                 <option value="USD">USD ($ - US Dollar)</option>
@@ -204,23 +209,23 @@ const PlatformSettingsForm: React.FC<PlatformSettingsFormProps> = ({
             </div>
 
             <div>
-              <label className="block text-default mb-1">{t('platform.engineSettings.general.defaultTrialDays')}</label>
+              <label className="block text-xs font-semibold text-default mb-1.5">{t('platform.engineSettings.general.defaultTrialDays')}</label>
               <input
                 type="number"
                 min="0"
                 max="90"
                 value={defaultTrialDays}
                 onChange={(e) => setDefaultTrialDays(Number(e.target.value))}
-                className="w-full bg-surface-sunken border border-default rounded-xl p-2.5 text-default focus:outline-hidden focus:border-amber-500"
+                className="w-full bg-surface-sunken/60 hover:bg-surface-sunken focus:bg-surface border border-default/80 rounded-xl px-3.5 py-2.5 text-xs text-default font-mono transition-all focus:outline-hidden focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 shadow-2xs"
               />
             </div>
           </div>
 
-          <div className="pt-4 flex justify-end">
+          <div className="pt-4 border-t border-default/50 flex justify-end">
             <Button
               type="submit"
               disabled={isSaving}
-              className="font-bold cursor-pointer bg-amber-500 hover:bg-amber-400 text-slate-950 flex items-center gap-1.5"
+              className="font-bold cursor-pointer bg-amber-500 hover:bg-amber-400 text-slate-950 flex items-center gap-2 px-4 py-2 text-xs shadow-xs"
             >
               <Save className="size-3.5" />
               <span>{isSaving ? t('platform.engineSettings.saving') : t('platform.engineSettings.general.saveBtn')}</span>
@@ -231,40 +236,45 @@ const PlatformSettingsForm: React.FC<PlatformSettingsFormProps> = ({
 
       {/* Billing Tab */}
       {activeTab === 'billing' && (
-        <form onSubmit={handleBillingSubmit} className="space-y-4">
-          <h2 className="text-sm font-bold text-default font-sans uppercase tracking-wider mb-2">
-            {t('platform.engineSettings.billing.title')}
-          </h2>
+        <form onSubmit={handleBillingSubmit} className="space-y-5">
+          <div className="border-b border-default/60 pb-3 mb-4">
+            <h2 className="text-sm font-bold text-default tracking-wide uppercase">
+              {t('platform.engineSettings.billing.title')}
+            </h2>
+            <p className="text-xs text-muted mt-0.5">
+              Default invoice numbering prefix, tax calculation rate, and subscription payment grace period.
+            </p>
+          </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-default mb-1">{t('platform.engineSettings.billing.gracePeriod')}</label>
+              <label className="block text-xs font-semibold text-default mb-1.5">{t('platform.engineSettings.billing.gracePeriod')}</label>
               <input
                 type="number"
                 min="0"
                 max="60"
                 value={defaultGracePeriodDays}
                 onChange={(e) => setDefaultGracePeriodDays(Number(e.target.value))}
-                className="w-full bg-surface-sunken border border-default rounded-xl p-2.5 text-default focus:outline-hidden focus:border-amber-500"
+                className="w-full bg-surface-sunken/60 hover:bg-surface-sunken focus:bg-surface border border-default/80 rounded-xl px-3.5 py-2.5 text-xs text-default font-mono transition-all focus:outline-hidden focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 shadow-2xs"
               />
-              <p className="text-[10px] text-muted mt-1">
+              <p className="text-[11px] text-muted mt-1">
                 {t('platform.engineSettings.billing.gracePeriodHelp')}
               </p>
             </div>
 
             <div>
-              <label className="block text-default mb-1">{t('platform.engineSettings.billing.invoicePrefix')}</label>
+              <label className="block text-xs font-semibold text-default mb-1.5">{t('platform.engineSettings.billing.invoicePrefix')}</label>
               <input
                 type="text"
                 value={invoicePrefix}
                 onChange={(e) => setInvoicePrefix(e.target.value)}
-                className="w-full bg-surface-sunken border border-default rounded-xl p-2.5 text-default focus:outline-hidden focus:border-amber-500"
+                className="w-full bg-surface-sunken/60 hover:bg-surface-sunken focus:bg-surface border border-default/80 rounded-xl px-3.5 py-2.5 text-xs text-default font-mono transition-all focus:outline-hidden focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 shadow-2xs"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-default mb-1">{t('platform.engineSettings.billing.taxRate')}</label>
+            <label className="block text-xs font-semibold text-default mb-1.5">{t('platform.engineSettings.billing.taxRate')}</label>
             <input
               type="number"
               min="0"
@@ -272,15 +282,15 @@ const PlatformSettingsForm: React.FC<PlatformSettingsFormProps> = ({
               step="0.1"
               value={taxPercentage}
               onChange={(e) => setTaxPercentage(Number(e.target.value))}
-              className="w-full bg-surface-sunken border border-default rounded-xl p-2.5 text-default focus:outline-hidden focus:border-amber-500"
+              className="w-full max-w-sm bg-surface-sunken/60 hover:bg-surface-sunken focus:bg-surface border border-default/80 rounded-xl px-3.5 py-2.5 text-xs text-default font-mono transition-all focus:outline-hidden focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 shadow-2xs"
             />
           </div>
 
-          <div className="pt-4 flex justify-end">
+          <div className="pt-4 border-t border-default/50 flex justify-end">
             <Button
               type="submit"
               disabled={isSaving}
-              className="font-bold cursor-pointer bg-amber-500 hover:bg-amber-400 text-slate-950 flex items-center gap-1.5"
+              className="font-bold cursor-pointer bg-amber-500 hover:bg-amber-400 text-slate-950 flex items-center gap-2 px-4 py-2 text-xs shadow-xs"
             >
               <Save className="size-3.5" />
               <span>{isSaving ? t('platform.engineSettings.saving') : t('platform.engineSettings.billing.saveBtn')}</span>
@@ -291,67 +301,85 @@ const PlatformSettingsForm: React.FC<PlatformSettingsFormProps> = ({
 
       {/* Security Tab */}
       {activeTab === 'security' && (
-        <form onSubmit={handleSecuritySubmit} className="space-y-4">
-          <h2 className="text-sm font-bold text-default font-sans uppercase tracking-wider mb-2">
-            {t('platform.engineSettings.security.title')}
-          </h2>
+        <form onSubmit={handleSecuritySubmit} className="space-y-5">
+          <div className="border-b border-default/60 pb-3 mb-4">
+            <h2 className="text-sm font-bold text-default tracking-wide uppercase">
+              {t('platform.engineSettings.security.title')}
+            </h2>
+            <p className="text-xs text-muted mt-0.5">
+              Rate limiting on authentication, lockout cooldowns, and super admin tenant impersonation policies.
+            </p>
+          </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-default mb-1">{t('platform.engineSettings.security.maxAttempts')}</label>
+              <label className="block text-xs font-semibold text-default mb-1.5">{t('platform.engineSettings.security.maxAttempts')}</label>
               <input
                 type="number"
                 min="1"
                 max="20"
                 value={maxLoginAttempts}
                 onChange={(e) => setMaxLoginAttempts(Number(e.target.value))}
-                className="w-full bg-surface-sunken border border-default rounded-xl p-2.5 text-default focus:outline-hidden focus:border-amber-500"
+                className="w-full bg-surface-sunken/60 hover:bg-surface-sunken focus:bg-surface border border-default/80 rounded-xl px-3.5 py-2.5 text-xs text-default font-mono transition-all focus:outline-hidden focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 shadow-2xs"
               />
             </div>
 
             <div>
-              <label className="block text-default mb-1">{t('platform.engineSettings.security.lockoutDuration')}</label>
+              <label className="block text-xs font-semibold text-default mb-1.5">{t('platform.engineSettings.security.lockoutDuration')}</label>
               <input
                 type="number"
                 min="1"
                 max="1440"
                 value={lockoutMinutes}
                 onChange={(e) => setLockoutMinutes(Number(e.target.value))}
-                className="w-full bg-surface-sunken border border-default rounded-xl p-2.5 text-default focus:outline-hidden focus:border-amber-500"
+                className="w-full bg-surface-sunken/60 hover:bg-surface-sunken focus:bg-surface border border-default/80 rounded-xl px-3.5 py-2.5 text-xs text-default font-mono transition-all focus:outline-hidden focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 shadow-2xs"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-default mb-1">{t('platform.engineSettings.security.sessionExpiry')}</label>
+            <label className="block text-xs font-semibold text-default mb-1.5">{t('platform.engineSettings.security.sessionExpiry')}</label>
             <input
               type="number"
               min="15"
               max="1440"
               value={sessionTimeoutMinutes}
               onChange={(e) => setSessionTimeoutMinutes(Number(e.target.value))}
-              className="w-full bg-surface-sunken border border-default rounded-xl p-2.5 text-default focus:outline-hidden focus:border-amber-500"
+              className="w-full max-w-sm bg-surface-sunken/60 hover:bg-surface-sunken focus:bg-surface border border-default/80 rounded-xl px-3.5 py-2.5 text-xs text-default font-mono transition-all focus:outline-hidden focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 shadow-2xs"
             />
           </div>
 
-          <div className="p-3 rounded-xl bg-surface-sunken border border-default flex items-center gap-3 mt-3">
-            <input
-              type="checkbox"
-              id="impersonateCheckbox"
-              checked={impersonationAllowed}
-              onChange={(e) => setImpersonationAllowed(e.target.checked)}
-              className="rounded-sm border-default bg-surface text-amber-500 focus:ring-amber-500"
-            />
-            <label htmlFor="impersonateCheckbox" className="text-default cursor-pointer">
-              {t('platform.engineSettings.security.allowImpersonation')}
-            </label>
+          <div className="p-4 rounded-xl bg-surface-sunken/50 border border-default/70 flex items-center justify-between gap-4 mt-2">
+            <div>
+              <span className="text-xs font-semibold text-default block">
+                {t('platform.engineSettings.security.allowImpersonation')}
+              </span>
+              <span className="text-[11px] text-muted block mt-0.5">
+                Permit authorized platform administrators to view and troubleshoot tenant workspaces directly.
+              </span>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={impersonationAllowed}
+              onClick={() => setImpersonationAllowed(!impersonationAllowed)}
+              className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-hidden focus:ring-2 focus:ring-amber-500/20 ${
+                impersonationAllowed ? 'bg-amber-500' : 'bg-surface-sunken border border-default'
+              }`}
+            >
+              <span
+                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
+                  impersonationAllowed ? 'translate-x-5' : 'translate-x-0'
+                }`}
+              />
+            </button>
           </div>
 
-          <div className="pt-4 flex justify-end">
+          <div className="pt-4 border-t border-default/50 flex justify-end">
             <Button
               type="submit"
               disabled={isSaving}
-              className="font-bold cursor-pointer bg-amber-500 hover:bg-amber-400 text-slate-950 flex items-center gap-1.5"
+              className="font-bold cursor-pointer bg-amber-500 hover:bg-amber-400 text-slate-950 flex items-center gap-2 px-4 py-2 text-xs shadow-xs"
             >
               <Save className="size-3.5" />
               <span>{isSaving ? t('platform.engineSettings.saving') : t('platform.engineSettings.security.saveBtn')}</span>
@@ -362,60 +390,76 @@ const PlatformSettingsForm: React.FC<PlatformSettingsFormProps> = ({
 
       {/* Maintenance Tab */}
       {activeTab === 'maintenance' && (
-        <form onSubmit={handleMaintenanceSubmit} className="space-y-4">
-          <div className="flex items-center gap-2 text-rose-500 mb-1 font-bold">
-            <AlertTriangle className="size-4" />
-            <h2 className="text-sm uppercase tracking-wider font-sans">
-              {t('platform.engineSettings.maintenance.title')}
-            </h2>
+        <form onSubmit={handleMaintenanceSubmit} className="space-y-5">
+          <div className="border-b border-default/60 pb-3 mb-4">
+            <div className="flex items-center gap-2 text-rose-500 mb-1 font-bold">
+              <AlertTriangle className="size-4" />
+              <h2 className="text-sm uppercase tracking-wide">
+                {t('platform.engineSettings.maintenance.title')}
+              </h2>
+            </div>
+            <p className="text-xs text-muted">
+              {t('platform.engineSettings.maintenance.help')}
+            </p>
           </div>
-          <p className="text-muted text-[11px] mb-4">
-            {t('platform.engineSettings.maintenance.help')}
-          </p>
 
-          <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/30 space-y-3">
-            <div className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                id="maintenanceToggle"
-                checked={maintenanceEnabled}
-                onChange={(e) => setMaintenanceEnabled(e.target.checked)}
-                className="rounded-sm border-rose-500 bg-surface text-rose-500 focus:ring-rose-500"
-              />
-              <label htmlFor="maintenanceToggle" className="text-rose-600 dark:text-rose-300 font-bold cursor-pointer">
-                {t('platform.engineSettings.maintenance.enableToggle')}
-              </label>
+          <div className="p-4.5 rounded-xl bg-rose-500/5 border border-rose-500/25 space-y-4">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <span className="text-xs font-bold text-rose-600 dark:text-rose-400 block">
+                  {t('platform.engineSettings.maintenance.enableToggle')}
+                </span>
+                <span className="text-[11px] text-muted block mt-0.5">
+                  Redirect all non-whitelisted tenant users and public traffic to the platform maintenance standby screen.
+                </span>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={maintenanceEnabled}
+                onClick={() => setMaintenanceEnabled(!maintenanceEnabled)}
+                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-hidden focus:ring-2 focus:ring-rose-500/20 ${
+                  maintenanceEnabled ? 'bg-rose-600' : 'bg-surface-sunken border border-default'
+                }`}
+              >
+                <span
+                  className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
+                    maintenanceEnabled ? 'translate-x-5' : 'translate-x-0'
+                  }`}
+                />
+              </button>
             </div>
 
             <div>
-              <label className="block text-default mb-1">{t('platform.engineSettings.maintenance.publicMessage')}</label>
+              <label className="block text-xs font-semibold text-default mb-1.5">{t('platform.engineSettings.maintenance.publicMessage')}</label>
               <input
                 type="text"
                 value={maintenanceMessage}
                 onChange={(e) => setMaintenanceMessage(e.target.value)}
-                className="w-full bg-surface-sunken border border-default rounded-xl p-2.5 text-default focus:outline-hidden focus:border-rose-500"
+                className="w-full bg-surface-sunken/60 hover:bg-surface-sunken focus:bg-surface border border-default/80 rounded-xl px-3.5 py-2.5 text-xs text-default transition-all focus:outline-hidden focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 shadow-2xs"
               />
             </div>
 
             <div>
-              <label className="block text-default mb-1">{t('platform.engineSettings.maintenance.whitelistedIps')}</label>
+              <label className="block text-xs font-semibold text-default mb-1.5">{t('platform.engineSettings.maintenance.whitelistedIps')}</label>
               <input
                 type="text"
                 value={whitelistedIps}
                 onChange={(e) => setWhitelistedIps(e.target.value)}
                 placeholder="127.0.0.1, 103.25.12.8"
-                className="w-full bg-surface-sunken border border-default rounded-xl p-2.5 text-default focus:outline-hidden focus:border-rose-500 font-mono"
+                className="w-full bg-surface-sunken/60 hover:bg-surface-sunken focus:bg-surface border border-default/80 rounded-xl px-3.5 py-2.5 text-xs text-default font-mono transition-all focus:outline-hidden focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 shadow-2xs"
               />
+              <p className="text-[11px] text-muted mt-1">Comma-separated IPv4 or IPv6 addresses with unrestricted root access.</p>
             </div>
           </div>
 
-          <div className="pt-4 flex justify-end">
+          <div className="pt-4 border-t border-default/50 flex justify-end">
             <Button
               type="submit"
               disabled={isMaintenancePending}
-              className={`font-bold cursor-pointer ${
+              className={`font-bold cursor-pointer flex items-center gap-2 px-4 py-2 text-xs shadow-xs transition-colors ${
                 maintenanceEnabled
-                  ? 'bg-rose-600 hover:bg-rose-500 text-white shadow-lg shadow-rose-600/30'
+                  ? 'bg-rose-600 hover:bg-rose-500 text-white shadow-rose-600/30'
                   : 'bg-amber-500 hover:bg-amber-400 text-slate-950'
               }`}
             >
@@ -509,7 +553,7 @@ const DomainsTabContent: React.FC = () => {
   });
 
   return (
-    <div className="p-6 rounded-2xl bg-surface border border-default shadow-xs space-y-4 font-mono text-xs">
+    <div className="p-6 sm:p-7 rounded-2xl bg-surface border border-default/80 shadow-xs space-y-4 font-sans text-xs">
       <div className="flex items-center justify-between border-b border-default pb-3">
         <div>
           <h2 className="text-sm font-bold text-default font-sans">Multi-Tenant Custom Domains</h2>
@@ -687,7 +731,7 @@ const JobsTabContent: React.FC = () => {
   });
 
   return (
-    <div className="p-6 rounded-2xl bg-surface border border-default shadow-xs space-y-4 font-mono text-xs">
+    <div className="p-6 sm:p-7 rounded-2xl bg-surface border border-default/80 shadow-xs space-y-4 font-sans text-xs">
       <div className="flex items-center justify-between border-b border-default pb-3">
         <div>
           <h2 className="text-sm font-bold text-default font-sans">Background Queue & Worker Telemetry</h2>
@@ -852,77 +896,77 @@ export const PlatformSettingsWorkspace: React.FC = () => {
       </div>
 
       {/* Settings Navigation Tabs */}
-      <div className="flex overflow-x-auto no-scrollbar scroll-smooth touch-pan-x w-full min-w-0 bg-surface-sunken p-1 rounded-xl border border-default max-w-lg">
+      <div className="flex items-center overflow-x-auto no-scrollbar scroll-smooth touch-pan-x w-full min-w-0 bg-surface-sunken/80 backdrop-blur-xs p-1.5 rounded-2xl border border-default/70 shadow-2xs gap-1">
         <button
           type="button"
           onClick={() => setActiveTab('general')}
-          className={`flex-1 py-1.5 text-xs font-semibold rounded-lg flex items-center justify-center gap-1.5 cursor-pointer transition-all ${
+          className={`whitespace-nowrap px-4 py-2 text-xs font-semibold rounded-xl flex items-center justify-center gap-2 cursor-pointer transition-all duration-150 ${
             activeTab === 'general'
               ? 'bg-amber-500 text-slate-950 font-bold shadow-xs'
-              : 'text-muted hover:text-default'
+              : 'text-muted hover:text-default hover:bg-surface-sunken/60'
           }`}
         >
-          <Globe className="size-3.5" />
+          <Globe className="size-3.5 shrink-0" />
           <span>{t('platform.engineSettings.tabs.general')}</span>
         </button>
         <button
           type="button"
           onClick={() => setActiveTab('billing')}
-          className={`flex-1 py-1.5 text-xs font-semibold rounded-lg flex items-center justify-center gap-1.5 cursor-pointer transition-all ${
+          className={`whitespace-nowrap px-4 py-2 text-xs font-semibold rounded-xl flex items-center justify-center gap-2 cursor-pointer transition-all duration-150 ${
             activeTab === 'billing'
               ? 'bg-amber-500 text-slate-950 font-bold shadow-xs'
-              : 'text-muted hover:text-default'
+              : 'text-muted hover:text-default hover:bg-surface-sunken/60'
           }`}
         >
-          <CreditCard className="size-3.5" />
+          <CreditCard className="size-3.5 shrink-0" />
           <span>{t('platform.engineSettings.tabs.billing')}</span>
         </button>
         <button
           type="button"
           onClick={() => setActiveTab('security')}
-          className={`flex-1 py-1.5 text-xs font-semibold rounded-lg flex items-center justify-center gap-1.5 cursor-pointer transition-all ${
+          className={`whitespace-nowrap px-4 py-2 text-xs font-semibold rounded-xl flex items-center justify-center gap-2 cursor-pointer transition-all duration-150 ${
             activeTab === 'security'
               ? 'bg-amber-500 text-slate-950 font-bold shadow-xs'
-              : 'text-muted hover:text-default'
+              : 'text-muted hover:text-default hover:bg-surface-sunken/60'
           }`}
         >
-          <Shield className="size-3.5" />
+          <Shield className="size-3.5 shrink-0" />
           <span>{t('platform.engineSettings.tabs.security')}</span>
         </button>
         <button
           type="button"
           onClick={() => setActiveTab('maintenance')}
-          className={`flex-1 py-1.5 text-xs font-semibold rounded-lg flex items-center justify-center gap-1.5 cursor-pointer transition-all ${
+          className={`whitespace-nowrap px-4 py-2 text-xs font-semibold rounded-xl flex items-center justify-center gap-2 cursor-pointer transition-all duration-150 ${
             activeTab === 'maintenance'
               ? 'bg-amber-500 text-slate-950 font-bold shadow-xs'
-              : 'text-muted hover:text-default'
+              : 'text-muted hover:text-default hover:bg-surface-sunken/60'
           }`}
         >
-          <AlertTriangle className="size-3.5" />
+          <AlertTriangle className="size-3.5 shrink-0" />
           <span>{t('platform.engineSettings.tabs.maintenance')}</span>
         </button>
         <button
           type="button"
           onClick={() => setActiveTab('domains')}
-          className={`flex-1 py-1.5 text-xs font-semibold rounded-lg flex items-center justify-center gap-1.5 cursor-pointer transition-all ${
+          className={`whitespace-nowrap px-4 py-2 text-xs font-semibold rounded-xl flex items-center justify-center gap-2 cursor-pointer transition-all duration-150 ${
             activeTab === 'domains'
               ? 'bg-amber-500 text-slate-950 font-bold shadow-xs'
-              : 'text-muted hover:text-default'
+              : 'text-muted hover:text-default hover:bg-surface-sunken/60'
           }`}
         >
-          <Globe className="size-3.5" />
+          <Globe className="size-3.5 shrink-0" />
           <span>{t('platform.engineSettings.tabs.domains')}</span>
         </button>
         <button
           type="button"
           onClick={() => setActiveTab('jobs')}
-          className={`flex-1 py-1.5 text-xs font-semibold rounded-lg flex items-center justify-center gap-1.5 cursor-pointer transition-all ${
+          className={`whitespace-nowrap px-4 py-2 text-xs font-semibold rounded-xl flex items-center justify-center gap-2 cursor-pointer transition-all duration-150 ${
             activeTab === 'jobs'
               ? 'bg-amber-500 text-slate-950 font-bold shadow-xs'
-              : 'text-muted hover:text-default'
+              : 'text-muted hover:text-default hover:bg-surface-sunken/60'
           }`}
         >
-          <Server className="size-3.5" />
+          <Server className="size-3.5 shrink-0" />
           <span>{t('platform.engineSettings.tabs.jobs')}</span>
         </button>
       </div>
