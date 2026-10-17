@@ -785,7 +785,7 @@ export const SliceMartBrainModal: React.FC<SliceMartBrainModalProps> = ({ open, 
   }
   const [isStreaming, setIsStreaming] = useState(false);
   const [streamStatus, setStreamStatus] = useState<string | null>(null);
-  const [activeCategory, setActiveCategory] = useState<string>('financial_advisor');
+  const [activeCategory, setActiveCategory] = useState<string>('commercial');
   const [showAddMenu, setShowAddMenu] = useState(false);
   const [conversationUuid, setConversationUuid] = useState<string | null>(() => {
     try {
@@ -1404,7 +1404,7 @@ export const SliceMartBrainModal: React.FC<SliceMartBrainModalProps> = ({ open, 
                 </h2>
                 <span className="hidden xs:inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 items-center gap-1.5 shadow-2xs">
                   <span className="size-1.5 rounded-full bg-emerald-500 animate-ping inline-block" />
-                  {activeModelName}
+                  Streaming Neural Agent · {activeModelName}
                 </span>
               </div>
               <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
