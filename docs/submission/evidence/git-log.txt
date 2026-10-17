@@ -1,0 +1,25 @@
+﻿d0f015c9 style(backend): apply laravel pint formatting across backend
+9239ca6d test(e2e): capture the automated copilot demo walkthrough
+7970829c fix(ai): strict type narrowing and code standards across ai module
+dff812d2 feat(ai): submit financing applications to the real pre-qualification endpoint
+a3608497 fix(ai): resolve every quick prompt through the offline fallback engine
+6c4ae656 feat(ai): drive the copilot with the anthropic messages api
+0026b0da feat(ai): accept the UI financing match request contract
+51cec7af feat(ai): compute webank credit assessment from verified ledger metrics
+3ce220df feat(ai): map financing history onto FinancingAssessmentRecord contract
+4cad946f feat(ai): map alerts onto CashFlowAlertItem contract
+5997f15b feat(ai): map audit log rows onto AgentAuditLogItem contract
+85e73dd7 feat(ai): reconcile confirm-action contract with persisted pending actions
+ceae12cc feat(ai): emit UI-native tool_calls and pending_action contracts
+35696be5 feat(ai): emit FinancingMatchData contract from match endpoints
+27d6e1ee feat(ai): emit InventoryValuationData contract from get_inventory_value
+26baaeae feat(ai): emit CashFlowRiskData contract from analyze_cash_flow_risk
+02a62bf5 fix(ai): repair expense category join and emit PLSummaryData contract
+1e10e682 fix(ai): correct overdue invoice query and emit aging-bucket contract
+65ff5792 feat(ai): emit CashPositionData contract from get_cash_position
+4e9fa11c fix(ai): use status column for AR/AP outstanding aggregation
+70a4697c feat(ai): expose anthropic-native tool schemas
+6af6176d feat(ai): add anthropic messages wire translator
+01c53a5e feat(ai): register anthropic provider configuration
+48d69805 doc: 2026-10-16-ai-copilot-finish-verify-submit.md
+266c7017 feat: add onboarding startup modal and interactive setup wizard components

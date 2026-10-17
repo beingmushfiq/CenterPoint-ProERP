@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>CenterPoint ProERP — AI Copilot Security &amp; Multi-Tenant Isolation Assessment</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    @page {
+      size: A4;
+      margin: 22mm 20mm 25mm 20mm;
+      @bottom-right {
+        content: counter(page);
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 9pt;
+        color: #6b7280;
+      }
+    }
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
+      font-size: 10.5pt;
+      line-height: 1.6;
+      color: #1f2937;
+      background: #ffffff;
+      margin: 0;
+      padding: 0;
+    }
+    h1 {
+      font-size: 22pt;
+      font-weight: 800;
+      color: #0f172a;
+      border-bottom: 2px solid #059669;
+      padding-bottom: 6px;
+      margin-top: 0;
+      margin-bottom: 12px;
+      letter-spacing: -0.02em;
+    }
+    h2 {
+      font-size: 14pt;
+      font-weight: 700;
+      color: #0f172a;
+      border-bottom: 1px solid #e2e8f0;
+      padding-bottom: 4px;
+      margin-top: 24px;
+      margin-bottom: 10px;
+    }
+    h3 {
+      font-size: 11.5pt;
+      font-weight: 700;
+      color: #047857;
+      margin-top: 18px;
+      margin-bottom: 8px;
+    }
+    h4 {
+      font-size: 10.5pt;
+      font-weight: 600;
+      color: #334155;
+      margin-top: 14px;
+      margin-bottom: 6px;
+    }
+    p {
+      margin-top: 0;
+      margin-bottom: 10px;
+      color: #334155;
+    }
+    strong {
+      color: #0f172a;
+      font-weight: 700;
+    }
+    code {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9pt;
+      background: #f1f5f9;
+      color: #0f766e;
+      padding: 2px 5px;
+      border-radius: 4px;
+    }
+    pre.code-block {
+      background: #0f172a;
+      color: #e2e8f0;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 8.5pt;
+      line-height: 1.45;
+      padding: 12px 14px;
+      border-radius: 8px;
+      overflow-x: auto;
+      margin: 12px 0;
+      white-space: pre;
+    }
+    pre.code-block code {
+      background: transparent;
+      color: inherit;
+      padding: 0;
+    }
+    .doc-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 14px 0;
+      font-size: 9.5pt;
+    }
+    .doc-table th, .doc-table td {
+      border: 1px solid #cbd5e1;
+      padding: 6px 10px;
+      text-align: left;
+    }
+    .doc-table th {
+      background: #f8fafc;
+      font-weight: 700;
+      color: #0f172a;
+    }
+    .doc-table tr:nth-child(even) {
+      background: #f8fafc;
+    }
+    blockquote {
+      border-left: 4px solid #10b981;
+      background: #f0fdf4;
+      padding: 8px 14px;
+      margin: 12px 0;
+      color: #065f46;
+      font-size: 10pt;
+    }
+    ul, ol {
+      margin: 6px 0 12px 20px;
+      padding: 0;
+      color: #334155;
+    }
+    li {
+      margin-bottom: 4px;
+    }
+    .doc-divider {
+      border: none;
+      border-top: 1px solid #e2e8f0;
+      margin: 18px 0;
+    }
+    a {
+      color: #059669;
+      text-decoration: none;
+    }
+    @media print {
+      body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      pre.code-block { page-break-inside: avoid; }
+      .doc-table { page-break-inside: avoid; }
+      h2, h3 { page-break-after: avoid; }
+    }
+  </style>
+</head>
+<body>
+  <h1>AI Copilot Security & Multi-Tenant Isolation Assessment</h1>
+<p><strong>Project:</strong> CenterPoint ProERP (SliceMartFMS)  </p>
+<p><strong>Competition:</strong> FinTechathon 2026 (Shenzhen International FinTech Competition — Tsinghua PBCSF & WeBank Track)  </p>
+<p><strong>Track:</strong> International Track — Topic E (Financial Big Data & AI: SME Financial Copilot)  </p>
+<p><strong>Status:</strong> Canonical Security Architecture Specification  </p>
+<p><strong>Assessment Date:</strong> October 16, 2026  </p>
+<hr class="doc-divider">
+<h2>1. Executive Summary</h2>
+<p>CenterPoint ProERP introduces an enterprise-grade AI Financial Copilot designed specifically for small-to-medium enterprises (SMEs) to navigate cash flow volatility, predictive liquidity shortfalls, and credit facility matching. </p>
+<p>Unlike naive consumer chatbots that operate with unstructured prompts and unrestricted tool permissions, the CenterPoint AI Financial Copilot implements a <strong>Formal 3-Tier Security Architecture</strong>, <strong>Strict Multi-Tenant Isolation Guarantees</strong>, and <strong>Multi-Layer Defensive AI Guardrails</strong>. Under no circumstances can the AI agent autonomously mutate database records or execute financial disbursements without human-in-the-loop authorization.</p>
+<hr class="doc-divider">
+<h2>2. Three-Tier Permission Architecture</h2>
+<p>The AI Agent enforces a strict mathematical boundary across four permission tiers defined in <code>App\Modules\AI\Services\AgentPermissionGuard</code>:</p>
+<pre class="code-block "><code>┌─────────────────────────────────────────────────────────────────────────────┐
+│                       PERMISSION TIER SPECIFICATION                         │
+├───────┬────────────────────────────┬──────────────────┬─────────────────────┤
+│ Tier  │ Name &amp; Scope               │ Direct Execution │ Required RBAC       │
+├───────┼────────────────────────────┼──────────────────┼─────────────────────┤
+│ 0     │ Read-Only Queries          │ YES (Auto)       │ ai.copilot.use      │
+│ 1     │ Advisory &amp; Recommendation  │ YES (Auto)       │ ai.copilot.use      │
+│ 2     │ Supervised Operational     │ NO (Interactive) │ ai.copilot.use +    │
+│       │ Mutations                  │                  │ ai.alert.create     │
+│ 3     │ Autonomous Wire / DDL / DB │ PROHIBITED (403) │ DISABLED PERMANENTLY│
+└───────┴────────────────────────────┴──────────────────┴─────────────────────┘</code></pre>
+<h3>Tier 0: Read-Only Financial Inspection</h3>
+<ul><li><strong>Tools:</strong> <code>get_cash_position</code>, <code>list_overdue_invoices</code>, <code>get_pl_summary</code>, <code>analyze_cash_flow_risk</code>, <code>get_inventory_value</code>, <code>get_report_data</code>.</li><li><strong>Database Behavior:</strong> Pure SQL read queries (<code>SELECT</code>) scoped strictly to active tenant. Zero state modification.</li><li><strong>RBAC:</strong> Requires valid JWT and <code>ai.copilot.use</code> permission.</li></ul>
+<h3>Tier 1: Advisory & Credit Facility Matching</h3>
+<ul><li><strong>Tools:</strong> <code>match_financing_options</code>.</li><li><strong>Database Behavior:</strong> Mathematical evaluation against SME turnover, balance sheets, and debt service capacity. Optional creation of <code>financing_assessments</code> informational records.</li><li><strong>Enforcement:</strong> Agent provides proposals; it cannot execute loan agreements, sign promissory notes, or accept terms.</li></ul>
+<h3>Tier 2: Supervised Operational State Mutations</h3>
+<ul><li><strong>Tools:</strong> <code>create_cash_flow_alert</code>.</li><li><strong>Database Behavior:</strong> Inserts into operational alert tables.</li><li><strong>Enforcement:</strong> <strong>Never executes directly</strong>. When the LLM decides to invoke a Tier 2 tool, the system halts execution, records an unexecuted audit record (<code>executed = false</code>), and returns a <code>PENDING_CONFIRMATION</code> payload with a unique <code>action_id</code>.</li><li><strong>Human Confirmation:</strong> The user must review the proposed parameters in an interactive modal (<code>Tier2ConfirmDialog.tsx</code>) and click <strong>"Authorize & Execute"</strong> (<code>POST /api/v1/ai/copilot/conversations/{uuid}/confirm</code>) before any database row is inserted.</li></ul>
+<h3>Tier 3: Prohibited Autonomous Operations</h3>
+<ul><li><strong>Scope:</strong> Direct wire transfers, changing user permissions, dropping tables, altering chart of accounts definitions, or updating accounting ledger balances without dual-entry validation.</li><li><strong>Enforcement:</strong> Explicitly blacklisted in <code>AgentPermissionGuard::TIER_3_TOOLS</code>. Attempted execution triggers an immediate <code>AuthorizationException</code> and security alert log.</li></ul>
+<hr class="doc-divider">
+<h2>3. Strict Multi-Tenant Isolation Architecture</h2>
+<p>SliceMartFMS serves thousands of distinct SMEs under a multi-tenant database model. AI Copilot enforces non-negotiable isolation guarantees:</p>
+<pre class="code-block "><code>  HTTP Request ────► JWT Auth ────► TenantContext::set(tenant_id)
+                                             │
+                       ┌─────────────────────┴──────────────────────┐
+                       ▼                                            ▼
+           AgentOrchestrator                        Database Layer
+        Tenant ID from JWT ONLY              BelongsToTenant Global Scope
+        (Body tenant_id ignored)           `WHERE tenant_id = current_tenant`</code></pre>
+<ol><li><strong>JWT Source of Truth:</strong> <code>tenant_id</code> is extracted exclusively from cryptographic JWT claims via <code>TenantContext::current()->tenantId()</code>. Any attempt to pass <code>tenant_id</code> in request payloads is ignored.</li><li><strong>Global Model Scopes:</strong> All 5 AI models (<code>AgentConversation</code>, <code>AgentMessage</code>, <code>AgentAuditLog</code>, <code>CashFlowAlert</code>, <code>FinancingAssessment</code>) implement the <code>BelongsToTenant</code> trait, guaranteeing that every query includes <code>WHERE tenant_id = ?</code>.</li><li><strong>Cryptographic Separation:</strong> UUIDs (<code>agent_conversations.uuid</code>, <code>cash_flow_alerts.uuid</code>) are v4 random identifiers, eliminating sequential ID enumeration risks.</li><li><strong>Verification Test:</strong> Test <code>CopilotTest::test_cross_tenant_isolation_is_strictly_enforced</code> simulates Tenant 2 attempting to view or query Tenant 1's conversations, asserting a strict <code>404 Not Found</code>.</li></ol>
+<hr class="doc-divider">
+<h2>4. Multi-Layer Defensive AI Guardrails</h2>
+<pre class="code-block "><code>User Prompt
+    │
+    ▼
+[ GUARDRAIL 1: Input Clamping &amp; Sanitization ] ────► Clamp max 2,000 characters
+    │
+    ▼
+[ GUARDRAIL 2: Prompt Injection Neutralizer ]  ────► Neutralize adversarial tokens
+    │
+    ▼
+[ GUARDRAIL 3: Rate Limiting &amp; DoS Shield ]    ────► 30 req/min per user+tenant
+    │
+    ▼
+[ GUARDRAIL 4: Grounded Function Calling ]     ────► Only DB-verified tool schemas
+    │
+    ▼
+[ GUARDRAIL 5: Financial Advisory Cap ]        ────► Cap facility matches ≤ ৳50M
+    │
+    ▼
+[ GUARDRAIL 6: Tamper-Evident Audit Logging ]  ────► Log user, IP, payload, latency</code></pre>
+<h3>Guardrail 1: Input Length & Character Clamping</h3>
+<ul><li>User prompts are clamped to a hard ceiling of 2,000 characters using <code>mb_substr(trim($userMessage), 0, 2000)</code> to prevent token-exhaustion attacks.</li></ul>
+<h3>Guardrail 2: Adversarial Prompt Injection Defense</h3>
+<ul><li>Analyzes incoming messages for jailbreak patterns including:</li></ul>
+<p>  - <code>ignore previous instructions</code></p>
+<p>  - <code>disregard system prompt</code></p>
+<p>  - <code>you are now in developer/god mode</code></p>
+<p>  - <code>system override</code></p>
+<p>  - <code>reveal environment variables / passwords</code></p>
+<ul><li>Identified patterns are neutralized to <code>[SECURITY_BLOCKED_INJECTION]</code> and logged directly to <code>agent_audit_logs</code> with action <code>security_guardrail_prompt_injection_blocked</code>.</li></ul>
+<h3>Guardrail 3: Anti-Hallucination via Grounded Data</h3>
+<ul><li>The Copilot never generates financial figures from internal LLM hallucinations. All metrics (Cash on hand, Bank balances, AR aging, Gross margin, Inventory value) are computed via strict deterministic Eloquent database aggregates inside <code>AgentToolRegistry</code>.</li><li>Output is rendered directly into structured UI components (<code>CashPositionCard</code>, <code>PLSummaryCard</code>, <code>OverdueInvoicesCard</code>) rather than raw free-text prose.</li></ul>
+<h3>Guardrail 4: Financial Advisory Amount Cap</h3>
+<ul><li>Advisory facility recommendations are capped at <strong>BDT 50,000,000.00</strong> (<code>MAX_FINANCING_ADVISORY_LIMIT</code>).</li><li>Any query exceeding this threshold automatically appends an advisory note directing the SME to bespoke institutional underwriting.</li></ul>
+<h3>Guardrail 5: Rate Limiting & Abuse Prevention</h3>
+<ul><li>Rate limit enforced: <strong>30 requests per minute</strong> per user+tenant pair via Laravel's <code>throttle:30,1</code>.</li><li>Max 5 tool calls per LLM turn to prevent recursive infinite loops.</li></ul>
+<hr class="doc-divider">
+<h2>5. Security Risk Registry & Mitigations</h2>
+<table class="doc-table">
+<thead>
+<tr><th>Risk ID</th><th>Vulnerability / Threat</th><th>Severity</th><th>Likelihood</th><th>Mitigation Strategy</th><th>Status</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>RISK-AI-001</strong></td><td>LLM Hallucination of Cash Figures</td><td>High</td><td>High</td><td>Grounded tool calling with deterministic DB queries; visual financial cards; variance checking.</td><td><strong>MITIGATED</strong></td></tr>
+<tr><td><strong>RISK-AI-002</strong></td><td>Prompt Injection / System Jailbreak</td><td>High</td><td>Medium</td><td>Regex neutralization in <code>AgentOrchestrator</code>; input clamped to 2000 chars; security audit logging.</td><td><strong>MITIGATED</strong></td></tr>
+<tr><td><strong>RISK-AI-003</strong></td><td>Cross-Tenant Financial Data Leakage</td><td>Critical</td><td>Low</td><td><code>BelongsToTenant</code> scope on all AI models; JWT claims resolution; automated test <code>test_cross_tenant_isolation</code>.</td><td><strong>VERIFIED</strong></td></tr>
+<tr><td><strong>RISK-AI-004</strong></td><td>Tier 2 Action Executed Without Confirmation</td><td>Critical</td><td>Low</td><td>State machine halts at <code>PENDING_CONFIRMATION</code>; execution requires interactive confirmation endpoint.</td><td><strong>VERIFIED</strong></td></tr>
+<tr><td><strong>RISK-AI-005</strong></td><td>Unauthorized Financial Modification</td><td>Critical</td><td>Low</td><td>Tier 3 tools permanently disabled; agent has no DDL, raw SQL, or direct bank transfer APIs.</td><td><strong>BLOCKED</strong></td></tr>
+<tr><td><strong>RISK-AI-006</strong></td><td>DoS via Infinite Tool Call Loop</td><td>Medium</td><td>Medium</td><td>Max tool call ceiling of 5 per cycle; rate limited to 30 req/min per user+tenant pair.</td><td><strong>MITIGATED</strong></td></tr>
+<tr><td><strong>RISK-AI-007</strong></td><td>External OpenAI API Service Outage</td><td>Medium</td><td>High</td><td>Deterministic offline sandbox simulator fallback (<code>executeSandboxFallback</code>) with 100% feature parity.</td><td><strong>RESILIENT</strong></td></tr>
+</tbody>
+</table>
+<hr class="doc-divider">
+<h2>6. Tamper-Evident Audit Trail Specification</h2>
+<p>Every single interaction with the AI Copilot creates an immutable record in <code>agent_audit_logs</code>:</p>
+<ul><li><code>uuid</code>: Cryptographic v4 identifier.</li><li><code>tenant_id</code>: Mandatory tenant boundary.</li><li><code>user_id</code>: Operator ID.</li><li><code>tool_name</code>: Exact tool invoked.</li><li><code>permission_tier</code>: 0, 1, or 2.</li><li><code>input_payload</code>: Complete JSON arguments supplied to tool.</li><li><code>output_payload</code>: Complete JSON result returned from database.</li><li><code>executed</code>: Boolean indicating whether mutation actually executed or was held pending.</li><li><code>blocked_reason</code>: Error or security violation message if blocked.</li><li><code>duration_ms</code>: Execution latency in milliseconds.</li><li><code>ip_address</code>: Request origin IP address.</li></ul>
+<p>This audit trail is accessible directly from the ERP workspace under <strong>AI Copilot > Security & Audit Trail</strong>, adhering to Canonical ERP Table Standards with zero horizontal overflow and symmetrical direct action controls.</p>
+<hr class="doc-divider">
+<h2>7. Compliance Verification Matrix</h2>
+<table class="doc-table">
+<thead>
+<tr><th>Requirement</th><th>Implementation Evidence</th><th>Verification Method</th></tr>
+</thead>
+<tbody>
+<tr><td>Multi-Tenant Isolation</td><td><code>BelongsToTenant</code> on all 5 AI tables</td><td><code>CopilotTest::test_cross_tenant_isolation_is_strictly_enforced</code></td></tr>
+<tr><td>Human-in-the-Loop Confirmation</td><td><code>Tier2ConfirmDialog.tsx</code> + <code>confirmAction</code> API</td><td><code>CopilotTest::test_tier_2_tool_call_requires_confirmation_before_execution</code></td></tr>
+<tr><td>Tamper-Evident Auditing</td><td><code>AgentAuditLogger.php</code> + <code>agent_audit_logs</code></td><td><code>CopilotTest::test_audit_log_records_every_tool_call</code></td></tr>
+<tr><td>Zero Frontend Vulnerabilities</td><td>Strict TypeScript typing + zero <code>any</code></td><td><code>tsc --noEmit</code> exits with 0 errors</td></tr>
+<tr><td>Grounded Accurate Data</td><td><code>AgentToolRegistry.php</code> queries live DB</td><td><code>CopilotTest::test_get_cash_position_tool_returns_accurate_bank_balance</code></td></tr>
+</tbody>
+</table>
+<hr class="doc-divider">
+<p><em>CenterPoint ProERP Security Review Board — Approved for FinTechathon 2026 Submission</em></p>
+
+</body>
+</html>

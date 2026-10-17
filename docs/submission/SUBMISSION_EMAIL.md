@@ -2,11 +2,11 @@
 
 **To:** wangyr@pbcsf.tsinghua.edu.cn  
 **Cc:** [Team Member Emails / Advisors]  
-**Subject:** FinTechathon 2026 Submission — AI Finance Copilot (SliceMartFMS) — Topic E, WeBank  
+**Subject:** FinTechathon 2026 Submission — AI Finance Copilot (CenterPoint ProERP) — Topic E, WeBank  
 **Date:** October 17, 2026  
 **Track:** Track E — AI Finance Copilot (WeBank)  
-**Project Name:** SliceMart Enterprise Financial Management System (SliceMartFMS) — Supervised AI Copilot  
-**Repository:** https://github.com/beingmushfiq/SliceMartFMS  
+**Project Name:** CenterPoint Enterprise Financial Management System (CenterPoint ProERP) — Supervised AI Copilot  
+**Repository:** https://github.com/beingmushfiq/CenterPoint-ProERP  
 
 ---
 
@@ -14,7 +14,7 @@
 
 We are pleased to submit our comprehensive production-grade entry for **Topic E (AI Finance Copilot)** in the FinTechathon 2026 International Track.
 
-**SliceMart AI Copilot** is a supervised, multi-tier financial intelligence copilot natively embedded within a modern multi-tenant enterprise ERP. It directly addresses the critical challenge of high-risk SME financial operations: transforming unstructured natural language inquiries into secure, verifiable, and explainable accounting operations and real-time WeBank financing evaluations.
+**CenterPoint AI Copilot** is a supervised, multi-tier financial intelligence copilot natively embedded within a modern multi-tenant enterprise ERP. It directly addresses the critical challenge of high-risk SME financial operations: transforming unstructured natural language inquiries into secure, verifiable, and explainable accounting operations and real-time WeBank financing evaluations.
 
 ---
 
@@ -80,8 +80,8 @@ To inspect the system locally:
 
 ```bash
 # 1. Clone repository
-git clone https://github.com/beingmushfiq/SliceMartFMS.git
-cd SliceMartFMS
+git clone https://github.com/beingmushfiq/CenterPoint-ProERP.git
+cd CenterPoint-ProERP
 
 # 2. Inspect Backend
 cd backend

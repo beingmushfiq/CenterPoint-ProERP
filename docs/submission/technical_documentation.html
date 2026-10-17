@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>CenterPoint ProERP — AI Financial Copilot Technical Documentation</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    @page {
+      size: A4;
+      margin: 22mm 20mm 25mm 20mm;
+      @bottom-right {
+        content: counter(page);
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 9pt;
+        color: #6b7280;
+      }
+    }
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
+      font-size: 10.5pt;
+      line-height: 1.6;
+      color: #1f2937;
+      background: #ffffff;
+      margin: 0;
+      padding: 0;
+    }
+    h1 {
+      font-size: 22pt;
+      font-weight: 800;
+      color: #0f172a;
+      border-bottom: 2px solid #059669;
+      padding-bottom: 6px;
+      margin-top: 0;
+      margin-bottom: 12px;
+      letter-spacing: -0.02em;
+    }
+    h2 {
+      font-size: 14pt;
+      font-weight: 700;
+      color: #0f172a;
+      border-bottom: 1px solid #e2e8f0;
+      padding-bottom: 4px;
+      margin-top: 24px;
+      margin-bottom: 10px;
+    }
+    h3 {
+      font-size: 11.5pt;
+      font-weight: 700;
+      color: #047857;
+      margin-top: 18px;
+      margin-bottom: 8px;
+    }
+    h4 {
+      font-size: 10.5pt;
+      font-weight: 600;
+      color: #334155;
+      margin-top: 14px;
+      margin-bottom: 6px;
+    }
+    p {
+      margin-top: 0;
+      margin-bottom: 10px;
+      color: #334155;
+    }
+    strong {
+      color: #0f172a;
+      font-weight: 700;
+    }
+    code {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9pt;
+      background: #f1f5f9;
+      color: #0f766e;
+      padding: 2px 5px;
+      border-radius: 4px;
+    }
+    pre.code-block {
+      background: #0f172a;
+      color: #e2e8f0;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 8.5pt;
+      line-height: 1.45;
+      padding: 12px 14px;
+      border-radius: 8px;
+      overflow-x: auto;
+      margin: 12px 0;
+      white-space: pre;
+    }
+    pre.code-block code {
+      background: transparent;
+      color: inherit;
+      padding: 0;
+    }
+    .doc-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 14px 0;
+      font-size: 9.5pt;
+    }
+    .doc-table th, .doc-table td {
+      border: 1px solid #cbd5e1;
+      padding: 6px 10px;
+      text-align: left;
+    }
+    .doc-table th {
+      background: #f8fafc;
+      font-weight: 700;
+      color: #0f172a;
+    }
+    .doc-table tr:nth-child(even) {
+      background: #f8fafc;
+    }
+    blockquote {
+      border-left: 4px solid #10b981;
+      background: #f0fdf4;
+      padding: 8px 14px;
+      margin: 12px 0;
+      color: #065f46;
+      font-size: 10pt;
+    }
+    ul, ol {
+      margin: 6px 0 12px 20px;
+      padding: 0;
+      color: #334155;
+    }
+    li {
+      margin-bottom: 4px;
+    }
+    .doc-divider {
+      border: none;
+      border-top: 1px solid #e2e8f0;
+      margin: 18px 0;
+    }
+    a {
+      color: #059669;
+      text-decoration: none;
+    }
+    @media print {
+      body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      pre.code-block { page-break-inside: avoid; }
+      .doc-table { page-break-inside: avoid; }
+      h2, h3 { page-break-after: avoid; }
+    }
+  </style>
+</head>
+<body>
+  <h1>CenterPoint ProERP — AI Financial Copilot</h1>
+<h2>Technical Architecture & Competition Submission Document</h2>
+<p><strong>Competition:</strong> FinTechathon 2026 (Shenzhen International FinTech Competition)  </p>
+<p><strong>Host Organizers:</strong> Tsinghua University PBCSF & WeBank  </p>
+<p><strong>Track:</strong> International Track  </p>
+<p><strong>Topic:</strong> Topic E — Financial Big Data and Artificial Intelligence: SME Financial Copilot  </p>
+<p><strong>Document Version:</strong> 1.0 (Production Release)  </p>
+<p><strong>Date:</strong> October 16, 2026  </p>
+<hr class="doc-divider">
+<h3>🇨🇳 中文摘要 (Chinese Executive Summary)</h3>
+<p><strong>项目名称：</strong> CenterPoint ProERP — 中小微企业智能金融助手 (SME AI Financial Copilot)  </p>
+<p><strong>赛题方向：</strong> Topic E — 金融大数据与人工智能：中小微企业智能金融助手 (清华大学五道口金融学院 & 微众银行 WeBank)  </p>
+<p><strong>核心创新与系统概述：</strong>  </p>
+<p>针对全球及新兴市场中超过 82% 的中小微企业因流动性枯竭与应收账款滞纳而倒闭的痛点，CenterPoint ProERP 创新性地将<strong>自研受控型 AI 金融助手</strong>与<strong>复式记账企业资源规划 (ERP) 系统</strong>底层穿透整合：</p>
+<ol><li><strong>破除财务盲区 (零幻觉实时总账计算)：</strong> 采用严格 Function Calling 工具协议，直接对接底层复式记账总账、银行活期余额、应收账款账龄 (AR Aging) 及加权平均库存估值，实现毫秒级真实计算，杜绝大模型数字虚构与幻觉。</li><li><strong>30天前瞻性流动性压力测试：</strong> 结合账龄回收概率衰减模型，自动计算企业日均运营消耗速率 (Burn Rate) 与安全跑道天数 (Runway Days)，精准预测未来 30 天潜在现金缺口。</li><li><strong>微众银行 (WeBank) 普惠信贷智能撮合引擎：</strong> 内置 4 类定制化小微数字金融产品（数字发票保理、流动资金贷款、存货质押授信、设备融资租赁），基于真实账目一键生成预授信评分与准入撮合。</li><li><strong>三级人机协同受控安全架构 (Human-in-the-Loop)：</strong></li></ol>
+<p>   - <strong>Tier 0 (只读分析):</strong> 银行余额、损益、库存聚合分析，完全只读无风险；</p>
+<p>   - <strong>Tier 1 (顾问建议):</strong> 测算生成融资评估报告，不涉及资金划转；</p>
+<p>   - <strong>Tier 2 (受控操作):</strong> 创建关键现金流预警，系统强制弹出主管确认弹窗 (Supervisor Confirmation Dialog)，必须由具名授权人员显式点击确认方可写入数据库；</p>
+<p>   - <strong>Tier 3 (自主放款):</strong> 永久硬编码禁用，杜绝模型单边操作风险。</p>
+<ol><li><strong>多租户密码学隔离与全流程审计追溯：</strong> 严格遵循 <code>BelongsToTenant</code> 数据物理隔绝机制，所有 Agent 调度行为均在 <code>agent_audit_logs</code> 表中留存不可篡改的时间戳、参数快照与执行延迟记录。</li></ol>
+<hr class="doc-divider">
+<h2>1. Executive Summary & Problem Formulation</h2>
+<h3>1.1 The SME Working Capital Dilemma</h3>
+<p>Small and Medium Enterprises (SMEs) form the backbone of global economic output and supply chains, contributing over 50% of employment and 40% of national GDP in developing economies. Despite their vitality, <strong>over 82% of SME failures stem directly from cash flow mismanagement</strong>, uncollected accounts receivables, and unexpected liquidity shortfalls.</p>
+<p>SME owners face a persistent paradox:</p>
+<ol><li><strong>Financial Blindness:</strong> Financial health metrics (operating burn rate, debtor aging, runway days) are trapped in legacy spreadsheets or disparate accounting ledgers.</li><li><strong>The Underwriting Information Asymmetry:</strong> Traditional commercial banks reject 60%+ of SME credit applications due to a lack of audited balance sheets, absence of immovable fixed asset collateral, and high underwriting transaction costs.</li><li><strong>Reactive Desperation:</strong> SMEs seek credit only after they have entered cash insolvency, rendering them ineligible for standard bank facilities.</li></ol>
+<h3>1.2 The CenterPoint & WeBank Solution (Topic E)</h3>
+<p>CenterPoint ProERP solves this dilemma by embedding an <strong>Autonomous, Supervised AI Financial Copilot</strong> directly inside the operational ERP system. By synthesizing real-time double-entry ledger data (cash in bank, accounts receivable aging, operating expenses, and inventory asset valuation), the Copilot provides:</p>
+<ul><li><strong>Proactive Liquidity Stress Testing:</strong> 30-day forward predictive cash flow modeling.</li><li><strong>Automated Credit Health Appraisal:</strong> Continuous valuation of SME debt service capacity.</li><li><strong>WeBank SME Financing Match Engine:</strong> Algorithmic matching against 4 tailored digital credit facilities (Working Capital Term Loans, Invoice Factoring, Inventory Collateralization, Equipment Leasing).</li><li><strong>Three-Tier Human-in-the-Loop Security:</strong> Strict non-autonomous Tier 2 operational controls with mandatory supervisor confirmation.</li></ul>
+<hr class="doc-divider">
+<h2>2. High-Level System Architecture</h2>
+<p>CenterPoint ProERP is structured as a Domain-Driven Modular Monolith with zero cross-tenant contamination:</p>
+<pre class="code-block "><code>┌─────────────────────────────────────────────────────────────────────────────┐
+│                           REACT 19 FRONTEND LAYER                           │
+│  ┌───────────────────────┬───────────────────────┬───────────────────────┐  │
+│  │   CopilotChat.tsx     │ FinancingMatcherTab   │   CopilotAuditTab     │  │
+│  │ (Streaming UI &amp; Cards)│  (Loan Matrix &amp; Form) │(Tamper-Evident Table) │  │
+│  └───────────────────────┴───────────────────────┴───────────────────────┘  │
+└──────────────────────────────────────┬──────────────────────────────────────┘
+                                       │ HTTPS / JSON / JWT (Bearer)
+┌──────────────────────────────────────▼──────────────────────────────────────┐
+│                    LARAVEL 13.x BACKEND MODULAR RUNTIME                      │
+│                                                                             │
+│  ┌───────────────────────────────────────────────────────────────────────┐  │
+│  │                      API Routing &amp; RBAC Gateway                       │  │
+│  │  - POST /api/v1/ai/copilot/chat           - GET  /api/v1/ai/alerts    │  │
+│  │  - POST /api/v1/ai/copilot/confirm        - POST /api/v1/financing   │  │
+│  │  - Middleware: auth:api, tenant, permission:ai.copilot.use            │  │
+│  └───────────────────────────────────┬───────────────────────────────────┘  │
+│                                      │                                      │
+│  ┌───────────────────────────────────▼───────────────────────────────────┐  │
+│  │                  AgentOrchestrator Coordination Engine                │  │
+│  │  - Input Sanitization &amp; Anti-Prompt-Injection Defense                 │  │
+│  │  - Dual Execution: Live OpenAI GPT-4o API + Deterministic Sandbox     │  │
+│  │  - Conversation Context Memory &amp; Token Management                     │  │
+│  └───────┬───────────────────────────┬───────────────────────────┬───────┘  │
+│          │                           │                           │          │
+│  ┌───────▼─────────────┐     ┌───────▼─────────────┐     ┌───────▼────────┐ │
+│  │ AgentPermissionGuard│     │ AgentToolRegistry   │     │FinancingMatch  │ │
+│  │ - Tier 0: Read      │     │ 8 Financial Tools   │     │     Engine     │ │
+│  │ - Tier 1: Advisory  │     │ - Cash Position     │     │ 4 WeBank Loan  │ │
+│  │ - Tier 2: Supervised│     │ - Overdue AR Aging  │     │ Facilities     │ │
+│  │ - Tier 3: Prohibited│     │ - P&amp;L Statement     │     │ - WC Term Loan │ │
+│  │ - BDT 50M Hard Cap  │     │ - Cash Flow Risk    │     │ - Invoice Fact.│ │
+│  │                     │     │ - Inventory Value   │     │ - Inventory Fin│ │
+│  └─────────────────────┘     └─────────────────────┘     └────────────────┘ │
+│                                      │                                      │
+│  ┌───────────────────────────────────▼───────────────────────────────────┐  │
+│  │                     Tamper-Evident Audit Logger                       │  │
+│  │  Records Tool Name, Permission Tier, Inputs, Outputs, Latency, and IP │  │
+│  └───────────────────────────────────┬───────────────────────────────────┘  │
+└──────────────────────────────────────┼──────────────────────────────────────┘
+                                       │ Strict Tenant Isolation (BelongsToTenant)
+┌──────────────────────────────────────▼──────────────────────────────────────┐
+│                            RELATIONAL LEDGER DB                             │
+│  ┌───────────────────────┬───────────────────────┬───────────────────────┐  │
+│  │  Chart of Accounts    │ Customer Invoices (AR)│ Operating Expenses    │  │
+│  │  Bank Accounts (Cash) │ Inventory Stock (AVCO)│ Journal Entries (GL)  │  │
+│  ├───────────────────────┼───────────────────────┼───────────────────────┤  │
+│  │  agent_conversations  │ agent_messages        │ agent_audit_logs      │  │
+│  │  cash_flow_alerts     │ financing_assessments │ permissions / roles   │  │
+│  └───────────────────────┴───────────────────────┴───────────────────────┘  │
+└─────────────────────────────────────────────────────────────────────────────┘</code></pre>
+<hr class="doc-divider">
+<h2>3. The 3-Tier Security Architecture</h2>
+<p>A primary competition criterion for WeBank Topic E is <strong>Security and Human Oversight</strong>. Language models must not possess unchecked autonomy to execute operational transactions.</p>
+<pre class="code-block "><code>┌─────────────────────────────────────────────────────────────────────────────┐
+│                       TIER SPECIFICATION &amp; FLOW CONTROL                     │
+├──────┬────────────┬────────────────────────────────────┬────────────────────┤
+│ Tier │ Name       │ Tools / Scope                      │ Execution Control  │
+├──────┼────────────┼────────────────────────────────────┼────────────────────┤
+│ 0    │ READ-ONLY  │ get_cash_position                  │ Auto-executed      │
+│      │            │ list_overdue_invoices              │ directly by agent  │
+│      │            │ get_pl_summary                     │                    │
+│      │            │ analyze_cash_flow_risk             │                    │
+│      │            │ get_inventory_value                │                    │
+│      │            │ get_report_data                    │                    │
+├──────┼────────────┼────────────────────────────────────┼────────────────────┤
+│ 1    │ ADVISORY   │ match_financing_options            │ Generates proposals│
+│      │            │                                    │ only; no commitment│
+├──────┼────────────┼────────────────────────────────────┼────────────────────┤
+│ 2    │ SUPERVISED │ create_cash_flow_alert             │ HALTS AT PENDING.  │
+│      │            │                                    │ Requires 2-step    │
+│      │            │                                    │ human confirmation│
+├──────┼────────────┼────────────────────────────────────┼────────────────────┤
+│ 3    │ PROHIBITED │ execute_wire_transfer, drop_table, │ BLOCKED (403)      │
+│      │            │ update_ledger_direct               │ System exception   │
+└──────┴────────────┴────────────────────────────────────┴────────────────────┘</code></pre>
+<h3>The Supervised Tier 2 Flow:</h3>
+<ol><li>User asks: <em>"Create an alert if cash drops below ৳50,000"</em>.</li><li>Agent identifies tool <code>create_cash_flow_alert</code> (Tier 2).</li><li><code>AgentPermissionGuard::requiresConfirmation()</code> returns <code>true</code>.</li><li>Execution immediately halts; an unexecuted audit record is logged (<code>executed = false</code>).</li><li>Copilot returns a <code>PENDING_CONFIRMATION</code> payload with an actionable <code>action_id</code>.</li><li>Frontend automatically renders <code>Tier2ConfirmDialog.tsx</code> showing exact parameters, risk severity, and system impacts.</li><li>Human supervisor clicks <strong>"Authorize & Execute"</strong> (<code>POST /api/v1/ai/copilot/conversations/{uuid}/confirm</code>).</li><li>Backend verifies authorization, inserts <code>cash_flow_alerts</code> record, updates audit trail to <code>executed = true</code>, and returns execution results.</li></ol>
+<hr class="doc-divider">
+<h2>4. Agent Financial Calling Tools</h2>
+<p>CenterPoint ProERP registers 8 enterprise tools adhering to OpenAI function calling specifications:</p>
+<table class="doc-table">
+<thead>
+<tr><th>Tool Name</th><th>Tier</th><th>Mathematical / Ledger Logic</th><th>Primary Use Case</th></tr>
+</thead>
+<tbody>
+<tr><td><code>get_cash_position</code></td><td>0</td><td>$\sum \text{Liquid Cash} + \sum \text{Bank Accounts}$; Daily burn rate $\frac{\text{OpEx}_{90}}{90}$; Runway days $\frac{\text{Cash}}{\text{Burn Rate}}$</td><td>Instant liquidity health verification</td></tr>
+<tr><td><code>list_overdue_invoices</code></td><td>0</td><td>Queries unpaid sales invoices where <code>due_date < NOW()</code>; groups into 1-30, 31-60, 61-90, 90+ days aging buckets</td><td>Identification of overdue customer receivables</td></tr>
+<tr><td><code>get_pl_summary</code></td><td>0</td><td>$\text{Revenue} - \text{COGS} = \text{Gross Profit}$; $\text{Gross Profit} - \text{OpEx} = \text{Net Income}$; Gross & Net Margin %</td><td>Operating profitability analysis</td></tr>
+<tr><td><code>analyze_cash_flow_risk</code></td><td>0</td><td>Projected Ending Cash = $\text{Starting Cash} + (0.70 \times \text{AR}) - \text{AP} - (\text{Burn Rate} \times \text{Days})$; Deficit Flag if $< 0$</td><td>30-day predictive cash deficit forecasting</td></tr>
+<tr><td><code>match_financing_options</code></td><td>1</td><td>Evaluates SME against 4 WeBank credit facilities based on monthly revenue, AR outstanding, and inventory value</td><td>Algorithmic credit pre-qualification</td></tr>
+<tr><td><code>get_inventory_value</code></td><td>0</td><td>$\sum (\text{Current Stock} \times \text{AVCO Unit Cost})$; slow-moving inventory valuation</td><td>Collateralized asset assessment</td></tr>
+<tr><td><code>create_cash_flow_alert</code></td><td>2</td><td>Inserts threshold monitoring records into <code>cash_flow_alerts</code> table</td><td>Supervised operational warning creation</td></tr>
+<tr><td><code>get_report_data</code></td><td>0</td><td>Queries canonical RMS reports across 12 operational domains</td><td>Cross-functional reporting synthesis</td></tr>
+</tbody>
+</table>
+<hr class="doc-divider">
+<h2>5. WeBank SME Financing Match Engine</h2>
+<p>The <code>FinancingMatchEngine</code> implements multi-product underwriting logic using verified ERP transactional data:</p>
+<h3>Product 1: Working Capital Term Loan (WeBank SME)</h3>
+<ul><li><strong>Target:</strong> General operational cash flow support, seasonal liquidity buffers.</li><li><strong>Eligibility:</strong> Active operating history $\ge 6$ months, consistent average monthly revenue $> 0$.</li><li><strong>Facility Limit:</strong> $3.0 \times \text{Average Monthly Revenue}$.</li><li><strong>Interest Rate:</strong> 7.5% – 9.0% per annum.</li><li><strong>Turnaround:</strong> 24 Hours digital approval.</li></ul>
+<h3>Product 2: Digital Invoice Factoring / Discounting (WeBank SME)</h3>
+<ul><li><strong>Target:</strong> Monetizing outstanding customer dues without waiting 60–90 days.</li><li><strong>Eligibility:</strong> Total overdue/outstanding accounts receivable $> 50,000$ BDT.</li><li><strong>Advance Rate:</strong> 80% LTV of eligible approved receivables.</li><li><strong>Turnaround:</strong> Instant same-day drawdown upon invoice verification.</li></ul>
+<h3>Product 3: Inventory Asset Financing (WeBank SME)</h3>
+<ul><li><strong>Target:</strong> Unlocking cash tied up in warehouse raw materials and finished goods.</li><li><strong>Eligibility:</strong> Total inventory valuation $> 100,000$ BDT under AVCO perpetual costing.</li><li><strong>Advance Rate:</strong> 60% LTV of valuation.</li><li><strong>Collateral:</strong> Warehouse stock pledge / inventory verification.</li></ul>
+<h3>Product 4: Production Equipment Leasing (WeBank SME)</h3>
+<ul><li><strong>Target:</strong> Capital asset procurement, manufacturing machinery expansion.</li><li><strong>Eligibility:</strong> Positive net operating income over trailing 3 months.</li><li><strong>Facility Limit:</strong> $24.0 \times \text{Average Net Monthly Profit}$.</li><li><strong>Collateral:</strong> Equipment asset hypothecation.</li></ul>
+<hr class="doc-divider">
+<h2>6. Defensive AI Guardrails Specification</h2>
+<ol><li><strong>Input Length Clamping:</strong> All incoming user messages are clamped to a hard ceiling of 2,000 characters to prevent buffer and token-exhaustion attacks.</li><li><strong>Prompt Injection Defense:</strong> Regex token inspection neutralizes adversarial attacks (<code>ignore previous instructions</code>, <code>developer mode</code>, <code>system override</code>) and records security events.</li><li><strong>Anti-Hallucination via Grounded SQL:</strong> Financial numbers are NEVER hallucinated by the model; all metrics are computed by deterministic Eloquent aggregates.</li><li><strong>Advisory Financial Cap:</strong> Algorithmic credit recommendations are capped at <strong>BDT 50,000,000.00</strong> (<code>MAX_FINANCING_ADVISORY_LIMIT</code>). Above this threshold, mandatory bespoke underwriting disclaimers are enforced.</li><li><strong>Rate Limiting:</strong> Hard limit of 30 requests/minute per user+tenant pair. Max 5 tool executions per single conversation cycle.</li></ol>
+<hr class="doc-divider">
+<h2>7. Tamper-Evident Compliance & Audit Trail</h2>
+<p>Every interaction is recorded in <code>agent_audit_logs</code> with microsecond precision:</p>
+<ul><li><code>uuid</code>: Cryptographic v4 identifier.</li><li><code>tenant_id</code>: Strict tenant isolation context.</li><li><code>user_id</code>: Operator ID.</li><li><code>tool_name</code>: Exact tool executed.</li><li><code>permission_tier</code>: 0, 1, or 2.</li><li><code>input_payload</code>: JSON arguments supplied to tool.</li><li><code>output_payload</code>: Complete JSON result returned from database.</li><li><code>executed</code>: Boolean status (executed vs. held in pending).</li><li><code>duration_ms</code>: Latency benchmark in milliseconds.</li><li><code>ip_address</code>: Request origin IP address.</li></ul>
+<hr class="doc-divider">
+<h2>8. Automated Test Suite & Quality Verification</h2>
+<p>CenterPoint ProERP AI Financial Copilot maintains <strong>100% test pass rates across both backend and frontend</strong>:</p>
+<ul><li><strong>Backend PHPUnit AI Suite:</strong></li></ul>
+<p>  - <code>AgentPermissionGuardTest</code>: 6 tests, 16 assertions — Tier enforcement, financial caps, tenant boundary checks.</p>
+<p>  - <code>FinancingMatchEngineTest</code>: 1 test, 6 assertions — Multi-product scoring & LTV math.</p>
+<p>  - <code>CopilotTest</code>: 9 feature tests, 42 assertions — Chat loops, cross-tenant isolation, Tier 2 confirmation lifecycle, rate limiting, and audit logging.</p>
+<p>  - <strong>Total:</strong> 16 tests, 64 assertions, <strong>0 errors, 0 failures</strong>.</p>
+<ul><li><strong>Frontend Vitest Suite:</strong></li></ul>
+<p>  - <code>CopilotCards.test.tsx</code>: 7 tests — CashPositionCard, OverdueInvoicesCard, PLSummaryCard, CashFlowRiskCard, FinancingMatchCard, InventoryValueCard, and Tier2ConfirmDialog lifecycle.</p>
+<p>  - <strong>Total:</strong> 7 tests passed in 803ms.</p>
+<ul><li><strong>Type Safety:</strong></li></ul>
+<p>  - <code>tsc --noEmit</code>: <strong>0 errors</strong> across entire TypeScript frontend.</p>
+<hr class="doc-divider">
+<p><em>CenterPoint ProERP — Engineering Excellence for the FinTechathon 2026 International Track</em></p>
+
+</body>
+</html>

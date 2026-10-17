@@ -1,0 +1,132 @@
+﻿
+> @slicemart/frontend@2.0.0 test
+> vitest run --run
+
+
+[1m[30m[46m RUN [49m[39m[22m [36mv4.1.11 [39m[90mD:/Projects/SliceMartFMS/frontend[39m
+
+ [32m✓[39m src/pages/settings/DataBinWorkspace.test.tsx [2m([22m[2m7 tests[22m[2m)[22m[33m 5640[2mms[22m[39m
+     [33m[2m✓[22m[39m renders the Data Bin vault banner and quarantined metrics [33m 500[2mms[22m[39m
+     [33m[2m✓[22m[39m allows restoring a trashed item with confirmation dialog [33m 1106[2mms[22m[39m
+     [33m[2m✓[22m[39m allows purging an item permanently with confirmation dialog [33m 967[2mms[22m[39m
+     [33m[2m✓[22m[39m supports selecting all items and bulk restoring them [33m 1251[2mms[22m[39m
+     [33m[2m✓[22m[39m supports selecting individual items and bulk purging them [33m 762[2mms[22m[39m
+     [33m[2m✓[22m[39m supports 30-second safe undo countdown before permanent purge [33m 921[2mms[22m[39m
+ [32m✓[39m src/modules/assets/AssetsWorkspace.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[33m 6096[2mms[22m[39m
+     [33m[2m✓[22m[39m renders module title and contextual action controls in header [33m 1154[2mms[22m[39m
+     [33m[2m✓[22m[39m renders proper action buttons on Asset Categories & Policies tab [33m 432[2mms[22m[39m
+     [33m[2m✓[22m[39m navigates to Fixed Asset Register and applies category filter when clicking "View Assets" [33m 451[2mms[22m[39m
+     [33m[2m✓[22m[39m renders Action column with Service and Details buttons in Fixed Asset Register [33m 877[2mms[22m[39m
+     [33m[2m✓[22m[39m renders QR Tag and Schedule action buttons in Fixed Asset Register and opens QR modal [33m 1020[2mms[22m[39m
+     [33m[2m✓[22m[39m opens Depreciation Projection Schedule modal with multi-method calculations and parameter tuning [33m 1069[2mms[22m[39m
+     [33m[2m✓[22m[39m renders Critical Maintenance SLA Breach banner and SLA overdue filter & badges on Maintenance tab [33m 453[2mms[22m[39m
+     [33m[2m✓[22m[39m renders Lifecycle Timeline tab with chronological audit events and custom event modal [33m 380[2mms[22m[39m
+ [32m✓[39m src/modules/hr/HrWorkspace.test.tsx [2m([22m[2m16 tests[22m[2m)[22m[33m 10249[2mms[22m[39m
+     [33m[2m✓[22m[39m renders module title and contextual action controls on Payroll tab [33m 952[2mms[22m[39m
+     [33m[2m✓[22m[39m renders payslip action buttons and opens itemized breakdown modal [33m 927[2mms[22m[39m
+     [33m[2m✓[22m[39m renders contextual actions on Staff Directory tab and opens profile modal with document vault [33m 507[2mms[22m[39m
+     [33m[2m✓[22m[39m renders ID Badge action in menu and opens security pass modal [33m 815[2mms[22m[39m
+     [33m[2m✓[22m[39m renders interactive Approve and Reject actions for pending leave requests [33m 384[2mms[22m[39m
+     [33m[2m✓[22m[39m renders Compensation & Salary Structures tab with interactive calculation [33m 414[2mms[22m[39m
+     [33m[2m✓[22m[39m renders Salary Advances & Loans tab with loan granting modal [33m 527[2mms[22m[39m
+     [33m[2m✓[22m[39m renders Create Payslip button and opens the Create Payslip modal [33m 709[2mms[22m[39m
+     [33m[2m✓[22m[39m switches pay periods and executes automated batch payroll for open period [33m 786[2mms[22m[39m
+     [33m[2m✓[22m[39m renders bulk selection controls and toggles selection via toolbar and header checkbox [33m 820[2mms[22m[39m
+     [33m[2m✓[22m[39m renders More options menu for employee rows with clearly labeled Delete Employee action [33m 898[2mms[22m[39m
+     [33m[2m✓[22m[39m renders attendance view mode switcher and toggles Month Calendar view [33m 738[2mms[22m[39m
+     [33m[2m✓[22m[39m renders Calculation Preview button and opens comprehensive payroll calculation breakdown modal [33m 693[2mms[22m[39m
+     [33m[2m✓[22m[39m logs leave decision in in-app notification feed banner when leave request is approved [33m 325[2mms[22m[39m
+     [33m[2m✓[22m[39m verifies salary advances auto-deduct toggle in Grant Advance modal and table badges [33m 447[2mms[22m[39m
+ [32m✓[39m src/components/layout/Sidebar.test.tsx [2m([22m[2m8 tests[22m[2m)[22m[33m 4066[2mms[22m[39m
+     [33m[2m✓[22m[39m outlines Finance & Accounts when on default /finance route [33m 953[2mms[22m[39m
+     [33m[2m✓[22m[39m correctly outlines Finance & Accounts when inside a sub-tab (e.g., /finance?tab=statements) [33m 529[2mms[22m[39m
+     [33m[2m✓[22m[39m correctly outlines Finance & Accounts on expenses, coa, costing tabs [33m 548[2mms[22m[39m
+     [33m[2m✓[22m[39m outlines Customer Leads & CRM when on /sales?tab=leads, and NOT Sales & Invoices [33m 439[2mms[22m[39m
+     [33m[2m✓[22m[39m outlines Sales & Invoices when in another sales tab (e.g. /sales?tab=invoices) [33m 427[2mms[22m[39m
+     [33m[2m✓[22m[39m outlines Team & Workforce when in HR tabs (/hr?tab=payroll) [33m 451[2mms[22m[39m
+     [33m[2m✓[22m[39m renders title name and brand monogram linking to dashboard [33m 459[2mms[22m[39m
+ [32m✓[39m src/pages/dashboard/TenantRoleDashboard.test.tsx [2m([22m[2m8 tests[22m[2m)[22m[33m 3465[2mms[22m[39m
+     [33m[2m✓[22m[39m renders Executive Overview dashboard for Super Administrator [33m 1542[2mms[22m[39m
+     [33m[2m✓[22m[39m renders PWA banner with SliceMart ERP branding when install event fires [33m 547[2mms[22m[39m
+ [32m✓[39m src/modules/finance/FinanceModals.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[33m 1901[2mms[22m[39m
+       [33m[2m✓[22m[39m renders and records operational expense with balanced ledger output [33m 799[2mms[22m[39m
+       [33m[2m✓[22m[39m supports splitting customer due across multiple tenders and auto-balances GL [33m 564[2mms[22m[39m
+ [32m✓[39m src/modules/finance/FinancialStatementPrint.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 2718[2mms[22m[39m
+     [33m[2m✓[22m[39m renders FinancialStatementPrintDocument with full P&L, balance sheet and reconciliation [33m 524[2mms[22m[39m
+     [33m[2m✓[22m[39m opens PrintPreviewModal when clicking Print Financial Statement button in statements tab [33m 2187[2mms[22m[39m
+ [32m✓[39m src/components/layout/MobileQuickAddDrawer.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[33m 1845[2mms[22m[39m
+     [33m[2m✓[22m[39m renders quick action items when open [33m 363[2mms[22m[39m
+     [33m[2m✓[22m[39m navigates and closes drawer when an action item is clicked [33m 426[2mms[22m[39m
+     [33m[2m✓[22m[39m filters actions dynamically when searching [33m 403[2mms[22m[39m
+     [33m[2m✓[22m[39m filters actions by category pill [33m 641[2mms[22m[39m
+ [32m✓[39m src/components/layout/SliceMartBrainModal.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[33m 1544[2mms[22m[39m
+     [33m[2m✓[22m[39m renders the slide-over drawer with header, badges, and default message [33m 569[2mms[22m[39m
+     [33m[2m✓[22m[39m renders categorized prompt tabs and chips [33m 639[2mms[22m[39m
+ [32m✓[39m src/pages/auth/LoginPage.test.tsx [2m([22m[2m7 tests[22m[2m)[22m[33m 1214[2mms[22m[39m
+     [33m[2m✓[22m[39m renders login form with SliceMart ERP and Business Operations Platform branding [33m 545[2mms[22m[39m
+ [32m✓[39m src/modules/delivery/sections/CourierShipmentsSection.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[33m 1140[2mms[22m[39m
+     [33m[2m✓[22m[39m renders SLA filter pills with correct counts [33m 343[2mms[22m[39m
+     [33m[2m✓[22m[39m filters consignments when SLA pills are clicked [33m 788[2mms[22m[39m
+ [32m✓[39m src/pages/storefront/StorefrontDynamicPage.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[33m 1233[2mms[22m[39m
+     [33m[2m✓[22m[39m renders rich electronics About Us fallback with The Hardware Manifesto and quality journey [33m 734[2mms[22m[39m
+ [32m✓[39m src/pages/dashboard/components/EnterpriseSystemNavigator.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 1383[2mms[22m[39m
+     [33m[2m✓[22m[39m renders Enterprise Subsystem Cockpit showing all wings for Super Administrator [33m 1252[2mms[22m[39m
+ [32m✓[39m src/components/patterns/QueryBoundary.test.tsx [2m([22m[2m24 tests[22m[2m)[22m[33m 703[2mms[22m[39m
+ [32m✓[39m src/modules/settings/components/SettingsPreviewDispatcher.test.tsx [2m([22m[2m7 tests[22m[2m)[22m[33m 967[2mms[22m[39m
+     [33m[2m✓[22m[39m renders StatutoryIdentityCard with certificate view and toggles to masthead [33m 502[2mms[22m[39m
+ [32m✓[39m src/components/layout/AppHeader.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[33m 1026[2mms[22m[39m
+     [33m[2m✓[22m[39m renders anchored mobile navigation toggle button with shrink-0 [33m 538[2mms[22m[39m
+     [33m[2m✓[22m[39m invokes onToggleSidebar when mobile navigation trigger is clicked [33m 313[2mms[22m[39m
+ [32m✓[39m src/modules/production/components/ProductionFloorKioskView.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[33m 727[2mms[22m[39m
+     [33m[2m✓[22m[39m triggers onExit when Exit button is clicked [33m 370[2mms[22m[39m
+ [32m✓[39m src/components/layout/MobileBottomNav.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[33m 703[2mms[22m[39m
+     [33m[2m✓[22m[39m renders thumb navigation buttons for Dashboard, POS, Quick Action, Stock, and Menu [33m 498[2mms[22m[39m
+ [32m✓[39m src/test/responsive-viewport.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[33m 661[2mms[22m[39m
+ [32m✓[39m src/pages/storefront/StorefrontCheckoutPage.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[33m 778[2mms[22m[39m
+ [32m✓[39m src/components/patterns/StateView.test.tsx [2m([22m[2m20 tests[22m[2m)[22m[33m 765[2mms[22m[39m
+ [32m✓[39m src/modules/ai/__tests__/FinancingMatcherTab.test.tsx [2m([22m[2m1 test[22m[2m)[22m[33m 814[2mms[22m[39m
+     [33m[2m✓[22m[39m renders products and submits real pre-qualification to WeBank API [33m 808[2mms[22m[39m
+ [32m✓[39m src/AppShell.test.tsx [2m([22m[2m1 test[22m[2m)[22m[33m 872[2mms[22m[39m
+     [33m[2m✓[22m[39m renders app shell with navigation and outlet container [33m 866[2mms[22m[39m
+ [32m✓[39m src/components/ErrorBoundary.test.tsx [2m([22m[2m10 tests[22m[2m)[22m[33m 1071[2mms[22m[39m
+     [33m[2m✓[22m[39m renders an actionable control at every level [33m 592[2mms[22m[39m
+ [32m✓[39m src/modules/catalogue/components/ProductDescriptionEditor.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[33m 683[2mms[22m[39m
+ [32m✓[39m src/components/ui/AsyncButton.test.tsx [2m([22m[2m13 tests[22m[2m)[22m[33m 716[2mms[22m[39m
+     [33m[2m✓[22m[39m disables the button while the promise is pending [33m 376[2mms[22m[39m
+ [32m✓[39m src/components/ui/Dropdown.test.tsx [2m([22m[2m6 tests[22m[2m)[22m[33m 606[2mms[22m[39m
+     [33m[2m✓[22m[39m renders with placeholder and opens options on click [33m 398[2mms[22m[39m
+ [32m✓[39m src/components/print/PrintPreviewModal.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[33m 709[2mms[22m[39m
+     [33m[2m✓[22m[39m triggers printDocument when Print button is clicked [33m 441[2mms[22m[39m
+ [32m✓[39m src/components/storefront/StorefrontRichDescription.test.tsx [2m([22m[2m7 tests[22m[2m)[22m[33m 540[2mms[22m[39m
+     [33m[2m✓[22m[39m renders and sanitizes rich HTML specifications with tables and headings [33m 412[2mms[22m[39m
+ [32m✓[39m src/components/import/__tests__/importValidation.test.ts [2m([22m[2m16 tests[22m[2m)[22m[32m 204[2mms[22m[39m
+ [32m✓[39m src/components/ui/DestructiveConfirmationDialog.test.tsx [2m([22m[2m1 test[22m[2m)[22m[33m 514[2mms[22m[39m
+     [33m[2m✓[22m[39m renders entity name, code, and impact items [33m 507[2mms[22m[39m
+ [32m✓[39m src/pages/storefront/StorefrontHomePage.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 355[2mms[22m[39m
+ [32m✓[39m src/modules/ai/__tests__/CopilotCards.test.tsx [2m([22m[2m7 tests[22m[2m)[22m[33m 620[2mms[22m[39m
+ [32m✓[39m src/components/storefront/StorefrontThemeToggle.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[33m 456[2mms[22m[39m
+     [33m[2m✓[22m[39m defaults to Light Mode when no localStorage is present [33m 377[2mms[22m[39m
+ [32m✓[39m src/components/ui/AuditTimelineDrawer.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[33m 386[2mms[22m[39m
+ [32m✓[39m src/modules/catalogue/components/ProductImageGalleryUploader.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 309[2mms[22m[39m
+ [32m✓[39m src/ProductImageGalleryUploader.test.tsx [2m([22m[2m1 test[22m[2m)[22m[32m 145[2mms[22m[39m
+ [32m✓[39m src/modules/platform/useOnboardingProgress.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[32m 158[2mms[22m[39m
+ [32m✓[39m src/hooks/usePwaManifest.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[32m 131[2mms[22m[39m
+ [32m✓[39m src/AppRoot.test.tsx [2m([22m[2m1 test[22m[2m)[22m[32m 126[2mms[22m[39m
+ [32m✓[39m src/lib/format/currency.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 60[2mms[22m[39m
+ [32m✓[39m src/hooks/usePwaInstall.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 65[2mms[22m[39m
+ [32m✓[39m src/hooks/useWorkspaceTab.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[32m 69[2mms[22m[39m
+ [32m✓[39m src/lib/observability/logger.test.ts [2m([22m[2m26 tests[22m[2m)[22m[32m 71[2mms[22m[39m
+ [32m✓[39m src/lib/storefront/themeSync.test.ts [2m([22m[2m10 tests[22m[2m)[22m[32m 34[2mms[22m[39m
+ [32m✓[39m src/lib/api/errors.test.ts [2m([22m[2m16 tests[22m[2m)[22m[32m 22[2mms[22m[39m
+ [32m✓[39m src/modules/reports/ReportsHub.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 26[2mms[22m[39m
+ [32m✓[39m src/lib/api/queryClient.test.ts [2m([22m[2m19 tests[22m[2m)[22m[32m 23[2mms[22m[39m
+ [32m✓[39m src/lib/i18n/__tests__/i18n.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 22[2mms[22m[39m
+ [32m✓[39m src/lib/troubleshoot/troubleshootEngine.test.ts [2m([22m[2m11 tests[22m[2m)[22m[32m 24[2mms[22m[39m
+ [32m✓[39m src/lib/auth/authStore.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 11[2mms[22m[39m
+ [32m✓[39m src/lib/config/appVersion.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 7[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m52 passed[39m[22m[90m (52)[39m
+[2m      Tests [22m [1m[32m345 passed[39m[22m[90m (345)[39m
+[2m   Start at [22m 02:33:17
+[2m   Duration [22m 95.68s[2m (transform 9.43s, setup 38.66s, import 42.52s, tests 58.67s, environment 118.36s)[22m
+

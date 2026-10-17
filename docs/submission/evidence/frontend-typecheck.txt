@@ -1,0 +1,4 @@
+﻿
+> @slicemart/frontend@2.0.0 typecheck
+> tsc -b --noEmit
+
