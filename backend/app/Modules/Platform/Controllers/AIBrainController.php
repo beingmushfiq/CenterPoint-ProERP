@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Platform\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Modules\AI\Models\AgentConversation;
 use App\Modules\Platform\Services\AIBrainService;
 use App\Modules\Platform\Services\BrainOrchestrator;
 use Illuminate\Http\JsonResponse;
@@ -69,6 +70,7 @@ class AIBrainController extends Controller
                     'pending_action'    => $result['pending_action'],
                     'tier_used'         => $result['tier_used'],
                     'model_source'      => $result['model_source'],
+                    'model_name'        => $result['model_name'] ?? null,
                     'metrics'           => [],
                     'actions'           => [],
                 ],
@@ -187,6 +189,7 @@ class AIBrainController extends Controller
                     'tool_calls'        => $result['tool_calls'],
                     'pending_action'    => $result['pending_action'],
                     'model_source'      => $result['model_source'],
+                    'model_name'        => $result['model_name'] ?? null,
                     'metrics'           => [],
                     'actions'           => [],
                 ]);
@@ -224,7 +227,9 @@ class AIBrainController extends Controller
         $user     = $request->user();
         $tenantId = (int) $user->tenant_id;
 
-        $conversation = \App\Modules\AI\Models\AgentConversation::where('tenant_id', $tenantId)
+        /** @var AgentConversation $conversation */
+        $conversation = AgentConversation::query()
+            ->where('tenant_id', $tenantId)
             ->where('uuid', $uuid)
             ->firstOrFail();
 
@@ -233,7 +238,11 @@ class AIBrainController extends Controller
         return response()->json([
             'success' => true,
             'data'    => [
-                'conversation' => $conversation->only(['uuid', 'title', 'created_at']),
+                'conversation' => [
+                    'uuid'       => $conversation->uuid,
+                    'title'      => $conversation->title,
+                    'created_at' => $conversation->created_at,
+                ],
                 'messages'     => $data['messages'] ?? [],
             ],
         ]);
@@ -291,8 +300,11 @@ class AIBrainController extends Controller
         }
     }
 
-    public function capabilities(): JsonResponse
+    public function capabilities(\App\Modules\Platform\Services\BrainToolRegistry $toolRegistry): JsonResponse
     {
+        $schemas = $toolRegistry->getOpenAiToolSchemas();
+        $toolNames = array_values(array_filter(array_map(fn ($s) => $s['function']['name'] ?? '', $schemas)));
+
         return response()->json([
             'success' => true,
             'data'    => [
@@ -302,7 +314,9 @@ class AIBrainController extends Controller
                 'streaming_supported'      => true,
                 'conversation_persistence' => true,
                 'tier_2_supervision'       => true,
-                'tools_count'              => 20,
+                'tools'                    => $toolNames,
+                'tool_schemas'             => $schemas,
+                'tools_count'              => count($schemas),
                 'tool_categories'          => ['Finance', 'Sales', 'Inventory', 'HR/Payroll', 'Production', 'Purchasing', 'QC', 'Reports', 'Navigation', 'Platform'],
                 'suggested_prompt_categories' => [
                     [

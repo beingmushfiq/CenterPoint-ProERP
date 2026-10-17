@@ -85,8 +85,7 @@ final class AIBrainTest extends TestCase
 
         $response->assertOk();
         $response->assertJsonPath('success', true);
-        $response->assertJsonPath('data.name', 'ProERP Operations AI Brain Agent');
-        $response->assertJsonPath('data.mode', 'Self-Contained / Local Agentic Execution');
+        $response->assertJsonPath('data.name', 'ProERP Operations AI Financial Advisor');
         $response->assertJsonPath('data.streaming_supported', true);
         $this->assertNotEmpty($response->json('data.tools'));
         $this->assertNotEmpty($response->json('data.tool_schemas'));

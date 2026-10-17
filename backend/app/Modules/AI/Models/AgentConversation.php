@@ -20,6 +20,8 @@ use Illuminate\Support\Str;
  * @property string $status
  * @property \Carbon\Carbon|null $created_at
  * @property \Carbon\Carbon|null $updated_at
+ *
+ * @mixin \Illuminate\Database\Eloquent\Builder<self>
  */
 class AgentConversation extends Model
 {

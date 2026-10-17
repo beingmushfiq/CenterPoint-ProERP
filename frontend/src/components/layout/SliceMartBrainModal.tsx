@@ -259,7 +259,7 @@ function FormattedMessageText({ text, isStreaming }: { text: string; isStreaming
           const headerText = trimmed.replace(/^#{2,3}\s*/, '');
           return (
             <div key={lIdx} className="flex items-center gap-2 pt-2.5 pb-1">
-              <span className="size-2 rounded-full bg-gradient-to-r from-indigo-500 to-violet-600 shrink-0" />
+              <span className="size-2 rounded-full bg-linear-to-r from-indigo-500 to-violet-600 shrink-0" />
               <h4 className="text-xs sm:text-[13px] font-black uppercase tracking-wider text-indigo-700 dark:text-indigo-300">
                 {headerText}
               </h4>
@@ -302,7 +302,7 @@ function FormattedMessageText({ text, isStreaming }: { text: string; isStreaming
               className="flex items-start gap-3 py-1.5 px-3 rounded-xl bg-slate-50/80 dark:bg-slate-800/40 border border-slate-200/70 dark:border-slate-700/60 hover:border-indigo-500/30 hover:bg-indigo-50/20 dark:hover:bg-indigo-950/20 transition-all group"
             >
               <div className="size-5 rounded-lg bg-indigo-500/10 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0 mt-0.5 group-hover:bg-indigo-600 group-hover:text-white transition-colors shadow-2xs">
-                <Check className="size-3 stroke-[3]" />
+                <Check className="size-3 stroke-3" />
               </div>
               <div className="flex-1 text-slate-800 dark:text-slate-100 font-medium leading-relaxed text-[13px] sm:text-sm">
                 {renderedLine}
@@ -334,7 +334,7 @@ function AgentThoughtAccordion({ thought }: { thought: string }) {
   const [expanded, setExpanded] = useState(false);
 
   return (
-    <div className="rounded-xl border border-violet-500/25 bg-gradient-to-r from-violet-500/5 via-indigo-500/5 to-transparent overflow-hidden transition-all shadow-2xs">
+    <div className="rounded-xl border border-violet-500/25 bg-linear-to-r from-violet-500/5 via-indigo-500/5 to-transparent overflow-hidden transition-all shadow-2xs">
       <button
         type="button"
         onClick={() => setExpanded(!expanded)}
@@ -417,11 +417,11 @@ function ToolExecutionCard({
   }
 
   return (
-    <div className="rounded-2xl border border-indigo-200/80 dark:border-indigo-900/60 bg-gradient-to-b from-indigo-50/50 via-white to-white dark:from-indigo-950/20 dark:via-slate-900 dark:to-slate-900 overflow-hidden shadow-sm space-y-3.5 p-4 my-2 text-xs">
+    <div className="rounded-2xl border border-indigo-200/80 dark:border-indigo-900/60 bg-linear-to-b from-indigo-50/50 via-white to-white dark:from-indigo-950/20 dark:via-slate-900 dark:to-slate-900 overflow-hidden shadow-sm space-y-3.5 p-4 my-2 text-xs">
       {/* Header */}
       <div className="flex items-center justify-between pb-3 border-b border-slate-200/80 dark:border-slate-800">
         <div className="flex items-center gap-2.5">
-          <div className="size-8 rounded-xl bg-gradient-to-br from-indigo-600 to-violet-600 text-white flex items-center justify-center shrink-0 shadow-xs shadow-indigo-500/30">
+          <div className="size-8 rounded-xl bg-linear-to-br from-indigo-600 to-violet-600 text-white flex items-center justify-center shrink-0 shadow-xs shadow-indigo-500/30">
             <Wrench className="size-4" />
           </div>
           <div>
@@ -720,7 +720,7 @@ function UniversalActionExecutionCard({
           loading={submitting}
           className="gap-1.5 text-xs sm:text-sm font-bold px-5 h-9 rounded-xl shadow-md shadow-indigo-500/25 active:scale-95 transition-all cursor-pointer"
         >
-          <Check className="size-4 stroke-[3]" />
+          <Check className="size-4 stroke-3" />
           <span>Confirm & Execute Now</span>
         </Button>
       </div>
@@ -915,7 +915,9 @@ export const SliceMartBrainModal: React.FC<SliceMartBrainModalProps> = ({ open, 
     if (conversationUuid) {
       try {
         localStorage.setItem('brain.conversation_uuid', conversationUuid);
-      } catch {}
+      } catch {
+        // Ignore localStorage write quota or privacy mode errors
+      }
     }
   }, [conversationUuid]);
 
@@ -928,7 +930,9 @@ export const SliceMartBrainModal: React.FC<SliceMartBrainModalProps> = ({ open, 
         } else if (cfg?.model_id) {
           setActiveModelName(cfg.model_id);
         }
-      }).catch(() => {});
+      }).catch(() => {
+        // Ignore config fetch error when offline or unconfigured
+      });
     }
   }, [open]);
 
@@ -1162,8 +1166,10 @@ export const SliceMartBrainModal: React.FC<SliceMartBrainModalProps> = ({ open, 
               setPendingAction(parsed.pending_action);
               setShowTier2Modal(true);
             }
-            if (parsed.model_source && typeof parsed.model_source === 'string') {
-              setActiveModelName(parsed.model_source);
+            if (parsed.model_name && typeof parsed.model_name === 'string') {
+              setActiveModelName(parsed.model_name);
+            } else if (parsed.model_source && typeof parsed.model_source === 'string') {
+              setActiveModelName(parsed.model_source === 'tenant' ? 'Custom Tenant Model' : 'Global LLM');
             }
           } catch {
             // Ignore malformed complete event payload
@@ -1178,7 +1184,12 @@ export const SliceMartBrainModal: React.FC<SliceMartBrainModalProps> = ({ open, 
           m.id === agentMessageId
             ? {
                 ...m,
-                text: accumulatedText || 'Query successfully processed.',
+                text:
+                  accumulatedText ||
+                  detectedToolResult?.summary ||
+                  (detectedToolResult?.tool
+                    ? `Live operational query (${detectedToolResult.tool.replace(/_/g, ' ')}) completed.`
+                    : 'Query completed successfully.'),
                 thought: detectedThought,
                 metrics: detectedMetrics,
                 actions: detectedActions,
@@ -1382,20 +1393,20 @@ export const SliceMartBrainModal: React.FC<SliceMartBrainModalProps> = ({ open, 
         aria-modal="true"
         aria-label={`${brandName} AI Operations Brain`}
         className={cn(
-          "relative w-full h-full h-dvh max-h-dvh bg-slate-50/98 dark:bg-slate-950/98 backdrop-blur-2xl border-l border-slate-200 dark:border-slate-800 shadow-2xl flex flex-col min-h-0 overflow-hidden transition-all duration-300 ease-in-out",
+          "relative w-full h-dvh max-h-dvh bg-slate-50/98 dark:bg-slate-950/98 backdrop-blur-2xl border-l border-slate-200 dark:border-slate-800 shadow-2xl flex flex-col min-h-0 overflow-hidden transition-all duration-300 ease-in-out",
           isWideMode ? "max-w-4xl lg:max-w-5xl" : "max-w-2xl sm:max-w-3xl",
           "animate-in slide-in-from-right duration-250 ease-out"
         )}
       >
         {/* Top Accent Gradient with Shimmer */}
-        <div className="relative h-1.5 w-full bg-gradient-to-r from-indigo-600 via-violet-600 to-emerald-400 shrink-0 shadow-sm shadow-indigo-500/20 overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent opacity-75 animate-pulse pointer-events-none" />
+        <div className="relative h-1.5 w-full bg-linear-to-r from-indigo-600 via-violet-600 to-emerald-400 shrink-0 shadow-sm shadow-indigo-500/20 overflow-hidden">
+          <div className="absolute inset-0 bg-linear-to-r from-transparent via-white/40 to-transparent opacity-75 animate-pulse pointer-events-none" />
         </div>
 
         {/* Top Header Command Bar */}
         <div className="px-4 sm:px-5 py-3 border-b border-slate-200 dark:border-slate-800 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md flex items-center justify-between shrink-0 gap-3">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="relative size-10 rounded-2xl bg-gradient-to-tr from-indigo-600 via-violet-600 to-purple-600 flex items-center justify-center text-white shadow-lg shadow-indigo-500/25 ring-2 ring-indigo-500/20 shrink-0">
+            <div className="relative size-10 rounded-2xl bg-linear-to-tr from-indigo-600 via-violet-600 to-purple-600 flex items-center justify-center text-white shadow-lg shadow-indigo-500/25 ring-2 ring-indigo-500/20 shrink-0">
               <Brain className="size-5" />
               <span className="absolute -bottom-0.5 -right-0.5 size-2.5 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-slate-900 animate-pulse" />
             </div>
@@ -1489,7 +1500,7 @@ export const SliceMartBrainModal: React.FC<SliceMartBrainModalProps> = ({ open, 
                     className={cn(
                       'px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap shrink-0 shadow-2xs active:scale-95',
                       isActive
-                        ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-sm shadow-indigo-500/30 ring-1 ring-indigo-500/40 font-bold'
+                        ? 'bg-linear-to-r from-indigo-600 to-violet-600 text-white shadow-sm shadow-indigo-500/30 ring-1 ring-indigo-500/40 font-bold'
                         : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:border-indigo-400 dark:hover:border-indigo-500/50 hover:bg-slate-100 dark:hover:bg-slate-700'
                     )}
                   >
@@ -1563,7 +1574,7 @@ export const SliceMartBrainModal: React.FC<SliceMartBrainModalProps> = ({ open, 
           <div className="relative border-t border-slate-200/60 dark:border-slate-800/80 group/ribbon">
             {/* Left Scroll Navigation Button */}
             {chipsCanScrollLeft && (
-              <div className="absolute left-0 top-0 bottom-0 z-10 flex items-center pl-1 bg-gradient-to-r from-slate-100 dark:from-slate-900 via-slate-100/90 dark:via-slate-900/90 to-transparent pr-4">
+              <div className="absolute left-0 top-0 bottom-0 z-10 flex items-center pl-1 bg-linear-to-r from-slate-100 dark:from-slate-900 via-slate-100/90 dark:via-slate-900/90 to-transparent pr-4">
                 <button
                   type="button"
                   onClick={() => scrollChips('left')}
@@ -1601,7 +1612,7 @@ export const SliceMartBrainModal: React.FC<SliceMartBrainModalProps> = ({ open, 
 
             {/* Right Scroll Navigation Button */}
             {chipsCanScrollRight && (
-              <div className="absolute right-0 top-0 bottom-0 z-10 flex items-center pr-1 bg-gradient-to-l from-slate-100 dark:from-slate-900 via-slate-100/90 dark:via-slate-900/90 to-transparent pl-4">
+              <div className="absolute right-0 top-0 bottom-0 z-10 flex items-center pr-1 bg-linear-to-l from-slate-100 dark:from-slate-900 via-slate-100/90 dark:via-slate-900/90 to-transparent pl-4">
                 <button
                   type="button"
                   onClick={() => scrollChips('right')}
@@ -1628,7 +1639,7 @@ export const SliceMartBrainModal: React.FC<SliceMartBrainModalProps> = ({ open, 
               {/* Agent identity mini header */}
               {msg.sender === 'agent' && (
                 <div className="flex items-center gap-2 mb-1.5 px-1">
-                  <div className="size-5 rounded-lg bg-gradient-to-tr from-indigo-600 via-violet-600 to-purple-600 flex items-center justify-center text-white shadow-2xs">
+                  <div className="size-5 rounded-lg bg-linear-to-tr from-indigo-600 via-violet-600 to-purple-600 flex items-center justify-center text-white shadow-2xs">
                     <Brain className="size-3" />
                   </div>
                   <span className="text-xs font-bold text-slate-900 dark:text-white">{brandName} AI</span>
@@ -1646,7 +1657,7 @@ export const SliceMartBrainModal: React.FC<SliceMartBrainModalProps> = ({ open, 
                 className={cn(
                   'w-full rounded-2xl leading-relaxed space-y-4 transition-all',
                   msg.sender === 'user'
-                    ? 'max-w-[85%] sm:max-w-[78%] p-3.5 sm:p-4 bg-gradient-to-r from-indigo-600 via-indigo-600 to-violet-600 text-white rounded-tr-xs shadow-md shadow-indigo-500/20 ml-auto font-medium text-[13px] sm:text-sm'
+                    ? 'max-w-[85%] sm:max-w-[78%] p-3.5 sm:p-4 bg-linear-to-r from-indigo-600 via-indigo-600 to-violet-600 text-white rounded-tr-xs shadow-md shadow-indigo-500/20 ml-auto font-medium text-[13px] sm:text-sm'
                     : 'max-w-[96%] sm:max-w-[92%] p-4 sm:p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 rounded-2xl rounded-tl-xs shadow-sm hover:shadow-md transition-shadow'
                 )}
               >
@@ -1744,7 +1755,7 @@ export const SliceMartBrainModal: React.FC<SliceMartBrainModalProps> = ({ open, 
 
           {/* Streaming Status Indicator */}
           {isStreaming && (
-            <div className="flex items-center justify-between p-3 rounded-2xl bg-gradient-to-r from-indigo-50/60 via-violet-50/40 to-transparent dark:from-indigo-950/30 dark:via-violet-950/20 dark:to-transparent border border-indigo-200 dark:border-indigo-900/60 text-xs shadow-xs animate-in fade-in">
+            <div className="flex items-center justify-between p-3 rounded-2xl bg-linear-to-r from-indigo-50/60 via-violet-50/40 to-transparent dark:from-indigo-950/30 dark:via-violet-950/20 dark:to-transparent border border-indigo-200 dark:border-indigo-900/60 text-xs shadow-xs animate-in fade-in">
               <div className="flex items-center gap-3">
                 <div className="flex items-center gap-1">
                   <span className="size-2 rounded-full bg-indigo-600 dark:bg-indigo-400 animate-bounce" style={{ animationDelay: '0ms' }} />
@@ -1803,7 +1814,7 @@ export const SliceMartBrainModal: React.FC<SliceMartBrainModalProps> = ({ open, 
                   <button
                     type="submit"
                     disabled={!inputQuery.trim() || isStreaming}
-                    className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-indigo-600 via-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs sm:text-sm font-bold shadow-md shadow-indigo-500/25 active:scale-95 transition-all cursor-pointer"
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-linear-to-r from-indigo-600 via-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs sm:text-sm font-bold shadow-md shadow-indigo-500/25 active:scale-95 transition-all cursor-pointer"
                   >
                     <span>Ask</span>
                     <Send className="size-3.5" />
@@ -1816,11 +1827,11 @@ export const SliceMartBrainModal: React.FC<SliceMartBrainModalProps> = ({ open, 
             <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 pt-1 px-1 border-t border-slate-100 dark:border-slate-800">
               <div className="flex items-center gap-2 truncate">
                 <span className="size-2 rounded-full bg-emerald-500 inline-block shrink-0 animate-pulse" />
-                <span className="font-bold text-emerald-700 dark:text-emerald-400">Local Neural Kernel</span>
+                <span className="font-bold text-emerald-700 dark:text-emerald-400">{activeModelName || 'Neural Agent'}</span>
                 <span className="opacity-30">·</span>
-                <span className="truncate">Deterministic ERP Schema Engine</span>
+                <span className="truncate">Multi-Tool Agentic Engine</span>
                 <span className="opacity-30">·</span>
-                <span className="hidden md:inline truncate text-slate-400 dark:text-slate-500">Zero Cloud Exfiltration</span>
+                <span className="hidden md:inline truncate text-slate-400 dark:text-slate-500">Live Enterprise Advisory</span>
               </div>
               <div className="hidden sm:flex items-center gap-2 text-[10px] font-mono text-slate-400 dark:text-slate-500">
                 <span className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">↵ Enter</span>

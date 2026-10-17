@@ -185,7 +185,12 @@ class BrainToolRegistry extends AgentToolRegistry
                     'description' => 'TIER 1 (ADVISORY): Check if upcoming payroll can be met from current cash position. Returns cash gap analysis and recommended actions.',
                     'parameters'  => [
                         'type'       => 'object',
-                        'properties' => [],
+                        'properties' => [
+                            'month' => [
+                                'type'        => 'string',
+                                'description' => 'Optional period YYYY-MM to check (defaults to current month).',
+                            ],
+                        ],
                         'required'   => [],
                     ],
                 ],
@@ -585,60 +590,80 @@ class BrainToolRegistry extends AgentToolRegistry
     /** @param array<string, mixed> $args */
     protected function executePayablesAging(int $tenantId, array $args): array
     {
-        $limit = min(25, max(1, is_numeric($args['limit'] ?? null) ? (int) $args['limit'] : 10));
-        $now   = Carbon::now();
+        try {
+            $limit = min(25, max(1, is_numeric($args['limit'] ?? null) ? (int) $args['limit'] : 10));
+            $now   = Carbon::now();
 
-        if (! Schema::hasTable('purchase_orders')) {
-            return ['error' => 'Purchasing module not available.'];
-        }
+            if (Schema::hasTable('purchase_bills')) {
+                $rows = DB::table('purchase_bills')
+                    ->where('purchase_bills.tenant_id', $tenantId)
+                    ->whereIn('purchase_bills.status', ['posted', 'partially_paid'])
+                    ->leftJoin('parties', 'purchase_bills.party_id', '=', 'parties.id')
+                    ->select([
+                        'purchase_bills.id',
+                        'purchase_bills.status',
+                        DB::raw('purchase_bills.total_amount - COALESCE(purchase_bills.paid_amount, 0) as total_amount'),
+                        'parties.name as supplier_name',
+                        DB::raw('COALESCE(purchase_bills.due_date, purchase_bills.bill_date) as ap_due_date'),
+                    ])
+                    ->orderByRaw('ap_due_date ASC')
+                    ->limit($limit)
+                    ->get();
+            } elseif (Schema::hasTable('purchase_orders')) {
+                $rows = DB::table('purchase_orders')
+                    ->where('purchase_orders.tenant_id', $tenantId)
+                    ->whereIn('purchase_orders.status', ['received', 'partially_received'])
+                    ->leftJoin('parties', 'purchase_orders.party_id', '=', 'parties.id')
+                    ->select([
+                        'purchase_orders.id',
+                        'purchase_orders.status',
+                        'purchase_orders.total_amount',
+                        'parties.name as supplier_name',
+                        DB::raw('COALESCE(purchase_orders.expected_date, purchase_orders.order_date) as ap_due_date'),
+                    ])
+                    ->orderByRaw('ap_due_date ASC')
+                    ->limit($limit)
+                    ->get();
+            } else {
+                return ['error' => 'Purchasing and payables module not available.'];
+            }
 
-        // Use bills / AP bills if available
-        $apTable = Schema::hasTable('vendor_bills') ? 'vendor_bills' : 'purchase_orders';
+            $buckets = ['0-30' => 0.0, '31-60' => 0.0, '61-90' => 0.0, '90+' => 0.0];
+            $total   = 0.0;
+            $items   = [];
 
-        $rows = DB::table($apTable)
-            ->where('tenant_id', $tenantId)
-            ->whereIn('status', ['received', 'partially_received', 'posted', 'partially_paid'])
-            ->leftJoin('parties', "{$apTable}.party_id", '=', 'parties.id')
-            ->select(["{$apTable}.id", "{$apTable}.status", "{$apTable}.total_amount",
-                'parties.name as supplier_name',
-                DB::raw("COALESCE({$apTable}.due_date, {$apTable}.order_date) as ap_due_date")])
-            ->orderByRaw('ap_due_date ASC')
-            ->limit($limit)
-            ->get();
+            foreach ($rows as $row) {
+                $amt     = is_numeric($row->total_amount) ? (float) $row->total_amount : 0.0;
+                $dueDate = is_string($row->ap_due_date ?? null) ? Carbon::parse($row->ap_due_date) : $now;
+                $days    = max(0, (int) $dueDate->diffInDays($now, false));
+                $total  += $amt;
 
-        $buckets = ['0-30' => 0.0, '31-60' => 0.0, '61-90' => 0.0, '90+' => 0.0];
-        $total   = 0.0;
-        $items   = [];
+                $bucket = match (true) {
+                    $days <= 30 => '0-30',
+                    $days <= 60 => '31-60',
+                    $days <= 90 => '61-90',
+                    default     => '90+',
+                };
+                $buckets[$bucket] += $amt;
 
-        foreach ($rows as $row) {
-            $amt     = is_numeric($row->total_amount) ? (float) $row->total_amount : 0.0;
-            $dueDate = is_string($row->ap_due_date ?? null) ? Carbon::parse($row->ap_due_date) : $now;
-            $days    = max(0, (int) $dueDate->diffInDays($now, false));
-            $total  += $amt;
+                $items[] = [
+                    'supplier'     => is_string($row->supplier_name ?? null) ? $row->supplier_name : 'Unknown',
+                    'amount'       => round($amt, 2),
+                    'due_date'     => $dueDate->toDateString(),
+                    'days_overdue' => $days,
+                    'bucket'       => $bucket,
+                    'status'       => $row->status,
+                ];
+            }
 
-            $bucket = match (true) {
-                $days <= 30 => '0-30',
-                $days <= 60 => '31-60',
-                $days <= 90 => '61-90',
-                default     => '90+',
-            };
-            $buckets[$bucket] += $amt;
-
-            $items[] = [
-                'supplier'     => is_string($row->supplier_name ?? null) ? $row->supplier_name : 'Unknown',
-                'amount'       => round($amt, 2),
-                'due_date'     => $dueDate->toDateString(),
-                'days_overdue' => $days,
-                'bucket'       => $bucket,
-                'status'       => $row->status,
+            return [
+                'total_payables' => round($total, 2),
+                'aging_buckets'  => array_map(fn ($v) => round($v, 2), $buckets),
+                'items'          => $items,
             ];
+        } catch (Throwable $e) {
+            return ['error' => 'Payables aging calculation failed: '.$e->getMessage()];
         }
-
-        return [
-            'total_payables' => round($total, 2),
-            'aging_buckets'  => array_map(fn ($v) => round($v, 2), $buckets),
-            'items'          => $items,
-        ];
     }
 
     protected function executePayrollAlert(int $tenantId): array

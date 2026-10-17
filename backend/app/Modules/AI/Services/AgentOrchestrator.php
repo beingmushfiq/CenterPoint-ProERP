@@ -21,7 +21,7 @@ class AgentOrchestrator
         protected AgentToolRegistry $toolRegistry,
         protected AgentPermissionGuard $permissionGuard,
         protected AgentAuditLogger $auditLogger,
-        protected AnthropicClient $anthropicClient
+        protected UnifiedLLMClient $llmClient
     ) {}
 
     /**
@@ -43,6 +43,9 @@ class AgentOrchestrator
         int $maxApprovedTier = 2,
         ?string $ipAddress = null
     ): array {
+        // Configure LLM client with tenant custom model (falls back to global .env)
+        $this->llmClient->configureForTenant($tenantId);
+
         // Guardrail 2: Input Sanitization & Prompt Injection Neutralization
         $sanitizedMessage = $this->sanitizeAndInspectMessage($tenantId, $userId, $userMessage, $ipAddress);
 
@@ -61,20 +64,20 @@ class AgentOrchestrator
         $systemPrompt = $this->buildSystemPrompt($tenantId, $userId);
         $recentMessages = $this->getConversationHistoryPayload($conversation->id);
 
-        // 4. Live LLM call via the Anthropic Messages API when a key is configured
+        // 4. Live LLM call via the Unified Gemini Engine when a key is configured
         $executedTools = [];
         $pendingAction = null;
         $maxTierUsed = AgentPermissionGuard::TIER_0_READ;
         $assistantContent = '';
 
         /** @var list<array{role: string, content: string}> $recentMessages */
-        $history = $this->anthropicClient->historyToMessages($recentMessages);
+        $history = $this->llmClient->historyToMessages($recentMessages);
 
-        if ($this->anthropicClient->isConfigured()) {
-            $turn = $this->anthropicClient->messages(
+        if ($this->llmClient->isConfigured()) {
+            $turn = $this->llmClient->messages(
                 $systemPrompt,
                 $history,
-                $this->toolRegistry->getAnthropicToolSchemas()
+                $this->toolRegistry->getOpenAiToolSchemas()
             );
 
             if ($turn !== null) {
@@ -145,11 +148,11 @@ class AgentOrchestrator
                 if (! empty($toolResultBlocks) && $pendingAction === null) {
                     $followUpMessages = array_merge(
                         $history,
-                        [$this->anthropicClient->assistantTurn($turn)],
-                        [$this->anthropicClient->toolResultMessage($toolResultBlocks)]
+                        [$this->llmClient->assistantTurn($turn)],
+                        [$this->llmClient->toolResultMessage($toolResultBlocks)]
                     );
 
-                    $followUp = $this->anthropicClient->messages($systemPrompt, $followUpMessages, []);
+                    $followUp = $this->llmClient->messages($systemPrompt, $followUpMessages, []);
 
                     if ($followUp !== null && $followUp['content'] !== '') {
                         $assistantContent = $followUp['content'];

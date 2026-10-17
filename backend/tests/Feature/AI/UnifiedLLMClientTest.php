@@ -74,7 +74,9 @@ final class UnifiedLLMClientTest extends TestCase
         $client = app(UnifiedLLMClient::class);
         $client->configureForTenant($this->tenant->id);
 
-        // Falls back to global model name
-        $this->assertEquals(config('services.anthropic.model', 'claude-3-7-sonnet-20250219'), $client->getActiveModelName());
+        // Falls back to global model name (Gemini default)
+        $expectedModel = config('services.gemini.model') ?? config('services.anthropic.model', 'gemini-3.5-flash-lite');
+        $this->assertEquals($expectedModel, $client->getActiveModelName());
     }
 }
+

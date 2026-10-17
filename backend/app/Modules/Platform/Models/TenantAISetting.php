@@ -23,6 +23,9 @@ use Illuminate\Support\Facades\Crypt;
  * @property int         $max_tokens
  * @property bool        $is_active
  * @property array|null  $extra_headers
+ *
+ * @method static \Illuminate\Database\Eloquent\Builder<TenantAISetting> where(string|array|\Closure $column, mixed $operator = null, mixed $value = null, string $boolean = 'and')
+ * @method static TenantAISetting firstOrNew(array $attributes = [], array $values = [])
  */
 class TenantAISetting extends Model
 {

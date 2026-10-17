@@ -207,6 +207,7 @@ class AgentToolRegistry
                             'filters' => [
                                 'type' => 'object',
                                 'description' => 'Key-value filters like start_date, end_date, etc.',
+                                'properties' => (object) [],
                             ],
                             'limit' => [
                                 'type' => 'integer',
@@ -237,7 +238,7 @@ class AgentToolRegistry
                 'description' => $function['description'] ?? '',
                 'input_schema' => $function['parameters'] ?? [
                     'type' => 'object',
-                    'properties' => [],
+                    'properties' => (object) [],
                     'required' => [],
                 ],
             ];

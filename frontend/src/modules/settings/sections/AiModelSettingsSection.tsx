@@ -40,6 +40,30 @@ interface PresetConfig {
 
 const PRESETS: PresetConfig[] = [
   {
+    name: 'Google Gemini 3.5 Flash Lite (Recommended)',
+    model_id: 'gemini-3.5-flash-lite',
+    base_url: 'https://generativelanguage.googleapis.com/v1beta/openai',
+    max_tokens: 4096,
+    api_version: '2023-06-01',
+    description: 'Ultra-fast official Google Gemini API (1.1s response with full ERP tool calling)',
+  },
+  {
+    name: 'Google Gemini 3 Flash Preview',
+    model_id: 'gemini-3-flash-preview',
+    base_url: 'https://generativelanguage.googleapis.com/v1beta/openai',
+    max_tokens: 4096,
+    api_version: '2023-06-01',
+    description: 'Latest high-reasoning Gemini preview model with complete function calling',
+  },
+  {
+    name: 'Google Gemini 3.8 Flash',
+    model_id: 'gemini-3.8-flash',
+    base_url: 'https://generativelanguage.googleapis.com/v1beta/openai',
+    max_tokens: 4096,
+    api_version: '2023-06-01',
+    description: 'Maximum depth reasoning model for complex operational analysis',
+  },
+  {
     name: 'Anthropic Direct',
     model_id: 'claude-3-7-sonnet-20250219',
     base_url: 'https://api.anthropic.com',
@@ -53,15 +77,7 @@ const PRESETS: PresetConfig[] = [
     base_url: 'https://openrouter.ai/api',
     max_tokens: 4096,
     api_version: '2023-06-01',
-    description: 'OpenRouter / AgentRouter Anthropic-compatible gateway',
-  },
-  {
-    name: 'DeepSeek (Compatible Gateway)',
-    model_id: 'deepseek-chat',
-    base_url: 'https://api.deepseek.com',
-    max_tokens: 4096,
-    api_version: '2023-06-01',
-    description: 'DeepSeek V3 / R1 via compatible proxy or router',
+    description: 'OpenRouter / AgentRouter gateway',
   },
 ];
 
@@ -87,31 +103,56 @@ export const AiModelSettingsSection: React.FC = () => {
   const [showKeyText, setShowKeyText] = useState(false);
   const [hasFormChanges, setHasFormChanges] = useState(false);
 
+  const applyConfig = useCallback((data: TenantAiModelConfig) => {
+    setConfig(data);
+    setModelName(data.model_name || 'Google Gemini 3.5 Flash Lite');
+    setModelId(data.model_id || 'gemini-3.5-flash-lite');
+    setBaseUrl(data.base_url || 'https://generativelanguage.googleapis.com/v1beta/openai');
+    setMaxTokens(data.max_tokens || 4096);
+    setApiVersion(data.api_version || '2023-06-01');
+    setIsActive(data.is_active ?? true);
+    setApiKey('');
+    setIsEditingKey(!data.api_key_set);
+    setHasFormChanges(false);
+  }, []);
+
   const loadConfig = useCallback(async () => {
     try {
       setLoading(true);
       const data = await aiModelApi.getConfig();
-      setConfig(data);
-      setModelName(data.model_name || '');
-      setModelId(data.model_id || 'claude-3-7-sonnet-20250219');
-      setBaseUrl(data.base_url || 'https://api.anthropic.com');
-      setMaxTokens(data.max_tokens || 4096);
-      setApiVersion(data.api_version || '2023-06-01');
-      setIsActive(data.is_active ?? true);
-      setApiKey('');
-      setIsEditingKey(!data.api_key_set);
-      setHasFormChanges(false);
+      applyConfig(data);
     } catch (err) {
       console.error('Failed to load AI model config', err);
       notify.error('Unable to fetch AI model configuration');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [applyConfig]);
 
   useEffect(() => {
-    loadConfig();
-  }, [loadConfig]);
+    let ignore = false;
+    aiModelApi.getConfig()
+      .then((data) => {
+        if (!ignore) {
+          applyConfig(data);
+        }
+      })
+      .catch((err) => {
+        if (!ignore) {
+          console.error('Failed to load AI model config', err);
+          notify.error('Unable to fetch AI model configuration');
+        }
+      })
+      .finally(() => {
+        if (!ignore) {
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      ignore = true;
+    };
+  }, [applyConfig]);
 
   const handleApplyPreset = (preset: PresetConfig) => {
     setModelName(preset.name);

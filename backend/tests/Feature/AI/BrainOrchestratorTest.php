@@ -81,12 +81,17 @@ final class BrainOrchestratorTest extends TestCase
     {
         // Fake LLM response
         Http::fake([
-            '*/v1/messages' => Http::response([
-                'id' => 'msg_brain_1',
-                'model' => 'claude-3-7-sonnet-20250219',
-                'stop_reason' => 'end_turn',
-                'content' => [
-                    ['type' => 'text', 'text' => 'Hello! As your Financial & Operations Advisor, I am ready.'],
+            '*' => Http::response([
+                'id' => 'chatcmpl_brain_1',
+                'model' => 'gemini-3.5-flash-lite',
+                'choices' => [
+                    [
+                        'finish_reason' => 'stop',
+                        'message' => [
+                            'role' => 'assistant',
+                            'content' => 'Hello! As your Financial & Operations Advisor, I am ready.',
+                        ],
+                    ],
                 ],
             ], 200),
         ]);
@@ -111,12 +116,17 @@ final class BrainOrchestratorTest extends TestCase
     public function test_brain_ask_endpoint_via_http(): void
     {
         Http::fake([
-            '*/v1/messages' => Http::response([
-                'id' => 'msg_brain_2',
-                'model' => 'claude-3-7-sonnet-20250219',
-                'stop_reason' => 'end_turn',
-                'content' => [
-                    ['type' => 'text', 'text' => 'Our cash position is stable.'],
+            '*' => Http::response([
+                'id' => 'chatcmpl_brain_2',
+                'model' => 'gemini-3.5-flash-lite',
+                'choices' => [
+                    [
+                        'finish_reason' => 'stop',
+                        'message' => [
+                            'role' => 'assistant',
+                            'content' => 'Our cash position is stable.',
+                        ],
+                    ],
                 ],
             ], 200),
         ]);
@@ -159,5 +169,94 @@ final class BrainOrchestratorTest extends TestCase
         $data = $response->json('data');
         $this->assertNotEmpty($data);
         $this->assertEquals('Brain Cash Analysis', $data[0]['title']);
+    }
+
+    public function test_brain_conversation_history_endpoint(): void
+    {
+        $uuid = (string) Str::uuid();
+
+        AgentConversation::create([
+            'uuid'         => $uuid,
+            'tenant_id'    => $this->tenant->id,
+            'user_id'      => $this->user->id,
+            'title'        => 'Historical Brain Query',
+            'status'       => 'active',
+            'context_type' => 'brain',
+        ]);
+
+        $response = $this->withHeaders([
+            'Authorization' => "Bearer {$this->jwt}",
+            'X-Tenant'      => 'slicemart-retail',
+        ])->getJson("/api/v1/brain/conversations/{$uuid}/history");
+
+        $response->assertStatus(200);
+        $response->assertJson([
+            'success' => true,
+            'data'    => [
+                'conversation' => [
+                    'uuid'  => $uuid,
+                    'title' => 'Historical Brain Query',
+                ],
+                'messages' => [],
+            ],
+        ]);
+    }
+
+    public function test_brain_chat_synthesizes_tool_summary_when_llm_followup_is_empty(): void
+    {
+        // Turn 1 returns a tool call; follow-up returns empty content
+        Http::fake([
+            '*' => Http::sequence()
+                ->push([
+                    'id' => 'chatcmpl_tool_1',
+                    'model' => 'gemini-3.5-flash-lite',
+                    'choices' => [
+                        [
+                            'finish_reason' => 'tool_calls',
+                            'message' => [
+                                'role' => 'assistant',
+                                'content' => '',
+                                'tool_calls' => [
+                                    [
+                                        'id' => 'call_nav_123',
+                                        'type' => 'function',
+                                        'function' => [
+                                            'name' => 'dispatch_navigation',
+                                            'arguments' => json_encode(['module' => 'inventory', 'subpath' => 'products']),
+                                        ],
+                                    ],
+                                ],
+                            ],
+                        ],
+                    ],
+                ], 200)
+                ->push([
+                    'id' => 'chatcmpl_tool_2',
+                    'model' => 'gemini-3.5-flash-lite',
+                    'choices' => [
+                        [
+                            'finish_reason' => 'stop',
+                            'message' => [
+                                'role' => 'assistant',
+                                'content' => '',
+                            ],
+                        ],
+                    ],
+                ], 200),
+        ]);
+
+        $orchestrator = app(BrainOrchestrator::class);
+        $result = $orchestrator->chat(
+            tenantId: $this->tenant->id,
+            userId: $this->user->id,
+            conversationUuid: null,
+            userMessage: 'add a product'
+        );
+
+        $this->assertNotEmpty($result['tool_calls']);
+        $this->assertEquals('dispatch_navigation', $result['tool_calls'][0]['tool']);
+        // Must NOT be empty, must be synthesized
+        $this->assertNotEmpty($result['message']);
+        $this->assertStringContainsString('/inventory/products', $result['message']);
     }
 }

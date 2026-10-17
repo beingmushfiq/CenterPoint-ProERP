@@ -45,4 +45,11 @@ return [
         'version' => env('ANTHROPIC_VERSION', '2023-06-01'),
     ],
 
+    'gemini' => [
+        'key' => env('GEMINI_API_KEY'),
+        'base_url' => env('GEMINI_BASE_URL', 'https://generativelanguage.googleapis.com/v1beta/openai'),
+        'model' => env('GEMINI_MODEL', 'gemini-3.5-flash-lite'),
+        'max_tokens' => (int) env('GEMINI_MAX_TOKENS', 4096),
+    ],
+
 ];

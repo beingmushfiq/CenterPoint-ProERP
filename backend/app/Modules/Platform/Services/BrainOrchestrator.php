@@ -43,7 +43,8 @@ class BrainOrchestrator
      *     tool_calls: list<array<string, mixed>>,
      *     pending_action: array<string, mixed>|null,
      *     tier_used: int,
-     *     model_source: string
+     *     model_source: string,
+     *     model_name: string
      * }
      */
     public function chat(
@@ -86,7 +87,7 @@ class BrainOrchestrator
             $turn = $this->llmClient->messages(
                 $systemPrompt,
                 $history,
-                $this->toolRegistry->getAnthropicToolSchemas()
+                $this->toolRegistry->getOpenAiToolSchemas()
             );
 
             if ($turn !== null) {
@@ -157,13 +158,19 @@ class BrainOrchestrator
                     $followUpMessages = array_merge(
                         $history,
                         [$this->llmClient->assistantTurn($turn)],
-                        [$this->llmClient->toolResultMessage($toolResultBlocks)]
+                        [$this->llmClient->toolResultMessage($toolResultBlocks)],
+                        [['role' => 'user', 'content' => 'Based on the tool results above, synthesize a complete, professional markdown response answering my query. Highlight key figures, operational context, and actionable next steps. Do not invoke any further tools.']]
                     );
 
                     $followUp = $this->llmClient->messages($systemPrompt, $followUpMessages, []);
-                    if ($followUp !== null && $followUp['content'] !== '') {
+                    if ($followUp !== null && trim($followUp['content']) !== '') {
                         $assistantContent = $followUp['content'];
                     }
+                }
+
+                // If tool synthesis returned empty content, provide a structured deterministic summary
+                if (empty($assistantContent) && ! empty($executedTools) && $pendingAction === null) {
+                    $assistantContent = $this->synthesizeToolSummary($executedTools);
                 }
             }
         }
@@ -199,6 +206,7 @@ class BrainOrchestrator
             'pending_action'    => $pendingAction,
             'tier_used'         => $maxTierUsed,
             'model_source'      => $modelSource,
+            'model_name'        => $this->llmClient->getActiveModelName(),
         ];
     }
 
@@ -381,7 +389,19 @@ You are the **Operations AI Financial Advisor** for CenterPoint ProERP — a sen
 - If a tool returns empty or zero data, report that honestly — do not estimate.
 - Call multiple tools in sequence when a question spans multiple modules (e.g., cash + payroll + AR for liquidity analysis).
 - Use `get_report_data` for complex cross-module reports.
-- Use `dispatch_navigation` when the user wants to go to a specific module.
+- Use `dispatch_navigation` when the user wants to go to a specific module or action page.
+
+## OPERATIONAL ACTIONS & INTENT ROUTING
+- **Adding or Creating Entities** (e.g. "add product", "create customer", "new supplier", "record expense", "new order"):
+  * Call `dispatch_navigation` to the target page (e.g. module: 'inventory', subpath: 'products').
+  * In your markdown response, guide the operator through the required form fields and next steps.
+  * DO NOT call read-only query tools like `get_stock_level` or `get_sales_summary` when the operator asks to add, create, or register an entity.
+- **Deleting or Archiving Entities** (e.g. "delete a product", "remove customer"):
+  * ProERP enforces strict financial and inventory audit compliance: records with historical ledger activity (sales, purchase orders, stock balance movements) cannot be deleted.
+  * Explain this policy clearly to the user, recommend discontinuing or archiving the item instead, and ask for the specific entity name or SKU if they want you to verify whether transactions exist.
+  * DO NOT call `query_data_bin` unless the user explicitly asks to view trash, check deleted items, or restore a record.
+- **Always Provide Synthesized Answers**:
+  * Whenever you invoke a tool, ALWAYS synthesize a complete, user-facing markdown explanation of what the tool found. Never output an empty response.
 
 ## PERMISSION TIERS
 - **Tier 0** (auto-execute): All read/analysis operations — cash, AR, AP, inventory, sales, payroll, QC, production.
@@ -536,4 +556,105 @@ PROMPT;
 
         return ['content' => $content, 'tools' => $tools, 'pending_action' => $pending, 'tier' => $tier];
     }
+
+    /**
+     * Synthesize a natural language summary from executed tools when LLM output is empty.
+     *
+     * @param list<array{tool_call_id: string, tool: string, arguments: array<string, mixed>, result: array<string, mixed>, permission_tier: int}> $executedTools
+     */
+    protected function synthesizeToolSummary(array $executedTools): string
+    {
+        $parts = [];
+
+        foreach ($executedTools as $tool) {
+            $name = $tool['tool'];
+            $res  = $tool['result'];
+
+            switch ($name) {
+                case 'dispatch_navigation':
+                    $url = $res['url'] ?? '';
+                    $label = $res['label'] ?? 'relevant page';
+                    $parts[] = "I have navigated you to **{$label}** (`{$url}`). You can complete your action on that screen.";
+                    break;
+
+                case 'get_stock_level':
+                    $valuation = number_format((float) ($res['total_valuation'] ?? 0), 2);
+                    $count = $res['item_count'] ?? 0;
+                    $lowStock = $res['low_stock_count'] ?? 0;
+                    $outOfStock = $res['out_of_stock_count'] ?? 0;
+
+                    $msg = "### Live Warehouse Stock Status\n\n";
+                    $msg .= "* **Total Inventory Valuation:** ৳{$valuation}\n";
+                    $msg .= "* **Catalog Items Tracked:** {$count}\n";
+                    $msg .= "* **Low Stock Alerts:** {$lowStock} item(s)\n";
+                    $msg .= "* **Out of Stock:** {$outOfStock} item(s)\n";
+
+                    if (! empty($res['top_items']) && is_array($res['top_items'])) {
+                        $msg .= "\n**Top Valued Inventory Holdings:**\n";
+                        foreach (array_slice($res['top_items'], 0, 5) as $item) {
+                            $itemName = $item['name'] ?? 'Item';
+                            $itemQty = $item['qty'] ?? 0;
+                            $itemVal = number_format((float) ($item['value'] ?? 0), 2);
+                            $msg .= "- **{$itemName}**: {$itemQty} units (Valuation: ৳{$itemVal})\n";
+                        }
+                    }
+                    $parts[] = $msg;
+                    break;
+
+                case 'get_sales_summary':
+                    $rev = number_format((float) ($res['total_revenue'] ?? 0), 2);
+                    $cash = number_format((float) ($res['collected_cash'] ?? 0), 2);
+                    $ar = number_format((float) ($res['open_ar'] ?? 0), 2);
+                    $rate = $res['collection_rate'] ?? 0;
+                    $orders = $res['order_count'] ?? 0;
+
+                    $msg = "### Commercial & Sales Summary\n\n";
+                    $msg .= "* **Total Revenue:** ৳{$rev} across {$orders} order(s)\n";
+                    $msg .= "* **Collected Cash:** ৳{$cash} (Collection Rate: **{$rate}%**)\n";
+                    $msg .= "* **Open Receivables (AR):** ৳{$ar}\n";
+                    $parts[] = $msg;
+                    break;
+
+                case 'query_data_bin':
+                    $total = $res['total_deleted'] ?? 0;
+                    $note = $res['note'] ?? '';
+                    $msg = "### Data Bin Inspection\n\n";
+                    $msg .= "There are **{$total} soft-deleted record(s)** currently retained in the Data Bin.\n";
+                    if ($note !== '') {
+                        $msg .= "_{$note}_\n";
+                    }
+                    $msg .= "\nTo review or restore records, navigate to **Settings > Data Bin**.";
+                    $parts[] = $msg;
+                    break;
+
+                case 'consult_system_sop':
+                    $msg = "### ProERP Operational Procedure\n\n";
+                    if (! empty($res['content'])) {
+                        $msg .= $res['content']."\n";
+                    } elseif (! empty($res['note'])) {
+                        $msg .= $res['note']."\n";
+                        if (! empty($res['available_topics'])) {
+                            $available = implode(', ', (array) $res['available_topics']);
+                            $msg .= "\nAvailable SOP topics: `{$available}`.";
+                        }
+                    }
+                    $parts[] = $msg;
+                    break;
+
+                default:
+                    if (! empty($res['summary']) && is_string($res['summary'])) {
+                        $parts[] = $res['summary'];
+                    } elseif (! empty($res['message']) && is_string($res['message'])) {
+                        $parts[] = $res['message'];
+                    } else {
+                        $readableName = ucwords(str_replace('_', ' ', $name));
+                        $parts[] = "### {$readableName} Query Completed\n\nLive operational data was fetched from the ERP database. See the card above for detailed metrics.";
+                    }
+                    break;
+            }
+        }
+
+        return implode("\n\n---\n\n", $parts);
+    }
 }
+

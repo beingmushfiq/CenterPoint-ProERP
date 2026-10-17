@@ -34,6 +34,7 @@ class TenantAISettingsController extends Controller
     {
         $tenantId = (int) $request->user()->tenant_id;
 
+        /** @var TenantAISetting|null $setting */
         $setting = TenantAISetting::where('tenant_id', $tenantId)->first();
 
         if (! $setting) {
@@ -42,18 +43,20 @@ class TenantAISettingsController extends Controller
                 'success' => true,
                 'data'    => [
                     'configured'       => false,
-                    'model_name'       => null,
-                    'model_id'         => config('services.anthropic.model'),
-                    'base_url'         => config('services.anthropic.base_url'),
+                    'model_name'       => 'Google Gemini 3.5 Flash Lite',
+                    'model_id'         => config('services.gemini.model') ?? config('services.anthropic.model', 'gemini-3.5-flash-lite'),
+                    'base_url'         => config('services.gemini.base_url') ?? config('services.anthropic.base_url', 'https://generativelanguage.googleapis.com/v1beta/openai'),
                     'api_key_masked'   => null,
-                    'api_key_set'      => false,
+                    'api_key_set'      => ! empty(config('services.gemini.key')),
                     'api_version'      => config('services.anthropic.version', '2023-06-01'),
-                    'max_tokens'       => config('services.anthropic.max_tokens', 4096),
+                    'max_tokens'       => config('services.gemini.max_tokens', 4096),
                     'is_active'        => true,
                     'source'           => 'global',
                 ],
             ]);
         }
+
+        assert($setting instanceof TenantAISetting);
 
         return response()->json([
             'success' => true,
