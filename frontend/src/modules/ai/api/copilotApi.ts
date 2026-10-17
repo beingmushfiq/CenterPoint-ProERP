@@ -44,6 +44,18 @@ export interface PaginatedResult<T> {
   total: number;
 }
 
+function extractData<T>(res: { data: unknown }): T {
+  const d = res.data;
+  if (d && typeof d === 'object' && 'data' in d && (d as Record<string, unknown>).data !== undefined) {
+    // If d already has paginator fields (e.g. current_page), d is the PaginatedResult itself
+    if ('current_page' in (d as Record<string, unknown>)) {
+      return d as T;
+    }
+    return (d as Record<string, unknown>).data as T;
+  }
+  return d as T;
+}
+
 export const copilotApi = {
   /**
    * Send a message to the AI Copilot.
@@ -53,7 +65,7 @@ export const copilotApi = {
     conversationUuid?: string,
     supervisedResponse?: { action_id: string; approved: boolean; rejection_reason?: string }
   ): Promise<ChatResponsePayload> {
-    const res = await api.post<{ status: string; data: ChatResponsePayload }>(
+    const res = await api.post<ChatResponsePayload | { data: ChatResponsePayload }>(
       '/ai/copilot/chat',
       {
         message,
@@ -61,27 +73,28 @@ export const copilotApi = {
         supervised_response: supervisedResponse,
       }
     );
-    return res.data.data;
+    return extractData<ChatResponsePayload>(res);
   },
 
   /**
    * Fetch all conversation threads for current tenant.
    */
   async getConversations(): Promise<ConversationSummary[]> {
-    const res = await api.get<{ status: string; data: ConversationSummary[] }>(
+    const res = await api.get<ConversationSummary[] | { data: ConversationSummary[] }>(
       '/ai/copilot/conversations'
     );
-    return res.data.data;
+    const result = extractData<ConversationSummary[]>(res);
+    return Array.isArray(result) ? result : [];
   },
 
   /**
    * Fetch complete message history for a conversation.
    */
   async getConversationHistory(uuid: string): Promise<ConversationHistoryPayload> {
-    const res = await api.get<{ status: string; data: ConversationHistoryPayload }>(
+    const res = await api.get<ConversationHistoryPayload | { data: ConversationHistoryPayload }>(
       `/ai/copilot/conversations/${uuid}/history`
     );
-    return res.data.data;
+    return extractData<ConversationHistoryPayload>(res);
   },
 
   /**
@@ -93,7 +106,7 @@ export const copilotApi = {
     approved: boolean,
     rejectionReason?: string
   ): Promise<ConfirmActionPayload> {
-    const res = await api.post<{ status: string; data: ConfirmActionPayload }>(
+    const res = await api.post<ConfirmActionPayload | { data: ConfirmActionPayload }>(
       `/ai/copilot/conversations/${conversationUuid}/confirm`,
       {
         action_id: actionId,
@@ -101,7 +114,7 @@ export const copilotApi = {
         rejection_reason: rejectionReason,
       }
     );
-    return res.data.data;
+    return extractData<ConfirmActionPayload>(res);
   },
 
   /**
@@ -122,8 +135,9 @@ export const copilotApi = {
     if (params?.page) query.set('page', String(params.page));
 
     const path = `/ai/copilot/audit-log${query.toString() ? `?${query.toString()}` : ''}`;
-    const res = await api.get<{ status: string; data: PaginatedResult<AgentAuditLogItem> }>(path);
-    return res.data.data;
+    const res = await api.get<PaginatedResult<AgentAuditLogItem> | { data: PaginatedResult<AgentAuditLogItem> }>(path);
+    const result = extractData<PaginatedResult<AgentAuditLogItem>>(res);
+    return result || { data: [], current_page: 1, last_page: 1, per_page: 25, total: 0 };
   },
 
   /**
@@ -140,18 +154,19 @@ export const copilotApi = {
     if (params?.alert_type) query.set('alert_type', params.alert_type);
 
     const path = `/ai/copilot/alerts${query.toString() ? `?${query.toString()}` : ''}`;
-    const res = await api.get<{ status: string; data: CashFlowAlertItem[] }>(path);
-    return res.data.data;
+    const res = await api.get<CashFlowAlertItem[] | { data: CashFlowAlertItem[] }>(path);
+    const result = extractData<CashFlowAlertItem[]>(res);
+    return Array.isArray(result) ? result : [];
   },
 
   /**
    * Acknowledge an operational cash flow alert.
    */
   async acknowledgeAlert(uuid: string): Promise<CashFlowAlertItem> {
-    const res = await api.patch<{ status: string; data: CashFlowAlertItem }>(
+    const res = await api.patch<CashFlowAlertItem | { data: CashFlowAlertItem }>(
       `/ai/copilot/alerts/${uuid}/acknowledge`
     );
-    return res.data.data;
+    return extractData<CashFlowAlertItem>(res);
   },
 
   /**
@@ -163,21 +178,22 @@ export const copilotApi = {
     collateral_available?: string;
     purpose?: string;
   }): Promise<FinancingMatchData> {
-    const res = await api.post<{ status: string; data: FinancingMatchData }>(
+    const res = await api.post<FinancingMatchData | { data: FinancingMatchData }>(
       '/ai/financing/match',
       params
     );
-    return res.data.data;
+    return extractData<FinancingMatchData>(res);
   },
 
   /**
    * Retrieve historical financing assessments for tenant.
    */
   async getFinancingHistory(): Promise<FinancingAssessmentRecord[]> {
-    const res = await api.get<{ status: string; data: FinancingAssessmentRecord[] }>(
+    const res = await api.get<FinancingAssessmentRecord[] | { data: FinancingAssessmentRecord[] }>(
       '/ai/financing/history'
     );
-    return res.data.data;
+    const result = extractData<FinancingAssessmentRecord[]>(res);
+    return Array.isArray(result) ? result : [];
   },
 
   /**
@@ -188,10 +204,10 @@ export const copilotApi = {
     requested_amount: number;
     collateral_type?: string;
   }): Promise<WeBankPreQualifyResponse> {
-    const res = await api.post<{ status: string; data: WeBankPreQualifyResponse }>(
+    const res = await api.post<WeBankPreQualifyResponse | { data: WeBankPreQualifyResponse }>(
       '/ai/webank/pre-qualify',
       payload
     );
-    return res.data.data;
+    return extractData<WeBankPreQualifyResponse>(res);
   },
 };

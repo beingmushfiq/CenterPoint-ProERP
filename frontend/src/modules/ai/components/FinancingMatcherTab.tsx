@@ -57,7 +57,7 @@ export const FinancingMatcherTab: React.FC = () => {
     setIsLoadingHistory(true);
     try {
       const records = await copilotApi.getFinancingHistory();
-      setHistory(records);
+      setHistory(Array.isArray(records) ? records : []);
     } catch {
       setHistory([]);
     } finally {
@@ -318,7 +318,7 @@ export const FinancingMatcherTab: React.FC = () => {
 
         {isLoadingHistory ? (
           <div className="p-6 text-center text-xs text-muted">Loading historical assessments...</div>
-        ) : history.length === 0 ? (
+        ) : !Array.isArray(history) || history.length === 0 ? (
           <div className="p-6 text-center text-xs text-muted">
             No previous financing evaluations saved.
           </div>

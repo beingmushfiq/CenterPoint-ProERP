@@ -57,14 +57,15 @@ export const CopilotAuditTab: React.FC = () => {
 
       const result: PaginatedResult<AgentAuditLogItem> = await copilotApi.getAuditLogs(params);
 
-      setLogs(result.data || []);
+      setLogs(Array.isArray(result?.data) ? result.data : []);
       setPagination({
-        page: result.current_page || 1,
-        per_page: result.per_page || 25,
-        total: result.total || 0,
-        last_page: result.last_page || 1,
+        page: result?.current_page || 1,
+        per_page: result?.per_page || 25,
+        total: result?.total || 0,
+        last_page: result?.last_page || 1,
       });
     } catch {
+      setLogs([]);
       notify.error('Failed to load compliance audit logs');
     } finally {
       setIsLoading(false);
@@ -174,7 +175,7 @@ export const CopilotAuditTab: React.FC = () => {
                     <span>Loading audit trail...</span>
                   </td>
                 </tr>
-              ) : logs.length === 0 ? (
+              ) : !Array.isArray(logs) || logs.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="px-4 py-12 text-center text-xs text-muted">
                     No compliance audit logs recorded yet.

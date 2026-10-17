@@ -36,8 +36,9 @@ export const CopilotAlertsTab: React.FC<CopilotAlertsTabProps> = ({ onOpenChatWi
         params.status = statusFilter;
       }
       const data = await copilotApi.getAlerts(params);
-      setAlerts(data);
+      setAlerts(Array.isArray(data) ? data : []);
     } catch {
+      setAlerts([]);
       notify.error('Failed to load cash flow alerts');
     } finally {
       setIsLoading(false);
@@ -134,7 +135,7 @@ export const CopilotAlertsTab: React.FC<CopilotAlertsTabProps> = ({ onOpenChatWi
           <div className="size-5 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
           <p>Loading operational cash flow alerts...</p>
         </div>
-      ) : alerts.length === 0 ? (
+      ) : !Array.isArray(alerts) || alerts.length === 0 ? (
         <div className="p-12 text-center text-xs text-muted space-y-3 bg-surface rounded-2xl border border-default">
           <CheckCircle2 className="size-8 text-emerald-600 mx-auto" />
           <div className="font-semibold text-default">No Active Cash Flow Alerts Found</div>

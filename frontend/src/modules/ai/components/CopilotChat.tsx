@@ -103,9 +103,10 @@ export const CopilotChat: React.FC<CopilotChatProps> = ({
     setIsLoadingHistory(true);
     try {
       const history = await copilotApi.getConversationHistory(uuid);
-      setMessages(history.messages || []);
+      setMessages(Array.isArray(history?.messages) ? history.messages : []);
     } catch {
       notify.error('Failed to load conversation history');
+      setMessages([]);
     } finally {
       setIsLoadingHistory(false);
     }
@@ -114,9 +115,10 @@ export const CopilotChat: React.FC<CopilotChatProps> = ({
   const loadConversations = useCallback(async () => {
     try {
       const data = await copilotApi.getConversations();
-      setConversations(data);
-      if (data.length > 0 && !activeConversationUuid && data[0]?.uuid) {
-        selectConversation(data[0].uuid);
+      const safeData = Array.isArray(data) ? data : [];
+      setConversations(safeData);
+      if (safeData.length > 0 && !activeConversationUuid && safeData[0]?.uuid) {
+        selectConversation(safeData[0].uuid);
       }
     } catch {
       // If error (e.g. offline simulation or empty), start clean
@@ -278,7 +280,7 @@ export const CopilotChat: React.FC<CopilotChatProps> = ({
         </div>
 
         <div className="flex-1 overflow-y-auto p-2 space-y-1 scrollbar-thin">
-          {conversations.length === 0 ? (
+          {!Array.isArray(conversations) || conversations.length === 0 ? (
             <div className="p-4 text-center text-xs text-muted">
               No previous threads. Ask a question to begin!
             </div>
@@ -361,7 +363,7 @@ export const CopilotChat: React.FC<CopilotChatProps> = ({
               <RefreshCw className="size-4 animate-spin text-primary" />
               <span>Loading conversation history...</span>
             </div>
-          ) : messages.length === 0 ? (
+          ) : !Array.isArray(messages) || messages.length === 0 ? (
             /* Empty State & Quick Prompts */
             <div className="max-w-2xl mx-auto py-8 text-center space-y-6">
               <div className="inline-flex p-3 rounded-2xl bg-primary/10 text-primary">

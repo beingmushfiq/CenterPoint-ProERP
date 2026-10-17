@@ -16,7 +16,7 @@ export const CopilotSection: React.FC = () => {
   const fetchAlertCount = useCallback(async () => {
     try {
       const alerts = await copilotApi.getAlerts({ status: 'active' });
-      setActiveAlertCount(alerts.length);
+      setActiveAlertCount(Array.isArray(alerts) ? alerts.length : 0);
     } catch {
       setActiveAlertCount(0);
     }
