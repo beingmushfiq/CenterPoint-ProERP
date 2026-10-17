@@ -33,10 +33,12 @@ class AgentConversation extends Model
         'user_id',
         'title',
         'status',
+        'context_type',
     ];
 
     protected $casts = [
-        'status' => 'string',
+        'status'       => 'string',
+        'context_type' => 'string',
     ];
 
     /**

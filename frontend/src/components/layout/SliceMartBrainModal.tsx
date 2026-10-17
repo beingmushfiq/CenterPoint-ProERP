@@ -30,6 +30,8 @@ import {
   Layers,
   Building2,
   Users,
+  Bot,
+  Settings as SettingsIcon,
 } from 'lucide-react';
 import { useTenantBranding } from '../../lib/theme/useTenantBranding';
 import { useAuthStore } from '../../lib/auth/authStore';
@@ -37,6 +39,23 @@ import { api } from '../../lib/api/client';
 import { Button } from '../ui/Button';
 import { notify } from '../ui/Toast';
 import { cn } from '../../lib/utils';
+import { CashPositionCard } from '../../modules/ai/components/cards/CashPositionCard';
+import { PLSummaryCard } from '../../modules/ai/components/cards/PLSummaryCard';
+import { CashFlowRiskCard } from '../../modules/ai/components/cards/CashFlowRiskCard';
+import { OverdueInvoicesCard } from '../../modules/ai/components/cards/OverdueInvoicesCard';
+import { FinancingMatchCard } from '../../modules/ai/components/cards/FinancingMatchCard';
+import { InventoryValueCard } from '../../modules/ai/components/cards/InventoryValueCard';
+import { Tier2ConfirmDialog } from '../../modules/ai/components/Tier2ConfirmDialog';
+import { aiModelApi } from '../../modules/settings/api/aiModelApi';
+import type {
+  CashPositionData,
+  PLSummaryData,
+  CashFlowRiskData,
+  OverdueInvoicesData,
+  FinancingMatchData,
+  InventoryValuationData,
+  PendingAction,
+} from '../../modules/ai/types/copilot';
 
 export interface BrainAction {
   label: string;
@@ -88,6 +107,7 @@ export interface BrainMessage {
   interactive_action?: BrainInteractiveAction | undefined;
   tool_call?: BrainToolCall | undefined;
   tool_result?: BrainToolResult | undefined;
+  pending_action?: PendingAction | null | undefined;
   execution_result?: {
     success: boolean;
     message: string;
@@ -120,6 +140,18 @@ const TONE_STYLES: Record<string, string> = {
 };
 
 const PROMPT_CATEGORIES = [
+  {
+    id: 'financial_advisor',
+    label: 'Financial Advisor',
+    icon: Sparkles,
+    chips: [
+      'What is our liquid cash position and runway?',
+      'Analyze our cash flow risk and working capital',
+      'Show our P&L summary and operating margins',
+      'List overdue accounts receivable and aging breakdown',
+      'Evaluate eligible business financing options for our business',
+    ],
+  },
   {
     id: 'commercial',
     label: 'Commercial',
@@ -359,6 +391,31 @@ function ToolExecutionCard({
   const data = toolResult?.data;
   const lowStockItems = data?.low_stock_items as Array<{ name: string; sku: string; quantity: number }> | undefined;
   const aging = data?.aging as Record<string, number> | undefined;
+
+  // Rich Financial Copilot Cards integration
+  if (toolResult?.tool === 'get_cash_position' && toolResult?.data) {
+    return <CashPositionCard data={toolResult.data as unknown as CashPositionData} />;
+  }
+  if (toolResult?.tool === 'get_pl_summary' && toolResult?.data) {
+    return <PLSummaryCard data={toolResult.data as unknown as PLSummaryData} />;
+  }
+  if (toolResult?.tool === 'analyze_cash_flow_risk' && toolResult?.data) {
+    return (
+      <CashFlowRiskCard
+        data={toolResult.data as unknown as CashFlowRiskData}
+        onExploreFinancing={() => onNavigate('/ai?tab=financing')}
+      />
+    );
+  }
+  if (toolResult?.tool === 'list_overdue_invoices' && toolResult?.data) {
+    return <OverdueInvoicesCard data={toolResult.data as unknown as OverdueInvoicesData} />;
+  }
+  if (toolResult?.tool === 'match_financing_options' && toolResult?.data) {
+    return <FinancingMatchCard data={toolResult.data as unknown as FinancingMatchData} />;
+  }
+  if (toolResult?.tool === 'get_inventory_value' && toolResult?.data) {
+    return <InventoryValueCard data={toolResult.data as unknown as InventoryValuationData} />;
+  }
 
   return (
     <div className="rounded-2xl border border-indigo-200/80 dark:border-indigo-900/60 bg-gradient-to-b from-indigo-50/50 via-white to-white dark:from-indigo-950/20 dark:via-slate-900 dark:to-slate-900 overflow-hidden shadow-sm space-y-3.5 p-4 my-2 text-xs">
@@ -728,8 +785,19 @@ export const SliceMartBrainModal: React.FC<SliceMartBrainModalProps> = ({ open, 
   }
   const [isStreaming, setIsStreaming] = useState(false);
   const [streamStatus, setStreamStatus] = useState<string | null>(null);
-  const [activeCategory, setActiveCategory] = useState<string>('commercial');
+  const [activeCategory, setActiveCategory] = useState<string>('financial_advisor');
   const [showAddMenu, setShowAddMenu] = useState(false);
+  const [conversationUuid, setConversationUuid] = useState<string | null>(() => {
+    try {
+      return localStorage.getItem('brain.conversation_uuid');
+    } catch {
+      return null;
+    }
+  });
+  const [pendingAction, setPendingAction] = useState<PendingAction | null>(null);
+  const [showTier2Modal, setShowTier2Modal] = useState(false);
+  const [isSubmittingTier2, setIsSubmittingTier2] = useState(false);
+  const [activeModelName, setActiveModelName] = useState<string>('Neural Agent');
   const [isWideMode, setIsWideMode] = useState<boolean>(() => {
     try {
       return localStorage.getItem('brain.wide_mode') === 'true';
@@ -843,6 +911,28 @@ export const SliceMartBrainModal: React.FC<SliceMartBrainModalProps> = ({ open, 
     }
   }, [messages]);
 
+  // Sync conversationUuid to localStorage
+  useEffect(() => {
+    if (conversationUuid) {
+      try {
+        localStorage.setItem('brain.conversation_uuid', conversationUuid);
+      } catch {}
+    }
+  }, [conversationUuid]);
+
+  // Load configured AI model label on open
+  useEffect(() => {
+    if (open) {
+      aiModelApi.getConfig().then((cfg) => {
+        if (cfg?.model_name) {
+          setActiveModelName(cfg.model_name);
+        } else if (cfg?.model_id) {
+          setActiveModelName(cfg.model_id);
+        }
+      }).catch(() => {});
+    }
+  }, [open]);
+
   // Focus input when opened
   useEffect(() => {
     if (open) {
@@ -893,11 +983,44 @@ export const SliceMartBrainModal: React.FC<SliceMartBrainModalProps> = ({ open, 
   const handleClearHistory = () => {
     try {
       localStorage.removeItem('brain.history');
+      localStorage.removeItem('brain.conversation_uuid');
     } catch {
       // Ignore localStorage removal errors
     }
+    setConversationUuid(null);
     setMessages([getDefaultWelcomeMessage(brandName)]);
     notify.success('AI Brain history cleared.');
+  };
+
+  const handleConfirmPendingAction = async (actionId: string, approved: boolean, reason?: string) => {
+    if (!conversationUuid) return;
+    setIsSubmittingTier2(true);
+    try {
+      await api.post(`/brain/conversations/${conversationUuid}/confirm`, {
+        action_id: actionId,
+        approved,
+        rejection_reason: reason,
+      });
+      notify.success(approved ? 'Supervisor action executed.' : 'Action declined.');
+      setPendingAction(null);
+      setShowTier2Modal(false);
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: generateBrainMsgId('agent'),
+          sender: 'agent',
+          text: approved
+            ? 'Action approved and executed successfully by supervisor.'
+            : `Action was declined (${reason || 'No reason provided'}).`,
+          timestamp: new Date().toISOString(),
+        },
+      ]);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to authorize action';
+      notify.error(msg);
+    } finally {
+      setIsSubmittingTier2(false);
+    }
   };
 
   const handleStopGenerating = () => {
@@ -945,7 +1068,10 @@ export const SliceMartBrainModal: React.FC<SliceMartBrainModalProps> = ({ open, 
 
     try {
       const eventGenerator = api.streamSse('/brain/stream', {
-        params: { query: textToSend.trim() },
+        params: {
+          query: textToSend.trim(),
+          conversation_uuid: conversationUuid || '',
+        },
         signal: abortController.signal,
       });
 
@@ -1014,6 +1140,14 @@ export const SliceMartBrainModal: React.FC<SliceMartBrainModalProps> = ({ open, 
                 : m
             )
           );
+        } else if (event === 'pending_action') {
+          try {
+            const parsed = JSON.parse(data);
+            setPendingAction(parsed);
+            setShowTier2Modal(true);
+          } catch {
+            // Ignore malformed pending_action payload
+          }
         } else if (event === 'complete') {
           try {
             const parsed = JSON.parse(data);
@@ -1024,6 +1158,14 @@ export const SliceMartBrainModal: React.FC<SliceMartBrainModalProps> = ({ open, 
             detectedInteractive = parsed.interactive_action || detectedInteractive;
             if (parsed.tool_call) detectedToolCall = parsed.tool_call;
             if (parsed.tool_result) detectedToolResult = parsed.tool_result;
+            if (parsed.conversation_uuid) setConversationUuid(parsed.conversation_uuid);
+            if (parsed.pending_action) {
+              setPendingAction(parsed.pending_action);
+              setShowTier2Modal(true);
+            }
+            if (parsed.model_source && typeof parsed.model_source === 'string') {
+              setActiveModelName(parsed.model_source);
+            }
           } catch {
             // Ignore malformed complete event payload
           }
@@ -1068,7 +1210,20 @@ export const SliceMartBrainModal: React.FC<SliceMartBrainModalProps> = ({ open, 
         // Fallback to standard ask endpoint
         try {
           const res = await api.post<{
-            thought: string;
+            data?: {
+              conversation_uuid?: string;
+              answer?: string;
+              text?: string;
+              thought?: string;
+              metrics?: BrainMetric[];
+              actions?: BrainAction[];
+              interactive_action?: BrainInteractiveAction;
+              tool_call?: BrainToolCall;
+              tool_result?: BrainToolResult;
+              pending_action?: PendingAction | null;
+              model_source?: string;
+            };
+            thought?: string;
             answer?: string;
             text?: string;
             metrics?: BrainMetric[];
@@ -1076,22 +1231,32 @@ export const SliceMartBrainModal: React.FC<SliceMartBrainModalProps> = ({ open, 
             interactive_action?: BrainInteractiveAction;
             tool_call?: BrainToolCall;
             tool_result?: BrainToolResult;
-          }>('/brain/ask', { query: textToSend.trim() });
+          }>('/brain/ask', {
+            query: textToSend.trim(),
+            conversation_uuid: conversationUuid || undefined,
+          });
 
-          if (res.data) {
-            const text = res.data.answer || res.data.text || '';
+          const resData = res.data?.data || res.data;
+          if (resData) {
+            const text = resData.answer || resData.text || '';
+            if (resData.conversation_uuid) setConversationUuid(resData.conversation_uuid);
+            if (resData.pending_action) {
+              setPendingAction(resData.pending_action);
+              setShowTier2Modal(true);
+            }
+            if (resData.model_source) setActiveModelName(resData.model_source);
             setMessages((prev) =>
               prev.map((m) =>
                 m.id === agentMessageId
                   ? {
                       ...m,
                       text,
-                      thought: res.data.thought,
-                      metrics: res.data.metrics,
-                      actions: res.data.actions,
-                      interactive_action: res.data.interactive_action,
-                      tool_call: res.data.tool_call,
-                      tool_result: res.data.tool_result,
+                      thought: resData.thought,
+                      metrics: resData.metrics,
+                      actions: resData.actions,
+                      interactive_action: resData.interactive_action,
+                      tool_call: resData.tool_call,
+                      tool_result: resData.tool_result,
                       isStreaming: false,
                     }
                   : m
@@ -1235,15 +1400,15 @@ export const SliceMartBrainModal: React.FC<SliceMartBrainModalProps> = ({ open, 
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
                 <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white tracking-tight truncate">
-                  {brandName} AI Brain
+                  {brandName} Financial & Operations Advisor
                 </h2>
                 <span className="hidden xs:inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 items-center gap-1.5 shadow-2xs">
                   <span className="size-1.5 rounded-full bg-emerald-500 animate-ping inline-block" />
-                  Streaming Neural Agent
+                  {activeModelName}
                 </span>
               </div>
               <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
-                100% local deterministic ERP agent · Real-time SSE streaming
+                Full-system ERP intelligence · Live multi-tool financial advisory
               </p>
             </div>
           </div>
@@ -1258,6 +1423,20 @@ export const SliceMartBrainModal: React.FC<SliceMartBrainModalProps> = ({ open, 
               aria-label="Toggle wide mode"
             >
               {isWideMode ? <Minimize2 className="size-4" /> : <Maximize2 className="size-4" />}
+            </button>
+
+            {/* AI Model Settings Shortcut */}
+            <button
+              type="button"
+              onClick={() => {
+                onClose();
+                navigate('/settings?tab=ai_model');
+              }}
+              className="p-2 rounded-xl text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              title="Configure AI Model & Keys"
+              aria-label="Configure AI Model"
+            >
+              <SettingsIcon className="size-4" />
             </button>
 
             <button
@@ -1651,6 +1830,15 @@ export const SliceMartBrainModal: React.FC<SliceMartBrainModalProps> = ({ open, 
           </form>
         </div>
       </div>
+
+      {/* Tier 2 Supervised Action Authorization Modal */}
+      <Tier2ConfirmDialog
+        open={showTier2Modal}
+        action={pendingAction}
+        onClose={() => setShowTier2Modal(false)}
+        onConfirm={handleConfirmPendingAction}
+        isSubmitting={isSubmittingTier2}
+      />
     </div>,
     document.body
   );

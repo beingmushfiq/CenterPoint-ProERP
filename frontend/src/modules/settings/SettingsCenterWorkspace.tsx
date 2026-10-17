@@ -58,6 +58,7 @@ import {
   Radio,
   UserCheck,
   Wrench,
+  Bot,
 } from 'lucide-react';
 import { m, AnimatePresence } from 'framer-motion';
 import { api } from '../../lib/api/client';
@@ -75,6 +76,7 @@ import { ProductionStagesSection } from './sections/ProductionStagesSection';
 import { CustomFieldsManagerSection } from './sections/CustomFieldsManagerSection';
 import { TerminologySection } from './sections/TerminologySection';
 import { WebhookManagementSection } from './sections/WebhookManagementSection';
+import { AiModelSettingsSection } from './sections/AiModelSettingsSection';
 import { RolesManagementWorkspace } from '../../pages/settings/RolesManagementWorkspace';
 import { UsersManagementWorkspace } from '../../pages/settings/UsersManagementWorkspace';
 import { ActivityLogWorkspace } from '../../pages/settings/ActivityLogWorkspace';
@@ -139,6 +141,7 @@ const GROUP_ICONS: Record<string, React.ElementType> = {
   reports: FileSpreadsheet,
   bin: Trash2,
   troubleshoot: Wrench,
+  ai_model: Bot,
 };
 
 const GROUP_LABELS: Record<string, string> = {
@@ -175,6 +178,7 @@ const GROUP_LABELS: Record<string, string> = {
   reports: 'Reports & Export Defaults',
   bin: 'Data Bin & Recovery Vault',
   troubleshoot: 'Diagnostics & Troubleshoot',
+  ai_model: 'AI Model & Intelligence',
 };
 
 type SettingFieldValue = string | number | boolean | string[] | Record<string, unknown>;
@@ -226,7 +230,8 @@ export type SettingsTab =
   | 'hr_payroll'
   | 'notifications'
   | 'reports'
-  | 'troubleshoot';
+  | 'troubleshoot'
+  | 'ai_model';
 
 export const SettingsCenterWorkspace: React.FC = () => {
   const { t } = useTranslation();
@@ -275,6 +280,8 @@ export const SettingsCenterWorkspace: React.FC = () => {
       'hr_payroll',
       'notifications',
       'reports',
+      'troubleshoot',
+      'ai_model',
     ] as const,
     'tab'
   );
@@ -764,7 +771,7 @@ export const SettingsCenterWorkspace: React.FC = () => {
         theme: WORKSPACE_THEMES.purple,
         shortcut: '2',
         defaultTab: 'modules',
-        tabs: ['modules', 'workflows', 'terminology', 'production_stages', 'custom_fields', 'documents', 'bin', 'troubleshoot'],
+        tabs: ['modules', 'workflows', 'terminology', 'production_stages', 'custom_fields', 'documents', 'ai_model', 'bin', 'troubleshoot'],
       },
       {
         id: 'operations',
@@ -819,6 +826,7 @@ export const SettingsCenterWorkspace: React.FC = () => {
         { id: 'production_stages', label: 'Production Stages', shortLabel: 'Stages', category: 'platform', icon: Factory },
         { id: 'custom_fields', label: 'Custom Attributes & Fields', shortLabel: 'Attributes', category: 'platform', icon: Sparkles },
         { id: 'documents', label: 'Document Templates', shortLabel: 'Templates', category: 'platform', icon: FileSpreadsheet },
+        { id: 'ai_model', label: 'AI Model & Intelligence', shortLabel: 'AI Model', category: 'platform', icon: Bot },
         { id: 'bin', label: 'Data Bin & Recovery Vault', shortLabel: 'Data Bin', category: 'platform', icon: Trash2 },
         { id: 'troubleshoot', label: 'System Diagnostics & Troubleshoot', shortLabel: 'Troubleshoot', category: 'platform', icon: Wrench },
 
@@ -1114,6 +1122,9 @@ export const SettingsCenterWorkspace: React.FC = () => {
                 <div className="bg-surface rounded-(--card-radius) border border-default p-6 shadow-xs">
                   <DocumentsSection />
                 </div>
+              ) : activeGroup === 'ai_model' ? (
+                /* AI Model & LLM Provider Configuration */
+                <AiModelSettingsSection />
               ) : activeGroup === 'custom_domains' ? (
                 /* Custom Domain Management Hub */
                 <div className="bg-surface rounded-(--card-radius) border border-default p-6 space-y-6 shadow-xs">

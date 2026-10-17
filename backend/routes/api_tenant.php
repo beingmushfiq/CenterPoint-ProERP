@@ -1205,6 +1205,15 @@ Route::middleware(['auth.jwt', 'tenant.resolve', 'tenant.active'])
         Route::prefix('settings')->name('settings.')->group(static function (): void {
             Route::get('schema', [App\Modules\Platform\Controllers\TenantSettingsController::class, 'schema'])->name('schema');
             Route::post('upload-asset', [App\Modules\Platform\Controllers\TenantSettingsController::class, 'uploadAsset'])->name('upload-asset');
+
+            // ── AI Model Configuration (Tenant-level custom LLM) ────────
+            Route::prefix('ai-model')->name('ai-model.')->group(static function (): void {
+                Route::get('/', [App\Modules\Platform\Controllers\TenantAISettingsController::class, 'show'])->name('show');
+                Route::post('/', [App\Modules\Platform\Controllers\TenantAISettingsController::class, 'update'])->name('update');
+                Route::post('test', [App\Modules\Platform\Controllers\TenantAISettingsController::class, 'test'])->name('test');
+                Route::delete('/', [App\Modules\Platform\Controllers\TenantAISettingsController::class, 'destroy'])->name('destroy');
+            });
+
             Route::get('{group}', [App\Modules\Platform\Controllers\TenantSettingsController::class, 'getGroup'])->name('get');
             Route::put('{group}', [App\Modules\Platform\Controllers\TenantSettingsController::class, 'updateGroup'])->name('update');
             Route::post('{group}/test-connection', [App\Modules\Platform\Controllers\TenantSettingsController::class, 'testConnection'])->name('test-connection');
@@ -1455,6 +1464,9 @@ Route::middleware(['auth.jwt', 'tenant.resolve', 'tenant.active'])
             Route::post('tool', [App\Modules\Platform\Controllers\AIBrainController::class, 'callTool'])->name('tool');
             Route::get('capabilities', [App\Modules\Platform\Controllers\AIBrainController::class, 'capabilities'])->name('capabilities');
             Route::post('execute', [App\Modules\Platform\Controllers\AIBrainController::class, 'execute'])->name('execute');
+            Route::get('conversations', [App\Modules\Platform\Controllers\AIBrainController::class, 'conversations'])->name('conversations');
+            Route::get('conversations/{uuid}/history', [App\Modules\Platform\Controllers\AIBrainController::class, 'conversationHistory'])->name('conversations.history');
+            Route::post('conversations/{uuid}/confirm', [App\Modules\Platform\Controllers\AIBrainController::class, 'confirmAction'])->name('conversations.confirm');
         });
 
         // ── FinTechathon 2026: AI SME Finance Copilot (Topic E) ────────
