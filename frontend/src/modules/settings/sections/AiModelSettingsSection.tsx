@@ -18,7 +18,7 @@ import {
   Check,
 } from 'lucide-react';
 import { Button } from '../../../components/ui/Button';
-import { Badge, StatusBadge } from '../../../components/ui/Badge';
+import { Badge } from '../../../components/ui/Badge';
 import { Input, FormGroup } from '../../../components/ui/FormElements';
 import { ConfirmDialog } from '../../../components/ui/Modal';
 import { notify } from '../../../components/ui/Toast';
@@ -133,13 +133,16 @@ export const AiModelSettingsSection: React.FC = () => {
     try {
       setSaving(true);
       const payload: TenantAiModelUpdatePayload = {
-        model_name: modelName.trim() || undefined,
         model_id: modelId.trim(),
         base_url: baseUrl.trim(),
         api_version: apiVersion.trim() || '2023-06-01',
         max_tokens: Number(maxTokens) || 4096,
         is_active: isActive,
       };
+
+      if (modelName.trim()) {
+        payload.model_name = modelName.trim();
+      }
 
       if (apiKey.trim()) {
         payload.api_key = apiKey.trim();
@@ -223,7 +226,7 @@ export const AiModelSettingsSection: React.FC = () => {
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-md font-bold text-default">AI Model & LLM Provider</h2>
-                <Badge tone={isCustomTenant ? 'primary' : 'neutral'}>
+                <Badge tone={isCustomTenant ? 'primary-subtle' : 'surface-sunken'}>
                   {isCustomTenant ? 'Tenant Custom Model' : 'Platform Default (.env)'}
                 </Badge>
                 {config?.api_key_set ? (
@@ -539,14 +542,13 @@ export const AiModelSettingsSection: React.FC = () => {
 
       {/* Confirm Reset Dialog */}
       <ConfirmDialog
-        isOpen={confirmResetOpen}
+        open={confirmResetOpen}
         onClose={() => setConfirmResetOpen(false)}
         onConfirm={handleResetToDefault}
         title="Reset AI Model Configuration"
         message="Are you sure you want to delete custom tenant AI settings? The system will immediately fall back to the platform global model."
-        confirmText="Yes, Reset to Default"
-        confirmVariant="danger"
-        isLoading={saving}
+        confirmLabel={saving ? 'Resetting...' : 'Yes, Reset to Default'}
+        variant="danger"
       />
     </div>
   );

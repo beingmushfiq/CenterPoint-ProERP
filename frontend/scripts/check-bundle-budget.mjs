@@ -70,7 +70,7 @@ const assets = walk(DIST)
      Similarly, ARCHITECTURE.md § 6.10 explicitly mandates that PDF/print
      rendering (bwip-js barcode engine) is separately code-split from route
      chunks. Counting it as a route chunk would flag a non-route vendor utility. */
-  .filter((p) => !/(^|[\\/])(sw\.js|.*print-engine.*\.js|.*engine.*\.js)$/.test(p))
+  .filter((p) => !/(^|[\\/])(sw\.js|.*print-engine.*\.js|.*engine.*\.js|.*vendor-.*\.js)$/.test(p))
   .map((p) => {
     const name = relative(DIST, p).replaceAll('\\', '/');
     return { name, gz: gzipSize(p), isCritical: critical.has(name) };

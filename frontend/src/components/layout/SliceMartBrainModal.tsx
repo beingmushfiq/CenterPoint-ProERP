@@ -30,7 +30,6 @@ import {
   Layers,
   Building2,
   Users,
-  Bot,
   Settings as SettingsIcon,
 } from 'lucide-react';
 import { useTenantBranding } from '../../lib/theme/useTenantBranding';
@@ -1231,6 +1230,9 @@ export const SliceMartBrainModal: React.FC<SliceMartBrainModalProps> = ({ open, 
             interactive_action?: BrainInteractiveAction;
             tool_call?: BrainToolCall;
             tool_result?: BrainToolResult;
+            conversation_uuid?: string;
+            pending_action?: PendingAction | null;
+            model_source?: string;
           }>('/brain/ask', {
             query: textToSend.trim(),
             conversation_uuid: conversationUuid || undefined,

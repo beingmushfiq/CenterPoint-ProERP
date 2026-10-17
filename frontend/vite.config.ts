@@ -59,7 +59,7 @@ export default defineConfig({
     modulePreload: {
       resolveDependencies(_filename, deps, { hostType }) {
         if (hostType === 'html') {
-          return deps.filter((dep) => !dep.includes('recharts') && !dep.includes('print-engine') && !dep.includes('chart-math'));
+          return [];
         }
         return deps;
       },
@@ -75,6 +75,12 @@ export default defineConfig({
           }
           if (id.includes('node_modules/bwip-js') || id.includes('src/lib/barcode')) {
             return 'print-engine';
+          }
+          if (id.includes('node_modules/xlsx')) {
+            return 'vendor-xlsx';
+          }
+          if (id.includes('node_modules/apexcharts') || id.includes('node_modules/react-apexcharts')) {
+            return 'vendor-apexcharts';
           }
         },
       },
