@@ -198,4 +198,37 @@ describe('LoginPage', () => {
     });
     expect(passwordInput.type).toBe('password');
   });
+
+  it('hides direct workspace dev links on production non-localhost domains', async () => {
+    const originalLocation = window.location;
+    // Simulate production domain
+    Object.defineProperty(window, 'location', {
+      writable: true,
+      value: {
+        ...originalLocation,
+        hostname: 'devcenterpoint.com',
+        protocol: 'https:',
+        port: '',
+      },
+    });
+
+    // Also simulate production build env
+    vi.stubEnv('DEV', false);
+
+    await act(async () => {
+      render(
+        <MemoryRouter>
+          <LoginPage />
+        </MemoryRouter>
+      );
+    });
+
+    expect(screen.queryByText(/Direct workspace:/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/slicemart\.localhost/i)).not.toBeInTheDocument();
+
+    Object.defineProperty(window, 'location', {
+      writable: true,
+      value: originalLocation,
+    });
+  });
 });

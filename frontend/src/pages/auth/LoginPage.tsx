@@ -94,7 +94,25 @@ export default function LoginPage() {
       const sub = host.slice(0, -'.localhost'.length);
       return !['admin', 'platform', 'app', 'erp', 'api', 'www'].includes(sub) ? sub : null;
     }
+    const tenantBaseDomain = (import.meta.env['VITE_TENANT_BASE_DOMAIN'] || 'devcenterpoint.com').toLowerCase();
+    if (host.endsWith('.' + tenantBaseDomain)) {
+      const sub = host.slice(0, -(tenantBaseDomain.length + 1));
+      return sub && !['www', 'api', 'mail', 'cpanel', 'webmail', 'proerp', 'platform', 'admin'].includes(sub) ? sub : null;
+    }
+    const parts = host.split('.');
+    if (parts.length >= 3) {
+      const sub = parts[0] || '';
+      return sub && !['admin', 'platform', 'app', 'erp', 'api', 'www', 'mail', 'cpanel', 'webmail', 'proerp'].includes(sub) ? sub : null;
+    }
     return null;
+  }, []);
+
+  // Local development detection to prevent dev-only workspace links from leaking into production
+  const isLocalDev = useMemo(() => {
+    if (import.meta.env.DEV) return true;
+    if (typeof window === 'undefined') return false;
+    const host = window.location.hostname.toLowerCase();
+    return host === 'localhost' || host === '127.0.0.1' || host.endsWith('.localhost');
   }, []);
 
   // Forgot / Reset Password state
@@ -298,7 +316,7 @@ export default function LoginPage() {
               <Building2 className="size-3.5" />
               <span>Workspace: {currentSubdomain}</span>
             </div>
-          ) : (
+          ) : isLocalDev ? (
             <div className="mt-3 inline-flex items-center gap-2 rounded-xl border border-default/70 bg-surface-sunken/60 px-3 py-1 text-[11px] text-muted">
               <span className="font-medium">Direct workspace:</span>
               <a
@@ -315,7 +333,7 @@ export default function LoginPage() {
                 demoerp
               </a>
             </div>
-          )}
+          ) : null}
         </div>
 
         {/* Server error alert banner */}
@@ -603,7 +621,7 @@ export default function LoginPage() {
                     <p className="text-xs font-bold text-default group-hover:text-primary">{t.name}</p>
                     {t.slug && (
                       <p className="text-[10px] text-muted font-mono flex items-center gap-1 mt-0.5">
-                        <span>{t.slug}.localhost:5173</span>
+                        <span>{isLocalDev ? `${t.slug}.localhost:5173` : t.slug}</span>
                         <ExternalLink className="size-2.5 opacity-60 group-hover:opacity-100" />
                       </p>
                     )}
