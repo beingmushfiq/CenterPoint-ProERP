@@ -24,6 +24,8 @@
     "format": "prettier --write \"frontend/src/**/*.{ts,tsx,css}\" \"frontend/scripts/**/*.mjs\" \".github/workflows/*.yml\"",
     "format:check": "prettier --check \"frontend/src/**/*.{ts,tsx,css}\" \"frontend/scripts/**/*.mjs\" \".github/workflows/*.yml\"",
     "build:prod": "npm run build --workspace frontend && node scripts/sync_public_html.cjs",
+    "build:deploy": "npm run deploy:prepare",
+    "build:deploy:cpanel": "npm run deploy:prepare",
     "deploy:prepare": "npm run build:prod && node scripts/verify_deployment_readiness.cjs",
     "deploy:all": "node scripts/deploy_all.cjs",
     "deploy": "node scripts/deploy_all.cjs",
