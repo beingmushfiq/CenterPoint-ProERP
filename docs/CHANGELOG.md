@@ -6,6 +6,27 @@
 
 ---
 
+## [Unreleased] - Operations AI Brain & Custom Model Backend Upgrade (2026-10-17)
+
+### Added
+- **Tenant-Scoped Custom LLM Configuration**:
+  - `tenant_ai_settings` table and `TenantAISetting` Eloquent model with automatic encryption at rest (`Crypt::encryptString`) and masked exposure (`sk-****`).
+  - `TenantAISettingsController` providing endpoints for retrieving, saving, testing live latency, and resetting LLM backend configurations.
+  - Settings UI tab (`ai_model`) in `SettingsCenterWorkspace` and `AiModelSettingsSection` with presets for Anthropic Direct, AgentRouter / OpenRouter, and DeepSeek Gateway.
+- **Unified Multi-Tenant LLM Client**:
+  - `UnifiedLLMClient` dynamically resolves tenant-specific API keys, custom base URLs, and model IDs with fallback to platform `.env`.
+- **System-Wide Agentic Reasoning & Tools**:
+  - `BrainOrchestrator` agentic reasoning loop with persistent conversation history via `AgentConversation` (`context_type: brain`) and `AgentMessage`.
+  - `BrainToolRegistry` incorporating 20 system-wide ERP tools spanning Finance, Sales, Inventory, Production, HR, QC, Purchasing, and Data Recovery.
+  - Real-time SSE streaming and deterministic offline fallback preserved.
+- **Upgraded Operations AI Brain Drawer UI**:
+  - `SliceMartBrainModal` upgraded with live model indicator badge, quick financial advisor prompt chips, Tier 2 supervised action confirmation dialog, and 6 interactive data cards (`CashPositionCard`, `PLSummaryCard`, `CashFlowRiskCard`, `OverdueInvoicesCard`, `FinancingMatchCard`, `InventoryValueCard`).
+- **Comprehensive Automated Test Coverage**:
+  - Backend feature tests: `TenantAISettingsTest`, `BrainOrchestratorTest`, `UnifiedLLMClientTest` (10/10 passed).
+  - Frontend Vitest tests: `aiModelApi.test.ts`, `copilotApi.test.ts`, `SliceMartBrainModal.test.tsx` (15/15 passed).
+
+---
+
 ## [Unreleased] - Phase 2 Master Data & Catalogue Expansion
 
 ### Added
