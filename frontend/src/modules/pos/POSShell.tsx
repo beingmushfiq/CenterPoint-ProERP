@@ -822,7 +822,7 @@ export function POSShell({ session, onExit }: POSShellProps) {
   const splitRemainingDue = Math.max(0, grandTotal - splitTotalTendered);
   const changeGiven = isSplitPayment ? splitTotalChange : singleChangeGiven;
 
-  const handleCheckout = async () => {
+  const handleCheckout = useCallback(async () => {
     if (cart.length === 0) return;
 
     let paymentsPayload: PosCheckoutPaymentPayload[];
@@ -976,7 +976,25 @@ export function POSShell({ session, onExit }: POSShellProps) {
     } finally {
       setCheckingOut(false);
     }
-  };
+  }, [
+    cart,
+    cashTendered,
+    clearCart,
+    currentSlot.customerPartyId,
+    currentSlot.notes,
+    customerName,
+    customerPhone,
+    discountTotal,
+    grandTotal,
+    isSplitPayment,
+    orderDiscType,
+    orderDiscVal,
+    session.id,
+    session.operator_name,
+    singleChangeGiven,
+    splitPayments,
+    tenderMethod,
+  ]);
 
   const handlePrintReceipt = (format: 'thermal' | 'a4' = 'thermal') => {
     if (!lastReceipt) return;

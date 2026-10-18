@@ -62,7 +62,9 @@ export function kickCashDrawer(reason: CashDrawerEvent['reason'] = 'manual_open'
     window.dispatchEvent(new CustomEvent('pos:cash-drawer-pulse', {
       detail: { reason, rawPulse, timestamp: new Date().toISOString() },
     }));
-  } catch {}
+  } catch (err) {
+    void err;
+  }
 
   // Record audit event locally
   try {
@@ -76,7 +78,9 @@ export function kickCashDrawer(reason: CashDrawerEvent['reason'] = 'manual_open'
     });
     // Keep last 100 drawer kick events
     localStorage.setItem(STORAGE_KEYS.DRAWER_LOGS, JSON.stringify(logs.slice(0, 100)));
-  } catch {}
+  } catch (err) {
+    void err;
+  }
 }
 
 /**
@@ -89,7 +93,9 @@ export function saveRecentReceipt(receipt: PosOfflineReceipt): void {
     list.unshift(receipt);
     // Keep last 30 receipts
     localStorage.setItem(STORAGE_KEYS.RECENT_RECEIPTS, JSON.stringify(list.slice(0, 30)));
-  } catch {}
+  } catch (err) {
+    void err;
+  }
 }
 
 /**
@@ -99,7 +105,8 @@ export function getRecentReceipts(): PosOfflineReceipt[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEYS.RECENT_RECEIPTS);
     return raw ? JSON.parse(raw) : [];
-  } catch {
+  } catch (err) {
+    void err;
     return [];
   }
 }
@@ -124,7 +131,9 @@ export function queueOfflineSale(payload: PosCheckoutPayload, total: number, cus
     const list: PosOfflinePendingSale[] = raw ? JSON.parse(raw) : [];
     list.push(item);
     localStorage.setItem(STORAGE_KEYS.PENDING_SALES, JSON.stringify(list));
-  } catch {}
+  } catch (err) {
+    void err;
+  }
 
   return item;
 }
@@ -136,7 +145,8 @@ export function getQueuedOfflineSales(): PosOfflinePendingSale[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEYS.PENDING_SALES);
     return raw ? JSON.parse(raw) : [];
-  } catch {
+  } catch (err) {
+    void err;
     return [];
   }
 }
@@ -148,5 +158,7 @@ export function removeQueuedOfflineSale(id: string): void {
   try {
     const list = getQueuedOfflineSales().filter((s) => s.id !== id);
     localStorage.setItem(STORAGE_KEYS.PENDING_SALES, JSON.stringify(list));
-  } catch {}
+  } catch (err) {
+    void err;
+  }
 }

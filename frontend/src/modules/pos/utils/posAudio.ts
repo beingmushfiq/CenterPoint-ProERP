@@ -10,7 +10,8 @@ class PosAudioService {
   constructor() {
     try {
       this.isMuted = localStorage.getItem('pos_audio_muted') === 'true';
-    } catch {
+    } catch (err) {
+      void err;
       this.isMuted = false;
     }
   }
@@ -37,7 +38,9 @@ class PosAudioService {
     this.isMuted = !this.isMuted;
     try {
       localStorage.setItem('pos_audio_muted', String(this.isMuted));
-    } catch {}
+    } catch (err) {
+      void err;
+    }
     return this.isMuted;
   }
 
@@ -65,7 +68,9 @@ class PosAudioService {
 
       osc.start(ctx.currentTime);
       osc.stop(ctx.currentTime + 0.08);
-    } catch {}
+    } catch (err) {
+      void err;
+    }
   }
 
   /**
@@ -94,7 +99,9 @@ class PosAudioService {
         osc.start(now + delay);
         osc.stop(now + delay + 0.07);
       });
-    } catch {}
+    } catch (err) {
+      void err;
+    }
   }
 
   /**
@@ -127,7 +134,9 @@ class PosAudioService {
         osc.start(start);
         osc.stop(start + 0.28);
       });
-    } catch {}
+    } catch (err) {
+      void err;
+    }
   }
 
   /**
@@ -155,7 +164,9 @@ class PosAudioService {
 
       osc.start(now);
       osc.stop(now + 0.12);
-    } catch {}
+    } catch (err) {
+      void err;
+    }
   }
 }
 
