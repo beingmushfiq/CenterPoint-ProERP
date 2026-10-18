@@ -132,6 +132,29 @@ final class GoodsReceiptController extends Controller
         ]);
     }
 
+    public function qc(int $id, Request $request): JsonResponse
+    {
+        $tenantId = TenantContext::current()->tenantId();
+
+        /** @var GoodsReceipt $receipt */
+        $receipt = GoodsReceipt::where('tenant_id', $tenantId)
+            ->where('id', $id)
+            ->firstOrFail();
+
+        $status = $request->input('status', 'qc_pending');
+
+        $receipt->update([
+            'status' => $status,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Goods receipt status updated for QC.',
+            'data' => new GoodsReceiptResource($receipt->fresh()),
+            'meta' => ['correlation_id' => (string) $request->header('X-Correlation-Id', '')],
+        ]);
+    }
+
     public function destroy(int $id, Request $request): JsonResponse
     {
         $tenantId = TenantContext::current()->tenantId();

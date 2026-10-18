@@ -1,15 +1,19 @@
 import { useState, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useSearchParams } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { Clock, HardDrive, Play, Zap } from 'lucide-react';
+import { Clock, HardDrive, Play, Zap, Store, Sparkles, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { PosSessionsSection } from './sections/PosSessionsSection';
 import { PosTerminalsSection } from './sections/PosTerminalsSection';
 import { POSShell } from './POSShell';
-import type { PosSession } from '../../types/api/pos';
+import type { PosSession, PosTerminal } from '../../types/api/pos';
 import { api } from '../../lib/api/client';
+import { extractList, extractItem } from '../../lib/api/apiData';
 import { Button } from '../../components/ui/Button';
+import { useAuthStore } from '../../lib/auth/authStore';
+import { useCurrency } from '../../hooks/useCurrency';
 
 export type PosTab = 'sessions' | 'terminals';
 
@@ -20,39 +24,22 @@ interface TabConfig {
   description: string;
 }
 
-const DEFAULT_OPEN_SESSION: PosSession = {
-  id: 1,
-  uuid: 'sess-001',
-  session_number: 'SES-202608-001',
-  terminal_id: 1,
-  terminal_name: 'Gulshan Flagship - Counter 1',
-  branch_id: 1,
-  branch_name: 'Gulshan Avenue Flagship Store',
-  warehouse_id: 1,
-  warehouse_name: 'Gulshan Retail Floor Stock',
-  user_id: 1,
-  operator_name: 'Tanvir Hossain (Cashier A)',
-  opened_at: '2026-08-30T08:00:00Z',
-  closed_at: null,
-  opening_cash: '2000.00',
-  expected_cash: '18450.00',
-  counted_cash: null,
-  cash_variance: null,
-  card_total: '12400.00',
-  mobile_total: '8950.00',
-  credit_total: '0.00',
-  sales_count: 42,
-  refund_total: '300.00',
-  status: 'open',
-  notes: 'Morning shift started with opening drawer float.',
-  created_at: '2026-08-30T08:00:00Z',
-};
-
 export default function PosWorkspace() {
   const { t } = useTranslation();
+  const { currencySymbol } = useCurrency();
+  const queryClient = useQueryClient();
+  const user = useAuthStore((s) => s.user);
+  const activeBranch = useAuthStore((s) => s.activeBranch);
+
   const [searchParams, setSearchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState<PosTab>('sessions');
   const [manualSession, setManualSession] = useState<PosSession | null>(null);
+
+  // Quick Open Register State
+  const [selectedTerminalId, setSelectedTerminalId] = useState<number | null>(null);
+  const [openingFloat, setOpeningFloat] = useState<string>('2000.00');
+  const [openingNotes, setOpeningNotes] = useState<string>('');
+  const [isOpeningShift, setIsOpeningShift] = useState(false);
 
   const tabs: TabConfig[] = useMemo(
     () => [
@@ -72,29 +59,44 @@ export default function PosWorkspace() {
     [t]
   );
 
+  // Fetch real terminals
+  const { data: terminals = [] } = useQuery<PosTerminal[]>({
+    queryKey: ['pos', 'terminals'],
+    queryFn: async () => {
+      try {
+        const res = await api.get<PosTerminal[]>('/pos/terminals');
+        return extractList<PosTerminal>(res);
+      } catch {
+        return [];
+      }
+    },
+  });
+
+  // Derive resolved terminal id cleanly without cascading setState
+  const effectiveTerminalId = useMemo(() => {
+    if (selectedTerminalId !== null && terminals.some((t) => t.id === selectedTerminalId)) {
+      return selectedTerminalId;
+    }
+    return terminals[0]?.id ?? 1;
+  }, [selectedTerminalId, terminals]);
+
   // Fetch all sessions to find the currently active open session
-  const { data: sessions = [DEFAULT_OPEN_SESSION] } = useQuery<PosSession[]>({
+  const { data: sessions = [], isLoading: isLoadingSessions } = useQuery<PosSession[]>({
     queryKey: ['pos', 'sessions'],
     queryFn: async () => {
       try {
-        const sessRes = await api.get<PosSession[] | { data: PosSession[] }>('/pos/sessions');
-        const raw = sessRes.data;
-        const list = Array.isArray(raw) ? raw : (raw?.data ?? []);
-        if (list.length > 0) {
-          return list;
-        }
+        const sessRes = await api.get<PosSession[]>('/pos/sessions');
+        return extractList<PosSession>(sessRes);
       } catch {
-        // Fallback to sample data
+        return [];
       }
-      return [DEFAULT_OPEN_SESSION];
     },
-    initialData: [DEFAULT_OPEN_SESSION],
   });
 
   // Resolve active open session
   const activeSession = useMemo(() => {
-    if (manualSession) return manualSession;
-    return sessions.find((s) => s.status === 'open') ?? DEFAULT_OPEN_SESSION;
+    if (manualSession && manualSession.status === 'open') return manualSession;
+    return sessions.find((s) => s.status === 'open') ?? null;
   }, [manualSession, sessions]);
 
   // If URL has ?manage=true, user explicitly wants to view sessions/terminals manager
@@ -111,14 +113,202 @@ export default function PosWorkspace() {
     setSearchParams({});
   };
 
-  // Direct POS Launch: By default when visiting /pos (from Topbar, search, quick add),
-  // directly open the POS cashier interface cleanly portaled to document.body
+  // Handler to quickly open a new shift and launch POS immediately
+  const handleOpenShiftAndLaunch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsOpeningShift(true);
+    try {
+      const selectedTerm = terminals.find((t) => t.id === effectiveTerminalId) ?? terminals[0];
+      const termId = selectedTerm?.id ?? effectiveTerminalId;
+      const branchId = selectedTerm?.branch_id ?? activeBranch?.id ?? 1;
+      const warehouseId = selectedTerm?.default_warehouse_id ?? 1;
+
+      const payload = {
+        terminal_id: termId,
+        branch_id: branchId,
+        warehouse_id: warehouseId,
+        opening_cash: openingFloat || '0.00',
+        ...(openingNotes ? { notes: openingNotes } : {}),
+      };
+
+      const res = await api.post<PosSession | { data: PosSession }>('/pos/sessions', payload);
+      const created = extractItem<PosSession>(res.data) ?? (res.data as unknown as PosSession);
+
+      await queryClient.invalidateQueries({ queryKey: ['pos', 'sessions'] });
+      toast.success('Cashier register opened successfully.');
+
+      if (created) {
+        setManualSession(created);
+        setSearchParams({});
+      }
+    } catch (err: unknown) {
+      const apiErr = err as { message?: string };
+      toast.error(apiErr.message || 'Failed to open register. Please verify terminal configuration.');
+    } finally {
+      setIsOpeningShift(false);
+    }
+  };
+
+  // Direct POS Launch: If an active open session exists and not in manage mode, render POSShell
   if (!isManageMode && activeSession) {
     const posContent = <POSShell session={activeSession} onExit={handleExitPOS} />;
     if (typeof document !== 'undefined' && document.body) {
       return createPortal(posContent, document.body);
     }
     return posContent;
+  }
+
+  // If visiting POS directly but no session is currently open and not in manage mode,
+  // show the "Open Register Shift" onboarding screen
+  if (!isManageMode && !activeSession) {
+    if (isLoadingSessions) {
+      return (
+        <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3 text-muted">
+          <Loader2 className="size-8 animate-spin text-primary" />
+          <p className="text-sm font-medium">Checking register shift status...</p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="max-w-xl mx-auto py-8 px-4">
+        <div className="rounded-3xl border border-default bg-surface p-6 sm:p-8 shadow-xl relative overflow-hidden">
+          <div className="absolute top-0 right-0 p-8 opacity-5 pointer-events-none">
+            <Store className="size-48" />
+          </div>
+
+          <div className="flex items-center gap-3 mb-6">
+            <div className="size-12 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border border-emerald-500/20 shadow-xs">
+              <Store className="size-6" />
+            </div>
+            <div>
+              <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 mb-0.5">
+                <Sparkles className="size-3" />
+                <span>POS Ready</span>
+              </div>
+              <h2 className="text-xl font-bold text-default">Open Cashier Register</h2>
+              <p className="text-xs text-muted">Initialize opening drawer cash float to start sales.</p>
+            </div>
+          </div>
+
+          <form onSubmit={handleOpenShiftAndLaunch} className="space-y-4">
+            <div>
+              <label className="block text-xs font-semibold text-muted mb-1.5">
+                Assigned Terminal Station
+              </label>
+              <select
+                value={effectiveTerminalId}
+                onChange={(e) => setSelectedTerminalId(Number(e.target.value))}
+                className="w-full rounded-xl border border-default bg-surface-sunken px-3.5 py-2.5 text-xs text-default focus:border-primary focus:outline-none"
+              >
+                {terminals.length > 0 ? (
+                  terminals.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.name} ({t.code})
+                    </option>
+                  ))
+                ) : (
+                  <option value={1}>Counter 1 (Main Cashier)</option>
+                )}
+              </select>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-semibold text-muted mb-1.5">
+                  Cashier Operator
+                </label>
+                <input
+                  type="text"
+                  readOnly
+                  value={user?.name || 'Authorized Cashier'}
+                  className="w-full rounded-xl border border-default bg-surface-sunken/60 px-3.5 py-2.5 text-xs text-muted font-medium cursor-not-allowed"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-muted mb-1.5">
+                  Opening Float ({currencySymbol})
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={openingFloat}
+                  onChange={(e) => setOpeningFloat(e.target.value)}
+                  placeholder="0.00"
+                  className="w-full rounded-xl border border-default bg-surface-sunken px-3.5 py-2.5 text-xs text-default font-mono font-bold focus:border-primary focus:outline-none"
+                  required
+                />
+              </div>
+            </div>
+
+            {/* Float quick-preset chips */}
+            <div>
+              <span className="text-[11px] font-medium text-muted block mb-1.5">Quick Float Amount:</span>
+              <div className="flex gap-2 flex-wrap">
+                {['0.00', '500.00', '1000.00', '2000.00', '5000.00'].map((val) => (
+                  <button
+                    key={val}
+                    type="button"
+                    onClick={() => setOpeningFloat(val)}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all cursor-pointer ${
+                      openingFloat === val
+                        ? 'bg-primary text-primary-fg border-primary shadow-xs'
+                        : 'bg-surface-sunken text-muted border-default hover:text-default'
+                    }`}
+                  >
+                    {currencySymbol}{val}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-muted mb-1.5">
+                Shift Notes (Optional)
+              </label>
+              <input
+                type="text"
+                value={openingNotes}
+                onChange={(e) => setOpeningNotes(e.target.value)}
+                placeholder="e.g., Morning shift float, drawer verified"
+                className="w-full rounded-xl border border-default bg-surface-sunken px-3.5 py-2 text-xs text-default focus:border-primary focus:outline-none"
+              />
+            </div>
+
+            <div className="pt-2 flex flex-col sm:flex-row gap-2">
+              <Button
+                type="submit"
+                variant="primary"
+                disabled={isOpeningShift}
+                className="w-full sm:flex-1 py-3 text-sm font-semibold flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white shadow-md cursor-pointer"
+              >
+                {isOpeningShift ? (
+                  <>
+                    <Loader2 className="size-4 animate-spin" />
+                    <span>Opening Shift...</span>
+                  </>
+                ) : (
+                  <>
+                    <Play className="size-4 fill-current" />
+                    <span>Open Register & Start Selling</span>
+                  </>
+                )}
+              </Button>
+
+              <button
+                type="button"
+                onClick={() => setSearchParams({ manage: 'true' })}
+                className="px-4 py-2.5 rounded-xl border border-default text-xs font-semibold text-muted hover:text-default hover:bg-surface-sunken transition-all cursor-pointer"
+              >
+                Shift History & Terminals
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    );
   }
 
   const currentTab = tabs.find((t) => t.id === activeTab) ?? tabs[0];

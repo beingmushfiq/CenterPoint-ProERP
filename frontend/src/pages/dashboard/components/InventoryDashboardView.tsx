@@ -94,7 +94,7 @@ export const InventoryDashboardView: React.FC<InventoryDashboardViewProps> = ({
     queryKey: ['inventory', 'categories-summary'],
     queryFn: async () => {
       try {
-        const res = await api.get<CategoryItem[] | { data: CategoryItem[] }>('/inventory/categories?per_page=5');
+        const res = await api.get<CategoryItem[] | { data: CategoryItem[] }>('/categories?per_page=5');
         const d = Array.isArray(res.data) ? res.data : (res.data?.data ?? []);
         return Array.isArray(d) ? d : [];
       } catch { return []; }

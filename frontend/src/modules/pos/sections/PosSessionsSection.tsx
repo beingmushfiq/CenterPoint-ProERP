@@ -20,9 +20,9 @@ import {
   ChevronUp,
   RotateCcw,
 } from 'lucide-react';
-import type { PosSession } from '../../../types/api/pos';
+import type { PosSession, PosTerminal } from '../../../types/api/pos';
 import { api } from '../../../lib/api/client';
-import { extractList } from '../../../lib/api/apiData';
+import { extractList, extractItem } from '../../../lib/api/apiData';
 import { useCurrency } from '../../../hooks/useCurrency';
 import { SelectDropdown } from '../../../components/ui/Dropdown';
 
@@ -46,8 +46,8 @@ export function PosSessionsSection({ onLaunchPOS }: PosSessionsSectionProps) {
   const [openFormData, setOpenFormData] = useState({
     session_number: '',
     terminal_id: 1,
-    terminal_name: 'Gulshan Flagship - Counter 1',
-    operator_name: 'Tanvir Hossain',
+    terminal_name: 'Counter 1 (Main Cashier)',
+    operator_name: 'Cashier',
     opening_cash: '2000.00',
     notes: '',
   });
@@ -56,6 +56,9 @@ export function PosSessionsSection({ onLaunchPOS }: PosSessionsSectionProps) {
     counted_cash: '',
     notes: '',
   });
+
+  const [openingSession, setOpeningSession] = useState(false);
+  const [closingSession, setClosingSession] = useState(false);
 
   // Cash Denomination Breakdown Calculator State
   const [isDenominationCalculatorOpen, setIsDenominationCalculatorOpen] = useState(false);
@@ -106,6 +109,18 @@ export function PosSessionsSection({ onLaunchPOS }: PosSessionsSectionProps) {
     });
   };
 
+  const { data: terminals = [] } = useQuery<PosTerminal[]>({
+    queryKey: ['pos', 'terminals'],
+    queryFn: async () => {
+      try {
+        const res = await api.get<PosTerminal[]>('/pos/terminals');
+        return extractList<PosTerminal>(res);
+      } catch {
+        return [];
+      }
+    },
+  });
+
   const { data: sessions = [], isLoading, isFetching, refetch } = useQuery<PosSession[]>({
     queryKey: ['pos', 'sessions'],
     queryFn: async () => {
@@ -118,74 +133,64 @@ export function PosSessionsSection({ onLaunchPOS }: PosSessionsSectionProps) {
     },
   });
 
-  const handleOpenSession = (e: React.FormEvent) => {
+  const handleOpenSession = async (e: React.FormEvent) => {
     e.preventDefault();
-    const newSess: PosSession = {
-      id: Date.now(),
-      uuid: `sess-${Date.now()}`,
-      session_number:
-        openFormData.session_number ||
-        `SES-${new Date().toISOString().slice(0, 7).replace('-', '')}-${String(sessions.length + 1).padStart(3, '0')}`,
-      terminal_id: openFormData.terminal_id,
-      terminal_name: openFormData.terminal_name,
-      branch_id: 1,
-      branch_name: 'Gulshan Avenue Flagship Store',
-      warehouse_id: 1,
-      warehouse_name: 'Gulshan Retail Floor Stock',
-      user_id: 1,
-      operator_name: openFormData.operator_name,
-      opened_at: new Date().toISOString(),
-      closed_at: null,
-      opening_cash: openFormData.opening_cash,
-      expected_cash: openFormData.opening_cash,
-      counted_cash: null,
-      cash_variance: null,
-      card_total: '0.00',
-      mobile_total: '0.00',
-      credit_total: '0.00',
-      sales_count: 0,
-      refund_total: '0.00',
-      status: 'open',
-      notes: openFormData.notes,
-      created_at: new Date().toISOString(),
-    };
+    setOpeningSession(true);
+    try {
+      const selectedTerm =
+        terminals.find((t) => t.id === Number(openFormData.terminal_id)) ??
+        terminals[0];
+      const termId = selectedTerm?.id ?? (Number(openFormData.terminal_id) || 1);
+      const branchId = selectedTerm?.branch_id ?? 1;
+      const warehouseId = selectedTerm?.default_warehouse_id ?? 1;
 
-    api.post('/pos/sessions', newSess).catch(() => {});
-    queryClient.setQueryData<PosSession[]>(['pos', 'sessions'], (prev = []) => [newSess, ...prev]);
-    toast.success('Cashier shift opened.');
-    setShowOpenModal(false);
+      const payload = {
+        terminal_id: termId,
+        branch_id: branchId,
+        warehouse_id: warehouseId,
+        opening_cash: openFormData.opening_cash || '0.00',
+        ...(openFormData.notes ? { notes: openFormData.notes } : {}),
+        ...(openFormData.session_number ? { session_number: openFormData.session_number } : {}),
+      };
+
+      const res = await api.post<PosSession | { data: PosSession }>('/pos/sessions', payload);
+      const created = extractItem<PosSession>(res.data) ?? (res.data as unknown as PosSession);
+
+      await queryClient.invalidateQueries({ queryKey: ['pos', 'sessions'] });
+      toast.success('Cashier shift opened successfully.');
+      setShowOpenModal(false);
+
+      if (onLaunchPOS && created) {
+        onLaunchPOS(created);
+      }
+    } catch (err: unknown) {
+      const apiErr = err as { message?: string };
+      toast.error(apiErr.message || 'Failed to open cashier shift. Please check terminal status.');
+    } finally {
+      setOpeningSession(false);
+    }
   };
 
-  const handleCloseSession = (e: React.FormEvent) => {
+  const handleCloseSession = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!activeSession) return;
+    setClosingSession(true);
 
-    const counted = parseFloat(closeFormData.counted_cash || '0');
-    const expected = parseFloat(activeSession.expected_cash || '0');
-    const variance = (counted - expected).toFixed(2);
+    try {
+      await api.post(`/pos/sessions/${activeSession.id}/close`, {
+        counted_cash: closeFormData.counted_cash || '0.00',
+        notes: closeFormData.notes || undefined,
+      });
 
-    queryClient.setQueryData<PosSession[]>(['pos', 'sessions'], (prev = []) =>
-      prev.map((s) =>
-        s.id === activeSession.id
-          ? {
-              ...s,
-              status: 'closed',
-              closed_at: new Date().toISOString(),
-              counted_cash: closeFormData.counted_cash,
-              cash_variance: variance,
-              notes: closeFormData.notes,
-            }
-          : s
-      )
-    );
-
-    api.post(`/pos/sessions/${activeSession.id}/close`, {
-      counted_cash: closeFormData.counted_cash,
-      notes: closeFormData.notes,
-    }).catch(() => {});
-
-    toast.success('Shift closed & Z-Report generated.');
-    setShowCloseModal(false);
+      await queryClient.invalidateQueries({ queryKey: ['pos', 'sessions'] });
+      toast.success('Shift closed & Z-Report generated.');
+      setShowCloseModal(false);
+    } catch (err: unknown) {
+      const apiErr = err as { message?: string };
+      toast.error(apiErr.message || 'Failed to close shift.');
+    } finally {
+      setClosingSession(false);
+    }
   };
 
   const filteredSessions = sessions.filter((s) => {
@@ -447,25 +452,39 @@ export function PosSessionsSection({ onLaunchPOS }: PosSessionsSectionProps) {
             <form onSubmit={handleOpenSession} className="space-y-4 text-xs">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-semibold text-muted mb-1">Shift Session #</label>
+                  <label className="block font-semibold text-muted mb-1">Shift Session # (Optional)</label>
                   <input
                     type="text"
                     value={openFormData.session_number}
                     onChange={(e) => setOpenFormData({ ...openFormData, session_number: e.target.value })}
+                    placeholder="Auto-generated if left blank"
                     className="w-full rounded-xl border border-default bg-surface-sunken px-3 py-2 text-default focus:border-primary focus:outline-none font-mono"
-                    required
                   />
                 </div>
                 <div>
                   <label className="block font-semibold text-muted mb-1">Terminal Station</label>
                   <select
-                    value={openFormData.terminal_name}
-                    onChange={(e) => setOpenFormData({ ...openFormData, terminal_name: e.target.value })}
+                    value={openFormData.terminal_id}
+                    onChange={(e) => {
+                      const termId = Number(e.target.value);
+                      const term = terminals.find((t) => t.id === termId);
+                      setOpenFormData({
+                        ...openFormData,
+                        terminal_id: termId,
+                        terminal_name: term?.name || '',
+                      });
+                    }}
                     className="w-full rounded-xl border border-default bg-surface-sunken px-3 py-2 text-default"
                   >
-                    <option value="Gulshan Flagship - Counter 1">Gulshan Counter 1 (Main Cashier)</option>
-                    <option value="Gulshan Flagship - Counter 2">Gulshan Counter 2 (Appliance Showroom)</option>
-                    <option value="Chittagong GEC Counter 1">Chittagong GEC Counter 1</option>
+                    {terminals.length > 0 ? (
+                      terminals.map((t) => (
+                        <option key={t.id} value={t.id}>
+                          {t.name} ({t.code})
+                        </option>
+                      ))
+                    ) : (
+                      <option value={1}>Counter 1 (Main Cashier)</option>
+                    )}
                   </select>
                 </div>
               </div>
@@ -514,9 +533,10 @@ export function PosSessionsSection({ onLaunchPOS }: PosSessionsSectionProps) {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded-xl bg-primary text-primary-fg font-semibold hover:opacity-90 cursor-pointer"
+                  disabled={openingSession}
+                  className="px-4 py-2 rounded-xl bg-primary text-primary-fg font-semibold hover:opacity-90 disabled:opacity-50 cursor-pointer"
                 >
-                  Start Shift
+                  {openingSession ? 'Starting Shift...' : 'Start Shift'}
                 </button>
               </div>
             </form>
@@ -684,9 +704,10 @@ export function PosSessionsSection({ onLaunchPOS }: PosSessionsSectionProps) {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded-xl bg-rose-600 text-white font-semibold hover:bg-rose-700 cursor-pointer"
+                  disabled={closingSession}
+                  className="px-4 py-2 rounded-xl bg-rose-600 text-white font-semibold hover:bg-rose-700 disabled:opacity-50 cursor-pointer"
                 >
-                  Finalize & Close Shift
+                  {closingSession ? 'Closing Shift...' : 'Finalize & Close Shift'}
                 </button>
               </div>
             </form>

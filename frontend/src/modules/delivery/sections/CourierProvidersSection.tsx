@@ -113,7 +113,7 @@ export const CourierProvidersSection: React.FC<CourierProvidersSectionProps> = (
                 </div>
                 <div className="flex items-center justify-between text-[11px]">
                   <span className="text-muted">Adapter Driver:</span>
-                  <span className="font-mono text-muted truncate max-w-[180px]">
+                  <span className="font-mono text-muted truncate max-w-45">
                     {p.adapter_class.split('\\').pop()}
                   </span>
                 </div>

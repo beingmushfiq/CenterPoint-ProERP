@@ -44,7 +44,7 @@ final class PosSessionController extends Controller
 
         $sessions = $query->orderByDesc('opened_at')
             ->orderByDesc('id')
-            ->paginate((int) $request->query('per_page', 25));
+            ->paginate($request->integer('per_page', 25));
 
         return PosSessionResource::collection($sessions);
     }
@@ -54,12 +54,16 @@ final class PosSessionController extends Controller
         $tenantId = TenantContext::current()->tenantId();
         $validated = $request->validated();
 
-        $session = $this->openSession->execute([
-            ...$validated,
-            'tenant_id' => $tenantId,
-            'user_id' => (int) $request->user()?->id,
-            'created_by' => (int) $request->user()?->id,
-        ]);
+        try {
+            $session = $this->openSession->execute([
+                ...$validated,
+                'tenant_id' => $tenantId,
+                'user_id' => (int) $request->user()?->id,
+                'created_by' => (int) $request->user()?->id,
+            ]);
+        } catch (\DomainException $e) {
+            abort(422, $e->getMessage());
+        }
 
         return (new PosSessionResource($session))
             ->response()
@@ -86,11 +90,15 @@ final class PosSessionController extends Controller
             ->where('id', $id)
             ->firstOrFail();
 
-        $closed = $this->closeSession->execute(
-            $session,
-            (int) $request->user()?->id,
-            $request->validated()
-        );
+        try {
+            $closed = $this->closeSession->execute(
+                $session,
+                (int) $request->user()?->id,
+                $request->validated()
+            );
+        } catch (\DomainException $e) {
+            abort(422, $e->getMessage());
+        }
 
         return new PosSessionResource($closed->load(['terminal']));
     }

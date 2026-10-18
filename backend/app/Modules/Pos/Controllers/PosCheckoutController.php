@@ -24,12 +24,16 @@ final class PosCheckoutController extends Controller
         $tenantId = TenantContext::current()->tenantId();
         $validated = $request->validated();
 
-        /** @var array{pos_session_id: int, items: list<array{product_id: int, quantity: string, unit_id: int, unit_price: string}>, payments: list<array{method: string, amount: string}>} $validated */
-        $result = $this->checkoutAction->execute([
-            ...$validated,
-            'tenant_id' => $tenantId,
-            'user_id' => (int) $request->user()?->id,
-        ]);
+        try {
+            /** @var array{pos_session_id: int, items: list<array{product_id: int, quantity: string, unit_id: int, unit_price: string}>, payments: list<array{method: string, amount: string}>} $validated */
+            $result = $this->checkoutAction->execute([
+                ...$validated,
+                'tenant_id' => $tenantId,
+                'user_id' => (int) $request->user()?->id,
+            ]);
+        } catch (\DomainException $e) {
+            abort(422, $e->getMessage());
+        }
 
         return response()->json([
             'data' => [

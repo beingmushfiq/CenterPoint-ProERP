@@ -97,6 +97,8 @@ Route::middleware(['auth.jwt', 'tenant.resolve', 'tenant.active'])
                 ->middleware('permission:catalog.category.delete')->name('destroy');
         });
 
+        Route::get('inventory/categories', [App\Modules\Catalogue\Controllers\CategoryController::class, 'index'])->middleware('permission:catalog.category.view')->name('inventory.categories.alias');
+
         Route::prefix('reason-codes')->name('reason-codes.')->group(static function (): void {
             Route::get('options', [App\Modules\Catalogue\Controllers\ReasonCodeController::class, 'options'])
                 ->middleware('permission:inventory.stock.view')->name('options');
@@ -406,6 +408,8 @@ Route::middleware(['auth.jwt', 'tenant.resolve', 'tenant.active'])
 
         // ── Inventory & Logistics ─────────────────────────────────────
         Route::prefix('inventory')->name('inventory.')->middleware('module.active:inventory')->group(static function (): void {
+            Route::get('categories', [App\Modules\Catalogue\Controllers\CategoryController::class, 'index'])
+                ->middleware('permission:catalog.category.view')->name('categories.index');
             Route::post('opening-stock/bulk-import', [App\Modules\Inventory\Controllers\StockMovementController::class, 'bulkImport'])
                 ->middleware('permission:inventory.stock.view')->name('opening-stock.bulk-import');
             Route::post('balances/bulk-import', [App\Modules\Inventory\Controllers\StockMovementController::class, 'bulkImport'])
@@ -537,6 +541,8 @@ Route::middleware(['auth.jwt', 'tenant.resolve', 'tenant.active'])
                     ->middleware('permission:purchasing.receipt.create')->name('update');
                 Route::post('{id}/complete', [App\Modules\Purchasing\Controllers\GoodsReceiptController::class, 'complete'])
                     ->middleware('permission:purchasing.receipt.create')->name('complete');
+                Route::post('{id}/qc', [App\Modules\Purchasing\Controllers\GoodsReceiptController::class, 'qc'])
+                    ->middleware('permission:purchasing.receipt.create')->name('qc');
                 Route::delete('{id}', [App\Modules\Purchasing\Controllers\GoodsReceiptController::class, 'destroy'])
                     ->middleware('permission:purchasing.receipt.delete')->name('destroy');
             });
@@ -1131,6 +1137,7 @@ Route::middleware(['auth.jwt', 'tenant.resolve', 'tenant.active'])
         // ── Real-time Notifications ───────────────────────────────────
         Route::prefix('notifications')->name('notifications.')->group(static function (): void {
             Route::get('/', [App\Modules\Notifications\Controllers\NotificationController::class, 'index'])->name('index');
+            Route::post('/', [App\Modules\Notifications\Controllers\NotificationController::class, 'store'])->name('store');
             Route::post('read-all', [App\Modules\Notifications\Controllers\NotificationController::class, 'markAllAsRead'])->name('read-all');
             Route::post('{id}/read', [App\Modules\Notifications\Controllers\NotificationController::class, 'markAsRead'])->name('read');
         });

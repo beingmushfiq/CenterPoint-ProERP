@@ -916,11 +916,16 @@ export function POSShell({ session, onExit }: POSShellProps) {
     } catch (err: unknown) {
       console.error('POS Checkout Failed', err);
       const apiErr = err as { message?: string; response?: { data?: { message?: string } } };
+      const rawMsg = apiErr.message || apiErr.response?.data?.message || '';
+      const isSessionError =
+        rawMsg.toLowerCase().includes('possession') ||
+        rawMsg.toLowerCase().includes('pos session') ||
+        rawMsg.toLowerCase().includes('cashier shift');
+
       notify.error('Checkout failed', {
-        description:
-          apiErr.message ||
-          apiErr.response?.data?.message ||
-          'Please ensure terminal session is active and stock is valid.',
+        description: isSessionError
+          ? 'Active cashier shift session was not found or has expired. Please open a shift register.'
+          : rawMsg || 'Please ensure terminal session is active and stock is valid.',
       });
     } finally {
       setCheckingOut(false);

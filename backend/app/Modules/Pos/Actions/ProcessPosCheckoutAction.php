@@ -61,14 +61,27 @@ final class ProcessPosCheckoutAction
     public function execute(array $data): array
     {
         return DB::transaction(function () use ($data): array {
-            /** @var PosSession $session */
+            /** @var PosSession|null $session */
             $session = PosSession::where('tenant_id', $data['tenant_id'])
                 ->where('id', $data['pos_session_id'])
                 ->lockForUpdate()
-                ->firstOrFail();
+                ->first();
 
-            if ($session->status !== 'open') {
-                throw new DomainException("POS Session [{$session->session_number}] is not open.");
+            // If the provided session ID is invalid/closed, check if an active open session exists for this tenant
+            if (! $session || $session->status !== 'open') {
+                $fallbackSession = PosSession::where('tenant_id', $data['tenant_id'])
+                    ->where('status', 'open')
+                    ->latest('opened_at')
+                    ->lockForUpdate()
+                    ->first();
+
+                if ($fallbackSession) {
+                    $session = $fallbackSession;
+                } elseif (! $session) {
+                    throw new DomainException("POS Session (#{$data['pos_session_id']}) not found. Please open an active cashier shift before checking out.");
+                } else {
+                    throw new DomainException("POS Session [{$session->session_number}] is not open.");
+                }
             }
 
             $orderNumber = 'POS-SO-'.date('Ymd').'-'.strtoupper(Str::random(6));

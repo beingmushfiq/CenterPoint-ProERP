@@ -70,4 +70,38 @@ class NotificationController extends Controller
             'message' => 'All notifications marked as read.',
         ]);
     }
+
+    public function store(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'user_id' => ['nullable', 'integer'],
+            'type' => ['required', 'string', 'max:100'],
+            'title' => ['nullable', 'string', 'max:255'],
+            'title_key' => ['nullable', 'string', 'max:255'],
+            'message' => ['nullable', 'string'],
+            'body_key' => ['nullable', 'string'],
+            'severity' => ['nullable', 'string', 'in:info,success,warning,error'],
+            'action_url' => ['nullable', 'string', 'max:500'],
+            'params' => ['nullable', 'array'],
+        ]);
+
+        $userId = $validated['user_id'] ?? $request->user()?->id ?? 1;
+
+        $notification = Notification::create([
+            'user_id' => $userId,
+            'type' => $validated['type'],
+            'channel' => 'in_app',
+            'title_key' => $validated['title'] ?? $validated['title_key'] ?? 'Notification',
+            'body_key' => $validated['message'] ?? $validated['body_key'] ?? '',
+            'severity' => $validated['severity'] ?? 'info',
+            'action_url' => $validated['action_url'] ?? null,
+            'params' => $validated['params'] ?? [],
+            'sent_at' => now(),
+        ]);
+
+        return response()->json([
+            'message' => 'Notification created successfully.',
+            'data' => $notification,
+        ], 201);
+    }
 }
