@@ -36,7 +36,6 @@ import {
   BarChart3,
   Volume2,
   VolumeX,
-  KeyRound,
   CloudOff,
   X,
 } from 'lucide-react';
@@ -906,7 +905,7 @@ export function POSShell({ session, onExit }: POSShellProps) {
         ? splitPayments.some((p) => p.method === 'cash' && p.amount > 0)
         : tenderMethod === 'cash';
       if (hasCashTender) {
-        kickCashDrawer('cash_checkout', session.user?.name);
+        kickCashDrawer('cash_checkout', session.operator_name || 'Cashier');
       }
 
       // 3. Cache completed receipt locally for 1-click re-print
@@ -953,7 +952,7 @@ export function POSShell({ session, onExit }: POSShellProps) {
           ? splitPayments.some((p) => p.method === 'cash' && p.amount > 0)
           : tenderMethod === 'cash';
         if (hasCashTender) {
-          kickCashDrawer('cash_checkout', session.user?.name);
+          kickCashDrawer('cash_checkout', session.operator_name || 'Cashier');
         }
         clearCart();
         notify.warning('Saved to Offline Queue', {
@@ -1232,7 +1231,7 @@ export function POSShell({ session, onExit }: POSShellProps) {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [cart, checkingOut, session.operator_name, updateCurrentSlot]);
+  }, [cart, checkingOut, handleCheckout, session.operator_name, updateCurrentSlot]);
 
   // Smart category tabs derived from actual products & category records
   const categoryTabs = useMemo(() => {

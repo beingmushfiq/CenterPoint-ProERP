@@ -4,19 +4,19 @@ import type { PosCheckoutResult, PosCheckoutPayload } from '../../../types/api/p
 export interface PosOfflineReceipt {
   id: string;
   orderNumber: string;
-  invoiceId?: number;
+  invoiceId?: number | undefined;
   total: number;
   paymentMethod: string;
-  cashTendered?: number;
-  changeAmount?: number;
+  cashTendered?: number | undefined;
+  changeAmount?: number | undefined;
   itemsCount: number;
   timestamp: string;
-  customerName?: string;
-  customerPhone?: string;
-  checkoutResult?: PosCheckoutResult;
+  customerName?: string | undefined;
+  customerPhone?: string | undefined;
+  checkoutResult?: PosCheckoutResult | undefined;
   items: Array<{
     name: string;
-    sku?: string;
+    sku?: string | undefined;
     quantity: number;
     price: number;
     total: number;
@@ -29,10 +29,10 @@ export interface PosOfflinePendingSale {
   timestamp: string;
   subtotal: number;
   total: number;
-  customerName?: string;
+  customerName?: string | undefined;
   itemsCount: number;
   retryCount: number;
-  lastError?: string;
+  lastError?: string | undefined;
 }
 
 export interface CashDrawerEvent {

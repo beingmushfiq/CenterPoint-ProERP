@@ -23,7 +23,7 @@ class NotificationController extends Controller
             $query->whereNull('read_at');
         }
 
-        $notifications = $query->paginate((int) $request->query('per_page', 20));
+        $notifications = $query->paginate($request->integer('per_page', 20));
 
         $unreadCount = Notification::where('user_id', $userId)
             ->whereNull('read_at')
@@ -44,6 +44,7 @@ class NotificationController extends Controller
     {
         $userId = $request->user()?->id ?? 1;
 
+        /** @var Notification $notification */
         $notification = Notification::where('user_id', $userId)
             ->where(function ($q) use ($id): void {
                 $q->where('id', $id)->orWhere('uuid', $id);
