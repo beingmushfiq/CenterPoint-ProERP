@@ -38,6 +38,7 @@ import { useTablePrefs } from '../../../hooks/useTablePrefs';
 import { DestructiveConfirmationDialog } from '../../../components/ui/DestructiveConfirmationDialog';
 import { AuditTimelineDrawer } from '../../../components/ui/AuditTimelineDrawer';
 import { ResponsiveDataTable } from '../../../components/ui/ResponsiveDataTable';
+import { SelectDropdown } from '../../../components/ui/Dropdown';
 
 const BALANCE_COLUMNS: ColumnDef[] = [
   { key: 'select', label: 'Select', required: true },
@@ -56,6 +57,7 @@ export function StockLedgerSection() {
   const { formatCurrency } = useCurrency();
   const [viewMode, setViewMode] = useState<'movements' | 'balances'>('balances');
   const [search, setSearch] = useState('');
+  const [shelfLifeFilter, setShelfLifeFilter] = useState<'all' | 'critical' | 'expired' | 'healthy'>('all');
   const [viewingBalance, setViewingBalance] = useState<StockBalance | null>(null);
   const [viewingMovement, setViewingMovement] = useState<StockMovement | null>(null);
   const [auditingBalance, setAuditingBalance] = useState<StockBalance | null>(null);
@@ -242,13 +244,24 @@ export function StockLedgerSection() {
     }
   };
 
-  const filteredBalances = balances.filter(
-    (b) =>
+  const filteredBalances = balances.filter((b) => {
+    const matchesSearch =
       b.product_name?.toLowerCase().includes(search.toLowerCase()) ||
       b.product_sku?.toLowerCase().includes(search.toLowerCase()) ||
       b.warehouse_name?.toLowerCase().includes(search.toLowerCase()) ||
-      (b.batch_code && b.batch_code.toLowerCase().includes(search.toLowerCase()))
-  );
+      (b.batch_code && b.batch_code.toLowerCase().includes(search.toLowerCase()));
+
+    if (!matchesSearch) return false;
+
+    if (shelfLifeFilter === 'all') return true;
+    if (shelfLifeFilter === 'expired') return b.shelf_life_status === 'expired';
+    if (shelfLifeFilter === 'critical') return b.shelf_life_status === 'critical' || b.shelf_life_status === 'expired';
+    if (shelfLifeFilter === 'healthy') return b.shelf_life_status === 'healthy';
+    return true;
+  });
+
+  const expiredCount = balances.filter((b) => b.shelf_life_status === 'expired').length;
+  const criticalCount = balances.filter((b) => b.shelf_life_status === 'critical').length;
 
   const filteredMovements = movements.filter(
     (m) =>
@@ -517,6 +530,46 @@ export function StockLedgerSection() {
             Under QC hold or pending write-off salvage
           </div>
         </div>
+
+        <div className="rounded-2xl border border-default bg-surface p-4.5 shadow-2xs">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-semibold text-muted uppercase tracking-wider">
+              Batch &amp; Expiry Watch
+            </span>
+            <div
+              className={`p-2 rounded-xl border ${
+                expiredCount > 0
+                  ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20'
+                  : criticalCount > 0
+                  ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20'
+                  : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
+              }`}
+            >
+              <ShieldAlert className="h-4 w-4" />
+            </div>
+          </div>
+          <div className="mt-2 text-xl font-bold font-mono text-default flex items-baseline gap-1.5">
+            <span
+              className={
+                expiredCount > 0
+                  ? 'text-rose-600 dark:text-rose-400 font-extrabold'
+                  : criticalCount > 0
+                  ? 'text-amber-600 dark:text-amber-400 font-extrabold'
+                  : 'text-emerald-600 dark:text-emerald-400'
+              }
+            >
+              {expiredCount + criticalCount}
+            </span>
+            <span className="text-xs text-muted font-normal">Lots on Alert</span>
+          </div>
+          <div className="mt-1 text-[11px] text-muted">
+            {expiredCount > 0
+              ? `${expiredCount} expired lot(s) need disposal`
+              : criticalCount > 0
+              ? `${criticalCount} lots expiring within 30 days`
+              : 'All assigned batches are within safe shelf-life'}
+          </div>
+        </div>
       </div>
 
       {/* 7-Day Inflow vs Outflow Velocity Chart */}
@@ -626,6 +679,19 @@ export function StockLedgerSection() {
                 <FileSpreadsheet className="size-3.5 text-primary" />
                 <span>Export {selectedBalanceIds.size > 0 ? `(${selectedBalanceIds.size})` : 'CSV'}</span>
               </button>
+
+              <SelectDropdown
+                options={[
+                  { value: 'all', label: 'All Shelf-Life' },
+                  { value: 'critical', label: 'Expiring (<30d)', colorDot: 'bg-amber-500' },
+                  { value: 'expired', label: 'Expired Lots', colorDot: 'bg-rose-500' },
+                  { value: 'healthy', label: 'Healthy (>60d)', colorDot: 'bg-emerald-500' },
+                ]}
+                value={shelfLifeFilter}
+                onChange={(val) => setShelfLifeFilter(val as 'all' | 'critical' | 'expired' | 'healthy')}
+                size="sm"
+                aria-label="Filter by shelf life"
+              />
             </>
           )}
 
@@ -763,9 +829,38 @@ export function StockLedgerSection() {
                 }] : []),
                 ...(isVisible('lot') ? [{
                   id: 'lot',
-                  header: 'Lot / Batch',
+                  header: 'Lot / Batch & Expiry',
                   priority: 'low' as const,
-                  cell: (b: StockBalance) => <span className="font-mono text-muted">{b.batch_code ?? '—'}</span>,
+                  cell: (b: StockBalance) => (
+                    <div>
+                      <div className="font-mono text-default font-medium text-xs">
+                        {b.batch_code || 'No Lot Assigned'}
+                      </div>
+                      {b.expiry_date && (
+                        <div className="flex items-center gap-1 mt-0.5">
+                          <span
+                            className={`inline-flex items-center px-1.5 py-0.2 rounded text-[10px] font-bold ${
+                              b.shelf_life_status === 'expired'
+                                ? 'bg-rose-500/15 text-rose-700 dark:text-rose-300 border border-rose-500/30'
+                                : b.shelf_life_status === 'critical'
+                                ? 'bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30'
+                                : b.shelf_life_status === 'warning'
+                                ? 'bg-yellow-500/15 text-yellow-700 dark:text-yellow-300 border border-yellow-500/30'
+                                : 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
+                            }`}
+                          >
+                            {b.shelf_life_status === 'expired'
+                              ? `Expired (${Math.abs(b.days_to_expiry ?? 0)}d ago)`
+                              : b.shelf_life_status === 'critical'
+                              ? `Expiring in ${b.days_to_expiry}d`
+                              : b.shelf_life_status === 'warning'
+                              ? `${b.days_to_expiry}d shelf-life`
+                              : `Fresh (${b.expiry_date})`}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  ),
                 }] : []),
                 ...(isVisible('state') ? [{
                   id: 'state',
@@ -1161,6 +1256,26 @@ export function StockLedgerSection() {
                 <div>
                   <span className="text-[10px] text-muted uppercase font-semibold block">Batch / Lot Code</span>
                   <span className="font-mono font-medium text-default">{viewingBalance.batch_code ?? 'Unassigned Lot'}</span>
+                </div>
+                <div>
+                  <span className="text-[10px] text-muted uppercase font-semibold block">Shelf-Life &amp; Expiry</span>
+                  {viewingBalance.expiry_date ? (
+                    <span
+                      className={`inline-flex items-center px-1.5 py-0.5 rounded text-2xs font-bold ${
+                        viewingBalance.shelf_life_status === 'expired'
+                          ? 'bg-rose-500/15 text-rose-600 dark:text-rose-400'
+                          : viewingBalance.shelf_life_status === 'critical'
+                          ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400'
+                          : 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
+                      }`}
+                    >
+                      {viewingBalance.shelf_life_status === 'expired'
+                        ? `Expired (${viewingBalance.expiry_date})`
+                        : `${viewingBalance.days_to_expiry}d left (${viewingBalance.expiry_date})`}
+                    </span>
+                  ) : (
+                    <span className="font-mono text-muted text-xs">No Expiry Assigned</span>
+                  )}
                 </div>
                 <div>
                   <span className="text-[10px] text-muted uppercase font-semibold block">Average Unit Cost</span>

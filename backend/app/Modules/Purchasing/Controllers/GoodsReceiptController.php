@@ -141,16 +141,50 @@ final class GoodsReceiptController extends Controller
             ->where('id', $id)
             ->firstOrFail();
 
-        $status = $request->input('status', 'qc_pending');
+        $status = (string) $request->input('status', 'qc_pending');
+        $notes = $request->input('notes');
 
-        $receipt->update([
-            'status' => $status,
-        ]);
+        $updateData = ['status' => $status];
+        if ($notes !== null && trim((string) $notes) !== '') {
+            $prefix = $receipt->notes ? rtrim($receipt->notes) . "\n[QC Note]: " : '[QC Note]: ';
+            $updateData['notes'] = $prefix . trim((string) $notes);
+        }
+
+        $receipt->update($updateData);
+
+        // Update individual item inspection records if provided
+        $itemsData = $request->input('items');
+        if (is_array($itemsData)) {
+            foreach ($itemsData as $itemInput) {
+                if (!is_array($itemInput) || !isset($itemInput['id'])) {
+                    continue;
+                }
+                $item = $receipt->items()->where('id', (int) $itemInput['id'])->first();
+                if ($item) {
+                    $itemUpdate = [];
+                    if (isset($itemInput['accepted_quantity'])) {
+                        $itemUpdate['accepted_quantity'] = (string) $itemInput['accepted_quantity'];
+                    }
+                    if (isset($itemInput['rejected_quantity'])) {
+                        $itemUpdate['rejected_quantity'] = (string) $itemInput['rejected_quantity'];
+                    }
+                    if (isset($itemInput['batch_code'])) {
+                        $itemUpdate['batch_code'] = (string) $itemInput['batch_code'];
+                    }
+                    if (array_key_exists('expiry_date', $itemInput)) {
+                        $itemUpdate['expiry_date'] = $itemInput['expiry_date'] ? (string) $itemInput['expiry_date'] : null;
+                    }
+                    if (!empty($itemUpdate)) {
+                        $item->update($itemUpdate);
+                    }
+                }
+            }
+        }
 
         return response()->json([
             'success' => true,
             'message' => 'Goods receipt status updated for QC.',
-            'data' => new GoodsReceiptResource($receipt->fresh()),
+            'data' => new GoodsReceiptResource($receipt->fresh(['items'])),
             'meta' => ['correlation_id' => (string) $request->header('X-Correlation-Id', '')],
         ]);
     }

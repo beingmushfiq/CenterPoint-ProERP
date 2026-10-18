@@ -17,9 +17,11 @@ import {
   ChevronDown,
   ShieldCheck,
   ShieldAlert,
+  AlertTriangle,
   Eye,
 } from 'lucide-react';
 import type { GoodsReceipt } from '../../../types/api/purchasing';
+import { GoodsReceiptQcModal } from '../modals/GoodsReceiptQcModal';
 import { api } from '../../../lib/api/client';
 import { extractList } from '../../../lib/api/apiData';
 import { PrintPreviewModal } from '../../../components/print/PrintPreviewModal';
@@ -59,6 +61,7 @@ export function GoodsReceiptsSection() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [activeGrn, setActiveGrn] = useState<GoodsReceipt | null>(null);
   const [printGrn, setPrintGrn] = useState<GoodsReceipt | null>(null);
+  const [qcModalGrn, setQcModalGrn] = useState<GoodsReceipt | null>(null);
   const [openActionMenuId, setOpenActionMenuId] = useState<number | null>(null);
   const [actionMenuAnchor, setActionMenuAnchor] = useState<HTMLElement | null>(null);
   const { config: businessConfig } = useBusinessConfig();
@@ -288,16 +291,40 @@ export function GoodsReceiptsSection() {
             <ShieldAlert className="size-3 text-sky-500" /> In QC Inspection
           </span>
         );
-      case 'completed':
+      case 'qc_passed':
         return (
           <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold uppercase bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-            <CheckCircle2 className="size-3 text-emerald-500" /> Stock Ingested
+            <ShieldCheck className="size-3 text-emerald-500" /> QC Passed
+          </span>
+        );
+      case 'partially_accepted':
+        return (
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold uppercase bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+            <AlertTriangle className="size-3 text-amber-500" /> Partially Accepted
+          </span>
+        );
+      case 'qc_failed':
+        return (
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold uppercase bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20">
+            <XCircle className="size-3 text-rose-500" /> QC Rejected
+          </span>
+        );
+      case 'completed':
+        return (
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold uppercase bg-teal-500/10 text-teal-600 dark:text-teal-400 border border-teal-500/20">
+            <CheckCircle2 className="size-3 text-teal-500" /> Stock Ingested
           </span>
         );
       case 'cancelled':
         return (
           <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold uppercase bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20">
             <XCircle className="size-3 text-rose-500" /> Cancelled
+          </span>
+        );
+      default:
+        return (
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold uppercase bg-surface-sunken text-muted border border-default">
+            {status}
           </span>
         );
     }
@@ -447,9 +474,22 @@ export function GoodsReceiptsSection() {
           },
         },
         {
-          label: 'Send to QC Inspection',
+          label: 'QC Inspection & Sign-off',
           icon: <ShieldCheck className="size-4 text-sky-500" />,
-          onClick: () => handleSendToQc(receipt),
+          onClick: () => setQcModalGrn(receipt),
+        },
+        {
+          label: 'Ingest Stock into Ledger',
+          icon: <CheckCircle2 className="size-4 text-emerald-500" />,
+          onClick: () => handleCompleteGrn(receipt.id),
+        }
+      );
+    } else if (receipt.status === 'qc_pending' || receipt.status === 'partially_accepted') {
+      actions.push(
+        {
+          label: 'Perform QC Inspection',
+          icon: <ShieldCheck className="size-4 text-sky-500" />,
+          onClick: () => setQcModalGrn(receipt),
         },
         {
           label: 'Ingest Stock into Ledger',
@@ -574,8 +614,12 @@ export function GoodsReceiptsSection() {
             options={[
               { value: 'all', label: 'All Statuses' },
               { value: 'draft', label: 'Pending QA', colorDot: 'bg-amber-500' },
-              { value: 'completed', label: 'Stock Ingested', colorDot: 'bg-emerald-500' },
-              { value: 'cancelled', label: 'Cancelled', colorDot: 'bg-rose-500' },
+              { value: 'qc_pending', label: 'In QC Inspection', colorDot: 'bg-sky-500' },
+              { value: 'qc_passed', label: 'QC Passed', colorDot: 'bg-emerald-500' },
+              { value: 'partially_accepted', label: 'Partially Accepted', colorDot: 'bg-amber-500' },
+              { value: 'completed', label: 'Stock Ingested', colorDot: 'bg-teal-500' },
+              { value: 'qc_failed', label: 'QC Rejected', colorDot: 'bg-rose-500' },
+              { value: 'cancelled', label: 'Cancelled', colorDot: 'bg-slate-500' },
             ]}
             value={statusFilter}
             onChange={(val) => setStatusFilter(val)}
@@ -673,12 +717,12 @@ export function GoodsReceiptsSection() {
                         onClick={() => {
                           setOpenActionMenuId(null);
                           setActionMenuAnchor(null);
-                          handleSendToQc(receipt);
+                          setQcModalGrn(receipt);
                         }}
                         className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left text-sky-600 dark:text-sky-400 hover:bg-sky-500/10 transition-colors cursor-pointer font-medium"
                       >
                         <ShieldCheck className="size-3.5 text-sky-500" />
-                        <span>Send to QC Inspection</span>
+                        <span>QC Inspection & Sign-off</span>
                       </button>
 
                       <button
@@ -1111,6 +1155,23 @@ export function GoodsReceiptsSection() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Quality Control & Inspection Wizard Modal */}
+      {qcModalGrn && (
+        <GoodsReceiptQcModal
+          open={Boolean(qcModalGrn)}
+          grn={qcModalGrn}
+          onClose={() => setQcModalGrn(null)}
+          onSuccess={(updatedGrn) => {
+            queryClient.setQueryData<GoodsReceipt[]>(['purchasing', 'goods-receipts'], (prev = []) =>
+              prev.map((g) => (g.id === updatedGrn.id ? updatedGrn : g))
+            );
+            if (activeGrn?.id === updatedGrn.id) {
+              setActiveGrn(updatedGrn);
+            }
+          }}
+        />
       )}
 
       {/* Print Goods Receipt Note Modal */}

@@ -119,31 +119,65 @@ final class StockThresholdController extends Controller
     {
         $tenantId = TenantContext::current()->tenantId();
 
-        // Get all alerts where stock <= min_stock_alert
-        $thresholds = ProductWarehouseMinStock::where('tenant_id', $tenantId)
-            ->with(['product:id,name,sku', 'warehouse:id,name'])
+        $products = Product::where('tenant_id', $tenantId)
+            ->where('status', 'active')
+            ->where('is_stock_tracked', true)
+            ->with(['baseUnit:id,name,code', 'category:id,name'])
             ->get();
 
-        $alerts = [];
-        foreach ($thresholds as $t) {
-            $stock = (float) StockBalance::where('tenant_id', $tenantId)
-                ->where('product_id', $t->product_id)
-                ->where('warehouse_id', $t->warehouse_id)
-                ->where('stock_state', 'available')
-                ->sum('quantity');
+        $warehouses = Warehouse::where('tenant_id', $tenantId)
+            ->where('is_active', true)
+            ->get();
 
-            $min = (float) $t->min_stock_alert;
-            if ($stock <= $min) {
-                $alerts[] = [
-                    'product_id' => $t->product_id,
-                    'product_name' => $t->product?->name ?? 'Unknown',
-                    'sku' => $t->product?->sku ?? '',
-                    'warehouse_id' => $t->warehouse_id,
-                    'warehouse_name' => $t->warehouse?->name ?? '',
-                    'current_stock' => $stock,
-                    'min_stock_alert' => $min,
-                    'deficit' => $min - $stock,
-                ];
+        $thresholds = ProductWarehouseMinStock::where('tenant_id', $tenantId)->get();
+        $thresholdMap = [];
+        foreach ($thresholds as $t) {
+            $thresholdMap[$t->product_id.'_'.$t->warehouse_id] = $t;
+        }
+
+        // Sum current stock by product and warehouse
+        $balances = StockBalance::where('tenant_id', $tenantId)
+            ->where('stock_state', 'available')
+            ->selectRaw('product_id, warehouse_id, SUM(quantity) as available_qty')
+            ->groupBy('product_id', 'warehouse_id')
+            ->get();
+
+        $balanceMap = [];
+        foreach ($balances as $b) {
+            $balanceMap[$b->product_id.'_'.$b->warehouse_id] = (float) $b->available_qty;
+        }
+
+        $alerts = [];
+        foreach ($products as $p) {
+            foreach ($warehouses as $w) {
+                $key = $p->id.'_'.$w->id;
+                $threshold = $thresholdMap[$key] ?? null;
+                $currentStock = $balanceMap[$key] ?? 0.0;
+                $minAlert = $threshold ? (float) $threshold->min_stock_alert : (float) ($p->reorder_level ?? 10.0);
+                $reorderQty = $threshold ? (float) $threshold->reorder_quantity : (float) ($p->reorder_quantity ?? 50.0);
+
+                if ($currentStock <= $minAlert) {
+                    $deficit = max(0.0, $minAlert - $currentStock);
+                    $suggestedOrderQty = max($reorderQty, $deficit + 10.0);
+
+                    $alerts[] = [
+                        'product_id' => $p->id,
+                        'product_name' => $p->name,
+                        'sku' => $p->sku,
+                        'category_name' => $p->category?->name ?? 'General',
+                        'unit_id' => $p->base_unit_id,
+                        'unit_code' => $p->baseUnit?->code ?? 'PCS',
+                        'unit_cost' => (float) $p->standard_cost,
+                        'warehouse_id' => $w->id,
+                        'warehouse_name' => $w->name,
+                        'current_stock' => $currentStock,
+                        'min_stock_alert' => $minAlert,
+                        'deficit' => $deficit,
+                        'reorder_quantity' => $reorderQty,
+                        'suggested_order_qty' => $suggestedOrderQty,
+                        'estimated_order_cost' => round($suggestedOrderQty * (float) $p->standard_cost, 2),
+                    ];
+                }
             }
         }
 

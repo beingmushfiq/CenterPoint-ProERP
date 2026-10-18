@@ -6,7 +6,7 @@
 export type PurchaseOrderStatus =
   'draft' | 'approved' | 'partially_received' | 'received' | 'cancelled' | 'closed';
 
-export type GoodsReceiptStatus = 'draft' | 'completed' | 'cancelled' | 'qc_pending';
+export type GoodsReceiptStatus = 'draft' | 'completed' | 'cancelled' | 'qc_pending' | 'qc_passed' | 'qc_failed' | 'partially_accepted';
 
 export type PurchaseBillStatus = 'draft' | 'pending' | 'approved' | 'paid' | 'cancelled';
 

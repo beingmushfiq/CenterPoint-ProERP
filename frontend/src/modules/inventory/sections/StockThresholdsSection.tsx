@@ -15,6 +15,7 @@ import {
   SlidersHorizontal,
   History,
   ArrowRightLeft,
+  Sparkles,
 } from 'lucide-react';
 import { api } from '../../../lib/api/client';
 import { KPICard } from '../../../components/ui/KPICard';
@@ -22,6 +23,7 @@ import { Badge } from '../../../components/ui/Badge';
 import { Button } from '../../../components/ui/Button';
 import { ActionMenuPortal } from '../../../components/ui/ActionMenuPortal';
 import { cn } from '../../../lib/utils';
+import { AutoReorderPoModal } from '../../purchasing/modals/AutoReorderPoModal';
 
 interface StockThresholdItem {
   product_id: number;
@@ -58,6 +60,7 @@ export const StockThresholdsSection: React.FC = () => {
   const [editMinAlert, setEditMinAlert] = useState<string>('10');
   const [editReorderQty, setEditReorderQty] = useState<string>('50');
   const [editMaxLevel, setEditMaxLevel] = useState<string>('500');
+  const [reorderItem, setReorderItem] = useState<StockThresholdItem | null>(null);
   const [openActionMenuKey, setOpenActionMenuKey] = useState<string | null>(null);
   const [actionMenuAnchor, setActionMenuAnchor] = useState<HTMLElement | null>(null);
 
@@ -327,6 +330,18 @@ export const StockThresholdsSection: React.FC = () => {
                       </td>
                       <td className="px-5 py-3.5 text-right">
                         <div className="flex items-center justify-end gap-1.5">
+                          {item.is_low_stock && (
+                            <button
+                              type="button"
+                              onClick={() => setReorderItem(item)}
+                              className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-bold rounded-lg bg-amber-500 hover:bg-amber-600 text-white shadow-2xs transition-colors cursor-pointer"
+                              title="Generate draft PO to reorder this low-stock item"
+                            >
+                              <Sparkles className="size-3" />
+                              <span>Auto-Reorder</span>
+                            </button>
+                          )}
+
                           <Button
                             size="sm"
                             variant="secondary"
@@ -523,6 +538,36 @@ export const StockThresholdsSection: React.FC = () => {
             </form>
           </div>
         </div>
+      )}
+
+      {/* 1-Click Auto-Reorder PO Draft Modal */}
+      {reorderItem && (
+        <AutoReorderPoModal
+          open={Boolean(reorderItem)}
+          onClose={() => setReorderItem(null)}
+          initialAlerts={[
+            {
+              product_id: reorderItem.product_id,
+              product_name: reorderItem.product_name,
+              sku: reorderItem.sku,
+              category_name: reorderItem.category_name,
+              unit_id: 1,
+              unit_code: reorderItem.unit_code,
+              unit_cost: 50,
+              warehouse_id: reorderItem.warehouse_id,
+              warehouse_name: reorderItem.warehouse_name,
+              current_stock: reorderItem.current_stock,
+              min_stock_alert: reorderItem.min_stock_alert,
+              deficit: reorderItem.deficit,
+              reorder_quantity: reorderItem.reorder_quantity,
+              suggested_order_qty: Math.max(reorderItem.reorder_quantity, reorderItem.deficit + 10),
+              estimated_order_cost: Math.max(reorderItem.reorder_quantity, reorderItem.deficit + 10) * 50,
+            },
+          ]}
+          onSuccess={() => {
+            queryClient.invalidateQueries({ queryKey: ['inventory', 'thresholds'] });
+          }}
+        />
       )}
     </div>
   );

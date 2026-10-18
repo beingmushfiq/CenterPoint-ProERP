@@ -15,6 +15,7 @@ import {
   Zap,
   AlertTriangle,
   Building2,
+  Sparkles,
 } from 'lucide-react';
 import { api } from '../../lib/api/client';
 import { SuppliersSection } from './sections/SuppliersSection';
@@ -31,6 +32,7 @@ import type { PurchaseOrder } from '../../types/api/purchasing';
 import { FastPoModal } from './modals/FastPoModal';
 import { FastGrnModal } from './modals/FastGrnModal';
 import { FastBillModal } from './modals/FastBillModal';
+import { AutoReorderPoModal, type LowStockAlertItem } from './modals/AutoReorderPoModal';
 import {
   WorkspaceNavigationHub,
   WORKSPACE_THEMES,
@@ -60,14 +62,15 @@ export default function PurchasingWorkspace() {
   const [showFastPoModal, setShowFastPoModal] = useState(false);
   const [showFastGrnModal, setShowFastGrnModal] = useState(false);
   const [showFastBillModal, setShowFastBillModal] = useState(false);
+  const [showAutoReorderModal, setShowAutoReorderModal] = useState(false);
   const [selectedPoForAction, setSelectedPoForAction] = useState<PurchaseOrder | null>(null);
 
   // Low-Stock Threshold Alerts
-  const { data: stockAlerts = [] } = useQuery<Array<{ product_id: number; product_name?: string; sku?: string; current_stock: number; min_stock_alert: number }>>({
+  const { data: stockAlerts = [] } = useQuery<LowStockAlertItem[]>({
     queryKey: ['inventory', 'thresholds', 'alerts'],
     queryFn: async () => {
       try {
-        const res = await api.get<{ data?: Array<{ product_id: number; product_name?: string; sku?: string; current_stock: number; min_stock_alert: number }> }>('/inventory/thresholds/alerts');
+        const res = await api.get<{ data?: LowStockAlertItem[] }>('/inventory/thresholds/alerts');
         return res.data?.data ?? [];
       } catch {
         return [];
@@ -344,6 +347,33 @@ export default function PurchasingWorkspace() {
         </div>
       </div>
 
+      {/* Low-Stock Auto-Reorder Alert Banner */}
+      {stockAlerts.length > 0 && (
+        <div className="flex items-center justify-between p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-xs shadow-xs animate-in fade-in">
+          <div className="flex items-center gap-3">
+            <div className="size-9 rounded-xl bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+              <AlertTriangle className="size-4.5" />
+            </div>
+            <div>
+              <span className="font-bold text-default block">
+                {stockAlerts.length} {stockAlerts.length === 1 ? 'Product is' : 'Products are'} below safety reorder threshold!
+              </span>
+              <span className="text-muted text-2xs block">
+                Safety stock deficits detected in warehouse balances. Auto-generate replenishment purchase order draft now.
+              </span>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowAutoReorderModal(true)}
+            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs shadow-xs transition-all cursor-pointer shrink-0"
+          >
+            <Sparkles className="size-3.5" />
+            <span>Auto-Generate Reorder PO</span>
+          </button>
+        </div>
+      )}
+
       {/* Universal Quick-Action Ribbon */}
       <div className="flex items-center justify-center gap-2.5 p-2 rounded-2xl bg-surface border border-default shadow-xs flex-wrap">
         <button
@@ -567,6 +597,15 @@ export default function PurchasingWorkspace() {
         initialPo={selectedPoForAction}
         onSuccess={() => {
           setActiveTab('bills');
+        }}
+      />
+
+      <AutoReorderPoModal
+        open={showAutoReorderModal}
+        onClose={() => setShowAutoReorderModal(false)}
+        initialAlerts={stockAlerts}
+        onSuccess={() => {
+          setActiveTab('orders');
         }}
       />
     </div>

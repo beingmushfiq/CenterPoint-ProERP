@@ -976,25 +976,7 @@ export function POSShell({ session, onExit }: POSShellProps) {
     } finally {
       setCheckingOut(false);
     }
-  }, [
-    cart,
-    cashTendered,
-    clearCart,
-    currentSlot.customerPartyId,
-    currentSlot.notes,
-    customerName,
-    customerPhone,
-    discountTotal,
-    grandTotal,
-    isSplitPayment,
-    orderDiscType,
-    orderDiscVal,
-    session.id,
-    session.operator_name,
-    singleChangeGiven,
-    splitPayments,
-    tenderMethod,
-  ]);
+  }, [cart, cashTendered, clearCart, currentSlot.customerPartyId, currentSlot.notes, customerName, customerPhone, discountTotal, formatCurrency, grandTotal, isSplitPayment, orderDiscType, orderDiscVal, session.id, session.operator_name, singleChangeGiven, splitPayments, tenderMethod]);
 
   const handlePrintReceipt = (format: 'thermal' | 'a4' = 'thermal') => {
     if (!lastReceipt) return;

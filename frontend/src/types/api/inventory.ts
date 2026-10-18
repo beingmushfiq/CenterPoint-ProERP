@@ -74,6 +74,9 @@ export interface StockBalance {
   warehouse_name?: string;
   warehouse_location_id?: number | null;
   batch_code?: string | null;
+  expiry_date?: string | null;
+  days_to_expiry?: number | null;
+  shelf_life_status?: 'expired' | 'critical' | 'warning' | 'healthy' | 'unknown';
   stock_state: StockState;
   quantity: string;
   average_cost: string;
