@@ -14,6 +14,9 @@ import {
   User,
   RotateCcw,
   Check,
+  Tag,
+  MessageCircle,
+  Trash2,
 } from 'lucide-react';
 import { api } from '../../lib/api/client';
 import { useStorefrontCartStore } from '../../lib/storefront/storefrontCartStore';
@@ -42,7 +45,7 @@ const STORAGE_CUSTOMER_KEY = 'storefront_customer_profile';
 export const StorefrontCheckoutPage: React.FC = () => {
   const { t } = useTranslation(['storefront', 'common']);
   const { config, subdomain } = useOutletContext<OutletContextType>();
-  const { cart, sessionToken, clearCart } = useStorefrontCartStore();
+  const { cart, sessionToken, clearCart, applyCoupon, removeCoupon } = useStorefrontCartStore();
   const authUser = useAuthStore((s) => s.user);
   const navigate = useNavigate();
 
@@ -156,6 +159,80 @@ export const StorefrontCheckoutPage: React.FC = () => {
       card: `AUTH-${randomHex}`,
     };
     setForm((prev) => ({ ...prev, transaction_id: mockMap[gateway] }));
+  };
+
+  // Coupon state
+  const [couponInput, setCouponInput] = useState('');
+  const [couponLoading, setCouponLoading] = useState(false);
+  const [couponError, setCouponError] = useState<string | null>(null);
+  const [couponSuccess, setCouponSuccess] = useState<string | null>(null);
+  const [whatsappLoading, setWhatsappLoading] = useState(false);
+
+  const handleApplyCoupon = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!couponInput.trim()) return;
+    setCouponLoading(true);
+    setCouponError(null);
+    setCouponSuccess(null);
+    try {
+      const err = await applyCoupon(couponInput.trim().toUpperCase());
+      if (err) {
+        setCouponError(err);
+      } else {
+        setCouponSuccess(`Coupon '${couponInput.trim().toUpperCase()}' applied!`);
+        setCouponInput('');
+      }
+    } catch (err: unknown) {
+      setCouponError(err instanceof Error ? err.message : 'Failed to apply coupon.');
+    } finally {
+      setCouponLoading(false);
+    }
+  };
+
+  const handleRemoveCoupon = async () => {
+    setCouponLoading(true);
+    setCouponError(null);
+    setCouponSuccess(null);
+    try {
+      await removeCoupon();
+    } catch (err: unknown) {
+      setCouponError(err instanceof Error ? err.message : 'Failed to remove coupon.');
+    } finally {
+      setCouponLoading(false);
+    }
+  };
+
+  const handleWhatsAppOrder = async () => {
+    if (!form.customer_name || !form.phone || !form.delivery_address) {
+      setError('Please fill in Name, Phone, and Delivery Address to order directly via WhatsApp.');
+      return;
+    }
+    setWhatsappLoading(true);
+    setError(null);
+    try {
+      const res = await api.post<{ success: boolean; data: { whatsapp_url: string } }>(
+        '/storefront/whatsapp/order-link',
+        {
+          cart_token: sessionToken,
+          customer_name: form.customer_name,
+          customer_phone: form.phone,
+          delivery_address: form.delivery_address,
+        },
+        {
+          headers: {
+            'X-Storefront-Subdomain': subdomain,
+            'X-Cart-Session': sessionToken,
+          },
+        }
+      );
+      if (res.data?.data?.whatsapp_url) {
+        window.open(res.data.data.whatsapp_url, '_blank', 'noopener,noreferrer');
+      }
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Could not generate WhatsApp order inquiry.');
+    } finally {
+      setWhatsappLoading(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -665,11 +742,85 @@ export const StorefrontCheckoutPage: React.FC = () => {
               ))}
             </div>
 
+            {/* Coupon Code Section */}
+            <div className="pt-2 border-t border-slate-100 dark:border-zinc-800/80">
+              {cart?.coupon_code ? (
+                <div className="flex items-center justify-between p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-xs">
+                  <div className="flex items-center gap-2">
+                    <Tag className="size-3.5 text-emerald-500" />
+                    <div>
+                      <span className="font-mono font-bold text-emerald-700 dark:text-emerald-400">
+                        {cart.coupon_code}
+                      </span>
+                      <span className="text-[10px] text-emerald-600/80 dark:text-emerald-400/80 block">
+                        Coupon Discount Applied
+                      </span>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleRemoveCoupon}
+                    disabled={couponLoading}
+                    className="inline-flex items-center gap-1 text-[11px] font-semibold text-rose-500 hover:text-rose-600 hover:underline cursor-pointer disabled:opacity-50"
+                  >
+                    <Trash2 className="size-3" />
+                    <span>Remove</span>
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-1.5">
+                  <div className="flex gap-2">
+                    <div className="relative grow">
+                      <Tag className="absolute left-2.5 top-2.5 size-3.5 text-slate-400 dark:text-zinc-500" />
+                      <input
+                        type="text"
+                        placeholder="Promo or coupon code"
+                        value={couponInput}
+                        onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            void handleApplyCoupon();
+                          }
+                        }}
+                        className="w-full rounded-xl border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-950 pl-8 pr-3 py-2 text-xs font-mono uppercase text-slate-900 dark:text-white placeholder-slate-400 focus:border-emerald-500 focus:outline-none"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => void handleApplyCoupon()}
+                      disabled={couponLoading || !couponInput.trim()}
+                      className="px-3.5 py-2 rounded-xl bg-slate-900 dark:bg-zinc-100 hover:bg-slate-800 dark:hover:bg-white text-white dark:text-zinc-950 text-xs font-bold transition-all disabled:opacity-40 cursor-pointer"
+                    >
+                      {couponLoading ? '...' : 'Apply'}
+                    </button>
+                  </div>
+                  {couponError && (
+                    <p className="text-[11px] text-rose-500 font-medium pl-1">{couponError}</p>
+                  )}
+                  {couponSuccess && (
+                    <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium pl-1">
+                      {couponSuccess}
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+
             <div className="border-t border-slate-100 dark:border-zinc-800/80 pt-3 space-y-2 text-xs">
               <div className="flex justify-between text-slate-600 dark:text-zinc-400">
                 <span>{t('storefront.subtotal')}</span>
                 <span>{currency} {parseFloat(cart?.subtotal ?? '0').toFixed(2)}</span>
               </div>
+              {cart?.discount_amount && parseFloat(cart.discount_amount) > 0 && (
+                <div className="flex justify-between text-emerald-600 dark:text-emerald-400 font-semibold">
+                  <span className="flex items-center gap-1">
+                    <Tag className="size-3" />
+                    <span>Coupon Discount</span>
+                  </span>
+                  <span>-{currency} {parseFloat(cart.discount_amount).toFixed(2)}</span>
+                </div>
+              )}
               <div className="flex justify-between text-slate-600 dark:text-zinc-400">
                 <span>{t('storefront.deliveryCharge')}</span>
                 <span>{t('storefront.freeDirect')}</span>
@@ -682,20 +833,40 @@ export const StorefrontCheckoutPage: React.FC = () => {
               </div>
             </div>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full min-h-12 flex items-center justify-center gap-2 rounded-xl bg-linear-to-r from-emerald-500 to-teal-500 py-3.5 text-sm font-bold text-zinc-950 shadow-lg shadow-emerald-500/20 hover:from-emerald-400 hover:to-teal-400 transition-all cursor-pointer disabled:opacity-50 touch-target active:scale-95"
-            >
-              {loading ? (
-                <span>{t('storefront.placingOrderText')}</span>
-              ) : (
-                <>
-                  <Lock className="h-4 w-4" />
-                  <span>{t('storefront.confirmPlaceOrder')}</span>
-                </>
-              )}
-            </button>
+            <div className="space-y-2.5 pt-1">
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full min-h-12 flex items-center justify-center gap-2 rounded-xl bg-linear-to-r from-emerald-500 to-teal-500 py-3.5 text-sm font-bold text-zinc-950 shadow-lg shadow-emerald-500/20 hover:from-emerald-400 hover:to-teal-400 transition-all cursor-pointer disabled:opacity-50 touch-target active:scale-95"
+              >
+                {loading ? (
+                  <span>{t('storefront.placingOrderText')}</span>
+                ) : (
+                  <>
+                    <Lock className="h-4 w-4" />
+                    <span>{t('storefront.confirmPlaceOrder')}</span>
+                  </>
+                )}
+              </button>
+
+              <div className="relative flex py-1 items-center">
+                <div className="grow border-t border-slate-200 dark:border-zinc-800" />
+                <span className="shrink mx-2 text-[10px] uppercase font-bold text-slate-400 dark:text-zinc-500">
+                  Or Direct Inquiry
+                </span>
+                <div className="grow border-t border-slate-200 dark:border-zinc-800" />
+              </div>
+
+              <button
+                type="button"
+                onClick={handleWhatsAppOrder}
+                disabled={whatsappLoading || loading}
+                className="w-full min-h-11 flex items-center justify-center gap-2 rounded-xl bg-[#25D366] hover:bg-[#20ba5a] text-white py-3 text-xs font-bold shadow-md shadow-emerald-600/20 transition-all cursor-pointer disabled:opacity-50 touch-target active:scale-95"
+              >
+                <MessageCircle className="h-4 w-4" />
+                <span>{whatsappLoading ? 'Generating WhatsApp Link...' : '1-Click Order via WhatsApp'}</span>
+              </button>
+            </div>
 
             <div className="text-center text-[10px] text-muted space-y-1 pt-1">
               <p className="flex items-center justify-center gap-1">

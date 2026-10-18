@@ -9,6 +9,9 @@ import {
   Sparkles,
   Tag,
   X,
+  Copy,
+  Check,
+  Percent,
 } from 'lucide-react';
 import { api } from '../../lib/api/client';
 import { useStorefrontCartStore } from '../../lib/storefront/storefrontCartStore';
@@ -40,6 +43,10 @@ export const StorefrontCatalogPage: React.FC = () => {
   const [products, setProducts] = useState<StorefrontProduct[]>([]);
   const [categories, setCategories] = useState<CategoryItem[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Promo Banner State
+  const [showPromoBanner, setShowPromoBanner] = useState(true);
+  const [promoCopied, setPromoCopied] = useState(false);
 
   // Filter & Sort State
   const initialCategory = searchParams.get('category')
@@ -169,6 +176,56 @@ export const StorefrontCatalogPage: React.FC = () => {
       />
 
       <BreadcrumbNav items={breadcrumbs} className="py-1" />
+
+      {/* Dynamic Promo / Coupon Banner */}
+      {showPromoBanner && (
+        <div className="relative overflow-hidden rounded-2xl border border-emerald-500/30 bg-linear-to-r from-emerald-500/10 via-teal-500/10 to-amber-500/10 p-3.5 sm:p-4 text-xs shadow-xs">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-400">
+                <Percent className="size-4" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="font-extrabold text-slate-900 dark:text-white">
+                    Special Direct Factory Offer
+                  </span>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-700 dark:text-emerald-300">
+                    Live
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-600 dark:text-zinc-400 mt-0.5">
+                  Use coupon code <code className="font-mono font-bold text-emerald-600 dark:text-emerald-400">SAVE10</code> during checkout for instant savings on eligible orders!
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
+              <button
+                type="button"
+                onClick={() => {
+                  navigator.clipboard.writeText('SAVE10');
+                  setPromoCopied(true);
+                  setTimeout(() => setPromoCopied(false), 2000);
+                }}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-xs transition-all cursor-pointer"
+              >
+                {promoCopied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
+                <span>{promoCopied ? 'Code Copied!' : 'Copy SAVE10'}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setShowPromoBanner(false)}
+                title="Dismiss banner"
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-zinc-200 hover:bg-slate-200/60 dark:hover:bg-zinc-800/60 transition-colors cursor-pointer"
+              >
+                <X className="size-3.5" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Top Editorial Banner */}
       <div className="relative overflow-hidden rounded-3xl border border-default bg-surface p-6 sm:p-10 shadow-xs">

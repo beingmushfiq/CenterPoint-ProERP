@@ -63,4 +63,43 @@ class StorefrontWhatsAppOrderTest extends TestCase
         $this->assertStringContainsString('https://wa.me/8801811223344', $whatsappUrl);
         $this->assertStringContainsString(rawurlencode($this->product->name), $whatsappUrl);
     }
+
+    public function test_can_generate_whatsapp_receipt_for_order(): void
+    {
+        $order = \App\Modules\Sales\Models\SalesOrder::create([
+            'tenant_id' => $this->tenant->id,
+            'order_number' => 'SO-TEST-WA-001',
+            'order_date' => now()->toDateString(),
+            'status' => 'confirmed',
+            'payment_status' => 'paid',
+            'subtotal' => '200.0000',
+            'tax_amount' => '0.0000',
+            'shipping_amount' => '0.0000',
+            'discount_amount' => '20.0000',
+            'total_amount' => '180.0000',
+            'currency' => 'BDT',
+            'shipping_address' => 'Gulshan 2, Dhaka',
+        ]);
+
+        \App\Modules\Sales\Models\SalesOrderItem::create([
+            'sales_order_id' => $order->id,
+            'product_id' => $this->product->id,
+            'unit_id' => $this->product->base_unit_id ?? 1,
+            'quantity' => '2.0000',
+            'unit_price' => '100.0000',
+            'line_total' => '200.0000',
+        ]);
+
+        $response = $this->withHeader('X-Storefront-Subdomain', $this->storefront->subdomain)
+            ->postJson('/api/v1/storefront/whatsapp/order-link', [
+                'order_number' => 'SO-TEST-WA-001',
+            ]);
+
+        $response->assertOk();
+        $response->assertJsonPath('success', true);
+        $whatsappUrl = $response->json('data.whatsapp_url');
+        $this->assertStringContainsString('SO-TEST-WA-001', $whatsappUrl);
+        $this->assertStringContainsString('OFFICIAL%20ORDER%20RECEIPT', $whatsappUrl);
+    }
 }
+

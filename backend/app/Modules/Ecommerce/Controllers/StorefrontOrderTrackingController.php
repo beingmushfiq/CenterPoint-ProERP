@@ -88,6 +88,18 @@ final class StorefrontOrderTrackingController extends Controller
             ],
         ];
 
+        // Calculate estimated delivery
+        $estimatedDelivery = $order->required_date 
+            ? \Carbon\Carbon::parse($order->required_date)->format('M d, Y')
+            : ($order->created_at ? $order->created_at->addDays(3)->format('M d, Y') : null);
+
+        // Mask phone for public privacy if present
+        $rawPhone = $order->customer_phone ?? $order->customer?->phone ?? '';
+        $maskedPhone = '';
+        if (strlen($rawPhone) > 4) {
+            $maskedPhone = substr($rawPhone, 0, 4) . '****' . substr($rawPhone, -3);
+        }
+
         return response()->json([
             'success' => true,
             'data' => [
@@ -101,7 +113,11 @@ final class StorefrontOrderTrackingController extends Controller
                 'shipping_amount' => $order->shipping_amount,
                 'total_amount' => $order->total_amount,
                 'delivery_address' => $order->shipping_address,
-                'customer_name' => $order->customer?->name ?? 'Guest Customer',
+                'delivery_type' => $order->delivery_type ?? 'Standard Direct Courier',
+                'courier_reference' => 'CN-' . strtoupper(substr(md5($order->order_number), 0, 8)),
+                'estimated_delivery' => $estimatedDelivery,
+                'customer_name' => $order->customer_name ?? $order->customer?->name ?? 'Customer',
+                'customer_phone' => $maskedPhone,
                 'items' => $order->items->map(fn ($item) => [
                     'id' => $item->id,
                     'product_name' => $item->product?->name ?? 'Product Item',
