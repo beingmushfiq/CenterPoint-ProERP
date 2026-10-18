@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import {
   X,
   Printer,
@@ -24,15 +24,36 @@ interface PosZReportModalProps {
   isOpen: boolean;
   onClose: () => void;
   session: PosSession;
-  onSessionClosed?: (closedSession: PosSession) => void;
+  onSessionClosed?: ((closedSession: PosSession) => void) | undefined;
 }
 
 export function PosZReportModal({
   isOpen,
   onClose,
-  session: initialSession,
+  session,
   onSessionClosed,
 }: PosZReportModalProps) {
+  if (!isOpen) return null;
+
+  return (
+    <PosZReportModalContent
+      key={`${session.id}-${session.status}`}
+      onClose={onClose}
+      initialSession={session}
+      onSessionClosed={onSessionClosed}
+    />
+  );
+}
+
+function PosZReportModalContent({
+  onClose,
+  initialSession,
+  onSessionClosed,
+}: {
+  onClose: () => void;
+  initialSession: PosSession;
+  onSessionClosed?: ((closedSession: PosSession) => void) | undefined;
+}) {
   const { formatCurrency, currencySymbol } = useCurrency();
   const { config: businessConfig } = useBusinessConfig();
 
@@ -60,13 +81,6 @@ export function PosZReportModal({
     2: 0,
     1: 0,
   });
-
-  useEffect(() => {
-    setSession(initialSession);
-    setIsClosingStep(initialSession.status === 'open');
-    setCountedCashInput(initialSession.counted_cash ?? initialSession.expected_cash ?? '0.00');
-    setHandoverNotes(initialSession.notes ?? '');
-  }, [initialSession, isOpen]);
 
   const calculatedDenomSum = useMemo(() => {
     return Object.entries(denominations).reduce(
@@ -124,8 +138,6 @@ export function PosZReportModal({
   const netTurnover = Math.max(0, totalRevenue - refundTotal);
   const estTax = netTurnover * 0.05; // 5% Standard VAT
   const estGross = netTurnover + estTax;
-
-  if (!isOpen) return null;
 
   const handleExecuteCloseShift = async () => {
     setClosing(true);

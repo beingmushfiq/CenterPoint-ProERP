@@ -44,10 +44,52 @@ const DEFECT_REASONS = [
   'Weight / Volume Discrepancy',
 ];
 
+function buildInitialInspections(grn: GoodsReceipt): ItemInspectionState[] {
+  if (!grn.items) return [];
+  return grn.items.map((item: GoodsReceiptItem) => {
+    const rec = parseFloat(item.received_quantity) || 0;
+    const acc = item.accepted_quantity ? parseFloat(item.accepted_quantity) : rec;
+    const rej = item.rejected_quantity ? parseFloat(item.rejected_quantity) : Math.max(0, rec - acc);
+
+    return {
+      id: item.id,
+      product_name: item.product_name || `Product #${item.product_id}`,
+      product_sku: item.product_sku || '',
+      received_quantity: rec,
+      accepted_quantity: acc,
+      rejected_quantity: rej,
+      batch_code: item.batch_code || `LOT-${new Date().getFullYear()}${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(Math.floor(Math.random() * 900) + 100)}`,
+      expiry_date: item.expiry_date || '',
+      defect_reason: rej > 0 ? 'Damaged / Crushed Packaging' : 'None - Meets Specification',
+    };
+  });
+}
+
 export const GoodsReceiptQcModal: React.FC<GoodsReceiptQcModalProps> = ({
   open,
   onClose,
   grn,
+  onSuccess,
+}) => {
+  if (!open || !grn) return null;
+
+  return (
+    <GoodsReceiptQcModalContent
+      key={`${grn.id}-${grn.status}`}
+      onClose={onClose}
+      grn={grn}
+      onSuccess={onSuccess}
+    />
+  );
+};
+
+const GoodsReceiptQcModalContent: React.FC<{
+  grn: GoodsReceipt;
+  onClose: () => void;
+  onSuccess: (updatedGrn: GoodsReceipt) => void;
+}> = ({
+  grn,
+  onClose,
   onSuccess,
 }) => {
   const [packagingIntact, setPackagingIntact] = useState(true);
@@ -58,53 +100,7 @@ export const GoodsReceiptQcModal: React.FC<GoodsReceiptQcModalProps> = ({
   const [submitting, setSubmitting] = useState(false);
 
   // Initialize inspection state from GRN items
-  const [inspections, setInspections] = useState<ItemInspectionState[]>(() => {
-    if (!grn?.items) return [];
-    return grn.items.map((item: GoodsReceiptItem) => {
-      const rec = parseFloat(item.received_quantity) || 0;
-      const acc = item.accepted_quantity ? parseFloat(item.accepted_quantity) : rec;
-      const rej = item.rejected_quantity ? parseFloat(item.rejected_quantity) : Math.max(0, rec - acc);
-
-      return {
-        id: item.id,
-        product_name: item.product_name || `Product #${item.product_id}`,
-        product_sku: item.product_sku || '',
-        received_quantity: rec,
-        accepted_quantity: acc,
-        rejected_quantity: rej,
-        batch_code: item.batch_code || `LOT-${new Date().getFullYear()}${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(Math.floor(Math.random() * 900) + 100)}`,
-        expiry_date: item.expiry_date || '',
-        defect_reason: rej > 0 ? 'Damaged / Crushed Packaging' : 'None - Meets Specification',
-      };
-    });
-  });
-
-  // Re-sync when modal opens with a new GRN
-  React.useEffect(() => {
-    if (grn?.items) {
-      setInspections(
-        grn.items.map((item: GoodsReceiptItem) => {
-          const rec = parseFloat(item.received_quantity) || 0;
-          const acc = item.accepted_quantity ? parseFloat(item.accepted_quantity) : rec;
-          const rej = item.rejected_quantity ? parseFloat(item.rejected_quantity) : Math.max(0, rec - acc);
-
-          return {
-            id: item.id,
-            product_name: item.product_name || `Product #${item.product_id}`,
-            product_sku: item.product_sku || '',
-            received_quantity: rec,
-            accepted_quantity: acc,
-            rejected_quantity: rej,
-            batch_code: item.batch_code || `LOT-${new Date().getFullYear()}${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(Math.floor(Math.random() * 900) + 100)}`,
-            expiry_date: item.expiry_date || '',
-            defect_reason: rej > 0 ? 'Damaged / Crushed Packaging' : 'None - Meets Specification',
-          };
-        })
-      );
-    }
-  }, [grn]);
-
-  if (!open || !grn) return null;
+  const [inspections, setInspections] = useState<ItemInspectionState[]>(() => buildInitialInspections(grn));
 
   const totalReceived = inspections.reduce((s, i) => s + i.received_quantity, 0);
   const totalAccepted = inspections.reduce((s, i) => s + i.accepted_quantity, 0);
@@ -513,7 +509,7 @@ export const GoodsReceiptQcModal: React.FC<GoodsReceiptQcModalProps> = ({
 
             {/* Metrics Card */}
             <div className="p-4 rounded-xl border border-default bg-surface-sunken/50 space-y-2.5 text-xs">
-              <span className="font-bold text-default block text-2xs uppercase tracking-wider text-muted">
+              <span className="font-bold text-default block text-2xs uppercase tracking-wider">
                 Inspection Totals
               </span>
               <div className="flex justify-between items-center py-0.5 border-b border-default/50">

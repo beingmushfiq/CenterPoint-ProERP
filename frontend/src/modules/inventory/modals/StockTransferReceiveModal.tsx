@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   X,
   PackageCheck,
@@ -31,63 +31,74 @@ interface ItemReceiveState {
   shortage_quantity: number;
 }
 
+function buildInitialTransferItems(transfer: StockTransfer): ItemReceiveState[] {
+  if (transfer.items && transfer.items.length > 0) {
+    return transfer.items.map((it) => {
+      const sent = parseFloat(it.sent_quantity) || 0;
+      const rec = it.received_quantity !== null && it.received_quantity !== undefined
+        ? parseFloat(it.received_quantity)
+        : sent;
+      const dmg = it.damaged_quantity !== null && it.damaged_quantity !== undefined
+        ? parseFloat(it.damaged_quantity)
+        : 0;
+      const shortage = Math.max(0, sent - (rec + dmg));
+
+      return {
+        item_id: it.id,
+        product_name: it.product_name || `Product #${it.product_id}`,
+        product_sku: it.product_sku || `SKU-${it.product_id}`,
+        unit_code: it.unit_code || 'PCS',
+        sent_quantity: sent,
+        received_quantity: rec,
+        damaged_quantity: dmg,
+        shortage_quantity: shortage,
+      };
+    });
+  }
+  return [
+    {
+      item_id: 1,
+      product_name: 'Shipment Item Batch',
+      product_sku: 'GEN-001',
+      unit_code: 'PCS',
+      sent_quantity: 100,
+      received_quantity: 100,
+      damaged_quantity: 0,
+      shortage_quantity: 0,
+    },
+  ];
+}
+
 export const StockTransferReceiveModal: React.FC<StockTransferReceiveModalProps> = ({
   open,
   onClose,
   transfer,
   onSuccess,
 }) => {
-  const [items, setItems] = useState<ItemReceiveState[]>([]);
+  if (!open || !transfer) return null;
+
+  return (
+    <StockTransferReceiveModalContent
+      key={`${transfer.id}-${transfer.status}`}
+      transfer={transfer}
+      onClose={onClose}
+      onSuccess={onSuccess}
+    />
+  );
+};
+
+const StockTransferReceiveModalContent: React.FC<{
+  transfer: StockTransfer;
+  onClose: () => void;
+  onSuccess: (updated: StockTransfer) => void;
+}> = ({
+  transfer,
+  onClose,
+  onSuccess,
+}) => {
+  const [items, setItems] = useState<ItemReceiveState[]>(() => buildInitialTransferItems(transfer));
   const [discrepancyNotes, setDiscrepancyNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
-
-  useEffect(() => {
-    if (!transfer || !open) return;
-
-    if (transfer.items && transfer.items.length > 0) {
-      setItems(
-        transfer.items.map((it) => {
-          const sent = parseFloat(it.sent_quantity) || 0;
-          const rec = it.received_quantity !== null && it.received_quantity !== undefined
-            ? parseFloat(it.received_quantity)
-            : sent;
-          const dmg = it.damaged_quantity !== null && it.damaged_quantity !== undefined
-            ? parseFloat(it.damaged_quantity)
-            : 0;
-          const shortage = Math.max(0, sent - (rec + dmg));
-
-          return {
-            item_id: it.id,
-            product_name: it.product_name || `Product #${it.product_id}`,
-            product_sku: it.product_sku || `SKU-${it.product_id}`,
-            unit_code: it.unit_code || 'PCS',
-            sent_quantity: sent,
-            received_quantity: rec,
-            damaged_quantity: dmg,
-            shortage_quantity: shortage,
-          };
-        })
-      );
-    } else {
-      // Fallback if items not loaded on the transfer object
-      setItems([
-        {
-          item_id: 1,
-          product_name: 'Shipment Item Batch',
-          product_sku: 'GEN-001',
-          unit_code: 'PCS',
-          sent_quantity: 100,
-          received_quantity: 100,
-          damaged_quantity: 0,
-          shortage_quantity: 0,
-        },
-      ]);
-    }
-
-    setDiscrepancyNotes('');
-  }, [transfer, open]);
-
-  if (!open || !transfer) return null;
 
   const handleReceivedChange = (index: number, val: string) => {
     const num = Math.max(0, parseFloat(val) || 0);
@@ -369,7 +380,7 @@ export const StockTransferReceiveModal: React.FC<StockTransferReceiveModalProps>
                 <AlertTriangle className="size-4 shrink-0" />
                 <span>Discrepancy Detected — Status will be recorded as Partially Received</span>
               </div>
-              <p className="text-2xl font-normal text-muted text-xs">
+              <p className="text-xs font-normal text-muted">
                 Damaged units will be recorded into destination quarantine stock. Shortage units will be logged as in-transit shrinkage and reflected in audit notes.
               </p>
             </div>

@@ -202,7 +202,7 @@ export function POSShell({ session, onExit }: POSShellProps) {
   const tenderMethod = currentSlot.tenderMethod;
   const cashTendered = currentSlot.cashTendered;
   const isSplitPayment = currentSlot.isSplitPayment ?? false;
-  const splitPayments = currentSlot.splitPayments ?? [];
+  const splitPayments = useMemo(() => currentSlot.splitPayments ?? [], [currentSlot.splitPayments]);
 
   const { printDocument } = useDocumentPrint();
   const { config: businessConfig } = useBusinessConfig();
@@ -772,7 +772,7 @@ export function POSShell({ session, onExit }: POSShellProps) {
     }));
   };
 
-  const clearCart = () => {
+  const clearCart = useCallback(() => {
     updateCurrentSlot({
       cart: [],
       customerPartyId: null,
@@ -785,7 +785,7 @@ export function POSShell({ session, onExit }: POSShellProps) {
       order_discount_value: '',
       notes: '',
     });
-  };
+  }, [updateCurrentSlot]);
 
   // Calculations with dual-mode item discounts & order discount
   const subtotal = cart.reduce((sum, item) => sum + item.quantity * item.unit_price, 0);

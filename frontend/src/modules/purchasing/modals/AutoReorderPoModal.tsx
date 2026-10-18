@@ -90,11 +90,15 @@ export const AutoReorderPoModal: React.FC<AutoReorderPoModalProps> = ({
     enabled: open,
   });
 
-  // Selection & custom quantity state
-  const [selectedProductIds, setSelectedProductIds] = useState<Set<number>>(new Set());
+  // Selection & custom quantity state: items are selected by default unless user deselects them
+  const [deselectedProductIds, setDeselectedProductIds] = useState<Set<number>>(new Set());
   const [customQuantities, setCustomQuantities] = useState<Record<number, number>>({});
-  const [selectedSupplierId, setSelectedSupplierId] = useState<number>(0);
-  const [selectedWarehouseId, setSelectedWarehouseId] = useState<number>(0);
+  const [userSelectedSupplierId, setUserSelectedSupplierId] = useState<number | null>(null);
+  const [userSelectedWarehouseId, setUserSelectedWarehouseId] = useState<number | null>(null);
+
+  const selectedSupplierId = userSelectedSupplierId ?? (suppliers[0]?.id ? Number(suppliers[0].id) : 0);
+  const selectedWarehouseId = userSelectedWarehouseId ?? (warehouses[0]?.id ? Number(warehouses[0].id) : (alertsPool[0]?.warehouse_id || 1));
+
   const [deliveryDate, setDeliveryDate] = useState(() => {
     const d = new Date();
     d.setDate(d.getDate() + 7);
@@ -103,34 +107,10 @@ export const AutoReorderPoModal: React.FC<AutoReorderPoModalProps> = ({
   const [orderNotes, setOrderNotes] = useState('Automated restocking order generated from safety stock threshold deficits.');
   const [submitting, setSubmitting] = useState(false);
 
-  // Initialize selected product IDs and quantities when alertsPool loads
-  React.useEffect(() => {
-    if (alertsPool.length > 0) {
-      setSelectedProductIds(new Set(alertsPool.map((a) => a.product_id)));
-      const qtyMap: Record<number, number> = {};
-      alertsPool.forEach((a) => {
-        qtyMap[a.product_id] = a.suggested_order_qty || a.reorder_quantity || Math.max(1, a.deficit + 10);
-      });
-      setCustomQuantities(qtyMap);
-    }
-  }, [alertsPool]);
-
-  // Set default supplier and warehouse
-  React.useEffect(() => {
-    if (suppliers.length > 0 && selectedSupplierId === 0 && suppliers[0]?.id) {
-      setSelectedSupplierId(Number(suppliers[0].id));
-    }
-    if (warehouses.length > 0 && selectedWarehouseId === 0 && warehouses[0]?.id) {
-      setSelectedWarehouseId(Number(warehouses[0].id));
-    } else if (alertsPool.length > 0 && selectedWarehouseId === 0 && alertsPool[0]) {
-      setSelectedWarehouseId(alertsPool[0].warehouse_id || 1);
-    }
-  }, [suppliers, warehouses, alertsPool, selectedSupplierId, selectedWarehouseId]);
-
   if (!open) return null;
 
   const toggleSelect = (productId: number) => {
-    setSelectedProductIds((prev) => {
+    setDeselectedProductIds((prev) => {
       const next = new Set(prev);
       if (next.has(productId)) {
         next.delete(productId);
@@ -142,10 +122,10 @@ export const AutoReorderPoModal: React.FC<AutoReorderPoModalProps> = ({
   };
 
   const toggleSelectAll = () => {
-    if (selectedProductIds.size === alertsPool.length) {
-      setSelectedProductIds(new Set());
+    if (deselectedProductIds.size === 0 && alertsPool.length > 0) {
+      setDeselectedProductIds(new Set(alertsPool.map((a) => a.product_id)));
     } else {
-      setSelectedProductIds(new Set(alertsPool.map((a) => a.product_id)));
+      setDeselectedProductIds(new Set());
     }
   };
 
@@ -154,10 +134,14 @@ export const AutoReorderPoModal: React.FC<AutoReorderPoModalProps> = ({
     setCustomQuantities((prev) => ({ ...prev, [productId]: num }));
   };
 
+  const getItemDefaultQty = (item: LowStockAlertItem) => {
+    return item.suggested_order_qty || item.reorder_quantity || Math.max(1, item.deficit + 10);
+  };
+
   // Calculate totals
-  const selectedItems = alertsPool.filter((a) => selectedProductIds.has(a.product_id));
+  const selectedItems = alertsPool.filter((a) => !deselectedProductIds.has(a.product_id));
   const totalEstimatedCost = selectedItems.reduce((sum, item) => {
-    const qty = customQuantities[item.product_id] ?? item.suggested_order_qty ?? item.reorder_quantity;
+    const qty = customQuantities[item.product_id] ?? getItemDefaultQty(item);
     return sum + qty * item.unit_cost;
   }, 0);
 
@@ -188,7 +172,7 @@ export const AutoReorderPoModal: React.FC<AutoReorderPoModalProps> = ({
         currency_code: 'BDT',
         exchange_rate: '1.0000',
         items: selectedItems.map((item) => {
-          const qty = customQuantities[item.product_id] ?? item.suggested_order_qty ?? item.reorder_quantity;
+          const qty = customQuantities[item.product_id] ?? getItemDefaultQty(item);
           const subtotal = (qty * item.unit_cost).toFixed(4);
           return {
             product_id: item.product_id,
@@ -263,12 +247,12 @@ export const AutoReorderPoModal: React.FC<AutoReorderPoModalProps> = ({
           {/* Supplier & Warehouse Settings Banner */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 p-4 rounded-xl bg-surface-sunken/50 border border-default text-xs">
             <div>
-              <label className="text-muted block text-2xs font-semibold mb-1 flex items-center gap-1">
+              <label className="text-muted text-2xs font-semibold mb-1 flex items-center gap-1">
                 <Building2 className="size-3 text-primary" /> Preferred Supplier / Vendor:
               </label>
               <select
                 value={selectedSupplierId}
-                onChange={(e) => setSelectedSupplierId(Number(e.target.value))}
+                onChange={(e) => setUserSelectedSupplierId(Number(e.target.value))}
                 className="w-full px-2.5 py-1.5 rounded-lg border border-default bg-surface text-default text-xs font-medium focus:ring-1 focus:ring-primary"
               >
                 {suppliers.length === 0 && <option value="0">Loading suppliers...</option>}
@@ -281,12 +265,12 @@ export const AutoReorderPoModal: React.FC<AutoReorderPoModalProps> = ({
             </div>
 
             <div>
-              <label className="text-muted block text-2xs font-semibold mb-1 flex items-center gap-1">
+              <label className="text-muted text-2xs font-semibold mb-1 flex items-center gap-1">
                 <WarehouseIcon className="size-3 text-primary" /> Delivery Warehouse:
               </label>
               <select
                 value={selectedWarehouseId}
-                onChange={(e) => setSelectedWarehouseId(Number(e.target.value))}
+                onChange={(e) => setUserSelectedWarehouseId(Number(e.target.value))}
                 className="w-full px-2.5 py-1.5 rounded-lg border border-default bg-surface text-default text-xs font-medium focus:ring-1 focus:ring-primary"
               >
                 {warehouses.length === 0 ? (
@@ -302,7 +286,7 @@ export const AutoReorderPoModal: React.FC<AutoReorderPoModalProps> = ({
             </div>
 
             <div>
-              <label className="text-muted block text-2xs font-semibold mb-1 flex items-center gap-1">
+              <label className="text-muted text-2xs font-semibold mb-1 flex items-center gap-1">
                 <Calendar className="size-3 text-primary" /> Expected Delivery Date:
               </label>
               <input
@@ -323,10 +307,10 @@ export const AutoReorderPoModal: React.FC<AutoReorderPoModalProps> = ({
                   onClick={toggleSelectAll}
                   className="text-xs text-primary font-semibold hover:underline"
                 >
-                  {selectedProductIds.size === alertsPool.length ? 'Deselect All' : 'Select All'}
+                  {deselectedProductIds.size === 0 && alertsPool.length > 0 ? 'Deselect All' : 'Select All'}
                 </button>
                 <span className="text-2xs text-muted">
-                  ({selectedProductIds.size} of {alertsPool.length} selected for purchase order)
+                  ({selectedItems.length} of {alertsPool.length} selected for purchase order)
                 </span>
               </div>
               <span className="text-2xs text-muted">
@@ -342,7 +326,7 @@ export const AutoReorderPoModal: React.FC<AutoReorderPoModalProps> = ({
                       <th className="px-3.5 py-2.5 w-10 text-center">
                         <input
                           type="checkbox"
-                          checked={selectedProductIds.size === alertsPool.length && alertsPool.length > 0}
+                          checked={alertsPool.length > 0 && deselectedProductIds.size === 0}
                           onChange={toggleSelectAll}
                           className="rounded text-primary focus:ring-primary"
                         />
@@ -368,8 +352,8 @@ export const AutoReorderPoModal: React.FC<AutoReorderPoModalProps> = ({
                       </tr>
                     ) : (
                       alertsPool.map((item) => {
-                        const isSelected = selectedProductIds.has(item.product_id);
-                        const qty = customQuantities[item.product_id] ?? item.suggested_order_qty;
+                        const isSelected = !deselectedProductIds.has(item.product_id);
+                        const qty = customQuantities[item.product_id] ?? getItemDefaultQty(item);
                         const lineEst = qty * item.unit_cost;
 
                         return (
@@ -400,7 +384,7 @@ export const AutoReorderPoModal: React.FC<AutoReorderPoModalProps> = ({
                                 )}
                               </div>
                             </td>
-                            <td className="px-3.5 py-3 text-muted text-2xs truncate max-w-[120px]">
+                            <td className="px-3.5 py-3 text-muted text-2xs truncate max-w-30">
                               {item.warehouse_name}
                             </td>
                             <td className="px-3.5 py-3 text-right font-mono font-bold text-rose-500">
@@ -452,7 +436,7 @@ export const AutoReorderPoModal: React.FC<AutoReorderPoModalProps> = ({
             </div>
 
             <div className="p-4 rounded-xl border border-default bg-surface-sunken/50 space-y-2 text-xs">
-              <span className="font-bold text-default block text-2xs uppercase tracking-wider text-muted">
+              <span className="font-bold text-default block text-2xs uppercase tracking-wider">
                 PO Generation Summary
               </span>
               <div className="flex justify-between items-center py-0.5 border-b border-default/50">
