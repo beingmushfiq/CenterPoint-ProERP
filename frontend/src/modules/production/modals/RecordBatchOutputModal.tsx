@@ -66,15 +66,17 @@ export function RecordBatchOutputModal({
         throw new Error('Please enter a valid finished quantity.');
       }
 
-      const productId = currentBatch?.product_id || (currentBatch as unknown as { product?: { id: string } })?.product?.id || 1;
+      const productId = currentBatch?.product_id || (currentBatch as unknown as { product?: { id?: string; uuid?: string } })?.product?.uuid || (currentBatch as unknown as { product?: { id?: string } })?.product?.id;
+      const unitId = currentBatch?.output_unit_id || (currentBatch as unknown as { output_unit?: { id?: string; uuid?: string } })?.output_unit?.uuid || (currentBatch as unknown as { output_unit?: { id?: string } })?.output_unit?.id;
 
       const payload = {
-        product_id: String(productId),
-        warehouse_id: effectiveWarehouseId,
-        output_type: 'finished_good',
-        good_quantity: effectiveGoodQty,
-        rejected_quantity: rejectedQty || '0',
-        unit_cost: unitCost || '15.00',
+        product_id: productId ? String(productId) : undefined,
+        target_warehouse_id: effectiveWarehouseId,
+        output_type: 'primary',
+        quantity: effectiveGoodQty,
+        unit_id: unitId ? String(unitId) : undefined,
+        batch_code: currentBatch?.batch_number,
+        qc_required: true,
       };
 
       await api.post(`/production/batches/${activeBatchId}/outputs`, payload);
@@ -88,7 +90,7 @@ export function RecordBatchOutputModal({
       }
     },
     onSuccess: async () => {
-      toast.success(`Finished output recorded: ${goodQty} units!`, {
+      toast.success(`Finished output recorded: ${effectiveGoodQty} units!`, {
         description: 'Inventory updated and routed for Quality Control verification.',
       });
       await queryClient.invalidateQueries({ queryKey: ['production', 'batches'] });

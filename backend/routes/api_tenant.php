@@ -297,6 +297,8 @@ Route::middleware(['auth.jwt', 'tenant.resolve', 'tenant.active'])
                     ->middleware('permission:production.batch.update')->name('start');
                 Route::post('{productionBatch:uuid}/inputs', [App\Modules\Production\Controllers\ProductionBatchController::class, 'recordInput'])
                     ->middleware('permission:production.batch.create')->name('inputs.store');
+                Route::post('{productionBatch:uuid}/issue-bom', [App\Modules\Production\Controllers\ProductionBatchController::class, 'issueBom'])
+                    ->middleware('permission:production.batch.create')->name('issue-bom');
                 Route::post('{productionBatch:uuid}/outputs', [App\Modules\Production\Controllers\ProductionBatchController::class, 'recordOutput'])
                     ->middleware('permission:production.batch.create')->name('outputs.store');
                 Route::post('{productionBatch:uuid}/complete', [App\Modules\Production\Controllers\ProductionBatchController::class, 'complete'])

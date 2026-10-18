@@ -14,6 +14,7 @@ use App\Modules\Production\Actions\CloseProductionBatchAction;
 use App\Modules\Production\Actions\CompleteProductionBatchAction;
 use App\Modules\Production\Actions\CreateProductionBatchAction;
 use App\Modules\Production\Actions\DeleteProductionBatchAction;
+use App\Modules\Production\Actions\IssueBomMaterialsAction;
 use App\Modules\Production\Actions\RecordBatchInputAction;
 use App\Modules\Production\Actions\RecordBatchOutputAction;
 use App\Modules\Production\Actions\StartProductionBatchAction;
@@ -330,6 +331,36 @@ final class ProductionBatchController extends Controller
             'success' => true,
             'data' => new ProductionBatchResource($result['productionBatch']),
             'meta' => ['correlation_id' => (string) $request->header('X-Correlation-Id', '')],
+        ]);
+    }
+
+    public function issueBom(Request $request, IssueBomMaterialsAction $action, ProductionBatch $productionBatch): JsonResponse
+    {
+        if (TenantContext::isBound() && $productionBatch->tenant_id !== TenantContext::current()->tenantId()) {
+            return ErrorResponse::make(
+                request: $request,
+                code: 'NOT_FOUND',
+                message: 'The requested resource was not found.',
+                httpStatus: 404,
+                retryable: false
+            );
+        }
+
+        /** @var User $user */
+        $user = $request->user();
+        $result = $action->execute([
+            'user' => $user,
+            'productionBatch' => $productionBatch,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'data' => new ProductionBatchResource($result['productionBatch']),
+            'meta' => [
+                'correlation_id' => (string) $request->header('X-Correlation-Id', ''),
+                'issued_count' => $result['issued_count'],
+                'total_issued_quantity' => $result['total_issued_quantity'],
+            ],
         ]);
     }
 

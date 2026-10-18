@@ -252,10 +252,44 @@ export function ProductionBatchesSection() {
     },
   });
 
+  const issueBomMutation = useMutation({
+    mutationFn: (batchId: string) =>
+      api.post<ProductionBatch>(`/production/batches/${batchId}/issue-bom`),
+    onSuccess: async (res) => {
+      const meta = res?.meta as ({ issued_count?: number; total_issued_quantity?: string } | undefined);
+      toast.success(
+        `Auto-issued ${meta?.issued_count ?? 'recipe'} BOM components to batch!`
+      );
+      await queryClient.invalidateQueries({ queryKey: ['production', 'batches'] });
+      if (activeBatchModal && activeBatchModal.type === 'details') {
+        if (res?.data) {
+          setActiveBatchModal((prev) => (prev ? { ...prev, batch: res.data } : null));
+        }
+      }
+    },
+    onError: (err: unknown) => {
+      if (isApiError(err)) {
+        toast.error(err.message ?? 'Failed to auto-issue BOM materials.');
+      } else {
+        toast.error('Failed to auto-issue BOM materials.');
+      }
+    },
+  });
+
   const recordInputMutation = useMutation({
-    mutationFn: ({ batchId, payload }: { batchId: string; payload: RecordInputDraft }) =>
-      api.post(`/production/batches/${batchId}/inputs`, payload),
+    mutationFn: ({ batchId, payload }: { batchId: string; payload: RecordInputDraft }) => {
+      const selectedProduct = products.find((p) => String(p.id) === String(payload.product_id));
+      const requestPayload = {
+        product_id: String(payload.product_id),
+        quantity: payload.actual_quantity || payload.planned_quantity || '1',
+        unit_id: selectedProduct?.base_unit_id,
+        source: 'material_issue',
+        notes: 'Manual material issue from warehouse',
+      };
+      return api.post(`/production/batches/${batchId}/inputs`, requestPayload);
+    },
     onSuccess: async () => {
+      toast.success('Raw material issue recorded successfully.');
       await queryClient.invalidateQueries({ queryKey: ['production', 'batches'] });
       setActiveBatchModal(null);
     },
@@ -265,9 +299,22 @@ export function ProductionBatchesSection() {
   });
 
   const recordOutputMutation = useMutation({
-    mutationFn: ({ batchId, payload }: { batchId: string; payload: RecordOutputDraft }) =>
-      api.post(`/production/batches/${batchId}/outputs`, payload),
+    mutationFn: ({ batchId, payload, batch }: { batchId: string; payload: RecordOutputDraft; batch?: ProductionBatch }) => {
+      const selectedProduct = products.find((p) => String(p.id) === String(payload.product_id));
+      const currentBatch = batch || batches.find((b) => String(b.id) === String(batchId));
+      const requestPayload = {
+        product_id: String(payload.product_id),
+        target_warehouse_id: String(payload.warehouse_id),
+        quantity: payload.good_quantity,
+        unit_id: currentBatch?.output_unit_id || selectedProduct?.base_unit_id,
+        output_type: payload.output_type === 'byproduct' ? 'by_product' : 'primary',
+        batch_code: currentBatch?.batch_number,
+        qc_required: true,
+      };
+      return api.post(`/production/batches/${batchId}/outputs`, requestPayload);
+    },
     onSuccess: async () => {
+      toast.success('Batch output recorded successfully.');
       await queryClient.invalidateQueries({ queryKey: ['production', 'batches'] });
       setActiveBatchModal(null);
     },
@@ -576,6 +623,19 @@ export function ProductionBatchesSection() {
             </button>
           )}
 
+          {(b.status === 'draft' || b.status === 'scheduled' || b.status === 'in_progress') && Number(b.total_input_quantity || 0) === 0 && (
+            <button
+              type="button"
+              onClick={() => issueBomMutation.mutate(b.id)}
+              disabled={issueBomMutation.isPending}
+              className="px-2.5 py-1 text-xs bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 border border-indigo-300 dark:border-indigo-700 hover:bg-indigo-100 rounded-lg font-bold transition cursor-pointer flex items-center gap-1 shadow-2xs touch-target"
+              title="Auto-Issue BOM Recipe Materials"
+            >
+              <Sparkles className="size-3 text-indigo-500 shrink-0" />
+              <span>Auto-BOM</span>
+            </button>
+          )}
+
           {b.status === 'in_progress' && (
             <button
               type="button"
@@ -645,7 +705,7 @@ export function ProductionBatchesSection() {
             </button>
           )}
 
-          <div className="relative inline-block text-left">
+          <div className="relative inline-block text-left" data-action-menu>
             <button
               type="button"
               onClick={(e) => {
@@ -666,11 +726,117 @@ export function ProductionBatchesSection() {
               <span>Actions</span>
               <ChevronDown className="size-3 text-muted" />
             </button>
+
+            {openActionMenuId === b.id && (
+              <div
+                className="absolute right-0 mt-1 w-48 rounded-xl bg-surface border border-default shadow-lg py-1 z-30 animate-in fade-in zoom-in-95 duration-100"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOpenActionMenuId(null);
+                    handleOpenBatchDetails(b);
+                  }}
+                  className="w-full text-left px-3 py-1.5 text-xs text-default hover:bg-surface-sunken flex items-center gap-2 cursor-pointer"
+                >
+                  <Layers className="size-3.5 text-primary" />
+                  <span>View Details</span>
+                </button>
+
+                {(b.status === 'draft' || b.status === 'scheduled' || b.status === 'in_progress') && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setOpenActionMenuId(null);
+                      issueBomMutation.mutate(b.id);
+                    }}
+                    disabled={issueBomMutation.isPending}
+                    className="w-full text-left px-3 py-1.5 text-xs text-indigo-600 dark:text-indigo-400 hover:bg-surface-sunken flex items-center gap-2 cursor-pointer"
+                  >
+                    <Sparkles className="size-3.5 text-indigo-500" />
+                    <span>Auto-Issue BOM</span>
+                  </button>
+                )}
+
+                {b.status !== 'completed' && b.status !== 'closed' && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setOpenActionMenuId(null);
+                      setErrorMsg(null);
+                      setInputDraft({
+                        product_id: b.product_id,
+                        warehouse_id: warehouses[0]?.id ?? '',
+                        planned_quantity: '50.0000',
+                        actual_quantity: '50.0000',
+                        unit_cost: '10.0000',
+                      });
+                      setActiveBatchModal({ batch: b, type: 'input' });
+                    }}
+                    className="w-full text-left px-3 py-1.5 text-xs text-blue-600 dark:text-blue-400 hover:bg-surface-sunken flex items-center gap-2 cursor-pointer"
+                  >
+                    <Plus className="size-3.5" />
+                    <span>Issue Material</span>
+                  </button>
+                )}
+
+                {b.status === 'in_progress' && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setOpenActionMenuId(null);
+                      setErrorMsg(null);
+                      setOutputDraft({
+                        product_id: b.product_id,
+                        warehouse_id: warehouses[0]?.id ?? '',
+                        output_type: 'finished_good',
+                        good_quantity: b.target_quantity,
+                        rejected_quantity: '0.0000',
+                        unit_cost: '15.0000',
+                      });
+                      setActiveBatchModal({ batch: b, type: 'output' });
+                    }}
+                    className="w-full text-left px-3 py-1.5 text-xs text-emerald-600 dark:text-emerald-400 hover:bg-surface-sunken flex items-center gap-2 cursor-pointer"
+                  >
+                    <CheckCircle2 className="size-3.5" />
+                    <span>Record Output</span>
+                  </button>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOpenActionMenuId(null);
+                    analyzeMutation.mutate(b.id);
+                  }}
+                  disabled={analyzeMutation.isPending}
+                  className="w-full text-left px-3 py-1.5 text-xs text-purple-600 dark:text-purple-400 hover:bg-surface-sunken flex items-center gap-2 cursor-pointer"
+                >
+                  <Sparkles className="size-3.5" />
+                  <span>Analyze Yield</span>
+                </button>
+
+                {b.status !== 'in_progress' && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setOpenActionMenuId(null);
+                      setDeleteConfirm({ open: true, id: b.id, name: b.batch_number });
+                    }}
+                    className="w-full text-left px-3 py-1.5 text-xs text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 flex items-center gap-2 cursor-pointer border-t border-default/50"
+                  >
+                    <Trash2 className="size-3.5" />
+                    <span>Delete Batch</span>
+                  </button>
+                )}
+              </div>
+            )}
           </div>
         </div>
       ),
     },
-  ], [warehouses, openActionMenuId, analyzeMutation, startMutation, selectedBatchIds, isAllSelected, toggleSelectAll, toggleSelectBatch]);
+  ], [warehouses, openActionMenuId, analyzeMutation, startMutation, issueBomMutation, selectedBatchIds, isAllSelected, toggleSelectAll, toggleSelectBatch]);
 
   const getMobileActions = (b: ProductionBatch): ActionSheetItem[] => {
     const actions: ActionSheetItem[] = [
@@ -686,6 +852,14 @@ export function ProductionBatchesSection() {
         label: 'Start Production Run',
         icon: <Play className="size-4 text-emerald-500 fill-emerald-500" />,
         onClick: () => startMutation.mutate(b.id),
+      });
+    }
+
+    if (b.status === 'draft' || b.status === 'scheduled' || b.status === 'in_progress') {
+      actions.push({
+        label: 'Auto-Issue BOM Components',
+        icon: <Sparkles className="size-4 text-indigo-500" />,
+        onClick: () => issueBomMutation.mutate(b.id),
       });
     }
 
@@ -1205,6 +1379,7 @@ export function ProductionBatchesSection() {
                   recordOutputMutation.mutate({
                     batchId: activeBatchModal.batch.id,
                     payload: outputDraft,
+                    batch: activeBatchModal.batch,
                   })
                 }
                 disabled={recordOutputMutation.isPending}
@@ -1463,6 +1638,18 @@ export function ProductionBatchesSection() {
                 >
                   <Plus className="size-3.5" />
                   <span>Issue Material</span>
+                </Button>
+
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => issueBomMutation.mutate(activeBatchModal.batch.id)}
+                  disabled={issueBomMutation.isPending || activeBatchModal.batch.status === 'completed' || activeBatchModal.batch.status === 'closed'}
+                  className="flex items-center gap-1.5 text-indigo-600 dark:text-indigo-400 font-semibold"
+                  title="Auto-calculate and issue raw materials scaled to batch target quantity according to BOM recipe"
+                >
+                  <Sparkles className="size-3.5 text-indigo-500" />
+                  <span>{issueBomMutation.isPending ? 'Issuing...' : 'Auto-Issue BOM'}</span>
                 </Button>
 
                 <Button

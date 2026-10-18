@@ -431,6 +431,49 @@ final class ProductionBatchTest extends TestCase
         ], $this->headers())->assertForbidden();
     }
 
+    public function test_can_auto_issue_bom_materials_to_batch(): void
+    {
+        DB::table('bill_of_material_items')->insert([
+            'tenant_id' => $this->tenant->id,
+            'bill_of_material_id' => $this->bom->id,
+            'product_id' => $this->rawIngredient->id,
+            'quantity' => '50.0000',
+            'unit_id' => $this->kgUnit->id,
+            'wastage_allowance_percentage' => '10.0000',
+            'is_optional' => false,
+            'sort_order' => 1,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $createResponse = $this->json('POST', route('tenant.production.batches.store'), [
+            'batch_number' => 'BATCH-BOM-01',
+            'factory_id' => $this->factoryUuid,
+            'product_id' => $this->finishedGood->uuid,
+            'bill_of_material_id' => $this->bom->uuid,
+            'batch_date' => '2026-08-28',
+            'planned_quantity' => '200.0000',
+            'output_unit_id' => $this->pcsUnit->uuid,
+        ], $this->headers())->assertCreated();
+
+        $batchUuid = $createResponse->json('data.id');
+        self::assertIsString($batchUuid);
+
+        $response = $this->json('POST', route('tenant.production.batches.issue-bom', ['productionBatch' => $batchUuid]), [], $this->headers());
+
+        $response->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('meta.issued_count', 1)
+            ->assertJsonPath('meta.total_issued_quantity', '110.0000')
+            ->assertJsonPath('data.status', 'in_progress');
+
+        $this->assertDatabaseHas('production_batch_inputs', [
+            'product_id' => $this->rawIngredient->id,
+            'source' => 'material_issue',
+            'quantity' => '110.0000',
+        ]);
+    }
+
     /**
      * @return array<string, string>
      */
