@@ -42,7 +42,7 @@ final class PosSessionResource extends JsonResource
             'notes' => $this->notes,
             'created_at' => $this->created_at?->toISOString(),
             'updated_at' => $this->updated_at?->toISOString(),
-            'terminal' => new PosTerminalResource($this->whenLoaded('terminal')),
+            'terminal' => $this->relationLoaded('terminal') && $this->terminal ? new PosTerminalResource($this->terminal) : null,
         ];
     }
 }

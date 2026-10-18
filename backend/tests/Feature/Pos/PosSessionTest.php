@@ -256,6 +256,40 @@ final class PosSessionTest extends TestCase
             ->assertJsonPath('data.uuid', $uuid);
     }
 
+    public function test_open_pos_session_auto_provisions_or_resolves_when_terminal_missing(): void
+    {
+        // Delete pre-created terminals to simulate brand-new tenant onboarding
+        $this->terminal->delete();
+
+        $res = $this->postJson('/api/v1/pos/sessions', [
+            'opening_cash' => '1500.0000',
+            'notes' => 'Auto-provision shift test',
+        ], $this->headers());
+
+        $res->assertStatus(201)
+            ->assertJsonPath('data.status', 'open')
+            ->assertJsonPath('data.opening_cash', '1500.0000');
+
+        $this->assertDatabaseHas('pos_terminals', [
+            'tenant_id' => 1,
+            'code' => 'TRM-01',
+        ]);
+    }
+
+    public function test_open_pos_session_recovers_gracefully_with_invalid_ids(): void
+    {
+        $res = $this->postJson('/api/v1/pos/sessions', [
+            'terminal_id' => 999999,
+            'branch_id' => 999999,
+            'warehouse_id' => 999999,
+            'opening_cash' => '500.0000',
+        ], $this->headers());
+
+        $res->assertStatus(201)
+            ->assertJsonPath('data.status', 'open')
+            ->assertJsonPath('data.opening_cash', '500.0000');
+    }
+
     // ─── Helpers ──────────────────────────────────────────────────────────────
 
     /**

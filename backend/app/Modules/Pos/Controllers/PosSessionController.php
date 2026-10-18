@@ -63,6 +63,13 @@ final class PosSessionController extends Controller
             ]);
         } catch (\DomainException $e) {
             abort(422, $e->getMessage());
+        } catch (\Throwable $e) {
+            logger()->error('POS Session Open Failed: ' . $e->getMessage(), [
+                'tenant_id' => $tenantId,
+                'user_id' => $request->user()?->id,
+                'trace' => $e->getTraceAsString(),
+            ]);
+            abort(422, 'Unable to open POS session: ' . $e->getMessage());
         }
 
         return (new PosSessionResource($session))

@@ -77,7 +77,7 @@ export default function PosWorkspace() {
     if (selectedTerminalId !== null && terminals.some((t) => t.id === selectedTerminalId)) {
       return selectedTerminalId;
     }
-    return terminals[0]?.id ?? 1;
+    return terminals[0]?.id ?? null;
   }, [selectedTerminalId, terminals]);
 
   // Fetch all sessions to find the currently active open session
@@ -118,23 +118,26 @@ export default function PosWorkspace() {
     e.preventDefault();
     setIsOpeningShift(true);
     try {
-      const selectedTerm = terminals.find((t) => t.id === effectiveTerminalId) ?? terminals[0];
-      const termId = selectedTerm?.id ?? effectiveTerminalId;
-      const branchId = selectedTerm?.branch_id ?? activeBranch?.id ?? 1;
-      const warehouseId = selectedTerm?.default_warehouse_id ?? 1;
+      const selectedTerm = effectiveTerminalId
+        ? terminals.find((t) => t.id === effectiveTerminalId)
+        : terminals[0];
 
-      const payload = {
-        terminal_id: termId,
-        branch_id: branchId,
-        warehouse_id: warehouseId,
+      const payload: Record<string, unknown> = {
         opening_cash: openingFloat || '0.00',
+        ...(selectedTerm?.id ? { terminal_id: selectedTerm.id } : {}),
+        ...(selectedTerm?.branch_id || activeBranch?.id ? { branch_id: selectedTerm?.branch_id ?? activeBranch?.id } : {}),
+        ...(selectedTerm?.default_warehouse_id ? { warehouse_id: selectedTerm.default_warehouse_id } : {}),
         ...(openingNotes ? { notes: openingNotes } : {}),
       };
 
       const res = await api.post<PosSession | { data: PosSession }>('/pos/sessions', payload);
       const created = extractItem<PosSession>(res.data) ?? (res.data as unknown as PosSession);
 
-      await queryClient.invalidateQueries({ queryKey: ['pos', 'sessions'] });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['pos', 'sessions'] }),
+        queryClient.invalidateQueries({ queryKey: ['pos', 'terminals'] }),
+      ]);
+
       toast.success('Cashier register opened successfully.');
 
       if (created) {
@@ -142,8 +145,9 @@ export default function PosWorkspace() {
         setSearchParams({});
       }
     } catch (err: unknown) {
-      const apiErr = err as { message?: string };
-      toast.error(apiErr.message || 'Failed to open register. Please verify terminal configuration.');
+      const apiErr = err as { message?: string; response?: { data?: { message?: string } } };
+      const msg = apiErr.response?.data?.message || apiErr.message || 'Failed to open register. Please verify terminal configuration.';
+      toast.error(msg);
     } finally {
       setIsOpeningShift(false);
     }
@@ -197,8 +201,8 @@ export default function PosWorkspace() {
                 Assigned Terminal Station
               </label>
               <select
-                value={effectiveTerminalId}
-                onChange={(e) => setSelectedTerminalId(Number(e.target.value))}
+                value={effectiveTerminalId ?? ''}
+                onChange={(e) => setSelectedTerminalId(e.target.value ? Number(e.target.value) : null)}
                 className="w-full rounded-xl border border-default bg-surface-sunken px-3.5 py-2.5 text-xs text-default focus:border-primary focus:outline-none"
               >
                 {terminals.length > 0 ? (
@@ -208,7 +212,7 @@ export default function PosWorkspace() {
                     </option>
                   ))
                 ) : (
-                  <option value={1}>Counter 1 (Main Cashier)</option>
+                  <option value="">Default Counter 1 (Auto-Provisioned)</option>
                 )}
               </select>
             </div>

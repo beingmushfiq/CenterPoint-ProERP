@@ -140,15 +140,15 @@ export function PosSessionsSection({ onLaunchPOS }: PosSessionsSectionProps) {
       const selectedTerm =
         terminals.find((t) => t.id === Number(openFormData.terminal_id)) ??
         terminals[0];
-      const termId = selectedTerm?.id ?? (Number(openFormData.terminal_id) || 1);
-      const branchId = selectedTerm?.branch_id ?? 1;
-      const warehouseId = selectedTerm?.default_warehouse_id ?? 1;
+      const termId = selectedTerm?.id ?? (Number(openFormData.terminal_id) || undefined);
+      const branchId = selectedTerm?.branch_id ?? undefined;
+      const warehouseId = selectedTerm?.default_warehouse_id ?? undefined;
 
-      const payload = {
-        terminal_id: termId,
-        branch_id: branchId,
-        warehouse_id: warehouseId,
+      const payload: Record<string, unknown> = {
         opening_cash: openFormData.opening_cash || '0.00',
+        ...(termId ? { terminal_id: termId } : {}),
+        ...(branchId ? { branch_id: branchId } : {}),
+        ...(warehouseId ? { warehouse_id: warehouseId } : {}),
         ...(openFormData.notes ? { notes: openFormData.notes } : {}),
         ...(openFormData.session_number ? { session_number: openFormData.session_number } : {}),
       };
@@ -156,7 +156,10 @@ export function PosSessionsSection({ onLaunchPOS }: PosSessionsSectionProps) {
       const res = await api.post<PosSession | { data: PosSession }>('/pos/sessions', payload);
       const created = extractItem<PosSession>(res.data) ?? (res.data as unknown as PosSession);
 
-      await queryClient.invalidateQueries({ queryKey: ['pos', 'sessions'] });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['pos', 'sessions'] }),
+        queryClient.invalidateQueries({ queryKey: ['pos', 'terminals'] }),
+      ]);
       toast.success('Cashier shift opened successfully.');
       setShowOpenModal(false);
 
@@ -164,8 +167,9 @@ export function PosSessionsSection({ onLaunchPOS }: PosSessionsSectionProps) {
         onLaunchPOS(created);
       }
     } catch (err: unknown) {
-      const apiErr = err as { message?: string };
-      toast.error(apiErr.message || 'Failed to open cashier shift. Please check terminal status.');
+      const apiErr = err as { message?: string; response?: { data?: { message?: string } } };
+      const msg = apiErr.response?.data?.message || apiErr.message || 'Failed to open cashier shift. Please check terminal status.';
+      toast.error(msg);
     } finally {
       setOpeningSession(false);
     }
@@ -483,7 +487,7 @@ export function PosSessionsSection({ onLaunchPOS }: PosSessionsSectionProps) {
                         </option>
                       ))
                     ) : (
-                      <option value={1}>Counter 1 (Main Cashier)</option>
+                      <option value="">Default Counter 1 (Auto-Provisioned)</option>
                     )}
                   </select>
                 </div>

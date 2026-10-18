@@ -45,6 +45,26 @@ final class DemoErpStorefrontSeeder extends Seeder
         $this->seedCmsContent($tenantId, $storefront);
         $this->seedCustomerAndOrders($tenantId, $company, $branch, $warehouse, $storefront, $unitPcs, $createdProducts);
 
+        // Ensure DemoERP has a POS terminal configured for retail sales
+        \App\Modules\Pos\Models\PosTerminal::firstOrCreate(
+            [
+                'tenant_id' => $tenantId,
+                'code' => 'DEMO-POS-01',
+            ],
+            [
+                'uuid' => (string) Str::uuid(),
+                'branch_id' => $branch->id,
+                'name' => 'Dhaka Flagship Register (Counter 1)',
+                'default_warehouse_id' => $warehouse->id,
+                'printer_config' => [
+                    'paper_width_mm' => 80,
+                    'auto_cut' => true,
+                    'open_drawer' => true,
+                ],
+                'is_active' => true,
+            ]
+        );
+
         // Return context back to SliceMart default
         $slicemartTenant = Tenant::where('slug', 'slicemart')->orWhere('id', 1)->first();
         if ($slicemartTenant) {
