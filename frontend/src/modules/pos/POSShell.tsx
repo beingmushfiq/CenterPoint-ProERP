@@ -34,6 +34,10 @@ import {
   Wallet,
   Tag,
   BarChart3,
+  Volume2,
+  VolumeX,
+  KeyRound,
+  CloudOff,
   X,
 } from 'lucide-react';
 import type { PosSession, PosCheckoutPayload, PosCheckoutPaymentPayload, PosCheckoutResult, PosHeldSale } from '../../types/api/pos';
@@ -51,6 +55,16 @@ import { LanguageSwitcher } from '../../components/ui/LanguageSwitcher';
 import { PosExchangeModal } from './components/PosExchangeModal';
 import { PosReturnModal } from './components/PosReturnModal';
 import { MidShiftSummaryModal } from './components/MidShiftSummaryModal';
+import { PosKeyboardShortcutsModal } from './components/PosKeyboardShortcutsModal';
+import { PosRecentReceiptsModal } from './components/PosRecentReceiptsModal';
+import { posAudio } from './utils/posAudio';
+import {
+  kickCashDrawer,
+  saveRecentReceipt,
+  getQueuedOfflineSales,
+  queueOfflineSale,
+  type PosOfflineReceipt,
+} from './utils/posHardware';
 import './POSShell.css';
 
 export type PosPaymentMethod = 'cash' | 'card' | 'mobile_banking' | 'credit_adjustment';
@@ -244,6 +258,13 @@ export function POSShell({ session, onExit }: POSShellProps) {
     setReturnInitialOrderItems(items ?? []);
     setIsReturnModalOpen(true);
   };
+
+  // POS Cashier Enhancements State
+  const [showShortcutsModal, setShowShortcutsModal] = useState(false);
+  const [showRecentReceiptsModal, setShowRecentReceiptsModal] = useState(false);
+  const [isSoundMuted, setIsSoundMuted] = useState(posAudio.isSoundMuted());
+  const [queuedOfflineCount, setQueuedOfflineCount] = useState(getQueuedOfflineSales().length);
+
   const barcodeInputRef = useRef<HTMLInputElement>(null);
   const customerNameInputRef = useRef<HTMLInputElement>(null);
   const cashTenderedInputRef = useRef<HTMLInputElement>(null);
@@ -354,36 +375,6 @@ export function POSShell({ session, onExit }: POSShellProps) {
     },
   });
 
-  // Global Keyboard Shortcuts for POS Cashier Velocity
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'F2') {
-        e.preventDefault();
-        barcodeInputRef.current?.focus();
-        barcodeInputRef.current?.select();
-      } else if (e.key === 'F4') {
-        e.preventDefault();
-        customerNameInputRef.current?.focus();
-      } else if (e.key === 'F8') {
-        e.preventDefault();
-        orderDiscountInputRef.current?.focus();
-        orderDiscountInputRef.current?.select();
-      } else if (e.key === 'F9') {
-        e.preventDefault();
-        const methods: readonly PosPaymentMethod[] = ['cash', 'card', 'mobile_banking', 'credit_adjustment'];
-        const currentIdx = methods.indexOf(tenderMethod);
-        const nextIdx = (currentIdx + 1) % methods.length;
-        const nextMethod = methods[nextIdx] ?? 'cash';
-        updateCurrentSlot({ tenderMethod: nextMethod });
-      } else if (e.key === 'F10') {
-        e.preventDefault();
-        updateCurrentSlot({ tenderMethod: 'cash' });
-        setTimeout(() => cashTenderedInputRef.current?.focus(), 50);
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [tenderMethod, updateCurrentSlot]);
 
   const handleApplyCoupon = () => {
     const code = couponCode.trim().toUpperCase();
@@ -907,6 +898,40 @@ export function POSShell({ session, onExit }: POSShellProps) {
         throw new Error('Invalid checkout response received from server');
       }
 
+      // 1. Audio Chime
+      posAudio.playCashChime();
+
+      // 2. Physical Cash Drawer Kick if cash tender is involved
+      const hasCashTender = isSplitPayment
+        ? splitPayments.some((p) => p.method === 'cash' && p.amount > 0)
+        : tenderMethod === 'cash';
+      if (hasCashTender) {
+        kickCashDrawer('cash_checkout', session.user?.name);
+      }
+
+      // 3. Cache completed receipt locally for 1-click re-print
+      saveRecentReceipt({
+        id: `rec_${checkoutResult.order.id}_${Date.now()}`,
+        orderNumber: checkoutResult.order.order_number,
+        invoiceId: checkoutResult.invoice.id,
+        total: grandTotal,
+        paymentMethod: isSplitPayment ? 'Split' : tenderMethod,
+        cashTendered: isSplitPayment ? undefined : parseFloat(cashTendered || '0') || grandTotal,
+        changeAmount: isSplitPayment ? undefined : singleChangeGiven,
+        itemsCount: cart.length,
+        timestamp: new Date().toISOString(),
+        customerName: customerName || 'Walk-in Customer',
+        customerPhone: customerPhone || undefined,
+        checkoutResult,
+        items: cart.map((c) => ({
+          name: c.product.name,
+          sku: c.product.sku,
+          quantity: c.quantity,
+          price: c.unit_price,
+          total: c.quantity * c.unit_price,
+        })),
+      });
+
       setLastCompletedPayments(paymentsPayload);
       setLastReceipt(checkoutResult);
       clearCart();
@@ -917,6 +942,28 @@ export function POSShell({ session, onExit }: POSShellProps) {
       console.error('POS Checkout Failed', err);
       const apiErr = err as { message?: string; response?: { data?: { message?: string } } };
       const rawMsg = apiErr.message || apiErr.response?.data?.message || '';
+
+      // Offline queue fallback on network drop
+      const isNetworkDrop = !navigator.onLine || rawMsg.toLowerCase().includes('network') || rawMsg.toLowerCase().includes('failed to fetch');
+      if (isNetworkDrop) {
+        const offlineItem = queueOfflineSale(payload, grandTotal, customerName);
+        setQueuedOfflineCount(getQueuedOfflineSales().length);
+        posAudio.playCashChime();
+        const hasCashTender = isSplitPayment
+          ? splitPayments.some((p) => p.method === 'cash' && p.amount > 0)
+          : tenderMethod === 'cash';
+        if (hasCashTender) {
+          kickCashDrawer('cash_checkout', session.user?.name);
+        }
+        clearCart();
+        notify.warning('Saved to Offline Queue', {
+          description: `Network connection dropped. Transaction #${offlineItem.id} safely cached. You can sync when reconnected.`,
+        });
+        return;
+      }
+
+      posAudio.playErrorBuzz();
+
       const isSessionError =
         rawMsg.toLowerCase().includes('possession') ||
         rawMsg.toLowerCase().includes('pos session') ||
@@ -1100,6 +1147,92 @@ export function POSShell({ session, onExit }: POSShellProps) {
       notify.error('Failed to discard held sale');
     }
   };
+
+  const handleReprintCachedReceipt = (receipt: PosOfflineReceipt) => {
+    if (receipt.checkoutResult) {
+      setLastReceipt(receipt.checkoutResult);
+      setShowRecentReceiptsModal(false);
+      handlePrintReceipt('thermal');
+    } else {
+      notify.info(`Re-printing ${receipt.orderNumber}`);
+      window.print();
+    }
+  };
+
+  // Global Keyboard Shortcuts for POS Cashier Velocity & Hardware Control
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const activeEl = document.activeElement as HTMLElement | null;
+      const isInput =
+        activeEl?.tagName === 'INPUT' ||
+        activeEl?.tagName === 'TEXTAREA' ||
+        activeEl?.tagName === 'SELECT';
+
+      if (e.key === 'F1') {
+        e.preventDefault();
+        barcodeInputRef.current?.focus();
+        barcodeInputRef.current?.select();
+      } else if (e.key === 'F2') {
+        e.preventDefault();
+        // Adjust quantity of last item in active cart
+        if (cart.length > 0) {
+          updateCurrentSlot((prev) => {
+            const lastIdx = prev.cart.length - 1;
+            const updated = prev.cart.map((item, idx) =>
+              idx === lastIdx ? { ...item, quantity: item.quantity + 1 } : item
+            );
+            return { ...prev, cart: updated };
+          });
+          posAudio.playScanBeep();
+          const lastItem = cart[cart.length - 1];
+          if (lastItem) {
+            notify.info(`Qty +1 on ${lastItem.product.name} (Now: ${lastItem.quantity + 1})`);
+          }
+        } else {
+          barcodeInputRef.current?.focus();
+        }
+      } else if (e.key === 'F4') {
+        e.preventDefault();
+        orderDiscountInputRef.current?.focus();
+        orderDiscountInputRef.current?.select();
+      } else if (e.key === 'F7' || (e.ctrlKey && e.shiftKey && (e.key === 'D' || e.key === 'd'))) {
+        e.preventDefault();
+        kickCashDrawer('manual_open', session.operator_name || 'Cashier');
+        notify.success('Cash Drawer Pulse Sent', {
+          description: 'Register cash drawer popped open.',
+        });
+      } else if (e.key === 'F8') {
+        e.preventDefault();
+        if (cart.length > 0) {
+          setIsParkModalOpen(true);
+        } else {
+          notify.info('Cart is empty — nothing to hold.');
+        }
+      } else if (e.key === 'F9') {
+        e.preventDefault();
+        setIsParkedDrawerOpen((prev) => !prev);
+      } else if (e.key === 'F10' || (e.key === '?' && !isInput)) {
+        e.preventDefault();
+        setShowShortcutsModal((prev) => !prev);
+      } else if (e.key === 'F12' || (e.ctrlKey && e.key === 'Enter')) {
+        e.preventDefault();
+        if (cart.length > 0 && !checkingOut) {
+          void handleCheckout();
+        }
+      } else if (e.key === 'Escape') {
+        setIsDrawerOpen(false);
+        setIsParkedDrawerOpen(false);
+        setShowShortcutsModal(false);
+        setShowRecentReceiptsModal(false);
+        setIsParkModalOpen(false);
+        setIsExchangeModalOpen(false);
+        setIsReturnModalOpen(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [cart, checkingOut, session.operator_name, updateCurrentSlot]);
 
   // Smart category tabs derived from actual products & category records
   const categoryTabs = useMemo(() => {
@@ -1466,6 +1599,71 @@ export function POSShell({ session, onExit }: POSShellProps) {
           >
             <BarChart3 className="h-4 w-4 text-emerald-500" />
             <span className="hidden md:inline">X-Report</span>
+          </button>
+
+          {/* Pop Cash Drawer (F7) */}
+          <button
+            type="button"
+            onClick={() => {
+              kickCashDrawer('manual_open', session.operator_name || 'Cashier');
+              notify.success('Cash Drawer Pulse Sent', {
+                description: 'Register cash drawer popped open.',
+              });
+            }}
+            className="hidden sm:flex items-center gap-1.5 rounded-xl border border-default bg-surface px-2.5 py-1.5 text-xs font-semibold text-default hover:bg-surface-raised cursor-pointer transition-colors"
+            title="Pop Cash Drawer (F7 / Ctrl+Shift+D)"
+          >
+            <Banknote className="h-4 w-4 text-emerald-500" />
+            <span className="hidden xl:inline">Drawer (F7)</span>
+          </button>
+
+          {/* Recent Receipts & Offline Queue */}
+          <button
+            type="button"
+            onClick={() => setShowRecentReceiptsModal(true)}
+            className={`hidden sm:flex items-center gap-1.5 rounded-xl border px-2.5 py-1.5 text-xs font-semibold cursor-pointer transition-colors ${
+              queuedOfflineCount > 0
+                ? 'bg-amber-500/10 border-amber-500/30 text-amber-500 animate-pulse'
+                : 'border-default bg-surface text-default hover:bg-surface-raised'
+            }`}
+            title="Recent Receipts & Offline Sync Queue"
+          >
+            {queuedOfflineCount > 0 ? (
+              <CloudOff className="h-4 w-4 text-amber-500" />
+            ) : (
+              <History className="h-4 w-4 text-muted" />
+            )}
+            <span className="hidden xl:inline">Receipts</span>
+            {queuedOfflineCount > 0 && (
+              <span className="rounded-full bg-amber-500 text-white px-1.5 py-0.2 text-[9px] font-black">
+                {queuedOfflineCount}
+              </span>
+            )}
+          </button>
+
+          {/* Fast Keys & Shortcuts (F10) */}
+          <button
+            type="button"
+            onClick={() => setShowShortcutsModal(true)}
+            className="hidden sm:flex items-center gap-1.5 rounded-xl border border-default bg-surface px-2.5 py-1.5 text-xs font-semibold text-default hover:bg-surface-raised cursor-pointer transition-colors"
+            title="Cashier Keyboard Shortcuts (F10 / ?)"
+          >
+            <Keyboard className="h-4 w-4 text-primary" />
+            <span className="hidden xl:inline">Hotkeys</span>
+          </button>
+
+          {/* Audio Feedback Toggle */}
+          <button
+            type="button"
+            onClick={() => {
+              const muted = posAudio.toggleMute();
+              setIsSoundMuted(muted);
+              notify.info(muted ? 'Audio Beeps Muted' : 'Audio Beeps Enabled');
+            }}
+            className="flex h-9 w-9 items-center justify-center rounded-xl border border-default bg-surface text-muted hover:text-default hover:bg-surface-raised transition-all cursor-pointer"
+            title={isSoundMuted ? 'Unmute Audio Beeps' : 'Mute Audio Beeps'}
+          >
+            {isSoundMuted ? <VolumeX className="h-4 w-4 text-rose-400" /> : <Volume2 className="h-4 w-4 text-emerald-500" />}
           </button>
 
           {/* Cashier Avatar Chip */}
@@ -3161,6 +3359,20 @@ export function POSShell({ session, onExit }: POSShellProps) {
         isOpen={showMidShiftSummary}
         onClose={() => setShowMidShiftSummary(false)}
         session={session}
+      />
+
+      {/* ── POS Keyboard Shortcuts Modal ────────────────────────────── */}
+      <PosKeyboardShortcutsModal
+        isOpen={showShortcutsModal}
+        onClose={() => setShowShortcutsModal(false)}
+      />
+
+      {/* ── POS Recent Receipts & Offline Cache Modal ──────────────── */}
+      <PosRecentReceiptsModal
+        isOpen={showRecentReceiptsModal}
+        onClose={() => setShowRecentReceiptsModal(false)}
+        onReprintReceipt={handleReprintCachedReceipt}
+        currencySymbol={currencySymbol || '৳'}
       />
     </div>
   );
