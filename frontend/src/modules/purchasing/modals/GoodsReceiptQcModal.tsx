@@ -9,8 +9,6 @@ import {
   PackageCheck,
   Calendar,
   Tag,
-  AlertCircle,
-  HelpCircle,
 } from 'lucide-react';
 import type { GoodsReceipt, GoodsReceiptItem } from '../../../types/api/purchasing';
 import { api } from '../../../lib/api/client';

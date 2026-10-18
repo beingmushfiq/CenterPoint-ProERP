@@ -825,6 +825,8 @@ Route::middleware(['auth.jwt', 'tenant.resolve', 'tenant.active'])
                     ->middleware('permission:logistics.shipment.view')->name('index');
                 Route::post('/', [App\Modules\Delivery\Controllers\CourierShipmentController::class, 'store'])
                     ->middleware('permission:logistics.shipment.create')->name('store');
+                Route::post('batch', [App\Modules\Delivery\Controllers\CourierShipmentController::class, 'batchStore'])
+                    ->middleware('permission:logistics.shipment.create')->name('batch');
                 Route::get('{shipment}', [App\Modules\Delivery\Controllers\CourierShipmentController::class, 'show'])
                     ->middleware('permission:logistics.shipment.view')->name('show');
                 Route::delete('{shipment}', [App\Modules\Delivery\Controllers\CourierShipmentController::class, 'destroy'])

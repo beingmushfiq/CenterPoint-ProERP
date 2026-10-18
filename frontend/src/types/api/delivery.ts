@@ -76,6 +76,17 @@ export interface RunSheet {
   dispatched_at?: string | undefined;
   returned_at?: string | undefined;
   created_at?: string | undefined;
+  delivery_orders?: Array<{
+    id: number;
+    uuid?: string;
+    delivery_number: string;
+    recipient_name: string;
+    recipient_phone: string;
+    delivery_address: string;
+    cod_amount: string;
+    cod_collected_amount?: string;
+    status: string;
+  }> | undefined;
 }
 
 export type CodReconciliationStatus = 'draft' | 'reconciled' | 'disputed' | 'adjusted';

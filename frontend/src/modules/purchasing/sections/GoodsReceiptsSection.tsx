@@ -138,17 +138,6 @@ export function GoodsReceiptsSection() {
     }
   };
 
-  const handleSendToQc = async (grn: GoodsReceipt) => {
-    try {
-      await api.post(`/purchasing/goods-receipts/${grn.id}/qc`, { status: 'qc_pending' });
-    } catch {
-      // optimistic fallback
-    }
-    queryClient.setQueryData<GoodsReceipt[]>(['purchasing', 'goods-receipts'], (prev = []) =>
-      prev.map((g) => (g.id === grn.id ? { ...g, status: 'qc_pending' as GoodsReceipt['status'] } : g))
-    );
-    toast.success(`GRN ${grn.grn_number} lots routed to Quality Control & Inspection queue.`);
-  };
 
   const handleCreateGrn = (e: React.FormEvent) => {
     e.preventDefault();

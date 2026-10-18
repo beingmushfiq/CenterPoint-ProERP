@@ -35,6 +35,19 @@ class RunSheetResource extends JsonResource
             'dispatched_at' => $this->dispatched_at?->toIso8601String(),
             'returned_at' => $this->returned_at?->toIso8601String(),
             'created_at' => $this->created_at?->toIso8601String(),
+            'delivery_orders' => $this->whenLoaded('deliveryOrders', function () {
+                return $this->deliveryOrders->map(fn ($do) => [
+                    'id' => $do->id,
+                    'uuid' => $do->uuid,
+                    'delivery_number' => $do->delivery_number,
+                    'recipient_name' => $do->recipient_name,
+                    'recipient_phone' => $do->recipient_phone,
+                    'delivery_address' => $do->delivery_address,
+                    'cod_amount' => $do->cod_amount,
+                    'cod_collected_amount' => $do->cod_collected_amount,
+                    'status' => $do->status,
+                ]);
+            }),
         ];
     }
 }

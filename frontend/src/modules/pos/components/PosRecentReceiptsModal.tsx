@@ -19,8 +19,8 @@ export const PosRecentReceiptsModal: React.FC<PosRecentReceiptsModalProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<'history' | 'offline_queue'>('history');
   const [isSyncing, setIsSyncing] = useState(false);
-  const [recentReceipts, setRecentReceipts] = useState<PosOfflineReceipt[]>(getRecentReceipts());
-  const [queuedSales, setQueuedSales] = useState(getQueuedOfflineSales());
+  const [recentReceipts, setRecentReceipts] = useState<PosOfflineReceipt[]>(getRecentReceipts);
+  const [queuedSales, setQueuedSales] = useState(getQueuedOfflineSales);
 
   if (!isOpen) return null;
 
@@ -33,6 +33,7 @@ export const PosRecentReceiptsModal: React.FC<PosRecentReceiptsModalProps> = ({
       await api.post('/pos/checkout', target.payload);
       removeQueuedOfflineSale(queuedId);
       setQueuedSales(getQueuedOfflineSales());
+      setRecentReceipts(getRecentReceipts());
       notify.success('Offline sale synced successfully to server!');
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Server error occurred';

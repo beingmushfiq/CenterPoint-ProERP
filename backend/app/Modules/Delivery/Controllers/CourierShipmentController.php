@@ -56,6 +56,53 @@ class CourierShipmentController extends Controller
             ->setStatusCode(201);
     }
 
+    public function batchStore(Request $request, CreateShipmentAction $action): JsonResponse
+    {
+        $validated = $request->validate([
+            'delivery_order_ids' => ['required', 'array', 'min:1'],
+            'delivery_order_ids.*' => ['required', 'integer', 'exists:delivery_orders,id'],
+            'courier_provider_id' => ['required', 'integer', 'exists:courier_providers,id'],
+            'pickup_address' => ['sometimes', 'nullable', 'string'],
+            'special_instructions' => ['sometimes', 'nullable', 'string'],
+        ]);
+
+        /** @var CourierProvider $provider */
+        $provider = CourierProvider::findOrFail($validated['courier_provider_id']);
+
+        $createdShipments = [];
+        $errors = [];
+
+        foreach ($validated['delivery_order_ids'] as $orderId) {
+            try {
+                $deliveryOrder = DeliveryOrder::findOrFail($orderId);
+                $shipment = $action->execute($deliveryOrder, $provider, [
+                    'delivery_order_id' => $orderId,
+                    'courier_provider_id' => $provider->id,
+                    'pickup_address' => $validated['pickup_address'] ?? null,
+                    'special_instructions' => $validated['special_instructions'] ?? null,
+                    'created_by' => $request->user()?->id,
+                ]);
+                $shipment->load(['deliveryOrder', 'provider']);
+                $createdShipments[] = (new CourierShipmentResource($shipment))->resolve();
+            } catch (\Throwable $e) {
+                $errors[] = [
+                    'delivery_order_id' => $orderId,
+                    'error' => $e->getMessage(),
+                ];
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => count($createdShipments).' shipments successfully booked with '.$provider->name,
+            'data' => [
+                'shipments' => $createdShipments,
+                'errors' => $errors,
+                'total_booked' => count($createdShipments),
+            ],
+        ], count($createdShipments) > 0 ? 201 : 422);
+    }
+
     public function show(CourierShipment $shipment): CourierShipmentResource
     {
         $shipment->load(['deliveryOrder', 'provider']);

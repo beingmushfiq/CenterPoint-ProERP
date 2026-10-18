@@ -200,4 +200,41 @@ final class CourierShipmentTest extends TestCase
         $this->deliveryOrder->refresh();
         $this->assertSame('cancelled', $this->deliveryOrder->status);
     }
+
+    public function test_can_batch_book_courier_shipments(): void
+    {
+        $order2 = DeliveryOrder::create([
+            'tenant_id' => $this->tenant->id,
+            'sales_order_id' => $this->deliveryOrder->sales_order_id,
+            'warehouse_id' => $this->deliveryOrder->warehouse_id,
+            'delivery_number' => 'DO-BATCH-002',
+            'delivery_type' => 'courier',
+            'status' => 'pending',
+            'cod_amount' => '850.0000',
+            'cod_collected_amount' => '0.0000',
+            'cod_status' => 'pending',
+            'delivery_charge' => '60.0000',
+            'recipient_name' => 'Batch Customer 2',
+            'recipient_phone' => '+8801722222222',
+            'delivery_address' => 'Dhanmondi, Dhaka',
+        ]);
+
+        $payload = [
+            'delivery_order_ids' => [$this->deliveryOrder->id, $order2->id],
+            'courier_provider_id' => $this->provider->id,
+            'pickup_address' => 'Tejgaon Industrial Area, Dhaka',
+        ];
+
+        $response = $this->withHeader('Authorization', 'Bearer '.$this->jwt)
+            ->postJson('/api/v1/logistics/shipments/batch', $payload);
+
+        $response->assertStatus(201)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.total_booked', 2);
+
+        $this->deliveryOrder->refresh();
+        $order2->refresh();
+        $this->assertSame('in_transit', $this->deliveryOrder->status);
+        $this->assertSame('in_transit', $order2->status);
+    }
 }

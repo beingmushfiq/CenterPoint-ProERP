@@ -5,6 +5,7 @@ import { useCurrency } from '../../../hooks/useCurrency';
 import { useAuthStore } from '../../../lib/auth/authStore';
 import { PrintPreviewModal } from '../../../components/print/PrintPreviewModal';
 import { RiderRunSheetChallanDocument } from '../../../components/print/documents/RiderRunSheetChallanDocument';
+import { RunSheetSettlementModal } from '../modals/RunSheetSettlementModal';
 import { useBusinessConfig } from '../../../lib/document/useBusinessConfig';
 import { SelectDropdown } from '../../../components/ui/Dropdown';
 import { ChevronDown, Printer, CheckCircle2, Plus, Bike, X, Trash2, Zap, Compass } from 'lucide-react';
@@ -29,6 +30,13 @@ interface RunSheetsSectionProps {
   ) => Promise<void>;
   onDeleteRunSheet?: (runSheetId: number) => Promise<void>;
   onBulkDeleteRunSheets?: (runSheetIds: number[]) => Promise<void>;
+  onTriggerCodReconciliation?: (reconciliationData: {
+    source_type: 'run_sheet';
+    source_id: number;
+    expected_amount: string;
+    received_amount: string;
+    notes?: string;
+  }) => void;
 }
 
 export const RunSheetsSection: React.FC<RunSheetsSectionProps> = ({
@@ -40,6 +48,7 @@ export const RunSheetsSection: React.FC<RunSheetsSectionProps> = ({
   onCompleteRunSheet,
   onDeleteRunSheet,
   onBulkDeleteRunSheets,
+  onTriggerCodReconciliation,
 }) => {
   const { formatCurrency } = useCurrency();
   const { hasPermission } = useAuthStore();
@@ -47,6 +56,7 @@ export const RunSheetsSection: React.FC<RunSheetsSectionProps> = ({
 
   const { config: businessConfig } = useBusinessConfig();
   const [selectedRunSheetForChallan, setSelectedRunSheetForChallan] = useState<RunSheet | null>(null);
+  const [selectedRunSheetForSettlement, setSelectedRunSheetForSettlement] = useState<RunSheet | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [selectedBranchId, setSelectedBranchId] = useState<number>(branches[0]?.id || 1);
   const [selectedRiderId, setSelectedRiderId] = useState<number>(0);
@@ -136,13 +146,9 @@ export const RunSheetsSection: React.FC<RunSheetsSectionProps> = ({
     }
   };
 
-  const handleCompleteSheet = async (runSheet: RunSheet) => {
-    setIsSubmitting(true);
-    try {
-      await onCompleteRunSheet(runSheet.id, []);
-    } finally {
-      setIsSubmitting(false);
-    }
+  // Trigger settlement modal for stop-by-stop delivery & COD reconciliation
+  const handleOpenSettlement = (runSheet: RunSheet) => {
+    setSelectedRunSheetForSettlement(runSheet);
   };
 
   const getStatusBadge = (status: string) => {
@@ -313,6 +319,16 @@ export const RunSheetsSection: React.FC<RunSheetsSectionProps> = ({
                   <td className="px-4 py-3">{getStatusBadge(rs.status)}</td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex items-center justify-end gap-1.5">
+                      {rs.status !== 'completed' && rs.status !== 'reconciled' && (
+                        <button
+                          type="button"
+                          onClick={() => handleOpenSettlement(rs)}
+                          className="px-2.5 py-1 text-xs font-semibold rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 transition-colors cursor-pointer shadow-2xs"
+                          title="Settle Stops & Collect COD"
+                        >
+                          Settle
+                        </button>
+                      )}
                       <button
                         type="button"
                         onClick={() => setSelectedRunSheetForChallan(rs)}
@@ -377,14 +393,14 @@ export const RunSheetsSection: React.FC<RunSheetsSectionProps> = ({
                     <button
                       type="button"
                       onClick={() => {
-                        handleCompleteSheet(item);
+                        handleOpenSettlement(item);
                         setOpenActionMenuId(null);
                         setActionMenuAnchor(null);
                       }}
                       className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 transition-colors cursor-pointer"
                     >
                       <CheckCircle2 className="size-3.5" />
-                      <span>Complete & Reconcile</span>
+                      <span>Settle Stops & COD</span>
                     </button>
                   )}
                   {canDelete && (
@@ -605,6 +621,19 @@ export const RunSheetsSection: React.FC<RunSheetsSectionProps> = ({
             businessConfig={businessConfig}
           />
         </PrintPreviewModal>
+      )}
+
+      {/* Run Sheet Settlement Modal */}
+      {selectedRunSheetForSettlement && (
+        <RunSheetSettlementModal
+          isOpen={Boolean(selectedRunSheetForSettlement)}
+          onClose={() => setSelectedRunSheetForSettlement(null)}
+          runSheet={selectedRunSheetForSettlement}
+          onSubmitSettlement={async (id, deliveries) => {
+            await onCompleteRunSheet(id, deliveries);
+          }}
+          onTriggerCodReconciliation={onTriggerCodReconciliation}
+        />
       )}
     </div>
   );

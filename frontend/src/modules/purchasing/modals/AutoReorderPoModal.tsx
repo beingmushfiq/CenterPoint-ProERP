@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   X,
@@ -7,12 +7,7 @@ import {
   Building2,
   Warehouse as WarehouseIcon,
   Calendar,
-  CheckCircle2,
-  Layers,
-  ArrowRight,
-  TrendingDown,
   Sparkles,
-  DollarSign,
 } from 'lucide-react';
 import { api } from '../../../lib/api/client';
 import { extractList } from '../../../lib/api/apiData';
@@ -122,12 +117,12 @@ export const AutoReorderPoModal: React.FC<AutoReorderPoModalProps> = ({
 
   // Set default supplier and warehouse
   React.useEffect(() => {
-    if (suppliers.length > 0 && selectedSupplierId === 0) {
+    if (suppliers.length > 0 && selectedSupplierId === 0 && suppliers[0]?.id) {
       setSelectedSupplierId(Number(suppliers[0].id));
     }
-    if (warehouses.length > 0 && selectedWarehouseId === 0) {
+    if (warehouses.length > 0 && selectedWarehouseId === 0 && warehouses[0]?.id) {
       setSelectedWarehouseId(Number(warehouses[0].id));
-    } else if (alertsPool.length > 0 && selectedWarehouseId === 0) {
+    } else if (alertsPool.length > 0 && selectedWarehouseId === 0 && alertsPool[0]) {
       setSelectedWarehouseId(alertsPool[0].warehouse_id || 1);
     }
   }, [suppliers, warehouses, alertsPool, selectedSupplierId, selectedWarehouseId]);

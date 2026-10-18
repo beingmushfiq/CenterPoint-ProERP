@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { ActionMenuPortal } from '../../../components/ui/ActionMenuPortal';
 import { ConfirmDialog } from '../../../components/ui/Modal';
+import { BatchCourierBookingModal } from '../modals/BatchCourierBookingModal';
 import { notify } from '../../../components/ui/Toast';
 import { cn } from '../../../lib/utils';
 
@@ -79,6 +80,12 @@ interface CourierShipmentsSectionProps {
   providers: CourierProvider[];
   pendingDeliveries: DeliveryOrder[];
   onBookShipment: (deliveryOrderId: number, providerId: number, notes?: string) => Promise<void>;
+  onBatchBookShipments?: (
+    deliveryOrderIds: number[],
+    providerId: number,
+    pickupAddress?: string,
+    specialInstructions?: string
+  ) => Promise<void>;
   onTrackShipment: (shipmentId: number) => Promise<void>;
   onCancelShipment: (shipmentId: number, reason: string) => Promise<void>;
   onOpenLabel: (shipment: CourierShipment) => void;
@@ -91,6 +98,7 @@ export const CourierShipmentsSection: React.FC<CourierShipmentsSectionProps> = (
   providers,
   pendingDeliveries,
   onBookShipment,
+  onBatchBookShipments,
   onTrackShipment,
   onCancelShipment,
   onOpenLabel,
@@ -106,6 +114,7 @@ export const CourierShipmentsSection: React.FC<CourierShipmentsSectionProps> = (
   const [selectedSla, setSelectedSla] = useState<'all' | 'breached' | 'warning' | 'on_track'>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [isBookModalOpen, setIsBookModalOpen] = useState(false);
+  const [isBatchModalOpen, setIsBatchModalOpen] = useState(false);
   const [selectedDeliveryId, setSelectedDeliveryId] = useState<number>(0);
   const [selectedProviderId, setSelectedProviderId] = useState<number>(0);
   const [bookNotes, setBookNotes] = useState('');
@@ -240,14 +249,27 @@ export const CourierShipmentsSection: React.FC<CourierShipmentsSectionProps> = (
             Book 3PL parcel consignments (Pathao, Steadfast, RedX) and track live dispatch statuses.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => setIsBookModalOpen(true)}
-          className="flex items-center gap-1.5 rounded-xl bg-primary px-3.5 py-2 text-xs font-semibold text-primary-fg hover:bg-primary/90 transition-all cursor-pointer shadow-xs self-start sm:self-auto"
-        >
-          <Plus className="size-3.5" />
-          <span>Book 3PL Shipment</span>
-        </button>
+        <div className="flex items-center gap-2 self-start sm:self-auto">
+          {pendingDeliveries.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setIsBatchModalOpen(true)}
+              className="flex items-center gap-1.5 rounded-xl border border-sky-500/30 bg-sky-500/10 px-3.5 py-2 text-xs font-semibold text-sky-600 dark:text-sky-400 hover:bg-sky-500/20 transition-all cursor-pointer shadow-xs"
+              title="Batch Book Courier Consignments"
+            >
+              <Truck className="size-3.5" />
+              <span>Batch Book ({pendingDeliveries.length})</span>
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => setIsBookModalOpen(true)}
+            className="flex items-center gap-1.5 rounded-xl bg-primary px-3.5 py-2 text-xs font-semibold text-primary-fg hover:bg-primary/90 transition-all cursor-pointer shadow-xs"
+          >
+            <Plus className="size-3.5" />
+            <span>Book 3PL Shipment</span>
+          </button>
+        </div>
       </div>
 
       {/* SLA Breach Intelligence Filter Pills */}
@@ -766,6 +788,23 @@ export const CourierShipmentsSection: React.FC<CourierShipmentsSectionProps> = (
             </form>
           </div>
         </div>
+      )}
+
+      {/* Batch 3PL Courier Booking Modal */}
+      {isBatchModalOpen && (
+        <BatchCourierBookingModal
+          isOpen={isBatchModalOpen}
+          onClose={() => setIsBatchModalOpen(false)}
+          pendingDeliveries={pendingDeliveries}
+          selectedOrderIds={pendingDeliveries.map((d) => d.id)}
+          providers={providers}
+          onBatchBook={async (ids, providerId, pickupAddress, instructions) => {
+            if (onBatchBookShipments) {
+              await onBatchBookShipments(ids, providerId, pickupAddress, instructions);
+            }
+            setIsBatchModalOpen(false);
+          }}
+        />
       )}
     </div>
   );

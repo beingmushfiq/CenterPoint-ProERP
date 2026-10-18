@@ -166,6 +166,7 @@ export interface DeliveryOrder {
   warehouse_name?: string | null;
   recipient_name: string;
   recipient_phone: string;
+  delivery_address?: string | null;
   delivery_type: string;
   scheduled_date?: string | null;
   status: DeliveryOrderStatus;
