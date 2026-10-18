@@ -70,24 +70,36 @@ final class PurchaseOrderController extends Controller
             ->setStatusCode(201);
     }
 
-    public function show(int $id): PurchaseOrderResource
+    public function show(int|string $id): PurchaseOrderResource
     {
         $tenantId = TenantContext::current()->tenantId();
 
         $order = PurchaseOrder::with(['supplier', 'warehouse', 'items.product', 'items.unit'])
             ->where('tenant_id', $tenantId)
-            ->where('id', $id)
+            ->where(static function ($query) use ($id): void {
+                if (is_numeric($id)) {
+                    $query->where('id', (int) $id)->orWhere('uuid', (string) $id);
+                } else {
+                    $query->where('uuid', (string) $id);
+                }
+            })
             ->firstOrFail();
 
         return new PurchaseOrderResource($order);
     }
 
-    public function approve(int $id, Request $request): PurchaseOrderResource
+    public function approve(int|string $id, Request $request): PurchaseOrderResource
     {
         $tenantId = TenantContext::current()->tenantId();
 
         $order = PurchaseOrder::where('tenant_id', $tenantId)
-            ->where('id', $id)
+            ->where(static function ($query) use ($id): void {
+                if (is_numeric($id)) {
+                    $query->where('id', (int) $id)->orWhere('uuid', (string) $id);
+                } else {
+                    $query->where('uuid', (string) $id);
+                }
+            })
             ->firstOrFail();
 
         $approved = $this->approveOrder->execute(
@@ -98,13 +110,19 @@ final class PurchaseOrderController extends Controller
         return new PurchaseOrderResource($approved);
     }
 
-    public function destroy(int $id, Request $request): JsonResponse
+    public function destroy(int|string $id, Request $request): JsonResponse
     {
         $tenantId = TenantContext::current()->tenantId();
 
         /** @var PurchaseOrder $order */
         $order = PurchaseOrder::where('tenant_id', $tenantId)
-            ->where('id', $id)
+            ->where(static function ($query) use ($id): void {
+                if (is_numeric($id)) {
+                    $query->where('id', (int) $id)->orWhere('uuid', (string) $id);
+                } else {
+                    $query->where('uuid', (string) $id);
+                }
+            })
             ->firstOrFail();
 
         if (in_array($order->status, ['completed', 'received'], true)) {

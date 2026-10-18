@@ -22,7 +22,7 @@ export type StockMovementType =
 
 export type StockState = 'available' | 'reserved' | 'quarantine' | 'damaged' | 'in_transit';
 
-export type StockTransferStatus = 'draft' | 'in_transit' | 'received' | 'cancelled';
+export type StockTransferStatus = 'draft' | 'in_transit' | 'partially_received' | 'received' | 'cancelled';
 
 export type StockAdjustmentStatus = 'draft' | 'approved' | 'rejected' | 'cancelled';
 

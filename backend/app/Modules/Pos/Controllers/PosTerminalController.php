@@ -59,23 +59,35 @@ final class PosTerminalController extends Controller
             ->setStatusCode(201);
     }
 
-    public function show(int $id): PosTerminalResource
+    public function show(int|string $id): PosTerminalResource
     {
         $tenantId = TenantContext::current()->tenantId();
 
         $terminal = PosTerminal::where('tenant_id', $tenantId)
-            ->where('id', $id)
+            ->where(static function ($query) use ($id): void {
+                if (is_numeric($id)) {
+                    $query->where('id', (int) $id)->orWhere('uuid', (string) $id);
+                } else {
+                    $query->where('uuid', (string) $id);
+                }
+            })
             ->firstOrFail();
 
         return new PosTerminalResource($terminal);
     }
 
-    public function update(Request $request, int $id): JsonResponse
+    public function update(Request $request, int|string $id): JsonResponse
     {
         $tenantId = TenantContext::current()->tenantId();
 
         $terminal = PosTerminal::where('tenant_id', $tenantId)
-            ->where('id', $id)
+            ->where(static function ($query) use ($id): void {
+                if (is_numeric($id)) {
+                    $query->where('id', (int) $id)->orWhere('uuid', (string) $id);
+                } else {
+                    $query->where('uuid', (string) $id);
+                }
+            })
             ->firstOrFail();
 
         $validated = $request->validate([
@@ -97,12 +109,18 @@ final class PosTerminalController extends Controller
         ]);
     }
 
-    public function toggleActive(Request $request, int $id): JsonResponse
+    public function toggleActive(Request $request, int|string $id): JsonResponse
     {
         $tenantId = TenantContext::current()->tenantId();
 
         $terminal = PosTerminal::where('tenant_id', $tenantId)
-            ->where('id', $id)
+            ->where(static function ($query) use ($id): void {
+                if (is_numeric($id)) {
+                    $query->where('id', (int) $id)->orWhere('uuid', (string) $id);
+                } else {
+                    $query->where('uuid', (string) $id);
+                }
+            })
             ->firstOrFail();
 
         $terminal->update([
@@ -117,12 +135,18 @@ final class PosTerminalController extends Controller
         ]);
     }
 
-    public function destroy(Request $request, int $id): JsonResponse
+    public function destroy(Request $request, int|string $id): JsonResponse
     {
         $tenantId = TenantContext::current()->tenantId();
 
         $terminal = PosTerminal::where('tenant_id', $tenantId)
-            ->where('id', $id)
+            ->where(static function ($query) use ($id): void {
+                if (is_numeric($id)) {
+                    $query->where('id', (int) $id)->orWhere('uuid', (string) $id);
+                } else {
+                    $query->where('uuid', (string) $id);
+                }
+            })
             ->firstOrFail();
 
         $terminal->delete();

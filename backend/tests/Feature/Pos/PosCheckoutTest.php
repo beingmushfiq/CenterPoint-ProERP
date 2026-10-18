@@ -369,6 +369,55 @@ final class PosCheckoutTest extends TestCase
         $this->assertTrue(in_array($res->status(), [400, 422, 500], true));
     }
 
+    public function test_can_checkout_with_session_uuid(): void
+    {
+        $res = $this->postJson('/api/v1/pos/checkout', [
+            'pos_session_id' => $this->session->uuid,
+            'items' => [
+                [
+                    'product_id' => $this->bread->id,
+                    'quantity' => '1.0000',
+                    'unit_id' => $this->unit->id,
+                    'unit_price' => '60.0000',
+                ],
+            ],
+            'payments' => [
+                [
+                    'method' => 'cash',
+                    'amount' => '60.0000',
+                ],
+            ],
+        ], $this->headers());
+
+        $res->assertStatus(201)
+            ->assertJsonPath('data.session.uuid', $this->session->uuid);
+    }
+
+    public function test_can_checkout_with_product_uuid_and_unit_uuid(): void
+    {
+        $res = $this->postJson('/api/v1/pos/checkout', [
+            'pos_session_id' => $this->session->id,
+            'items' => [
+                [
+                    'product_id' => $this->bread->uuid,
+                    'quantity' => '2.0000',
+                    'unit_id' => $this->unit->uuid,
+                    'unit_price' => '60.0000',
+                ],
+            ],
+            'payments' => [
+                [
+                    'method' => 'cash',
+                    'amount' => '120.0000',
+                ],
+            ],
+        ], $this->headers());
+
+        $res->assertStatus(201)
+            ->assertJsonPath('data.order.items.0.product_id', $this->bread->id)
+            ->assertJsonPath('data.order.items.0.unit_id', $this->unit->id);
+    }
+
     // ─── Helpers ──────────────────────────────────────────────────────────────
 
     /**

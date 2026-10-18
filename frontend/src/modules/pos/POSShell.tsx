@@ -21,6 +21,7 @@ import {
   PlayCircle,
   Plus,
   Printer,
+  Receipt,
   RefreshCw,
   RotateCcw,
   Search,
@@ -56,6 +57,7 @@ import { PosReturnModal } from './components/PosReturnModal';
 import { MidShiftSummaryModal } from './components/MidShiftSummaryModal';
 import { PosKeyboardShortcutsModal } from './components/PosKeyboardShortcutsModal';
 import { PosRecentReceiptsModal } from './components/PosRecentReceiptsModal';
+import { PosZReportModal } from './components/PosZReportModal';
 import { posAudio } from './utils/posAudio';
 import {
   kickCashDrawer,
@@ -131,6 +133,8 @@ export function POSShell({ session, onExit }: POSShellProps) {
 
   // Mid-Shift X-Report Summary Modal
   const [showMidShiftSummary, setShowMidShiftSummary] = useState(false);
+  const [showZReportModal, setShowZReportModal] = useState(false);
+  const [currentSession, setCurrentSession] = useState<PosSession>(session);
 
   // Coupon code state
   const [couponCode, setCouponCode] = useState('');
@@ -1600,6 +1604,17 @@ export function POSShell({ session, onExit }: POSShellProps) {
             <span className="hidden md:inline">X-Report</span>
           </button>
 
+          {/* Official Z-Report & Shift Close */}
+          <button
+            type="button"
+            onClick={() => setShowZReportModal(true)}
+            className="hidden sm:flex items-center gap-1.5 rounded-xl border border-rose-500/30 bg-rose-500/10 px-2.5 py-1.5 text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-500/20 cursor-pointer transition-colors shadow-2xs"
+            title="Register Shift Close, Cash Drawer Reconciliation & Z-Report"
+          >
+            <Receipt className="h-4 w-4 text-rose-500" />
+            <span className="hidden md:inline">Z-Report</span>
+          </button>
+
           {/* Pop Cash Drawer (F7) */}
           <button
             type="button"
@@ -1693,6 +1708,26 @@ export function POSShell({ session, onExit }: POSShellProps) {
           </button>
         </div>
       </header>
+
+      {/* ── POS Offline Transaction Sync Notification Banner ──────────── */}
+      {queuedOfflineCount > 0 && (
+        <div className="bg-amber-500/10 border-b border-amber-500/25 px-4 py-2 text-xs flex items-center justify-between text-amber-800 dark:text-amber-300">
+          <div className="flex items-center gap-2">
+            <CloudOff className="size-4 text-amber-500 animate-pulse shrink-0" />
+            <span>
+              <strong>POS Offline Mode:</strong> {queuedOfflineCount} transaction(s) queued locally in indexed storage.
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowRecentReceiptsModal(true)}
+            className="flex items-center gap-1 font-bold underline hover:text-amber-900 dark:hover:text-amber-200 cursor-pointer"
+          >
+            <span>Review &amp; Sync Now</span>
+            <span>&rarr;</span>
+          </button>
+        </div>
+      )}
 
       {/* ── Main Workspace ─────────────────────────────────────────── */}
       <div className="pos-main-workspace flex flex-1 overflow-hidden relative">
@@ -3369,9 +3404,22 @@ export function POSShell({ session, onExit }: POSShellProps) {
       {/* ── POS Recent Receipts & Offline Cache Modal ──────────────── */}
       <PosRecentReceiptsModal
         isOpen={showRecentReceiptsModal}
-        onClose={() => setShowRecentReceiptsModal(false)}
+        onClose={() => {
+          setShowRecentReceiptsModal(false);
+          setQueuedOfflineCount(getQueuedOfflineSales().length);
+        }}
         onReprintReceipt={handleReprintCachedReceipt}
         currencySymbol={currencySymbol || '৳'}
+      />
+
+      {/* ── POS Official Z-Report & Cash Drawer Reconciliation Modal ─── */}
+      <PosZReportModal
+        isOpen={showZReportModal}
+        onClose={() => setShowZReportModal(false)}
+        session={currentSession}
+        onSessionClosed={(closed) => {
+          setCurrentSession(closed);
+        }}
       />
     </div>
   );

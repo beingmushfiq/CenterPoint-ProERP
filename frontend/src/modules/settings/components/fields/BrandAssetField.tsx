@@ -91,7 +91,7 @@ export const BrandAssetField: React.FC<BrandAssetFieldProps> = ({
       formData.append('file', file);
       formData.append('type', isFavicon ? 'favicon' : 'logo');
 
-      const res = await api.post<{ url: string; path: string }>('settings/upload-asset', formData);
+      const res = await api.post<{ url: string; path: string }>('/settings/upload-asset', formData);
       if (res?.data?.url) {
         onChange(res.data.url);
         try {

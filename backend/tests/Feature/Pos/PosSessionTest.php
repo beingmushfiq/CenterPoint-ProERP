@@ -226,6 +226,36 @@ final class PosSessionTest extends TestCase
             ->assertJsonPath('meta.total', 1);
     }
 
+    public function test_show_and_close_pos_session_using_uuid(): void
+    {
+        $openRes = $this->postJson('/api/v1/pos/sessions', [
+            'terminal_id' => $this->terminal->id,
+            'branch_id' => $this->branchId,
+            'warehouse_id' => $this->warehouse->id,
+            'opening_cash' => '1200.0000',
+        ], $this->headers());
+
+        $openRes->assertStatus(201);
+        $uuid = (string) $openRes->json('data.uuid');
+        $this->assertNotEmpty($uuid);
+
+        // 1. Show by UUID
+        $showRes = $this->getJson("/api/v1/pos/sessions/{$uuid}", $this->headers());
+        $showRes->assertStatus(200)
+            ->assertJsonPath('data.uuid', $uuid)
+            ->assertJsonPath('data.opening_cash', '1200.0000');
+
+        // 2. Close by UUID
+        $closeRes = $this->postJson("/api/v1/pos/sessions/{$uuid}/close", [
+            'counted_cash' => '1200.0000',
+            'notes' => 'UUID shift close test',
+        ], $this->headers());
+
+        $closeRes->assertStatus(200)
+            ->assertJsonPath('data.status', 'closed')
+            ->assertJsonPath('data.uuid', $uuid);
+    }
+
     // ─── Helpers ──────────────────────────────────────────────────────────────
 
     /**

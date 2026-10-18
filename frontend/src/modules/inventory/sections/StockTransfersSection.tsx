@@ -18,6 +18,8 @@ import {
   Layers,
   ChevronDown,
   X,
+  AlertTriangle,
+  PackageCheck,
 } from 'lucide-react';
 import type { StockTransfer } from '../../../types/api/inventory';
 import { api } from '../../../lib/api/client';
@@ -32,6 +34,7 @@ import { SelectDropdown } from '../../../components/ui/Dropdown';
 import { ActionMenuPortal } from '../../../components/ui/ActionMenuPortal';
 import { cn } from '../../../lib/utils';
 import { ResponsiveDataTable, type ResponsiveColumn } from '../../../components/ui/ResponsiveDataTable';
+import { StockTransferReceiveModal } from '../modals/StockTransferReceiveModal';
 
 interface TransferFormItem {
   product_name: string;
@@ -60,6 +63,7 @@ export function StockTransfersSection() {
   const [showViewModal, setShowViewModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showReceiveModal, setShowReceiveModal] = useState(false);
   const [activeTransfer, setActiveTransfer] = useState<StockTransfer | null>(null);
   const [printTransfer, setPrintTransfer] = useState<StockTransfer | null>(null);
   const [openActionMenuId, setOpenActionMenuId] = useState<number | null>(null);
@@ -361,6 +365,12 @@ export function StockTransfersSection() {
               <CheckCircle2 className="size-3 text-emerald-500" /> Delivered &amp; Ingested
             </span>
           );
+        case 'partially_received':
+          return (
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/30">
+              <AlertTriangle className="size-3 text-amber-500" /> Partially Received
+            </span>
+          );
         case 'cancelled':
           return (
             <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-semibold uppercase bg-rose-500/10 text-rose-700 dark:text-rose-300 border border-rose-500/20">
@@ -432,6 +442,7 @@ export function StockTransfersSection() {
           >
             <option value="draft">Draft</option>
             <option value="in_transit">In Transit</option>
+            <option value="partially_received">Partially Received</option>
             <option value="received">Delivered / Received</option>
             <option value="cancelled">Cancelled</option>
           </select>
@@ -683,12 +694,23 @@ export function StockTransfersSection() {
             icon: Truck,
             onClick: () => handleDispatch(t.id),
           }] : []),
-          ...(t.status === 'in_transit' ? [{
-            id: 'receive',
-            label: 'Confirm Receipt',
-            icon: CheckCircle2,
-            onClick: () => handleReceive(t.id),
-          }] : []),
+          ...(t.status === 'in_transit' ? [
+            {
+              id: 'receive_inspect',
+              label: 'Inspect & Receive (GRN)',
+              icon: PackageCheck,
+              onClick: () => {
+                setActiveTransfer(t);
+                setShowReceiveModal(true);
+              },
+            },
+            {
+              id: 'receive_quick',
+              label: 'Quick 100% Receipt',
+              icon: CheckCircle2,
+              onClick: () => handleReceive(t.id),
+            },
+          ] : []),
           {
             id: 'print',
             label: 'Print Waybill',
@@ -772,19 +794,34 @@ export function StockTransfersSection() {
                 )}
 
                 {t.status === 'in_transit' && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setOpenActionMenuId(null);
-                      setActionMenuAnchor(null);
-                      handleReceive(t.id);
-                    }}
-                    disabled={actionLoading === t.id}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-xs text-emerald-600 hover:bg-emerald-500/10 rounded-lg transition-colors cursor-pointer"
-                  >
-                    <CheckCircle2 className="size-3.5 text-emerald-500" />
-                    <span>Confirm Receipt</span>
-                  </button>
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setOpenActionMenuId(null);
+                        setActionMenuAnchor(null);
+                        setActiveTransfer(t);
+                        setShowReceiveModal(true);
+                      }}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-xs font-semibold text-emerald-600 hover:bg-emerald-500/10 rounded-lg transition-colors cursor-pointer"
+                    >
+                      <PackageCheck className="size-3.5 text-emerald-500" />
+                      <span>Inspect &amp; Ingest (GRN)</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setOpenActionMenuId(null);
+                        setActionMenuAnchor(null);
+                        handleReceive(t.id);
+                      }}
+                      disabled={actionLoading === t.id}
+                      className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-muted hover:text-default hover:bg-surface-sunken rounded-lg transition-colors cursor-pointer"
+                    >
+                      <CheckCircle2 className="size-3 text-muted" />
+                      <span>Quick Complete Receipt</span>
+                    </button>
+                  </>
                 )}
 
                 <button
@@ -1173,6 +1210,21 @@ export function StockTransfersSection() {
           <StockTransferDocument transfer={printTransfer} businessConfig={businessConfig} />
         </PrintPreviewModal>
       )}
+
+      {/* Stock Transfer Goods Receipt Discrepancy Inspection Modal */}
+      <StockTransferReceiveModal
+        open={showReceiveModal}
+        onClose={() => {
+          setShowReceiveModal(false);
+          setActiveTransfer(null);
+        }}
+        transfer={activeTransfer}
+        onSuccess={(updated) => {
+          queryClient.setQueryData<StockTransfer[]>(['inventory', 'transfers'], (prev = []) =>
+            prev.map((tr) => (tr.id === updated.id ? updated : tr))
+          );
+        }}
+      />
     </div>
   );
 }

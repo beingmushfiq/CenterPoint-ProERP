@@ -69,25 +69,37 @@ final class GoodsReceiptController extends Controller
             ->setStatusCode(201);
     }
 
-    public function show(int $id): GoodsReceiptResource
+    public function show(int|string $id): GoodsReceiptResource
     {
         $tenantId = TenantContext::current()->tenantId();
 
         $receipt = GoodsReceipt::with(['supplier', 'warehouse', 'items.product', 'items.unit', 'items.warehouseLocation'])
             ->where('tenant_id', $tenantId)
-            ->where('id', $id)
+            ->where(static function ($query) use ($id): void {
+                if (is_numeric($id)) {
+                    $query->where('id', (int) $id)->orWhere('uuid', (string) $id);
+                } else {
+                    $query->where('uuid', (string) $id);
+                }
+            })
             ->firstOrFail();
 
         return new GoodsReceiptResource($receipt);
     }
 
-    public function update(int $id, Request $request): JsonResponse
+    public function update(int|string $id, Request $request): JsonResponse
     {
         $tenantId = TenantContext::current()->tenantId();
 
         /** @var GoodsReceipt $receipt */
         $receipt = GoodsReceipt::where('tenant_id', $tenantId)
-            ->where('id', $id)
+            ->where(static function ($query) use ($id): void {
+                if (is_numeric($id)) {
+                    $query->where('id', (int) $id)->orWhere('uuid', (string) $id);
+                } else {
+                    $query->where('uuid', (string) $id);
+                }
+            })
             ->firstOrFail();
 
         if ($receipt->status === 'completed') {
@@ -111,13 +123,19 @@ final class GoodsReceiptController extends Controller
         ]);
     }
 
-    public function complete(int $id, Request $request): JsonResponse
+    public function complete(int|string $id, Request $request): JsonResponse
     {
         $tenantId = TenantContext::current()->tenantId();
 
         /** @var GoodsReceipt $receipt */
         $receipt = GoodsReceipt::where('tenant_id', $tenantId)
-            ->where('id', $id)
+            ->where(static function ($query) use ($id): void {
+                if (is_numeric($id)) {
+                    $query->where('id', (int) $id)->orWhere('uuid', (string) $id);
+                } else {
+                    $query->where('uuid', (string) $id);
+                }
+            })
             ->firstOrFail();
 
         $receipt->update([
@@ -132,13 +150,19 @@ final class GoodsReceiptController extends Controller
         ]);
     }
 
-    public function qc(int $id, Request $request): JsonResponse
+    public function qc(int|string $id, Request $request): JsonResponse
     {
         $tenantId = TenantContext::current()->tenantId();
 
         /** @var GoodsReceipt $receipt */
         $receipt = GoodsReceipt::where('tenant_id', $tenantId)
-            ->where('id', $id)
+            ->where(static function ($query) use ($id): void {
+                if (is_numeric($id)) {
+                    $query->where('id', (int) $id)->orWhere('uuid', (string) $id);
+                } else {
+                    $query->where('uuid', (string) $id);
+                }
+            })
             ->firstOrFail();
 
         $status = (string) $request->input('status', 'qc_pending');
@@ -159,7 +183,14 @@ final class GoodsReceiptController extends Controller
                 if (!is_array($itemInput) || !isset($itemInput['id'])) {
                     continue;
                 }
-                $item = $receipt->items()->where('id', (int) $itemInput['id'])->first();
+                $itemId = $itemInput['id'];
+                $item = $receipt->items()->where(static function ($query) use ($itemId): void {
+                    if (is_numeric($itemId)) {
+                        $query->where('id', (int) $itemId)->orWhere('uuid', (string) $itemId);
+                    } else {
+                        $query->where('uuid', (string) $itemId);
+                    }
+                })->first();
                 if ($item) {
                     $itemUpdate = [];
                     if (isset($itemInput['accepted_quantity'])) {
@@ -189,13 +220,19 @@ final class GoodsReceiptController extends Controller
         ]);
     }
 
-    public function destroy(int $id, Request $request): JsonResponse
+    public function destroy(int|string $id, Request $request): JsonResponse
     {
         $tenantId = TenantContext::current()->tenantId();
 
         /** @var GoodsReceipt $receipt */
         $receipt = GoodsReceipt::where('tenant_id', $tenantId)
-            ->where('id', $id)
+            ->where(static function ($query) use ($id): void {
+                if (is_numeric($id)) {
+                    $query->where('id', (int) $id)->orWhere('uuid', (string) $id);
+                } else {
+                    $query->where('uuid', (string) $id);
+                }
+            })
             ->firstOrFail();
 
         if ($receipt->status === 'completed') {

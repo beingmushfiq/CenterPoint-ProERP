@@ -180,7 +180,7 @@ export const StorefrontSettingsWorkspace: React.FC = () => {
       formData.append('file', file);
       formData.append('type', 'logo');
 
-      const res = await api.post<{ url: string; path: string }>('settings/upload-asset', formData);
+      const res = await api.post<{ url: string; path: string }>('/settings/upload-asset', formData);
       if (res?.data?.url) {
         setForm((prev) => ({
           ...prev,

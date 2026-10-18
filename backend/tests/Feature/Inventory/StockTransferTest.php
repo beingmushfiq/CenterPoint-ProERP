@@ -203,6 +203,140 @@ final class StockTransferTest extends TestCase
         $this->assertEquals('2.0000', $balToDamaged?->quantity);
     }
 
+    public function test_sto_receiving_with_discrepancy_logging_and_partial_status(): void
+    {
+        // Create STO of 60 units
+        $createRes = $this->postJson('/api/v1/inventory/transfers', [
+            'from_warehouse_id' => $this->warehouseFrom->id,
+            'to_warehouse_id' => $this->warehouseTo->id,
+            'transfer_date' => now()->toDateString(),
+            'notes' => 'Central Hub batch dispatch',
+            'items' => [
+                [
+                    'product_id' => $this->product->id,
+                    'sent_quantity' => '60.0000',
+                    'unit_id' => $this->unit->id,
+                ],
+            ],
+        ], $this->headers());
+
+        $createRes->assertStatus(201);
+        $transferId = $createRes->json('data.id');
+        $itemId = $createRes->json('data.items.0.id');
+
+        // Dispatch STO -> in_transit
+        $this->postJson("/api/v1/inventory/transfers/{$transferId}/dispatch", [], $this->headers())
+            ->assertStatus(200)
+            ->assertJsonPath('data.status', 'in_transit');
+
+        // Destination receives with discrepancy: 50 received, 5 damaged, 5 shortage (60 sent)
+        $receiveRes = $this->postJson("/api/v1/inventory/transfers/{$transferId}/receive", [
+            'items' => [
+                [
+                    'item_id' => $itemId,
+                    'received_quantity' => '50.0000',
+                    'damaged_quantity' => '5.0000',
+                ],
+            ],
+            'notes' => 'Driver reported box rupture during transit on Highway 4.',
+        ], $this->headers());
+
+        $receiveRes->assertStatus(200)
+            ->assertJsonPath('data.status', 'partially_received')
+            ->assertJsonPath('data.items.0.received_quantity', '50.0000')
+            ->assertJsonPath('data.items.0.damaged_quantity', '5.0000');
+
+        $notes = $receiveRes->json('data.notes');
+        $this->assertStringContainsString('Driver reported box rupture', $notes);
+        $this->assertStringContainsString('Goods Receipt Discrepancy Log', $notes);
+        $this->assertStringContainsString('Shortage=5.0000', $notes);
+        $this->assertStringContainsString('Damaged=5.0000', $notes);
+
+        // Verify available stock at destination = 50
+        $avail = StockBalance::where('tenant_id', 1)
+            ->where('warehouse_id', $this->warehouseTo->id)
+            ->where('product_id', $this->product->id)
+            ->where('stock_state', 'available')
+            ->first();
+        $this->assertEquals('50.0000', $avail?->quantity);
+
+        // Verify damaged stock at destination = 5
+        $dmg = StockBalance::where('tenant_id', 1)
+            ->where('warehouse_id', $this->warehouseTo->id)
+            ->where('product_id', $this->product->id)
+            ->where('stock_state', 'damaged')
+            ->first();
+        $this->assertEquals('5.0000', $dmg?->quantity);
+    }
+
+    public function test_sto_dispatch_and_receive_via_uuid_routes(): void
+    {
+        $createRes = $this->postJson('/api/v1/inventory/transfers', [
+            'from_warehouse_id' => $this->warehouseFrom->uuid,
+            'to_warehouse_id' => $this->warehouseTo->uuid,
+            'transfer_date' => now()->toDateString(),
+            'items' => [
+                [
+                    'product_id' => $this->product->uuid,
+                    'sent_quantity' => '20.0000',
+                    'unit_id' => $this->unit->uuid,
+                ],
+            ],
+        ], $this->headers());
+
+        $createRes->assertStatus(201);
+        $transferUuid = $createRes->json('data.uuid');
+        $itemUuid = $createRes->json('data.items.0.uuid');
+        $this->assertNotNull($transferUuid);
+
+        // Dispatch via UUID
+        $this->postJson("/api/v1/inventory/transfers/{$transferUuid}/dispatch", [], $this->headers())
+            ->assertStatus(200)
+            ->assertJsonPath('data.status', 'in_transit');
+
+        // Receive via UUID with item UUID
+        $this->postJson("/api/v1/inventory/transfers/{$transferUuid}/receive", [
+            'items' => [
+                [
+                    'item_id' => $itemUuid,
+                    'received_quantity' => '20.0000',
+                    'damaged_quantity' => '0.0000',
+                ],
+            ],
+        ], $this->headers())
+            ->assertStatus(200)
+            ->assertJsonPath('data.status', 'received');
+    }
+
+    public function test_sto_quick_receive_defaults_to_all_sent_quantity(): void
+    {
+        $createRes = $this->postJson('/api/v1/inventory/transfers', [
+            'from_warehouse_id' => $this->warehouseFrom->id,
+            'to_warehouse_id' => $this->warehouseTo->id,
+            'transfer_date' => now()->toDateString(),
+            'items' => [
+                [
+                    'product_id' => $this->product->id,
+                    'sent_quantity' => '15.0000',
+                    'unit_id' => $this->unit->id,
+                ],
+            ],
+        ], $this->headers());
+
+        $createRes->assertStatus(201);
+        $transferId = $createRes->json('data.id');
+
+        $this->postJson("/api/v1/inventory/transfers/{$transferId}/dispatch", [], $this->headers())
+            ->assertStatus(200);
+
+        // 1-click receive with empty body
+        $this->postJson("/api/v1/inventory/transfers/{$transferId}/receive", [], $this->headers())
+            ->assertStatus(200)
+            ->assertJsonPath('data.status', 'received')
+            ->assertJsonPath('data.items.0.received_quantity', '15.0000')
+            ->assertJsonPath('data.items.0.damaged_quantity', '0.0000');
+    }
+
     /**
      * @return array<string, string>
      */

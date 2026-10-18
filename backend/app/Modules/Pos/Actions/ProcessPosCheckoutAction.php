@@ -62,8 +62,15 @@ final class ProcessPosCheckoutAction
     {
         return DB::transaction(function () use ($data): array {
             /** @var PosSession|null $session */
+            $sessionId = $data['pos_session_id'];
             $session = PosSession::where('tenant_id', $data['tenant_id'])
-                ->where('id', $data['pos_session_id'])
+                ->where(static function ($query) use ($sessionId): void {
+                    if (is_numeric($sessionId)) {
+                        $query->where('id', (int) $sessionId)->orWhere('uuid', (string) $sessionId);
+                    } else {
+                        $query->where('uuid', (string) $sessionId);
+                    }
+                })
                 ->lockForUpdate()
                 ->first();
 
@@ -83,6 +90,8 @@ final class ProcessPosCheckoutAction
                     throw new DomainException("POS Session [{$session->session_number}] is not open.");
                 }
             }
+
+            $data['pos_session_id'] = $session->id;
 
             $orderNumber = 'POS-SO-'.date('Ymd').'-'.strtoupper(Str::random(6));
             $invoiceNumber = 'POS-INV-'.date('Ymd').'-'.strtoupper(Str::random(6));

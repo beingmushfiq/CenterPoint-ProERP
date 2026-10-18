@@ -73,26 +73,26 @@ final class StockTransferController extends Controller
             ->setStatusCode(201);
     }
 
-    public function show(int $id): StockTransferResource
+    public function show(int|string $id): StockTransferResource
     {
         $tenantId = TenantContext::current()->tenantId();
 
         /** @var StockTransfer $transfer */
         $transfer = StockTransfer::with(['fromWarehouse', 'toWarehouse', 'items.product', 'items.unit'])
             ->where('tenant_id', $tenantId)
-            ->where('id', $id)
+            ->where(is_numeric($id) ? 'id' : 'uuid', $id)
             ->firstOrFail();
 
         return new StockTransferResource($transfer);
     }
 
-    public function dispatch(int $id, Request $request): StockTransferResource
+    public function dispatch(int|string $id, Request $request): StockTransferResource
     {
         $tenantId = TenantContext::current()->tenantId();
 
         /** @var StockTransfer $transfer */
         $transfer = StockTransfer::where('tenant_id', $tenantId)
-            ->where('id', $id)
+            ->where(is_numeric($id) ? 'id' : 'uuid', $id)
             ->firstOrFail();
 
         $dispatched = $this->dispatchTransfer->execute(
@@ -103,34 +103,36 @@ final class StockTransferController extends Controller
         return new StockTransferResource($dispatched);
     }
 
-    public function receive(int $id, ReceiveStockTransferRequest $request): StockTransferResource
+    public function receive(int|string $id, ReceiveStockTransferRequest $request): StockTransferResource
     {
         $tenantId = TenantContext::current()->tenantId();
 
         /** @var StockTransfer $transfer */
         $transfer = StockTransfer::where('tenant_id', $tenantId)
-            ->where('id', $id)
+            ->where(is_numeric($id) ? 'id' : 'uuid', $id)
             ->firstOrFail();
 
         $validated = $request->validated();
+        $items = $validated['items'] ?? [];
+        $notes = $validated['notes'] ?? null;
 
-        /** @var array{items: list<array{item_id: int, received_quantity: string, damaged_quantity?: string}>} $validated */
         $received = $this->receiveTransfer->execute(
             $transfer,
-            $validated['items'],
-            (int) $request->user()?->id
+            $items,
+            (int) $request->user()?->id,
+            $notes
         );
 
         return new StockTransferResource($received);
     }
 
-    public function update(int $id, Request $request): StockTransferResource
+    public function update(int|string $id, Request $request): StockTransferResource
     {
         $tenantId = TenantContext::current()->tenantId();
 
         /** @var StockTransfer $transfer */
         $transfer = StockTransfer::where('tenant_id', $tenantId)
-            ->where('id', $id)
+            ->where(is_numeric($id) ? 'id' : 'uuid', $id)
             ->firstOrFail();
 
         $fillable = ['status', 'notes', 'transfer_date', 'from_warehouse_id', 'to_warehouse_id'];
@@ -139,13 +141,13 @@ final class StockTransferController extends Controller
         return new StockTransferResource($transfer->load(['fromWarehouse', 'toWarehouse', 'items.product', 'items.unit']));
     }
 
-    public function destroy(int $id): JsonResponse
+    public function destroy(int|string $id): JsonResponse
     {
         $tenantId = TenantContext::current()->tenantId();
 
         /** @var StockTransfer $transfer */
         $transfer = StockTransfer::where('tenant_id', $tenantId)
-            ->where('id', $id)
+            ->where(is_numeric($id) ? 'id' : 'uuid', $id)
             ->firstOrFail();
 
         $transfer->delete();

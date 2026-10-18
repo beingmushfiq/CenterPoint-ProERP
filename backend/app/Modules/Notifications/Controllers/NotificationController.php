@@ -42,12 +42,16 @@ class NotificationController extends Controller
 
     public function markAsRead(string $id, Request $request): JsonResponse
     {
-        $userId = $request->user()?->id ?? 1;
+        $userId = (int) ($request->user()?->id ?? 1);
 
         /** @var Notification $notification */
         $notification = Notification::where('user_id', $userId)
-            ->where(function ($q) use ($id): void {
-                $q->where('id', $id)->orWhere('uuid', $id);
+            ->where(static function ($q) use ($id): void {
+                if (is_numeric($id)) {
+                    $q->where('id', (int) $id)->orWhere('uuid', (string) $id);
+                } else {
+                    $q->where('uuid', (string) $id);
+                }
             })
             ->firstOrFail();
 
@@ -61,7 +65,7 @@ class NotificationController extends Controller
 
     public function markAllAsRead(Request $request): JsonResponse
     {
-        $userId = $request->user()?->id ?? 1;
+        $userId = (int) ($request->user()?->id ?? 1);
 
         Notification::where('user_id', $userId)
             ->whereNull('read_at')
@@ -74,8 +78,22 @@ class NotificationController extends Controller
 
     public function store(Request $request): JsonResponse
     {
+        $userIdInput = $request->input('user_id');
+        $resolvedUserId = null;
+
+        if ($userIdInput !== null) {
+            if (is_numeric($userIdInput)) {
+                $resolvedUserId = (int) $userIdInput;
+            } else {
+                $resolvedUserId = \App\Models\User::where('uuid', (string) $userIdInput)->value('id');
+            }
+        }
+
+        if (! $resolvedUserId) {
+            $resolvedUserId = (int) ($request->user()?->id ?? 1);
+        }
+
         $validated = $request->validate([
-            'user_id' => ['nullable', 'integer'],
             'type' => ['required', 'string', 'max:100'],
             'title' => ['nullable', 'string', 'max:255'],
             'title_key' => ['nullable', 'string', 'max:255'],
@@ -86,10 +104,8 @@ class NotificationController extends Controller
             'params' => ['nullable', 'array'],
         ]);
 
-        $userId = $validated['user_id'] ?? $request->user()?->id ?? 1;
-
         $notification = Notification::create([
-            'user_id' => $userId,
+            'user_id' => $resolvedUserId,
             'type' => $validated['type'],
             'channel' => 'in_app',
             'title_key' => $validated['title'] ?? $validated['title_key'] ?? 'Notification',

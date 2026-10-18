@@ -12,7 +12,6 @@ import {
   XCircle,
   Eye,
   DollarSign,
-  Printer,
   Receipt,
   Calculator,
   Banknote,
@@ -25,6 +24,7 @@ import { api } from '../../../lib/api/client';
 import { extractList, extractItem } from '../../../lib/api/apiData';
 import { useCurrency } from '../../../hooks/useCurrency';
 import { SelectDropdown } from '../../../components/ui/Dropdown';
+import { PosZReportModal } from '../components/PosZReportModal';
 
 interface PosSessionsSectionProps {
   onLaunchPOS?: (session: PosSession) => void;
@@ -715,104 +715,20 @@ export function PosSessionsSection({ onLaunchPOS }: PosSessionsSectionProps) {
         </div>
       )}
 
-      {/* VIEW Z-REPORT MODAL */}
+      {/* OFFICIAL THERMAL Z-REPORT MODAL */}
       {showViewModal && activeSession && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs">
-          <div className="w-full max-w-lg rounded-2xl border border-default bg-surface p-6 shadow-xl max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between border-b border-default pb-4 mb-4">
-              <div>
-                <div className="flex items-center gap-2">
-                  <h3 className="text-base font-bold text-default">{activeSession.session_number}</h3>
-                  {getStatusBadge(activeSession.status)}
-                </div>
-                <p className="text-xs text-muted mt-0.5">Operator: {activeSession.operator_name} &bull; {activeSession.terminal_name}</p>
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => window.print()}
-                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-default text-muted hover:text-default text-xs cursor-pointer"
-                >
-                  <Printer className="size-3.5" />
-                  <span>Print Z-Report</span>
-                </button>
-                <button onClick={() => setShowViewModal(false)} className="text-muted hover:text-default cursor-pointer">
-                  ✕
-                </button>
-              </div>
-            </div>
-
-            <div className="space-y-4 text-xs">
-              <div className="grid grid-cols-2 gap-3 bg-surface-sunken p-3 rounded-xl border border-default font-mono">
-                <div>
-                  <span className="text-[10px] text-muted block uppercase">Opened At</span>
-                  <span className="font-semibold text-default">{activeSession.opened_at?.slice(0, 16).replace('T', ' ')}</span>
-                </div>
-                <div>
-                  <span className="text-[10px] text-muted block uppercase">Closed At</span>
-                  <span className="font-semibold text-default">{activeSession.closed_at ? activeSession.closed_at.slice(0, 16).replace('T', ' ') : 'Active Now'}</span>
-                </div>
-              </div>
-
-              {/* Tender Breakdown Card */}
-              <div className="border border-default rounded-xl p-3 bg-surface-sunken/40 space-y-2">
-                <span className="font-semibold text-default block text-[11px] uppercase tracking-wider">Tender Collections Breakdown</span>
-                <div className="space-y-1.5 font-mono">
-                  <div className="flex justify-between py-1 border-b border-default/50">
-                    <span className="text-muted">Opening Drawer Float:</span>
-                    <span className="font-semibold text-default">{formatCurrency(activeSession.opening_cash)}</span>
-                  </div>
-                  <div className="flex justify-between py-1 border-b border-default/50">
-                    <span className="text-muted">Cash Sales:</span>
-                    <span className="font-semibold text-default">{formatCurrency(parseFloat(activeSession.expected_cash) - parseFloat(activeSession.opening_cash))}</span>
-                  </div>
-                  <div className="flex justify-between py-1 border-b border-default/50">
-                    <span className="text-muted">POS Card Terminal:</span>
-                    <span className="font-semibold text-default">{formatCurrency(activeSession.card_total)}</span>
-                  </div>
-                  <div className="flex justify-between py-1 border-b border-default/50">
-                    <span className="text-muted">Mobile Banking (bKash/Nagad):</span>
-                    <span className="font-semibold text-default">{formatCurrency(activeSession.mobile_total)}</span>
-                  </div>
-                  <div className="flex justify-between py-1.5 font-bold text-sm text-primary pt-2 border-t border-default">
-                    <span>Total Shift Revenue:</span>
-                    <span>
-                      {formatCurrency(
-                        parseFloat(activeSession.expected_cash) -
-                        parseFloat(activeSession.opening_cash) +
-                        parseFloat(activeSession.card_total) +
-                        parseFloat(activeSession.mobile_total)
-                      )}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {activeSession.cash_variance !== null && activeSession.cash_variance !== undefined && (
-                <div className="p-3 rounded-xl bg-surface-sunken border border-default flex items-center justify-between font-mono">
-                  <span className="font-semibold text-muted">Reconciled Cash Variance:</span>
-                  <span className="font-bold text-emerald-600 dark:text-emerald-400">{formatCurrency(activeSession.cash_variance)}</span>
-                </div>
-              )}
-
-              {activeSession.notes && (
-                <div className="p-3 rounded-xl bg-surface-sunken border border-default">
-                  <span className="text-[10px] font-semibold text-muted uppercase block mb-1">Shift Notes:</span>
-                  <p className="text-default">{activeSession.notes}</p>
-                </div>
-              )}
-
-              <div className="flex items-center justify-end gap-2 pt-2 border-t border-default">
-                <button
-                  type="button"
-                  onClick={() => setShowViewModal(false)}
-                  className="px-4 py-2 rounded-xl bg-surface-sunken border border-default text-default hover:bg-surface cursor-pointer"
-                >
-                  Close
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+        <PosZReportModal
+          isOpen={showViewModal}
+          onClose={() => {
+            setShowViewModal(false);
+            setActiveSession(null);
+          }}
+          session={activeSession}
+          onSessionClosed={async (updated) => {
+            await queryClient.invalidateQueries({ queryKey: ['pos', 'sessions'] });
+            setActiveSession(updated);
+          }}
+        />
       )}
     </div>
   );

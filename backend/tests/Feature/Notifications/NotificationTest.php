@@ -121,4 +121,33 @@ class NotificationTest extends TestCase
 
         $this->assertNotNull($notification->fresh()->read_at);
     }
+
+    public function test_can_create_notification_with_user_uuid_and_mark_read_by_uuid(): void
+    {
+        $storeRes = $this->postJson('/api/v1/notifications', [
+            'user_id' => $this->user->uuid,
+            'type' => 'purchasing.grn.qc_passed',
+            'title' => 'QC Sign-off Approved',
+            'message' => 'GRN #GRN-2026-001 has passed quality inspection',
+            'severity' => 'success',
+        ], [
+            'Authorization' => 'Bearer '.$this->token,
+        ]);
+
+        $storeRes->assertStatus(201)
+            ->assertJsonPath('data.user_id', $this->user->id)
+            ->assertJsonPath('data.title_key', 'QC Sign-off Approved');
+
+        $notifUuid = (string) $storeRes->json('data.uuid');
+        $this->assertNotEmpty($notifUuid);
+
+        // Mark read using UUID
+        $readRes = $this->postJson("/api/v1/notifications/{$notifUuid}/read", [], [
+            'Authorization' => 'Bearer '.$this->token,
+        ]);
+
+        $readRes->assertOk()
+            ->assertJsonPath('data.uuid', $notifUuid)
+            ->assertJsonPath('data.read_at', fn ($readAt) => ! empty($readAt));
+    }
 }

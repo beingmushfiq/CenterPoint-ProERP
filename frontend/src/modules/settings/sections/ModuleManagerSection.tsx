@@ -153,7 +153,7 @@ export const ModuleManagerSection: React.FC = () => {
     queryKey: ['tenant', 'modules', 'nav-order'],
     queryFn: async () => {
       try {
-        const res = await api.get<NavOrderConfig | { data: NavOrderConfig }>('tenant/modules/nav-order');
+        const res = await api.get<NavOrderConfig | { data: NavOrderConfig }>('/tenant/modules/nav-order');
         if (!res.data) return null;
         if ('sections' in res.data && Array.isArray(res.data.sections)) {
           return res.data;
@@ -185,7 +185,7 @@ export const ModuleManagerSection: React.FC = () => {
     queryKey: ['tenant', 'modules'],
     queryFn: async () => {
       try {
-        const res = await api.get<ModuleItem[] | { data: ModuleItem[] }>('tenant/modules');
+        const res = await api.get<ModuleItem[] | { data: ModuleItem[] }>('/tenant/modules');
         if (Array.isArray(res.data) && res.data.length > 0) {
           return res.data;
         }
@@ -420,7 +420,7 @@ export const ModuleManagerSection: React.FC = () => {
     setStoreNavOrder(defaultOrder);
     queryClient.setQueryData(['tenant', 'modules', 'nav-order'], defaultOrder);
     try {
-      await api.put('tenant/modules/nav-order', {
+      await api.put('/tenant/modules/nav-order', {
         sections: defaultOrder.sections,
         items: defaultOrder.items,
       });
@@ -441,7 +441,7 @@ export const ModuleManagerSection: React.FC = () => {
         sections: orderedSections.map((s) => s.id),
         items: itemsMap || {},
       };
-      await api.put('tenant/modules/nav-order', payload);
+      await api.put('/tenant/modules/nav-order', payload);
       setCustomNavOrder(payload);
       setStoreNavOrder(payload);
       queryClient.setQueryData(['tenant', 'modules', 'nav-order'], payload);
@@ -473,7 +473,7 @@ export const ModuleManagerSection: React.FC = () => {
     );
 
     try {
-      await api.put(`tenant/modules/${moduleKey}`, {
+      await api.put(`/tenant/modules/${moduleKey}`, {
         enabled: newStatus,
       });
       await invalidateManifest();

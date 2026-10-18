@@ -242,6 +242,42 @@ final class PosTerminalTest extends TestCase
         $res->assertStatus(404);
     }
 
+    public function test_show_and_update_pos_terminal_using_uuid(): void
+    {
+        $this->assignOnly(
+            'pos.terminal.view',
+            'pos.terminal.update'
+        );
+
+        $term = PosTerminal::create([
+            'tenant_id' => 1,
+            'uuid' => (string) Str::uuid(),
+            'code' => 'TERM-UUID-01',
+            'name' => 'UUID Terminal Test',
+            'branch_id' => $this->branchId,
+            'is_active' => true,
+        ]);
+
+        // 1. Show by UUID
+        $showRes = $this->getJson("/api/v1/pos/terminals/{$term->uuid}", $this->headers());
+        $showRes->assertStatus(200)
+            ->assertJsonPath('data.code', 'TERM-UUID-01')
+            ->assertJsonPath('data.uuid', $term->uuid);
+
+        // 2. Update by UUID
+        $updateRes = $this->putJson("/api/v1/pos/terminals/{$term->uuid}", [
+            'name' => 'Updated Terminal Name via UUID',
+        ], $this->headers());
+
+        $updateRes->assertStatus(200)
+            ->assertJsonPath('data.name', 'Updated Terminal Name via UUID');
+
+        // 3. Toggle Active by UUID
+        $toggleRes = $this->postJson("/api/v1/pos/terminals/{$term->uuid}/toggle-active", [], $this->headers());
+        $toggleRes->assertStatus(200)
+            ->assertJsonPath('data.is_active', false);
+    }
+
     // ─── Helpers ──────────────────────────────────────────────────────────────
 
     /**

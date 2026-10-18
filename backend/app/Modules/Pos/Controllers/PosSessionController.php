@@ -70,24 +70,36 @@ final class PosSessionController extends Controller
             ->setStatusCode(201);
     }
 
-    public function show(int $id): PosSessionResource
+    public function show(int|string $id): PosSessionResource
     {
         $tenantId = TenantContext::current()->tenantId();
 
         $session = PosSession::with(['terminal'])
             ->where('tenant_id', $tenantId)
-            ->where('id', $id)
+            ->where(static function ($query) use ($id): void {
+                if (is_numeric($id)) {
+                    $query->where('id', (int) $id)->orWhere('uuid', (string) $id);
+                } else {
+                    $query->where('uuid', (string) $id);
+                }
+            })
             ->firstOrFail();
 
         return new PosSessionResource($session);
     }
 
-    public function close(int $id, ClosePosSessionRequest $request): PosSessionResource
+    public function close(int|string $id, ClosePosSessionRequest $request): PosSessionResource
     {
         $tenantId = TenantContext::current()->tenantId();
 
         $session = PosSession::where('tenant_id', $tenantId)
-            ->where('id', $id)
+            ->where(static function ($query) use ($id): void {
+                if (is_numeric($id)) {
+                    $query->where('id', (int) $id)->orWhere('uuid', (string) $id);
+                } else {
+                    $query->where('uuid', (string) $id);
+                }
+            })
             ->firstOrFail();
 
         try {
