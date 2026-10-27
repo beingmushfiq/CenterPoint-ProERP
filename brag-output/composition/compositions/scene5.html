@@ -1,0 +1,125 @@
+<template>
+  <style>
+    #root {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      font-family: 'Inter', -apple-system, sans-serif;
+      color: #f8fafc;
+      background: #06080c;
+      box-sizing: border-box;
+    }
+
+    .brand-lockup-logo {
+      width: 80px;
+      height: 80px;
+      background: linear-gradient(135deg, #10b981, #059669);
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 38px;
+      font-weight: 900;
+      box-shadow: 0 0 50px rgba(16, 185, 129, 0.4);
+      margin-bottom: 24px;
+    }
+
+    .outro-title {
+      font-size: 72px;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      color: #ffffff;
+    }
+
+    .outro-sub {
+      font-size: 28px;
+      color: #94a3b8;
+      margin-top: 14px;
+      max-width: 1100px;
+      line-height: 1.4;
+    }
+
+    .outro-punchline-box {
+      margin-top: 36px;
+      background: #0f172a;
+      border: 1px solid #10b981;
+      border-radius: 12px;
+      padding: 16px 36px;
+      box-shadow: 0 0 40px rgba(16, 185, 129, 0.25);
+    }
+
+    .outro-punchline {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 40px;
+      font-weight: 700;
+      color: #34d399;
+      letter-spacing: -0.01em;
+    }
+  </style>
+
+  <div id="root" data-composition-id="scene5" data-width="1920" data-height="1080">
+    <div class="brand-lockup-logo" id="scene5-logo">CP</div>
+    <h1 class="outro-title" id="scene5-title">CenterPoint ProERP</h1>
+    <p class="outro-sub" id="scene5-sub">
+      Next-Generation Industrial Manufacturing &amp; Omnichannel Retail Operating System
+    </p>
+    <div class="outro-punchline-box" id="scene5-box">
+      <div class="outro-punchline" id="scene5-test-count">730+ tests passing.</div>
+    </div>
+  </div>
+
+  <script>
+    const tl = gsap.timeline({ paused: true });
+
+    // Logo arrives
+    tl.fromTo(
+      "#scene5-logo",
+      { opacity: 0, scale: 0.8 },
+      { opacity: 1, scale: 1, duration: 0.35, ease: "expo.out" },
+      0.15
+    );
+
+    // Title arrives
+    tl.fromTo(
+      "#scene5-title",
+      { opacity: 0, y: 15 },
+      { opacity: 1, y: 0, duration: 0.35, ease: "power4.out" },
+      0.3
+    );
+
+    // Subtitle arrives
+    tl.fromTo(
+      "#scene5-sub",
+      { opacity: 0, y: 10 },
+      { opacity: 1, y: 0, duration: 0.35, ease: "power3.out" },
+      0.65
+    );
+
+    // PUNCHLINE SLAM at local 1.56s (master time 18.56s on dry impact hit!)
+    // Holds until 3.90s (2.34s duration > 2.0s floor)
+    tl.fromTo(
+      "#scene5-box",
+      { opacity: 0, scale: 0.85, y: 20 },
+      { opacity: 1, scale: 1, y: 0, duration: 0.25, ease: "back.out(2)" },
+      1.56
+    );
+
+    tl.fromTo(
+      "#scene5-test-count",
+      { filter: "drop-shadow(0 0 0px transparent)" },
+      { filter: "drop-shadow(0 0 25px rgba(52, 211, 153, 0.8))", duration: 0.3, yoyo: true, repeat: 1 },
+      1.56
+    );
+
+    // Smooth final fade to black
+    tl.to("#root", { opacity: 0, duration: 0.25, ease: "power2.in" }, 3.85);
+
+    window.__timelines["scene5"] = tl;
+  </script>
+</template>

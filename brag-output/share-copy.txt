@@ -1,0 +1,3 @@
+CenterPoint ProERP: full-stack industrial manufacturing, dual-session POS, and 3PL courier dispatch in a single operating system.
+17 integrated workspaces. 706 wired API routes.
+730+ tests passing.

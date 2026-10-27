@@ -30,6 +30,7 @@ import {
   Image as ImageIcon,
   Sparkles,
 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { api } from '../../lib/api/client';
 import { useAuthStore } from '../../lib/auth/authStore';
 import type { StorefrontConfig } from '../../types/api/storefront';
@@ -776,13 +777,13 @@ export const StorefrontSettingsWorkspace: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-3">
-          <a
-            href="/storefront/builder"
+          <Link
+            to="/storefront/builder"
             className="inline-flex items-center gap-1.5 rounded-xl border border-default bg-surface px-3.5 py-2 text-xs font-semibold text-default hover:border-emerald-500 hover:text-emerald-600 dark:hover:text-emerald-400 transition-all shadow-xs"
           >
             <Layout className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
             <span>Page & Block Builder</span>
-          </a>
+          </Link>
 
           <div ref={seoMenuRef} className="relative inline-block select-none">
             <button
@@ -888,14 +889,14 @@ export const StorefrontSettingsWorkspace: React.FC = () => {
                   <ExternalLink className="size-3.5 text-muted" />
                   <span>PWA Manifest</span>
                 </a>
-                <a
-                  href="/settings/seo"
+                <Link
+                  to="/settings/seo"
                   onClick={() => setSeoMenuOpen(false)}
                   className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-surface-sunken text-emerald-600 font-medium transition-colors border-t border-default mt-1"
                 >
                   <ShieldCheck className="size-3.5" />
                   <span>SEO Workspace &rarr;</span>
-                </a>
+                </Link>
               </div>
             )}
           </div>
@@ -903,7 +904,7 @@ export const StorefrontSettingsWorkspace: React.FC = () => {
           <a
             href={getStorefrontExternalUrl(effectiveSubdomain)}
             target="_blank"
-            rel="noreferrer"
+            rel="noopener noreferrer"
             className="inline-flex items-center gap-1.5 rounded-xl border border-default bg-surface px-3.5 py-2 text-xs font-semibold text-default hover:border-emerald-500 hover:text-emerald-600 dark:hover:text-emerald-400 transition-all shadow-xs"
           >
             <Eye className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />

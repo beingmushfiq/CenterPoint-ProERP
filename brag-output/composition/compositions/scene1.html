@@ -1,0 +1,142 @@
+<template>
+  <style>
+    #root {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Inter', -apple-system, sans-serif;
+    }
+
+    .terminal-frame {
+      width: 980px;
+      background: #0d1117;
+      border: 1px solid #30363d;
+      border-radius: 12px;
+      box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.8), 0 0 35px rgba(16, 185, 129, 0.15);
+      overflow: hidden;
+    }
+
+    .terminal-header {
+      height: 44px;
+      background: #161b22;
+      border-bottom: 1px solid #30363d;
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      gap: 8px;
+    }
+
+    .dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+    }
+    .dot-red { background: #ff5f56; }
+    .dot-yellow { background: #ffbd2e; }
+    .dot-green { background: #27c93f; }
+
+    .terminal-title {
+      margin-left: 12px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      color: #94a3b8;
+    }
+
+    .terminal-body {
+      padding: 32px 36px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 24px;
+      line-height: 1.6;
+      min-height: 220px;
+    }
+
+    .term-prompt { color: #58a6ff; }
+    .term-cursor {
+      display: inline-block;
+      width: 12px;
+      height: 24px;
+      background: #34d399;
+      margin-left: 4px;
+      vertical-align: middle;
+    }
+
+    .term-status {
+      margin-top: 14px;
+      color: #60a5fa;
+      font-size: 18px;
+      opacity: 0;
+    }
+
+    .term-ready {
+      margin-top: 8px;
+      color: #34d399;
+      font-size: 20px;
+      font-weight: 700;
+      opacity: 0;
+    }
+  </style>
+
+  <div id="root" data-composition-id="scene1" data-width="1920" data-height="1080">
+    <div class="terminal-frame" id="scene1-frame">
+      <div class="terminal-header">
+        <div class="dot dot-red"></div>
+        <div class="dot dot-yellow"></div>
+        <div class="dot dot-green"></div>
+        <span class="terminal-title">bash — cashier@centerpoint-fms: ~</span>
+      </div>
+      <div class="terminal-body">
+        <p><span class="term-prompt">admin@centerpoint-erp:~$</span> <span id="scene1-typed"></span><span class="term-cursor" id="scene1-cursor"></span></p>
+        <p class="term-status" id="scene1-status">[SYSTEM] Initializing high-speed retail kernel v4.8.2...</p>
+        <p class="term-ready" id="scene1-ready">&gt; Dual-Session POS Terminal Ready.</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const tl = gsap.timeline({ paused: true });
+
+    // Entrance: terminal window arrives
+    tl.fromTo(
+      "#scene1-frame",
+      { opacity: 0, scale: 0.96, y: 15 },
+      { opacity: 1, scale: 1, y: 0, duration: 0.35, ease: "power4.out" },
+      0.05
+    );
+
+    // Monospace typing simulation for command: "pos-cli --start --terminal=01"
+    const cmdText = "pos-cli --start --terminal=01";
+    const typedEl = document.getElementById("scene1-typed");
+    const cursor = document.getElementById("scene1-cursor");
+
+    const proxy = { count: 0 };
+    tl.to(
+      proxy,
+      {
+        count: cmdText.length,
+        duration: 1.1,
+        ease: "none",
+        onUpdate: function () {
+          const idx = Math.floor(proxy.count);
+          typedEl.textContent = cmdText.substring(0, idx);
+        }
+      },
+      0.3
+    );
+
+    // Blinking cursor
+    tl.fromTo(cursor, { opacity: 1 }, { opacity: 0, duration: 0.25, repeat: 4, yoyo: true, ease: "steps(1)" }, 0.2);
+
+    // Output logs
+    tl.fromTo("#scene1-status", { opacity: 0, y: 6 }, { opacity: 1, y: 0, duration: 0.2, ease: "power2.out" }, 1.55);
+    tl.fromTo("#scene1-ready", { opacity: 0, y: 6 }, { opacity: 1, y: 0, duration: 0.25, ease: "power2.out" }, 1.85);
+
+    // Smooth exit punch just before 2.73s cut
+    tl.to("#scene1-frame", { scale: 1.04, opacity: 0, duration: 0.18, ease: "power3.in" }, 2.5);
+
+    window.__timelines["scene1"] = tl;
+  </script>
+</template>

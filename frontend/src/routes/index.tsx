@@ -160,7 +160,7 @@ const StorefrontPageBuilderWorkspace = lazy(() =>
   }))
 );
 
-const storefrontRouteChildren = [
+export const storefrontRouteChildren = [
   {
     index: true,
     element: <StorefrontHomePage />,
@@ -197,25 +197,15 @@ const storefrontRouteChildren = [
     path: 'pages/:slug',
     element: <StorefrontDynamicPage />,
   },
-  // ── Canonical alias redirects (legacy & alternative paths) ──
-  { path: 'orders', element: <Navigate to="/track" replace /> },
+  // ── Public Storefront alias redirects ──
   { path: 'order-tracking', element: <Navigate to="/track" replace /> },
   { path: 'contact', element: <Navigate to="/pages/contact" replace /> },
   { path: 'about', element: <Navigate to="/pages/about-us" replace /> },
   { path: 'about-us', element: <Navigate to="/pages/about-us" replace /> },
-  { path: 'collections', element: <Navigate to="/products" replace /> },
-  { path: 'cart', element: <Navigate to="/checkout" replace /> },
   { path: 'faq', element: <Navigate to="/pages/faq" replace /> },
   { path: 'warranty', element: <Navigate to="/pages/warranty-support" replace /> },
-  { path: 'shipping', element: <Navigate to="/pages/shipping-fulfillment" replace /> },
-  { path: 'returns', element: <Navigate to="/pages/return-policy" replace /> },
   { path: 'privacy-policy', element: <Navigate to="/pages/privacy-policy" replace /> },
   { path: 'terms', element: <Navigate to="/pages/terms-conditions" replace /> },
-  // Catch-all: render 404 inside storefront shell — never leak to ERP
-  {
-    path: '*',
-    element: <NotFoundPage />,
-  },
 ];
 
 const isMasterPlatformDomain = (() => {
@@ -256,7 +246,7 @@ function RootLayout() {
   return <Outlet />;
 }
 
-const erpWorkspaceRouteChildren: RouteObject[] = [
+export const erpWorkspaceRouteChildren: RouteObject[] = [
   // For localhost / standard workspace (not storefront root), index route is Tenant ERP Dashboard
   ...(!isTenantStorefrontDomain && !isMasterPlatformDomain
     ? [
@@ -530,6 +520,61 @@ const erpWorkspaceRouteChildren: RouteObject[] = [
     path: 'onboarding',
     element: <OnboardingWizard />,
   },
+  // ── Canonical ERP Aliases & Deep-Link Hardening ───────────────
+  // Sales & Orders
+  { path: 'orders', element: <Navigate to="/sales?tab=orders" replace /> },
+  { path: 'returns', element: <Navigate to="/sales?tab=returns" replace /> },
+  { path: 'customers', element: <Navigate to="/sales?tab=customers" replace /> },
+  { path: 'invoices', element: <Navigate to="/sales?tab=invoices" replace /> },
+
+  // Purchasing & Procurement
+  { path: 'purchase-orders', element: <Navigate to="/purchasing?tab=orders" replace /> },
+  { path: 'po', element: <Navigate to="/purchasing?tab=orders" replace /> },
+  { path: 'bills', element: <Navigate to="/purchasing?tab=bills" replace /> },
+  { path: 'suppliers', element: <Navigate to="/purchasing?tab=suppliers" replace /> },
+  { path: 'requisitions', element: <Navigate to="/purchasing?tab=requisitions" replace /> },
+  { path: 'purchasing/requisitions', element: <Navigate to="/purchasing?tab=requisitions" replace /> },
+  { path: 'grn', element: <Navigate to="/purchasing?tab=grn" replace /> },
+
+  // Catalogue & Products
+  { path: 'products', element: <Navigate to="/catalogue?tab=products" replace /> },
+  { path: 'collections', element: <Navigate to="/catalogue?tab=categories" replace /> },
+  { path: 'categories', element: <Navigate to="/catalogue?tab=categories" replace /> },
+  { path: 'brands', element: <Navigate to="/catalogue?tab=brands" replace /> },
+  { path: 'recipes', element: <Navigate to="/catalogue?tab=bom" replace /> },
+  { path: 'bom', element: <Navigate to="/catalogue?tab=bom" replace /> },
+
+  // Logistics & Delivery
+  { path: 'shipping', element: <Navigate to="/logistics?tab=shipments" replace /> },
+  { path: 'shipments', element: <Navigate to="/logistics?tab=shipments" replace /> },
+  { path: 'couriers', element: <Navigate to="/logistics?tab=providers" replace /> },
+
+  // Production
+  { path: 'batches', element: <Navigate to="/production?tab=batches" replace /> },
+  { path: 'plans', element: <Navigate to="/production?tab=plans" replace /> },
+
+  // Inventory & Warehouses
+  { path: 'stock', element: <Navigate to="/inventory" replace /> },
+  { path: 'warehouse', element: <Navigate to="/inventory" replace /> },
+  { path: 'warehouses', element: <Navigate to="/inventory" replace /> },
+
+  // Finance & Accounting
+  { path: 'due', element: <Navigate to="/finance?tab=due-collection" replace /> },
+  { path: 'due-collection', element: <Navigate to="/finance?tab=due-collection" replace /> },
+  { path: 'banking', element: <Navigate to="/finance?tab=banking" replace /> },
+  { path: 'expenses', element: <Navigate to="/finance?tab=expenses" replace /> },
+  { path: 'journal', element: <Navigate to="/finance?tab=journal" replace /> },
+  { path: 'coa', element: <Navigate to="/finance?tab=coa" replace /> },
+  { path: 'finance/journal', element: <Navigate to="/finance?tab=journal" replace /> },
+  { path: 'finance/gl', element: <Navigate to="/finance?tab=journal" replace /> },
+
+  // Point of Sale, Profile & Assistant
+  { path: 'cart', element: <Navigate to="/pos" replace /> },
+  { path: 'checkout', element: <Navigate to="/pos" replace /> },
+  { path: 'account', element: <Navigate to="/profile" replace /> },
+  { path: 'ai', element: <Navigate to="/dashboard?brain=open" replace /> },
+  { path: 'custom-fields', element: <Navigate to="/settings/custom_fields" replace /> },
+  { path: 'custom_fields', element: <Navigate to="/settings/custom_fields" replace /> },
   {
     path: 'settings/:group',
     element: <SettingsCenterWorkspace />,

@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import {
   ArrowDown,
   ArrowUp,
@@ -981,13 +982,13 @@ export const StorefrontPageBuilderWorkspace: React.FC = () => {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-default pb-4 sm:pb-5 w-full min-w-0">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <a
-              href="/storefront"
+            <Link
+              to="/storefront"
               className="inline-flex items-center gap-1 text-xs font-semibold text-muted hover:text-default transition-colors"
             >
               <ChevronLeft className="h-3.5 w-3.5" />
               <span>Back to Storefront CMS</span>
-            </a>
+            </Link>
           </div>
           <h1 className="text-xl font-bold text-default flex items-center gap-2">
             <Layout className="h-5 w-5 text-emerald-500" />
@@ -1036,13 +1037,13 @@ export const StorefrontPageBuilderWorkspace: React.FC = () => {
             </button>
           </div>
 
-          <a
-            href="/storefront"
+          <Link
+            to="/storefront"
             className="inline-flex items-center gap-1.5 rounded-xl border border-default bg-surface px-3 py-2 text-xs font-semibold text-default hover:border-emerald-500 hover:text-emerald-600 dark:hover:text-emerald-400 transition-all cursor-pointer shadow-2xs"
           >
             <Store className="h-3.5 w-3.5 text-emerald-500" />
             <span className="hidden sm:inline">Settings</span>
-          </a>
+          </Link>
 
           <button
             type="button"

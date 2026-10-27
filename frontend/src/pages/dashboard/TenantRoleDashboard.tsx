@@ -458,6 +458,7 @@ export const TenantRoleDashboard: React.FC = () => {
       color: string;
       shortcut?: string;
       category?: string;
+      isExternal?: boolean;
     }> = [
       {
         label: 'Storefront',
@@ -467,6 +468,7 @@ export const TenantRoleDashboard: React.FC = () => {
         color: 'text-emerald-500',
         shortcut: '⌘1',
         category: 'Online Shop',
+        isExternal: true,
       },
     ];
     if (hasPermission(['sales.order.view', 'sales.order.create'])) {
@@ -901,7 +903,7 @@ export const TenantRoleDashboard: React.FC = () => {
 
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2.5 sm:gap-3.5 w-full justify-center">
               {quickActions.map((action) => {
-                const isExternal = action.to.startsWith('http');
+                const isExternal = Boolean(action.isExternal || action.to.startsWith('http'));
                 const thm = (action.theme && QUICK_ACTION_THEMES[action.theme]) ? QUICK_ACTION_THEMES[action.theme]! : DEFAULT_ACTION_THEME;
                 const inner = (
                   <div

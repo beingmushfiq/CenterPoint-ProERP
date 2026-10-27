@@ -114,7 +114,26 @@ export function getStorefrontExternalUrl(subdomain: string, path: string = '/'):
     return normalizedPath === '/' ? `${protocol}//${tenantHost}` : `${protocol}//${tenantHost}${normalizedPath}`;
   }
 
-  return getStorefrontUrl(subdomain, path);
+  // On localhost or non-subdomain host:
+  // Return an absolute URL with window.location.origin so callers checking url.startsWith('http')
+  // or isExternalUrl(url) always recognize it as external and render <a target="_blank">!
+  const base = `/store/${subdomain || 'store'}`;
+  const relativePath = normalizedPath === '/' ? base : `${base}${normalizedPath}`;
+  return `${window.location.origin}${relativePath}`;
+}
+
+/**
+ * Helper to determine if a URL points outside the current application / tab.
+ */
+export function isExternalUrl(url: string): boolean {
+  if (!url) return false;
+  return (
+    url.startsWith('http://') ||
+    url.startsWith('https://') ||
+    url.startsWith('//') ||
+    url.startsWith('mailto:') ||
+    url.startsWith('tel:')
+  );
 }
 
 /**

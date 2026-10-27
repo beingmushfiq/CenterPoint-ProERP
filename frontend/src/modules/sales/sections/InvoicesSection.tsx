@@ -677,7 +677,7 @@ export function InvoicesSection({ onNavigateToTab }: InvoicesSectionProps = {}) 
               </div>
               {(inv.status === 'posted' || inv.status === 'paid') && (
                 <Link
-                  to="/finance?tab=gl"
+                  to="/finance?tab=journal"
                   onClick={() => {
                     setOpenActionMenuId(null);
                     setActionMenuAnchor(null);

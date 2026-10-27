@@ -839,8 +839,12 @@ export const EnterpriseSystemNavigator: React.FC = () => {
                                   const targetUrl = action.to === '__STOREFRONT_EXTERNAL_URL__'
                                     ? getStorefrontExternalUrl(tenantSubdomain)
                                     : action.to;
-                                  return (
-                                  action.isExternal ? (
+                                  const isExternal = Boolean(
+                                    action.isExternal ||
+                                    targetUrl.startsWith('http://') ||
+                                    targetUrl.startsWith('https://')
+                                  );
+                                  return isExternal ? (
                                     <a
                                       key={idx}
                                       href={targetUrl}
@@ -861,7 +865,6 @@ export const EnterpriseSystemNavigator: React.FC = () => {
                                       {ActionIcon && <ActionIcon className="size-2.5" />}
                                       <span>{action.label}</span>
                                     </Link>
-                                  )
                                   );
                                 })}
                             </div>

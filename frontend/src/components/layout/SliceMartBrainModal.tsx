@@ -402,7 +402,7 @@ function ToolExecutionCard({
     return (
       <CashFlowRiskCard
         data={toolResult.data as unknown as CashFlowRiskData}
-        onExploreFinancing={() => onNavigate('/ai?tab=financing')}
+        onExploreFinancing={() => onNavigate('/finance?tab=statements')}
       />
     );
   }

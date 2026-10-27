@@ -217,7 +217,7 @@ export const PurchasingDashboardView: React.FC = () => {
               <h3 className="text-sm font-bold text-default">Material Requisitions</h3>
               <p className="text-[11px] text-muted">Internal procurement requests</p>
             </div>
-            <Link to="/purchasing/requisitions?action=new" className="flex items-center gap-1 rounded-lg border border-default bg-surface px-2.5 py-1.5 text-[11px] font-semibold text-primary hover:bg-surface-sunken transition-all">
+            <Link to="/purchasing?tab=requisitions&action=new" className="flex items-center gap-1 rounded-lg border border-default bg-surface px-2.5 py-1.5 text-[11px] font-semibold text-primary hover:bg-surface-sunken transition-all">
               <Plus className="size-3" /> Request
             </Link>
           </div>

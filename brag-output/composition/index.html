@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en" data-resolution="landscape">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <title>CenterPoint ProERP — Brag Video</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      :root {
+        --ground: #080a0f;
+        --ink: #f8fafc;
+        --font-display: 'Inter', -apple-system, sans-serif;
+      }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html, body {
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        background: var(--ground);
+        font-family: var(--font-display);
+      }
+      #root {
+        position: relative;
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        background: radial-gradient(circle at 50% 30%, #111827 0%, #080a0f 85%);
+      }
+      .bg-grid {
+        position: absolute;
+        inset: 0;
+        background-image: 
+          linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+          linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+        background-size: 40px 40px;
+        pointer-events: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="21"
+      data-width="1920"
+      data-height="1080"
+    >
+      <div class="bg-grid" data-layout-ignore="true"></div>
+
+      <!-- AUDIO TRACKS -->
+      <!-- Main Music Bed: 0 to 17.2s with fade in and sharp fade before punchline -->
+      <audio
+        id="bgm"
+        class="clip"
+        data-start="0"
+        data-duration="17.2"
+        data-track-index="0"
+        data-volume="0.45"
+        data-fade-in="0.6"
+        data-fade-out="0.6"
+        src="assets/music/happy-beats-business-moves-vol-12-by-ende-dot-app.mp3"
+      ></audio>
+
+      <!-- Keypress SFX for terminal typing in Scene 1 -->
+      <audio id="sfx-key1" class="clip" data-start="0.35" data-duration="0.3" data-volume="0.5" src="assets/sfx/keyboard/keypress-001.wav"></audio>
+      <audio id="sfx-key2" class="clip" data-start="0.65" data-duration="0.3" data-volume="0.5" src="assets/sfx/keyboard/keypress-002.wav"></audio>
+      <audio id="sfx-key3" class="clip" data-start="0.95" data-duration="0.3" data-volume="0.5" src="assets/sfx/keyboard/keypress-003.wav"></audio>
+      <audio id="sfx-key4" class="clip" data-start="1.25" data-duration="0.3" data-volume="0.5" src="assets/sfx/keyboard/keypress-004.wav"></audio>
+
+      <!-- Scene 2 Slam & Register Beep -->
+      <audio id="sfx-slam" class="clip" data-start="2.73" data-duration="1.0" data-volume="0.8" src="assets/sfx/impact/impactSoft_medium_001.ogg"></audio>
+      <audio id="sfx-beep" class="clip" data-start="4.50" data-duration="0.5" data-volume="0.6" src="assets/sfx/interface/click_001.ogg"></audio>
+
+      <!-- Scene 3 Z-Report Drop, Keypresses & Balance Chime -->
+      <audio id="sfx-drop" class="clip" data-start="7.64" data-duration="0.8" data-volume="0.7" src="assets/sfx/interface/drop_001.ogg"></audio>
+      <audio id="sfx-denom1" class="clip" data-start="8.74" data-duration="0.3" data-volume="0.5" src="assets/sfx/keyboard/keypress-005.wav"></audio>
+      <audio id="sfx-denom2" class="clip" data-start="9.29" data-duration="0.3" data-volume="0.5" src="assets/sfx/keyboard/keypress-006.wav"></audio>
+      <audio id="sfx-chime" class="clip" data-start="10.93" data-duration="1.0" data-volume="0.8" src="assets/sfx/interface/bong_001.ogg"></audio>
+
+      <!-- Scene 4 Scope clicks on beat subdivisions -->
+      <audio id="sfx-scope1" class="clip" data-start="12.02" data-duration="0.4" data-volume="0.4" src="assets/sfx/interface/click_001.ogg"></audio>
+      <audio id="sfx-scope2" class="clip" data-start="13.11" data-duration="0.4" data-volume="0.4" src="assets/sfx/interface/click_001.ogg"></audio>
+      <audio id="sfx-scope3" class="clip" data-start="14.20" data-duration="0.4" data-volume="0.4" src="assets/sfx/interface/click_001.ogg"></audio>
+
+      <!-- Scene 5 Dry Punchline Impact Hit -->
+      <audio id="sfx-punchline" class="clip" data-start="18.56" data-duration="1.4" data-volume="1.0" src="assets/sfx/impact/impactBell_heavy_000.ogg"></audio>
+
+      <!-- SCENE SUB-COMPOSITIONS -->
+      <!-- Scene 1: Terminal Hook (0.0s to 2.73s) -->
+      <div
+        id="scene1"
+        class="clip"
+        data-composition-id="scene1"
+        data-composition-src="compositions/scene1.html"
+        data-start="0"
+        data-duration="2.73"
+        data-track-index="1"
+        data-track-kind="graphics"
+        data-width="1920"
+        data-height="1080"
+      ></div>
+
+      <!-- Scene 2: POS Terminal Shell (2.73s to 7.64s) -->
+      <div
+        id="scene2"
+        class="clip"
+        data-composition-id="scene2"
+        data-composition-src="compositions/scene2.html"
+        data-start="2.73"
+        data-duration="4.91"
+        data-track-index="1"
+        data-track-kind="graphics"
+        data-width="1920"
+        data-height="1080"
+      ></div>
+
+      <!-- Scene 3: Official POS Z-Report (7.64s to 12.02s) -->
+      <div
+        id="scene3"
+        class="clip"
+        data-composition-id="scene3"
+        data-composition-src="compositions/scene3.html"
+        data-start="7.64"
+        data-duration="4.38"
+        data-track-index="1"
+        data-track-kind="graphics"
+        data-width="1920"
+        data-height="1080"
+      ></div>
+
+      <!-- Scene 4: 17 Workspaces Scope (12.02s to 17.00s) -->
+      <div
+        id="scene4"
+        class="clip"
+        data-composition-id="scene4"
+        data-composition-src="compositions/scene4.html"
+        data-start="12.02"
+        data-duration="4.98"
+        data-track-index="1"
+        data-track-kind="graphics"
+        data-width="1920"
+        data-height="1080"
+      ></div>
+
+      <!-- Scene 5: Outro Punchline (17.00s to 21.00s) -->
+      <div
+        id="scene5"
+        class="clip"
+        data-composition-id="scene5"
+        data-composition-src="compositions/scene5.html"
+        data-start="17.00"
+        data-duration="4.00"
+        data-track-index="1"
+        data-track-kind="graphics"
+        data-width="1920"
+        data-height="1080"
+      ></div>
+    </div>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+      window.__timelines["main"] = tl;
+      tl.seek(0);
+    </script>
+  </body>
+</html>

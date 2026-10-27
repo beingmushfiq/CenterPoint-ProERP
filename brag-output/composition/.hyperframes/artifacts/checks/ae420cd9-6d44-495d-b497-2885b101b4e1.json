@@ -1,0 +1,880 @@
+{
+  "ok": true,
+  "strict": false,
+  "browserSkipped": false,
+  "lint": {
+    "ok": true,
+    "errorCount": 0,
+    "warningCount": 0,
+    "infoCount": 0,
+    "findings": [],
+    "filesScanned": 6
+  },
+  "runtime": {
+    "ok": true,
+    "errorCount": 0,
+    "warningCount": 7,
+    "infoCount": 0,
+    "findings": [
+      {
+        "code": "clip_media_fit",
+        "severity": "warning",
+        "message": "Audio \"sfx-slam\" is 0.19s but its slot (data-duration) is 1.00s — the slot is shortened to the media length when rendered. Set data-duration to ~0.19s if that isn't intended.",
+        "selector": "[data-composition-id]",
+        "dataAttributes": {
+          "data-composition-id": "main",
+          "data-start": "0",
+          "data-duration": "21",
+          "data-width": "1920",
+          "data-height": "1080"
+        },
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 1920,
+          "height": 1080
+        },
+        "time": 0
+      },
+      {
+        "code": "clip_media_fit",
+        "severity": "warning",
+        "message": "Audio \"sfx-beep\" is 0.10s but its slot (data-duration) is 0.50s — the slot is shortened to the media length when rendered. Set data-duration to ~0.10s if that isn't intended.",
+        "selector": "[data-composition-id]",
+        "dataAttributes": {
+          "data-composition-id": "main",
+          "data-start": "0",
+          "data-duration": "21",
+          "data-width": "1920",
+          "data-height": "1080"
+        },
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 1920,
+          "height": 1080
+        },
+        "time": 0
+      },
+      {
+        "code": "clip_media_fit",
+        "severity": "warning",
+        "message": "Audio \"sfx-drop\" is 0.11s but its slot (data-duration) is 0.80s — the slot is shortened to the media length when rendered. Set data-duration to ~0.11s if that isn't intended.",
+        "selector": "[data-composition-id]",
+        "dataAttributes": {
+          "data-composition-id": "main",
+          "data-start": "0",
+          "data-duration": "21",
+          "data-width": "1920",
+          "data-height": "1080"
+        },
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 1920,
+          "height": 1080
+        },
+        "time": 0
+      },
+      {
+        "code": "clip_media_fit",
+        "severity": "warning",
+        "message": "Audio \"sfx-chime\" is 0.13s but its slot (data-duration) is 1.00s — the slot is shortened to the media length when rendered. Set data-duration to ~0.13s if that isn't intended.",
+        "selector": "[data-composition-id]",
+        "dataAttributes": {
+          "data-composition-id": "main",
+          "data-start": "0",
+          "data-duration": "21",
+          "data-width": "1920",
+          "data-height": "1080"
+        },
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 1920,
+          "height": 1080
+        },
+        "time": 0
+      },
+      {
+        "code": "clip_media_fit",
+        "severity": "warning",
+        "message": "Audio \"sfx-scope1\" is 0.10s but its slot (data-duration) is 0.40s — the slot is shortened to the media length when rendered. Set data-duration to ~0.10s if that isn't intended.",
+        "selector": "[data-composition-id]",
+        "dataAttributes": {
+          "data-composition-id": "main",
+          "data-start": "0",
+          "data-duration": "21",
+          "data-width": "1920",
+          "data-height": "1080"
+        },
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 1920,
+          "height": 1080
+        },
+        "time": 0
+      },
+      {
+        "code": "clip_media_fit",
+        "severity": "warning",
+        "message": "Audio \"sfx-scope2\" is 0.10s but its slot (data-duration) is 0.40s — the slot is shortened to the media length when rendered. Set data-duration to ~0.10s if that isn't intended.",
+        "selector": "[data-composition-id]",
+        "dataAttributes": {
+          "data-composition-id": "main",
+          "data-start": "0",
+          "data-duration": "21",
+          "data-width": "1920",
+          "data-height": "1080"
+        },
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 1920,
+          "height": 1080
+        },
+        "time": 0
+      },
+      {
+        "code": "clip_media_fit",
+        "severity": "warning",
+        "message": "Audio \"sfx-scope3\" is 0.10s but its slot (data-duration) is 0.40s — the slot is shortened to the media length when rendered. Set data-duration to ~0.10s if that isn't intended.",
+        "selector": "[data-composition-id]",
+        "dataAttributes": {
+          "data-composition-id": "main",
+          "data-start": "0",
+          "data-duration": "21",
+          "data-width": "1920",
+          "data-height": "1080"
+        },
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 1920,
+          "height": 1080
+        },
+        "time": 0
+      }
+    ]
+  },
+  "layout": {
+    "ok": true,
+    "errorCount": 0,
+    "warningCount": 0,
+    "infoCount": 0,
+    "findings": [],
+    "duration": 21,
+    "samples": [
+      1.167,
+      3.5,
+      5.833,
+      8.167,
+      10.5,
+      12.833,
+      15.167,
+      17.5,
+      19.833
+    ],
+    "transitionSamples": [],
+    "transitionSamplesDropped": 0,
+    "tolerance": 2,
+    "totalIssueCount": 0,
+    "truncated": false
+  },
+  "motion": {
+    "ok": true,
+    "errorCount": 0,
+    "warningCount": 0,
+    "infoCount": 0,
+    "findings": [],
+    "enabled": false,
+    "samples": 0
+  },
+  "contrast": {
+    "ok": true,
+    "errorCount": 0,
+    "warningCount": 5,
+    "infoCount": 0,
+    "findings": [
+      {
+        "code": "contrast_aa_failure",
+        "severity": "warning",
+        "message": "Contrast is 1.11:1; WCAG AA requires 3:1.",
+        "text": "pos-cli --start --term",
+        "fg": "rgb(0,0,0)",
+        "bg": "rgb(13,17,23)",
+        "ratio": 1.11,
+        "requiredRatio": 3,
+        "suggestedColor": "rgb(96,96,96)",
+        "large": true,
+        "selector": "#scene1-typed",
+        "dataAttributes": {},
+        "sourceFile": "compositions/scene1.html",
+        "bbox": {
+          "x": 867.015625,
+          "y": 487,
+          "width": 316.8125,
+          "height": 31
+        },
+        "time": 1.167,
+        "times": [
+          1.167
+        ]
+      },
+      {
+        "code": "contrast_aa_failure",
+        "severity": "warning",
+        "message": "Contrast is 2.99:1; WCAG AA requires 4.5:1.",
+        "text": "CP",
+        "fg": "rgb(248,250,252)",
+        "bg": "rgb(11,166,116)",
+        "ratio": 2.99,
+        "requiredRatio": 4.5,
+        "suggestedColor": "rgb(43,43,43)",
+        "large": false,
+        "selector": "div > div:nth-of-type(3) > div > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1)",
+        "dataAttributes": {},
+        "sourceFile": "compositions/scene2.html",
+        "bbox": {
+          "x": 57,
+          "y": 32,
+          "width": 32,
+          "height": 32
+        },
+        "time": 5.833,
+        "times": [
+          5.833
+        ]
+      },
+      {
+        "code": "contrast_aa_failure",
+        "severity": "warning",
+        "message": "Contrast is 2.54:1; WCAG AA requires 4.5:1.",
+        "text": "Cash [F9]",
+        "fg": "rgb(255,255,255)",
+        "bg": "rgb(16,185,129)",
+        "ratio": 2.54,
+        "requiredRatio": 4.5,
+        "suggestedColor": "rgb(57,57,57)",
+        "large": false,
+        "selector": "div > div:nth-of-type(3) > div > div:nth-of-type(2) > div:nth-of-type(2) > div:nth-of-type(3) > div:nth-of-type(4) > div:nth-of-type(1)",
+        "dataAttributes": {},
+        "sourceFile": "compositions/scene2.html",
+        "bbox": {
+          "x": 1252.5625,
+          "y": 922,
+          "width": 294.71875,
+          "height": 42
+        },
+        "time": 5.833,
+        "times": [
+          5.833
+        ]
+      },
+      {
+        "code": "contrast_aa_failure",
+        "severity": "warning",
+        "message": "Contrast is 3.09:1; WCAG AA requires 4.5:1.",
+        "text": "Confirm & Post to General Ledger",
+        "fg": "rgb(255,255,255)",
+        "bg": "rgb(11,167,117)",
+        "ratio": 3.09,
+        "requiredRatio": 4.5,
+        "suggestedColor": "rgb(44,44,44)",
+        "large": false,
+        "selector": "#scene3-confirm-btn",
+        "dataAttributes": {},
+        "sourceFile": "compositions/scene3.html",
+        "bbox": {
+          "x": 995,
+          "y": 729,
+          "width": 612,
+          "height": 47
+        },
+        "time": 10.5,
+        "times": [
+          10.5
+        ]
+      },
+      {
+        "code": "contrast_aa_failure",
+        "severity": "warning",
+        "message": "Contrast is 2.99:1; WCAG AA requires 3:1.",
+        "text": "CP",
+        "fg": "rgb(248,250,252)",
+        "bg": "rgb(10,166,116)",
+        "ratio": 2.99,
+        "requiredRatio": 3,
+        "suggestedColor": "rgb(69,70,70)",
+        "large": true,
+        "selector": "#scene5-logo",
+        "dataAttributes": {},
+        "sourceFile": "compositions/scene5.html",
+        "bbox": {
+          "x": 920,
+          "y": 356.40625,
+          "width": 80,
+          "height": 80
+        },
+        "time": 19.833,
+        "times": [
+          19.833
+        ]
+      }
+    ],
+    "enabled": true,
+    "samples": [
+      1.167,
+      5.833,
+      10.5,
+      15.167,
+      19.833
+    ],
+    "checked": 60,
+    "passed": 55
+  },
+  "craft": {
+    "ok": true,
+    "errorCount": 0,
+    "warningCount": 5,
+    "infoCount": 0,
+    "findings": [
+      {
+        "code": "first_frame_empty",
+        "severity": "warning",
+        "message": "Frame 0 shows only the background, and the first frame is the thumbnail on social players: have the title or key image already on screen at 0 s instead of entering from nothing; see references/review.md.",
+        "selector": "[data-composition-id]",
+        "dataAttributes": {},
+        "sourceFile": "index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 0
+      },
+      {
+        "code": "text_below_floor",
+        "severity": "warning",
+        "message": "Type floor is 28 px (2.6% of the 1080 px short side, what a phone can read) and 5 text elements stay under it for 0.5 s or more, the smallest \"bash — cashier@centerpoint-fms: ~\" at 13 px: set reading text to at least 28 px, or put data-layout-ignore on text that is texture rather than reading; see references/look.md.",
+        "text": "bash — cashier@centerpoint-fms: ~",
+        "selector": "span.terminal-title",
+        "dataAttributes": {},
+        "sourceFile": "compositions/scene1.html",
+        "bbox": {
+          "x": 566.42,
+          "y": 430.14,
+          "width": 252.64,
+          "height": 16.69
+        },
+        "time": 0.125,
+        "times": [
+          0.125,
+          0.125,
+          0.375,
+          1.625,
+          2
+        ],
+        "fontPx": 12.76,
+        "floorPx": 28,
+        "seconds": 2.625,
+        "elements": [
+          {
+            "selector": "span.terminal-title",
+            "text": "bash — cashier@centerpoint-fms: ~",
+            "fontPx": 12.76,
+            "time": 0.125,
+            "seconds": 2.625
+          },
+          {
+            "selector": "#scene1-status",
+            "text": "[SYSTEM] Initializing high-speed retail kernel v4.8.2...",
+            "fontPx": 18,
+            "time": 1.625,
+            "seconds": 1.125
+          },
+          {
+            "selector": "#scene1-ready",
+            "text": "> Dual-Session POS Terminal Ready.",
+            "fontPx": 20,
+            "time": 2,
+            "seconds": 0.75
+          },
+          {
+            "selector": "span.term-prompt",
+            "text": "admin@centerpoint-erp:~$",
+            "fontPx": 23.56,
+            "time": 0.125,
+            "seconds": 2.625
+          },
+          {
+            "selector": "#scene1-typed",
+            "text": "p",
+            "fontPx": 24,
+            "time": 0.375,
+            "seconds": 2.375
+          }
+        ]
+      },
+      {
+        "code": "text_below_floor",
+        "severity": "warning",
+        "message": "Type floor is 28 px (2.6% of the 1080 px short side, what a phone can read) and 30 text elements stay under it for 0.5 s or more, the smallest \"● Shift #SFT-0941 ACTIVE\" at 12 px: set reading text to at least 28 px, or put data-layout-ignore on text that is texture rather than reading; see references/look.md.",
+        "text": "● Shift #SFT-0941 ACTIVE",
+        "selector": "div.brand-group > div:nth-of-type(3)",
+        "dataAttributes": {},
+        "sourceFile": "compositions/scene2.html",
+        "bbox": {
+          "x": 300.27,
+          "y": 39.54,
+          "width": 169.17,
+          "height": 15
+        },
+        "time": 2.875,
+        "times": [
+          2.875,
+          2.875,
+          2.875,
+          2.875,
+          2.875,
+          2.875,
+          2.875,
+          2.875,
+          2.875,
+          2.875,
+          2.875,
+          2.875,
+          2.875,
+          2.875,
+          2.875,
+          2.875,
+          2.875,
+          2.875,
+          2.875,
+          2.875,
+          2.875,
+          2.875,
+          2.875,
+          2.875,
+          2.875,
+          2.875,
+          3,
+          3,
+          3,
+          3
+        ],
+        "fontPx": 12,
+        "floorPx": 28,
+        "seconds": 4.75,
+        "elements": [
+          {
+            "selector": "div.brand-group > div:nth-of-type(3)",
+            "text": "● Shift #SFT-0941 ACTIVE",
+            "fontPx": 12,
+            "time": 2.875,
+            "seconds": 4.75
+          },
+          {
+            "selector": "div.search-box > span:nth-of-type(2)",
+            "text": "Ctrl+K",
+            "fontPx": 12,
+            "time": 2.875,
+            "seconds": 4.75
+          },
+          {
+            "selector": "div.cat-pill.active",
+            "text": "All Items",
+            "fontPx": 13,
+            "time": 2.875,
+            "seconds": 4.75
+          },
+          {
+            "selector": "div.categories-bar > div:nth-of-type(2)",
+            "text": "Raw Grains",
+            "fontPx": 13,
+            "time": 2.875,
+            "seconds": 4.75
+          },
+          {
+            "selector": "div.categories-bar > div:nth-of-type(3)",
+            "text": "Oils & Fats",
+            "fontPx": 13,
+            "time": 2.875,
+            "seconds": 4.75
+          },
+          {
+            "selector": "div.categories-bar > div:nth-of-type(4)",
+            "text": "Sweeteners",
+            "fontPx": 13,
+            "time": 2.875,
+            "seconds": 4.75
+          },
+          {
+            "selector": "div.categories-bar > div:nth-of-type(5)",
+            "text": "Packaging",
+            "fontPx": 13,
+            "time": 2.875,
+            "seconds": 4.75
+          },
+          {
+            "selector": "div.cart-header > span:nth-of-type(1)",
+            "text": "EN / বাংলা Tax Invoice",
+            "fontPx": 13,
+            "time": 2.875,
+            "seconds": 4.75
+          },
+          {
+            "selector": "div.tender-btn.btn-cash",
+            "text": "Cash [F9]",
+            "fontPx": 13,
+            "time": 2.875,
+            "seconds": 4.75
+          },
+          {
+            "selector": "div.tender-btn.btn-split",
+            "text": "Split Tender [F10]",
+            "fontPx": 13,
+            "time": 2.875,
+            "seconds": 4.75
+          },
+          {
+            "selector": "span.banner-sub",
+            "text": "Dual-session • Offline-first • 58mm/80mm Thermal Receipt",
+            "fontPx": 13,
+            "time": 3,
+            "seconds": 4.625
+          },
+          {
+            "selector": "div.bar-right > span:nth-of-type(1)",
+            "text": "Thermal Engine:",
+            "fontPx": 13,
+            "time": 3,
+            "seconds": 4.625
+          },
+          {
+            "selector": "div.bar-right > span:nth-of-type(1) > strong:nth-of-type(1)",
+            "text": "Epson TM-T88VI Ready",
+            "fontPx": 13,
+            "time": 3,
+            "seconds": 4.625
+          },
+          {
+            "selector": "div.pos-meta > span:nth-of-type(1)",
+            "text": "Register:",
+            "fontPx": 14,
+            "time": 2.875,
+            "seconds": 4.75
+          },
+          {
+            "selector": "div.pos-meta > span:nth-of-type(1) > strong:nth-of-type(1)",
+            "text": "POS-01 (Main Counter)",
+            "fontPx": 14,
+            "time": 2.875,
+            "seconds": 4.75
+          },
+          {
+            "selector": "div.pos-meta > span:nth-of-type(2)",
+            "text": "Cashier:",
+            "fontPx": 14,
+            "time": 2.875,
+            "seconds": 4.75
+          },
+          {
+            "selector": "div.pos-meta > span:nth-of-type(2) > strong:nth-of-type(1)",
+            "text": "Sarah Khan",
+            "fontPx": 14,
+            "time": 2.875,
+            "seconds": 4.75
+          },
+          {
+            "selector": "div.pos-meta > span:nth-of-type(3)",
+            "text": "Hub:",
+            "fontPx": 14,
+            "time": 2.875,
+            "seconds": 4.75
+          },
+          {
+            "selector": "div.pos-meta > span:nth-of-type(3) > strong:nth-of-type(1)",
+            "text": "Dhaka Industrial Zone",
+            "fontPx": 14,
+            "time": 2.875,
+            "seconds": 4.75
+          },
+          {
+            "selector": "div.pos-meta > span:nth-of-type(4)",
+            "text": "● 100% Offline Ready",
+            "fontPx": 14,
+            "time": 2.875,
+            "seconds": 4.75
+          },
+          {
+            "selector": "div.search-box > span:nth-of-type(1)",
+            "text": "Search SKU, Barcode, Item (F2)...",
+            "fontPx": 14,
+            "time": 2.875,
+            "seconds": 4.75
+          },
+          {
+            "selector": "div.cart-summary > div:nth-of-type(1) > span:nth-of-type(1)",
+            "text": "Subtotal",
+            "fontPx": 14,
+            "time": 2.875,
+            "seconds": 4.75
+          },
+          {
+            "selector": "#scene2-subtotal",
+            "text": "৳2450.00",
+            "fontPx": 14,
+            "time": 2.875,
+            "seconds": 4.75
+          },
+          {
+            "selector": "div.cart-summary > div:nth-of-type(2) > span:nth-of-type(1)",
+            "text": "Industrial VAT (5%)",
+            "fontPx": 14,
+            "time": 2.875,
+            "seconds": 4.75
+          },
+          {
+            "selector": "#scene2-vat",
+            "text": "৳122.50",
+            "fontPx": 14,
+            "time": 2.875,
+            "seconds": 4.75
+          },
+          {
+            "selector": "div.brand-badge",
+            "text": "CP",
+            "fontPx": 15,
+            "time": 2.875,
+            "seconds": 4.75
+          },
+          {
+            "selector": "div.cart-header > h3:nth-of-type(1)",
+            "text": "Order #ORD-7729",
+            "fontPx": 16,
+            "time": 2.875,
+            "seconds": 4.75
+          },
+          {
+            "selector": "div.summary-total > span:nth-of-type(1)",
+            "text": "Total Payable",
+            "fontPx": 16,
+            "time": 2.875,
+            "seconds": 4.75
+          },
+          {
+            "selector": "span.banner-title",
+            "text": "High-Speed POS Terminal",
+            "fontPx": 16,
+            "time": 3,
+            "seconds": 4.625
+          },
+          {
+            "selector": "div.brand-name",
+            "text": "CenterPoint ProERP",
+            "fontPx": 18,
+            "time": 2.875,
+            "seconds": 4.75
+          }
+        ]
+      },
+      {
+        "code": "text_below_floor",
+        "severity": "warning",
+        "message": "Type floor is 28 px (2.6% of the 1080 px short side, what a phone can read) and 15 text elements stay under it for 0.5 s or more, the smallest \"VERIFYING CASH DRAWER\" at 12 px: set reading text to at least 28 px, or put data-layout-ignore on text that is texture rather than reading; see references/look.md.",
+        "text": "VERIFYING CASH DRAWER",
+        "selector": "#scene3-status-pill",
+        "dataAttributes": {},
+        "sourceFile": "compositions/scene3.html",
+        "bbox": {
+          "x": 1416.73,
+          "y": 316.38,
+          "width": 166.04,
+          "height": 14.78
+        },
+        "time": 7.75,
+        "times": [
+          7.75,
+          7.75,
+          7.75,
+          7.75,
+          7.75,
+          7.75,
+          7.75,
+          7.75,
+          7.75,
+          7.75,
+          7.75,
+          7.75,
+          7.75,
+          7.75,
+          11
+        ],
+        "fontPx": 11.82,
+        "floorPx": 28,
+        "seconds": 4.25,
+        "elements": [
+          {
+            "selector": "#scene3-status-pill",
+            "text": "VERIFYING CASH DRAWER",
+            "fontPx": 11.82,
+            "time": 7.75,
+            "seconds": 4.25
+          },
+          {
+            "selector": "div.variance-card > div:nth-of-type(1)",
+            "text": "Cash Drawer Variance",
+            "fontPx": 11.82,
+            "time": 7.75,
+            "seconds": 4.25
+          },
+          {
+            "selector": "div.modal-title-group > div:nth-of-type(2) > p:nth-of-type(1)",
+            "text": "Shift #SFT-0941 • Terminal POS-01 • Cashier: Sarah Khan",
+            "fontPx": 12.81,
+            "time": 7.75,
+            "seconds": 4.25
+          },
+          {
+            "selector": "div.print-btn.selected",
+            "text": "80mm Thermal",
+            "fontPx": 12.81,
+            "time": 7.75,
+            "seconds": 4.25
+          },
+          {
+            "selector": "div.print-options > div:nth-of-type(2)",
+            "text": "58mm Compact",
+            "fontPx": 12.81,
+            "time": 7.75,
+            "seconds": 4.25
+          },
+          {
+            "selector": "div.print-options > div:nth-of-type(3)",
+            "text": "PDF Audit Record",
+            "fontPx": 12.81,
+            "time": 7.75,
+            "seconds": 4.25
+          },
+          {
+            "selector": "#scene3-var-pill",
+            "text": "✓ PERFECT BALANCE (৳0.00)",
+            "fontPx": 13.63,
+            "time": 11,
+            "seconds": 1
+          },
+          {
+            "selector": "div.metric-card > div:nth-of-type(1) > span:nth-of-type(1)",
+            "text": "Opening Float",
+            "fontPx": 13.8,
+            "time": 7.75,
+            "seconds": 4.25
+          },
+          {
+            "selector": "div.metric-card > div:nth-of-type(1) > span:nth-of-type(2)",
+            "text": "৳2,000.00",
+            "fontPx": 13.8,
+            "time": 7.75,
+            "seconds": 4.25
+          },
+          {
+            "selector": "div.metric-card > div:nth-of-type(2) > span:nth-of-type(1)",
+            "text": "System Expected Cash",
+            "fontPx": 13.8,
+            "time": 7.75,
+            "seconds": 4.25
+          },
+          {
+            "selector": "div.metric-card > div:nth-of-type(2) > span:nth-of-type(2)",
+            "text": "৳4,000.00",
+            "fontPx": 13.8,
+            "time": 7.75,
+            "seconds": 4.25
+          },
+          {
+            "selector": "div.metric-card > div:nth-of-type(3) > span:nth-of-type(1)",
+            "text": "Counted Drawer Cash",
+            "fontPx": 14.78,
+            "time": 7.75,
+            "seconds": 4.25
+          },
+          {
+            "selector": "div.metric-card > div:nth-of-type(3) > span:nth-of-type(2)",
+            "text": "৳4,000.00",
+            "fontPx": 14.78,
+            "time": 7.75,
+            "seconds": 4.25
+          },
+          {
+            "selector": "#scene3-confirm-btn",
+            "text": "Confirm & Post to General Ledger",
+            "fontPx": 14.78,
+            "time": 7.75,
+            "seconds": 4.25
+          },
+          {
+            "selector": "div.modal-title-group > div:nth-of-type(2) > h2:nth-of-type(1)",
+            "text": "Official POS Z-Report — Cash Drawer Reconciliation",
+            "fontPx": 19.71,
+            "time": 7.75,
+            "seconds": 4.25
+          }
+        ]
+      },
+      {
+        "code": "text_below_floor",
+        "severity": "warning",
+        "message": "Type floor is 28 px (2.6% of the 1080 px short side, what a phone can read) and \"From the industrial factory floor to retail P...\" renders at 20 px for 4.88 s: set reading text to at least 28 px, or put data-layout-ignore on text that is texture rather than reading; see references/look.md.",
+        "text": "From the industrial factory floor to retail POS to automated 3PL courier dispatch.",
+        "selector": "#scene4-hdr > p:nth-of-type(1)",
+        "dataAttributes": {},
+        "sourceFile": "compositions/scene4.html",
+        "bbox": {
+          "x": 581.31,
+          "y": 116.54,
+          "width": 757.38,
+          "height": 24
+        },
+        "time": 12.125,
+        "times": [
+          12.125
+        ],
+        "fontPx": 20,
+        "floorPx": 28,
+        "seconds": 4.875,
+        "elements": [
+          {
+            "selector": "#scene4-hdr > p:nth-of-type(1)",
+            "text": "From the industrial factory floor to retail POS to automated 3PL courier dispatch.",
+            "fontPx": 20,
+            "time": 12.125,
+            "seconds": 4.875
+          }
+        ]
+      }
+    ],
+    "enabled": true,
+    "step": 0.125,
+    "samples": 168
+  },
+  "hdr": {
+    "autoPromotion": null,
+    "inspection": "available"
+  },
+  "snapshots": {
+    "enabled": false,
+    "files": [],
+    "times": [],
+    "findingFiles": []
+  }
+}

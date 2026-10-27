@@ -1,0 +1,237 @@
+<template>
+  <style>
+    #root {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      padding: 60px 80px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      font-family: 'Inter', -apple-system, sans-serif;
+      color: #f8fafc;
+      box-sizing: border-box;
+    }
+
+    .ecosystem-header {
+      text-align: center;
+    }
+
+    .ecosystem-header h2 {
+      font-size: 44px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+    }
+
+    .ecosystem-header p {
+      font-size: 20px;
+      color: #94a3b8;
+      margin-top: 8px;
+    }
+
+    .workspaces-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-top: 24px;
+    }
+
+    .workspace-card {
+      background: #141b2b;
+      border: 1px solid #1e293b;
+      border-radius: 12px;
+      padding: 18px 20px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .ws-icon-box {
+      width: 48px;
+      height: 48px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+    }
+
+    .ws-info h4 {
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    .ws-info p {
+      font-size: 12px;
+      color: #64748b;
+      margin-top: 2px;
+    }
+
+    .ecosystem-footer {
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid #334155;
+      border-radius: 14px;
+      padding: 18px 40px;
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      margin-top: 20px;
+    }
+
+    .eco-stat {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .eco-stat-val {
+      font-size: 32px;
+      font-weight: 800;
+      color: #34d399;
+    }
+
+    .eco-stat-lbl {
+      font-size: 13px;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-top: 4px;
+    }
+
+    .eco-divider {
+      width: 1px;
+      height: 40px;
+      background: #334155;
+    }
+  </style>
+
+  <div id="root" data-composition-id="scene4" data-width="1920" data-height="1080">
+    <div class="ecosystem-header" id="scene4-hdr">
+      <h2>17 Integrated Workspaces. One System.</h2>
+      <p>From the industrial factory floor to retail POS to automated 3PL courier dispatch.</p>
+    </div>
+
+    <div class="workspaces-grid" id="scene4-grid" data-layout-ignore="true">
+      <div class="workspace-card" style="border-left: 3px solid #10b981;">
+        <div class="ws-icon-box" style="background: rgba(16, 185, 129, 0.15); color: #34d399;">🏭</div>
+        <div class="ws-info">
+          <h4>Manufacturing &amp; BOM</h4>
+          <p data-layout-ignore="true">Work centers, scrap, routing</p>
+        </div>
+      </div>
+
+      <div class="workspace-card" style="border-left: 3px solid #6366f1;">
+        <div class="ws-icon-box" style="background: rgba(99, 102, 241, 0.15); color: #818cf8;">🔬</div>
+        <div class="ws-info">
+          <h4>Quality Control (QC)</h4>
+          <p data-layout-ignore="true">Inspection, quarantine, CoA</p>
+        </div>
+      </div>
+
+      <div class="workspace-card" style="border-left: 3px solid #3b82f6;">
+        <div class="ws-icon-box" style="background: rgba(59, 130, 246, 0.15); color: #60a5fa;">📦</div>
+        <div class="ws-info">
+          <h4>Warehouse &amp; Inventory</h4>
+          <p data-layout-ignore="true">Bin locations, lot tracking</p>
+        </div>
+      </div>
+
+      <div class="workspace-card" style="border-left: 3px solid #f59e0b;">
+        <div class="ws-icon-box" style="background: rgba(245, 158, 11, 0.15); color: #fbbf24;">📑</div>
+        <div class="ws-info">
+          <h4>Procurement &amp; PO</h4>
+          <p data-layout-ignore="true">3-way match, vendor rating</p>
+        </div>
+      </div>
+
+      <div class="workspace-card" style="border-left: 3px solid #ec4899;">
+        <div class="ws-icon-box" style="background: rgba(236, 72, 153, 0.15); color: #f472b6;">🤝</div>
+        <div class="ws-info">
+          <h4>B2B Sales &amp; Quotations</h4>
+          <p data-layout-ignore="true">Tiered pricing, credit terms</p>
+        </div>
+      </div>
+
+      <div class="workspace-card" style="border-left: 3px solid #10b981;">
+        <div class="ws-icon-box" style="background: rgba(16, 185, 129, 0.15); color: #34d399;">💻</div>
+        <div class="ws-info">
+          <h4>Retail POS Registers</h4>
+          <p data-layout-ignore="true">Dual-session, Z-Report, offline</p>
+        </div>
+      </div>
+
+      <div class="workspace-card" style="border-left: 3px solid #14b8a6;">
+        <div class="ws-icon-box" style="background: rgba(20, 184, 166, 0.15); color: #2dd4bf;">⚖️</div>
+        <div class="ws-info">
+          <h4>General Ledger &amp; Finance</h4>
+          <p data-layout-ignore="true">Double-entry, VAT, P&amp;L audit</p>
+        </div>
+      </div>
+
+      <div class="workspace-card" style="border-left: 3px solid #8b5cf6;">
+        <div class="ws-icon-box" style="background: rgba(139, 92, 246, 0.15); color: #a78bfa;">🚚</div>
+        <div class="ws-info">
+          <h4>3PL Courier Dispatch</h4>
+          <p data-layout-ignore="true">Steadfast, Pathao, RedX auto-sync</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="ecosystem-footer" id="scene4-ftr">
+      <div class="eco-stat">
+        <span class="eco-stat-val">17</span>
+        <span class="eco-stat-lbl" data-layout-ignore="true">Active Workspaces</span>
+      </div>
+      <div class="eco-divider"></div>
+      <div class="eco-stat">
+        <span class="eco-stat-val">706</span>
+        <span class="eco-stat-lbl" data-layout-ignore="true">Wired API Routes</span>
+      </div>
+      <div class="eco-divider"></div>
+      <div class="eco-stat">
+        <span class="eco-stat-val">100%</span>
+        <span class="eco-stat-lbl" data-layout-ignore="true">Bilingual Coverage (EN / বাংলা)</span>
+      </div>
+      <div class="eco-divider"></div>
+      <div class="eco-stat">
+        <span class="eco-stat-val">0.00s</span>
+        <span class="eco-stat-lbl" data-layout-ignore="true">Offline Failover Delay</span>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const tl = gsap.timeline({ paused: true });
+
+    // Header enters
+    tl.fromTo(
+      "#scene4-hdr",
+      { opacity: 0, y: -20 },
+      { opacity: 1, y: 0, duration: 0.35, ease: "power4.out" },
+      0.0
+    );
+
+    // Cards cascade in
+    const cards = document.querySelectorAll(".workspace-card");
+    tl.fromTo(
+      cards,
+      { opacity: 0, y: 25, scale: 0.95 },
+      { opacity: 1, y: 0, scale: 1, duration: 0.28, stagger: 0.1, ease: "power3.out" },
+      0.2
+    );
+
+    // Bottom stats bar
+    tl.fromTo(
+      "#scene4-ftr",
+      { opacity: 0, y: 30 },
+      { opacity: 1, y: 0, duration: 0.4, ease: "power4.out" },
+      1.8
+    );
+
+    // Exit transition
+    tl.to("#root", { opacity: 0, duration: 0.25, ease: "power2.in" }, 4.7);
+
+    window.__timelines["scene4"] = tl;
+  </script>
+</template>
